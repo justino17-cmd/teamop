@@ -363,6 +363,10 @@ body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouv
 .pdx-al{margin-bottom:8px;justify-content:flex-start}
 .pdx-al .pdx-at{flex:1;min-width:0;text-align:left;font-weight:600;overflow-wrap:anywhere}
 .pdx-pt{width:10px;height:10px;border-radius:50%;flex:none}
+.pdx-pil svg{width:14px;height:14px;vertical-align:-2px;margin-right:2px;flex:none}
+.pp-l{border-top:1px solid var(--trait)}.pp-l:first-of-type{border-top:0}.pp-l>.case{border:0;margin:0}.pp-e{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:0 0 10px 38px}.pp-e .btn{margin-left:auto}
+.pdx-rub{flex:none;white-space:nowrap}
+@media (max-width:520px){html .pdx-rub{display:none}}   /* la ligne dit déjà ce qu'elle compte ; sur un téléphone le nom de la rubrique prendrait la place du texte */
 .pdx-filtres{display:flex;gap:10px 14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .pdx-etats{flex:1 1 auto;min-width:0}
 .pdx-etats .puce-c{min-height:44px}
@@ -794,8 +798,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .vx-souci,.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .vx-alerte{display:flex;flex-direction:column;gap:8px}
 .vx-pl{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding-bottom:10px}.vx-pl small{font-size:14px;color:var(--doux);font-weight:550}.vx-pl b{font-size:20px;min-height:36px;display:flex;align-items:center}
-.vx-cam-t{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
-.vx-cam .actions .btn{flex:1 1 140px;white-space:normal;text-align:center}
 .vx-gar{font-weight:700}.vx-gar-b{align-self:flex-start;margin-bottom:6px}
 .vx-anc{padding:0 2px 6px}
 .vx-h{min-height:44px}.vx-inc{flex-wrap:wrap}
@@ -1454,7 +1456,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .panneau .champ{min-width:0}.panneau .champ select{min-width:0;max-width:100%}
 .fo-garder{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
 /* une case qui porte une phrase de quatre lignes (téléphone) s'aligne sur son TITRE, pas sur le milieu du paragraphe ; sous le sélecteur « Appliquer un profil », elle respire (relecture « tout-13 ») */
-.fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px}.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
+.fo-garder.fo-terrain,.fo-garder.eq-sp{align-items:flex-start;padding-block:6px;flex:none}   /* flex:none : dans la feuille (colonne flex), la case se RÉTRÉCISSAIT à 44 px et sa phrase de quatre lignes débordait sur le sélecteur du dessus et sur le cadre du dessous */.fo-garder.fo-terrain>input,.fo-garder.eq-sp>input{margin-top:1px}
 .champ + .fo-garder.fo-terrain{margin-top:14px}
 .eq-dr-non{color:var(--faible);cursor:default;user-select:none}   /* une case sans geste derrière elle : un tiret, pas un vide qu'on prendrait pour une case oubliée */
 .fo-r{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--trait);min-height:52px}label.fo-r{cursor:pointer}
@@ -1509,9 +1511,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
   .cmd-outils .seg{width:100%}.cmd-outils .seg button{flex:1 1 auto;padding:0 6px;min-width:0;font-size:14.5px}.cmd-outils .seg .pr-nb:not(.chaud){display:none}
   .ced-entete{display:none}.ced-l{grid-template-columns:1fr 1fr 40px;grid-template-areas:"n n x" "q p p" "t t t"}.ced-l>.fo-n{grid-area:n}.ced-l>.cmd-x{grid-area:x}.ced-l>.ced-c:nth-of-type(1){grid-area:q}.ced-l>.ced-c:nth-of-type(2){grid-area:p}.ced-t{grid-area:t}.ced-c span{display:inline;font-size:12.5px;color:var(--doux)}
   .bc-doc{padding:14px;font-size:12.5px}.bc-blocs{grid-template-columns:1fr}.bc-titre{text-align:left}.bc-pl{grid-template-columns:1fr 1fr}.bc-pl>.fo-n{grid-column:1/-1}}
-.sk-lieux{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.sk-lieu{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--surf);border:1px solid var(--trait);border-radius:var(--r2);padding:12px;color:var(--encre);font:inherit;cursor:pointer;box-shadow:var(--ombre);min-width:0}
-@media (hover:hover){.sk-lieu:hover,.sk-l:hover,.bx-c:hover{background:var(--survol)}}
+@media (hover:hover){.sk-l:hover,.bx-c:hover{background:var(--survol)}}
 .sk-li{font-size:20px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surf2);border:1px solid var(--trait);flex:none}
 .sk-m{font-size:12.5px;font-weight:650;color:var(--orange)}.sk-ok{font-size:12.5px;font-weight:600;color:var(--vert)}
 .sk-liste{padding:6px 14px}.sk-liste .groupe{display:flex;align-items:center;gap:6px}
@@ -1523,7 +1523,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .mv-gestes{display:flex;gap:8px;margin-left:auto}
 .sk-sel{flex:0 1 280px;min-width:0}.sk-e{width:56px;text-align:right;font-weight:700;flex:none}.sk-pied{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px}
 .bx-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.bx-c{display:flex;flex-direction:column;gap:10px;text-align:left;color:var(--encre);font:inherit;cursor:pointer}.bx-t{display:flex;gap:10px;align-items:flex-start}
-@media (max-width:760px){.sk-lieux{grid-template-columns:1fr 1fr}.sk-lieu{padding:10px}.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
+@media (max-width:760px){.sk-li{width:32px;height:32px;font-size:17px}.mv-gestes{width:100%}.mv-gestes .btn{flex:1}.bx-grille{grid-template-columns:1fr}.sk-liste{padding:4px 10px}}
 .ve-urg{display:flex;flex-direction:column;padding:14px 16px}.ve-u{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--trait);padding:10px 2px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
 @media (hover:hover){.ve-u:hover{background:var(--survol)}}
 .ve-l2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.ve-plaque{display:inline-block;white-space:nowrap;align-self:flex-start;font:600 12.5px/1 var(--mono);letter-spacing:.04em;padding:3px 7px;border-radius:6px;border:1px solid var(--trait2);background:var(--surf2)}
@@ -3349,8 +3349,6 @@ body.ac-glisse .ac-x{pointer-events:none}
   .kpi{padding:12px}.kpi b{font-size:19px;white-space:nowrap}.kpi span{font-size:13px}
   /* « à faire » de la Comptabilité : le montant passe sous le texte */
   .cx-af{grid-template-columns:40px minmax(0,1fr);grid-template-areas:"ic t" "ic m" "ic b"}.cx-af>b,.cx-af>span:nth-child(3){justify-self:start}
-  /* les lieux de stock : un par ligne */
-  .sk-lieux{grid-template-columns:minmax(0,1fr)}
   /* « À faire maintenant » : l'étiquette au-dessus du texte */
   .af-l{flex-wrap:wrap;gap:6px 10px!important}.af-l>span:last-child{flex:1 1 100%;min-width:0}
   /* un article : le prix et le stock passent sous le nom */
@@ -3694,6 +3692,11 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-gestes{display:flex;flex-wrap:wrap;gap:8px}.vh-gestes .btn{min-height:44px;white-space:nowrap;flex:0 1 auto}
 .vh-cond{display:inline-flex;align-items:center;min-height:44px}
 .vh-onglets,.vh-per{display:flex;width:100%}.vh-onglets button,.vh-per button{flex:1 1 0;padding:0 6px}
+.vh-cam{display:flex;flex-direction:column;gap:10px;padding:14px 16px}.vh-cam h3{margin:0}
+.vh-cam-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.vh-cam-g .btn{min-height:48px;white-space:normal;line-height:1.2;padding:8px 10px;text-align:center}.vh-cam-l{grid-column:1/-1}
+@media (min-width:900px){.vh-cam-g{grid-template-columns:repeat(3,minmax(0,1fr))}.vh-cam-l{grid-column:auto}}
+html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
+html #mc-vehicule:empty{display:none}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
 .vh-bloc{display:flex;flex-direction:column;gap:6px;margin-top:8px}.vh-bloc>.tt-h3{margin:10px 0 0}
 .vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
@@ -4922,7 +4925,7 @@ function detailKpi(k){
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
   else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
-    corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="tel:0600000000" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
+    corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="${lienTel(((typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(e => e.k === i.tech) || {}).tel || '')}" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
   else corps = L.map(i => `<${i.hist ? 'div' : 'button type="button"'} class="ligne-clic"${i.hist ? ' style="cursor:default"' : ` data-go="inter-x-${i.id}"`}><span><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></${i.hist ? 'div' : 'button'}>`).join('') || '<p class="gris">Rien ici.</p>';
   ouvrirPanneau(`<h2>${titre}</h2>${aide}${corps}`);
 }
@@ -5040,7 +5043,7 @@ function vueFiche(id){
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
-      ${i.prevues && i.prevues.length ? `<div class="carte"><h3>Pièces prévues par le bureau</h3>${i.prevues.map(p => `<label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
+      ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne"><span>${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
         <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px auto;gap:8px;margin-top:10px"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
         <div class="faible mini" style="margin-top:8px">Aucun prix ici : le bureau chiffre au moment de la facture.</div></div>
@@ -5572,6 +5575,7 @@ function vueAccueil(){
     ...INTS.filter(o => o.demande && o.demande.parClient && !o.demande.vu).map(o => ({ c:'var(--bleu)', t:'Rendez-vous pris par ' + CLIENTS[o.cli].nom, s:jlong(o.d) + ' à ' + o.h + ' · ' + tech(o.tech).nom + ' · déjà au planning', go:'', voirRdv:o.id })),
     ...INTS.filter(o => o.demande && o.st === 'aplanifier').map(o => ({ c:'var(--bleu)', t:'Demande de rendez-vous · ' + CLIENTS[o.cli].nom, s:o.titre + ' · ' + (o.demande.rappel ? 'à rappeler' : 'souhaite ' + jlong(o.d) + ', ' + demiLib(o.demande)), go:'', dem:o.id })),
     ...tachesUrgentes().map(x => ({ c:tJours(x.d) < 0 ? 'var(--rouge)' : 'var(--orange)', t:x.t, s:tQuand(x) + ' · ' + tNom(x.qui), go:'taches', tache:x.id })),
+    ...(typeof vhAccueil === 'function' ? vhAccueil() : []),   /* DEUX lignes en tout (Véhicules, Temps de travail), jamais une par échéance */
     avalider && { c:'var(--orange)', t:`${avalider} facture${avalider>1?'s':''} à valider`, s:'préparées toutes seules', go:'factures', ff:'avalider' },
     nbSansFacture.length && { c:'var(--orange)', t:`${nbSansFacture.length} intervention${nbSansFacture.length > 1 ? 's' : ''} terminée${nbSansFacture.length > 1 ? 's' : ''} à facturer`, s:(nbSansFacture.length > 1 ? 'la plus ancienne : ' : '') + CLIENTS[nbSansFacture[0].cli].nom + ' · le ' + jCourt(nbSansFacture[0].d), kd:'afacturer' },
     nPl && { c:'var(--orange)', t:`${nPl} ${nCouv ? 'autre' + (nPl > 1 ? 's ' : ' ') : ''}intervention${nPl > 1 ? 's' : ''} à planifier`, s:'à poser sur un technicien, au planning', go:'planning' },
@@ -5582,7 +5586,7 @@ function vueAccueil(){
   return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour ${esc(prenomDe(acteur()))}</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
   <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0) + cpPaieTerrain().reduce((s,e)=>s+e.ttc,0))}</b><span>reçu en octobre${(T => T.length ? ` <i class="cp-k">dont ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>HT de contrats par an</span></button></div>
   <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.length ? '' : `<p class="gris" style="margin:6px 0 12px">Rien de prévu aujourd’hui. Quand une intervention est posée sur un jour, elle s’affiche ici.</p><button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button>`}${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
-    <div class="carte"><h3>À faire maintenant</h3>${afaire.length ? '' : `<p class="gris" style="margin:6px 0 0">Tout est à jour : rien n’attend ta décision pour le moment.</p>`}${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${a.t}</b><br><span class="gris petit">${a.s}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
+    <div class="carte"><h3>À faire maintenant</h3>${afaire.length ? '' : `<p class="gris" style="margin:6px 0 0">Tout est à jour : rien n’attend ta décision pour le moment.</p>`}${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''} ${a.acc ? `data-vhacc="${a.acc}"` : ''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${a.t}</b><br><span class="gris petit">${a.s}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
 }
 
 /* ══ L'APERÇU PAR-DESSUS : ouvrir une facture, un contrat, une intervention ou un client sans quitter sa catégorie ══ */
@@ -6680,13 +6684,13 @@ function tDetail(id){
   let ctx = '', gestes = [];
   if (x.type === 'commande') {
     const f = FOURNISSEURS_T[x.four], i = INTS.find(o => o.id === x.inter), ci = i && CLIENTS[i.cli];
-    const pas = [['acommander', 'À commander'], ['commandee', 'Commandée'], ['recue', 'Pièces reçues']], k = pas.findIndex(p => p[0] === (x.etat || 'acommander'));
+    const pas = [['acommander', 'À commander'], ['commandee', 'Commandée'], ['recue', 'Livraison reçue']], k = pas.findIndex(p => p[0] === (x.etat || 'acommander'));
     ctx = `<div class="carte"><h3>Pièces à commander</h3><table class="l"><thead><tr><th>Pièce</th><th>Réf.</th><th style="text-align:right">Qté</th></tr></thead><tbody>${x.pieces.map(p => `<tr><td>${esc(p.nom)}</td><td class="gris">${esc(p.ref || '—')}</td><td style="text-align:right"><b>${p.q}</b></td></tr>`).join('')}</tbody></table>
         <div class="t-pas">${pas.map((p, j) => `<span class="${j <= k ? 'ok' : ''}"><i></i>${p[1]}${p[0] === 'commandee' && x.commandeLe ? ' le ' + x.commandeLe : ''}${p[0] === 'recue' && x.recueLe ? ' le ' + x.recueLe : ''}</span>`).join('')}</div></div>
       <div class="carte t-ctx"><div><small>Fournisseur</small><b>${esc(f.nom)}</b><span class="gris petit">${esc(f.contact)} · ${f.tel} · ${f.delai}</span></div>
         ${i ? `<div><small>Pour l’intervention</small>${ROLE !== 'tech' || i.tech === rlQui() ? `<button type="button" class="lien" data-tvoir="inter|${i.id}">${esc(i.titre)} · ${esc(ci.nom)} ›</button>` : `<b>${esc(i.titre)} · ${esc(ci.nom)}</b>`}<span class="t-ietat">${iEtat(i)}</span></div>` : ''}</div>`;
     if (!x.fait && (x.etat || 'acommander') === 'acommander') gestes.push(`<button type="button" class="btn" data-tcmd="${x.id}">✉ Commander au fournisseur</button>`);
-    if (!x.fait && x.etat === 'commandee') gestes.push(`<button type="button" class="btn" data-trecu="${x.id}">✓ Pièces reçues</button>`);
+    if (!x.fait && x.etat === 'commandee') gestes.push(`<button type="button" class="btn" data-trecu="${x.id}">J’ai reçu la livraison</button>`);
   } else if (x.lien) {
     const L = x.lien;
     if (L.t === 'facture' && rlPermis('facture')) { const f = FACTURES.find(o => o.id === L.id); ctx = `<div class="carte t-ctx"><div><small>Facture</small><button type="button" class="lien" data-tvoir="facture|${f.id}">${f.num} ›</button><span class="gris petit">${esc(f.objet)} · ${eur(f.ht * (1 + f.tva / 100))} TTC · ${STF[f.st][0].toLowerCase()}</span></div></div>`;
@@ -8748,7 +8752,8 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-kabs]'))) { kpiAbsence(+b.dataset.kabs); return; }
   if ((b = q('[data-kabsnouv]'))) { kpiAbsenceNouvelle(); return; }
   if ((b = q('[data-kseul]'))) { const id = b.dataset.kseul; plMasques = new Set(TECHS.map(t => t.id).filter(x => x !== id)); multiExclu = new Set(); fermerPanneau(); rendre(); toast(`Planning de ${tech(id).nom} sur la période.`); return; }
-  if ((b = q('[data-kappel]'))) { ev.preventDefault(); toast(`📞 Appel de ${tech(b.dataset.kappel).nom}… (dans la vraie version, le téléphone compose son numéro)`); return; }
+  if ((b = q('[data-kappel]'))) { ev.preventDefault(); const k = b.dataset.kappel, e = (typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(x => x.k === k);   /* le numéro se LIT (la carte des sorties) : aucune annonce d'appel — le lien du prototype n'a qu'un numéro fictif */
+    sortieCarte('Pour appeler ' + tech(k).nom, e && e.tel ? e.tel : 'Numéro non renseigné', { aide:'Si ton appareil ne lance rien, copie le numéro.' }); return; }
   if ((b = q('[data-filtreint]'))) { filtreInt = b.dataset.filtreint; rendre(); return; }
   if ((b = q('[data-metier]'))) { const F = fiche(param); (F.cochesM = F.cochesM || {})[F.metier] = F.coches; F.metier = b.dataset.metier; F.coches = F.cochesM[F.metier] || {}; rendre(); return; }
   if ((b = q('[data-rdv]'))) { RDV = { int:voirInt, etape:2 }; rendre(); return; }
@@ -8909,7 +8914,6 @@ function prCatalogue(){ return PRODUITS.filter(x => prVend(x) && !x.retire && PA
 const CATALOGUE = prCatalogue();
 const prCatalogueMaj = () => CATALOGUE.splice(0, CATALOGUE.length, ...prCatalogue());   // le même tableau, partout (les écrans le lisent par référence)
 let prPack = 'tous', prCat = null, prQ = '', prAlerte = false, prAC = false, prVue = 'commandes';   // Justin : « une catégorie qui réunit les fournisseurs, les commandes, les produits et le matériel »
-const prEtat = x => enCommande(x) ? ['Commandé · ' + prNum(enCommande(x)) + ' ' + prU(enCommande(x), x.u), 'st-b'] : x.q <= 0 ? (x.seuil > 0 ? ['Épuisé', 'st-r'] : ['Sur commande', 'st-g']) : x.q <= x.seuil ? ['À commander', 'st-o'] : ['En stock', 'st-v'];
 const prNum = n => String(n).replace('.', ',');
 const prU = (q, u) => metiersU(q, u);   // « 9 lots », « 7 flacons » ; « 4 kg », « 35 m » ne bougent pas
 const prMarge = x => prVend(x) && x.pa ? Math.round((x.pv - x.pa) / x.pv * 100) : null;
@@ -8963,7 +8967,6 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return prFiche(x);
   if (a === 'nouveau') return prFormulaire(null, x || PACKS_ENT[0], y || '');
   if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
-  if (a === 'cmd') { const o = PRODUITS.find(z => z.id === x); fermerPanneau(); return toast(`${esc(o.nom)} ajouté à la prochaine commande chez ${esc(o.four)} (la catégorie Achats la préparera).`); }
   if (a === 'retirer' || a === 'retirerok') { const o = PRODUITS.find(z => z.id === x); if (a === 'retirer' && (o.q > 0 || enCommande(o) > 0)) return prRetirerAvertir(o); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
     return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
   if (a === 'garder') { const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
@@ -9937,7 +9940,7 @@ function eqFiche(k){
   foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
     <div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="groupe">Sa semaine</div>
-    <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>pointées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
+    <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
     ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
     <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
     <div class="groupe">Habilitations</div>
@@ -9968,7 +9971,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return eqFiche(x);
   if (a === 'inviter') return eqInviter();
   if (a === 'planning') { fermerPanneau(); if (x && TECHS.some(t => t.id === x)) { plMasques = new Set(TECHS.map(t => t.id).filter(id => id !== x && id !== '')); plRef = AUJ; aller('planning'); return toast(`Planning de ${esc(prenomDe(x))} seulement : touche un autre prénom pour le revoir.`); } return aller('planning'); }
-     if (a === 'heures') { fermerPanneau(); ptOnglet = 'semaine'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ptFicheJour(x, ptJour(x, AUJ).length ? AUJ : jour(-1)), 80); return; }   // [13]
+     if (a === 'heures') { fermerPanneau(); ptOnglet = 'mois'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ttMoisPers(x), 80); return; }   // [13] « Ses heures › » : Temps de travail › Mois, sur la personne (VEHICULES-TEMPS § 8)
   if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
   if (a === 'inviterok') { const pr = document.getElementById('eq-p').value.trim(), no = document.getElementById('eq-n').value.trim(), m = document.getElementById('eq-m').value.trim();
     if (!pr || !no) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
@@ -11637,7 +11640,7 @@ const GESTES = {
   ce:{ k:'stock', c:'nouvelle add', m:'envoi envoyer modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
   cm:{ k:'stock', m:'conf confok relok recok accepte conteste relance preparer', s:'annuler', c:'plus', l:'depl hors ancre filtre voir recep rappro' },
   fo:{ k:'stock', c:'ajouter creer', m:'localok appliquer facok commandes', s:'retirer', l:'liste plustard tarifs facture fiche local preparer tout exemple facex' },
-  mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },
+  mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', l:'retire messages usage bord ret mliste mpiece mlibre mquand minter inter' },   /* « Annuler » sur SON envoi : un geste libre de la technicienne, jamais une suppression de Stock (la règle des cases le lui cachait : l'envoi ne se retirait plus) */
   md:{ k:'stock', c:'nou aj dadd cmdadd', m:'deplacer dok rok dcop mettre avanttout remplir fplus dm dp dx dnon', l:'fiche avant stock plus rouvrir sortir compter tout' },
   /* la liste des fournisseurs et des articles (fx) : des menus, des pas de quantité sur un panier, des filtres = lecture ; « Ajouter » ouvre la fiche d'un article et « Passer en comptoir » règle un fournisseur = modifier */
   fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
@@ -11660,7 +11663,7 @@ const GESTES = {
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
   dx:{ k:'ventes', d:'m' }, dxb:{ k:'ventes', c:'creer nvtype zadd', m:'garder attok reprendre att', s:'annulerMaj', l:'detail rel insecte mode techs tva revenir attpdf suivi puce mesures version relever client' },
   dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' },
-  b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opd:{ k:'ventes', d:'l' }, opdz:{ k:'ventes', d:'l' }, reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
+  b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opdz:{ k:'ventes', d:'l' },   /* « opd » (composer, rouvrir) a sa ligne plus haut, avec ses verbes : une seconde ligne de même nom l'effaçait en silence, c'est pourquoi « Composer un devis » restait dessiné sans « Créer » (« tout-09 ») */ reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
   xy:{ k:'ventes', c:'nouveau', l:'cli tva' }, xyb:{ k:'ventes', c:'creer', l:'insecte mode' }, brouillon:{ k:'ventes', d:'l' }, ecctr:{ k:'ventes', d:'l' }, cforfait:{ k:'ventes', d:'m' }, ctype:{ k:'ventes', d:'l' },
   /* l'espace du client : ses gestes sont les siens, pas ceux d'une personne de l'entreprise */
   ec:{ d:'l' },
@@ -13205,6 +13208,17 @@ function infoMode(m){
   if (m === 'contrat') return c ? `<b>Contrat ${c.num}</b> · ${esc(c.titre)}<br>${c.freq} visite${c.freq>1?'s':''} par an · ${eur(c.prix / c.freq)} HT la visite · visite ${c.faites + 1} sur ${c.freq}<br>Facturé ${FACT_LIB[c.fact]}.` : 'Ce client n’a pas de contrat signé.';
   return 'Aucune facture : le client reçoit seulement le compte rendu (garantie du fabricant, reprise d’un travail, geste commercial).';
 }
+/* les pièces à prévoir d'une nouvelle intervention : ce qui est déjà choisi (avec « − » et « ＋ »), puis quelques articles courants, puis la recherche dans tout le catalogue */
+function crPiecesPuces(){
+  const choisis = Object.keys(CREA.prevues).filter(n => CREA.prevues[n] > 0), proposes = CATALOGUE.map(c => c[0]).filter(n => !choisis.includes(n)).slice(0, Math.max(0, 6 - choisis.length));
+  return [...choisis.map(n => `<span class="puce-c" aria-pressed="true" style="padding-right:4px">${esc(n)} × ${CREA.prevues[n]}<button type="button" class="pq" data-cpq="${esc(n)}|-1" aria-label="Retirer un ${esc(n)}">−</button><button type="button" class="pq" data-cpq="${esc(n)}|1" aria-label="Ajouter un ${esc(n)}">＋</button></span>`),
+    ...proposes.map(n => `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`)].join('');
+}
+function crPiecesRes(){
+  const q = String(CREA.cpq || '').trim(); if (!q) return '';
+  const L = CATALOGUE.map(c => c[0]).filter(n => !CREA.prevues[n] && pdxChercheOk(PRODUITS.find(x => x.nom === n) || { nom:n, ref:'', four:'' }, q)).slice(0, 6);
+  return L.length ? L.map(n => `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`).join('') : `<span class="gris petit">Aucun article ne s’appelle « ${esc(q)} » : vérifie l’orthographe, ou ajoute-le dans Stock.</span>`;
+}
 function rendreCreation(){
   if (!CREA || rendreCreation.encours) return;
   rendreCreation.encours = true; try { rendreCreation_(); } finally { rendreCreation.encours = false; }
@@ -13229,7 +13243,9 @@ function rendreCreation_(){
     <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
     <div class="groupe">Durée prévue</div><div class="puces">${[30,60,90,120,180,240].map(m => `<button type="button" class="puce-c" data-cdur="${m}" aria-pressed="${CREA.dur===m}">${duree(m)}</button>`).join('')}</div>
     <div class="groupe">Pièces à prévoir <span class="faible mini" style="font-weight:500">— le technicien les voit sans prix, et coche celles qu’il pose</span></div>
-    <div class="puces">${CATALOGUE.slice(0,6).map(([n]) => { const q = CREA.prevues[n] || 0; return q ? `<span class="puce-c" aria-pressed="true" style="padding-right:4px">${esc(n)} × ${q}<button type="button" class="pq" data-cpq="${esc(n)}|-1" aria-label="Retirer un ${esc(n)}">−</button><button type="button" class="pq" data-cpq="${esc(n)}|1" aria-label="Ajouter un ${esc(n)}">＋</button></span>` : `<button type="button" class="puce-c" data-cpq="${esc(n)}|1">＋ ${esc(n)}</button>`; }).join('')}</div></section>`;
+    <div class="puces" data-vis="crea-pieces">${crPiecesPuces()}</div>
+    <label class="champ" style="margin-top:8px">Chercher un autre article<input type="search" data-cchamp="cpq" value="${esc(CREA.cpq || '')}" placeholder="Ex. condensateur, siphon, fluide…" autocomplete="off"></label>
+    <div class="puces" id="cp-res">${crPiecesRes()}</div></section>`;
   const jours = ouvres(6);
   const etape3 = `<section class="carte"><div class="ni-etape"><b>3</b><h2>Ajouter au planning</h2>${b ? `<span class="st ${b.tech ? 'st-v' : 'st-o'} ok">${b.tech ? tech(b.tech).nom.split(' ')[0] + ' · ' + jlib(b.d) + ' · ' + b.h + ' – ' + fin(b.h, b.dur) : 'à planifier · ligne « Non assigné »'}</span>` : ''}</div>
     <div class="crea-outils"><div class="seg" role="group" aria-label="Afficher" style="width:auto">${[['jour','Un jour · toute l’équipe'],['semaine','Une personne · sa semaine']].map(([v,l]) => `<button type="button" data-cvue="${v}" aria-pressed="${CREA.vue===v}">${l}</button>`).join('')}</div>
@@ -13306,7 +13322,7 @@ document.addEventListener('pointerdown', () => { clearTimeout(window._dgT); doig
 document.addEventListener('pointerup', () => { clearTimeout(window._dgT); window._dgT = setTimeout(() => { doigtPose = false; }, 400); }, true);
 document.addEventListener('input', ev => { if (!CREA || !ev.target.closest('.fen')) return; const t = ev.target;
   if (t.dataset.cnv && t.dataset.cnv !== 'adr') { CREA.nv[t.dataset.cnv] = t.value; return; }
-  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = t.value; if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; syncBrouillon(); return; }
+  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = t.value; if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
   if (t.dataset.cnv === 'adr') { CREA.nv.adr = t.value; CREA.sug = true; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cnv="adr"]'); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.cherchecli) { CREA.cherche = t.value; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cherchecli]'); n.focus(); n.setSelectionRange(pos, pos); }
 }, true);
@@ -13322,7 +13338,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
     if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); const g = geoDeAdresse(CLIENTS[k].adr); if (g) CR_GEO[k] = g; }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
-    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => ({ nom, q })),
+    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis ce courriel', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
@@ -13493,8 +13509,11 @@ const TOUR_APP = [
     ['[data-vis="four-onglets"]', 'Trois onglets', 'Commandes pour acheter et suivre, Articles pour les prix, Fournisseurs pour leurs conditions. Le gros bouton noir change avec l’onglet.'],
     ['[data-vis="four-commander"]', 'Ce qu’il faut commander', 'Chaque fournisseur a son bloc : tu règles la quantité d’un toucher, puis « Préparer la commande » ouvre le bon, et un seul bouton l’envoie.'],
     ['[data-vis="four-photo"]', 'Photographier une facture', 'Le stock et les prix d’achat se mettent à jour d’après la facture. Une hausse se voit tout de suite.']]),
-  tourPartie('stock', 'Stock', 'Le stock : où est chaque article', 'Tu sais ce qu’il y a à l’atelier, dans chaque camion et dans les réserves chez les clients, qui a pris quoi, et ce qui manque.', [
-    ['#contenu .kpis', 'Ce qui demande ton attention', 'Les articles à commander et les mouvements à valider. Les boutons du haut enregistrent une sortie, un transfert entre deux lieux, ou le réassort des camions.']]),
+  tourPartie('stock', 'Stock', 'Le stock : où est chaque article', 'Tape un nom : tu vois où est l’article et combien il en reste. Tout ce qui se passe, sortir, ranger, déplacer ou compter, se note par un seul bouton.', [
+    ['[data-vis="stock-bandeau"]', 'Ce qui attend ton accord', 'Quand un technicien note qu’il a pris ou utilisé du matériel, une ligne te le dit. Rien ne sort du stock tant que tu n’as pas accepté.'],
+    ['[data-vis="stock-tuiles"]', 'Trois chiffres qui mènent quelque part', 'Ce qu’il faut commander, les livraisons attendues, et ce qui manque dans les camions. Chaque tuile se touche et t’emmène là où tu agis.'],
+    ['[data-vis="stock-lieu"]', 'Où est l’article ?', 'Tape un nom dans la recherche, puis choisis « Partout », l’atelier ou un camion : chaque ligne dit combien il y en a à chaque endroit.'],
+    ['[data-vis="stock-maj"]', 'Un seul bouton pour dire ce qui s’est passé', '« Mettre à jour le stock » : sortir, ranger, déplacer, compter. « Annuler » reste proposé huit secondes si tu t’es trompé.']]),
   tourPartie('boxes', 'Dépôts et camions', 'Dépôts et camions : mes camions sont-ils prêts ?', 'Chaque camion, l’atelier et chaque réserve laissée chez un client a sa carte : ce qu’il contient, et s’il est prêt. Pour chercher un article, va dans Stock.', [
     ['[data-vis="depots-cartes"]', 'Ouvre un camion', 'Chaque carte dit si le camion est prêt ou ce qui y manque. Un toucher ouvre le détail, article par article.'],
     ['[data-vis="depots-remplir"]', 'Remplir les camions', 'Le bouton noir met d’un coup, dans chaque camion, ce que l’atelier a de ce qui manque.']]),
@@ -14112,7 +14131,7 @@ function tkxAction(x){
   if (!x.fait && x.d) { const b = P.querySelector('.t-gestes-b'); if (b) b.insertAdjacentHTML('beforebegin', `<label class="champ tkx-rappel"><span>Me rappeler</span><select class="saisie" data-tkxrappel="${x.id}" aria-label="Me rappeler"><option value="">Pas de rappel</option>${x.h ? `<option value="moment" ${x.rappel === 'moment' ? 'selected' : ''}>Au moment prévu</option><option value="15" ${x.rappel === '15' ? 'selected' : ''}>15 minutes avant</option>` : ''}<option value="veille" ${x.rappel === 'veille' ? 'selected' : ''}>La veille à 17 h</option></select></label>`); }
   /* une commande : le bon de commande réel, et où il en est */
   if (x.type === 'commande') { const c = tkxBon(x), ctx = P.querySelector('.t-ctx');
-    if (c && ctx) ctx.insertAdjacentHTML('beforeend', `<div><small>Bon de commande</small><button type="button" class="lien" data-tkxbon="${c.id}">${esc(c.num)} ›</button><span class="gris petit">${({ brouillon:'brouillon', envoyee:'envoyée', confirmee:'confirmée', partielle:'reçue en partie', recue:'reçue' })[c.st] || c.st}${c.prevue ? ' · livraison prévue le ' + jCourt(c.prevue) : ''}</span></div>`); }
+    if (c && ctx) ctx.insertAdjacentHTML('beforeend', `<div><small>Bon de commande</small><button type="button" class="lien" data-tkxbon="${c.id}">${esc(matNumAff(c.num))} ›</button><span class="gris petit">${({ brouillon:'brouillon', envoyee:'envoyée', confirmee:'confirmée', partielle:'reçue en partie', recue:'reçue' })[c.st] || c.st}${c.prevue ? ' · livraison prévue le ' + jCourt(c.prevue) : ''}</span></div>`); }
   return v; }; })();
 document.addEventListener('change', ev => { const t = ev.target; if (!t.dataset || !t.dataset.tkxrappel) return; const x = TACHES.find(o => o.id === t.dataset.tkxrappel); if (!x) return; x.rappel = t.value || null; tkxRappelsVus.delete(x.id);
   toast(!x.rappel ? 'Rappel retiré' : 'Rappel noté : ' + ({ moment:'à ' + (x.h || ''), 15:'15 minutes avant ' + (x.h || ''), veille:'la veille à 17 h' })[x.rappel]); });
@@ -14266,18 +14285,6 @@ function pdxMemeArticle(s, x){
   return c[0].length >= 2 && c[0].every(t => c[1].includes(t));
 }
 
-/* les états de la liste des articles */
-const PDX_ETATS = [['tous', 'Tous'], ['stock', 'En stock'], ['acommander', 'À commander'], ['commande', 'Commandé'], ['epuise', 'Épuisé'], ['surcmd', 'Sur commande'], ['sansprix', 'Sans prix']];
-function pdxEtatTest(k, x){
-  if (k === 'stock') return x.q > 0 && !(x.seuil > 0 && x.q <= x.seuil) && !enCommande(x);
-  if (k === 'acommander') return x.q > 0 && x.seuil > 0 && x.q + enCommande(x) - pdxResa(x) <= x.seuil;
-  if (k === 'commande') return enCommande(x) > 0;
-  if (k === 'epuise') return x.q <= 0 && x.seuil > 0;
-  if (k === 'surcmd') return x.q <= 0 && !(x.seuil > 0) && !enCommande(x);
-  if (k === 'sansprix') return !!x.ac;
-  return true;
-}
-const pdxEtatOk = x => (!prAlerte || (x.seuil > 0 && x.q <= x.seuil)) && pdxEtatTest(PDX.etat, x);   // l'ancien bouton « À commander » (prAlerte) se lit toujours
 function pdxTrier(L){
   if (PDX.tri === 'nom') return L.slice().sort((a, b) => prNorm(a.nom).localeCompare(prNorm(b.nom), 'fr'));
   if (PDX.tri === 'marge') return L.slice().sort((a, b) => (prMarge(b) == null ? -1e9 : prMarge(b)) - (prMarge(a) == null ? -1e9 : prMarge(a)));
@@ -14297,17 +14304,17 @@ function pdxPieces(id){
   if (ouv.length) {
     const ds = ouv.map(c => (c.st === 'partielle' ? c.reliquat : c.prevue) || c.souh).filter(Boolean).sort(), arr = ds.length ? ds[ds.length - 1] : null;
     const ret = ouv.some(c => { const a = cmdAlerte(c); return a && a.t === 'retard'; }) || (arr && tJours(arr) < 0);
-    r = ret ? { k:'retard', cls:'st-o', txt:'Pièces en retard', court:'en retard', arr } : { k:'commandees', cls:'st-b', txt:'Pièces commandées' + (arr ? ' · arrivée prévue ' + pdxJC(arr) : ''), court:'commandées', arr };
+    r = ret ? { k:'retard', cls:'st-o', txt:'Pièces en route · en retard', court:'en route, en retard', arr } : { k:'commandees', cls:'st-b', txt:'Pièces en route' + (arr ? ' · arrivent ' + matJourCourt(arr) : ''), court:'en route', arr };
     r.cmd = ouv[0];
   } else if (cs.some(c => c.st === 'recue' || c.st === 'facturee')) {
     const c = cs.filter(o => o.st === 'recue' || o.st === 'facturee').pop();
-    r = { k:'recues', cls:'st-v', txt:'Pièces reçues · ' + (c.rangeDans ? 'dans le ' + pdxMin(c.rangeDans) : c.liv === 'comptoir' ? 'retirées au comptoir' : 'à prendre à l’atelier'), court:'reçues', cmd:c };
-  } else if (cs.some(c => c.st === 'brouillon')) r = { k:'brouillon', cls:'st-g', txt:'Pièces : commande en brouillon', court:'brouillon', cmd:cs.find(c => c.st === 'brouillon') };
+    r = { k:'recues', cls:'st-v', txt:'Pièces prêtes · ' + (c.rangeDans ? 'dans le ' + pdxMin(c.rangeDans) : c.liv === 'comptoir' ? 'retirées au comptoir' : 'à prendre à l’atelier'), court:'prêtes', cmd:c };
+  } else if (cs.some(c => c.st === 'brouillon')) r = { k:'brouillon', cls:'st-g', txt:'Pièces à commander · la commande attend d’être envoyée', court:'à commander', cmd:cs.find(c => c.st === 'brouillon') };
   else if (tk.some(t => !t.fait && (t.etat || 'acommander') === 'acommander')) { const L = tk.filter(t => !t.fait && (t.etat || 'acommander') === 'acommander').flatMap(t => t.pieces || []).map(q => q.q + ' × ' + q.nom); r = { k:'acommander', cls:'st-g', txt:'Pièces à commander' + (L.length ? ' : ' + L.slice(0, 3).join(', ') + (L.length > 3 ? ' et ' + (L.length - 3) + ' autre' + (L.length > 4 ? 's' : '') : '') : ''), court:'à commander' }; }
   if (!r) return null;
   r.i = i; r.apres = !!(r.arr && r.arr > i.d && r.k === 'commandees'); return r;
 }
-const pdxPil = (p, court) => `<span class="st ${p.cls} pdx-pil" title="${esc(p.txt)}"><span aria-hidden="true">📦</span> ${esc(court ? 'Pièces ' + p.court : p.txt)}</span>`;
+const pdxPil = (p, court) => `<span class="st ${p.cls} pdx-pil" title="${esc(p.txt)}">${svg('livraison')} ${esc(court ? 'Pièces ' + p.court : p.txt)}</span>`;
 
 /* en haut de la fiche d'intervention : la pastille, et le bandeau quand les pièces arrivent après le rendez-vous */
 function pdxFicheInter(h, id){
@@ -14315,7 +14322,7 @@ function pdxFicheInter(h, id){
   const patron = typeof ROLE === 'undefined' || ROLE === 'patron';
   if (p) {
     const bandeau = p.apres && !PDX.garde.has(id) ? `<div class="pdx-apres" role="status"><b>Les pièces arrivent après le rendez-vous.</b> <span class="gris petit">Arrivée prévue ${pdxJC(p.arr)}, rendez-vous ${pdxJC(p.i.d)} à ${esc(p.i.h)}.</span>${patron ? `<span class="pdx-bt"><button type="button" class="btn petit" data-pdx="decaler|${id}">Décaler l’intervention</button><button type="button" class="btn gris petit" data-pdx="garder|${id}">Garder</button></span>` : '<span class="gris petit">Le bureau est prévenu : il décide de décaler ou non.</span>'}</div>` : '';
-    const bloc = `<div class="carte pdx-pieces" data-pdxpieces="${id}"><div class="pdx-pl">${pdxPil(p)}${patron && p.cmd ? `<button type="button" class="lien" data-cm="voir|${p.cmd.id}">${esc(p.cmd.num)} · ${esc(p.cmd.four)} ›</button>` : ''}${p.k === 'acommander' && patron ? '<button type="button" class="lien" data-pdx="achat|pans|">La commander ›</button>' : ''}</div>${bandeau}</div>`;
+    const bloc = `<div class="carte pdx-pieces" data-pdxpieces="${id}"><div class="pdx-pl">${pdxPil(p)}${patron && p.cmd ? `<button type="button" class="lien" data-cm="voir|${p.cmd.id}">Commande ${esc(matNumAff(p.cmd.num))} · ${esc(p.cmd.four)} ›</button>` : ''}${p.k === 'acommander' && patron ? '<button type="button" class="lien" data-pdx="achat|pans|">La commander ›</button>' : ''}</div>${bandeau}</div>`;
     let k = out.indexOf('<div class="grille2">'); if (k < 0) k = out.indexOf('<div class="carte');
     if (k >= 0) out = out.slice(0, k) + bloc + out.slice(k);
   }
@@ -14332,23 +14339,35 @@ function pdxAchatsLignes(){
   const L = [], pans = cmdPaniers(), n = pans.reduce((s, p) => s + p.lignes.length, 0);
   if (n) L.push({ k:'a', t:`${pdxPl(n, 'article')} à commander chez ${pdxPl(pans.length, 'fournisseur')}`, go:'pans|' });
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return;
-    if (a.t === 'retard') L.push({ k:'r', t:`${esc(c.num)} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
-    else if (a.t === 'silence') L.push({ k:'s', t:`${esc(c.num)} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
+    if (a.t === 'retard') L.push({ k:'r', t:`${esc(matNumAff(c.num))} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
+    else if (a.t === 'silence') L.push({ k:'s', t:`${esc(matNumAff(c.num))} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
     else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à comparer : commande ${esc(matNumAff(c.num))}, ${esc(c.four)}`, go:'rappro|' + c.id }); });
   const br = COMMANDES.filter(c => c.st === 'brouillon'); if (br.length) L.push({ k:'b', t:`${pdxPl(br.length, 'commande')} en brouillon à envoyer`, go:'voir|' + br[0].id });
   const ordre = 'arsfb'; return L.sort((a, b) => ordre.indexOf(a.k) - ordre.indexOf(b.k));
 }
-function pdxAchatsCarte(){
-  const L = pdxAchatsLignes(); if (!L.length) return '';
-  const coul = { a:'var(--orange)', r:'var(--rouge)', s:'var(--orange)', f:'var(--bleu)', b:'var(--doux)' };
-  return `<div class="carte pdx-achats" data-pdxachats="1"><h3>Achats à traiter · ${L.length}</h3>${L.slice(0, 6).map(o => `<button type="button" class="ligne-clic pdx-al" data-pdx="achat|${esc(o.go)}"><span class="pdx-pt" style="background:${coul[o.k]}" aria-hidden="true"></span><span class="pdx-at">${o.t}</span><span aria-hidden="true">›</span></button>`).join('')}${L.length > 6 ? `<span class="gris petit">et ${L.length - 6} autre${L.length - 6 > 1 ? 's' : ''}, dans Commandes</span>` : ''}</div>`;
+/* la carte « Matériel » de l'Accueil : UNE ligne par chose, chacune menant à SA rubrique, et chaque nombre vient de la fonction qui nourrit le bandeau de cette rubrique
+   (cmdNbACommander, les livraisons ouvertes, matEnvoisAAccepter, camionsARemplir) : le même chiffre ici et là-bas. Quatre lignes au plus ; une ligne qu'on n'a pas le droit d'ouvrir n'est pas écrite. */
+function matAFaire(){
+  const L = [], voit = r => typeof rlPermis !== 'function' || rlPermis(r);
+  const nc = cmdNbACommander(), att = COMMANDES.filter(cmdOuverte), retard = att.filter(c => (c.st === 'partielle' ? c.reliquat : c.prevue) < AUJ).length, fac = COMMANDES.filter(c => { const a = cmdAlerte(c); return a && a.t === 'facture'; }).length;
+  if (voit('produits')) {
+    if (nc) L.push({ k:'a', t:`${sxPl(nc, 'article')} à commander`, rub:'Fournisseurs', go:'data-pdx="achat|pans|"' });
+    if (att.length || fac) L.push({ k:retard ? 'r' : 'f', t:[att.length ? `${sxPl(att.length, 'livraison')} attendue${att.length > 1 ? 's' : ''}${retard ? `, dont ${retard} en retard` : ''}` : '', fac ? `${sxPl(fac, 'facture')} à comparer` : ''].filter(Boolean).join(' · '), rub:'Commandes', go:'data-ms="t|liv"' }); }
+  if (voit('stock') && typeof msAccepte === 'function' && msAccepte() && STK_VALID) { const e = matEnvoisAAccepter(); if (e.n) L.push({ k:'b', t:`${sxPl(e.n, 'envoi')} à accepter`, rub:'Stock', go:'data-go="stock"' }); }
+  if (voit('boxes')) { const c = camionsARemplir(); if (c.n) L.push({ k:'a', t:`${sxPl(c.n, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans ${sxPl(c.camions.length, 'camion')}`, rub:'Dépôts et camions', go:'data-ms="t|cam"' }); }
+  return L.slice(0, 4);
+}
+function matCarteAccueil(){
+  const L = matAFaire(); if (!L.length) return '';
+  const coul = { a:'var(--orange)', r:'var(--rouge)', f:'var(--bleu)', b:'var(--orange)' };
+  return `<div class="carte pdx-achats" data-vis="accueil-materiel"><h3>Matériel</h3>${L.map(o => `<button type="button" class="ligne-clic pdx-al" ${o.go}><span class="pdx-pt" style="background:${coul[o.k]}" aria-hidden="true"></span><span class="pdx-at">${o.t}</span><span class="gris petit pdx-rub">${esc(o.rub)}</span><span aria-hidden="true">›</span></button>`).join('')}</div>`;
 }
 /* une seule notification par jour, le matin, qui reprend ces lignes (l'envoi réel est celui de l'application : ici on en garde la trace) */
 function pdxMatin(){
   if (PDX.matin === AUJ || MAINT_MIN < 7 * 60) return; const L = pdxAchatsLignes(); if (!L.length) return; PDX.matin = AUJ;
-  notifier('marc', 'Achats à traiter ce matin : ' + L.slice(0, 4).map(o => o.t.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&')).join(' · ') + '.');
+  notifier('marc', 'Matériel à traiter ce matin : ' + L.slice(0, 4).map(o => o.t.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&')).join(' · ') + '.');
 }
-(() => { const o = vueAccueil; vueAccueil = function(){ const h = o.apply(this, arguments); if (typeof ROLE !== 'undefined' && ROLE !== 'patron') return h; pdxMatin(); const c = pdxAchatsCarte(), k = h.indexOf('<div class="grille2">'); return c && k >= 0 ? h.slice(0, k) + c + h.slice(k) : h; }; })();
+(() => { const o = vueAccueil; vueAccueil = function(){ const h = o.apply(this, arguments); if (typeof ROLE === 'undefined' || ROLE === 'patron') pdxMatin(); const c = matCarteAccueil(), k = h.indexOf('<div class="grille2">'); return c && k >= 0 ? h.slice(0, k) + c + h.slice(k) : h; }; })();
 
 /* les propositions de la catégorie Tâches : une pour chaque commande qui demande un geste (silence, retard, facture arrivée) */
 function pdxSuggTaches(S, deja){
@@ -14393,8 +14412,8 @@ function pdxDecaler(id){
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-pdx]'); if (!b) return;
   const [a, x, y] = b.dataset.pdx.split('|');
-  if (a === 'etat') { PDX.etat = x; return rendre(); }
   if (a === 'achat') return pdxAller(x, y);
+  if (a === 'piece') { const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
   if (a === 'decaler') return pdxDecaler(x);
   if (a === 'garder') { PDX.garde.add(x); rendre(); return toast('Gardé tel quel : la pastille « Pièces » reste sur l’intervention.'); }
   if (a === 'pm') return pdxPmOuvrir(x);
@@ -14428,7 +14447,7 @@ function pdxUsageListes(x){
   /* posé (fiche), prévu par le bureau, ou demandé : une tâche de commande de pièces, ou une commande faite pour l'intervention, compte aussi */
   const tk = TACHES.filter(t => t.type === 'commande' && (t.pieces || []).some(p => pdxMemeArticle(p.nom, x))), ids = new Set(tk.map(t => t.id));
   const cmdI = new Set(); COMMANDES.forEach(c => c.lignes.forEach(l => { if (l.pid === x.id) { if (c.pour) cmdI.add(c.pour); if (l.pourInter) cmdI.add(l.pourInter); const t = l.inter && TACHES.find(k => k.id === l.inter); if (t && t.inter) cmdI.add(t.inter); } }));
-  const inters = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => pdxMemeArticle(p.nom, x))) || (i.prevues || []).some(p => pdxMemeArticle(p.nom, x)) || tk.some(t => t.inter === i.id) || cmdI.has(i.id));
+  const inters = INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => pdxMemeArticle(p.nom, x))) || (i.prevues || []).some(p => matPieceDe(p, x)) || tk.some(t => t.inter === i.id) || cmdI.has(i.id));
   if (DV == null && typeof dvSync === 'function') dvSync();
   const devis = Array.isArray(DV) ? DV.filter(d => (d.lignes || []).some(l => pdxMemeArticle(l[0], x))) : [];
   return { inters, devis };
@@ -14712,7 +14731,7 @@ function pdxApresReception(c){
 function pdxContesteApercu(c){
   const F = c.facLue, E = cmdEcarts(c), f = foDe(c.four) || {};
   const txt = `Objet : Facture ${F.num} : écart sur la commande ${c.num}\n\nBonjour,\n\nEn comparant votre facture ${F.num} de notre commande ${c.num}, nous relevons ${E.length > 1 ? 'des écarts' : 'un écart'} :\n${E.map(e => `- ${cmdNom(e.l)} : ${e.dpu ? 'facturé ' + eur(F.pu[e.l.pid]) + ' l’unité au lieu de ' + eur(e.l.pu) : ''}${e.dq ? (e.dpu ? ' ; ' : '') + 'quantité facturée ' + pdxQ(F.q[e.l.pid]) + ' au lieu de ' + pdxQ(e.l.recu) + ' reçue' : ''}`).join('\n')}\n\nPouvez-vous nous renvoyer une facture rectifiée ou un avoir ?\n\nMerci,\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`;
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · facture ${esc(F.num)}</span><h2>Contester la facture</h2>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · facture ${esc(F.num)}</span><h2>Contester la facture</h2>
     <div class="gris">${f.mail ? `Part à <b>${esc(f.mail)}</b> depuis ta boîte. Relis-la : rien ne part avant ton accord.` : `${esc(c.four)} n’a pas d’e-mail : la contestation sera notée, appelle le ${esc(f.tel || 'fournisseur')}.`}</div>
     <pre class="cmd-pre">${esc(txt)}</pre>
     <span class="gris petit">Un rappel s’ajoute à tes tâches dans 5 jours ouvrés, pour relancer cette contestation si le fournisseur ne répond pas.</span>
@@ -14917,6 +14936,30 @@ function matEnvoisAAccepter(){
     return { m, x, qui:m.qui, dispo, reste, vide:reste <= 0, phrase:matPhrase(m), apres }; });
   return { n:lignes.length, qui:[...new Set(lignes.map(o => prenomDe(o.qui)))], lignes };
 }
+/* une pièce prévue par le bureau est reconnue PAR SON ARTICLE (`pid`, posé quand on la choisit dans la recherche), puis, pour les lignes d'avant, par le rapprochement de texte :
+   « Condensateur 5 µF » et « Condensateur permanent 5 µF 450 V » ne se prennent plus l'un pour l'autre à la chance */
+const matPieceDe = (p, x) => p.pid ? p.pid === x.id : pdxMemeArticle(p.nom, x);
+const matPieceX = p => (p.pid && PRODUITS.find(x => x.id === p.pid && !x.retire)) || PRODUITS.find(x => !x.retire && pdxMemeArticle(p.nom, x)) || null;
+const matJourCourt = d => { const o = dObj(d); return ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][o.getDay()] + ' ' + o.getDate(); };
+/* UN mot par pièce prévue (spec § 9.1) : Prête (dans le camion du technicien ou à l'atelier) · En route (arrive mardi 3) · À commander ; rien pour une ligne qui n'est pas un article du stock */
+function matPieceEtat(i, p){
+  const x = matPieceX(p); if (!x) return null;
+  const C = LIEUX.find(l => l.type === 'vehicule' && l.tech === i.tech && !l.ferme), q = Math.max(Number(p.q) || 1, 0), bord = C ? stkAt(x, C.id) : 0, at = stkAt(x, 'atelier');
+  if (bord >= q) return { k:'prete', x, mot:'Prête', cls:'st-v', sous:'dans le camion de ' + prenomDe(i.tech) };
+  if (at + bord >= q) return { k:'prete', x, mot:'Prête', cls:'st-v', sous:bord ? 'dans le camion et à l’atelier' : 'à l’atelier' };
+  const k = COMMANDES.filter(cmdOuverte).filter(o => o.lignes.some(l => l.pid === x.id && l.recu < l.q)).sort((a, b) => ((a.st === 'partielle' ? a.reliquat : a.prevue) || '9').localeCompare((b.st === 'partielle' ? b.reliquat : b.prevue) || '9'))[0], d = k && (k.st === 'partielle' ? k.reliquat : k.prevue);
+  if (k) return { k:'route', x, mot:'En route' + (d ? ' · arrive ' + matJourCourt(d) : ''), cls:'st-b', sous:'commande ' + matNumAff(k.num), cmd:k };
+  const manque = Math.max(1, stkR(q - bord - at));
+  if (DEM_ACHAT.some(d => d.etat === 'attente' && d.pid === x.id)) return { k:'demande', x, mot:'À commander', cls:'st-o', sous:'déjà dans les commandes', manque };
+  return { k:'commander', x, mot:'À commander', cls:'st-o', manque };
+}
+/* sous la ligne d'une pièce prévue : la pastille, d'où elle vient, et « Commander » pour qui commande (jamais pour le technicien, qui n'a ni prix ni commande) */
+function matPieceLigne(i, p){
+  const e = matPieceEtat(i, p); if (!e) return '';
+  const peut = ROLE !== 'tech' && ROLE !== 'client' && rlPermis('produits');
+  const bouton = e.k === 'commander' && peut ? `<button type="button" class="btn gris petit" data-pdx="piece|${esc(i.id)}|${esc(e.x.id)}">Commander</button>` : e.k === 'demande' && peut ? `<button type="button" class="lien" data-pdx="achat|pans|">Voir</button>` : '';
+  return `<div class="pp-e"><span class="st ${e.cls}">${esc(e.mot)}</span>${e.sous ? `<span class="gris petit">${esc(e.sous)}</span>` : ''}${bouton}</div>`;
+}
 /* la carte « Le plus simple possible » : la même que celle de Devis, en pied de page (l’aide est rangée en bas, elle ne précède pas le travail) */
 const carteAide = L => `<div class="carte"><h3>Le plus simple possible</h3>
     <div class="gris petit" style="display:flex;flex-direction:column;gap:6px">${L.map(t => `<span>• ${t}</span>`).join('')}</div></div>`;
@@ -14995,16 +15038,16 @@ function vueMonCamion(){
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
     return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${c ? (ko ? `il en manque ${prNum(stkR(c - a))} sur ${prNum(c)}` : `${prNum(c)} prévus : le compte y est`) : 'en plus de la liste'}</span></span><b class="${ko ? 'mc-o' : ''}">${sxQte(a, x)}</b></div>`; }).join('') || '<div class="gris" style="padding:12px 4px">Rien à bord.</div>'}</div>`;
-  /* EMPLACEMENT RÉSERVÉ : la partie VÉHICULE de « Mon camion » (échéances, plein, contrôle) s'y branche — chantier Véhicules et Temps de travail
-     (refonte/VEHICULES-TEMPS.md). Un conteneur vide à l'identifiant stable : l'autre chantier le remplit, il ne touche à aucune autre ligne de cet écran. */
-  return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">${V ? esc(V.plaque) + ' · ' : ''}${sxPl(A.length, 'article')} à bord</span></div>
+  /* La partie VÉHICULE (la phrase d'état de l'en-tête et la carte « Le camion ») vient de vhPhraseCamion et vhCamionBloc ; la carte se pose AVANT la liste de ce qui
+     manque : un plein se note sans défiler, et « Il manque à bord » reste visible sur le premier écran (VEHICULES-TEMPS § 3.4, MATERIEL § Mon camion). */
+  return `<div class="mc-page"><div class="tete mc-tete"><div><span class="surtitre">${esc(V ? vhNom(V) + ' · ' + V.plaque : H_NOM(moi))}</span><h1>Mon camion</h1>${V ? (e => `<span class="gris mc-etat ${e.c}">${esc(e.t)}</span>`)(vhPhraseCamion(V)) : `<span class="gris">${sxPl(A.length, 'article')} à bord</span>`}</div>
       ${N.length ? `<div class="actions"><button type="button" class="st st-b mc-msg" data-mat="messages">${N.length} message${N.length > 1 ? 's' : ''} du bureau ›</button></div>` : ''}</div>
     ${sxEstTech() ? '' : `<div class="info petit">Tu vois l’écran de ${esc(prenomDe(moi))}. Passe en « Technicien » pour l’essayer comme elle.</div>`}
-    ${g ? '<div class="info petit mc-garage">Ton camion est au garage.</div>' : ''}
     <div class="mc-cherche"${matVis('camion-cherche')}><input class="saisie" id="mc-q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Chercher une pièce" aria-label="Chercher une pièce : où elle est, combien"><div id="mc-res" aria-live="polite"></div></div>
     <div class="mc-gros"><button type="button" class="btn large"${matVis('camion-utilise')} data-mat="usage">J’ai utilisé chez un client</button>
       <div class="mc-duo"><button type="button" class="btn gris" data-mat="prise">J’ai pris à l’atelier</button><button type="button" class="btn gris" data-mat="manque">Il me manque une pièce</button></div></div>
     ${bas.length ? `<div class="mc-alerte"><span class="st st-o">Bouteille presque vide</span><span class="petit">${bas.map(b => esc(b.id) + ' (' + prNum(b.reste) + ' kg)').join(', ')} · <button type="button" class="lien" data-mat="manque|${bas[0].pid}">Il me manque du fluide</button></span></div>` : ''}
+    <div id="mc-vehicule" data-vis="camion-vehicule">${V ? vhCamionBloc(V) : ''}</div>
     ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
       ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)} sur ${prNum(o.cible)} · ${at > 0 ? 'à l’atelier ' + prNum(at) : 'plus à l’atelier'}`;
         return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${esc(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
@@ -15012,16 +15055,13 @@ function vueMonCamion(){
       : `<div class="carte mc-ok"${matVis('camion-manque')}>${liste ? `<span class="mc-coche">${svg('coche')}</span><span><b>Ton camion est complet</b><span class="gris petit">Tout ce qu’il doit y avoir à bord y est.</span></span>` : '<span><b>Ton camion n’a pas encore de liste.</b><span class="gris petit">Demande au bureau ce qu’il doit y avoir à bord.</span></span>'}</div>`}
     <button type="button" class="ligne-clic mc-bord" data-mat="bord" aria-expanded="${MAT.bord}"><span><b>À bord · ${sxPl(A.length, 'article')}</b></span><span aria-hidden="true">${MAT.bord ? '⌄' : '›'}</span></button>${MAT.bord ? aBord : ''}
     ${E.length ? `<div class="carte mc-liste"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}
-    <div id="mc-vehicule" data-vis="camion-vehicule"></div></div>`;
+    </div>`;
 }
 /* la route « moncamion » passe par l'écran des catégories à refaire (la table des vues, dans rendre(), reste intacte) */
 const sxVueARefaire0 = vueARefaire;
 vueARefaire = function(k){ return k === 'moncamion' ? vueMonCamion() : sxVueARefaire0.apply(this, arguments); };
-/* sur « Ma journée », un raccourci quand il manque quelque chose à bord ou qu'un envoi a été refusé : les mêmes mots que la carte */
-if (typeof vueMaJournee === 'function') (() => { const v0 = vueMaJournee; vueMaJournee = function(){ const h = v0.apply(this, arguments); const L = sxMonLieu(), moi = sxMoi(), n = bxGarage(L.id) ? 0 : lieuManques(L.id).length, r = SX.refus.filter(o => o.m.qui === moi).length, a = MVTS_ATT.filter(m => m.qui === moi).length;
-  if (!n && !r && !a) return h;
-  const t = r ? `${sxPl(r, 'envoi refusé', 'envois refusés')} : le bureau t’explique pourquoi` : n ? `${sxPl(n, 'article manque', 'articles manquent')} à bord` : `${sxPl(a, 'envoi')} en attente du bureau`;
-  return h.replace('<div class="rl-jour">', `<button type="button" class="ligne-clic sx-raccourci" data-go="moncamion"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${r ? 'st-r' : 'st-o'} etiq-af">Mon camion</span><span><b>${t}</b></span></span><span>›</span></button><div class="rl-jour">`); }; })();
+/* sur « Ma journée », UNE ligne « Mon camion » : l'état du véhicule ET ce qu'il faut remettre à bord, dans les mêmes mots que l'écran Camion (vhLigneCamion). L'ancienne carte « Mon véhicule » (vxMonCamion) a disparu : deux endroits pour le même camion, c'était un doublon. */
+if (typeof vueMaJournee === 'function') (() => { const v0 = vueMaJournee; vueMaJournee = function(){ const h = v0.apply(this, arguments), l = vhLigneCamion(); return l ? h.replace('<div class="rl-jour">', l + '<div class="rl-jour">') : h; }; })();
 
 /* ── UNE feuille pour dire ce qui s’est passé : « J’ai utilisé chez un client » (la clôture, la fiche et l’écran Camion y mènent TOUTES) et « J’ai pris à l’atelier »
    Le lot Stock lui ajoutera ses quatre verbes (sortir, ranger, déplacer, compter) : un mode de plus, la même feuille. ── */
@@ -15228,24 +15268,7 @@ function sxDernierInv(id){
   const L = [SX.invs[id], ...MVTS.filter(m => m.type === 'correction' && m.de === id && /^Inventaire/.test(m.motif)).map(m => m.d)].filter(Boolean).sort();
   return L.length ? L[L.length - 1] : null;
 }
-function sxAFaire(){
-  const A = [], att = MVTS_ATT.length;
-  if (att) A.push({ c:'st-r', e:'À valider', t:`${sxPl(att, 'geste')} de technicien ${att > 1 ? 'attendent' : 'attend'} ta validation`, s:[...new Set(MVTS_ATT.map(m => prenomDe(m.qui)))].join(', '), b:'Valider', d:'onglet|valider' });
-  INTS.filter(i => i.d >= AUJ && !['fait', 'annulee'].includes(i.st) && i.prevues && i.prevues.length).sort((a, b) => (a.d + a.h).localeCompare(b.d + b.h)).forEach(i => i.prevues.forEach(p => {
-    const x = PRODUITS.find(o => !o.retire && prNorm(o.nom) === prNorm(p.nom)); if (!x || x.q >= p.q || A.some(a => a.k === x.id)) return;
-    A.push({ k:x.id, c:'st-r', e:x.q <= 0 ? 'Épuisé' : 'Trop juste', t:`${x.nom} ${x.q <= 0 ? 'est épuisé' : 'n’est pas assez en stock'} et prévu à l’intervention du ${jCourt(i.d)}`, s:(CLIENTS[i.cli] || {}).nom + (x.q > 0 ? ` · ${sxQte(x.q, x)} pour ${prNum(p.q)} prévus` : ''), b:'Commander', d:'vers-cmd' }); }));
-  LIEUX.filter(l => l.type === 'vehicule').forEach(l => { const m = lieuManques(l.id); if (m.length) A.push({ c:'st-o', e:'À remettre', t:`${l.nom.replace('Camion de', 'Le camion de')} a ${sxPl(m.length, 'article')} sous sa dotation`, s:m.slice(0, 3).map(o => o.x.nom).join(', ') + (m.length > 3 ? '…' : ''), b:'Réassort', d:'reassort|' + l.id }); });
-  const vide = PRODUITS.filter(x => !x.retire && Object.values(DOTATION).length && LIEUX.some(l => l.type === 'vehicule' && l.dot && DOTATION[l.dot] && DOTATION[l.dot][x.id] && lieuManques(l.id).some(o => o.x.id === x.id)) && stkAt(x, 'atelier') <= 0);
-  if (vide.length) A.push({ c:'st-o', e:'Atelier', t:`L’atelier n’a plus de quoi remplir les camions : ${vide.slice(0, 3).map(x => x.nom).join(', ')}${vide.length > 3 ? '…' : ''}`, s:'À commander pour que les dotations tiennent', b:'Commander', d:'vers-cmd' });
-  SX.bout.filter(b => !b.rec && lieu(b.lieu).type === 'vehicule' && b.reste <= 1).forEach(b => A.push({ c:'st-o', e:'Fluide', t:`La bouteille ${sxNom(b.pid).replace(/ \(.*\)/, '').replace('Fluide ', '')} du ${lieuNom(b.lieu).toLowerCase()} est presque vide (${prNum(b.reste)} kg)`, s:'Bouteille ' + b.id, b:'Réassort', d:'reassort|' + b.lieu }));
-  LIEUX.forEach(l => { const j = sxJoursInv(l.id); if (j == null) A.push({ c:'st-b', e:'À compter', t:`${l.nom} n’a jamais été compté`, s:'Un comptage fixe la date et les écarts', b:'Compter', d:'invlieu|' + l.id });
-    else if (j > sxFreq(l.id)) A.push({ c:'st-b', e:'À compter', t:`${l.nom} : compté il y a ${j} jours`, s:`Tu comptes tous les ${Math.round(sxFreq(l.id) / 30)} mois`, b:'Compter', d:'invlieu|' + l.id }); });
-  return A;
-}
-/* la carte « Stock » du Tableau de bord : une ligne dans « À faire maintenant », seulement quand il y a quelque chose */
-if (typeof vueAccueil === 'function') (() => { const v0 = vueAccueil; vueAccueil = function(){ const h = v0.apply(this, arguments); const A = sxAFaire().filter(a => ['À valider', 'Épuisé', 'Trop juste'].includes(a.e)); if (!A.length) return h;
-  const a = A[0], r = A.length > 1 ? ` · et ${sxPl(A.length - 1, 'autre')}` : '';
-  return h.replace('<h3>À faire maintenant</h3>', `<h3>À faire maintenant</h3><button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="stock"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${a.c} etiq-af">Stock</span><span><b>${esc(a.t)}</b><br><span class="gris petit">${esc(a.s || '')}${r}</span></span></span><span>›</span></button>`); }; })();
+/* « À faire maintenant » de Stock n’existe plus (spec § 0 D10) : une ligne de bandeau par rubrique, et la carte « Matériel » de l’Accueil (matAFaire) */
 
 /* ── les formulaires de sortie et de transfert : bons réglages d'office, aucun double geste ── */
 const sxStkFormVue0 = stkFormVue;
@@ -15323,7 +15346,7 @@ function sxDotOk(){
   Dd.lignes.filter(o => o.q > 0).forEach(o => { nv[o.pid] = o.q; }); DOTATION[k] = nv; l.dot = k; SX.D = null; fermerPanneau();
   sxJournal('a modifié la dotation', l.nom, sxPl(Object.keys(nv).length, 'article') + ' à bord en permanence');
   const m = lieuManques(l.id); rendre();
-  sxToast(`Dotation de ${esc(l.nom)} enregistrée${m.length ? ' : ' + sxPl(m.length, 'article') + ' à remettre à bord' : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'la dotation de ' + l.nom);
+  sxToast(`Ce qu’il doit y avoir à bord de ${esc(l.nom)} est enregistré${m.length ? ' : il manque ' + sxPl(m.length, 'article') : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'ce qu’il doit y avoir à bord de ' + l.nom);
 }
 
 /* « Utilisé 0 intervention » ignorait les sorties « chez le client » : on les compte aussi, sans doubler une intervention déjà comptée par ses pièces */
@@ -15418,7 +15441,7 @@ const msQuand = j => j == null ? 'pas encore compté' : j < 1 ? 'compté aujourd
 function msBandeau(){
   if (!STK_VALID || !MVTS_ATT.length || !msAccepte()) return '';
   const A = matEnvoisAAccepter(), n = A.n;
-  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-envois')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></span>
+  return `<div class="carte dv-focus ms-bandeau"${matVis('stock-bandeau')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${n} envoi${n > 1 ? 's' : ''} à accepter</b><span class="gris petit">${esc(A.qui.length > 1 ? A.qui.slice(0, -1).join(', ') + ' et ' + A.qui[A.qui.length - 1] : A.qui[0] || '')}</span></span>
     <span class="ms-bd"><button type="button" class="btn gris petit" data-ms="envois">Voir</button><button type="button" class="btn petit" data-ms="toutacc">Tout accepter</button></span></div></div>`;
 }
 function msTuiles(){
@@ -15446,7 +15469,7 @@ function msArticles(){
     ${q && msGerant() ? `<span class="ms-vb"><button type="button" class="btn gris" data-ms="ajouteq">＋ Ajouter « ${esc(q)} »</button></span>` : ''}</div>` : '';
   const grp = (t, A) => A.length ? `<div class="groupe">${t}</div>${A.map(x => matLigneArticle(x, lf)).join('')}` : '';
   const parCat = reste.length > 40 ? [...new Set(reste.map(x => x.cat))].map(c => `<details class="ms-cat" ${q ? 'open' : ''}><summary class="groupe">${esc(c)}</summary>${reste.filter(x => x.cat === c).map(x => matLigneArticle(x, lf)).join('')}</details>`).join('') : null;
-  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou" aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
+  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
     ${vide || rien || `<div class="carte dv-liste ms-liste"${matVis('stock-liste')}>${grp('À surveiller', surv)}${parCat ? `<div class="groupe">Tout le reste</div>${parCat}` : grp(surv.length ? 'Tout le reste' : 'Tous les articles', reste)}</div>`}
     ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;
 }
@@ -15954,7 +15977,7 @@ function bxBesoins(){
   const fin = jour(3), res = {};
   INTS.filter(i => i.tech && i.d >= AUJ && i.d <= fin && ['planifiee', 'encours', 'retard'].includes(i.st) && (i.prevues || []).length).forEach(i => {
     const L = bxActifs().find(l => l.type === 'vehicule' && l.tech === i.tech); if (!L) return;
-    i.prevues.forEach(p => { const x = PRODUITS.find(o => !o.retire && o.nom === p.nom); if (!x) return;
+    i.prevues.forEach(p => { const x = matPieceX(p); if (!x) return;
       const r = res[L.id] = res[L.id] || {}, e = r[x.id] = r[x.id] || { x, besoin:0, ints:[] }; e.besoin = stkR(e.besoin + p.q); e.ints.push(i); }); });
   const reste = {}; PRODUITS.forEach(x => { reste[x.id] = stkAt(x, 'atelier'); });
   return Object.entries(res).map(([id, E]) => ({ l:lieu(id), vers:id, garage:bxGarage(id),
@@ -18058,17 +18081,7 @@ function vxCsv(vid){
   telechargerFichier(`frais-${v.plaque}.csv`, csv, { ok:`Frais de ${esc(v.plaque)} enregistrés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); });
 }
 
-/* ─── 4. le technicien : son camion, son plein, son compteur, ses soucis ─── */
-function vxMonCamion(moi){
-  const v = VEHICULES.find(o => o.conducteur === moi); if (!v) return '';
-  const E = vehEcheances(v), e = E.find(o => o.urg !== 'v') || E[0], m = lieuManques(v.lieu), dr = v.releves[v.releves.length - 1];
-  return `<div class="carte vx-cam"><h3>Mon véhicule · ${esc(v.marque + ' ' + v.modele)}</h3>
-    <div class="vx-cam-t"><span class="ve-plaque">${esc(v.plaque)}</span>${v.statut === 'atelier' ? `<span class="st st-o">Au garage</span>` : '<span class="st st-v">En service</span>'}${v.souci ? '<span class="st st-r">Souci signalé</span>' : ''}</div>
-    <div class="ligne"><span>Compteur</span><span class="fo-dr"><b>${v.km.toLocaleString('fr-FR')} km</b>${dr ? `<span class="gris petit">relevé le ${jCourt(dr.d)}</span>` : ''}</span></div>
-    ${v.statut === 'atelier' && v.immo ? `<div class="info vx-immo"><b>🔧 ${esc(vxTxtGarage(v))}</b>${v.immo.remplacement ? `<span>Tu prends : ${esc(v.immo.remplacement)}</span>` : ''}</div>` : `<div class="ligne"><span>${esc(e.lib)}</span><b class="ve-${e.urg}t">${vehEchTxt(e)}</b></div>`}
-    <div class="ligne"><span>À bord</span><b class="${m.length ? 've-ot' : 've-vt'}">${m.length ? m.length + ' manquent' : 'Dotation complète'}</b></div>
-    <div class="actions"><button type="button" class="btn" data-vx="plein|${v.id}">⛽ Un plein</button><button type="button" class="btn gris" data-vx="km|${v.id}">Relever le compteur</button><button type="button" class="btn gris" data-vx="souci|${v.id}">⚠️ Signaler un souci</button></div></div>`;
-}
+/* ─── 4. le technicien : son plein, son compteur, ses soucis (son écran : « Mon camion », vhCamionBloc) ─── */
 const VX_SOUCIS = ['Voyant allumé', 'Pneu', 'Choc ou rayure', 'Autre'];
 function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
@@ -18187,8 +18200,6 @@ function vxCreerOk(){
 
 /* ─── 7. l'écran d'ouverture dit quoi faire maintenant : UNE action recommandée par véhicule, l'assurance de la flotte en une ligne ─── */
 /* ─── les autres écrans qui parlent des véhicules : Ma journée, le Planning, la fiche intervention, l'Historique ─── */
-(() => { const m0 = vueMaJournee; vueMaJournee = function(){ const h = m0.apply(this, arguments), c = vxMonCamion(rlQui()); if (!c) return h;
-  const cible = '<div class="carte"><h3>L’argent que tu as sur toi'; return h.includes(cible) ? h.replace(cible, c + cible) : h + c; }; })();
 (() => { const c0 = carte; carte = function(i){ const h = c0.apply(this, arguments), g = vxGarageDe(i); return g ? h.replace('</span><span class="t">', ' <b class="vx-gar" title="Camion au garage">🔧 camion</b></span><span class="t">').replace('aria-label="', 'aria-label="Camion au garage. ') : h; }; })();
 (() => { const f0 = vueFiche; vueFiche = function(id){ const h = f0.apply(this, arguments), i = INTS.find(o => o.id === id), g = vxGarageDe(i);
   return g && typeof h === 'string' ? h.replace('<h1>', `<span class="st st-o vx-gar-b">🔧 Camion au garage jusqu’à ${esc(vxQuand(g.immo.retour))}</span><h1>`) : h; }; })();
@@ -18538,6 +18549,65 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t || !t.ma
   if (t.matches('[data-vemat]')) { ev.stopImmediatePropagation(); const [id, ...r] = t.dataset.vemat.split('|'), x = r.join('|'), v = vehDe(id); if (!v) return;
     v.materiel.ok = t.checked ? [...new Set([...v.materiel.ok, x])] : v.materiel.ok.filter(o => o !== x); foGarder(() => vhMatPanel(id)); } }, true);
 
+
+/* ── « Mon camion », partie VÉHICULE (V3) ──
+   Le technicien voit de son camion ce qui le concerne : UNE phrase d'état (la même source que la liste et la fiche du gérant, vhEtat : une seule façon de dire la même
+   chose) puis trois gestes. Il n'a rien à régler lui-même : une échéance se dit « le bureau s'en occupe » (les rappels à 30 et 7 jours vont dans sa cloche, vxNotifs).
+   La partie STOCK de l'écran (À bord, Il manque, Mes envois) est celle de la refonte du Matériel ; celle-ci se pose dans #mc-vehicule. */
+const vhCamionDe = moi => VEHICULES.find(o => o.conducteur === moi);
+function vhPhraseCamion(v){
+  const E = vhEtat(v, 'camion'), im = v.immo || {};
+  if (v.souci) return { t:'Ton souci est signalé : le bureau est prévenu.', c:'ve-ot' };
+  if (v.statut === 'atelier') return { t:'Ton camion est au garage' + (im.retour ? ' jusqu’au ' + jlong(im.retour) : '') + '.' + (im.remplacement ? ' Tu prends : ' + im.remplacement + '.' : ''), c:'ve-ot' };
+  if (v.statut === 'hs') return { t:'Ce camion ne roule plus. Demande au bureau.', c:'' };
+  if (E.e) return { t:vhSujet(E.e) + ' est ' + vhQuand(E.e) + '. Le bureau s’en occupe.', c:E.couleur };
+  if (E.k === 'afaire') return { t:'Le bureau doit encore compléter les papiers de ton camion.', c:'ve-ot' };
+  return { t:'Tout est en règle.', c:'ve-vt' };
+}
+function vhCamionBloc(v){
+  const dr = v.releves[v.releves.length - 1], km = v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' + (dr ? ' · relevé le ' + vhJM(dr.d) : '') : 'Kilométrage pas encore relevé';
+  return `<div class="carte vh-cam"><h3>Le camion</h3>
+    <div class="vh-cam-g"><button type="button" class="btn vh-cam-b" data-vx="plein|${v.id}">Noter un plein</button><button type="button" class="btn gris vh-cam-b" data-vx="km|${v.id}">Relever le compteur</button><button type="button" class="btn gris vh-cam-b vh-cam-l" data-vx="souci|${v.id}">Un souci avec le camion</button></div>
+    <span class="gris petit">${esc(km)}</span></div>`;
+}
+/* la ligne de « Ma journée » : l'état du véhicule, puis ce qu'il faut remettre à bord — jamais une carte de 300 px */
+function vhLigneCamion(){
+  const moi = sxMoi(), L = sxMonLieu(), v = vhCamionDe(moi); if (!L && !v) return '';
+  const n = L && !bxGarage(L.id) ? lieuManques(L.id).length : 0, r = SX.refus.filter(o => o.m.qui === moi).length, a = MVTS_ATT.filter(m => m.qui === moi).length;
+  let etat = '', cl = 'st-v';
+  if (v) { const E = vhEtat(v, 'camion'), im = v.immo || {};
+    if (v.souci) { etat = 'souci signalé au bureau'; cl = 'st-r'; }
+    else if (v.statut === 'atelier') { etat = 'au garage' + (im.retour ? ' jusqu’au ' + jlong(im.retour) : ''); cl = 'st-o'; }
+    else if (v.statut === 'hs') { etat = 'ne roule plus'; cl = 'st-o'; }
+    else if (E.e) { etat = vhLib(E.e).toLowerCase() + ' ' + vhQuand(E.e); cl = E.e.urg === 'r' ? 'st-r' : 'st-o'; }
+    else if (E.k === 'afaire') { etat = 'papiers à compléter par le bureau'; cl = 'st-o'; }
+    else etat = 'tout est en règle'; }
+  const stock = r ? `${sxPl(r, 'envoi refusé', 'envois refusés')} : le bureau t’explique pourquoi` : n ? `${sxPl(n, 'article')} à remettre à bord` : a ? `${sxPl(a, 'envoi')} en attente du bureau` : '';
+  if (stock && cl === 'st-v') cl = r ? 'st-r' : 'st-o';
+  if (!etat) { etat = stock; }
+  return `<button type="button" class="ligne-clic sx-raccourci vh-ligne-cam" data-go="moncamion"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${cl} etiq-af">Mon camion</span><span><b>${esc(etat.charAt(0).toUpperCase() + etat.slice(1))}</b>${stock && stock !== etat ? `<br><span class="gris petit">${esc(stock)}</span>` : ''}</span></span><span>›</span></button>`;
+}
+
+/* ── les deux lignes de l'Accueil (VEHICULES-TEMPS § 8) : « Véhicules · 3 choses à faire » et « Temps de travail · 3 choses à régler »
+   Chaque ligne mène à l'onglet précis (À faire ; Aujourd'hui). Comme `couvert` pour les interventions : ce qu'une tâche urgente ouverte dit déjà plus haut
+   dans la même liste n'est pas recompté (une échéance dont la tâche est urgente, un souci signalé). Rien ne s'écrit : on LIT. */
+function vhAccueil(){
+  const A = [], urg = tachesUrgentes();
+  if (typeof droitVoit === 'function' && droitVoit('vehicules') && VEHICULES.length) {
+    const L = vhLignes(), couvre = cle => urg.some(x => x.cle === cle);
+    const R = L.rows.filter(r => r.e.bouton && !(r.e.k === 'souci' ? urg.some(x => x.id === r.v.souci.tache) : r.e.e && couvre(vxCleTache(r.v, r.e.e)))), G = L.groupes.filter(g => !couvre(vxCleGroupe(g)));
+    const n = R.length + G.length;
+    if (n) { const pire = R[0] || null, sous = pire ? vhCourt(pire.v).replace(/^le /, '').replace(/^./, c => c.toUpperCase()) + ' : ' + pire.e.prec.charAt(0).toLowerCase() + pire.e.prec.slice(1) : 'Assurance des ' + G[0].vs.length + ' véhicules ' + vhQuand({ n:G[0].n });
+      A.push({ c:'var(--orange)', t:'Véhicules · ' + (n > 1 ? n + ' choses à faire' : 'une chose à faire'), s:sous, go:'vehicules', acc:'vh|afaire' }); }
+  }
+  if (typeof droitVoit === 'function' && droitVoit('pointage')) {
+    const R = ttAReglerLignes();
+    if (R.length) A.push({ c:R.some(o => o.g === 'r') ? 'var(--rouge)' : 'var(--orange)', t:'Temps de travail · ' + (R.length > 1 ? R.length + ' choses à régler' : 'une chose à régler'), s:R[0].texte.replace(/<[^>]*>/g, ''), go:'pointage', acc:'tt|auj' });
+  }
+  return A;
+}
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-vhacc]'); if (!b) return; const [k, x] = b.dataset.vhacc.split('|');   /* l'onglet se règle AVANT que le clic de navigation ne passe : capture */
+  if (k === 'vh') VH.onglet = x; else if (k === 'tt') { ptOnglet = x; TT.filtre = null; TT.garder = true; } }, true);
 
 /* ── boiteMail ──
    Boîte mail : ce que le logiciel fait tout seul (relire, ranger, rappeler, enchaîner) et ce qu'il laisse décider.
@@ -19122,7 +19192,7 @@ function mbxApercu(m, k){
   const [nom, taille] = m.pj[k], R = mlLire(m), img = /\.(jpe?g|png|heic)$/i.test(nom); let page;
   if (img) page = `<div class="mbx-photo" role="img" aria-label="Aperçu de la photo ${esc(nom)}"><svg viewBox="0 0 320 200" aria-hidden="true"><rect width="320" height="200" fill="color-mix(in srgb,var(--bleu) 12%,var(--surf2))"/><rect x="40" y="46" width="240" height="64" rx="10" fill="color-mix(in srgb,var(--encre) 16%,var(--surf2))"/><rect x="58" y="62" width="204" height="10" rx="5" fill="color-mix(in srgb,var(--bleu) 40%,var(--surf2))"/><circle cx="160" cy="150" r="26" fill="color-mix(in srgb,var(--orange) 35%,var(--surf2))"/></svg><span class="gris petit">Photo envoyée par ${esc(m.de.nom)} (aperçu simulé)</span></div>`;
   else if (R.sujet === 'facfour' && R.cmd && R.cmd.facLue) { const c = R.cmd, F = c.facLue, T = mbxFacLue(c);
-    page = `<div class="mbx-page"><b>Facture ${esc(F.num)}</b><span class="gris petit">${esc(c.four)} · pour la commande ${esc(c.num)}</span>${c.lignes.map(l => `<div class="mbx-pl"><span>${esc(cmdNom(l))}</span><span>${prNum(F.q[l.pid] != null ? F.q[l.pid] : l.recu)} × ${eur(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu)}</span></div>`).join('')}<div class="mbx-pl tot"><span>Total HT</span><span>${eur(T.ht)}</span></div><span class="mbx-note ${Math.abs(T.ht - T.att) < .01 ? 'vert' : 'orange'}">Commande : ${eur(T.att)} HT${Math.abs(T.ht - T.att) < .01 ? ', conforme.' : ', écart de ' + (T.ht > T.att ? '+' : '−') + eur(Math.abs(T.ht - T.att)) + '.'}</span></div>`; }
+    page = `<div class="mbx-page"><b>Facture ${esc(F.num)}</b><span class="gris petit">${esc(c.four)} · pour la commande ${esc(matNumAff(c.num))}</span>${c.lignes.map(l => `<div class="mbx-pl"><span>${esc(cmdNom(l))}</span><span>${prNum(F.q[l.pid] != null ? F.q[l.pid] : l.recu)} × ${eur(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu)}</span></div>`).join('')}<div class="mbx-pl tot"><span>Total HT</span><span>${eur(T.ht)}</span></div><span class="mbx-note ${Math.abs(T.ht - T.att) < .01 ? 'vert' : 'orange'}">Commande : ${eur(T.att)} HT${Math.abs(T.ht - T.att) < .01 ? ', conforme.' : ', écart de ' + (T.ht > T.att ? '+' : '−') + eur(Math.abs(T.ht - T.att)) + '.'}</span></div>`; }
   else page = `<div class="mbx-page"><b>${esc(nom)}</b><span class="gris petit">Aperçu simulé : dans l’application, le fichier s’ouvre ici, sans quitter la Boîte mail.</span></div>`;
   ouvrirPanneau(`<span class="surtitre">Pièce jointe · ${esc(m.de.nom)}</span><h2>${esc(nom)}</h2><div class="mail-pj"><span class="mail-pj-i">${img ? 'IMG' : 'PDF'}</span><span><b>${esc(nom)}</b><small>${taille}</small></span></div>${page}
     <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button><button type="button" class="btn" data-mbx="dl|${m.id}">Télécharger</button></div>`);
@@ -20045,8 +20115,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
 .ent-ban .btn{flex:none}
 /* sur téléphone, les huit champs de « Ton entreprise » repoussent « Enregistrer » à 989 px sur un écran de 844 : la rangée de boutons reste collée en bas de la feuille,
-   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). Elle couvre le rembourrage du bas de la feuille et l'encoche. */
-@media (max-width:760px){#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
+   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). La feuille n'a plus de rembourrage en bas : c'est la rangée qui porte l'encoche (une marge basse négative sur un élément collant remonte aussi le point où il se colle). */
+@media (max-width:760px){#calque .panneau.ent-pan{padding-bottom:0}#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
 .ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
@@ -20249,7 +20319,7 @@ eqFiche = function (k) {
     ${edit ? eqxFormModif(p) : `<div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="actions"><button type="button" class="btn gris petit" data-eqx="modifier|${k}">✎ Modifier la fiche</button></div>`}
     <div class="groupe">Sa semaine</div>
-    <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>pointées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
+    <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
     ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
     <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}<button type="button" class="lien" data-eqx="histo|${k}">Voir l’historique de cette personne ›</button></div>
     <div class="groupe">Habilitations</div>
@@ -23357,7 +23427,7 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
 
 immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
   'Le stock, c’est ce que tu as, et où il se trouve : à l’atelier, dans chaque camion, dans les réserves chez les clients. Il te dit aussi ce qui manque, et c’est toi qui valides ce que les techniciens déclarent.', [
-  { c:'[data-vis="stock-envois"]', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, une seule ligne te dit ce qui attend ton accord : ici, deux envois de techniciens. Rien ne sort du stock tant que tu n’as pas accepté.' },
+  { c:'[data-vis="stock-bandeau"]', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, une seule ligne te dit ce qui attend ton accord : ici, deux envois de techniciens. Rien ne sort du stock tant que tu n’as pas accepté.' },
   { c:'[data-vis="stock-tuiles"]', t:'Trois chiffres qui mènent quelque part', p:'Ce qu’il y a à commander, les livraisons attendues, et ce qui manque dans les camions. Chaque tuile se touche et t’emmène là où tu agis. Quand tout est en règle, le chiffre passe au vert.' },
   { c:'[data-vis="stock-liste"]', t:'Ce qu’il faut surveiller', p:'La liste commence par ce qui demande ton attention : ce qui est déjà commandé, ce qui n’est plus en stock, ce qui est bientôt fini. Chaque ligne dit où est l’article et combien il y en a. Tape un nom dans la recherche pour le retrouver.' },
   { c:'[data-vis="stock-maj"]', t:'Un seul bouton pour dire ce qui s’est passé', p:'Sortir, ranger, déplacer, compter : tout passe par « Mettre à jour le stock ». Je le touche.',
@@ -23368,7 +23438,7 @@ immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
     jouer:() => { immClic('[data-ms="gpour|collegue"]'); immStockPlus(() => { immEcrire('#calque [data-msg="collegue"]', 'kb'); immStockPlus(() => { const e = gdQ('#msg-q'); if (e) { e.value = 'filtre à charbon'; e.dispatchEvent(new Event('input', { bubbles:true })); } immStockPlus(() => immClic('#calque [data-ms^="gajoute|"]'), 250); }, 250); }, 250); } },
   { c:'[data-ms="genvoyer"]', t:'Je note la sortie', p:'Je touche « Noter ». Le stock baisse tout de suite, un bon de remise est fait pour Karim, et « Annuler » reste proposé huit secondes si je me suis trompé.',
     jouer:() => { immClic('[data-ms="genvoyer"]'); immStockToast(); } },
-  { c:'[data-vis="stock-envois"]', t:'Les envois des techniciens', p:'Voilà ce que Tom et Sophie ont noté depuis leur écran Mon camion. Je touche « Voir » pour lire chaque envoi en une phrase, avec ce qu’il restera en stock.',
+  { c:'[data-vis="stock-bandeau"]', t:'Les envois des techniciens', p:'Voilà ce que Tom et Sophie ont noté depuis leur écran Mon camion. Je touche « Voir » pour lire chaque envoi en une phrase, avec ce qu’il restera en stock.',
     jouer:() => immClic('[data-ms="envois"]') },
   { c:'[data-vis="stock-envois-liste"]', t:'Accepter, ou refuser en disant pourquoi', p:'Chaque envoi se lit en une phrase. Tu acceptes, ou tu refuses avec une raison que le technicien lira. Je touche « Tout accepter ».',
     jouer:() => { immClic('#calque [data-ms="toutacc"]'); immStockToast(); } },
@@ -24354,7 +24424,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
     <form class="cn-carte" id="cn-form" novalidate>
       <h1>Connexion</h1>
       <p class="cn-expl">Accès réservé à l’équipe. Après ton mot de passe, tu confirmes sur ton téléphone avec OP Security.</p>
-      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom (voir ton message)" value="${esc(ident || '')}"></label>
+      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom" value="${esc(ident || '')}"></label>
       <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="Ton mot de passe"></label>
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
@@ -25109,7 +25179,7 @@ const NV_NEUF = [
   ['planning', '🗓️', 'Le planning et sa carte', 'La journée de chaque technicien, la tournée sur la carte, les kilomètres et les retards prévus. Glisse une intervention pour la déplacer.'],
   ['comptabilite', '📊', 'La comptabilité au même endroit', 'Factures, paiements, achats, paie et contrôle « aux normes » : tout l’argent de l’entreprise se suit dans Comptabilité.'],
   ['taches', '✅', 'Les tâches se proposent toutes seules', 'Un devis à relancer, une facture en retard, une pièce à commander : OP GESTION te le propose, et la tâche se termine quand le travail est fait.'],
-  ['produits', '📦', 'Fournisseurs, matériel et produits', 'Tes fournisseurs, tes articles rangés par métier et tes commandes suivies jusqu’à la facture.'],
+  ['*materiel'],   /* la carte « Le matériel, refait » : quatre lignes, chacune ouvre SON écran (NV_MAT) */
   ['pointage', '⏱️', 'Le temps de travail jusqu’à la paie', 'Les heures de chacun, les corrections tracées, le mois confirmé puis envoyé au cabinet de paie.'],
   ['absences', '🏖️', 'Absences et congés', 'Demander, valider, voir le calendrier de l’équipe et les soldes de chacun.', 'patron'],
   ['absences', '🏖️', 'Tes congés', 'Tes soldes, ta demande de congé, et la réponse du bureau, sur ton téléphone.', 'tech'],
@@ -25117,6 +25187,13 @@ const NV_NEUF = [
   ['techfrais', '🧾', 'Tes frais', 'Un ticket en photo, une demande d’achat : tu suis la réponse du bureau.', 'tech'],
   ['moncamion', '🚐', 'Ton camion', 'Ce que tu as à bord, ce qui manque, et « Il me manque une pièce » pour le dire au bureau.', 'tech'],
   ['mesheures', '⏱️', 'Tes heures', 'Tes journées pointées, à relire et à confirmer en fin de mois.', 'tech']
+];
+/* « Le matériel, refait » (spec Matériel § 9.10) : chaque ligne ouvre l'écran qu'elle décrit, et n'est écrite que pour qui a le droit de l'ouvrir */
+const NV_MAT = [
+  ['stock', 'Stock : tape un article, tu vois où il est'],
+  ['boxes', 'Remplir les camions en un toucher'],
+  ['produits', 'Photographie une facture : le stock et les prix se mettent à jour'],
+  ['moncamion', 'Les techniciens ont enfin une recherche, dans Ton camion']
 ];
 const NV_PLACE = [
   ['Archives mensuelles', 'Statistiques › « Bilan du mois en PDF »', 'statistiques'],
@@ -25136,14 +25213,18 @@ const NV_PLACE = [
   ['Messagerie', 'Retirée d’OP GESTION : les discussions de l’équipe se font dans OP MESSAGES', null],
   ['Apparence (jour, nuit)', 'Au pied du menu : Jour · Nuit · Auto', null]
 ];
-const nvVoit = k => !k || rlPermis(k);   /* le guide ne parle que de ce que la personne a le droit d'ouvrir */
+const nvVoit = k => !k || rlPermis(k);
+function nvCarteMat(){
+  const L = NV_MAT.filter(l => l[0] !== 'moncamion' ? ROLE !== 'tech' && nvVoit(l[0]) : ROLE === 'tech' && nvVoit(l[0]));
+  return `<div class="nv-carte nv-mat fixe" role="group" aria-label="Le matériel, refait"${matVis('guide-materiel')}><span class="nv-ic" aria-hidden="true">${svg('article')}</span><span class="nv-tx"><b>Le matériel, refait</b>${L.map(([k, t]) => `<button type="button" class="nv-mlig" data-nv="aller|${k}"><span>${esc(t)}</span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</span></div>`;
+}   /* le guide ne parle que de ce que la personne a le droit d'ouvrir */
 let NV = null;
-function nvPages(){ const neuf = NV_NEUF.filter(x => x[4] ? ROLE === x[4] : nvVoit(x[0])), place = NV_PLACE.filter(x => !x[2] || nvVoit(x[2]));
+function nvPages(){ const neuf = NV_NEUF.filter(x => x[0] === '*materiel' ? NV_MAT.some(l => l[0] !== 'moncamion' ? ROLE !== 'tech' && nvVoit(l[0]) : ROLE === 'tech' && nvVoit(l[0])) : x[4] ? ROLE === x[4] : nvVoit(x[0])), place = NV_PLACE.filter(x => !x[2] || nvVoit(x[2]));
   const p = eqDe(SESSION) || {}, P = [];
   P.push({ k:'donnees', t:`Bienvenue dans la nouvelle version${p.prenom ? ', ' + esc(p.prenom) : ''}`, c:`<p class="nv-chapo">OP GESTION a été refait pour être plus simple et plus rapide, sur téléphone comme sur ordinateur.</p>
     <div class="nv-sur"><span class="nv-coche" aria-hidden="true">✓</span><div><b>Tout ce que tu as saisi est là.</b><span>Clients, interventions, devis, factures, stock, équipe : rien n’a été effacé, tu n’as rien à ressaisir.</span></div></div>
     <ul class="nv-points"><li>Tes identifiants ne changent pas.</li><li>Certaines catégories ont changé de place : ce guide te dit où.</li><li>Deux minutes suffisent, et tu peux le rouvrir quand tu veux.</li></ul>` });
-  if (neuf.length) P.push({ k:'neuf', t:'Ce qui est nouveau', c:`<div class="nv-liste">${neuf.map(([k, ic, t, d]) => `<button type="button" class="nv-carte" data-nv="aller|${k}"><span class="nv-ic" aria-hidden="true">${ic}</span><span class="nv-tx"><b>${esc(t)}</b><span>${esc(d)}</span></span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</div>
+  if (neuf.length) P.push({ k:'neuf', t:'Ce qui est nouveau', c:`<div class="nv-liste">${neuf.map(([k, ic, t, d]) => k === '*materiel' ? nvCarteMat() : `<button type="button" class="nv-carte" data-nv="aller|${k}"><span class="nv-ic" aria-hidden="true">${ic}</span><span class="nv-tx"><b>${esc(t)}</b><span>${esc(d)}</span></span><span class="nv-chev" aria-hidden="true">›</span></button>`).join('')}</div>
     <p class="gris petit nv-note">Touche une carte pour ouvrir l’écran ; le guide reste à portée, dans le menu › Nouveautés.</p>` });
   if (place.length) P.push({ k:'place', t:'Ce qui a changé de place', c:`<p class="nv-chapo">Rien n’a disparu sans raison : ces catégories ont été regroupées. À gauche, le nom d’avant ; à droite, où la retrouver.</p>
     <div class="nv-table" role="list">${place.map(([a, n, k]) => `<${k ? 'button type="button" data-nv="aller|' + k + '"' : 'div'} class="nv-ligne" role="listitem"><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><span class="nv-apres">${esc(n)}</span>${k ? '<span class="nv-chev" aria-hidden="true">›</span>' : ''}</${k ? 'button' : 'div'}>`).join('')}</div>` });
@@ -25203,6 +25284,7 @@ button.nv-carte:hover,button.nv-ligne:hover{background:color-mix(in srgb,var(--l
 .nv-tx b{font-size:15px}
 .nv-tx > span{color:var(--encre2,var(--encre));opacity:.86}
 .nv-chev{flex:none;font-size:20px;opacity:.5}
+.nv-mat{align-items:flex-start}.nv-mat .nv-ic svg{width:20px;height:20px}.nv-mat .nv-tx{gap:0}.nv-mat .nv-tx b{margin-bottom:2px}.nv-mlig{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:6px 0;border:0;border-top:1px solid var(--trait);background:none;color:var(--lien);font:inherit;font-size:14px;line-height:1.35;text-align:left;cursor:pointer;opacity:1}.nv-mlig>span:first-child{flex:1 1 0;min-width:0}
 .nv-note{margin:0}
 .nv-table{display:flex;flex-direction:column;border:1px solid var(--trait);border-radius:16px;overflow:hidden}
 .nv-ligne{display:grid;grid-template-columns:minmax(0,5fr) auto minmax(0,7fr) 14px;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 12px;border:0;border-top:1px solid var(--trait);background:none;color:inherit;font:inherit;font-size:14px;line-height:1.35;text-align:left}
