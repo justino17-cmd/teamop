@@ -523,6 +523,13 @@ html .ms-liste{padding:6px 8px;display:flex;flex-direction:column}html .ms-liste
 html .ms-l{display:flex;align-items:center;gap:14px;min-height:71px;padding:11px 12px;border:0;border-bottom:1px solid var(--trait);border-radius:0;width:100%;text-align:left;background:none;color:var(--encre);font:inherit;cursor:pointer}
 html .ms-liste>.ms-l:last-child,html .ms-liste>details:last-child>.ms-l:last-child{border-bottom:0}
 html .ms-l:hover{background:var(--survol)}
+/* un ordinateur de bureau à écran bas (1366×768 : la plupart des portables sous Windows) : l’en-tête, le bandeau et les tuiles se serrent pour que la liste commence plus haut — mesuré, la première ligne tombait à 494 px sur 768 avec le bandeau « envois à accepter » */
+@media (min-width:1000px) and (max-height:820px){
+  html .ms-tete>div:first-child>.gris{display:none}
+  html .ms-bandeau{padding:6px 14px}
+  html .ms-kpis .kpi{min-height:0;padding:9px 14px}
+  html .ms-l{min-height:64px;padding:8px 12px}
+}
 html .ms-ic,html .ms-gi,html .ms-qi{display:grid;place-items:center;flex:none;color:var(--doux);background:var(--surf2);border:1px solid var(--trait)}
 html .ms-ic{width:40px;height:40px;border-radius:12px}html .ms-ic svg{width:22px;height:22px}
 html .ms-l>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .ms-l>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .ms-l .gris{overflow-wrap:anywhere}
@@ -1406,7 +1413,7 @@ table.l tr.cp-ko td{background:color-mix(in srgb,var(--orange) 7%,transparent)}
 .pr-vide{width:100%;text-align:left;background:none;border:1px dashed var(--trait2);border-radius:12px;padding:12px;color:var(--doux);font:inherit;cursor:pointer;margin-top:4px}
 .pr-q{margin:-2px 0 4px}.pr-tc{font-weight:600;color:var(--doux);font-size:12px;text-transform:none;letter-spacing:0}
 .pr-ex{display:block;font-size:13px;margin-top:2px;opacity:.8}
-.pr-sugg{min-height:22px;margin:-4px 0 6px;font-size:14px}.pr-sg{color:var(--lien)}
+.pr-sugg{min-height:22px;margin:-4px 0 6px;font-size:14px}.pr-sugg:empty{display:none}.pr-sg{color:var(--lien)}   /* tant qu’il n’y a rien à suggérer, elle ne garde pas sa place : un blanc de 60 px séparait le nom de la ligne « Rangé dans » */
 .pr-rg{border-bottom:1px solid var(--trait);padding:10px 0}.pr-rg summary{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:32px}.pr-rg summary::-webkit-details-marker{display:none}
 .pr-exs{display:flex;flex-wrap:wrap;gap:6px}.pr-exs span{font-size:13px;padding:4px 9px;border-radius:999px;background:var(--surf-in);border:1px solid var(--trait)}.pr-exs i{font-style:normal;color:var(--doux);margin-left:5px;font-size:12px}
 @media (max-width:760px){.puces.pr-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px -16px 4px;padding:0 16px}.pr-cats::-webkit-scrollbar{display:none}.pr-cats .puce-c{flex:none}.pr-l{grid-template-columns:minmax(0,1fr) auto}.pr-s{grid-column:1;grid-row:2;flex-direction:row;gap:8px;align-items:center}.pr-p{grid-column:2;grid-row:1 / span 2}}
@@ -12296,6 +12303,11 @@ function menuRepere(l){ l = l || document.querySelector('#menu .m-liste'); if (!
   l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); }
 function menuGarderPlace(haut){ const l = document.querySelector('#menu .m-liste'); if (!l) return; l.scrollTop = haut;
   const a = l.querySelector('a.on'); if (a) { const r = a.getBoundingClientRect(), m = l.getBoundingClientRect(); if (r.top < m.top) l.scrollTop -= m.top - r.top + 8; else if (r.bottom > m.bottom) l.scrollTop += r.bottom - m.bottom + 8; }
+  /* et le GROUPE de la ligne courante se montre en entier quand il tient : « Stock » seul au bas de la colonne cachait « Dépôts et camions » et « Fournisseurs » sous le pied (iPad, 1180 px) */
+  if (a) { const m = l.getBoundingClientRect(); let fin = a; for (let n = a.nextElementSibling; n && !n.classList.contains('grp'); n = n.nextElementSibling) fin = n;
+    let deb = a; for (let n = a.previousElementSibling; n; n = n.previousElementSibling) { deb = n; if (n.classList.contains('grp')) break; }
+    const b = fin.getBoundingClientRect(), d = deb.getBoundingClientRect();
+    if (b.bottom > m.bottom && b.bottom - d.top <= m.height) l.scrollTop += b.bottom - m.bottom + 8; }
   menuRepere(l); }
 document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && t.classList.contains('m-liste')) menuRepere(t); }, true);
 addEventListener('resize', () => menuRepere());
@@ -14735,7 +14747,7 @@ function matAFaire(){
   if (voit('stock') && typeof msAccepte === 'function' && msAccepte() && STK_VALID) { const e = matEnvoisAAccepter(); if (e.n) L.push({ k:'b', t:`${sxPl(e.n, 'envoi')} à accepter`, rub:'Stock', go:'data-go="stock"' }); }
   if (voit('boxes')) { const c = camionsARemplir(); if (c.n) L.push({ k:'a', t:`${sxPl(c.n, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans ${sxPl(c.camions.length, 'camion')}`, rub:'Dépôts et camions', go:'data-ms="t|cam"' }); }
     if (voit('boxes')) { const B = sxBoutsBas().filter(b => lieu(b.lieu) && !lieu(b.lieu).ferme); if (B.length) L.push({ k:'a', t:`Bouteille presque vide : ${esc(sxBoutsTxt(B.slice(0, 2)))}${B.length > 2 ? '…' : ''}`, rub:'Dépôts et camions', go:B.length === 1 ? `data-md="fiche|${B[0].lieu}"` : 'data-ms="t|cam"' }); }
-  return L.slice(0, 4);
+  return L.slice(0, 5);   // quatre lignes d’ordinaire ; la cinquième, « Bouteille presque vide », n’existe que le jour où une bouteille l’est (sans ça elle serait coupée, ou ferait disparaître « manquent dans les camions »)
 }
 function matCarteAccueil(){
   const L = matAFaire(); if (!L.length) return '';
