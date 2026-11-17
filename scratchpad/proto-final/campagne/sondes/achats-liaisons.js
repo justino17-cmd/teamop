@@ -59,12 +59,13 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
   // ── E. paie : les frais validés sont-ils dans l'export de paie, au bon montant ? ─────────────────────────────────
   const val = await E(() => { const par = {}; NDF.filter(n => n.etat === 'validee').forEach(n => { par[n.qui] = Math.round(((par[n.qui] || 0) + n.ttc) * 100) / 100; }); return par; });
   // le lien d'Achats « Voir dans l'export de paie › » doit mener à un écran qui montre ces frais (achats-02 : il arrive sur le mois, qui n'en dit rien)
-  await ouvrirDemandes(); await E(() => { acOnglet = 'notes'; rendre(); }); await L.calme(p, 300); await clic('[data-axa="paie"]'); await L.calme(p, 600);
+  await ouvrirDemandes(); await E(() => { acOnglet = 'notes'; rendre(); }); await L.calme(p, 300); const texteAchats = (await txt(p)).replace(/[  ]/g, ' '); await clic('[data-axa="paie"]'); await L.calme(p, 600);
+  v('achats-02 Achats écrit le chemin « Temps de travail › Mois » (plus « export de paie » ni onglet Paie)', /Temps de travail › Mois/.test(texteAchats) && !/export de paie|Temps de travail → Paie/.test(texteAchats), texteAchats.slice(texteAchats.indexOf('Ajouté'), texteAchats.indexOf('Ajouté') + 120));
   const arr = await L.etat(p), pa = (await txt(p)).replace(/[  ]/g, ' ');
   console.log('   validées par personne :', JSON.stringify(val)); console.log('   arrivée du lien paie :', arr.hash, arr.h1);
   const onglets = await E(() => [...document.querySelectorAll('#contenu [data-tt^="onglet|"]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()));
-  v('achats-02 le chemin écrit dans Achats « Temps de travail → Paie » nomme un onglet qui existe (onglets : ' + onglets.join(' · ') + ')', onglets.some(o => /^Paie/.test(o)), onglets);
-  v('E0 « Voir dans l’export de paie › » mène à Temps de travail', /pointage/.test(arr.hash) && /Temps de travail/.test(arr.h1), arr);
+  v('achats-02 le chemin écrit dans Achats « Temps de travail › Mois » nomme un onglet qui existe (onglets : ' + onglets.join(' · ') + ')', onglets.some(o => /^Mois/.test(o)), onglets);
+  v('E0 « Voir la paie du mois › » mène à Temps de travail', /pointage/.test(arr.hash) && /Temps de travail/.test(arr.h1), arr);
   v('E1 (achats-03) l’écran d’arrivée du lien dit qu’il y a des frais à rembourser avec cette paie', /frais|rembours/i.test(pa), pa.slice(0, 200));
   await L.capture(c, CAP + `liaison-paie-${tag}.png`);
   for (const [k, s] of Object.entries(val)) {
