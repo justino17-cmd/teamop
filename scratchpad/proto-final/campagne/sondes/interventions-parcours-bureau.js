@@ -74,15 +74,15 @@ const I = require('./interventions-outils.js'), L = I.L;
   // ── B6 Nouveau client : champs, doublon, valeurs longues
   await p.evaluate(() => { fermerCreation(); }); await tap('[data-creer="1"]'); await tap('#fenetre [data-cnouveau="1"]');
   const nomLong = 'Société d’exploitation des établissements Dupont-Lefèvre et fils, Saint-Jean-d’Angély';
-  await p.fill('#fenetre [data-cnv="nom"]', nomLong); await p.fill('#fenetre [data-cnv="contact"]', 'Jean-Baptiste de la Tour-Maubourg'); await p.fill('#fenetre [data-cnv="tel"]', 'abc'); await p.fill('#fenetre [data-cnv="mail"]', 'pas-un-courriel'); await p.fill('#fenetre [data-cnv="adr"]', '10 rue de la gravière'); await L.calme(p, 500);
+  await p.fill('#fenetre [data-cnv="nom"]', nomLong); await p.fill('#fenetre [data-cnv="contact"]', 'Jean-Baptiste de la Tour-Maubourg'); await p.fill('#fenetre [data-cnv="tel"]', 'abc'); await p.fill('#fenetre [data-cnv="mail"]', 'pas-un-e-mail'); await p.fill('#fenetre [data-cnv="adr"]', '10 rue de la gravière'); await L.calme(p, 500);
   const ban = await ev(() => { const b = document.querySelector('#fenetre .bandeau-info'); return b ? { texte: b.textContent.trim().slice(0, 80), affiche: getComputedStyle(b).display !== 'none' } : null; });
   v('interventions-14 : une adresse non reconnue le dit à l’écran (le message existe mais le mode application le cache)', !!ban && ban.affiche && !!(await txt('#fenetre')).match(/pas encore reconnue/), ban);
   await tap('#fenetre [data-action="cPlusTard"]'); t = await txt('#fenetre .fen-pied');
   await L.capture(c, I.CAP + `bur-${profil}${nuit ? '-nuit' : ''}-3-nouveau-client.png`);
   await tap('#fenetre [data-action="cCreer"]'); e = await L.etat(p);
   const cree = await ev(n => { const k = Object.keys(CLIENTS).filter(x => x !== '__nv').slice(-1)[0]; return k && CLIENTS[k].nom.includes('Dupont') ? { k, tel: CLIENTS[k].tel, mail: CLIENTS[k].mail, adr: CLIENTS[k].adr, contact: CLIENTS[k].contact, nom: CLIENTS[k].nom } : null; }, nomLong.slice(0, 20));
-  console.log('  · nouveau client, téléphone « abc » et e-mail « pas-un-courriel » :', JSON.stringify(cree), '· toast =', JSON.stringify(e.toast));
-  v('interventions-03 : un téléphone « abc » ou un e-mail invalide ne passe pas en silence à la création d’un client (la fiche client, elle, les refuse)', !cree || /téléphone|e-mail|courriel|mail/i.test(e.toast), { cree, toast: e.toast });
+  console.log('  · nouveau client, téléphone « abc » et e-mail « pas-un-e-mail » :', JSON.stringify(cree), '· toast =', JSON.stringify(e.toast));
+  v('interventions-03 : un téléphone « abc » ou un e-mail invalide ne passe pas en silence à la création d’un client (la fiche client, elle, les refuse)', !cree || /téléphone|e-mail|e-mail|mail/i.test(e.toast), { cree, toast: e.toast });
   // ── B7 l'intervention « plus tard » (à planifier) est visible là où on l'attend
   const planAvant = await ev(() => INTS.filter(i => i.st === 'aplanifier').length);
   await p.evaluate(() => { if (CREA) fermerCreation(); }); await tap('[data-creer="1"]'); await tap('#fenetre [data-ccli="mr"]'); await tap('#fenetre [data-action="cPlusTard"]'); await tap('#fenetre [data-action="cCreer"]'); await L.calme(p, 500);

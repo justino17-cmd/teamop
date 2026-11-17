@@ -23,7 +23,7 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('PARCOURS ' + n
     await S(c, () => document.querySelector('.fen [data-action=cPlusTard]').click()); await p.waitForTimeout(300);
     await S(c, () => document.querySelector('.fen [data-action=cCreer]').click()); await p.waitForTimeout(1000);
     const nInt1 = await S(c, () => INTS.length);
-    v('A3 l\'intervention est créée (' + nInt0 + ' → ' + nInt1 + ') et liée au courriel', nInt1 === nInt0 + 1 && await S(c, () => INTS.some(i => i.mail === 'm1' || /Climatisation chambre 214/.test(i.titre || i.t || ''))), { nInt0, nInt1 });
+    v('A3 l\'intervention est créée (' + nInt0 + ' → ' + nInt1 + ') et liée à l’e-mail', nInt1 === nInt0 + 1 && await S(c, () => INTS.some(i => i.mail === 'm1' || /Climatisation chambre 214/.test(i.titre || i.t || ''))), { nInt0, nInt1 });
     await p.waitForTimeout(500);
     // le module est toujours là, au même message, et propose maintenant de prévenir le client
     await S(c, () => courrierOuvrir('m1')); await p.waitForTimeout(900);
@@ -94,11 +94,11 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('PARCOURS ' + n
     await cap(c, 'rc-C3-apres-preparer-windows-nuit');
     const apres = await S(c, () => ({ nCl:Object.keys(CLIENTS).length, nDev:Object.keys(DEVIS).length, fontaine:Object.values(CLIENTS).some(k => /Fontaine/.test(k.nom || k.contact || '') || k.mail === 'c.fontaine@exemple.fr'), route, fenetre:!!document.querySelector('.fen'), panneau:!!document.querySelector('#calque .panneau'), texte:((document.querySelector('.fen') || document.querySelector('#calque .panneau') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 300) }));
     v('C3 « Préparer le devis » : la cliente est créée (' + nCl0 + ' → ' + apres.nCl + ') et l\'éditeur de devis s\'ouvre (rubrique « ' + apres.route + ' »)', nok === 1 && apres.fontaine && apres.nCl === nCl0 + 1 && apres.route === 'devis', apres);
-    // on revient au courriel : la pastille n'est plus « Nouveau contact », une réponse rapide « devis annoncé » existe
+    // on revient à l’e-mail : la pastille n'est plus « Nouveau contact », une réponse rapide « devis annoncé » existe
     await lib.aller(p, 'boiteMail'); await p.waitForTimeout(900);
     await S(c, () => courrierOuvrir('m5')); await p.waitForTimeout(900);
     const re = await S(c, () => ({ band:(R().querySelector('.hband .ht') || {}).textContent, rapides:[...R().querySelectorAll('[data-quick],.qr button,.quick button,.rapides button')].map(b => b.textContent.trim()).slice(0, 6), pastille:(([...R().querySelectorAll('#rows .msg')].find(r => /Demande de devis climatisation/.test(r.textContent)) || { querySelector:() => null }).querySelector('.hpast') || {}).textContent }));
-    v('C4 le courriel n\'est plus un « Nouveau contact » (pastille : « ' + re.pastille + ' »)', !/Nouveau contact/.test(re.pastille || ''), re);
+    v('C4 l’e-mail n\'est plus un « Nouveau contact » (pastille : « ' + re.pastille + ' »)', !/Nouveau contact/.test(re.pastille || ''), re);
     const q = p.locator('#courrier-hote [data-quick]').first(); const nq = await q.count();
     v('C5 population : au moins une réponse rapide est proposée (' + nq + ')', nq >= 1, re.rapides);
     if (nq) { await q.click(); await p.waitForTimeout(900);
@@ -107,7 +107,7 @@ const sec = async (nom, f) => { try { await f(); } catch (e) { v('PARCOURS ' + n
       await cap(c, 'rc-C6-reponse-windows-nuit');
       await p.locator('#courrier-hote #cSend').click(); await p.waitForTimeout(800);
       const gagne = await lib.attendre(p, () => MAILS.some(m => m.dossier === 'envoye' && /fontaine/i.test((m.a || ''))), 16000); await p.waitForTimeout(500);
-      v('C7 la réponse part et se retrouve dans les courriels envoyés', gagne, gagne); }
+      v('C7 la réponse part et se retrouve dans les e-mails envoyés', gagne, gagne); }
     v('C8 aucune erreur JavaScript pendant le parcours', c.err.length === 0, c.err.slice(0, 3));
     await fin(c);
   });
