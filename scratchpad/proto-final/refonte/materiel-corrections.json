@@ -6,7 +6,7 @@
     "materiel-relecture-technicien.json"
   ],
   "relectures_attendues_non_arrivees": [],
-  "sonde": "scratchpad/proto-final/sondes/materiel-bureau-corrections.js (mac, windows, ipad), materiel-technicien-corrections.js (iphone, petit) et leurs captures (materiel-bureau-captures.js, materiel-technicien-captures.js)",
+  "sonde": "scratchpad/proto-final/sondes/materiel-bureau-corrections.js (mac, windows, ipad), materiel-technicien-corrections.js (iphone, petit) et leurs captures (materiel-bureau-captures.js, materiel-technicien-captures.js) — chiffres finaux : bureau mac 43 ✓, windows 44 ✓, ipad 44 ✓ (avant le dernier ajustement CSS du bandeau, qui ne touche que le téléphone) ; technicien iphone / android / petit 18 ✓ chacun, 0 ✗",
   "corrections": [
     {
       "n": "bureau-01",
@@ -179,8 +179,8 @@
     {
       "n": "technicien-10",
       "etat": "corrigé",
-      "changement": "au téléphone le bandeau « envois à accepter » tient sur UNE rangée (texte à gauche qui ouvre les envois, « Tout accepter » à droite ; « Voir » disparaît). Première ligne d'article 626 → 574 px sur 844 (0,68). Le plafond de 12 touchables avant la liste reste à 13 : aucun touchable n'est sans fonction, DIT",
-      "preuve": "sonde iphone : bandeau 71 px (avant 110), toucher le texte ouvre la feuille ; captures android jour, petit nuit"
+      "changement": "au téléphone le bandeau « envois à accepter » tient sur UNE rangée (texte à gauche qui ouvre les envois, « Tout accepter » à droite ; « Voir » et le rond décoratif disparaissent). Première ligne d'article : iPhone 626 → 574 px sur 844 (0,68) ; android 659 → 605 sur 740 ; 320 px 635 → 604 sur 568 (encore sous le pli, la place manque). Le plafond de 12 touchables avant la liste reste à 13 : aucun touchable n'est sans fonction, DIT",
+      "preuve": "sonde iphone, android, petit : « Tout accepter » à côté du texte, toucher le texte ouvre la feuille des envois ; captures android jour, petit nuit"
     }
   ],
   "decouverte_en_regardant": [
