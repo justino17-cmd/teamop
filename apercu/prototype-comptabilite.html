@@ -3796,6 +3796,8 @@ addEventListener('message', ev => { if (!opcHote() || ev.source !== parent) retu
     if (!OPC_SENS.enCours) { OPC_SENS.enCours = true; opcSensible('compta-banque', () => { OPC_SENS.enCours = false; OPC_SENS.visite = true; rendre(); }, () => { OPC_SENS.enCours = false; aller(OPC_SENS.avant || 'accueil'); }); } }; }
 /* le FEC et l'envoi au cabinet : le geste est avalé tant que la page n'a pas confirmé, puis rejoué une fois */
 addEventListener('click', ev => { if (!opcHote() || OPC_SENS.libre) return; const b = ev.target.closest && ev.target.closest('[data-a="fec-dl"],[data-a="cloturer-envoyer"],[data-a="cloturer-oct"]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+  /* un compte en lecture seule est refusé AVANT qu'on lui demande de confirmer sur son téléphone : sinon il confirmait pour rien, puis le refus tombait (la garde des droits écoute le document, celle-ci la fenêtre, qui passe la première) */
+  if (window.CMPT_DROITS && window.CMPT_DROITS.m === false && CMPT_ECRIT.test(b.dataset.a)) return;
   ev.stopImmediatePropagation(); ev.preventDefault(); const sel = '[data-a="' + b.dataset.a + '"]';
   opcSensible('compta-export', () => { OPC_SENS.libre = true; try { (b.isConnected ? b : document.querySelector(sel)).click(); } finally { OPC_SENS.libre = false; } }, () => {}); }, true);
 </script>
