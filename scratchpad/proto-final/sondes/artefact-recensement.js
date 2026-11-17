@@ -26,8 +26,8 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
   // touche UN candidat (retrouvé par sa signature après avoir remis l'écran) ; chemin : les clics qui ouvrent la fenêtre où il vit
   async function toucher(route, chemin, sig, racine) {
     await ouvrirRoute(route);
-    for (const o of chemin) { const loc = await retrouver(o); if (!loc || !await L.toucher(c, loc)) return { perdu: true }; await A.calmer(c.p); }
-    const cs = await A.collecter(c.p, racine), k = cs.find(x => x.tag + '|' + x.lib + '|' + x.href === sig); if (!k) return { perdu: true };
+    for (const o of chemin) { const loc = await retrouver(o); const tt = loc ? await L.toucher(c, loc) : null; if (process.env.DEBUG) console.log('  · rejeu', o.lib.slice(0, 25), !!loc, tt); if (!loc || !tt) return { perdu: 'rejeu' }; await A.calmer(c.p); }
+    const cs = await A.collecter(c.p, racine), k = cs.find(x => x.tag + '|' + x.lib + '|' + x.href === sig); if (!k) { if (process.env.DEBUG) console.log('  · introuvable après rejeu', sig, cs.map(x => x.tag + '|' + x.lib + '|' + x.href).join(' ; ').slice(0, 200)); return { perdu: 'sig' }; }
     const loc = c.p.locator(`[data-bac-i="${k.i}"]`).first();
     const e0 = await bac.etat(c), p0 = await A.photo(c.p);
     let ok;
@@ -40,6 +40,12 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     let lisible = true; if (/^(tel|mailto|sms)$/.test(k.sortant)) { const cible = k.href.replace(/^(tel|mailto|sms):/i, '').split('?')[0].replace(/[^0-9a-z@.+-]/gi, '').toLowerCase(); const txt = (await c.p.evaluate(() => document.body.innerText)).replace(/[^0-9a-z@.+-]/gi, '').toLowerCase(); lisible = !!cible && txt.includes(cible.replace(/^\+33/, '0').slice(-9)) ; }
     return { k, ok, d, dit, lisible, toast: p1.toast, fichier: (e1.fichiers || []).slice((e0.fichiers || []).length), err: c.err.length };
   }
+  const vus = new Set();
+  // teste une liste de candidats TOUT DE SUITE après leur découverte : un filtre touché entre-temps (« Par mois ») changerait la liste pour les suivants
+  const tester = async (route, liste2) => { for (const t of liste2) { if (Date.now() > FIN) { nonFaits.push(route + ' (suite)'); break; } const cle = route + '>' + t.chemin.map(o => o.lib).join('>') + '>' + t.sig; if (vus.has(cle)) continue; vus.add(cle);
+      let r; try { r = await toucher(route, t.chemin, t.sig, t.racine); } catch (e) { r = { erreur: String(e.message).slice(0, 80) }; }
+      if (process.env.DEBUG) console.log('  · testé', t.sig.slice(0, 50), '→', JSON.stringify(r).slice(0, 160));
+      resultats.push({ route, chemin: t.chemin, ...t.k, r }); await L.ranger(c.p); } };
   for (const route of liste) {
     if (Date.now() > FIN) { nonFaits.push(route); continue; }
     await ouvrirRoute(route);
@@ -49,17 +55,15 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     // niveau 2 : les gestes qui ouvrent une fenêtre, une feuille ou une fiche (population prise sur TOUS les gestes de l'écran, trois par famille de données)
     const tous = await L.gestes(c.p, '#contenu'), fam = {}, ouvreurs = tous.filter(k => !/^A$/.test(k.balise) || !/^(https?|tel|mailto|sms):/.test('')).filter(k => { if (/télécharg|export|imprim|copier|appeler|joindre|supprimer|effacer|déconnect/i.test(k.lib)) return false; const g = k.balise + '|' + k.data.replace(/=[^ ]*/g, ''); fam[g] = (fam[g] || 0) + 1; return fam[g] <= 3; }).sort((x, y) => (/data-go|data-action|data-open|data-fiche/.test(y.data) ? 1 : 0) - (/data-go|data-action|data-open|data-fiche/.test(x.data) ? 1 : 0)).slice(0, 22);   // ceux qui ouvrent une fiche ou une fenêtre d'abord : un filtre (Par mois) change la liste pour les suivants
     if (process.env.DEBUG) console.log('  · ' + route + ' : ' + tous.length + ' gestes, ' + ouvreurs.length + ' ouvreurs, ' + n1.length + ' sensibles');
+    await tester(route, aTester.splice(0));   // le niveau 1 d'abord, l'écran tel qu'il s'ouvre
     for (const o of ouvreurs) { if (Date.now() > FIN) break; await ouvrirRoute(route); const cs = await A.collecter(c.p, '#contenu'); /* les gestes SENSIBLES sont déjà au niveau 1 */
       const loc = await retrouver(o); if (!loc) { if (process.env.DEBUG) console.log('  · ouvreur introuvable', o.lib.slice(0, 30), o.data); continue; }
       const h0 = await c.p.evaluate(() => location.hash); if (!await L.toucher(c, loc)) { if (process.env.DEBUG) console.log('  · ouvreur non touché', o.balise, o.lib.slice(0, 30), o.data); continue; } await A.calmer(c.p);
       const h1 = await c.p.evaluate(() => location.hash), ouvert = await c.p.evaluate(() => !!document.querySelector('#calque .panneau'));
       if (process.env.DEBUG) console.log('  · ouvreur', o.lib.slice(0, 30), '→', h0, h1, ouvert);
-      if (ouvert || h1 !== h0) { const n2 = await A.collecter(c.p, 'body'); total += n2.length; n2.forEach(k2 => aTester.push({ chemin: [o], sig: k2.tag + '|' + k2.lib + '|' + k2.href, racine: 'body', k: k2 })); }
-      await L.ranger(c.p); }
-    const vus = new Set();
-    for (const t of aTester) { if (Date.now() > FIN) { nonFaits.push(route + ' (suite)'); break; } const cle = t.chemin.map(o => o.lib).join('>') + '>' + t.sig; if (vus.has(cle)) continue; vus.add(cle);
-      let r; try { r = await toucher(route, t.chemin, t.sig, t.racine); } catch (e) { r = { erreur: String(e.message).slice(0, 80) }; }
-      resultats.push({ route, chemin: t.chemin, ...t.k, r }); await L.ranger(c.p); }
+      let n2 = []; if (ouvert || h1 !== h0) { n2 = await A.collecter(c.p, 'body'); total += n2.length; }
+      await L.ranger(c.p);
+      await tester(route, n2.map(k2 => ({ chemin: [o], sig: k2.tag + '|' + k2.lib + '|' + k2.href, racine: 'body', k: k2 }))); }
   }
   // verdicts
   let evalues = 0;

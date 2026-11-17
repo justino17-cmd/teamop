@@ -13,7 +13,7 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
     v(`${T} compta : population (le cadre est là et chargé)`, !!f && await f.evaluate(() => typeof fecTelecharger === 'function').catch(() => false), f && f.url());
     if (f) {
       v(`${T} compta : le cadre n'a PAS window.claude (le bac le refuse aux cadres)`, await f.evaluate(() => typeof window.claude) === 'undefined', '');
-      await bac.zero(c); await f.evaluate(() => fecTelecharger()); await c.p.waitForTimeout(600); let e = await bac.etat(c);
+      await f.evaluate(() => aller('fec')); await L.calme(c.p, 500); await bac.zero(c); await f.locator('[data-a="fec-dl"]').first().click(); await c.p.waitForTimeout(700); let e = await bac.etat(c);
       v(`${T} compta : le FEC arrive au pont du parent, non vide, au bon nom`, e.fichiers.length === 1 && /FEC\d{8}\.txt$/.test(e.fichiers[0].nom) && e.fichiers[0].taille > 300 && e.fichiers[0].cadre === 'haut', e.fichiers);
       v(`${T} compta : le cadre dit « enregistré »`, /FEC enregistré/.test(await f.evaluate(() => (document.getElementById('toast') || {}).textContent || '')), '');
       await c.p.close().catch(() => {});
@@ -23,7 +23,7 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
     c = await bac.ouvrir({ profil, qui: 'marc' }, { refuser: true }); await A.calmer(c.p);
     await c.p.evaluate(() => { const a = document.querySelector('#menu a[href="#comptabilite"]'); if (a) a.click(); else location.hash = 'comptabilite'; }); await L.calme(c.p, 1800);
     f = L.cadre(c.p, /prototype-comptabilite\.html/);
-    if (f) { await f.evaluate(() => fecTelecharger()); await c.p.waitForTimeout(500); const e = await bac.etat(c), t = await f.evaluate(() => (document.getElementById('fec-msg') || {}).textContent || '');
+    if (f) { await f.evaluate(() => aller('fec')); await L.calme(c.p, 500); await f.locator('[data-a="fec-dl"]').first().click(); await c.p.waitForTimeout(600); const e = await bac.etat(c), t = await f.evaluate(() => (document.getElementById('fec-msg') || {}).textContent || '');
       v(`${T} compta : refus du visiteur → rien d'enregistré, le cadre le dit (« ${t.slice(0, 40)} »)`, e.fichiers.length === 0 && e.refus.length === 1 && /annulé|refus/i.test(t), { e: e.refus, t }); }
     else v(`${T} compta (refus) : population`, false, 'cadre absent');
     await L.fin(c);
@@ -31,7 +31,7 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
     c = await bac.ouvrir({ profil, qui: 'marc' }, { pont: false }); await A.calmer(c.p);
     await c.p.evaluate(() => { const a = document.querySelector('#menu a[href="#comptabilite"]'); if (a) a.click(); else location.hash = 'comptabilite'; }); await L.calme(c.p, 1800);
     f = L.cadre(c.p, /prototype-comptabilite\.html/);
-    if (f) { await f.evaluate(() => fecTelecharger()); await c.p.waitForTimeout(500); const t = await f.evaluate(() => (document.getElementById('fec-msg') || {}).textContent || ''), e = await bac.etat(c);
+    if (f) { await f.evaluate(() => aller('fec')); await L.calme(c.p, 500); await f.locator('[data-a="fec-dl"]').first().click(); await c.p.waitForTimeout(600); const t = await f.evaluate(() => (document.getElementById('fec-msg') || {}).textContent || ''), e = await bac.etat(c);
       v(`${T} compta : sans pont, le cadre dit « pas disponible » et montre le début du fichier`, /pas disponible/.test(t) && /JournalCode/.test(t) && e.liensInertes.length === 0, t.slice(0, 120)); }
     await L.fin(c);
     // ── l'atelier de documents : l'enregistrement passe par le pont du PARENT ──
@@ -43,7 +43,7 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
       v(`${T} atelier : le cadre n'a PAS window.claude`, await f.evaluate(() => typeof window.claude) === 'undefined', '');
       await bac.zero(c); const r = await f.evaluate(() => pdfEnregistrer(new Blob(['%PDF-1.4\n% essai atelier'], { type: 'application/pdf' }), 'devis-essai.pdf')); await c.p.waitForTimeout(400); const e = await bac.etat(c);
       v(`${T} atelier : le PDF arrive au pont du parent (nom, type, taille)`, r === 'saved' && e.fichiers.length === 1 && e.fichiers[0].nom === 'devis-essai.pdf' && e.fichiers[0].type === 'application/pdf' && e.fichiers[0].taille > 10, { r, f: e.fichiers });
-      const t = await f.evaluate(() => (document.getElementById('toast') || {}).textContent || document.body.innerText.slice(0, 0));
+      const t = await f.evaluate(() => [...document.querySelectorAll('#toasts .toast')].map(x => x.textContent).join(' | '));
       v(`${T} atelier : le cadre dit « enregistré » (« ${String(t).slice(0, 50)} »)`, /enregistré/.test(t), t);
       // le visiteur refuse : le cadre le dit
       v(`${T} atelier : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3));
@@ -52,7 +52,7 @@ const A = require('./artefact-commun.js'), { bac, L, v } = A;
     c = await bac.ouvrir({ profil, qui: 'marc' }, { refuser: true }); await A.calmer(c.p);
     await L.aller(c.p, 'devis'); await c.p.locator('#contenu [data-opd="devis"]').first().click({ timeout: 5000 }).catch(() => {}); await L.calme(c.p, 2500);
     f = L.cadre(c.p, /prototype-documents\.html/);
-    if (f) { const r = await f.evaluate(() => pdfEnregistrer(new Blob(['%PDF-1.4\n% essai'], { type: 'application/pdf' }), 'devis-essai.pdf')); await c.p.waitForTimeout(300); const e = await bac.etat(c), t = await f.evaluate(() => (document.getElementById('toast') || {}).textContent || '');
+    if (f) { const r = await f.evaluate(() => pdfEnregistrer(new Blob(['%PDF-1.4\n% essai'], { type: 'application/pdf' }), 'devis-essai.pdf')); await c.p.waitForTimeout(300); const e = await bac.etat(c), t = await f.evaluate(() => [...document.querySelectorAll('#toasts .toast')].map(x => x.textContent).join(' | '));
       v(`${T} atelier : refus du visiteur → 'declined', rien d'enregistré, le cadre le dit`, r === 'declined' && e.fichiers.length === 0 && /refus/i.test(t), { r, t }); }
     else v(`${T} atelier (refus) : population`, false, 'cadre absent');
     await L.fin(c);

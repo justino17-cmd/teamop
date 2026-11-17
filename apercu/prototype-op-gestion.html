@@ -4599,7 +4599,7 @@ function voirFichierLocal(url, nom){
   const b = BLOBS_LOCAUX.get(url), type = (b && b.type) || '', n = nom || (b && b.name) || 'Fichier';
   ouvrirPanneau(`<h2>${esc(n)}</h2>${/^image\//.test(type) ? `<img class="vfl-img" src="${esc(url)}" alt="${esc(n)}">` : '<p class="gris">Ce fichier ne s’affiche pas dans cette page : enregistre-le sur ton appareil pour l’ouvrir.</p>'}<div class="actions"><button type="button" class="btn" data-sortie="enregistrer" data-u="${esc(url)}" data-n="${esc(n)}">Enregistrer sur cet appareil</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 }
-document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
+document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]:not([download])'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
@@ -8197,8 +8197,8 @@ function cpFec(){
 }
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
-  const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
-  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom) });
+  const nom = cpFecNom(), txt = CP.fecEnvoye || cpFec(), data = new Blob([txt], { type:'text/plain' });
+  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom), texte:txt });   // « texte » : dans un cadre sans pont, le début du fichier s'affiche à copier
 }
 async function cpSceller(){
   CP.fecEnvoye = cpFec(); CP.empreinte = null;
