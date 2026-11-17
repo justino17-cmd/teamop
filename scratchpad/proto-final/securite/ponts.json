@@ -2,7 +2,7 @@
  "angle": "ponts — les ponts entre pages (postMessage), le rangement de l'appareil, les fichiers choisis, la coque mobile",
  "date": "2026-11-17",
  "page": "apercu/prototype-op-gestion.html (tête 98ae627) et ses trois cadres : prototype-comptabilite.html, prototype-paiement.html, prototype-documents.html ; module prototype-courrier.js ; coque mobile/",
- "etat": "étape 3 sur 8 TERMINÉE. 8 failles prouvées (1 haute, 5 moyennes, 2 faibles), contre-épreuve rejouée sur une COPIE corrigée (les pages n'ont pas été touchées), correctif prêt en un fichier .diff.",
+ "etat": "étape 3 sur 8 TERMINÉE. 9 failles prouvées (1 haute, 4 moyennes, 4 faibles ; 2 déjà connues rappelées, non recomptées), contre-épreuve rejouée sur une COPIE corrigée (les pages n'ont pas été touchées), correctif prêt en un fichier .diff.",
  "modeleDeMenace": "Un prototype n'a pas de serveur : tout ce que la page contient, qui ouvre la console le lit. On ne rapporte donc que ce qu'obtient quelqu'un qui passe par un fichier qu'on lui fait choisir, une page d'une autre origine qui insère un cadre, le rangement de l'appareil ou la coque. Les failles « prototype » se corrigent maintenant ; les « vraie application » sont des règles que seul le serveur garantira.",
  "couvert": {
   "ecouteursMessage": "Les quatre écouteurs 'message' et les 11 envois postMessage(…, '*'). OP GESTION : trois écouteurs, TOUS filtrés sur event.source (cadre Comptabilité, cadre « Comptabilité » plein écran, cadre atelier) ; l'atelier filtre sur HOTE (= window.parent) ; la Comptabilité n'a AUCUN contrôle (déjà rapporté : acces-13, injection-04, rejoué ici, A3) ; le module de paiement n'écrit ni n'écoute rien (aucun postMessage, aucun stockage, aucune adresse lue). Rejoué (ponts-messages.js, 15 ✓ · 0 ✗ avant correction) : onze messages forgés par une AUTRE origine (opc_paiement 99 999 €, opc_ouvrir, opc_relance, opd_client, opd_docs, opd_fermer…) vers l'application insérée dans un cadre : 0 effet (aucun client créé, aucun document ajouté, aucun paiement, mode inchangé) ; témoin : le même message venu du vrai cadre agit. Données hostiles envoyées par l'hôte à l'atelier (500+ clients, __proto__, constructor, balisage dans nom/adresse/IBAN/article, 5 Mo de texte, NaN, -1, 1e99, tableaux, null) : plafonds tenus (≤ 500 clients, ≤ 400 articles), 0 pollution de Object.prototype, 0 exécution. Factures hostiles envoyées par l'hôte à la Comptabilité (nom de client et objet en balisage dans l'adresse « liaison » : 30 rubriques parcourues, 0 exécution ; éléments nuls, sélecteur piégé : la page vit encore).",
@@ -21,10 +21,21 @@
    "ponts-cadres.js",
    "ponts-coque.js"
   ],
-  "ponts-messages": "15 ✓ · 0 ✗",
-  "ponts-poison": "16 ✓ · 0 ✗ (témoin + 15 valeurs)",
-  "ponts-coque": "13 ✓ · 5 ✗",
-  "ponts-cadres": "4 ✓ · 3 ✗"
+  "avantCorrection": {
+   "ponts-stockage": "5 ✓ · 1 ✗ (le ✗ est la persistance après déconnexion, ponts-09)",
+   "ponts-suivant": "6 ✓ · 0 ✗",
+   "ponts-poison": "16 ✓ · 0 ✗ (témoin + 15 valeurs, sur deux lancements)",
+   "ponts-messages": "15 ✓ · 0 ✗",
+   "ponts-fichiers": "4 ✓ · 3 ✗",
+   "ponts-cadres": "6 ✓ · 3 ✗ (ponts-03 et ponts-08 ; la fuite et l'adresse longue)",
+   "ponts-coque": "13 ✓ · 5 ✗ (ponts-04, 05, 06, 07)"
+  },
+  "surCopieCorrigee": {
+   "ponts-messages": "15 ✓ · 0 ✗",
+   "ponts-fichiers": "7 ✓ · 0 ✗",
+   "ponts-cadres": "9 ✓ · 0 ✗",
+   "ponts-coque": "16 ✓ · 3 ✗ (les trois réglages Android, non corrigés dans la copie)"
+  }
  },
  "dejaRapporte": [
   "acces-13 / injection-04 : l'écouteur 'message' de la Comptabilité n'a aucun contrôle de source ni d'origine (rejoué ici, ponts-messages A3 : une page d'une autre origine qui insère la Comptabilité lui fait prendre « patron + paie »). Je ne le recompte pas ; la correction proposée (ev.source === window.parent) reste la bonne.",
@@ -117,12 +128,12 @@
   },
   {
    "n": "ponts-08",
-   "titre": "La Comptabilité reçoit toutes les factures de vente DANS SON ADRESSE : 6 000 caractères pour 8 factures, 131 000 pour 200, et le nom des clients dans les journaux du serveur",
+   "titre": "La Comptabilité reçoit toutes les factures de vente DANS SON ADRESSE : 6 000 caractères pour 8 factures, 88 000 pour 200, et le nom des clients dans les journaux du serveur",
    "gravite": "faible",
    "qui": "ceux qui lisent les journaux d'accès du serveur ou du CDN (l'adresse complète d'une requête y est écrite), l'historique du navigateur, et un réseau qui coupe les adresses longues ; ni exploitation à distance, ni autre origine.",
    "obtient": "des noms de clients, des numéros de facture, des montants, hors de l'application ; et une panne : au-delà d'environ 8 000 caractères (limite de Fastly, nginx et de la plupart des CDN), le cadre Comptabilité ne s'ouvre plus (414/431) alors que la même donnée passe déjà par le message opc_ventes envoyé à l'ouverture.",
    "etapes": "opLiaSrc (:21614) écrit « prototype-comptabilite.html?app=1&liaison=<JSON de toutes les factures et encaissements> » ; la Comptabilité le relit (prototype-comptabilite.html:656). La page est servie telle quelle par teamop.fr/apercu/.",
-   "preuve": "ponts-cadres.js : « 1. l'adresse reste sous 2 000 caractères » ✗ → 6046 (8 factures) ; « 1b. à 200 factures sous 8 000 » ✗ → 131 358.",
+   "preuve": "ponts-cadres.js : « 1. l'adresse reste sous 2 000 caractères » ✗ → 6046 (8 factures) ; « 1b. à 200 factures sous 8 000 » ✗ → 88 222 (200 factures de vente, adresse réelle calculée par l'application).",
    "ou": "prototype-op-gestion.html : opLiaSrc (:21614) ; prototype-comptabilite.html :656",
    "correction": "Ne passer dans l'adresse que « ?app=1&liaison=1 » (le drapeau) : le cadre dit « prêt » (opc_pret) et l'application lui envoie déjà opc_ventes à ce moment (:21594) ; la Comptabilité part alors d'un jeu vide jusqu'à ce message, ce que fait déjà opc_pret. À valider par un essai (un clignotement de chiffres à l'ouverture est possible).",
    "portee": "les deux (vraie application : aucune donnée métier dans une adresse, jamais ; ni dans la requête, ni dans le fragment)"
@@ -161,7 +172,7 @@
  ],
  "contreEpreuve": {
   "methode": "Les pages n'ont pas été modifiées. Les correctifs ont été posés sur une COPIE (scratchpad/copie-ponts*/, hors dépôt) puis les mêmes sondes rejouées contre elle (RACINE=<copie>). Le correctif se rejoue : scratchpad/proto-final/securite/ponts-corrections.diff (git apply).",
-  "resultats": "À COMPLÉTER"
+  "resultats": "Copie corrigée (ponts-corrections.diff, plus les trois réglages Android laissés de côté) : ponts-fichiers 7 ✓ · 0 ✗ (le SVG et le HTML sont REFUSÉS ; témoins : une vraie photo PNG et un vrai PDF passent, sans quoi un refus ne prouverait rien) ; ponts-cadres 9 ✓ · 0 ✗ (adresse du cadre : 43 caractères, au lieu de 6 046 pour 8 factures et 88 222 pour 200 ; la Comptabilité connaît toujours les 8 factures de l'application ; la page d'une autre origine ne reçoit plus rien) ; ponts-messages 15 ✓ · 0 ✗ (les envois adressés à l'origine marchent entre pages de même origine : le témoin d'effet réel passe) ; ponts-coque 16 ✓ · 3 ✗ (ni ?auto= en coque, ni scripts sans empreinte ; restent les trois réglages Android, à corriger dans mobile/android/…). Mutation inverse : ce sont les mêmes sondes, qui tombent sur le code d'origine (4 ✓ · 3 ✗, 6 ✓ · 3 ✗, 13 ✓ · 5 ✗) : une garde qui ne tombe jamais ne prouve rien."
  },
  "constatsDeCodeNonRejoues": [
   "Le logo d'entreprise accepte image/svg+xml et se filtre par une liste noire de motifs (<script, on…=, javascript:, foreignObject, iframe) : inerte tant qu'il n'est lu que dans <img> et par html2canvas, mais une liste noire se contourne (entités dans le schéma) ; ne jamais l'insérer en ligne ni l'ouvrir en document (règle P1).",
