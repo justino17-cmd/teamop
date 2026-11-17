@@ -6451,7 +6451,7 @@ function journalAjout(qui, type, action, el, extra){ if (qui === 'marc') qui = a
    TOUS les chemins qui écrivent un encaissement passent par cette ligne, jamais par un journalAjout recopié */
 function journalPaiement(f, v, mode, o){ o = o || {}; journalAjout(o.qui || 'marc', 'facture', o.action || 'a enregistré un paiement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(v) + ' · ' + mode + (o.plus || '') }); }
 /* L'argent qu'un technicien reçoit sur place est un encaissement comme un autre (l'Accueil et la Comptabilité le comptent) : il a SA ligne dans « Qui a fait quoi »,
-   au nom du technicien, une seule fois par intervention (P.journale) — à la fin de l'intervention, ou à l'envoi de la facture si le montant n'était pas connu avant
+   au nom du technicien, une seule fois par intervention (P.journale), à « Terminer » : le montant d'un paiement « en totalité » laissé vide est celui de la facture préparée
    (restes accueil, tour 1 : le chemin qui encaissait sans rien écrire dans l'Historique) */
 function journalPaieTerrain(i, P, v){ if (!P || P.journale || !(v > 0)) return; P.journale = true;
   journalAjout(i.tech || rlQui(), 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(v) + ' · ' + P.mode }); }
@@ -8714,7 +8714,7 @@ const ACTIONS = {
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
     const fa = FACTURES.find(x => x.int === id), kcomp = ctrCompris(i);   // absente : intervention en garantie, ou visite comprise dans un contrat, sans facture
     if (reglages.auto && fa && lignesDe(fa).every(ligneOk) && entClientJoignable(fa.cli)) envoyerFacture(fa, true, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
-    { const P = F.paiement, mt = parseFloat(String(P.montant).replace(',', '.')) || 0;   /* l'argent noté sur place : sa ligne vient APRÈS « a terminé », et une seule fois (l'envoi automatique de la facture, plus haut, l'a peut-être déjà écrite) */
+    { const P = F.paiement, mt = parseFloat(String(P.montant).replace(',', '.')) || 0;   /* l'argent noté sur place : sa ligne vient APRÈS « a terminé », et une seule fois (un second appel ne double pas) */
       journalPaieTerrain(i, P.etat === 'rien' ? null : P, mt || (P.etat === 'total' && fa ? ttcDe(fa) : 0)); }
     rendre(); scrollTo({ top:0 }); toast(fa ? (kcomp ? 'Terminée : le compte rendu part au client. La visite est comprise dans le contrat ' + kcomp.num + ' ; la facture ne porte que les pièces posées.' : 'Terminée : le compte rendu part au client, la facture est préparée.') : kcomp ? 'Terminée : le compte rendu part au client. Visite comprise dans le contrat ' + kcomp.num + ' : pas de facture à part.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
@@ -8897,8 +8897,7 @@ function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (nu
   const P = f.paieTech; if (!P || P.etat === 'rien') return;
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
   f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
-  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined });
-  { const it = INTS.find(o => o.id === f.int); if (it) journalPaieTerrain(it, P, v); } }
+  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
 function payer(f, m, o){
   /* PREMIÈRE instruction : noter un encaissement est « Devis, factures, contrats › Créer » (ou « Comptabilité › Modifier » dans la Comptabilité, ou la fiche de terrain du technicien) ; le client qui paie en ligne n'est pas une personne de l'entreprise */
   if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
@@ -26094,9 +26093,9 @@ document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
 .pl-col,.pl-mj,.pl-cel{cursor:cell}
 @media (max-width:760px){ .st-graph{overflow-y:hidden} }   /* même piège : le graphique des Statistiques, qui ne défile que de côté */
 /* Le graphique des 12 mois défile (téléphone, iPad en portrait) et s'ouvre calé à droite : sa colonne de gauche tombait coupée net contre le bord de la carte (« éc » au lieu de « déc »),
-   ce qui se lisait comme un défaut. Un fondu de 22 px à gauche dit « ça continue », et la même marge au bout du défilement laisse le premier mois entier (restes accueil, tour 1). */
-@media (max-width:760px){ .st-graph{padding-left:22px;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px)} }
-@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ .st-graph{padding-left:22px;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px)} }
+   ce qui se lisait comme un défaut. Un fondu de 30 px à gauche dit « ça continue » (22 px laissaient encore lire « éc » sur iPad), et la même marge au bout du défilement laisse le premier mois entier (restes accueil, tour 1). */
+@media (max-width:760px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} }
+@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} }
 </style>`);
 
 /* ── le logo au lancement : plus grand, et un mouvement plus marqué · 13 novembre 2026 ──

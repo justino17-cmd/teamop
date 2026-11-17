@@ -40,8 +40,9 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   await L.toucher(c, '[data-action="terminer"]', { delai: 4000 }); await L.calme(p, 600); if ((await L.etat(p)).panneau) await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first());
   const l1 = await lignes(), o1 = await ordre();
   v('A2 · à « Terminer » avec un acompte : une ligne de plus, au nom de la technicienne', l1.length === avant + 1 && l1[l1.length - 1].qui === 'sm', l1);
-  v('A2 · la ligne dit « 40,50 € · Chèque »', /40,50 €/.test(l1[l1.length - 1].det) && /Chèque/.test(l1[l1.length - 1].det), l1[l1.length - 1]);
+  v('A2 · la ligne dit « 40,50 € · Chèque »', /40,50 €/.test(l1[l1.length - 1].det.replace(/[\u00a0\u202f]/g, ' ')) && /Chèque/.test(l1[l1.length - 1].det), l1[l1.length - 1]);
   v('A2 · elle vient APRÈS « a terminé l’intervention »', o1.lastIndexOf('a terminé l’intervention') >= 0 && o1.lastIndexOf('a terminé l’intervention') < o1.lastIndexOf('a noté un paiement reçu sur place'), o1.slice(-4));
+  v('A2 · un second appel pour la même intervention ne double pas la ligne', await p.evaluate(() => { const n = JOURNAL.length; journalPaieTerrain(INTS.find(i => i.id === 'i1'), fiche('i1').paiement, 40.5); return JOURNAL.length === n; }));
   // sans paiement noté : aucune ligne
   v('A2 · contre-épreuve : « Pas encore payé » ne fait pas de ligne', await p.evaluate(() => { const n = JOURNAL.length; journalPaieTerrain(INTS.find(i => i.id === 'i1'), { etat: 'rien', mode: 'Carte', montant: '' }, 0); return JOURNAL.length === n; }));
 
@@ -53,7 +54,7 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   await L.toucher(c, '[data-action="terminer"]', { delai: 4000 }); await L.calme(p, 700); if ((await L.etat(p)).panneau) await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first());
   const l3 = await lignes(), f3 = await p.evaluate(() => { const f = FACTURES.find(x => x.int === 'i1' && x.st !== 'annulee'); return f && { st: f.st, ttc: ttcDe(f), recu: f.recu }; });
   v('A3 · population : la facture est partie et payée sur place', !!f3 && f3.st === 'payee' && f3.recu > 0, f3);
-  v('A3 · une seule ligne de plus (pas de doublon entre l’envoi et la fin)', l3.length === avant3 + 1, l3.slice(avant3));
+  v('A3 · une seule ligne de plus (l’envoi automatique de la facture et la fin de l’intervention ne la doublent pas)', l3.length === avant3 + 1, l3.slice(avant3));
   v('A3 · le montant de la ligne est celui de la facture', !!f3 && l3.length > avant3 && l3[l3.length - 1].det.includes(f3.ttc.toFixed(2).replace('.', ',')), { l: l3[l3.length - 1], f3 });
   await p.evaluate(() => { reglages.auto = false; });
 
@@ -78,13 +79,13 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
     return { defile, mask: cs.maskImage || cs.webkitMaskImage, pad: parseFloat(cs.paddingLeft), debut: Math.round(r0.left - r.left), fin: Math.round(r.right - r1.right), n: cols.length, w: Math.round(r.width) }; });
   v('C · population : le graphique existe avec ses 12 mois', !!g && g.n === 12, g);
   if (g && g.defile) {
-    v('C · il défile : un fondu à gauche (masque) et 22 px de marge', /gradient/.test(g.mask) && g.pad === 22, g);
-    v('C · au bout du défilement, le premier mois est ENTIER (son bord gauche est après la marge)', g.debut >= 21, g);
+    v('C · il défile : un fondu à gauche (masque) et 30 px de marge', /gradient/.test(g.mask) && g.pad === 30, g);
+    v('C · au bout du défilement, le premier mois est ENTIER (son bord gauche est après la marge)', g.debut >= 29, g);
     await p.evaluate(() => { const e = document.querySelector('.st-graph'); e.scrollLeft = 0; }); await p.waitForTimeout(200);
     const dr = await p.evaluate(() => { const e = document.querySelector('.st-graph'), cols = [...e.querySelectorAll('.st-col')], r = e.getBoundingClientRect(), r1 = cols[cols.length - 1].getBoundingClientRect(); return Math.round(r.right - r1.right); });
     v('C · calé à droite, le dernier mois (octobre) reste entier', dr >= 0, dr);
     await p.evaluate(() => { document.querySelector('.st-graph').scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(300); await cap('graphique');
-  } else v('C · il ne défile pas (ordinateur) : ni masque ni marge ajoutés', !!g && !g.defile && (!g.mask || g.mask === 'none') && g.pad !== 22, g);
+  } else v('C · il ne défile pas (ordinateur) : ni masque ni marge ajoutés', !!g && !g.defile && (!g.mask || g.mask === 'none') && g.pad !== 30, g);
 
   const bruit = c.err.filter(e => !/hl-ecran|Failed to load/.test(e)); v('aucune erreur JavaScript', bruit.length === 0, bruit.slice(0, 4));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);

@@ -14,7 +14,7 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   // 1. le bilan PDF
   await p.evaluate("stPer='mois'; stK=ST_FIN;"); await L.aller(p, 'statistiques'); await L.toucher(c, '[data-stbilan="1"]'); await p.waitForTimeout(700);
   const bil = await calque();
-  const encBilan = (bil.match(/Encaissé sur la période\s*([\d ]+,\d{2}) €/) || [])[1];
+  const encBilan = (bil.match(/Encaissé sur la période(?: Non compris : [^€]*€ reçus sur place, pas encore sur une facture)?\s*([\d ]+,\d{2}) €/) || [])[1];
   v('1 · le bilan dit « Encaissé sur la période » (population)', !!encBilan, bil.slice(0, 200));
   v('1 · le bilan explique l’écart avec l’Accueil (« reçus sur place ») quand il y en a', /reçus? sur place/.test(bil), { encBilan, accueil: '3 085,00 €' });
   await L.ranger(p);
