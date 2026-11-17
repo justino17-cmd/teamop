@@ -15,7 +15,7 @@ const toast = c => ev(c, () => (document.getElementById('toast') || {}).textCont
 const panneau = c => ev(c, () => { const p = document.querySelector('#calque .panneau'); return p ? { h2:((p.querySelector('h2') || {}).textContent || '').trim(), txt:(p.innerText || '').replace(/\s+/g, ' ') } : null; });
 const saisir = (c, id, val) => ev(c, a => { const i = document.getElementById(a[0]); i.value = a[1]; i.dispatchEvent(new Event('input', { bubbles:true })); i.dispatchEvent(new Event('change', { bubbles:true })); }, [id, val]);
 const ligne = (c, id) => ev(c, i => { const l = [...document.querySelectorAll('.vh-liste .vh-l')].find(x => x.querySelector(`[data-vh="fiche|${i}"]`)); return l ? { pastille:(l.querySelector('.vh-et .st') || {}).textContent, prec:(l.querySelector('.vh-prec') || {}).textContent, geste:(l.querySelector('.btn') || {}).textContent || '' } : null; }, id);
-const annuler = async c => { await ev(c, () => { [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await L.calme(c.p, 400); };
+const annuler = async c => { const ok = await ev(c, () => { const b = [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)); if (b) b.click(); return !!b; }); v('le toast porte « Annuler »', ok, null); await L.calme(c.p, 400); };
 
 (async () => {
   for (const profil of PROFILS) {

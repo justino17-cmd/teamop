@@ -111,7 +111,7 @@ for (const [nom, paires, sondes, env] of M) {
   for (const s of sondes) { const r = cp.spawnSync('node', [path.join(__dirname, FICHIER[s])], { env: { ...process.env, RACINE: R, PROFILS:(s === J || s === SA || s === K) ? 'iphone' : 'mac,iphone', NUIT:'0', ...(env || {}) }, encoding: 'utf8', timeout: 400000 });
     const bil = ((r.stdout || '').match(/== (\d+) ✓ · (\d+) ✗/) || [])[0] || '(pas de bilan : ' + String(r.stderr || '').split('\n')[0].slice(0, 80) + ')';
     detail += ` ${s}: ${bil} sortie ${r.status}`; if ((r.status === 1 || r.status === 2) && /^  ✗/m.test(r.stdout || '')) { tombe = true; if (r.status === 2) detail += ' (une vérification a échoué, puis la sonde est morte faute de l\'écran attendu)'; break; }
-    if (r.status === 2 && /TypeError: Cannot (read|set) properties of null/.test(r.stderr || '')) { tombe = true; detail += ' (la sonde meurt faute de l\'élément gardé)'; break; } }
+    if (r.status === 2 && /TypeError: Cannot (read|set) properties of (null|undefined)/.test(r.stderr || '')) { tombe = true; detail += ' (la sonde meurt faute de l\'élément gardé)'; break; } }
   jouees++; if (tombe) tombes++; else vivantes.push(nom);
   console.log((tombe ? '✓ TOMBE ' : '✗ VIVANTE') + ' · ' + nom + ' →' + detail);
 }
