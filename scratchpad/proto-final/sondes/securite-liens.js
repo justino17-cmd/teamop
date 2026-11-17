@@ -1,5 +1,5 @@
-// GARDE de l'audit de sécurité (étape 7, 17 novembre 2026) : S15 (un lien se lit comme il s'ouvre) et tout ce que le module de courrier fait d'un courriel hostile. Copie de securite/courrier-corps.js, jouée contre prototype-courrier.js CORRIGÉ.
-// Angle « courrier » · sonde 1 : un courriel est un contenu HOSTILE. On range dans la boîte fictive des courriels piégés
+// GARDE de l'audit de sécurité (étape 7, 17 novembre 2026) : S15 (un lien se lit comme il s'ouvre) et tout ce que le module de courrier fait d'un e-mail hostile. Copie de securite/courrier-corps.js, jouée contre prototype-courrier.js CORRIGÉ.
+// Angle « courrier » · sonde 1 : un e-mail est un contenu HOSTILE. On range dans la boîte fictive des e-mails piégés
 // (objet, nom et adresse de l'expéditeur, corps, entités, liens, noms de pièces jointes) puis on les OUVRE un par un dans le
 // vrai module (apercu/prototype-courrier.js, arbre d'ombre ouvert) et on lit ce qui est vraiment dans le DOM :
 //   · une balise ou un gestionnaire sorti d'un texte (data-xss, on*, <img>, <iframe>, <form>, <script>, <style>) ;
@@ -49,7 +49,7 @@ const PIEGES = [
   const total = { liens: 0, ouverts: 0 };
   for (const x of PIEGES) {
     const ok = await p.evaluate(id => COURRIER.inst.ouvrir(id), x.id); await p.waitForTimeout(700);
-    L.v('population : le courriel piégé ' + x.id + ' s\'ouvre dans le module', ok === true, ok); if (ok !== true) continue; total.ouverts++;
+    L.v('population : l’e-mail piégé ' + x.id + ' s\'ouvre dans le module', ok === true, ok); if (ok !== true) continue; total.ouverts++;
     const R = await p.evaluate(LIRE); total.liens += R.liens.length;
     console.log('  ·', x.id, 'liens', R.liens.length, 'corps', R.corps, 'largeur', R.largeur + '/' + R.larg0);
     L.v(x.id + ' : rien n\'est sorti du texte (balise, gestionnaire, URL dangereuse)', R.sorti.length === 0, R.sorti.slice(0, 6));
@@ -62,17 +62,17 @@ const PIEGES = [
     await p.screenshot({ path: CAP + 'corps-' + x.id + '.png' }).catch(() => {});
   }
   const H = await p.evaluate(() => ({ hits: (window.top.__hits || []).slice(), alertes: (window.top.__alertes || []).slice() }));
-  L.v('population : 8 courriels piégés ouverts', total.ouverts === PIEGES.length, total);
+  L.v('population : 8 e-mails piégés ouverts', total.ouverts === PIEGES.length, total);
   L.v('population : au moins 15 liens ont été rendus (sinon le contrôle des liens ne dit rien)', total.liens >= 15, total);
-  L.v('AUCUNE charge exécutée pendant l\'ouverture des 8 courriels (window.__hits)', H.hits.length === 0, H.hits);
+  L.v('AUCUNE charge exécutée pendant l\'ouverture des 8 e-mails (window.__hits)', H.hits.length === 0, H.hits);
   L.v('aucune alerte ni ouverture de fenêtre', H.alertes.length === 0, H.alertes);
   L.v('AUCUNE requête vers un autre hôte que 127.0.0.1 (pixel espion, image, feuille de style distants) : ' + dehors.length, dehors.length === 0, dehors.slice(0, 5));
   // la liste, la recherche et l'aperçu de la liste (ligne du message) : le même texte hostile y passe aussi
   const LS = await p.evaluate(() => { const sr = document.querySelector('#courrier-hote [data-opcourrier]').shadowRoot, rows = sr.querySelector('#rows'); let n = 0, bad = []; sr.querySelectorAll('*').forEach(e => { if (e.hasAttribute('data-xss')) bad.push('data-xss'); for (const a of e.attributes) if (/^on/i.test(a.name)) bad.push(a.name); if (/^(IMG|IFRAME|SCRIPT|FORM|OBJECT)$/.test(e.tagName)) bad.push(e.tagName); }); n = rows ? rows.querySelectorAll('.msg').length : 0; return { n, bad: bad.slice(0, 6), titre: document.title }; });
-  L.v('la liste contient les courriels piégés (population ' + LS.n + ')', LS.n >= 8, LS); L.v('la liste ne porte aucune balise ni gestionnaire sortis des textes', LS.bad.length === 0, LS.bad);
+  L.v('la liste contient les e-mails piégés (population ' + LS.n + ')', LS.n >= 8, LS); L.v('la liste ne porte aucune balise ni gestionnaire sortis des textes', LS.bad.length === 0, LS.bad);
   await p.evaluate(() => COURRIER.inst.rechercher('onerror')); await p.waitForTimeout(600);
   const RS = await p.evaluate(() => { const sr = document.querySelector('#courrier-hote [data-opcourrier]').shadowRoot; let bad = []; sr.querySelectorAll('*').forEach(e => { if (e.hasAttribute('data-xss')) bad.push('data-xss'); for (const a of e.attributes) if (/^on/i.test(a.name)) bad.push(a.name); if (/^(IMG|IFRAME|SCRIPT|FORM)$/.test(e.tagName)) bad.push(e.tagName); }); return { n: sr.querySelectorAll('#rows .msg').length, bad, hits: (window.top.__hits || []).length }; });
-  L.v('la recherche « onerror » retrouve des courriels (population ' + RS.n + ') sans rien exécuter', RS.n >= 3 && RS.bad.length === 0 && RS.hits === 0, RS);
+  L.v('la recherche « onerror » retrouve des e-mails (population ' + RS.n + ') sans rien exécuter', RS.n >= 3 && RS.bad.length === 0 && RS.hits === 0, RS);
   const nErr = c.err.filter(e => !/ResizeObserver/.test(e)); L.v('aucune erreur de page', nErr.length === 0, nErr.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.error('SONDE EN PANNE', e); try { await L.fermer(); } catch (x) {} process.exit(2); });
