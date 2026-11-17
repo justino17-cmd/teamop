@@ -9,6 +9,7 @@ const SORTIE = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db1
 const args = [], opt = {}; { const t = process.argv.slice(2); for (let i = 0; i < t.length; i++) { if (t[i].startsWith('--')) { opt[t[i].slice(2)] = t[i + 1]; i++; } else args.push(t[i]); } }
 const FICHIER_NOM = () => QUI + "-" + PROFIL + (opt.nom ? "-" + opt.nom : ROUTES ? "-" + ROUTES.join("+").slice(0, 80) : "") + ".json";
 const QUI = args[0] || 'marc', PROFIL = args[1] || 'mac', ROUTES = args[2] ? args[2].split(',') : null;
+const ATT = +(opt.attente || 280), BASE = +(opt.base || 500);
 const PROF = +(opt.profondeur || 3), MAX = +(opt.max || 120), TEMPS_ROUTE = +(opt.temps || 150) * 1000;
 // ce qu'on ne touche pas : sortir, télécharger vers l'extérieur, liens qui quittent la page
 const EVITE = /^(se déconnecter|déconnexion)/i;
@@ -56,7 +57,7 @@ const DESSUS = () => { const t = document.getElementById('toast'), q = document.
   const barre = await p.evaluate(LIRE, '#barre-bas'); res.ecrans['(barre du bas)'] = Object.assign(barre, { gestes: {} });
   const cadres = () => p.frames().filter(f => f !== p.mainFrame() && /prototype-/.test(f.url()));
   const lireCadres = async () => { const o = {}; for (const f of cadres()) { const k = f.url().split('/').pop().split('?')[0]; try { o[k] = new Set((await f.evaluate(LIRE, 'body')).lignes); } catch (e) { o[k] = new Set(); } } return o; };
-  async function replay(route, chemin) { await L.aller(p, route); for (const [zone, s, i, fr] of chemin) { const f = fr ? cadres().find(x => x.url().includes(fr)) : p; if (!f) return false; const r = await f.evaluate(CLIQUER, { zone, s, i }); if (r === 'absent') return false; await L.calme(p, 260); } return true; }
+  async function replay(route, chemin) { await L.aller(p, route); for (const [zone, s, i, fr] of chemin) { const f = fr ? cadres().find(x => x.url().includes(fr)) : p; if (!f) return false; const r = await f.evaluate(CLIQUER, { zone, s, i }); if (r === 'absent') return false; await L.calme(p, ATT); } return true; }
   async function explorer(route, chemin, niveau, rec, zone, nom, vus, t) {
     if (niveau > PROF || Date.now() - t.debut > TEMPS_ROUTE || t.n >= MAX) return;
     const f = nom ? cadres().find(x => x.url().includes(nom)) : p; if (!f) return;
@@ -72,7 +73,7 @@ const DESSUS = () => { const t = document.getElementById('toast'), q = document.
         const avantC = await lireCadres(); const avant = await p.evaluate(DESSUS); const avantT = new Set((await f2.evaluate(LIRE, zone)).lignes);
         dialogues.length = 0; let r; try { r = await f2.evaluate(CLIQUER, { zone, s, i }); } catch (e) { r = 'erreur'; }
         t.n++; if (r !== 'ok' && r !== 'select') continue;
-        await L.calme(p, 280);
+        await L.calme(p, ATT);
         const apres = await p.evaluate(DESSUS); const e = { geste: lib + (nSel ? ' (choix ' + (i + 1) + ')' : ''), niveau };
         if (apres.toast && apres.toast !== avant.toast) e.toast = apres.toast;
         if (dialogues.length) e.dialogue = dialogues.slice();
@@ -93,12 +94,12 @@ const DESSUS = () => { const t = document.getElementById('toast'), q = document.
   for (const route of routes) {
     const rec = { lignes: [], attrs: [], gestes: [], cadres: {} }; const debut = Date.now(); const t = { debut, n: 0 };
     try {
-      await L.aller(p, route); await p.waitForTimeout(500);
+      await L.aller(p, route); await p.waitForTimeout(BASE);
       const base = await p.evaluate(LIRE, '#contenu'); rec.lignes = base.lignes; rec.attrs = base.attrs; rec.h = await p.evaluate(() => location.hash);
       for (const f of cadres()) { const k = f.url().split('/').pop().split('?')[0]; try { const x = await f.evaluate(LIRE, 'body'); rec.cadres[k] = { lignes: x.lignes, attrs: x.attrs, gestes: [] }; } catch (e) {} }
       await explorer(route, [], 1, rec, '#contenu', '', new Set(), t);
       // cadres (comptabilité, paiement, documents) : leurs propres gestes
-      for (const k of Object.keys(rec.cadres)) { const sous = rec.cadres[k]; await L.aller(p, route); await p.waitForTimeout(500); const tt = { debut: Date.now(), n: 0 }; await explorer(route, [], 1, sous, 'body', k, new Set(), tt); }
+      for (const k of Object.keys(rec.cadres)) { const sous = rec.cadres[k]; await L.aller(p, route); await p.waitForTimeout(BASE); const tt = { debut: Date.now(), n: 0 }; await explorer(route, [], 1, sous, 'body', k, new Set(), tt); }
     } catch (e) { rec.notes = (rec.notes || []).concat('ÉCHEC ' + String(e.message).slice(0, 200)); }
     res.ecrans[route] = rec;
     console.log(`  ${route}: ${rec.lignes.length} lignes, ${rec.gestes.length} gestes, ${Object.keys(rec.cadres).length} cadres, ${Math.round((Date.now() - debut) / 1000)} s${rec.coupe ? ' (coupé)' : ''}`);
