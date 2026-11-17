@@ -8612,10 +8612,11 @@ const ACTIONS = {
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
-  creerContrat(){ const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
+  creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
-    if (Date.now() - cfCtrT < 1200) return; cfCtrT = Date.now();   // le double-clic d'avant a déjà créé le contrat : la page ne s'est pas encore redessinée
+    cfCtrT = Date.now();
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Number(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
     const mailK = CLIENTS[B.cli].mail;
