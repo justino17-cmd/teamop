@@ -6289,6 +6289,8 @@ function stBilan(){
   const ecart = (a, b, inv) => { if (!b) return '<span class="bil-e">—</span>'; const p = Math.round((a - b) / b * 100); return p === 0 ? '<span class="bil-e">stable</span>' : `<span class="bil-e ${(inv ? p < 0 : p > 0) ? 'up' : 'down'}">${p > 0 ? '▲ +' : '▼ '}${p} %</span>`; };
   const tile = (lib, val, e, sous) => `<div class="bil-t"><span>${lib}</span><b>${val}</b><small>${e} ${sous}</small></div>`;
   const moyensDe = stMoyMois;
+  /* ce que le bilan ne compte pas, dit : l'Accueil et la Comptabilité comptent aussi l'argent reçu sur place sans facture (restes accueil) ; le comptable qui lit 3 045 là où l'écran dit 3 085 doit savoir pourquoi */
+  const surPlace = L.includes(ST_FIN) ? cpPaieTerrain().reduce((s, e) => s + e.ttc, 0) : 0, notePlace = surPlace > 0 ? `Non compris : ${eur(surPlace)} reçus sur place, pas encore sur une facture` : '';
   const moy = ['Virement','Carte','Chèque','Espèces'].map(m => [m, L.reduce((s, k) => s + moyensDe(k).find(x => x[0] === m)[1], 0), L.reduce((s, k) => s + moyensDe(k).find(x => x[0] === m)[2], 0)]);
   const totMoy = moy.reduce((s, x) => s + x[1], 0) || 1;
   const tvaDe = k => k === ST_FIN ? FACTURES.filter(f => f.emise.endsWith('/10')).reduce((s, f) => s + (f.st === 'avoir' ? -f.ht : htDe(f)) * f.tva / 100, 0) : STH[k].fac * .185, tva = L.reduce((s, k) => s + tvaDe(k), 0);
@@ -6308,7 +6310,7 @@ function stBilan(){
     const T = techsDe([k]), M = moyensDe(k), tm = M.reduce((s, x) => s + x[1], 0) || 1, du2 = I.filter(x => x.st !== 'payee' && x.st !== 'avalider');
     return `<section class="bil-page">
       <div class="bil-bande"><span>${per === stLib(k, true).replace(/^./, c => c.toUpperCase()) ? 'Détail du mois' : 'Bilan ' + per}</span><b>${stLib(k, true).replace(/^./, c => c.toUpperCase())}</b><span>du 1er au ${nbj} ${ST_MOIS_L[m - 1]} ${y}</span></div>
-      <div class="bil-tuiles">${tile('Facturé', eur0(h.fac) + ' <i>HT</i>', ecart(h.fac, hp && hp.fac), 'par rapport à ' + (hp ? stLib(stDecale(k, -1)) : '—'))}${tile('Encaissé', eur0(h.enc) + ' <i>TTC</i>', ecart(h.enc, hp && hp.enc), '')}${tile('Interventions', I.length, ecart(I.length, hp && hp.ints), '')}${tile('Devis acceptés', h.acc + ' / ' + h.emis, '', Math.round(h.acc / h.emis * 100) + ' %')}</div>
+      <div class="bil-tuiles">${tile('Facturé', eur0(h.fac) + ' <i>HT</i>', ecart(h.fac, hp && hp.fac), 'par rapport à ' + (hp ? stLib(stDecale(k, -1)) : '—'))}${tile('Encaissé', eur0(h.enc) + ' <i>TTC</i>', ecart(h.enc, hp && hp.enc), k === ST_FIN && surPlace > 0 ? 'hors ' + eur0(surPlace) + ' reçus sur place' : '')}${tile('Interventions', I.length, ecart(I.length, hp && hp.ints), '')}${tile('Devis acceptés', h.acc + ' / ' + h.emis, '', Math.round(h.acc / h.emis * 100) + ' %')}</div>
       <div class="bil-2">
         <div><h5>Par technicien</h5><table><thead><tr><th>Technicien</th><th class="n">Interventions</th><th class="n">Heures</th><th class="n">Facturé HT</th></tr></thead><tbody>${T.map(x => `<tr><td>${x.t.nom}</td><td class="n">${x.ints}</td><td class="n">${x.h} h</td><td class="n">${eur(x.ca)}</td></tr>`).join('')}</tbody></table></div>
         <div><h5>Encaissements par moyen</h5><table><thead><tr><th>Moyen</th><th class="n">Règl.</th><th class="n">Montant TTC</th></tr></thead><tbody>${M.map(([mo, v, n]) => `<tr><td>${mo}</td><td class="n">${n}</td><td class="n">${eur(v)}</td></tr>`).join('')}<tr class="fort"><td>Total</td><td class="n">${M.reduce((s, x) => s + x[2], 0)}</td><td class="n">${eur(tm)}</td></tr></tbody></table></div>
@@ -6328,7 +6330,7 @@ function stBilan(){
     </header>
     <section class="bil-tuiles">
       ${tile('Facturé', eur0(S.fac) + ' <i>HT</i>', ecart(S.fac, P.fac), plus ? 'par rapport à la période d’avant' : 'par rapport à ' + stLib(stPrec()))}
-      ${tile('Encaissé', eur0(S.enc) + ' <i>TTC</i>', ecart(S.enc, P.enc), '')}
+      ${tile('Encaissé', eur0(S.enc) + ' <i>TTC</i>', ecart(S.enc, P.enc), surPlace > 0 ? 'hors ' + eur0(surPlace) + ' reçus sur place' : '')}
       ${tile('Interventions', toutes.length, ecart(toutes.length, P.ints), 'prix moyen ' + eur0(S.fac / Math.max(1, toutes.length)) + ' HT')}
       ${tile('Devis acceptés', S.taux + ' %', ecart(S.taux, P.taux), S.acc + ' sur ' + S.emis)}
     </section>
@@ -6340,7 +6342,7 @@ function stBilan(){
       <div class="bil-2">
         <table><tbody>
           <tr><td>Facturé hors taxes</td><td class="n">${eur(S.fac)}</td></tr><tr><td>TVA collectée</td><td class="n">${eur(tva)}</td></tr>
-          <tr class="fort"><td>Facturé TTC</td><td class="n">${eur(S.fac + tva)}</td></tr><tr><td>Encaissé sur la période</td><td class="n">${eur(S.enc)}</td></tr>
+          <tr class="fort"><td>Facturé TTC</td><td class="n">${eur(S.fac + tva)}</td></tr><tr><td>Encaissé sur la période${notePlace ? `<br><small>${notePlace}</small>` : ''}</td><td class="n">${eur(S.enc)}</td></tr>
           <tr><td>Reste à encaisser (factures de la période)</td><td class="n">${eur(aRecevoir)}</td></tr>
           <tr><td>Facturé HT depuis le 1er janvier ${y1}</td><td class="n">${eur(cumulAnnee)}</td></tr>
         </tbody></table>
@@ -6405,6 +6407,10 @@ let JOURNAL = (() => {
     aj(i.d, fin, i.tech, 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'Signature du client recueillie · ' + (2 + n % 3) + ' photos' });
     aj(i.d, hm(hmin(fin) + 1), 'auto', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail });
   });
+  /* l'argent reçu sur place par un technicien et pas encore repris par une facture émise : sa ligne, au nom du technicien (restes accueil) */
+  INTS.filter(i => i.st === 'fait' && i.tech).forEach(i => { const P = PAIE_DEMO[i.id], mt = P ? parseFloat(String(P.montant).replace(',', '.')) || 0 : 0;
+    if (!P || P.etat === 'rien' || !(mt > 0) || (P.mode !== 'Espèces' && P.mode !== 'Chèque') || FACTURES.some(f => f.int === i.id && f.num !== '—')) return;
+    P.journale = true; aj(i.d, hm(hmin(i.h) + i.dur + 2), i.tech, 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(mt) + ' · ' + P.mode }); });
   FACTURES.filter(f => f.emise.endsWith('/10') && f.int).forEach(f => {
     aj(dIso(f.emise), '17:' + String(10 + (+f.num.slice(-2) % 40)).padStart(2, '0'), 'julie', 'facture', 'a validé et envoyé la facture', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(f.ht * (1 + f.tva / 100)) + ' TTC' });
   });
@@ -6434,6 +6440,11 @@ function journalAjout(qui, type, action, el, extra){ if (qui === 'marc') qui = a
 /* Un paiement noté est la trace la plus utile en cas de litige, et c'était la seule qu'on ne retrouvait pas dans « Qui a fait quoi » (campagne accueil, accueil-03) :
    TOUS les chemins qui écrivent un encaissement passent par cette ligne, jamais par un journalAjout recopié */
 function journalPaiement(f, v, mode, o){ o = o || {}; journalAjout(o.qui || 'marc', 'facture', o.action || 'a enregistré un paiement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(v) + ' · ' + mode + (o.plus || '') }); }
+/* L'argent qu'un technicien reçoit sur place est un encaissement comme un autre (l'Accueil et la Comptabilité le comptent) : il a SA ligne dans « Qui a fait quoi »,
+   au nom du technicien, une seule fois par intervention (P.journale) — à la fin de l'intervention, ou à l'envoi de la facture si le montant n'était pas connu avant
+   (restes accueil, tour 1 : le chemin qui encaissait sans rien écrire dans l'Historique) */
+function journalPaieTerrain(i, P, v){ if (!P || P.journale || !(v > 0)) return; P.journale = true;
+  journalAjout(i.tech || rlQui(), 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(v) + ' · ' + P.mode }); }
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
   const a = { tech:i.tech, d:i.d, h:i.h, dur:i.dur }, r = avant.apply(this, arguments);
   if (a.tech !== i.tech || a.d !== i.d || a.h !== i.h || a.dur !== i.dur) journalAjout('marc', 'planning', a.dur !== i.dur && a.d === i.d && a.h === i.h ? 'a changé la durée' : !a.tech && i.tech ? 'a planifié l’intervention' : 'a déplacé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli },
@@ -8686,12 +8697,15 @@ function majCollant(id){ const c = document.getElementById('collant'); if (!c) r
 const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
     if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p>Avant de terminer, il manque :</p><ul>${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
-    F.etat = 'bureau'; F.envoye = true; i.st = 'fait'; factureDepuis(i);
+    F.etat = 'bureau'; F.envoye = true; i.st = 'fait';
+    journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
+    factureDepuis(i);
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
     const fa = FACTURES.find(x => x.int === id), kcomp = ctrCompris(i);   // absente : intervention en garantie, ou visite comprise dans un contrat, sans facture
     if (reglages.auto && fa && lignesDe(fa).every(ligneOk) && entClientJoignable(fa.cli)) envoyerFacture(fa, true, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
-    journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
+    { const P = F.paiement, mt = parseFloat(String(P.montant).replace(',', '.')) || 0;   /* l'argent noté sur place : sa ligne vient APRÈS « a terminé », et une seule fois (l'envoi automatique de la facture, plus haut, l'a peut-être déjà écrite) */
+      journalPaieTerrain(i, P.etat === 'rien' ? null : P, mt || (P.etat === 'total' && fa ? ttcDe(fa) : 0)); }
     rendre(); scrollTo({ top:0 }); toast(fa ? (kcomp ? 'Terminée : le compte rendu part au client. La visite est comprise dans le contrat ' + kcomp.num + ' ; la facture ne porte que les pièces posées.' : 'Terminée : le compte rendu part au client, la facture est préparée.') : kcomp ? 'Terminée : le compte rendu part au client. Visite comprise dans le contrat ' + kcomp.num + ' : pas de facture à part.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
   envoiePb(b){ const id = b.dataset.id, F = fiche(id), i = INTS.find(o => o.id === id), r = document.querySelector('input[name="motif"]:checked');
@@ -8707,7 +8721,7 @@ const ACTIONS = {
   reprise(b){ const id = b.dataset.id; fiche(id).etat = 'encours'; INTS.find(o => o.id === id).st = 'encours';
     INTS = INTS.filter(o => !(o.id === 'n-ret-' + id && o.st === 'aplanifier')); // le retour déjà placé par le bureau, lui, reste
     rendre(); },
-  recommencer(){ M.etat = 'encours'; M.motif = null; INTS.find(o => o.id === 'i1').st = 'encours'; INTS = INTS.filter(i => !/^n-(ent|ven|ret)-i1$/.test(i.id) && !(i.demande && i.demande.depuis === 'i1')); delete SUITE_ETAT.i1; delete M.envoye; delete M.mot; if (RDV && RDV.int === 'i1') RDV = null;
+  recommencer(){ M.etat = 'encours'; M.motif = null; if (M.paiement) delete M.paiement.journale; INTS.find(o => o.id === 'i1').st = 'encours'; INTS = INTS.filter(i => !/^n-(ent|ven|ret)-i1$/.test(i.id) && !(i.demande && i.demande.depuis === 'i1')); delete SUITE_ETAT.i1; delete M.envoye; delete M.mot; if (RDV && RDV.int === 'i1') RDV = null;
     const f0 = FACTURES.find(f => f.id === 'f-i1'); ENCAISSEMENTS = ENCAISSEMENTS.filter(e => e.int !== 'i1' && !(f0 && e.fac === f0.num)); // l’encaissement part avec sa facture
     FACTURES = FACTURES.filter(f => f.id !== 'f-i1');
     const dv = typeof DV !== 'undefined' && DV && DV.find(x => x.suite === 'i1');   // le devis de la mission repart avec elle : « envoyé », pas « accepté »
@@ -8873,7 +8887,8 @@ function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (nu
   const P = f.paieTech; if (!P || P.etat === 'rien') return;
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
   f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
-  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
+  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined });
+  { const it = INTS.find(o => o.id === f.int); if (it) journalPaieTerrain(it, P, v); } }
 function payer(f, m, o){
   /* PREMIÈRE instruction : noter un encaissement est « Devis, factures, contrats › Créer » (ou « Comptabilité › Modifier » dans la Comptabilité, ou la fiche de terrain du technicien) ; le client qui paie en ligne n'est pas une personne de l'entreprise */
   if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
@@ -26034,6 +26049,10 @@ document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
 .pl-defile{overflow-y:hidden}
 .pl-col,.pl-mj,.pl-cel{cursor:cell}
 @media (max-width:760px){ .st-graph{overflow-y:hidden} }   /* même piège : le graphique des Statistiques, qui ne défile que de côté */
+/* Le graphique des 12 mois défile (téléphone, iPad en portrait) et s'ouvre calé à droite : sa colonne de gauche tombait coupée net contre le bord de la carte (« éc » au lieu de « déc »),
+   ce qui se lisait comme un défaut. Un fondu de 22 px à gauche dit « ça continue », et la même marge au bout du défilement laisse le premier mois entier (restes accueil, tour 1). */
+@media (max-width:760px){ .st-graph{padding-left:22px;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px)} }
+@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ .st-graph{padding-left:22px;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 22px)} }
 </style>`);
 
 /* ── le logo au lancement : plus grand, et un mouvement plus marqué · 13 novembre 2026 ──
