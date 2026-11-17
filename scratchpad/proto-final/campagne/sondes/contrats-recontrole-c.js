@@ -61,7 +61,7 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   await L.capture(c, CAP + `R3-planning-${tag}.png`);
   const aPlan = await p.evaluate(id => INTS.filter(i => i.ctr === id && i.st === 'aplanifier').length, m.id);
   v('R3-7 les 4 visites du contrat neuf sont « à planifier » et le Planning s\'ouvre sans erreur', aPlan === 4 && c.err.length === 0, [aPlan, c.err.slice(0, 2)]);
-  v('R3-8 le Planning nomme les visites du contrat (« Contrat — visite »)', /Contrat — visite 1 sur 4/.test(t), (t.match(/.{0,30}Contrat — visite.{0,30}/) || [''])[0]);
+  v('R3-8 le Planning nomme les visites d\'un contrat (« Contrat — visite n sur N ») : les visites du contrat NEUF tombent après la semaine affichée (R3-7 les compte « à planifier »), on lit donc une visite quelconque — erreur de la sonde d\'origine corrigée le 17/11, restes contrats', /Contrat — visite \d sur \d/.test(t), (t.match(/.{0,30}Contrat — visite.{0,30}/) || [''])[0]);
   // ── Tâches après un contrat neuf
   await L.aller(p, 'taches'); await L.toucher(c, '[data-tsuggs]'); await L.calme(p, 500); t = await txt(p, '#calque');
   v('R3-9 Tâches : un contrat neuf (fin dans un an) n\'est pas proposé au renouvellement', !new RegExp(m.num).test(t), (t.match(new RegExp('.{0,40}' + m.num + '.{0,80}')) || [''])[0]);

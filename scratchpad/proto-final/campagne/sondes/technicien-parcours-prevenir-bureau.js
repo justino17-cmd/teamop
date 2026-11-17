@@ -78,6 +78,8 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   await L.capture(c, CAP + `habil-sophie-${profil}-${J}.png`);
   await L.ranger(p); v('H6 Échap ferme la fiche', !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
   // ── S : souci avec le camion → « Prévenir le bureau »
+  // « Un souci avec le camion » n'est plus sur Ma journée : il est dans le bloc « Le camion » de Mon camion (restes technicien 1 : sonde remise à jour)
+  await L.aller(p, 'moncamion'); await L.calme(p, 500);
   await L.toucher(c, '[data-vx^="souci"]'); await L.calme(p, 400);
   const so = await panneau(); console.log('   Souci camion :', so.slice(0, 300));
   v('S1 « Signaler un souci » ouvre la fenêtre « Un souci avec le camion »', /souci/i.test(so), so.slice(0, 100));

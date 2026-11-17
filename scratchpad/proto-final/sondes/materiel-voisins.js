@@ -89,6 +89,8 @@ const L = require('../lib.js');
   v('« Créer l\'intervention » enregistre la pièce AVEC son article (pid) : ' + JSON.stringify(N.prevues) + ' (' + n0 + ' → ' + N.n + ' interventions)', N.n === n0 + 1 && N.prevues && N.prevues.length === 1 && N.prevues[0].nom === choisi && !!N.prevues[0].pid && N.art === choisi, N);
   await R(() => { INTS.pop(); rendre(); });
   // ───────── la recherche du menu (⌘K) propose aussi les ARTICLES : « R32 » → « Fluide R32 · 7,5 kg · atelier 5, Sophie 2,5 » → sa fiche
+  if (c.doigt) v('la recherche du menu (⌘K) est une affaire de clavier : elle n\'existe pas au doigt (téléphone, tablette), rien à vérifier ici', !(await R(() => typeof rcBureau === 'function' && rcBureau())));
+  else {
   await L.aller(p, 'accueil'); await R(() => palOuvrir()); await L.calme(p, 300); await p.fill('#pal-q', 'r32'); await L.calme(p, 300);
   const P1 = await R(() => ({ groupes:[...document.querySelectorAll('#pal .pal-g')].map(e => e.textContent), lignes:[...document.querySelectorAll('#pal .pal-i')].map(e => ({ nom:e.querySelector('b').textContent, d:(e.querySelector('small') || {}).textContent || '' })) }));
   v('population : taper « r32 » dans la recherche du menu trouve un groupe « Articles » (' + P1.lignes.length + ' lignes)', P1.groupes.includes('Articles') && P1.lignes.some(l => /R32/.test(l.nom)), P1);
@@ -99,6 +101,7 @@ const L = require('../lib.js');
   await L.ranger(p); await R(() => palOuvrir()); await L.calme(p, 250);
   v('sans frappe, la recherche ne noie pas les rubriques sous 29 articles (le groupe « Articles » attend une frappe)', !(await R(() => [...document.querySelectorAll('#pal .pal-g')].some(e => e.textContent === 'Articles'))));
   await R(() => palFermer(true));
+  }
   v('aucune erreur de page (gérant)', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
 
@@ -124,24 +127,12 @@ const L = require('../lib.js');
   v('aucune erreur de page (bureau)', cj.err.length === 0, cj.err.slice(0, 3));
   await L.fin(cj);
 
-  // ───────── le guide des nouveautés
-  for (const [qui, attendu] of [['marc', ['stock', 'boxes', 'produits']], ['julie', ['stock', 'produits']], ['sm', ['moncamion']]]) {
+  // ───────── le guide des nouveautés (refait le 17 novembre : une carte par écran, « Voir » l'ouvre ; la sonde guide-voir.js joue chaque « Voir »)
+  for (const [qui, attendu, absent] of [['marc', ['stock'], ['camion']], ['julie', ['produits'], ['stock', 'camion']], ['sm', ['camion'], ['stock', 'produits']]]) {
     const cg = await L.ouvrir({ profil, qui, guide:true }), g = cg.p;
-    await g.evaluate(() => { try { nvOuvrir ? nvOuvrir() : 0; } catch (e) {} });
-    await g.evaluate(() => { const b = document.querySelector('[data-nv="ouvrir"]'); if (b) b.click(); }); await L.calme(g, 500);
-    // on feuillette jusqu'à la page « Ce qui est nouveau »
-    let G = null;
-    for (let k = 0; k < 6 && !G; k++) { G = await g.evaluate(() => { const m = document.querySelector('#nv [data-vis="guide-materiel"]'); return m ? { titre:m.querySelector('b').textContent, lignes:[...m.querySelectorAll('.nv-mlig')].map(b => ({ t:b.textContent.replace(/\s+/g, ' ').trim(), k:b.dataset.nv })), gros:m.getBoundingClientRect().width } : null; });
-      if (!G) await g.evaluate(() => { const b = document.querySelector('#nv [data-nv="apres"]'); if (b) b.click(); }), await L.calme(g, 300); }
-    v('guide (' + qui + ') : la carte « Le matériel, refait » existe avec ' + (G && G.lignes.length) + ' ligne(s)', !!G && G.titre === 'Le matériel, refait' && G.lignes.length === attendu.length, G);
-    if (G) {
-      v('guide (' + qui + ') : chaque ligne ouvre l\'écran qu\'elle décrit (' + attendu.join(', ') + ') et rien d\'autre', G.lignes.map(l => l.k.replace('aller|', '')).join() === attendu.join(), G.lignes);
-      const dedans = await g.evaluate(() => { const r = document.querySelector('#nv [data-vis="guide-materiel"]').getBoundingClientRect(), f = document.querySelector('#nv .nv-feuille').getBoundingClientRect(); return { droite:Math.round(r.right), borne:Math.round(f.right) }; });
-      v('guide (' + qui + ') : la carte tient dans la feuille (' + dedans.droite + ' ≤ ' + dedans.borne + ')', dedans.droite <= dedans.borne + 1, dedans);
-      const route = attendu[0]; await L.toucher(cg, `#nv [data-vis="guide-materiel"] .nv-mlig >> nth=0`); await L.calme(g, 600);
-      const h = await g.evaluate(() => location.hash);
-      v('guide (' + qui + ') : toucher la première ligne ouvre « ' + route + ' »', h === '#' + route, h);
-    }
+    await g.evaluate(() => { try { nvOuvrir(); } catch (e) {} }); await L.calme(g, 500);
+    const K = await g.evaluate(() => NV ? NV.pages.map(p => p.k) : []);
+    v('guide (' + qui + ') : il porte la carte du matériel de cette personne (' + attendu.join(', ') + ') et rien de ce qu\'elle ne peut pas ouvrir (' + K.join(', ') + ')', attendu.every(k => K.includes(k)) && absent.every(k => !K.includes(k)), K);
     v('guide (' + qui + ') : aucune erreur de page', cg.err.length === 0, cg.err.slice(0, 3));
     await L.fin(cg);
   }

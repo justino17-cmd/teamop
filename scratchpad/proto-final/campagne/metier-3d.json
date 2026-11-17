@@ -1,0 +1,259 @@
+{
+ "partie": "metier-3d",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Hygiène anti-nuisibles (3D) — groupe du menu (gérant, bureau, technicienne)",
+   "fonction": "CATS / GROUPE_3D, metiersGroupe3d(), rlLignesDe(), feuilleMenu()",
+   "acces": "visible seulement si PACKS_ENT contient « 3d » ; se retire seul quand le métier change"
+  },
+  {
+   "nom": "Registre sanitaire",
+   "fonction": "vueRegistre (nouvelle vue rg* ~l.20835-21215) + fenêtre « Saisir un passage » (rgSaisieOuvrir / rgSaisieRendre / rgSaisieOk)",
+   "acces": "menu, « Voir l'intervention » d'un site, carte « Ma journée » du technicien"
+  },
+  {
+   "nom": "Carte des box",
+   "fonction": "vueCarteBox (cb*, ~l.21263-21700) : plan, relevé des box, « Plus d'actions » (Envoyer / Imprimer les étiquettes / Modifier le plan), fiche d'une box",
+   "acces": "menu, « Voir sur la carte » depuis le registre"
+  },
+  {
+   "nom": "Devis xylophage",
+   "fonction": "dxVue (~l.21820), dxReleveVue (technicien), dxCreer, DX_REL",
+   "acces": "menu, « Chiffrer le relevé », « Relever les mesures » (fiche et Ma journée du technicien)"
+  },
+  {
+   "nom": "Mon entreprise › Tes métiers (lecture seule)",
+   "fonction": "entPanMetiers (~l.20177)",
+   "acces": "menu Personnel › Mon entreprise (gérant seul)"
+  },
+  {
+   "nom": "Le métier dans les autres écrans (types d'intervention, titres et motifs, modèles de devis, modèles de contrat, contrôles et relevés, exemples de champs)",
+   "fonction": "metiersSync(), MET_JEUX, MET_MODELES_PROPRES, MET_EXEMPLES / MET_EX_FAM, metiersTextes()",
+   "acces": "tous les écrans de création ; réglé par TEAM OP (en mode application aucun écran ne le choisit : seul mchPanneau, de l'échafaudage de revue, le permet)"
+  }
+ ],
+ "couverture": {
+  "ecrans": 6,
+  "gestesRecenses": "220 sur les trois écrans 3D (70 mac · 78 iPhone · 72 iPad, gérant) + 8/10 pour la technicienne ; 21 écrans du menu × leurs boutons de création pour 5 métiers",
+  "gestesTouches": "82 touchés un par un (30 mac · 37 iPhone · 31 iPad) + les gestes des parcours A à K (regarder, saisir, enregistrer, annuler, PDF, lien, relever, filtrer, créer un devis…)",
+  "parcours": 11,
+  "profils": [
+   "mac",
+   "windows",
+   "ipad",
+   "iphone",
+   "android",
+   "petit"
+  ],
+  "sondes": [
+   "metier-3d-menu.js : 39 ✓ · 0 ✗",
+   "metier-3d-donnees.js : 194 ✓ · 0 ✗ (24 métiers)",
+   "metier-3d-droits.js : 10 ✓ · 0 ✗",
+   "metier-3d-carte-boutons.js : 14 ✓ · 0 ✗",
+   "metier-3d-mise-en-page.js : 146 ✓ · 18 ✗ (40 écrans, 5 profils, jour et nuit)",
+   "metier-3d-parcours.js : voir le détail des passes dans le rapport de l'agent"
+  ]
+ },
+ "verifieDeLaLecture": [
+  {
+   "indice": "« Registre sanitaire » montré au technicien d'une entreprise sans pack 3D (MENU-FINAL.md, constats de la lecture du code)",
+   "verdict": "RÉFUTÉ",
+   "mesure": "metier-3d-menu.js : technicienne sur Mac et iPhone, métier climatisation seule : ni le groupe « Hygiène anti-nuisibles (3D) » ni « Registre sanitaire » dans son menu ni dans sa feuille « Menu » ; avec 3D (seule ou avec la clim) : une ligne « Registre sanitaire » qui s'ouvre. Une adresse #registre tapée à la main sans 3D renvoie à l'accueil avec un message."
+  }
+ ],
+ "nonCouvert": [
+  "Les cases d'Équipe qui règlent les trois écrans 3D (Voir / Créer / Modifier) : la phrase « Ce que Julie voit » suit le métier (testé), mais l'éditeur de droits n'a pas été ouvert par la sonde (bouton non trouvé).",
+  "La saisie d'un passage avec un produit biocide (ligne « Produits posés », lots, stock du camion) : le passage « Tout est intact » est joué (gérant, technicienne, double toucher, Annuler), pas la pose d'un produit.",
+  "Le relevé du technicien (« Relever les mesures ») jusqu'à « Relevé envoyé au bureau » puis « Chiffrer le relevé » : seule l'ouverture est jouée.",
+  "Les cases et filtres d'une carte sur Android et petit (320 px) au doigt : mesurés en mise en page, pas parcourus.",
+  "Windows : profil joué pour le bureau (Julie) sur les trois écrans (gestes) ; la mise en page n'a pas été rejouée sur Windows (même moteur qu'un grand Mac : la différence est la police du navigateur, non mesurée).",
+  "Les 18 autres métiers (hors plomberie, chauffage, nettoyage, électricité, 3D, climatisation, serrurerie) ont été lus dans leurs tables (194 contrôles) mais pas parcourus écran par écran."
+ ],
+ "defauts": [
+  {
+   "n": "metier-3d-01",
+   "gravite": "gênant",
+   "ecran": "Registre sanitaire, Carte des box (rubrique « À propos de cet exemple »), Devis xylophage",
+   "role": "gérant, bureau, technicienne",
+   "profils": [
+    "mac",
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Mode application, métier 3D pris : ouvrir Registre sanitaire (ou Devis xylophage, ou Carte des box › « À propos de cet exemple »).",
+   "attendu": "Aucune phrase de revue : la personne est dans son application, avec ses clients.",
+   "constate": "Un encadré bleu dit « Exemple pour une entreprise du métier 3D (hygiène, anti-nuisibles), avec ses propres clients fictifs. Les numéros d'AMM sont fictifs. » (Registre), « Exemple pour une entreprise du métier 3D. » (Devis xylophage) et le même texte sous « À propos de cet exemple » (Carte).",
+   "preuve": "mots-3d-mac.json (21 relevés « échafaudage ») ; captures mep-iphone-jour-marc-registre.png et mep-iphone-jour-marc-devisXylo.png",
+   "ou": "apercu/prototype-op-gestion.html:10425 D3_BANDEAU · :20835 RG_BANDEAU · :21407 (Carte) · :21819 dxBandeau",
+   "correction": "Ne rien écrire quand enApp() (le menu fait déjà `c.fait && !enApp()`)."
+  },
+  {
+   "n": "metier-3d-02",
+   "gravite": "gênant",
+   "ecran": "Registre sanitaire (en-tête)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "iphone 390",
+    "android 360",
+    "petit 320"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Téléphone, métier 3D : ouvrir Registre sanitaire.",
+   "attendu": "Le titre et sa phrase occupent la largeur ; le bouton « ＋ Saisir un passage » passe dessous.",
+   "constate": "Le bouton prend la droite et la colonne du titre tombe à environ 140 px (390), 135 px (360) et 90 px (320) sur 320 à 390 px d'écran : la phrase d'aide fait 8 à 12 lignes et, à 320 px, « Registre sanitaire » se coupe en « Regis / tre / sanit / aire ». Un grand vide reste sous le bouton. Les en-têtes de la Carte et du Devis (actions sous le titre) n'ont pas ce défaut.",
+   "preuve": "captures mep-iphone-jour-marc-registre.png, mep-android-jour-marc-registre.png, mep-petit-jour-sm-registre.png (technicienne)",
+   "ou": "apercu/prototype-op-gestion.html:10434 vueRegistre (.tete avec .actions) et sa version rg* ; règle « une colonne qui cède tout » du CLAUDE.md",
+   "correction": "Sur téléphone, `.tete` du registre en colonne (actions sous le titre) ou flex-wrap avec une base de 100 % pour le bloc titre, comme la Carte."
+  },
+  {
+   "n": "metier-3d-03",
+   "gravite": "gênant",
+   "ecran": "Registre sanitaire › Tous les sites",
+   "role": "gérant",
+   "profils": [
+    "ipad 820 (jour et nuit)"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "iPad portrait, métier 3D : Registre sanitaire, descendre jusqu'au tableau « Tous les sites ».",
+   "attendu": "Le tableau tient dans la colonne (ou devient une liste de cartes) ; la page ne glisse pas.",
+   "constate": "Le tableau (Site · Dernier passage · Activité · Prochain passage · Contrat · Recommandations) sort de 38 px : les en-têtes « PROCHAIN PASSAGE / CONTRAT / RECOMMANDA… » se chevauchent et sont coupés, « Restaurant La Marée » passe en « Restaura / nt La Marée ». La page glisse de côté (scrollX 38 sur 820, 858 px de large).",
+   "preuve": "sonde metier-3d-mise-en-page.js : ipad-jour-marc-registre et ipad-nuit-marc-registre « aucun glissement latéral » ✗ {largeur:820, seconde:858, bouge:38} ; capture mep-ipad-jour-marc-registre.png",
+   "ou": "apercu/prototype-op-gestion.html vue d'ensemble du registre (tableau .d3-tab / rg-tab)",
+   "correction": "Sous ~900 px de colonne utile (le menu en prend 272), tableau en cartes ; minimum de colonne pour le nom du site."
+  },
+  {
+   "n": "metier-3d-04",
+   "gravite": "gênant",
+   "ecran": "Carte des box (pastilles du plan)",
+   "role": "gérant, technicienne",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Au doigt : Carte des box, toucher une pastille P1…P10 du plan.",
+   "attendu": "Une cible d'au moins 44 px.",
+   "constate": "Les 10 pastilles mesurent 28×28 px (téléphones) et 30×30 (iPad) ; le toucher doit viser un rond de la taille d'un ongle.",
+   "preuve": "metier-3d-mise-en-page.js : « cibles au doigt ≥ 44 px » ✗ sur la Carte, 5 profils × jour et nuit (10 lignes) ; metier-3d-gestes.js iphone « CIBLE < 36 PX » × 10",
+   "ou": "apercu/prototype-op-gestion.html cbPlanHtml (pastilles .d3-pin / data-d3=\"box|Pn\")",
+   "correction": "Zone de toucher agrandie sans changer le dessin (::before inset:-8px, ou pointer-events sur un rond transparent de 44 px) ; vérifier que deux zones ne se recouvrent pas."
+  },
+  {
+   "n": "metier-3d-05",
+   "gravite": "détail",
+   "ecran": "Devis xylophage",
+   "role": "gérant, bureau",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Au doigt : Devis xylophage.",
+   "attendu": "Cibles de 44 px.",
+   "constate": "« Réglages du calcul » (résumé repliable) fait 40 px de haut à tous les profils tactiles ; sur iPad les boutons « 1 » et « 2 » (techniciens sur place) font 38 et 41 px de large.",
+   "preuve": "metier-3d-mise-en-page.js « cibles au doigt » ✗ (devisXylo × 4 profils × jour/nuit)",
+   "ou": "apercu/prototype-op-gestion.html dxVue : <details class=\"xy-reg\"> et .dx-tech .seg",
+   "correction": "min-height 44 px sur le résumé ; min-width 44 px sur les boutons du segmenté."
+  },
+  {
+   "n": "metier-3d-06",
+   "gravite": "gênant",
+   "ecran": "Devis xylophage (ouverture)",
+   "role": "gérant, bureau",
+   "profils": [
+    "mac",
+    "iphone",
+    "android"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Ouvrir Devis xylophage sans rien saisir.",
+   "attendu": "Un formulaire vide : « Aucune zone : ajoute celle où tu traites » (l'état vide existe dans le code).",
+   "constate": "Le devis s'ouvre déjà rempli d'un exemple (zone « Charpente 42 m² », capricorne, curatif) et affiche 970,72 € TTC dans la barre du bas avant qu'on ait mesuré quoi que ce soit ; « Créer le devis » est actif (il ne manque que le client). On peut envoyer à un client un devis chiffré sur des mesures inventées.",
+   "preuve": "captures mep-iphone-jour-marc-devisXylo.png, mep-mac-nuit-marc-devisXylo.png ; parcours E (« à l'ouverture, valeurs d'exemple déjà saisies »)",
+   "ou": "apercu/prototype-op-gestion.html:21820 dxNeuf (zones:[dxZone('Charpente', 42, 'bois')])",
+   "correction": "RECOMMANDATION : zones vides à l'ouverture (la phrase d'état vide et le bouton grisé « Indique au moins une surface… » existent déjà). À SOUMETTRE : touche à ce que Justin a vu du devis (une démonstration chiffrée dès l'ouverture)."
+  },
+  {
+   "n": "metier-3d-07",
+   "gravite": "détail",
+   "ecran": "Achats › Nouvelle demande · Tâches › Nouvelle tâche · Nouvelle intervention › Chercher un autre article",
+   "role": "gérant, bureau, technicien",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "corriger",
+   "etapes": "Entreprise de plomberie, de chauffage, de nettoyage, d'électricité ou de 3D : Achats › ＋ Nouvelle demande d'achat ; Tâches › Nouvelle tâche.",
+   "attendu": "Des exemples de SON métier (le reste du formulaire le fait : MET_EXEMPLES).",
+   "constate": "Trois indications de champ restent écrites pour la climatisation : « ex. échelle 3 plans, gants, fluide R32 » (demande d'achat), « Ex. rappeler M. Durand pour la PAC » (nouvelle tâche : « PAC » est aussi un sigle pour un débutant) et « Ex. condensateur, siphon, fluide… » (recherche d'un article dans la fenêtre d'intervention). Aucune n'est dans MET_EXEMPLES / MET_EX_FAM.",
+   "preuve": "mots-plomberie|chauffage|nettoyage|electricite|3d-mac.json (achats) ; les deux autres PROUVÉES dans le code",
+   "ou": "apercu/prototype-op-gestion.html:19371 (achats) · :6602 (tâche) · :13366 (recherche d'article)",
+   "correction": "Ajouter ces trois clés à MET_EXEMPLES (clim) et à MET_EX_FAM (chauffage, plomberie, nettoyage…), avec un exemple générique pour les autres métiers."
+  },
+  {
+   "n": "metier-3d-08",
+   "gravite": "gênant",
+   "ecran": "Mon entreprise › Tes métiers",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Mon entreprise › Tes métiers.",
+   "attendu": "Savoir comment ajouter un métier (un plombier qui se met au chauffage) quand l'application ne le laisse pas choisir.",
+   "constate": "Le panneau est en lecture seule et dit « Réglé par TEAM OP à l'ouverture de ton compte. » Aucun moyen de demander un changement, aucun contact. En mode application c'est le SEUL endroit qui parle du métier : l'entreprise ne peut ni le choisir ni le faire changer, et ne sait pas qui est « TEAM OP » (le nom du logiciel est OP GESTION).",
+   "preuve": "parcours H : « MON ENTREPRISE Tes métiers Plomberie Réglé par TEAM OP à l'ouverture de ton compte. Fermer »",
+   "ou": "apercu/prototype-op-gestion.html:20177 entPanMetiers",
+   "correction": "RECOMMANDATION : une ligne d'action « Un autre métier ? Écris-nous » (lien vers le message ou la boîte d'assistance) et « TEAM OP, l'éditeur d'OP GESTION ». À SOUMETTRE : décision de produit (qui règle le métier)."
+  },
+  {
+   "n": "metier-3d-09",
+   "gravite": "détail",
+   "ecran": "Registre sanitaire › Saisir un passage, tableau des produits posés",
+   "role": "gérant, technicienne",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Registre › ＋ Saisir un passage ; Registre d'un site › « Produits biocides posés ».",
+   "attendu": "Des mots qu'un débutant de la 3D comprend.",
+   "constate": "« RAS » (boutons « RAS » de chaque box, « Toute la zone RAS ») et « N° d'AMM » (en-tête du tableau) ne sont expliqués nulle part ; pour un nouvel applicateur « RAS » (rien à signaler) est un sigle.",
+   "preuve": "parcours B (texte de la fenêtre de saisie) ; vueRegistre (en-têtes .d3-th)",
+   "ou": "apercu/prototype-op-gestion.html:20996 rgBoxHtml ([0, 'RAS', 'v']) · :10445 en-tête « N° d'AMM »",
+   "correction": "« Rien à signaler » en toutes lettres (ou infobulle), « N° d'AMM (autorisation du produit) »."
+  },
+  {
+   "n": "metier-3d-10",
+   "gravite": "détail",
+   "ecran": "Nouvelle intervention (types proposés)",
+   "role": "gérant, bureau",
+   "profils": [
+    "mac"
+   ],
+   "zone": "metier-3d",
+   "decision": "soumettre",
+   "etapes": "Entreprise de nettoyage (ou de 3D) : Interventions › ＋ Nouvelle intervention › « Type ».",
+   "attendu": "Des types à son métier (un nettoyeur ne « fait » pas d'« Installation », un dératiseur de « Mise en service »).",
+   "constate": "Les types gardent les noms génériques de la climatisation pour tous les métiers : nettoyage = Dépannage / Entretien / Installation / Visite de contrôle / 2ᵉ passage ; 3D = les mêmes plus « Mise en service » et « Traitement du bois ». Seul le titre proposé change (« Installation » devient « Remise en état », « Pose de postes d'appâtage »), après le choix.",
+   "preuve": "metier-3d-creation.js (types lus dans la fenêtre pour 7 jeux de métiers) ; MET_JEUX.nett.types / .nuis.types ne renomment que les titres",
+   "ou": "apercu/prototype-op-gestion.html:22759 MET_JEUX (types:TYPES.filter…) et :13577 (puces .data-ctype)",
+   "correction": "RECOMMANDATION : afficher le libellé du métier sur la puce (TITRES[type]) tout en gardant la valeur ; À SOUMETTRE : la valeur « Installation » sert aux statistiques et à la facturation, donc c'est une décision de produit."
+  }
+ ]
+}
