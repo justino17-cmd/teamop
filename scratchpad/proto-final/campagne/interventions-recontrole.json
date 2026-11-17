@@ -1,0 +1,140 @@
+{
+ "partie": "interventions",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15
+ ],
+ "pasRegles": [
+  {
+   "n": 5,
+   "constat": "Reporté par le correcteur (refonte des droits d'Équipe, autre agent) et toujours présent : Sophie et Tom lisent « Dans cette rubrique, ton compte ne peut pas créer. Pour changer ça, demande à Marc. » sur Ma journée et sur leur fiche (interventions-parcours-roles.js : 14 ✓ · 2 ✗). Un technicien n'a pas à créer d'intervention."
+  },
+  {
+   "n": 16,
+   "constat": "Décision de produit non prise, le contrôle reste rouge exprès (interventions-parcours-suite.js : 37 ✓ · 1 ✗) : après un dépannage chez un autre client que le Vieux Port, « Entretien annuel » est cochée d'office et on ne peut pas demander un autre passage. Vu aussi sur une garantie : « Entretien annuel · dans un an · posé à planifier » proposé à la technicienne."
+  },
+  {
+   "n": 2,
+   "constat": "RÉGLÉ pour ce qui était annoncé (page du client : « Aucune facture : cette intervention est prise en charge. » ; pied du PDF : « aucune facture ne vous sera envoyée »), mais la même contradiction survit AILLEURS pour une garantie : voir casses « garantie : la fiche parle encore d'une facture »."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Garantie : la fiche (technicienne et bureau) parle encore d'une facture",
+   "gravite": "gênant",
+   "etapes": "Bureau : ＋ Nouvelle intervention › client Camping Les Pins › « Garantie / offert » › Plus tard › Créer ; la technicienne ouvre la fiche (bloc « Paiement sur place »), la termine ; le bureau relit « Facturation ».",
+   "constat": "Avant de terminer, la technicienne lit « Pas encore payé — la facture lui sera envoyée », « Payé en totalité sur place », « Acompte versé » et « la facture partira déjà marquée payée, ou avec l'acompte déduit ». Après, la fiche (bureau comme technicienne) dit « Facturation : Sans facture » puis juste dessous « Paiement sur place : à payer · Pas encore payé · la facture lui sera envoyée ». Même famille que le défaut 02, côté bureau. Attendu : le bloc de paiement est masqué ou dit « Garantie : rien à encaisser ». Captures rc-garantie-tech-paiement.png, rc-garantie-bureau-facturation.png. Non causé par les corrections (ancien), mais le correcteur a clos le défaut 02 sans le voir."
+  },
+  {
+   "titre": "iPad : le filtre « Toutes » de la liste est caché à droite du segmenté, sans indice",
+   "gravite": "gênant",
+   "etapes": "iPad (820 px, jour ou nuit) : Interventions : lire la rangée Aujourd'hui · À venir · À planifier · Terminées · Toutes.",
+   "constat": "Le segmenté défile (scrollWidth 626 pour 506 visibles, overflow-x:auto, nowrap) : « Terminées · 8 » est coupé au bord et « Toutes · 24 » est hors écran, sans fondu ni flèche. Les profils mac720, windows (assez larges) et android, petit (retour à la ligne) sont bons. Une destination qu'on ne voit pas n'existe pas : à passer à la ligne sous 900 px ou à tenir sur une ligne (libellés courts). Capture rc-ipad-nuit-12-a-planifier.png. Ancien, non vu par le correcteur (le débordement interne d'un conteneur qui défile n'est pas un débordement de page)."
+  },
+  {
+   "titre": "« Voir dans Tâches › » répond sur 41 px au doigt (bandeau des tâches de la liste)",
+   "gravite": "détail",
+   "etapes": "Téléphone (320 et 390 px) : Interventions › déplier « 2 tâches pour toi aujourd'hui » › toucher « Voir dans Tâches › ».",
+   "constat": "Zone qui répond mesurée point par point (elementFromPoint) : 41 px de haut, sous le plancher de 44. Le correcteur l'avait écarté en disant que la mesure à la zone qui répond ne le trouve pas sur iPhone et 320 px : elle le trouve (R16, petit). Le lien fonctionne et mène bien à Tâches."
+  },
+  {
+   "titre": "iPad : la case « Seulement les techniciens du secteur » répond sur 41 px de haut",
+   "gravite": "détail",
+   "etapes": "iPad : ＋ Nouvelle intervention › client dans un secteur (ex. M. et Mme Durand) : toucher la case sous le choix du technicien.",
+   "constat": "Étiquette de 40 px, zone qui répond 41 px (iPhone : 56 px, bon). La sonde interventions-mise-en-page.js ipad nuit tombe d'ailleurs sur « creation-forfait : 60×41 » (1 ✗ sur 207), alors que le rapport des corrections annonce 0 ✗ partout."
+  },
+  {
+   "titre": "Liste des interventions au téléphone : « À planifier — » en gras puis « date à fixer » en petit",
+   "gravite": "détail",
+   "etapes": "iPhone ou iPad : Interventions › À planifier.",
+   "constat": "La date est dite en mots (défaut 12 réglé) mais la carte garde un tiret gras en guise d'heure, avec « date à fixer » en petit gris dessous : un débutant lit d'abord une valeur manquante. Mieux : « Date à fixer » en gras à la place du tiret (le tableau du bureau le fait déjà)."
+  },
+  {
+   "titre": "Un relevé accepte des lettres (« abc »)",
+   "gravite": "détail",
+   "etapes": "Technicienne : fiche d'intervention › relevé « Charge de fluide » › taper abc.",
+   "constat": "Le champ garde « abc » tel quel (fiche.releves = [\"abc\"]) alors qu'il attend un nombre ; la valeur partirait dans le compte rendu du client. Non vérifié : ce que le PDF en fait."
+  },
+  {
+   "titre": "Contrôles de contact : numéro de 24 chiffres accepté, « 05 46 00 00 00 poste 12 » refusé ; prix d'une ligne de facture sans plafond",
+   "gravite": "détail",
+   "etapes": "cfTelOk (partagée avec la fiche client) ; ligne libre d'une facture préparée : prix 9999999999.",
+   "constat": "Pas de longueur maximale réelle sur le téléphone (n ≤ 30 chiffres) ; un numéro avec « poste » est refusé (le message dit « des chiffres, avec éventuellement des espaces ou un + »). Un prix de 9 999 999 999 € est accepté sur une ligne de facture alors que le forfait de création refuse au-delà de 1 000 000 €. Aucun NaN ni débordement. À trancher, pas à corriger en silence."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/interventions-parcours-bureau.js mac",
+   "resultat": "42 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-parcours-suite.js iphone",
+   "resultat": "37 ✓ · 1 ✗ (le 16, à soumettre à Justin)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-parcours-tech.js iphone / android nuit",
+   "resultat": "43 ✓ · 0 ✗ / 43 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-parcours-facture.js mac",
+   "resultat": "20 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-parcours-roles.js iphone",
+   "resultat": "14 ✓ · 2 ✗ (le 05, reporté)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-client.js iphone / interventions-retour.js mac",
+   "resultat": "9 ✓ · 0 ✗ / 3 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-mise-en-page.js petit jour / iphone nuit / mac / android jour / ipad nuit",
+   "resultat": "207 ✓ / 207 ✓ / 147 ✓ / 207 ✓ (0 ✗) ; ipad nuit 206 ✓ · 1 ✗ (case secteur 60×41, voir casses)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole.js (neuve : rejoue 01 à 15 avec d'autres données — Tom et i7 au lieu de Sophie et i2, client Camping, Boulangerie Martineau, Rochefort réel, quantité 12 345,67 L, facture i7 — plus bandeau des tâches, cinq modes de facturation, contacts valides, quantités et prix limites, PDF en grand d'une facture, mode revue, double toucher sur Terminer)",
+   "resultat": "mac jour 58 ✓ puis sections corrigées 22 ✓ · 0 ✗ ; iphone jour 75 ✓ · 0 ✗ ; android nuit 109 ✓ ; ipad jour 113 ✓ ; windows nuit 113 ✓ ; les ✗ restants sont les constats ci-dessus (R16 41 px, R18 contacts) ; R12 et R06/R13 rejoués après restauration : petit 11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole-parcours.js A petit nuit",
+   "resultat": "34 ✓ · 0 ✗ (technicienne de A à Z, Garage Rochefort, 320 px, paiement en totalité, 2 photos, pièce du catalogue, signature, Terminer, facture, client)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole-parcours.js B iphone",
+   "resultat": "16 ✓ · 0 ✗ (bureau crée chez Karim, retour « Client absent », bureau replanifie, Karim le reçoit)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole-parcours.js C mac",
+   "resultat": "13 ✓ · 0 ✗ (Terminer incomplet, client absent, facture chiffrée, « Valider et envoyer », ce que lit le client)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole-balayage.js (copie du balayage avec NUIT et LOT)",
+   "resultat": "mac jour : 6 écrans, 135 gestes recensés / 127 touchés (les 8 non touchés : champs heure et date masqués, bandeau des tâches replié, dont le bandeau est rejoué en R16) ; iPhone jour : Ma journée 19/19, fiches 46/48 et 42/44, liste 18/21 ; 0 erreur de page. Les « RIEN » (Y aller, Appeler, ＋ Nouvelle intervention, ⤢ Voir en grand, ＋ Nouvelle tâche) sont des liens externes ou des fenêtres que le diff ne voit pas : chacun rejoué à la main, tous répondent."
+  },
+  {
+   "fichier": "contre-épreuves de la sonde de recontrôle",
+   "resultat": "bandeau-info caché : R14a et R14b tombent (2 ✗) ; « Lire en grand » retiré : 3 ✗ ; cfTelOk neutralisée dans une copie mutée de la page (RACINE=/tmp/mut) : 3 ✗ ; croix de la création : NON ÉPROUVÉE (la première mutation CSS ne mordait pas, flex-basis l'emportait ; la seconde, corrigée, a été coupée par le délai, machine saturée par les autres agents) — le contrôle R13 garde la croix, sa contre-épreuve reste à rejouer : CONTRE=croix node interventions-recontrole.js petit '' 'R06.R13'"
+  }
+ ],
+ "doutes": [
+  "Garantie : le bloc « Paiement sur place » de la technicienne et le texte « la facture lui sera envoyée » sont encore là pour une intervention sans facture. Faut-il masquer le bloc ou dire « Garantie : rien à encaisser » ?",
+  "Interventions-16 (suites qu'un technicien peut déclencher, « Entretien annuel » cochée d'office après un dépannage) : toujours à ta décision, le contrôle reste rouge exprès.",
+  "Interventions-05 : « ton compte ne peut pas créer » sur Ma journée et la fiche du technicien, reporté à la refonte des droits d'Équipe.",
+  "iPad : le filtre « Toutes » des interventions est caché sans indice ; on raccourcit les libellés ou on laisse passer à la ligne ?",
+  "Un numéro de téléphone avec « poste 12 » est refusé et un prix de ligne de facture n'a pas de plafond : à trancher.",
+  "Non vérifié : appareils réels (caméra, doigt sur une vraie signature, téléchargement réel d'un PDF, envoi réel d'un e-mail ou SMS : le prototype n'a pas de serveur) ; Windows et Android jour ne sont passés que par la sonde de mise en page et mes sections, pas par les trois parcours."
+ ]
+}
