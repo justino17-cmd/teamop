@@ -5,7 +5,7 @@ const { L, v, ouvrirComme, etatPersonne, fin } = require('./droits-commun.js');
 const BALAYAGE = () => { const fuite = [], cache = new Set(), vus = new Set(); const p = eqDe(acteur());
   document.querySelectorAll('#contenu *, #calque *').forEach(el => { for (const a of el.attributes) { if (a.name.slice(0, 5) !== 'data-') continue; const f = a.name.slice(5); if (!(Object.hasOwn(GESTES, f) || f === 'action')) continue;
     const verbe = String(a.value).split('|')[0], g = geste(f, verbe); let ferme = g && g.cat && !peut(g.cat, g.x, p); const sp = GESTES_SP[f] && GESTES_SP[f][verbe]; if (sp && !droitSp(p, sp)) ferme = true;
-    if (!ferme) continue; const cs = getComputedStyle(el), visible = cs.display !== 'none' && el.getClientRects().length > 0; vus.add(f + '|' + verbe); (visible ? fuite : []).push(f + '|' + verbe); if (!visible) cache.add(f + '|' + verbe); } });
+    if (!ferme) continue; const cs = getComputedStyle(el), saisie = /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName), visible = cs.display !== 'none' && el.getClientRects().length > 0 && !(saisie && cs.pointerEvents === 'none');   /* un champ de saisie se FIGE (valeur lisible, rien ne s'écrit) : ce n'est pas une fuite */ vus.add(f + '|' + verbe); (visible ? fuite : []).push(f + '|' + verbe); if (!visible) cache.add(f + '|' + verbe); } });
   return { fuite:[...new Set(fuite)], cache:[...cache], n:vus.size }; };
 (async () => {
   const ROUTES = ['accueil', 'statistiques', 'historique', 'planning', 'interventions', 'taches', 'absences', 'clients', 'devis', 'contrats', 'comptabilite', 'achats', 'stock', 'produits', 'boxes', 'pointage', 'vehicules', 'equipe', 'client-x-vp', 'inter-x-i1'];
