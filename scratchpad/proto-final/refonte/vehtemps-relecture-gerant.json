@@ -2,12 +2,15 @@
  "lot": "vehtemps",
  "angle": "gerant (marc) puis bureau (julie) — mac, windows, ipad, jour et nuit, mode application",
  "couvert": [
-  "Véhicules (marc) : liste des 4 véhicules et rangée « Les 4 véhicules », trois onglets et leurs pastilles, trois chiffres, fiche À faire / Papiers / Dépenses (Trafic, Kangoo au garage), feuilles : coût, nouveau véhicule, plein, rendez-vous, renouvellement groupé, remettre en service, compteur, conducteur, modifier, garage, matériel, amende, accident, document, dépense (captures mac jour, windows et ipad jour/nuit pour la liste, les fiches et le plein)",
-  "Temps de travail (marc) : Aujourd’hui, Semaine (grille mac, liste ipad), Mois, ajouter une journée, rappels, la règle, terminer à 16:47 (+ Annuler), accepter 17:40, corriger une heure (motif, trace, reconfirmation), valider les 4 personnes (+ Annuler), correction après validation (À revalider), Mois : les cinq états du bouton, feuille « Octobre · Sophie », relevé, mois verrouillé, carte « Ma journée de travail » du gérant (commencer, pause, reprendre, terminer), rappels un à un et collectif, ajouter une journée (motif, doublon)",
-  "Nombres recalculés à la main : durées de la semaine (Sophie 40h50, Karim 48h45, Léa 31h40, Tom 32h00, Julie 40h00, Marc 41h50), heures en plus (5h50, 13h45, 5h00), total du mois 1 045h44 et en plus 108h14 (sommes des six lignes), fin d’habitude de Tom (médiane 16:47 sur ses 17 jours des quatre semaines), 7h52 du toast de fin, 8h51 de la correction, jours avant échéance (41, 62, 141, 205), coût du Trafic 0,34 € (2 360 / 7 010 km) ; 590 € par mois (2 360 / 4 mois arrondis)",
-  "Bureau (julie) : menu, Véhicules (permis par la décision du 17 novembre), refus de Temps de travail, gestes interdits au bureau, « Ses heures › » de la fiche Équipe, gestes tt forgés"
+  "Profils : mac 1440 (jour), mac720 1280, windows 1366 (jour et nuit), ipad 820 (jour et nuit) ; rôles marc (gérant) et julie (bureau) ; mode application ; 22 sondes de relecture dans cap/relire-vehtemps-gerant (e1-e2, g1-g18) ; captures regardées : liste, fiche (3 onglets, Kangoo au garage), feuilles (plein, nouveau, coût, matériel, correction avec motif), Aujourd’hui, Semaine (grille et liste), Mois, La règle, relevé de paie, Accueil, Équipe, Véhicules vu par le bureau.",
+  "Véhicules : liste (4 véhicules, rangée de groupe, trois onglets, trois chiffres, états vides propres : aucun véhicule, À faire vide, Au garage vide, recherche à 10 véhicules, noms longs) ; fiche À faire / Papiers / Dépenses ; feuilles : coût, nouveau (champs vides refusés, plaque obligatoire, lieu de stock créé, dotation par vhDotMetier), plein par carte et « Mon argent » (achat 6061 ou note de frais), rendez-vous (tâche à la date saisie, bouton suivant), compteur (recul refusé, saut > 3 000 km confirmé), garage (avec remplacement, interventions touchées) et remise en service avec facture (achat 6155), conducteur (stock suit), amende (tâche à désigner), accident, document (ajout, retrait), dépense (modifier, supprimer, annuler), renouvellement groupé (prime partagée), matériel (case, demande d’achat), hors service, suppression refusée tant que le camion contient du stock, exports CSV (deux), « Voir au planning », liens depuis Équipe (véhicule, stock du camion) et Accueil.",
+  "Temps de travail : Aujourd’hui (chiffres-portes, filtres, À régler, Qui est où, rappels un à un, collectif, réglage), Semaine (grille mac et windows, liste mac720 et ipad, feuille d’une personne, valider un lot, valider une personne, annuler, correction après validation = À revalider, semaine précédente), Mois (chiffres, cinq états du bouton, Valider ce qui est en règle, feuille d’une personne, relevé, Voir la paie et retour), fiche d’une journée (motif obligatoire visible, trace, reconfirmation, un seul toast), terminer à l’heure habituelle (+ Annuler), accepter une demande, ajouter une journée (motif, doublon, mois fermé), mois verrouillé (écritures refusées), carte « Ma journée de travail » du gérant (commencer, pause, reprendre, terminer), Accueil (deux lignes), Équipe (Ses heures), Paie (étape 1).",
+  "Nombres recalculés à la main : durées de la semaine (Sophie 40h50, Karim 48h45, Léa 31h40, Tom 32h00, Julie 40h00, Marc 41h50), heures en plus (5h50, 13h45, 5h00 ; Marc mandataire : aucune), total du mois 1 045h44 et en plus 108h14 (sommes des six lignes), 17h31 de Sophie (6h00 + 5h50 + 0 + 5h41), fin d’habitude de Tom (médiane 16:47 sur 17 jours), 7h52 du toast de fin, 8h51 de la correction, jours avant échéance (41, 62, 141, 205), 1 566 € d’octobre (544,50 + 515,17 + 318 + 188 = 1 565,67), 0,23 € du kilomètre (moyenne pondérée 0,2276), 0,34 / 0,31 / 0,20 / 0,10 par véhicule, 2 360 € / 7 010 km = 0,34, 120 € TTC = 100 € HT, prime 4 200 € / 4 = 1 050 €.",
+  "Protections vérifiées présentes : motif obligatoire (bouton grisé + « Écris d’abord pourquoi », rien d’écrit sans motif), trace avant → après, reconfirmation du salarié (PAIE.confirmes), validation retirée (À revalider), compteur qui ne recule pas, saut de plus de 3 000 km confirmé, mois verrouillé (ajout, correction, validation, acceptation refusés), amende à désigner avant sa date (tâche), tâche de rendez-vous à la date saisie, stock du camion qui suit le conducteur, suppression d’un camion avec du stock refusée, garage → Planning (pastille « 🔧 camion »), fin proposée jamais égale à l’heure courante (7h52, 16:47 ≠ 10:40).",
+  "Non couvert : téléphones (iPhone, Android, 320 px) et rôle technicien (autres relectures) ; Windows en plein écran 1920 ; photo du ticket (sélecteur de fichier natif) ; clavier et lecteur d’écran ; tâches suggérées de la page Tâches (pas de ligne véhicule dans la liste ouverte, sélecteurs de ma sonde sans résultat) ; visites guidées et guide des nouveautés (autres voies)."
  ],
  "doutes": [
+  "Cohérence des données de démonstration : Sophie a une intervention « En cours » depuis 08:30 et Tom une intervention « Terminée » à 07:30 (Accueil), alors que Temps de travail les dit « Pas encore commencé » avec un rappel envoyé à 09:30. C’est exactement le cas que le rappel vise (oubli de pointer), mais la ligne ne le dit pas : « Une intervention est en cours depuis 08:30, rien n’est pointé » aiderait à décider.",
   "La validation de la semaine EN COURS (26 octobre au 1er novembre, un samedi à 10 h 40 : Sophie a encore 3h30 de prévues) est proposée et passe : « Valider les 4 personnes en règle » et « Valider ce qui est en règle » (27 semaines) comprennent la semaine qui n’est pas finie. Rien n’est perdu (une heure qui bouge la remet « À revalider »), mais Justin voudra peut-être qu’on attende dimanche soir.",
   "« Mois » : les lignes de la feuille d’une personne ne font pas la somme du chiffre du haut (Sophie : 41h00 + 40h50 + 32h05 + 40h41 + 40h50 = 195h26 ; « 170h46 travaillées » ne compte que octobre). « commencée en septembre » l’explique à demi ; une ligne « dont X en octobre » le dirait.",
   "Après un renouvellement groupé de l’assurance (prime annuelle de 4 200 €), « dépensés en octobre (hors taxes) » passe de 1 566 € à 5 766 € : la prime entière est comptée le mois du paiement alors que le coût au kilomètre la lisse sur 12 mois. Exact en trésorerie, trompeur pour « ce que coûtent les véhicules ce mois-ci » : à demander à Justin.",
@@ -199,6 +202,32 @@
   {
    "n": "gerant-15",
    "gravite": "détail",
+   "ecran": "Véhicules › fiche › Papiers › Ajouter un document",
+   "role": "marc",
+   "profils": "mac jour (code : tous)",
+   "etapes": "Fiche du Trafic › Papiers › Ajouter un document › « Rapport du contrôle technique » + une image › Ajouter le document.",
+   "attendu": "Un toast qui reprend le mot de la feuille et s’accorde : « Rapport du contrôle technique ajouté pour GH-482-KL. »",
+   "constate": "« Le procès-verbal de contrôle ajoutée pour GH-482-KL. » : un autre nom que celui de l’écran (« Rapport du contrôle technique ») et un « ajoutée » féminin sur un nom masculin.",
+   "preuve": "vxDocAjouter (l. 18469-18471) : `N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le procès-verbal de contrôle' }` puis `… ajoutée pour …` pour les trois.",
+   "ou": "vxDocAjouter",
+   "correction": "« Document ajouté : rapport du contrôle technique (GH-482-KL). » ou un tableau d’accords."
+  },
+  {
+   "n": "gerant-16",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Mois › « Voir la paie » › « ‹ Retour · Temps de travail »",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Temps de travail › Mois › (mois fermé) « Voir la paie » › « ‹ Retour · Temps de travail ».",
+   "attendu": "On revient sur l’onglet Mois, d’où l’on est parti.",
+   "constate": "Le retour ouvre « Aujourd’hui » ; il faut rouvrir « Mois » (idem pour « Passer à la paie »).",
+   "preuve": "ttVue (l. ~17670) : `if (TT.avant !== 'pointage' && !TT.garder) { ptOnglet = 'auj' … }` ; aucun appelant de paieAller('paiemois') ne pose TT.garder.",
+   "ou": "ttVue / geste paie",
+   "correction": "Poser `TT.garder = true` avant le retour (ou mémoriser ptOnglet dans le lien « Retour »)."
+  },
+  {
+   "n": "gerant-17",
+   "gravite": "détail",
    "ecran": "Véhicules › liste, rangées « En règle »",
    "role": "marc",
    "profils": "mac jour, ipad jour",
@@ -210,7 +239,7 @@
    "correction": "Pour une rangée dont l’assurance est dans un groupe, dire « La prochaine échéance est la révision, dans 62 jours » (première échéance hors groupe)."
   },
   {
-   "n": "gerant-16",
+   "n": "gerant-18",
    "gravite": "détail",
    "ecran": "Véhicules › feuille « Matériel de sécurité »",
    "role": "marc",
@@ -223,20 +252,33 @@
    "correction": "Mettre le lien sous la phrase (colonne, gap 8 px) comme le bloc .vh-alerte du garage."
   },
   {
-   "n": "gerant-17",
+   "n": "gerant-19",
    "gravite": "détail",
    "ecran": "Temps de travail › Semaine (grille)",
    "role": "marc",
    "profils": "mac jour",
    "etapes": "Temps de travail › Semaine, ligne Léa Roux.",
    "attendu": "« Congé payé » sur les jours ouvrés seulement (comme la Paie : `getDay() % 6`).",
-   "constate": "Léa (congé jusqu’au mardi 3 novembre) a « Congé payé » aussi samedi 31 et dimanche 1er, alors que la rangée de Julie montre « — » ces jours-là.",
-   "preuve": "ttCase : `else if (a)` ne regarde pas le jour de la semaine ; paieVariables compte les absences avec `dObj(d).getDay() % 6`.",
-   "ou": "ttCase",
-   "correction": "Pour sam. et dim., afficher « — » même en congé."
+   "constate": "Léa (congé jusqu’au mardi 3 novembre) a « Congé payé » aussi samedi 31 et dimanche 1er, alors que la rangée de Julie montre « — » ces jours-là. Pareil dans la feuille de sa semaine sur iPad (sept lignes : ven. 30, sam. 31, dim. 1 « Congé payé »), alors que « Mes heures » du salarié écarte les week-ends (`getDay() % 6`).",
+   "preuve": "ttCase (grille) : `else if (a)` ne regarde pas le jour de la semaine ; ttJoursListe (l. 17581) ne filtre le week-end que pour l’option `pointees` (Mes heures) ; paieVariables compte les absences avec `dObj(d).getDay() % 6`.",
+   "ou": "ttCase / ttJoursListe",
+   "correction": "Pour sam. et dim., afficher « — » (ou « week-end ») même en congé, comme Mes heures."
   },
   {
-   "n": "gerant-18",
+   "n": "gerant-20",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Semaine › feuille d’une personne (iPad)",
+   "role": "marc",
+   "profils": "ipad jour (deux passages)",
+   "etapes": "iPad › Temps de travail › Semaine › Sophie Martin.",
+   "attendu": "Un jour qui n’est pas arrivé se dit en entier (« pas encore arrivé » ou « à venir »).",
+   "constate": "La ligne « dim. 1 » dit seulement « pas encore » : pas encore quoi ?",
+   "preuve": "ttJoursListe (l. 17584) : `futur ? 'pas encore'`.",
+   "ou": "ttJoursListe",
+   "correction": "« à venir »."
+  },
+  {
+   "n": "gerant-21",
    "gravite": "détail",
    "ecran": "Temps de travail › Aujourd’hui › Qui est où",
    "role": "marc",

@@ -1,0 +1,381 @@
+{
+ "partie": "devis-atelier",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Liste des devis (4 chiffres, onglets, lignes, tâches liées)",
+   "fonction": "vueDevis",
+   "acces": "menu Clients et ventes › Devis ; barre du bas « Devis » ; #devis"
+  },
+  {
+   "nom": "Fiche d'un devis (brouillon, en attente, accepté, refusé, expiré, remplacé)",
+   "fonction": "vueDevisFiche",
+   "acces": "toucher une ligne de la liste ; #devis-x-<numéro> ; lien « Ouvrir » des Tâches"
+  },
+  {
+   "nom": "Fenêtre « Nouveau devis » (Devis rapide, client existant ou neuf)",
+   "fonction": "dvNouveau / dvnCreer",
+   "acces": "bouton « Devis rapide » ; fiche client"
+  },
+  {
+   "nom": "Fenêtre « Dicter un devis »",
+   "fonction": "dvDicter / dvdPreparer",
+   "acces": "bouton « 🎙 Dicter un devis »"
+  },
+  {
+   "nom": "Fenêtre « Envoyer le devis » / « Relancer le devis »",
+   "fonction": "panneauEnvoi (dvEnvoyer, dvRelancer)",
+   "acces": "fiche › « Aperçu et envoi » ou « Relancer »"
+  },
+  {
+   "nom": "Fenêtre « Le client a répondu » (accord ou refus noté au bureau)",
+   "fonction": "dvReponse",
+   "acces": "fiche d'un devis en attente"
+  },
+  {
+   "nom": "Fenêtre « Ce que voit le client » (case, nom, signature, refus)",
+   "fonction": "dvClient",
+   "acces": "fiche d'un devis en attente › « Ce que voit le client »"
+  },
+  {
+   "nom": "Devis en grand (PDF) et PDF joint",
+   "fonction": "docDevis / docPlein",
+   "acces": "fiche › « Voir en grand », « Télécharger le PDF », « Envoyer par e-mail »"
+  },
+  {
+   "nom": "Compositeur « Composer un devis » (atelier, en plein écran)",
+   "fonction": "opdOuvrir + atelier (prototype-documents.html?app=1)",
+   "acces": "bouton « Composer un devis » (Devis, fiche client)"
+  },
+  {
+   "nom": "Éditeur de l'atelier, aperçu, « Ce que voit le client », envoi, signature",
+   "fonction": "atelier (page.source)",
+   "acces": "« Créer le devis » du compositeur ; toucher une ligne « Composés dans l'atelier »"
+  },
+  {
+   "nom": "Liste « Composés dans l'atelier » et chiffres du haut qui les comptent",
+   "fonction": "opdCarte / opdLigne / vueDevis",
+   "acces": "sous la liste de Devis ; fiche client"
+  },
+  {
+   "nom": "Compositeur « Composer un contrat » (le chemin, pas l'atelier)",
+   "fonction": "opdOuvrir('contrat')",
+   "acces": "Contrats › « Composer un contrat »"
+  }
+ ],
+ "couverture": {
+  "ecrans": 12,
+  "gestesRecenses": 406,
+  "gestesTouches": 406,
+  "parcours": 17,
+  "sondes": [
+   "devis-atelier-balayage.js",
+   "devis-atelier-parcours-a.js",
+   "devis-atelier-parcours-b.js",
+   "devis-atelier-parcours-c.js",
+   "devis-atelier-parcours-d.js",
+   "devis-atelier-parcours-e.js",
+   "devis-atelier-parcours-f.js",
+   "devis-atelier-parcours-g.js",
+   "devis-atelier-parcours-h.js",
+   "devis-atelier-parcours-i.js",
+   "devis-atelier-roles.js",
+   "devis-atelier-mots.js",
+   "devis-atelier-mise-en-page.js",
+   "devis-atelier-valeurs-longues.js",
+   "devis-atelier-contraste.js",
+   "devis-atelier-atelier-mep.js"
+  ],
+  "profils": [
+   "mac (jour, nuit)",
+   "windows (nuit)",
+   "ipad (jour, nuit)",
+   "iphone (jour, nuit)",
+   "android (jour pour l'atelier, nuit)",
+   "petit 320 px (jour, nuit)"
+  ],
+  "detail": "Gestes : 406 recensés dans le DOM et touchés, un par page neuve (mac 191 : liste ×5 onglets 81, fiches de brouillon, attente et suite 47, fiches acceptées, refusée, expirée 27, six fenêtres 36 ; iPhone 215 : 91, 53, 35, 36). 0 geste sans nom, 0 erreur de la page. 49 gestes « sans effet visible » sur mac et iPhone : ce sont les champs de saisie (focus seul) et « Voir en grand » / « Voir le devis complet (PDF) », qui ouvrent un devis en grand que l'état observé par lib.etat ne voit pas (rejoués à part : ouvert, Échap le ferme). Parcours : 17 (P1 devis rapide chiffré au centime, P2 client neuf et doublon, P3 dicter, P4 accord signé et suite, P5 refus, P6 relance, P7 nouvelle version, P8 numéros, P9 navigation, P10 client créé dans l'atelier, P11 une série de numéros, P12 accord d'un devis composé, P13 contrat composé et fiche client, P14 cas limites, P15 de Tâches vers Devis et Échap, P16 contrat signé et position du client, rôles julie / kb / sm), joués sur mac ; P1 à P12 aussi sur iPhone. Défaut 14 trouvé puis corrigé entre-temps par une autre voie (les cinq onglets de la liste coupés sur téléphone : la rangée passe à deux lignes ; le contrôle devis-atelier-14 de devis-atelier-valeurs-longues.js le garde). Mise en page : 6 profils × jour et nuit, valeurs longues (raison sociale de 77 signes, objet de 130, désignation de 105, 1523,5 × 12 345,67 €), 19 écrans et fenêtres mesurés par profil ; contraste de nuit mac et iPhone (10 écrans chacun, 0 texte sous 4,5) ; atelier (compositeur, éditeur, envoi, aperçu) sur iPhone, iPad, Android, 320 px, Mac, Windows."
+ },
+ "nonCouvert": [
+  "Vrais appareils : tout est joué dans Chromium émulé (encoches posées pour iPhone, iPad et Android) ; un vrai iPhone, un vrai Android, un vrai Windows (polices, zoom sur un champ de moins de 16 px, clavier qui recouvre une fenêtre) ne sont pas vérifiables d'ici. Le défaut 12 (message à 14 px) est prouvé dans le style calculé, pas sur un iPhone.",
+  "Windows jour et Android jour pour les écrans d'OP GESTION (mesurés : Windows nuit, Android nuit, et les quatre profils tactiles en jour et nuit) : la mise en page ne dépend pas du jour/nuit ici (mêmes 6 constats sur iPhone, iPad, Android, 320 px dans les deux modes) ; Windows et Android jour n'ont été joués que pour l'atelier (Android jour).",
+  "Les parcours f à i, les rôles et les valeurs longues n'ont été joués que sur mac (et valeurs longues sur mac, iPhone, 320 px) ; les parcours a à e aussi sur iPhone.",
+  "L'intérieur de l'éditeur de l'atelier (blocs, styles, modèles, IA, PDF) : l'atelier est en refonte par un autre agent et a ses propres sondes (atelier-*.js, compositeur-*.js) ; ici seul le chemin d'OP GESTION vers lui et retour, la création, l'envoi, l'aperçu « Ce que voit le client », la signature, la liste des documents composés et leurs numéros sont joués.",
+  "« Optimiser avec l'IA », le téléchargement du PDF et le micro réel de « Dicter un devis » : non jouables hors de l'artefact publié (le prototype simule la voix : la dictée d'exemple a été jouée, les mots tapés aussi).",
+  "Le trait de signature au doigt : joué à la souris (tracé en trois segments) ; au doigt réel, les événements tactiles de la fenêtre du client (touchmove sous 15 px) ne sont pas transmis par ce Chromium.",
+  "Un devis composé envoyé, puis relancé ou refusé : la relance et le refus n'existent que pour les devis du prototype (« Composés dans l'atelier » n'ouvre que l'atelier) ; à décider avec le défaut 03 : deux modèles de devis vivent côte à côte (DV et les documents de l'atelier), et chaque fonction d'OP GESTION (relance, refus, nouvelle version, intervention, facture d'acompte) ne connaît que le premier.",
+  "À dire à Justin (doutes, pas des défauts) : (1) « Composer un devis » est le bouton principal mais « Devis rapide » est le seul qui mène à toute la suite (relance, accord, intervention, acompte) : deux boutons, deux logiques, et un débutant ne voit pas la différence (la carte « Le plus simple possible » l'explique en une phrase) ; (2) « 50 % des devis aboutissent » ouvre l'onglet « Refusés, expirés » : le chiffre vert d'un côté, la liste des échecs de l'autre ; (3) la fenêtre « Ce que voit le client » ouverte par le bureau permet d'accepter et de signer à la place du client, et l'historique le note « accepté et signé en ligne » ; (4) une relance marque la tâche faite et en crée une nouvelle à 7 jours (« Vérifier la réponse au devis… ») : voulu, mais le toast le dit mal (défaut 02)."
+ ],
+ "defauts": [
+  {
+   "n": "devis-atelier-01",
+   "gravite": "gênant",
+   "ecran": "Fiche d'un devis, PDF du devis, fenêtre « Ce que voit le client », liste",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Devis rapide pour Mme Roux (modèle « Dépannage ») › fiche › mettre à la ligne 1 : quantité 0,5, prix 29,17 ; à la ligne 2 : quantité 1,5, prix 29,17.",
+   "attendu": "Le HT du devis est la somme des lignes telles qu'elles sont AFFICHÉES, au centime : un client qui additionne son PDF retombe sur le même HT, et la TVA et le TTC suivent (règle de facturation française : chaque ligne s'arrondit, puis on additionne).",
+   "constate": "Les lignes affichent 14,59 € et 43,76 € (somme 58,35 €) mais le Total HT affiché est 58,34 €. Les lignes sont arrondies à l'affichage, le total est la somme des produits NON arrondis (14,585 + 43,755 = 58,34). Même écart dans le PDF et dans « Ce que voit le client ». Se produit dès qu'une quantité décimale (m de câble, 1,5 h…) multiplie un prix à centimes.",
+   "preuve": "devis-atelier-parcours-a.js, contrôle « P1-défaut-01 (centime) » : [\"Total HT 58,34 €\", lignes [\"14,59 €\",\"43,76 €\"], somme 58,35 €].",
+   "ou": "apercu/prototype-op-gestion.html : dvHT (l. 8053) ; docDevis (l. 6075, « ht = L.reduce(s + l[1]*l[2]) ») ; vueDevisFiche (l. 8117 : lignes et totaux) ; dvClient (l. 8291) ; apercuDevis",
+   "correction": "Une seule fonction de total de ligne, dvLigneHT(l) = Math.round(l[1]*l[2]*100)/100 (avec une marge de 1e-9 contre les flottants), utilisée PARTOUT (dvHT, docDevis, fiche, dvClient, apercuDevis, devis dans Statistiques) ; la TVA se calcule sur ce HT arrondi, le TTC = HT + TVA arrondis.",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-02",
+   "gravite": "détail",
+   "ecran": "Fenêtre « Relancer le devis » › Envoyer (toast)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Devis D-2026-031 › Relancer › Envoyer.",
+   "attendu": "Un toast qui dit une chose une fois.",
+   "constate": "Le toast dit « Relance envoyée à durand@mail.fr. Relance envoyée · je te le rappelle dans 7 jours » : « Relance envoyée » deux fois (la phrase de la tâche cochée est collée à la suite de celle du devis).",
+   "preuve": "devis-atelier-parcours-d.js, contrôle « P6-défaut-02 (détail) ».",
+   "ou": "apercu/prototype-op-gestion.html : dvRelancer (l. 8182, concaténation `'Relance envoyée à ' + … + plus`)",
+   "correction": "Ne garder que la fin de la phrase de la tâche (« Je te le rappelle dans 7 jours ») : « Relance envoyée à durand@mail.fr. Je te le rappelle dans 7 jours. »",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-03",
+   "gravite": "gênant",
+   "ecran": "Compositeur › devis signé par le client → liste Devis, Interventions, Factures",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Devis › Composer un devis › client M. et Mme Durand › un article › Créer le devis › Envoyer (exemple) › Aperçu › « Ce que voit le client » › Accepter et signer (taper son nom) › Valider › fermer › retour à OP GESTION › Interventions et Factures.",
+   "attendu": "La page Devis promet : « Accepté et signé en ligne : l'intervention passe « à planifier » et la facture d'acompte, s'il y en a une, se prépare. » Un devis composé est le bouton PRINCIPAL de la page : même suite attendue.",
+   "constate": "Le devis passe « Accepté » dans la liste et dans les chiffres, mais AUCUNE intervention « à planifier » n'est créée (24 avant, 24 après) et AUCUNE facture d'acompte (8 avant, 8 après), alors que le compositeur propose 30 % d'acompte par défaut (320,40 € sur 1 068,00 € dans l'essai) : cet acompte ne sera jamais facturé si personne ne s'en souvient. Un devis fait en « Devis rapide » fait toute la suite tout seul.",
+   "preuve": "devis-atelier-parcours-e.js, contrôle « P12-défaut-03 » : ints 24 → 24, factures 8 → 8 après signature d'un devis composé (même parcours en Devis rapide : +1 intervention, voir parcours-c P4).",
+   "ou": "apercu/prototype-op-gestion.html : opdDocsRecus (l. 22918) / opdListeNet (l. 22783), ne lisent que l'état et le TTC ; dvAccepter (l. 8188) et dvCreerInt (juste après) ne sont appelés que pour les devis du prototype",
+   "correction": "À la première réception d'un document devis passé à « signe » (l'identifiant du document mémorise qu'on l'a déjà traité), créer l'intervention « à planifier » du client et, si l'atelier envoie le pourcentage d'acompte (champ à ajouter à opd_docs), la facture d'acompte comme dvAcompte ; à défaut, afficher sur la ligne « Accepté · intervention à planifier » avec un bouton « Créer l'intervention ». Ajouter `acompte` (pourcentage) et `objet` aux champs lus de opd_docs.",
+   "decision": "soumettre",
+   "zone": "refonte"
+  },
+  {
+   "n": "devis-atelier-04",
+   "gravite": "gênant",
+   "ecran": "Atelier › fenêtre « Envoyer le devis » et aperçu « Ce que voit le client » (mode application)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Composer un devis › Créer le devis › Envoyer ; puis Aperçu › « Ce que voit le client » › Accepter et signer.",
+   "attendu": "Dans l'application, aucun reste d'échafaudage : un bouton « Envoyer » et un toast « Envoyé à … » comme dans « Devis rapide » et « Relancer », où l'envoi est joué sans commentaire.",
+   "constate": "Le bouton se lit « Envoyer (exemple) », la fenêtre dit « Exemple : rien n'est vraiment envoyé. », le toast « Envoyé (exemple) à direction@hotelplage.fr : rien n'est vraiment parti. », la signature « Signé (exemple). Un bloc Signature a été ajouté au document. » et le lien « Rejouer l'exemple : effacer la signature ». Les trois autres écrans d'envoi d'OP GESTION ne disent rien de tel : deux façons d'envoyer, deux discours.",
+   "preuve": "captures E-4-envoi-mac.png, P12-signe-mac.png ; atelier : data-act=\"env-go\" libellé « Envoyer (exemple) ».",
+   "ou": "scratchpad/proto-final/atelier/page.source : libellés « Envoyer (exemple) » / « Envoyer à signer (exemple) » (l. 3755), « Exemple : rien n’est vraiment envoyé. » (l. 3776), ACTIONS['env-go'] et son toast « Envoyé (exemple)… rien n’est vraiment parti. » (l. 3786-3803), poserSignatureClient « Signé (exemple)… » (l. 3708), « Rejouer l’exemple : effacer la signature » (l. 3636) — et pour un contrat : « Envoyer à signer (exemple) »",
+   "correction": "Dans le mode ?app=1 de l'atelier : « Envoyer », « Envoyé à <adresse>. », « Signé : la signature est posée dans le document. », et le lien de rejeu devient « Effacer la signature ». Hors mode application (artefact « Documents sur mesure » seul), le texte « exemple » reste.",
+   "decision": "soumettre",
+   "zone": "refonte"
+  },
+  {
+   "n": "devis-atelier-05",
+   "gravite": "détail",
+   "ecran": "Fiche d'un devis › « ‹ Retour »",
+   "role": "gérant",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Ouvrir directement l'adresse d'une fiche (#devis-x-D-2026-034, ou revenir sur l'application après qu'elle s'est rechargée) › toucher « ‹ Retour ».",
+   "attendu": "Le retour d'une fiche de devis mène à la liste des Devis.",
+   "constate": "Le bouton « ‹ Retour » (sans « · Devis ») ramène à l'Accueil (« Bonjour Marc ») : deux gestes de plus pour retrouver la liste. (Quand on arrive DEPUIS la liste, le bouton dit « ‹ Retour · Devis » et marche.)",
+   "preuve": "devis-atelier-balayage.js fiches (geste « ‹ Retour data-retour=1 → H1 Bonjour Marc » sur les 7 fiches ouvertes par adresse).",
+   "ou": "apercu/prototype-op-gestion.html : vueDevisFiche (l. 8117, `data-retour=\"1\"`) et le gestionnaire de data-retour sans historique",
+   "correction": "Quand il n'y a pas d'écran d'où l'on vient, `data-retour` doit mener au parent de la fiche (la liste Devis), pas à l'Accueil.",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-06",
+   "gravite": "détail",
+   "ecran": "Fenêtre « Ce que voit le client » (signature)",
+   "role": "client",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Ouvrir « Ce que voit le client » › cocher, nom › poser un simple point dans le cadre de signature (clic sans tracé) › « Accepter et signer ».",
+   "attendu": "Un trait court n'est pas une signature : le message dit « Signez dans le cadre ».",
+   "constate": "Un simple appui (un point) est pris pour une signature et le devis est accepté. Sur téléphone, un doigt qui frôle le cadre en faisant défiler la fenêtre suffit. (L'atelier, lui, exige un trait d'au moins 25 points et le dit.)",
+   "preuve": "devis-atelier-parcours-c.js : « un simple point sur le cadre : signe = OUI ».",
+   "ou": "apercu/prototype-op-gestion.html : brancherSignature('dv-signe') et le test `dataset.signe` du gestionnaire « signer » (l. 8337)",
+   "correction": "Comme l'atelier : exiger une longueur de tracé minimale (≈ 25 points) et répondre « Ce trait est trop court pour une signature : signez-la en entier. »",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-07",
+   "gravite": "gênant",
+   "ecran": "Devis rapide et devis composé (conditions du même devis)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Ouvrir la fiche d'un devis rapide (« Le devis tel que le client le reçoit ») et la page d'un devis composé pour le même client.",
+   "attendu": "Deux devis de la même entreprise disent la même chose de ses conditions : délai, règlement, acompte par défaut, numéro.",
+   "constate": "Délai : « sous 10 jours après accord » (rapide) contre « 3 semaines après acceptation du devis » (composé). Règlement : « à réception de facture, par virement, carte ou chèque » contre « par virement ou carte bancaire. Solde à la réception de la facture. » Acompte par défaut : aucun (rapide) contre 30 % (composé). Numéro : donné à l'ENVOI pour le rapide (un brouillon n'en a pas), donné dès « Créer le devis » pour le composé (un devis vide reçoit D-2026-042 et paraît « À envoyer » avec son numéro). Le client reçoit donc deux promesses de délai différentes de la même entreprise.",
+   "preuve": "captures E-3-editeur-mac.png (conditions du composé) et P9-voir-en-grand-mac.png (rapide) ; parcours-e « devis vide : D-2026-042 Sans client ».",
+   "ou": "apercu/prototype-op-gestion.html : docDevis (l. 6086-6090, « sous 10 jours », « Règlement… ») ; atelier : valeurs par défaut du bloc Conditions (page.source)",
+   "correction": "Choisir UNE rédaction des conditions (celle de l'entreprise) et la faire lire par les deux : l'atelier reçoit délai, règlement et acompte par défaut dans opd_donnees.entreprise ; le numéro se donne à l'envoi dans les deux (ou à la création dans les deux).",
+   "decision": "soumettre",
+   "zone": "refonte"
+  },
+  {
+   "n": "devis-atelier-08",
+   "gravite": "gênant",
+   "ecran": "Fiche d'un brouillon › « Aperçu et envoi »",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": "Devis › ouvrir un brouillon › retirer toutes ses lignes (✕ ×4) ; ou « ＋ Ligne », ne rien écrire dans la désignation, taper 120 dans le prix.",
+   "attendu": "Un devis sans aucune ligne, ou avec une ligne sans désignation, ne part pas : le bouton est inactif et une phrase dit pourquoi (comme pour « 1 ligne sans prix »).",
+   "constate": "« Aperçu et envoi » reste actif : on peut envoyer au client un devis de 0,00 € sans ligne, ou une ligne « sans nom » à 120,00 € (désignation vide dans le PDF). Le numéro est consommé à l'envoi. Seule la condition « chaque ligne a un prix » est vérifiée ; sur un tableau vide, `every` rend vrai.",
+   "preuve": "devis-atelier-parcours-g.js, contrôles « P14-défaut-08 » (n = 0 lignes, envoi actif : true ; ligne [\"\",1,120] : envoi actif).",
+   "ou": "apercu/prototype-op-gestion.html : dvComplet (l. 8052 : `x.lignes.every(l => l[2] != null && l[2] !== '')`), dvEnvoyer (l. 8173), bandeau « n ligne(s) sans prix » de vueDevisFiche (l. ~8129)",
+   "correction": "dvComplet exige au moins une ligne ET une désignation non vide sur chaque ligne ; le bandeau dit alors « Ajoute au moins une ligne » ou « 1 ligne sans nom ».",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-09",
+   "gravite": "détail",
+   "ecran": "Fenêtre « Envoyer le devis » (client sans e-mail)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Devis rapide › Nouveau client (téléphone seul) › Préparer › Aperçu et envoi › taper une adresse dans « À » › Envoyer › rouvrir la fiche du client.",
+   "attendu": "L'adresse tapée pour envoyer le devis est gardée dans la fiche du client : la relance, la facture et le prochain devis l'utilisent.",
+   "constate": "Le devis part, mais la fiche du client garde « e-mail : (vide) » : il faudra retaper l'adresse à la relance, à chaque devis suivant, et la facture n'aura pas d'adresse.",
+   "preuve": "devis-atelier-parcours-g.js, contrôle « P14-défaut-09 » : mailClient = \"\" après envoi à sansmail@exemple.fr.",
+   "ou": "apercu/prototype-op-gestion.html : panneauEnvoi › gestionnaire data-mailenvoi (ne lit l'adresse que pour la valider) ; dvEnvoyer (l. 8173) et dvRelancer (l. 8182)",
+   "correction": "Après l'envoi d'un devis ou d'une relance, si la fiche du client n'a pas d'e-mail et que l'adresse tapée est valide : la ranger dans CLIENTS[x.cli].mail (et le dire dans le toast : « Adresse enregistrée dans la fiche de … »).",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-10",
+   "gravite": "gênant",
+   "ecran": "Historique du devis et message de relance (rôle secrétariat)",
+   "role": "secrétariat (Julie)",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Se connecter comme Julie › Devis › Devis rapide (ou Dicter) › puis sur un devis envoyé : Relancer › Envoyer ; « Le client a répondu » › Il accepte ; « Il refuse » ; « Modifier (nouvelle version) » ; ouvrir l'historique de chaque fiche.",
+   "attendu": "L'historique dit qui a fait quoi (« Préparé par Julie », « Relancé par Julie »…), comme le journal général (corrigé le 17 novembre pour les droits) ; le message de relance envoyé au client est signé de la personne qui écrit.",
+   "constate": "Tout est attribué à Marc : « Préparé par Marc », « Dicté par Marc au micro, préparé tout seul », « Relancé par Marc (e-mail) », « Accord noté par Marc », « Refus noté par Marc », « Repris du devis D-2026-031 par Marc », et la relance reçue par le client est signée « Bien cordialement, Marc ». Un historique faux sur un document commercial, et un client qui répond à « Marc » alors que Julie lui a écrit. Le journal général, lui, dit bien « Julie » (acteur()).",
+   "preuve": "devis-atelier-roles.js : 7 contrôles tombent pour julie (« Préparé par Julie… », « Relancé par Julie », « Accord noté par Julie », « Refus noté par Julie », « Repris … par Julie », signature de la relance, devis dicté).",
+   "ou": "apercu/prototype-op-gestion.html : dvCreer (l. 8196 et 8222, « Préparé par Marc »), dvnCreer (l. 8248-8262), dvdPreparer (l. 8276-8288, « Dicté par Marc »), dvRelancer (l. 8182-8186 : corps du message « Marc » et trace « Relancé par Marc »), dvAccepter (l. 8188, « Accord noté par Marc »), repNon (l. 8345), dvVersion (l. 8217)",
+   "correction": "Remplacer chaque « Marc » écrit en dur par le prénom de la personne connectée : `const moi = prenomDe(acteur())` (la fonction qui nomme déjà l'acteur du journal). Un seul endroit : une fonction dvQui() lue par les sept textes.",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-11",
+   "gravite": "gênant",
+   "ecran": "Fiche d'un brouillon (lignes) et fenêtre « Nouveau devis » (modèles)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "etapes": "Au doigt : Devis › un brouillon › regarder la croix de chaque ligne, « ＋ Ligne », « ＋ 1 h de main-d'œuvre », « ＋ Déplacement » ; Devis rapide › les modèles (« Entretien annuel », « Dépannage »…).",
+   "attendu": "Toute cible au doigt mesure au moins 44 px (la fiche d'une facture, elle, donne 44 px à la même croix).",
+   "constate": "La croix ✕ de chaque ligne fait 40 × 40 px ; les pastilles « ＋ Ligne », « ＋ 1 h de main-d'œuvre », « ＋ Déplacement » et les cinq modèles de « Devis rapide » font 42 px de haut. Sur le devis, la croix est la seule façon de retirer une ligne ; à côté, un doigt touche aisément le prix. Identique sur iPhone, Android, 320 px, iPad, jour et nuit.",
+   "preuve": "devis-atelier-mise-en-page.js (iphone, android, petit, ipad × jour, nuit) : « cibles au doigt ≥ 44 px (6 ou 7 sous le seuil) » sur fiche-brouillon, fiche-longue, p-rapide, p-rapide-neuf-long.",
+   "ou": "apercu/prototype-op-gestion.html : `.dv-x{width:40px;height:40px}` (l. 2988) — la facture a `.fac-lgs .dv-x{44px}` (l. 2995) ; `.dv-ajouts` et `.dv-modeles` (l. 2999) n'ont pas le `.puce-c{min-height:44px}` que toutes les autres rangées de pastilles ont déjà (l. 390, 437, 558, 768…)",
+   "correction": "`@media (pointer:coarse){ .dv-x{width:44px;height:44px} .dv-ajouts .puce-c,.dv-modeles .puce-c{min-height:44px} }` et la colonne ✕ de la grille à 44 px.",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-12",
+   "gravite": "gênant",
+   "ecran": "Fenêtres « Envoyer le devis » et « Relancer le devis » (champ Message)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "iphone",
+    "android",
+    "petit",
+    "ipad"
+   ],
+   "etapes": "Au doigt : fiche d'un devis envoyé › Relancer (ou brouillon complet › Aperçu et envoi) › toucher le message.",
+   "attendu": "Un champ de saisie a au moins 16 px : sur iPhone, il ne fait pas zoomer la page.",
+   "constate": "Le message (textarea #ml-m) est écrit à 14 px : sur un iPhone, toucher le message zoome toute la page et elle reste zoomée ; la fenêtre déborde ensuite de l'écran.",
+   "preuve": "devis-atelier-mise-en-page.js : « champs ≥ 16 px → [\"ml-m 14px\"] » sur p-relance et p-envoi (iphone, android, petit, ipad, jour et nuit).",
+   "ou": "apercu/prototype-op-gestion.html : `#ml-m{min-height:200px;font:inherit;line-height:1.5}` (l. 2564) — `font:inherit` reprend le 14 px du panneau ; les autres champs ont `font-size:16px` (l. 190)",
+   "correction": "`#ml-m{font-size:16px}` (la même règle que `.champ textarea`).",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-13",
+   "gravite": "gênant",
+   "ecran": "Fiche d'un brouillon › lignes avec de grandes valeurs",
+   "role": "gérant, secrétariat, technicien",
+   "profils": [
+    "mac",
+    "iphone",
+    "petit"
+   ],
+   "etapes": "Devis rapide › brouillon › ligne 1 : quantité 1523,5 et prix 12345,67 (1 523 h 30 d'un technicien à 12 345,67 € = cas limite demandé) ; regarder la ligne.",
+   "attendu": "Ce qu'on a tapé se lit en entier, et le total de la ligne aussi, avant de l'envoyer à un client.",
+   "constate": "Ordinateur : la quantité s'affiche « 1523, » (colonne de 64 px) et le total de ligne « 18 808 628,2 » (colonne de 96 px, le dernier chiffre et « € » coupés) ; téléphone : quantité « 152 » et prix « 12345,6 » coupés (colonnes de 56 et 92 px), et le total de la ligne n'est pas affiché du tout pendant la modification (`.dv-tot{display:none}` sous 1 250 px, aussi sur iPad). Les totaux du bas sont, eux, justes et entiers.",
+   "preuve": "devis-atelier-valeurs-longues.js : mac (quantité coupée, total coupé), iphone et petit (quantité, prix coupés ; total de ligne masqué).",
+   "ou": "apercu/prototype-op-gestion.html : `.dv-lg{grid-template-columns:minmax(0,1fr) 64px 110px 96px 40px}` (l. 2984) et sa version ≤ 1 250 px (`56px 92px 40px`, `.dv-tot{display:none}`) ; la facture donne 88 px à la quantité (`.fac-lgs`)",
+   "correction": "Quantité : 88 px comme la facture (72 px au téléphone) ; total : `minmax(96px,max-content)` ; au téléphone, afficher le total de la ligne sous la quantité et le prix (« = 18 808 628,25 € ») plutôt que de le cacher.",
+   "decision": "corriger"
+  },
+  {
+   "n": "devis-atelier-15",
+   "gravite": "détail",
+   "ecran": "Atelier › éditeur (iPad)",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "ipad"
+   ],
+   "etapes": "iPad : Composer un devis › Créer le devis › regarder les poignées de ligne et la date du document.",
+   "attendu": "Cibles au doigt de 44 px.",
+   "constate": "« Déplacer la ligne » et « Actions sur la ligne » font 21 × 25 px, et « Date du document » 103 × 21 px ; sur iPhone, Android et 320 px la mise en page est différente et les mesures sont bonnes.",
+   "preuve": "devis-atelier-atelier-mep.js ipad nuit : « editeur : cibles au doigt ≥ 44 px (3 sous le seuil) ».",
+   "ou": "scratchpad/proto-final/atelier/page.source : `grip-ligne`, `menu-ligne`, `date-doc` (mise en page « tablette »)",
+   "correction": "Sous `(pointer:coarse)`, étendre la zone qui répond à 44 px (marge invisible) sans changer le dessin.",
+   "decision": "corriger",
+   "zone": "refonte"
+  },
+  {
+   "n": "devis-atelier-16",
+   "gravite": "gênant",
+   "ecran": "Compositeur › contrat composé, envoyé puis signé dans l'atelier → Contrats, Planning",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Contrats › Composer un contrat › client Copropriété Les Mimosas › titre, prix 1200 € › Créer le contrat › Envoyer à signer › Aperçu › « Ce que voit le client » › Lire et signer › Valider › retour à OP GESTION › Contrats, Planning, Interventions.",
+   "attendu": "La page Contrats promet : « OP GESTION prépare le PDF, l'envoie à signer, range la copie signée et pose les visites ». Un contrat signé a ses visites au planning et sa place parmi les contrats, comme avec « Contrat rapide ».",
+   "constate": "Le contrat passe « Signé » dans la liste « composés » et les chiffres du haut de Contrats le comptent (2 → 3 contrats, 2 020 → 3 220 €), mais aucun contrat n'est créé dans OP GESTION (3 → 3), aucune visite n'est posée (24 → 24 interventions) : il n'y aura ni rappel de visite, ni facture d'entretien, ni renouvellement. Même famille que le défaut 03 (devis composé signé sans suite).",
+   "preuve": "devis-atelier-parcours-i.js, contrôle « devis-atelier-16 » : {ints:24, ctr:3} avant et après la signature ; capture P16-contrat-signe-mac.png.",
+   "ou": "apercu/prototype-op-gestion.html : opdDocsRecus (l. 22918) / opdListeNet (l. 22783) ne lisent que l'état et les montants du document ; creerContrat (page Contrat rapide) est le seul chemin qui pose des visites",
+   "correction": "Même décision que pour le défaut 03 : à la première réception d'un contrat « signé », créer l'entrée de CONTRATS (client, fréquence, prix, début) et ses visites, avec les variables que l'atelier envoie déjà (prix, fréquence, début) — ou dire sur la ligne « Signé · visites à planifier » avec un bouton qui les crée.",
+   "decision": "soumettre",
+   "zone": "refonte"
+  },
+  {
+   "n": "devis-atelier-17",
+   "gravite": "gênant",
+   "ecran": "Compositeur › « Nouveau client… » → carte des tournées, secteur, Waze/Plans",
+   "role": "gérant, secrétariat",
+   "profils": [
+    "mac"
+   ],
+   "etapes": "Devis › Composer un devis › Nouveau client… › Boulangerie Les Épis Dorés, 8 rue des Halles, 17000 La Rochelle, e-mail, téléphone › Ajouter ce client › quitter l'atelier › regarder le client dans OP GESTION (position, secteur).",
+   "attendu": "Un client créé dans l'atelier est placé comme celui créé avec « Devis rapide » : sa position sur la carte des tournées et son secteur sont posés à partir de l'adresse (ce que fait dvnCreer, « clients-05 »).",
+   "constate": "Le client arrive dans la liste mais sans position (CR_GEO absent) ni secteur : la carte des tournées le place au dépôt et Waze / Plans y envoient le technicien (constat « bloquant » de MENU-FINAL.md, confirmé pour ce chemin ; réfuté pour « Devis rapide », où la position est bien posée).",
+   "preuve": "devis-atelier-parcours-i.js, contrôle « devis-atelier-17 » : {geo:false, secteur:null} ; parcours-b (Devis rapide, client neuf) : {geo:true, secteur:\"La Rochelle\"}.",
+   "ou": "apercu/prototype-op-gestion.html : opdClientRecu (l. 22923, ne pose que CLIENTS[id]) ; dvnCreer (l. 8257) fait `reconnaitre(adr)`, `SECT_CLI[cli]`, `geoDeAdresse(adr)` / `CR_GEO[cli]`",
+   "correction": "Sortir ces trois lignes de dvnCreer dans une fonction cliPositionner(cli, adresse) et l'appeler aussi depuis opdClientRecu (et depuis tout autre chemin qui crée un client).",
+   "decision": "corriger"
+  }
+ ]
+}
