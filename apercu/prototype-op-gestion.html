@@ -5034,7 +5034,7 @@ function detailKpi(k){
     corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), ${filtre ? 'pour les personnes affichées seulement' : 'toutes personnes confondues — y compris celles « à planifier »'}. Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + (filtre ? techsVus() : TECHS).map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
-  else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte pour la déplacer ; appeler le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
+  else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte, pour la déplacer. Appelle le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, `<button type="button" class="btn petit" data-kplacer="${i.id}">Replanifier</button>${i.tech ? `<a class="btn gris petit" href="${lienTel(((typeof EQUIPE !== 'undefined' ? EQUIPE : []).find(e => e.k === i.tech) || {}).tel || '')}" data-kappel="${i.tech}">Appeler ${tech(i.tech).nom.split(' ')[0]}</a>` : ''}`)).join('') || '<p class="gris">Rien en retard.</p>'; }
   else corps = L.map(i => `<${i.hist ? 'div' : 'button type="button"'} class="ligne-clic"${i.hist ? ' style="cursor:default"' : ` data-go="inter-x-${i.id}"`}><span><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></${i.hist ? 'div' : 'button'}>`).join('') || '<p class="gris">Rien ici.</p>';
   ouvrirPanneau(`<h2>${titre}</h2>${seulement}${aide}${corps}`);
@@ -5411,7 +5411,7 @@ function panneauReglagesRdv(){
     <div class="carte"><h3>Limites</h3>
       <label class="champ">Pas de demande avant<select data-rr="delai">${[0,1,2,3,5].map(n=>`<option value="${n}" ${R.delai===n?'selected':''}>${n ? n + ' jour' + (n>1?'s':'') : 'aujourd’hui'}</option>`).join('')}</select></label>
       <label class="champ">Jusqu’à<select data-rr="horizon">${[7,14,21,30].map(n=>`<option value="${n}" ${R.horizon===n?'selected':''}>${n} jours à l’avance</option>`).join('')}</select></label></div>
-    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
+    <div class="gris petit">Enregistré tout de suite : les moments proposés à tes clients changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
 }
 
 /* ══ FACTURES ══ */
@@ -10184,7 +10184,7 @@ document.addEventListener('click', ev => {
     const rouges = ptAlertes(x, Array.from({ length:7 }, (_, i) => ajoute(y, i))).A.filter(o => o.g === 'r'), valide = () => { const av1 = { ...PT_VALIDE }; PT_VALIDE[x + y] = true; journalAjout('marc', 'equipe', 'a validé la semaine de ' + H_NOM(x) + (rouges.length ? ' (' + rouges.length + ' alerte' + (rouges.length > 1 ? 's' : '') + ' du Code du travail ' + (rouges.length > 1 ? 'ignorées' : 'ignorée') + ')' : ''), { lib:'Temps de travail' }); rendre(); toast(`Semaine de ${esc(H_NOM(x))} validée pour la paie.`, ptxAnnulerValid(av1, 1)); };
     if (rouges.length) return toast(`${esc(H_NOM(x))} : ${rouges.length} alerte${rouges.length > 1 ? 's' : ''} du Code du travail pas encore regardée${rouges.length > 1 ? 's' : ''}. Corrige-${rouges.length > 1 ? 'les' : 'la'} d’abord, ou valide quand même.`, { lib:'Valider quand même', fn:valide });
     valide(); }
-  if (a === 'export') { if (!secuGarde('paie-envoi', secuRejouerClic(b))) return; } if (a === 'export') return toast('Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.');
+  if (a === 'export') { if (!secuGarde('paie-envoi', secuRejouerClic(b))) return; } if (a === 'export') return toast('Le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois. Ici, rien n’est envoyé.');
 });
 
 /* ⟦module equipe⟧ */
@@ -10755,7 +10755,7 @@ document.addEventListener('click', ev => {
        const q = +qb || 0, reco = document.getElementById('d3-reco').value.trim();
     const p = d3P(d3Cli, AUJ, H_NOM(rlQui()) || 'Marc Leblanc', et, q ? [[document.getElementById('d3-prod').value, document.getElementById('d3-lot').value || '—', q]] : [], document.getElementById('d3-obs').value.trim() || 'Passage effectué.', reco ? [['r' + Date.now(), reco, null]] : []);
     const deja = D3_PASSAGES.filter(o => o.cli === p.cli && o.d === p.d).length; if (deja) p.id += '-' + (deja + 1); D3_PASSAGES = D3_PASSAGES.concat(p); /* [5] un 2e passage du jour s'ajoute, il n'écrase pas le 1er */ fermerPanneau(); rendre(); return toast(`Passage enregistré : la carte des box et le registre sont à jour.`, { lib:route === 'registre' ? 'Voir la carte' : 'Voir le registre', fn:() => aller(route === 'registre' ? 'carteBox' : 'registre') }); }
-  if (a === 'pdf') return toast('Dans l’application, le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, c’est un aperçu : aucun fichier n’est fabriqué.');
+  if (a === 'pdf') return toast('Le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, aucun fichier n’est créé.');
   if (a === 'lien') { const u = 'https://teamop.fr/registre/' + d3Cli + '-demo'; return copierTexte(u, { ok:'Lien copié (exemple) : il montrera le registre à jour, en lecture seule.', titre:'Le lien du registre (exemple)' }); }
 });
 document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-d3reco]')) return; const r = D3_PASSAGES.flatMap(p => p.recos).find(o => o[0] === t.dataset.d3reco); r[2] = t.checked ? AUJ : null; rendre(); toast(t.checked ? 'Notée comme faite par le client.' : 'Remise en attente.'); });
@@ -21505,7 +21505,7 @@ document.addEventListener('click', ev => {
   if (a === 'lien') return rgLien(x, y);
   if (a === 'pdf') return rgPdf(x);
   if (a === 'pdfper') { rgPdfPer = y; return rgPdf(x, true); }
-  if (a === 'pdftel') { journalAjout(rlQui(), 'registre', 'a préparé le PDF du registre', { lib:'Registre · ' + D3_CLI[x].nom, cli:RG_SITES[x] }, { det:rgNomPdf(x) }); return toast(`${esc(rgNomPdf(x))} prêt (exemple : aucun fichier n’est fabriqué ici).`); }
+  if (a === 'pdftel') { journalAjout(rlQui(), 'registre', 'a préparé le PDF du registre', { lib:'Registre · ' + D3_CLI[x].nom, cli:RG_SITES[x] }, { det:rgNomPdf(x) }); return toast(`${esc(rgNomPdf(x))} préparé. Ici, aucun fichier n’est créé.`); }
   if (a === 'pdfenv') { const e = rgGet('rg-env'); if (e) { e.classList.toggle('rg-cache'); b.setAttribute('aria-expanded', !e.classList.contains('rg-cache')); if (!e.classList.contains('rg-cache')) e.scrollIntoView({ block:'nearest' }); } return; }
   if (a === 'pdfenvok') { const m = (rgGet('rg-mail').value || '').trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) return toast('Cette adresse n’est pas valide : corrige-la pour envoyer le registre.');
     journalAjout(rlQui(), 'registre', 'a envoyé le registre au client', { lib:'Registre · ' + D3_CLI[x].nom, cli:RG_SITES[x] }, { det:'PDF joint · ' + m }); const jr = JOURNAL.at(-1); fermerPanneau(); rendre();
@@ -21522,7 +21522,7 @@ document.addEventListener('click', ev => {
     fermerPanneau(); rendre(); return toast('Recommandation notée comme faite.', { lib:'Annuler', fn:() => { r.o[2] = av; if (E) RG_RECO[x] = E; else delete RG_RECO[x]; const j = JOURNAL.indexOf(jr); if (j >= 0) JOURNAL.splice(j, 1); rendre(); } }); }
   if (a === 'prevok') { const L = rgLotLignes(x), ks = [...new Set(L.map(o => o.k))], ent = []; if (!L.length) return;
     ks.forEach(c => { journalAjout(rlQui(), 'registre', 'a prévenu le client du lot ' + x, { lib:'Registre · ' + D3_CLI[c].nom, cli:RG_SITES[c] }, { det:'E-mail · ' + CLIENTS[RG_SITES[c]].mail }); ent.push(JOURNAL.at(-1)); });
-    fermerPanneau(); rendre(); return toast(`${rgPl(ks.length, 'client prévenu', 'clients prévenus')} par e-mail (exemple).`, { lib:'Annuler', fn:() => { ent.forEach(e => { const j = JOURNAL.indexOf(e); if (j >= 0) JOURNAL.splice(j, 1); }); toast('Envoi annulé : rien n’est parti.'); } }); }
+    fermerPanneau(); rendre(); return toast(`${rgPl(ks.length, 'client prévenu', 'clients prévenus')} par e-mail. Ici, aucun message ne part vraiment.`, { lib:'Annuler', fn:() => { ent.forEach(e => { const j = JOURNAL.indexOf(e); if (j >= 0) JOURNAL.splice(j, 1); }); toast('Envoi annulé : rien n’est parti.'); } }); }
   /* — la saisie — */
   if (!S) return;
   if (a === 'sitesaisie') { return rgSaisieOuvrir(x); }
@@ -21927,11 +21927,11 @@ function cbAction(a, x, ev){
   if (a === 'photof') { if (cbRO()) return; const ps = cbDernierPass(c, x); if (!ps) return; ps.det = ps.det || {}; const d = ps.det[x] = ps.det[x] || {}; d.photo = !d.photo; cbRendre(); return toast(d.photo ? `Photo ajoutée au relevé de ${x} (aperçu : aucune vraie photo ici).` : 'Photo retirée.'); }
   if (a === 'ajout-fin') { d3Mode = null; cbRendre(); return cbPoses ? toast(`${cbPlur(cbPoses, 'box posée', 'box posées')} : elles seront relevées au prochain passage.`) : undefined; }
   if (a === 'pdf') return cbPdf();
-  if (a === 'pdf-ok') { fermerPanneau(); cbJournal('a préparé le plan des box en PDF', cbNom(c)); return toast('Aperçu : dans l’application, le plan en PDF est enregistré et joint au registre.'); }
+  if (a === 'pdf-ok') { fermerPanneau(); cbJournal('a préparé le plan des box en PDF', cbNom(c)); return toast('Le plan en PDF est joint au registre. Ici, aucun fichier n’est créé.'); }
   if (a === 'envoi') return cbEnvoi();
-  if (a === 'envoi-ok') { fermerPanneau(); cbJournal('a envoyé le plan des box au client', cbNom(c), 'à ' + CB_MAIL[c]); return toast(`Plan et situation envoyés à ${esc(CB_MAIL[c])} (simulation : rien n’est parti).`); }
+  if (a === 'envoi-ok') { fermerPanneau(); cbJournal('a envoyé le plan des box au client', cbNom(c), 'à ' + CB_MAIL[c]); return toast(`Plan et situation envoyés à ${esc(CB_MAIL[c])}. Ici, aucun message ne part vraiment.`); }
   if (a === 'etiq') return cbEtiq();
-  if (a === 'etiq-ok') { fermerPanneau(); cbJournal('a imprimé les étiquettes des box', cbNom(c), cbPlur(P.length, 'étiquette', 'étiquettes')); return toast('Aperçu : la planche d’étiquettes part à l’impression dans l’application.'); }
+  if (a === 'etiq-ok') { fermerPanneau(); cbJournal('a imprimé les étiquettes des box', cbNom(c), cbPlur(P.length, 'étiquette', 'étiquettes')); return toast('La planche d’étiquettes part à l’impression. Ici, rien n’est imprimé.'); }
   if (a === 'scan') { fermerPanneau(); return aller('carteBox-x-' + c + '.' + x); }
   if (a === 'mj') { d3Cli = x; cbFiltre = 'tout'; cbZone = ''; cbReleveDebut(x); return aller('carteBox'); }
   if (a === 'edit') { if (!cbPatron()) return; cbEdit = cbEdit ? null : { rect:null }; d3Mode = null; d3Sel = null; cbReleve = null; cbRendre(); return; }
@@ -22276,7 +22276,7 @@ document.addEventListener('click', ev => {
   if (a === 'relever') return ROLE === 'tech' ? (DXR = dxrNeuf(x), DXR.int = y || null, allerAvecRetour('devisXylo', 'Ma journée', () => {})) : dxOuvrir({ cli:x }, 'l’intervention');
   if (a === 'att') return dxAttestation(x);
   if (a === 'attok') return dxAttestationOk(x);
-  if (a === 'attpdf') return toast('Dans l’application, l’attestation part en PDF au nom de l’entreprise. Ici, c’est un aperçu : aucun fichier n’est fabriqué.');
+  if (a === 'attpdf') return toast('L’attestation part en PDF au nom de l’entreprise. Ici, aucun fichier n’est créé.');
   if (a === 'suivi') { const i = INTS.find(o => o.id === x); fermerPanneau(); return i && ACTIONS.contratPour({ dataset:{ cli:i.cli } }); }
   if (a === 'mesures' || a === 'reprendre' || a === 'version') return dxRouvrir(a, x);
   if (!DX) return;
@@ -22521,9 +22521,9 @@ function cmptClientDe(nom){ const e = Object.entries(CLIENTS).find(([k, c]) => c
 function cmptVersFiche(h){ RETOUR = { lib:'la Comptabilité', route:'comptabilite', h:'comptabilite', fn:() => { cpSysteme = true; rendre(); } }; fermerPanneau(); aller(h); }
 function cmptOuvrirDepuisFenetre(o){
   const f = o.sorte === 'client' ? null : cmptFactureDe(o.cle, o.cli);
-  if (o.sorte === 'pdf') return f ? (() => { ouvrirPanneau(`<h2>La facture</h2>${pdfFacture(f)}`, true); })() : toast('Cette facture n’est pas dans la démonstration d’OP GESTION (elle a moins de factures que la comptabilité).');
-  if (o.sorte === 'facture') return f ? cmptVersFiche('facture-x-' + f.id) : toast('Cette facture n’est pas dans la démonstration d’OP GESTION (elle a moins de factures que la comptabilité).');
-  if (o.sorte === 'client') { const k = cmptClientDe(o.cle); return k ? cmptVersFiche('client-x-' + k) : toast('Ce client n’est pas dans la démonstration d’OP GESTION.'); }
+  if (o.sorte === 'pdf') return f ? (() => { ouvrirPanneau(`<h2>La facture</h2>${pdfFacture(f)}`, true); })() : toast('Cette facture n’a pas de page à ouvrir ici.');
+  if (o.sorte === 'facture') return f ? cmptVersFiche('facture-x-' + f.id) : toast('Cette facture n’a pas de page à ouvrir ici.');
+  if (o.sorte === 'client') { const k = cmptClientDe(o.cle); return k ? cmptVersFiche('client-x-' + k) : toast('Ce client n’a pas de fiche à ouvrir ici.'); }
   if (o.sorte === 'inter') return f && f.int ? cmptVersFiche('inter-x-' + f.int) : toast('Cette facture n’est pas liée à une intervention.');
   if (o.sorte === 'devis') { const i = f && f.int && INTS.find(x => x.id === f.int), d = i && cxDevisDe(i)[0]; return d ? cmptVersFiche('devis-x-' + dvCle(d)) : toast('Aucun devis n’est lié à cette facture.'); }
 }
@@ -22685,7 +22685,7 @@ function opdRetirer(){ const z = document.getElementById('opdz'); if (!z) return
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
-  if (!rlPermis(droit)) return toast('Ton rôle n’a pas accès à ' + (droit === 'contrats' ? 'la composition des contrats.' : 'la composition des devis.'));
+  if (!rlPermis(droit)) return toast('Ce geste n’est pas ouvert à ton compte : ' + (droit === 'contrats' ? 'composer un contrat.' : 'composer un devis.'));
   const z = opdCreer(); if (!z.hidden) return;   // un double toucher ne l'ouvre pas deux fois
   OPDZ.quoi = droit === 'contrats' ? 'du contrat' : 'du devis';
   OPDZ.depart = o.depart ? '[data-opd="' + faire + '"]' + (o.client ? '[data-cli="' + o.client + '"]' : '') + (o.id ? '[data-id="' + o.id + '"]' : '') : '';
