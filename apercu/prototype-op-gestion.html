@@ -11390,7 +11390,10 @@ function rlPied(feuille){
   return `<div class="pied${feuille ? ' fm-pied' : ''}">${feuille ? '<span class="surtitre">Apparence</span>' : ''}${segMode()}${nv}${barre}${sortir}${echafaudage}</div>`;
 }
 /* la ligne sous le nom : la fonction que la personne a dans l'entreprise (Gérant, Secrétariat, Technicienne), pas le nom du rôle de revue */
-const sousMoi = R => { const p = typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null; return p && p.role ? p.role : (ROLE === 'tech' ? (H_GENS[R.qui] || {}).role || R.l : R.l); };
+/* UN seul mot, celui que la fiche Équipe porte (« Gérant », « Secrétariat », « Technicienne »). Sans personne connectée (le prototype nu, où l'on choisit un rôle
+   dans « Tester en tant que »), c'est la personne que le rôle représente (R.qui) qui donne son poste : le nom du rôle de revue (« Patron », « Gestion »,
+   « Technicien ») ne s'affiche jamais sous un nom, il disait « Patron » à l'ordinateur quand la feuille du téléphone disait « Gérant ». */
+const sousMoi = R => { const p = (typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null) || (R.qui ? eqDe(R.qui) : null); return p && p.role ? p.role : (H_GENS[R.qui] || {}).role || R.l; };
 function rlMenu(base, sansMoi){
   const R = ROLES[ROLE], moiOk = RL_ACTIF && !sansMoi;
   const moi = moiOk ? `<div class="rl-moi"><span class="rl-av" style="--c:${(H_GENS[R.qui] || {}).c || 'var(--fill)'}">${R.ic}</span><span><b>${esc(ROLE === 'client' ? CLIENTS[RL_CLI.cli].nom : H_NOM(R.qui))}</b><small>${esc(sousMoi(R))}</small></span></div>` : '';
