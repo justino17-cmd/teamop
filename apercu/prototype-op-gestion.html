@@ -244,6 +244,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 /* ── la Comptabilité complète s'ouvre comme une fenêtre par-dessus OP GESTION (Justin, 10 novembre 2026) ── */
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
 body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
+body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein écran (9000) et la fenêtre ouverte depuis elle (9100) couvraient la bulle (90 ou 300) : « Annuler » y était peint derrière et ne recevait pas le toucher */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1336,6 +1337,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   background:color-mix(in srgb,var(--tc) 13%,var(--mix-carte));border:1px solid color-mix(in srgb,var(--tc) 32%,transparent);box-shadow:0 1px 2px rgba(0,0,0,.06);
   color:var(--encre);text-align:left;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:box-shadow .15s,transform .2s var(--ressort)}
 .pc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.pc.fait{cursor:pointer}   /* une intervention terminée s'ouvre, elle ne se déplace pas : la main qui attrape promettait un geste qui ne vient pas (recontrôle du planning, 17 novembre) */
 .pc:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);z-index:4}
 .pc .h{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.01em}
 .pc .h .ic{margin-left:auto;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--c) 18%,transparent);color:color-mix(in srgb,var(--c) 78%,var(--encre))}
@@ -2641,7 +2643,7 @@ body.dp-ouvert{overflow:hidden}
   .ts-g{grid-column:1/-1;order:3;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px;overscroll-behavior-x:contain}.ts-g::-webkit-scrollbar{display:none}
   .ts-g>*{flex:none;white-space:nowrap}.ts-g .ts-fait{order:-1}}
 .t-confier{display:flex;align-items:center;gap:8px}.t-confier select{min-height:38px}
-.t-ici-tout{display:block;padding:10px;border-top:1px solid var(--trait);color:var(--lien);font-weight:700;text-decoration:none;font-size:13.5px}
+.t-ici-tout{display:flex;align-items:center;min-height:44px;padding:10px;border-top:1px solid var(--trait);color:var(--lien);font-weight:700;text-decoration:none;font-size:13.5px}
 .t-ici{margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--lien) 8%,var(--feuille));border:1px solid color-mix(in srgb,var(--lien) 22%,transparent);padding:4px 6px}
 .t-ici summary{display:flex;align-items:center;gap:8px;padding:10px 10px;cursor:pointer;list-style:none;min-height:44px}.t-ici summary::-webkit-details-marker{display:none}
 .t-ici summary::after{content:'›';margin-left:auto;transition:rotate .2s;color:var(--doux)}.t-ici[open] summary::after{rotate:90deg}
@@ -4427,7 +4429,8 @@ function crReel(){ if (crReelEtat === 'ko') return; const el = document.getEleme
   crChargerLeaflet().then(() => { try { crMonter(el); } catch (e) { try { if (el._m) el._m.remove(); } catch (x) {} el._m = null; crLf = null; crRepli(e && e.message || 'la carte n’a pas pu s’afficher'); } }, e => crRepli(e && e.message)); }
 function crMonter(el){
   if (!el.isConnected || el._m) return;
-  if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
+  /* l'ancienne carte cesse d'écouter AVANT d'être retirée : plus aucun mouvement tardif d'une carte morte ne retrace ou ne mémorise quoi que ce soit */
+  if (crLf && crLf.map) { try { crLf.map.off('moveend'); crLf.map.remove(); } catch (e) {} }
   const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:MAC ? 0 : .25, zoomDelta:1, wheelPxPerZoomLevel:90, maxZoom:19, minZoom:4 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
   if (!crGlPossible()) { try { map.remove(); } catch (e) {} el._m = null; return crRepli('cet appareil ne sait pas dessiner la carte'); }
   const gl = L.maplibreGL({ style:crStyle(), attributionControl:false }).addTo(map);
@@ -4439,7 +4442,10 @@ function crMonter(el){
   /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
      recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
      sur leur voisin (planning-07, rejoué sur iPhone) */
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
+  /* la vue retenue porte le jour et la personne DE CETTE CARTE (pris au montage), pas ceux du moment : un « moveend » tardif de l'ancienne carte (le zoom qui finit
+     de s'animer pendant que « Suivant » change la date) y écrivait le nouveau jour avec l'ancien cadrage, et le nouveau jour s'ouvrait là où on regardait la veille */
+  const jourCarte = plRef, focusCarte = crFocus;
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:jourCarte, focus:focusCarte }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4458,6 +4464,9 @@ function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
   const map = crLf.map, g = crLf.couche; g.clearLayers();
+  /* les bulles de trajet (« 54 min · 41 km ») vivent dans un calque À ELLES, sous celui des repères : Leaflet range les repères d'un même calque par leur
+     hauteur à l'écran, et une bulle posée plus bas que le repère d'une urgence le recouvrait (recontrôle du planning, 17 novembre) */
+  if (!map.getPane('crTrajets')) map.createPane('crTrajets').style.zIndex = 590;
   const d = plRef, T = crTournees(d), C = crAConfier(d), maint = d === AUJ ? MAINT_MIN : d < AUJ ? 9e9 : -1;
   T.forEach(({ t, S, retour }) => { if (!S.length) return; const loin = crFocus && crFocus !== t.id;
     let prec = CR_DEPOT;
@@ -4466,7 +4475,7 @@ function crTracerReel(){
       L.polyline([o.a, o.b], { color:'#ffffff', weight:8, opacity:.85 * op, interactive:false }).addTo(g);
       L.polyline([o.a, o.b], { color:t.c, weight:4.5, opacity:op, dashArray:o.retour ? '2 9' : null, lineCap:'round', interactive:false }).addTo(g);
       if (!loin && !o.retour && map.latLngToContainerPoint(o.a).distanceTo(map.latLngToContainerPoint(o.b)) > 120) { const txt = crMinTxt(o.tr.min) + ' · ' + crKmTxt(o.tr.km), w = Math.round(txt.length * 6.6 + 18);
-        L.marker([(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2], { interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${o.retard ? 'r' : ''}">${txt}</span>`, iconSize:[w, 22], iconAnchor:[w / 2, 11] }) }).addTo(g); } }); });
+        L.marker([(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2], { pane:'crTrajets', interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${o.retard ? 'r' : ''}">${txt}</span>`, iconSize:[w, 22], iconAnchor:[w / 2, 11] }) }).addTo(g); } }); });
   const pins = [{ dep:1, ll:CR_DEPOT }];
   T.forEach(({ t, S }) => S.forEach(x => { if (!x.bureau) pins.push({ id:x.i.id, ll:crPos(x), c:t.c, n:x.n, loin:crFocus && crFocus !== t.id, retard:x.retard, nom:CLIENTS[x.i.cli].nom, h:x.i.h, qui:t.nom }); }));
   C.forEach(i => pins.push({ id:i.id, ll:CR_GEO[i.cli] || CR_DEPOT, c:i.urgent ? 'var(--rouge)' : 'var(--orange)', n:'!', urgent:i.urgent, conf:1, loin:!!crFocus, nom:CLIENTS[i.cli].nom, h:i.h, qui:'à confier' }));
@@ -4478,10 +4487,15 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* ni sous un bouton de la carte — mesuré sur la carte telle qu'elle est : sur iPad, le dernier repère de Sophie (Rochefort) tombait sous « Auto · Jour · Nuit »
+       et le toucher y changeait le fond de carte (recontrôle du planning, 17 novembre) ; le plan de la page donne le rectangle de chaque groupe de boutons */
+    const cont = map.getContainer().getBoundingClientRect(), obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+      .map(r => [r.left - cont.left - 17, r.top - cont.top - 17, r.right - cont.left + 17, r.bottom - cont.top + 17]);
+    const sous = (x, y) => obst.some(r => x > r[0] && x < r[2] && y > r[1] && y < r[3]);
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178) && !sous(x, y);
     /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
        que de laisser le repère sur son voisin */
-    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    if (!lib(X, Y, ecart) || (X > 0 && X < sz.x && Y > 0 && Y < sz.y && sous(X, Y))) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
@@ -4522,6 +4536,12 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('[data
 document.addEventListener('drop', e => { const c = e.target.closest?.('[data-crcible]'); document.querySelectorAll('.cr-t.cible').forEach(x => x.classList.remove('cible')); if (!c) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) crConfier(id, c.dataset.crcible); });
 document.addEventListener('mouseover', e => { if (plVue !== 'carte') return; const a = e.target.closest?.('.cr-arr[data-crsel]'); const g = document.querySelector(`[data-crpin="${a ? a.dataset.crsel : '_'}"]`); document.querySelectorAll('.cr-pin.survol').forEach(x => x !== g && x.classList.remove('survol', 'on')); if (g && !g.classList.contains('on')) g.classList.add('survol', 'on'); });
 addEventListener('resize', () => { if (route === 'planning' && plVue === 'carte') { if (crEmpileRendu !== null && crEmpile() !== crEmpileRendu) { rendre(); return; } crAjusterHauteur(); crDessiner(); if (crLf && crLf.map && crLf.el.isConnected) crLf.map.invalidateSize(); if (document.getElementById('cr-ftel')) crFiche(); } });
+/* Vue d'ensemble : une carte DÉJÀ à moitié visible (le bout qui dépasse de la colonne des noms) n'est pas ramenée par le navigateur au focus — scroll-padding ne
+   joue que pour ce qui est hors champ. Au clavier la carte restait donc presque entièrement cachée sous les noms, seul l'anneau de focus dépassait (recontrôle du
+   planning, 17 novembre). On la ramène nous-mêmes, d'un geste, à droite de la colonne. */
+document.addEventListener('focusin', ev => { const e = ev.target, sc = e.closest && e.closest('.pl-defile'); if (!sc || e.closest('.pg-tec') || !sc.querySelector('.pg-g')) return;
+  requestAnimationFrame(() => { const col = sc.querySelector('.pg-tec'); if (!col || !sc.contains(e)) return; const ar = col.getBoundingClientRect().right, r = e.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+    if (r.width && r.left < ar - 1 && r.right > sr.left) sc.scrollBy({ left:r.left - ar - 4, behavior:'auto' }); }); });
 document.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || route !== 'planning' || plVue !== 'carte') return; if (crPlein) { crPlein = false; rendre(); } else if (crSel && !document.querySelector('.voile')) crChoisir(null, true); });
 
 /* ══ LE GESTE : glisser (souris, ou doigt après appui long), deux barres d'heure, enregistré au lâcher ══ */
@@ -4697,7 +4717,11 @@ function heureSous(col, y){ const r = col.getBoundingClientRect(); return Math.m
 /* souris */
 document.addEventListener('mousedown', ev => {
   if (ev.button !== 0) return; const t = ev.target.closest('[data-tire]'), el = t || ev.target.closest('.pc[data-int],.pc[data-bur]'); if (!el) return; if (el.closest('.fen') && (el.dataset.int || el.dataset.bur || el.dataset.tire) !== 'brouillon') return;   /* dans la fenêtre de création, on ne déplace que le brouillon · 13 novembre 2026 */
-  const i = trouve(el.dataset.int || el.dataset.bur || el.dataset.tire); if (!i || i.st === 'fait') return;
+  const i = trouve(el.dataset.int || el.dataset.bur || el.dataset.tire); if (!i) return;
+  if (i.st === 'fait') {   /* un glissement qui ne déplace rien se DIT, une fois : sinon le geste a l'air de n'avoir pas pris */
+    let parle = false; const a0 = ev.clientX, b0 = ev.clientY, dit = e => { if (!parle && Math.hypot(e.clientX - a0, e.clientY - b0) > 8) { parle = true; removeEventListener('mousemove', dit); toast('Une intervention terminée ne se déplace pas.'); } },
+      fin = () => { removeEventListener('mousemove', dit); removeEventListener('mouseup', fin); if (parle) bloque(); };   /* le relâcher d'un glissement ne doit pas « cliquer » la colonne dessous (menu Créer ici) */
+    addEventListener('mousemove', dit); addEventListener('mouseup', fin); return; }
   ev.preventDefault(); const x0 = ev.clientX, y0 = ev.clientY; let parti = false;
   const copie = ev.altKey;
   const mv = e => { if (!parti && Math.hypot(e.clientX - x0, e.clientY - y0) > 4) { parti = true; fermerMenu(); debutGeste(el, x0, y0, t ? 'taille' : 'deplacer'); if (G && copie && !t && !estBloc(G.i) && G.i.st !== 'brouillon') { G.copie = true; G.el.classList.remove('source'); G.f.querySelector('.t').textContent = 'Copie · ' + G.i.titre; } } if (parti) suivre(e.clientX, e.clientY); };
@@ -5017,7 +5041,7 @@ function vueFiche(id){
       <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
       <div class="carte"><h3>Appareils chez ce client</h3>${c.appareils.length ? '' : '<div class="gris petit">Aucun appareil enregistré pour l’instant.</div>'}${c.appareils.map(a=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
-      <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
+      <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
       ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne" style="flex-wrap:wrap"><span style="min-width:0;flex:1 1 170px;overflow-wrap:anywhere">${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center;flex:none;white-space:nowrap;margin-left:auto"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
@@ -5026,7 +5050,7 @@ function vueFiche(id){
     </div>
     <div class="col">
       <div class="carte"><h3>Les contrôles <span class="st ${n===tot?'st-v':'st-b'}">${n} sur ${tot}</span></h3>${CONTROLES[F.metier].map(([g,L])=>`<div class="groupe">${g}</div>${L.map(k=>`<label class="case"><input type="checkbox" data-ctrl="${esc(k)}" data-id="${id}" ${F.coches[k]?'checked':''}>${esc(k)}</label>`).join('')}`).join('')}</div>
-      <div class="carte"><h3>${MOT_COMPTE[F.metier]}</h3><label class="champ"><span class="faible">Ce que le client lira, en quelques phrases simples</span><textarea data-champ="compte" data-id="${id}">${esc(F.compte)}</textarea></label></div>
+      <div class="carte"><h3>${MOT_COMPTE[F.metier]}</h3><label class="champ"><span class="faible">Ce que le client lira, en quelques phrases simples</span><textarea data-champ="compte" aria-label="${MOT_COMPTE[F.metier]}" data-id="${id}">${esc(F.compte)}</textarea></label></div>
       <div class="carte"><h3>Heures sur place</h3><div class="deux-champs"><label class="champ">Arrivée<input type="time" value="${F.debut}" data-champ="debut" data-id="${id}"></label><label class="champ">Départ<input type="time" value="${F.fin}" data-champ="fin" data-id="${id}"></label></div><div class="faible mini" style="margin-top:6px">Remplies toutes seules, modifiables. Elles vont sur le compte rendu et la facture.</div></div>
       <div class="carte"><h3>Signature du client</h3>${F.absent ? `<div class="info">Le client n’était pas sur place : le compte rendu lui est envoyé par e-mail, sans signature.</div>` : `<label class="champ">Nom de la personne qui signe <span class="faible">(le contact du client : corrige si ce n’est pas lui)</span><input value="${esc(F.signeNom)}" data-champ="signeNom" data-id="${id}"></label><canvas class="signe" id="signe" width="600" height="200" aria-label="Signer ici avec le doigt ou la souris"></canvas><button type="button" class="lien" data-action="sigEfface" data-id="${id}">Effacer la signature</button>`}
         <label class="case"><input type="checkbox" data-absent="${id}" ${F.absent?'checked':''}>Client pas sur place</label></div>
@@ -5051,7 +5075,7 @@ function finiEcran(i, F){
       <p class="fin-p">PDF et lien en ligne pour ${esc(CLIENTS[i.cli].contact.split(',')[0])}, au nom de ${esc(ENTREPRISE.nom)}.</p>
       <div class="fin-a">${boutonsEnvoi(i.id)}<div class="actions"><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir le PDF</button><button type="button" class="lien" data-voirclient="${i.id}|ordi">Voir le lien client</button></div></div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Facturation</h3>${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '<span class="st st-g">Sans facture</span>' : f ? `<span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span>` : '<span class="st st-o">À préparer</span>'}</div>
-      <div class="fin-p paie-bloc">${f && f.st === 'payee' ? `<div class="ligne"><span>Paiement</span><span class="st st-v">reçu</span></div><span class="gris petit">Réglée ${f.mode ? 'par ' + f.mode.toLowerCase() : ''}${f.paye ? ' le ' + f.paye : ''}${F.paiement.etat !== 'rien' ? ' · ' + esc(paiementTexte(F.paiement)) : ''}.</span>` : `<div class="ligne"><span>Paiement sur place</span>${paiementPastille(F.paiement)}</div><span class="gris petit">${esc(paiementTexte(F.paiement))} · noté par ${tech(i.tech).nom.split(' ')[0]}</span>`}
+      <div class="fin-p paie-bloc">${ctrCompris(i) ? '' : f && f.st === 'payee' ? `<div class="ligne"><span>Paiement</span><span class="st st-v">reçu</span></div><span class="gris petit">Réglée ${f.mode ? 'par ' + f.mode.toLowerCase() : ''}${f.paye ? ' le ' + f.paye : ''}${F.paiement.etat !== 'rien' ? ' · ' + esc(paiementTexte(F.paiement)) : ''}.</span>` : `<div class="ligne"><span>Paiement sur place</span>${paiementPastille(F.paiement)}</div><span class="gris petit">${esc(paiementTexte(F.paiement))} · noté par ${tech(i.tech).nom.split(' ')[0]}</span>`}
         ${i.fact && i.fact.mode === 'garantie' ? '<div class="gris petit" style="margin-top:6px">Garantie / offert, décidé par le bureau à la création.</div>' : ctrCompris(i) ? '<div class="gris petit" style="margin-top:6px">Visite comprise dans le contrat ' + esc(ctrCompris(i).num) + ' (facturé ' + FACT_LIB[ctrCompris(i).fact] + ') : rien à facturer pour cette visite.</div>' : f ? `<div class="ligne"><span>${f.num === '—' ? 'Facture préparée' : 'Facture ' + f.num}</span>${typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech' ? '<span class="gris petit">chiffrée par le bureau</span>' : `<b>${lignesDe(f).every(l=>l.pu!=null)?eur(ttcDe(f)):'à chiffrer'}</b>`}</div>` : ''}</div>
       <div class="fin-a">${i.fact && i.fact.mode === 'garantie' || ctrCompris(i) ? '' : f ? `<button type="button" class="btn" data-go="facture-x-${f.id}">Ouvrir la facture</button>` : `<button type="button" class="btn" data-action="prepFacture" data-id="${i.id}">Préparer la facture</button>`}</div></section>
     <section class="carte fin-c"><div class="fin-t"><h3>Suites à donner</h3><span class="st ${F.suite.ventilo || F.suite.entretien ? 'st-b' : 'st-g'}">${(F.suite.ventilo?1:0)+(F.suite.entretien?1:0) || 'Aucune'}${F.suite.ventilo || F.suite.entretien ? ' prévue' + ((F.suite.ventilo?1:0)+(F.suite.entretien?1:0) > 1 ? 's' : '') : ''}</span></div>
@@ -5280,9 +5304,11 @@ const htDe = f => lignesDe(f).reduce((s,l) => s + (l.pu || 0) * (parseFloat(Stri
 const ttcDe = f => f.st === 'avoir' ? -f.ht * (1 + f.tva/100) : htDe(f) * (1 + f.tva/100);
 const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);   /* annulée par un avoir : plus rien à recevoir, plus de relance (compta-ventes-06) */
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
-  const F = fiche(i.id); if (FACTURES.find(f => f.int === i.id)) return;
+  const F = fiche(i.id), prec = FACTURES.filter(f => f.int === i.id); if (prec.some(f => f.st !== 'annulee')) return;
   if (i.fact && i.fact.mode === 'garantie') return;
   if (ctrCompris(i)) return;   // visite d'un contrat facturé à l'année ou au mois : rien à préparer
+  /* une facture ANNULÉE par un avoir se refait : la nouvelle reprend l'identifiant, l'ancienne garde sa place dans les documents sous un autre (« Préparer la facture » ne tombe pas dans le vide) */
+  prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
     if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
@@ -5329,7 +5355,7 @@ function vueFacture(id){
   ${!complet ? `<div class="bandeau-info"><b>${[sansPrix ? sansPrix + ' ligne' + (sansPrix > 1 ? 's' : '') + ' sans prix' : '', sansNom ? sansNom + ' ligne' + (sansNom > 1 ? 's' : '') + ' sans nom' : ''].filter(Boolean).join(' · ')}</b> · ${sansPrix ? 'chiffre-' + (sansPrix > 1 ? 'les' : 'la') + ' ci-dessous' : ''}${sansPrix && sansNom ? ', et ' : ''}${sansNom ? 'écris ce que ' + (sansNom > 1 ? 'tu factures sur chacune' : 'tu factures sur cette ligne') : ''} pour pouvoir envoyer.${sansPrix ? ' Le prix sera retenu pour la prochaine fois.' : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}" placeholder="prix HT" aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(htDe({ lignes:[l] }))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l"><thead><tr><th>Désignation</th><th class="l-qc">Qté</th><th class="n">Prix HT</th></tr></thead><tbody>
+      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}"${l.pu == null ? ' placeholder="prix HT"' : ''} aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(htDe({ lignes:[l] }))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l"><thead><tr><th>Désignation</th><th class="l-qc">Qté</th><th class="n">Prix HT</th></tr></thead><tbody>
         ${L.map((l,k)=>`<tr><td>${esc(l.d)}<span class="l-q">\u00a0×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="l-qc">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="2">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="2" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?'particulier, logement de plus de 2 ans, attestation signée':f.tva===5.5?'travaux d’économie d’énergie':'client professionnel'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
@@ -6297,7 +6323,7 @@ const H_GENS = {
   lr:{ nom:'Léa Roux', role:'Technicienne', c:'#8b5cf6' }, tl:{ nom:'Tom Leroy', role:'Technicien', c:'#d97706' },
   client:{ nom:'Le client', role:'depuis son lien', c:'#7b8496', ini:'↗' }, auto:{ nom:'OP GESTION', role:'automatique', c:'#15213a', ini:'OP' }
 };
-const H_TYPES = { inter:['Interventions','var(--bleu)'], planning:['Planning','var(--orange)'], facture:['Factures et paiements','var(--vert)'], devis:['Devis','var(--violet)'], contrat:['Contrats','var(--sarcelle)'], client:['Clients','color-mix(in srgb,#5e5ce6 50%,var(--encre))']   /* l'indigo en dur tombait à 2,83:1 sur le fond nuit ; mêlé à l'encre du thème il s'éclaircit de nuit et se fonce de jour · 13 novembre 2026 */, tache:['Tâches','var(--lien)'], equipe:['Équipe et accès','var(--doux)'] };
+const H_TYPES = { inter:['Interventions','var(--bleu)'], planning:['Planning','var(--orange)'], facture:['Factures et paiements','var(--vert)'], devis:['Devis','var(--violet)'], contrat:['Contrats','var(--sarcelle)'], client:['Clients','color-mix(in srgb,#5e5ce6 50%,var(--encre))']   /* l'indigo en dur tombait à 2,83:1 sur le fond nuit ; mêlé à l'encre du thème il s'éclaircit de nuit et se fonce de jour · 13 novembre 2026 */, tache:['Tâches','var(--lien)'], equipe:['Équipe et accès','var(--doux)'], securite:['Sécurité','var(--rouge)'] };
 const hAv = k => { const g = H_GENS[k] || H_GENS.auto; return `<span class="av p" style="--tc:${g.c}">${g.ini || g.nom.split(' ').map(x => x[0]).join('').slice(0, 2)}</span>`; };
 /* le journal d'exemple : il suit les vraies pièces du prototype (interventions, factures, règlements, contrats) */
 let JOURNAL = (() => {
@@ -7298,7 +7324,10 @@ function aApercuModif(d){
   const el = document.getElementById('am-apercu'); if (!el) return;
   const p = { tech:d.tech, du:document.getElementById('am-du').value, au:document.getElementById('am-au').value, demi:document.getElementById('am-demi').value || null };
   if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(p), avant = aJours(d), apres = aJours(p);
+  const c = aConflits(p), avant = aJours(d), apres = aJours(p), btn = document.querySelector('[data-amodifok]');
+  // même règle que les autres formulaires de dates : une proposition qui ne tombe que sur un week-end poserait une absence de 0 jour à l'acceptation
+  if (btn) btn.disabled = !apres;
+  if (!apres) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y aurait rien à poser. Propose d’autres dates.</small></div>'; return; }
   el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(p))}</b><span>${aDuree(p)}${apres !== avant ? ` · ${apres > avant ? '+' : ''}${aNb(apres - avant)} j par rapport à sa demande` : ''}</span></div>` + (c.ints.length ? `<div class="a-alerte"><b>⚠ Encore ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} sur ces dates</b>${c.ints.map(i => `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)}</span>`).join('')}</div>` : '<div class="a-ok">✓ Aucune intervention sur ces dates</div>');
 }
 const aLe = () => '31/10 · ' + hm(MAINT_MIN);
@@ -7324,6 +7353,7 @@ document.addEventListener('click', ev => {
     if (!p.du || !p.au || p.au < p.du) return toast('La date de fin est avant la date de début');
     if (p.du === d.du && p.au === d.au && (p.demi || null) === (d.demi || null)) return toast('Ce sont les mêmes dates que sa demande');
     if (p.demi && p.du !== p.au) p.demi = null;
+    if (!aJours({ tech:d.tech, du:p.du, au:p.au, demi:p.demi })) return toast('Ces jours ne sont pas travaillés : propose d’autres dates');
     d.prop = p; d.etat = 'proposee'; d.choix = {}; (d.fil = d.fil || []).push({ qui:acteur(), quoi:`a proposé ${aPeriode(p)} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')}${p.msg ? ' : « ' + p.msg + ' »' : ''}`, le:aLe() });
     journalAjout('marc', 'equipe', 'a proposé d’autres dates', { lib:tech(d.tech).nom }, { avant:aPeriode(d), apres:aPeriode(p) });
     aAvis(d.tech, { ic:'info', titre:'Marc te propose d’autres dates', det:`${aMaj(aPeriode(p))} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')} · réponds sous « Mes demandes »`, msg:p.msg }); fermerPanneau(); rendre();
@@ -7390,6 +7420,12 @@ document.addEventListener('click', ev => {
     return aMontrerPlanning(x, mv, `Absence de ${aPrenom(x.tech)} · ${aTypeBas(x.type)}${mv.length ? ' · ' + mv.length + ' intervention' + (mv.length > 1 ? 's' : '') + ' ' + (mv.every(m => m.vers) ? 'confiée' + (mv.length > 1 ? 's' : '') : 'à reprendre') : ''}`); }
   if (b.dataset.aplan) { const [d] = b.dataset.aplan.split('|'); fermerPanneau(); plRef = d; plVue = 'jour'; plMasques = new Set(); return allerAvecRetour('planning', 'Absences et congés', () => {}); }
 });
+/* « Au » suit « Du » tant qu'on n'a pas touché « Au » : même règle que la demande du technicien (ad-), pour les trois formulaires du gérant
+   (Nouvelle absence an-, Proposer d'autres dates am-, Modifier les dates ax-). Écouteur en CAPTURE : il passe avant ceux qui calculent l'aperçu. */
+document.addEventListener('change', ev => { const m = /^(an|am|ax)-(du|au)$/.exec(ev.target.id || ''); if (!m) return;
+  if (m[2] === 'au') { ev.target.dataset.touche = '1'; return; }
+  const au = document.getElementById(m[1] + '-au');
+  if (au && !au.dataset.touche && ev.target.value && au.value < ev.target.value) { au.value = ev.target.value; if (typeof dtPeindre === 'function') dtPeindre(au); } }, true);
 document.addEventListener('change', ev => {
   if (['an-t', 'an-ty', 'an-du', 'an-au', 'an-demi'].includes(ev.target.id)) aApercu();
   if (['am-du', 'am-au', 'am-demi'].includes(ev.target.id)) { const b = document.querySelector('[data-amodifok]'); if (b) aApercuModif(DEMANDES_ABS.find(x => x.id === b.dataset.amodifok)); }
@@ -7427,6 +7463,10 @@ function aAppliquer(a, du, au, demi){
   if (!du || !au || au < du) { toast('La date de fin est avant la date de début'); return false; }
   const autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= au && du <= x.au);
   if (autre) { aDepl = null; aRendreGarde(); toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)} : rien n’a bougé.`); return false; }
+  // le geste forcé à la main, ou le glisser sur le calendrier, passent par ici : les règles de l'aperçu y sont aussi (un week-end seul, une demande en attente)
+  if (!aJours({ tech:a.tech, du, au, demi:du === au ? demi || null : null })) { aDepl = null; aRendreGarde(); toast('Ces jours ne sont pas travaillés : rien n’a bougé.'); return false; }
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= au && du <= x.au);
+  if (attente) { aDepl = null; aRendreGarde(); toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)} : accorde-la ou refuse-la d’abord, dans « À valider ». Rien n’a bougé.`); return false; }
   const av = { du:a.du, au:a.au, demi:a.demi || null }, dm = du === au ? demi || null : null;
   if (av.du === du && av.au === au && av.demi === dm) { aDepl = null; aRendreGarde(); return false; }
   Object.assign(a, { du, au, demi:dm });
@@ -7448,8 +7488,13 @@ function aPanneauDates(a){
 function aApercuDates(a){ const el = document.getElementById('ax-apercu'); if (!el) return;
   const p = { tech:a.tech, du:document.getElementById('ax-du').value, au:document.getElementById('ax-au').value, demi:document.getElementById('ax-demi').value || null };
   if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(p), autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= p.au && p.du <= x.au);
+  const c = aConflits(p), autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= p.au && p.du <= x.au), btn = document.querySelector('[data-axok]');
+  // mêmes règles que « Nouvelle absence » (aApercu) : rien un week-end, et une demande en attente sur ces jours se traite d'abord (sinon l'accorder doublerait l'absence)
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= p.au && p.du <= x.au);
+  if (btn) btn.disabled = !!(autre || attente || !aJours(p));
+  if (!aJours(p)) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y a rien à poser. Choisis d’autres dates.</small></div>'; return; }
   el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(p))}</b><span>${aDuree(p)}</span></div>`
+    + (attente && !autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)}</b><small>Une demande attend ta réponse sur ces jours : accorde-la ou refuse-la d’abord, dans « À valider ».</small></div>` : '')
     + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '')
     + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} sur ces dates</b>${c.ints.map(i => `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)}</span>`).join('')}<small>Après l’enregistrement, « Régler » propose qui les reprend.</small></div>` : '<div class="a-ok">✓ Aucune intervention sur ces dates</div>');
 }
@@ -7645,6 +7690,7 @@ document.addEventListener('change', ev => { const id = ev.target.id || '';
 document.addEventListener('input', ev => { if (['ad-du', 'ad-au'].includes(ev.target.id || '')) aApercuDemande(); });
 /* ══ CADRE : menu, barre du bas, thème, navigation ══ */
 const IC = {
+  securite:'<path d="M12 3l7.5 3v5.5c0 4.6-3.1 8.1-7.5 9.5-4.4-1.4-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
   accueil:'<path d="M3 21h18M6.5 18v-6.5M12 18V5.5M17.5 18v-4"/>', planning:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   interventions:'<path d="M3 8.5h18V19a1.8 1.8 0 0 1-1.8 1.8H4.8A1.8 1.8 0 0 1 3 19z"/><path d="M9 8.5V6.2A2.2 2.2 0 0 1 11.2 4h1.6A2.2 2.2 0 0 1 15 6.2v2.3M3 13.2h18"/>',
   clientvoit:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 18h4"/>', factures:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>',
@@ -8339,7 +8385,7 @@ const CATS = [
   ['Clients et ventes', [['clients','🏢','Clients',1],['devis','💰','Devis',1],['contrats','📑','Contrats',1],['boiteMail','📧','Boîte mail']]],
   ['Argent', [['comptabilite','📊','Comptabilité',0,'Factures, paiements, paie'],['achats','🛒','Achats et frais',0,'Demandes de l’équipe']]],
   ['Matériel', [['stock','🗃️','Stock'],['produits','📦','Fournisseurs, matériel & produits'],['boxes','🧱','Dépôts et camions']]],
-  ['Personnel', [['equipe','👥','Équipe'],['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules'],['entreprise','🏢','Mon entreprise',1]]],
+  ['Personnel', [['equipe','👥','Équipe'],['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules'],['entreprise','🏢','Mon entreprise',1],['securite','🛡️','Sécurité',1]]],
   [GROUPE_3D, [['registre','📋','Registre sanitaire'],['carteBox','📍','Carte des box'],['devisXylo','🪵','Devis xylophage']]]
 ];
 const CAT_LIGNES = CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait, sous]) => ({ g, k, ic, l, fait:!!fait, tard:fait === 2, sous:sous || '' })));
@@ -8370,8 +8416,12 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if
 new MutationObserver(() => { if (mode === 'auto') appliquerMode(); }).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
 const segMode = () => `<div class="mode-seg" role="group" aria-label="Apparence">${[['jour','Jour'],['nuit','Nuit'],['auto','Auto']].map(([k,l])=>`<button type="button" data-modetheme="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div>`;
 const BASE = { clientvoit:'interventions', inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
+/* « ‹ Retour » sans historique (lien direct, rechargement) ramène à la liste du bureau — que la personne n'a pas forcément : une technicienne y lisait « Cette page n'est pas dans ton espace »
+   (« technicien-07 »). On ne revient qu'à un écran qu'elle a le droit d'ouvrir, sinon à sa première rubrique (Ma journée pour un terrain). */
+function retourSure(r){ try { const p = typeof eqDe === 'function' && typeof ROLE !== 'undefined' && ROLE !== 'client' ? eqDe(acteur()) : null;
+  return p && typeof droitVoit === 'function' && !droitVoit(r, p) ? ouvertureDe(p) : r; } catch (e) { return r; } }
 /* la table des écrans, dressée à chaque appel (les vues sont réaffectées plus bas : on lit le dernier état) */
-function vues(){ return { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, entreprise:vueEntreprise, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() }; }
+function vues(){ return { securite:vueSecurite, accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, entreprise:vueEntreprise, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() }; }
 /* une adresse que l'application ne connaît pas : le menu, la barre et les cases d'Équipe n'y mènent jamais */
 /* « constructor », « toString », « __proto__ » sont des noms de l'objet de base : `!!vues()[r]` les croyait connus, l'écran devenait « [object Object] » et
    la page jetait. Une route est une clé PROPRE de la table, jamais un héritage. */
@@ -8636,10 +8686,11 @@ const ACTIONS = {
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
-  creerContrat(){ const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
+  creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
-    if (Date.now() - cfCtrT < 1200) return; cfCtrT = Date.now();   // le double-clic d'avant a déjà créé le contrat : la page ne s'est pas encore redessinée
+    cfCtrT = Date.now();
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Number(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
     const mailK = CLIENTS[B.cli].mail;
@@ -8746,7 +8797,7 @@ document.addEventListener('click', ev => {
     const [t, id] = b.dataset.go.split('-x-'), ici = BASE[route] || route;
     if (id && PAGE_DE[t] && PAGE_DE[t] !== ici && !['accueil','planning'].includes(ici) && b.closest('#contenu,.panneau')) { apercuElement(t, id); return; }
     aller(b.dataset.go); return; }
-  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || (BASE[route] || 'accueil')); return; }
+  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || 'accueil')); return; }
   if ((b = q('[data-modetheme]'))) { mode = b.dataset.modetheme; try { localStorage.setItem(MODE_CLE, mode); } catch (e) { /* rangement plein ou refusé : le choix vaut pour cette ouverture */ } appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); return; }
   if ((b = q('[data-creer]'))) { ouvrirCreation(route === 'client' ? { cli:param } : {}); return; }
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
@@ -9889,7 +9940,7 @@ document.addEventListener('click', ev => {
     const rouges = ptAlertes(x, Array.from({ length:7 }, (_, i) => ajoute(y, i))).A.filter(o => o.g === 'r'), valide = () => { const av1 = { ...PT_VALIDE }; PT_VALIDE[x + y] = true; journalAjout('marc', 'equipe', 'a validé la semaine de ' + H_NOM(x) + (rouges.length ? ' (' + rouges.length + ' alerte' + (rouges.length > 1 ? 's' : '') + ' du Code du travail ' + (rouges.length > 1 ? 'ignorées' : 'ignorée') + ')' : ''), { lib:'Temps de travail' }); rendre(); toast(`Semaine de ${esc(H_NOM(x))} validée pour la paie.`, ptxAnnulerValid(av1, 1)); };
     if (rouges.length) return toast(`${esc(H_NOM(x))} : ${rouges.length} alerte${rouges.length > 1 ? 's' : ''} du Code du travail pas encore regardée${rouges.length > 1 ? 's' : ''}. Corrige-${rouges.length > 1 ? 'les' : 'la'} d’abord, ou valide quand même.`, { lib:'Valider quand même', fn:valide });
     valide(); }
-  if (a === 'export') return toast('Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.');
+  if (a === 'export') { if (!secuGarde('paie-envoi', secuRejouerClic(b))) return; } if (a === 'export') return toast('Prototype : le fichier part au cabinet de paie avec les heures, les heures supplémentaires et les absences du mois.');
 });
 
 /* ⟦module equipe⟧ */
@@ -9906,8 +9957,8 @@ const DR_CATS = [['planif', 'Planning et absences'], ['inter', 'Interventions'],
   ['stock', 'Fournisseurs, matériel, stock et dépôts'], ['temps', 'Temps de travail et véhicules'], ['com', 'Boîte mail'], ['achats', 'Achats et frais'], ['admin', 'L’entreprise et l’équipe']];
 /* les sept droits à part : leurs valeurs restent TOUTES dans les données de la personne ; seuls ceux qui AGISSENT s'affichent (règle 5 : « ce qu'on ne peut pas prouver ne s'affiche pas ») — DR_SP_BRANCHES grandit au fil des gestes branchés */
 const DR_SP_TOUS = [['tout', 'Voir les interventions de toute l’équipe', 'sinon, seulement les siennes'], ['prix', 'Voir les prix d’achat et les marges', ''], ['atelier', 'Se servir à l’atelier sans validation', 'sinon, ses sorties attendent le responsable'],
-  ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places']];
-const DR_SP_BRANCHES = ['comptes', 'corrpt', 'atelier', 'valstock', 'commander'];   /* « Voir les prix d'achat » n'est PAS branché (25 écrans, repli décidé d'avance, spec § 2.7) : sa case n'est pas dessinée */
+  ['valstock', 'Valider les gestes de stock des autres', ''], ['commander', 'Envoyer des commandes aux fournisseurs', ''], ['corrpt', 'Corriger les pointages', 'les siens comme ceux des autres'], ['comptes', 'Créer des comptes', 'dans la limite des places'], ['securite', 'Gérer la sécurité des connexions', 'voir la page Sécurité, déverrouiller un compte, activer un nouveau téléphone']];
+const DR_SP_BRANCHES = ['comptes', 'corrpt', 'atelier', 'valstock', 'commander', 'securite'];   /* « Voir les prix d'achat » n'est PAS branché (25 écrans, repli décidé d'avance, spec § 2.7) : sa case n'est pas dessinée */
 const DR_SP = DR_SP_TOUS.filter(([k]) => DR_SP_BRANCHES.includes(k));
 const tousOui = () => Object.fromEntries(DR_CATS.map(([k]) => [k, { v:1, c:1, m:1, s:1 }]));
 /* v c m s : voir, créer, modifier, supprimer. Les valeurs de départ donnent les menus que Justin a validés (étape 5, spec § 2.12) : le Responsable voit tout et ne règle pas l'entreprise ;
@@ -10282,6 +10333,17 @@ function acVersCommande(s, q, d){
 }
 const acNoter = (d, suite) => { d.etat = 'approuvee'; d.suite = suite; d.par = acteur(); d.le = AUJ; };
 const acPrevenir = (k, txt) => notifier(k, txt);   // une notification sur son téléphone (la Messagerie a été retirée)
+function acVirement(){
+  if (!secuGarde('virement-ouvrir', () => acVirement())) return;
+  const L = acAPayer().filter(o => acSel.has(o.id)), tot = L.reduce((s, o) => s + acTTC(o), 0);
+    return ouvrirPanneau(`<span class="surtitre">Virement groupé</span><h2>${L.length} facture${L.length > 1 ? 's' : ''} · ${eur(tot)}</h2><div class="fo-bloc">${L.map(o => `<div class="ligne"><span>${esc(o.four)} · ${esc(o.ref)}</span><b>${eur(acTTC(o))}</b></div>`).join('')}</div>
+      <span class="gris petit">Les IBAN viennent des fiches fournisseurs. Le fichier se dépose dans l’espace de ta banque ; rien ne part sans ta validation chez elle.</span>
+      <div class="actions"><button type="button" class="btn" data-ac="virok">Télécharger le fichier et marquer payées</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function acVirok(){
+  if (!secuGarde('virement-fichier', () => acVirok())) return;
+  const L = acAPayer().filter(o => acSel.has(o.id)); L.forEach(o => { o.paye = dFr(AUJ).slice(0, 5); o.mode = 'Virement'; }); acSel.clear(); fermerPanneau(); rendre(); return toast(`Fichier de virement prêt (${L.length} factures). Elles sont marquées payées et rangées en comptabilité.`);
+}
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-ac]'); if (!b) return;
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x), A = ACHATS.find(o => o.id === x);
@@ -10302,11 +10364,8 @@ document.addEventListener('click', ev => {
     <div class="actions"><button type="button" class="btn" data-ac="refok|${d.id}">Refuser et prévenir</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'refok') { const mo = document.getElementById('ac-motif').value.trim(); if (!mo) return toast('Un refus s’explique : écris pourquoi.'); d.etat = 'refusee'; d.motif = mo; acPrevenir(d.qui, `Pour « ${d.quoi} » : pas cette fois. ${mo}`); fermerPanneau(); rendre(); return toast(`Refusée. ${esc(H_NOM(d.qui))} reçoit une notification, avec le motif.`); }
   if (a === 'payer') { A.paye = dFr(AUJ).slice(0, 5); A.mode = 'Virement'; acSel.delete(A.id); rendre(); return toast(`${esc(A.ref)} payée par virement (${eur(acTTC(A))}) : rangée en comptabilité.`, { lib:'Annuler', fn:() => { A.paye = null; A.mode = null; rendre(); } }); }
-  if (a === 'virement') { const L = acAPayer().filter(o => acSel.has(o.id)), tot = L.reduce((s, o) => s + acTTC(o), 0);
-    return ouvrirPanneau(`<span class="surtitre">Virement groupé</span><h2>${L.length} facture${L.length > 1 ? 's' : ''} · ${eur(tot)}</h2><div class="fo-bloc">${L.map(o => `<div class="ligne"><span>${esc(o.four)} · ${esc(o.ref)}</span><b>${eur(acTTC(o))}</b></div>`).join('')}</div>
-      <span class="gris petit">Les IBAN viennent des fiches fournisseurs. Le fichier se dépose dans l’espace de ta banque ; rien ne part sans ta validation chez elle.</span>
-      <div class="actions"><button type="button" class="btn" data-ac="virok">Télécharger le fichier et marquer payées</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
-  if (a === 'virok') { const L = acAPayer().filter(o => acSel.has(o.id)); L.forEach(o => { o.paye = dFr(AUJ).slice(0, 5); o.mode = 'Virement'; }); acSel.clear(); fermerPanneau(); rendre(); return toast(`Fichier de virement prêt (${L.length} factures). Elles sont marquées payées et rangées en comptabilité.`); }
+  if (a === 'virement') return acVirement();
+  if (a === 'virok') return acVirok();
   if (a === 'piece') { A.piece = 'ticket'; A.just = 'photo du ' + dFr(AUJ).slice(0, 5); if (A.ref === 'à justifier') A.ref = 'TICKET-' + dFr(AUJ).slice(0, 5).replace('/', ''); rendre(); return toast('Ticket ajouté : la TVA de cette dépense est récupérable.'); }
   if (a === 'ndfsans') { if (!NDF_REGLE.sansTicket) return toast('Le patron demande un ticket pour chaque note de frais.'); return ndfConfirmerSans(n); }
   if (a === 'ndfoksans') { if (!NDF_REGLE.sansTicket || n.recu) return; const qui = ndfValideur(); n.etat = 'validee'; n.sansJustif = { par:qui, le:dFr(AUJ).slice(0, 5) };
@@ -11560,7 +11619,7 @@ const rlPermis = r => ROLE === 'client' ? ROLES.client.routes.includes(r) : ROLE
    · UNE seconde table (ACTE_DROIT) pour les noms qui ne sont pas des écrans mais des cases de geste (accepter un envoi, régler le stock, changer un prix) ;
    · la FORME de l'écran suit la case « Travaille sur le terrain » (eqxTerrain), jamais le nom du profil : un terrain a ses cinq écrans personnels, les autres ceux de l'équipe. */
 const ROUTE_DROIT = {
-  accueil:{ equipe:['admin'] }, statistiques:{ equipe:['admin'] }, historique:{ equipe:['admin'] }, equipe:{ equipe:['admin'] }, entreprise:{ equipe:['admin'] },
+  accueil:{ equipe:['admin'] }, statistiques:{ equipe:['admin'] }, historique:{ equipe:['admin'] }, equipe:{ equipe:['admin'] }, entreprise:{ equipe:['admin'] }, securite:{ equipe:['@securite'] },   /* « @ » : une case à part (DR_SP), pas une catégorie */
   planning:{ equipe:['planif'] }, absences:{ equipe:['planif'], terrain:['planif'] },
   interventions:{ equipe:['inter'] }, inter:{ equipe:['inter'], terrain:['inter'] }, majournee:{ terrain:['inter'] }, registre:{ equipe:['inter'], terrain:['inter'] },
   clientvoit:{ equipe:['crm'], terrain:['crm'] }, clients:{ equipe:['crm'] }, client:{ equipe:['crm'] },
@@ -11592,7 +11651,7 @@ function droitRaison(r, p){ p = p || eqDe(acteur());
   if (!routeConnue(r)) return 'inconnue';
   if (!p || !Object.hasOwn(ROUTE_DROIT, r)) return 'forme';
   const besoin = ROUTE_DROIT[r][droitForme(p)]; if (!besoin) return 'forme';
-  return besoin.every(c => droitCase(p, c)) ? null : 'case'; }
+  return besoin.every(c => c.charAt(0) === '@' ? droitSp(p, c.slice(1)) : droitCase(p, c)) ? null : 'case'; }
 const droitVoit = (r, p) => droitRaison(r, p) === null;
 /* Créer / Modifier / Supprimer : la case de la catégorie, pour la personne qui agit (ou pour une autre, quand on prépare sa fiche) */
 function peut(cat, x, p){ p = p || eqDe(acteur()); if (ROLE === 'client' && !p) return true; if (!p || !p.droits) return false; if (droitAdmin(p)) return true;
@@ -11772,6 +11831,10 @@ function droitsRefus(cat, x, fam, verbe){
   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
   return false;
 }
+/* les gestes qu'une personne fait sur SA PROPRE ligne, quelle que soit sa case : un salarié confirme son relevé d'heures ou signale une erreur dessus
+   (« paie » est rangée dans Comptabilité, mais confirmer SES heures n'est pas de la comptabilité — « technicien-03 » : « Je confirme mes heures » était refusé
+   à la technicienne par un message de comptable). Le second morceau de la valeur (« confirme|sm ») désigne la personne : seule la sienne passe. */
+const GESTES_SOI = { paie:['confirme', 'signalok'] };
 /* ce que la garde laisse toujours passer : naviguer, fermer, changer d'apparence, la palette, l'écran de connexion */
 const DROIT_LIBRES = '#pal,#hl-ecran,.rl-bande,#cnx,[data-ferme],[data-retour],[data-retourva],[data-pretour],[data-go],[data-modetheme],[data-nv],[data-menu],[data-tab],[data-logo]';
 const DROIT_BALISES = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL|SUMMARY)$/;
@@ -11786,6 +11849,8 @@ function droitsGeste(ev){
       let decide = false, refus = null;
       for (const a of el.attributes) { if (a.name.slice(0, 5) !== 'data-') continue; const fam = a.name.slice(5); const connue = Object.hasOwn(GESTES, fam) || fam === 'action';
         if (!connue && !(DROIT_BALISES.test(el.tagName) || el.getAttribute('role') === 'button')) continue;
+        const mots = String(a.value).split('|');
+        if (GESTES_SOI[fam] && GESTES_SOI[fam].includes(mots[0]) && mots[1] === p.k) { decide = true; continue; }
         const g = geste(fam === 'action' ? 'action' : fam, String(a.value).split('|')[0]); if (connue) decide = true;
         if (g && g.cat && !peut(g.cat, g.x, p)) { refus = [g, fam, String(a.value).split('|')[0]]; break; }
         const sp = GESTES_SP[fam] && GESTES_SP[fam][String(a.value).split('|')[0]]; if (sp && !droitSp(p, sp)) { refus = [{ cat:sp, x:'sp' }, fam, String(a.value).split('|')[0]]; break; } }
@@ -11836,11 +11901,13 @@ function droitsNote(){
   const T = ROUTE_DROIT[route][droitForme(p)] || []; const cat = T[0] && T[0].split('.')[0]; if (!cat || !droitCase(p, cat)) return;
   const actifs = ['c', 'm', 's'].filter(x => droitCaseActive(cat, x)); if (!actifs.length) return;
   const manque = actifs.filter(x => !peut(cat, x, p)); if (!manque.length) return;
+  /* la note du pied (« ton compte ne peut pas créer… ») parle d'une rubrique du bureau. Les écrans PERSONNELS d'un terrain (Ma journée, Mes heures, Mon camion, Mes congés) sont faits pour créer
+     une note de frais, une demande, une pièce qui manque : y lire qu'on ne peut pas « créer » ou « supprimer » — sans dire quoi — refuse au technicien son propre travail (« technicien-01 »). */
   const qui = esc(droitPremierAdmin());
   if (manque.length === actifs.length) {
     const h = c.querySelector('.tete') || c.querySelector('.tete-tel'); const html = `<div class="info petit droits-note" role="status">Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à ${qui}.</div>`;
     if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
-  } else c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
+  } else if (droitForme(p) !== 'terrain') c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
 }
 /* « Mes tâches » est un outil personnel, toujours ouvert : une personne à qui rien d'autre n'est ouvert le sait */
 function droitsVide(){
@@ -11946,6 +12013,7 @@ function rlPastille(k){
     if (k === 'taches') n = tkxNb(q);
     else if (k === 'entreprise') n = entModifiable() ? entrepriseManque().length : 0;   // ce qui manque pour qu'une facture parte : seulement pour qui peut le régler
     else if (k === 'mesheures' && ROLE === 'tech') n = paieATraiter(q);
+    else if (k === 'produits') n = cmdNbACommander();   // UN compte de « à commander » : celui de la tuile de Stock, de l'onglet Commandes et de la carte de l'Accueil (spec Matériel § 3.1)
     else if (k === 'moncamion' && ROLE === 'tech') n = SX.refus.filter(o => o.m.qui === q).length;   // la pastille rouge compte les envois REFUSÉS (ce qui demande un geste), pas les messages ni ce qui manque
   } catch (e) { n = 0; }
   return n || 0;
@@ -11976,7 +12044,7 @@ function rlPied(feuille){
   const p = eqDe(SESSION) || eqDe('marc'), nom = p ? eqNom(p) : '';
   const nv = enApp() ? `<button type="button" class="nv-menu" data-nv="ouvrir">${nvLu() ? '' : '<i aria-hidden="true"></i>'}Nouveautés</button>` : '';
   const barre = feuille && ROLE !== 'client' && ROLE !== 'compta' && droitVoit('accueil') ? '<button type="button" class="btn gris" data-mabarre="~ouvrir" style="width:100%">Personnaliser la barre du bas</button>' : '';
-  const sortir = enApp() ? `<button type="button" class="cn-out" data-cnx="sortir" aria-label="Se déconnecter du compte de ${esc(nom)}"><b>${esc(nom)}</b><span>Se déconnecter</span></button>` : '';
+  const sortir = enApp() ? `<button type="button" class="cn-out cn-compte" data-cnx="moncompte" aria-label="Mon compte, ${esc(nom)}"><b>${esc(nom)}</b><span>Mon compte</span></button>${secuLigneTel()}<button type="button" class="cn-out cn-quit" data-cnx="sortir" aria-label="Se déconnecter du compte de ${esc(nom)}"><span>Se déconnecter</span></button>` : '';
   const echafaudage = enApp() || feuille ? '' : '<div class="bandeau-proto mini" style="padding:8px 10px">Prototype : rien n’est enregistré. Recharge pour repartir de zéro.</div>';
   return `<div class="pied${feuille ? ' fm-pied' : ''}">${feuille ? '<span class="surtitre">Apparence</span>' : ''}${segMode()}${nv}${barre}${sortir}${echafaudage}</div>`;
 }
@@ -12006,7 +12074,7 @@ addEventListener('resize', () => menuRepere());
 /* ── la barre du bas ── */
 const MB_CLE = 'opg_proto_barre', MB_MAX = 5, MB_DEFAUT = ['accueil', 'planning', 'interventions', 'clients', 'comptabilite'];
 /* le mot de la barre : le nom ENTIER de la rubrique quand il tient ; les noms longs ont leur mot (jamais d'abréviation à point) */
-const MB_COURT = { entreprise:'Entreprise', produits:'Produits', absences:'Congés', devisXylo:'Xylophage', registre:'Registre', achats:'Achats', boxes:'Dépôts', pointage:'Heures', stock:'Stock' };
+const MB_COURT = { securite:'Sécurité', entreprise:'Entreprise', produits:'Produits', absences:'Congés', devisXylo:'Xylophage', registre:'Registre', achats:'Achats', boxes:'Dépôts', pointage:'Heures', stock:'Stock' };
 /* la barre d'une personne qui n'a pas l'écran d'ouverture du gérant : les cinq premières rubriques qu'elle a, dans cet ordre de préférence (ce qu'on voit le plus souvent) ; le client garde la sienne */
 const BARRE_ROLE = {
   equipe:['comptabilite', 'devis', 'clients', 'taches', 'achats', 'interventions', 'planning', 'boiteMail', 'stock', 'pointage'],
@@ -12121,7 +12189,7 @@ function vueMaJournee(){
   ${rlNotifsCarte(moi)}<div class="rl-jour">${auj.map(carte).join('') || '<div class="carte gris">Rien de prévu aujourd’hui.</div>'}</div>
   <div class="grille2"><div class="col">
     <div class="carte"><h3>L’argent que tu as sur toi · ${eur(tot)}</h3>${chez.length ? chez.map(e => `<div class="ligne"><span>${esc(CLIENTS[e.cli].nom)}<br><span class="gris petit">${e.mode.toLowerCase()} · reçu le ${e.d}</span></span><b>${eur(e.ttc)}</b></div>`).join('') + `<div class="actions" style="margin-top:8px"><button type="button" class="btn gris petit" data-rl="remis">Je l’ai remis au bureau</button></div><span class="gris petit">Les espèces et les chèques sont suivis jusqu’à la banque : le bureau voit ce que tu as, et ce que tu lui as remis.</span>` : '<span class="gris petit">Rien : tout ce que tu as encaissé est remis au bureau.</span>'}</div>
-    <div class="carte"><h3>Mes dépenses${ndf.length ? ' · ' + ndf.length + ' en attente' : ''}</h3><span class="gris petit">Un plein, un repas, un péage payé de ta poche : prends le ticket en photo, c’est remboursé avec la paie.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-go="techfrais">Voir mes notes</button></div></div></div>
+    <div class="carte"><h3>Mes dépenses${ndf.length ? ' · ' + ndf.length + ' en attente' : ''}</h3><span class="gris petit">Un plein, un repas, un péage payé de ta poche : prends le ticket en photo, c’est remboursé avec la paie.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-go="techfrais">Voir mes frais</button></div></div></div>
    <div class="col"><div class="carte"><h3>Les prochains jours</h3>${apres.map(i => `<div class="ligne"><span><b>${jcourt(i.d)} · ${i.h}</b> · ${esc(CLIENTS[i.cli].nom)}<br><span class="gris petit">${esc(i.titre)}</span></span></div>`).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div></div></div>`;
 }
 function vueTechFrais(){
@@ -12542,6 +12610,7 @@ const paieDocPlein = html => docPlein(Object.assign(document.createElement('div'
 const paieEmpreinte = () => { const s = JSON.stringify(PT_GENS.map(paieVariables).map(v => [v.k, v.tot, v.s25, v.s50, v.nuit, v.abs, v.primesM, v.frais])); let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(16).toUpperCase().padStart(8, '0').slice(0, 8); };
 const paieQui = () => (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLES[ROLE] && ROLES[ROLE].qui) || 'marc';
 function paieEnvoyer(){
+  if (!secuGarde('paie-envoi', () => paieEnvoyer())) return;
   const V = PT_GENS.map(paieVariables);
   ouvrirPanneau(`<span class="surtitre">Paie ${esc(paieDe(PAIE_NOM_MOIS))}</span><h2>Envoyer au cabinet de paie</h2>
     <div class="carte" style="font-size:15px"><b>À :</b> ${esc(PAIE_CAB.qui)} · ${esc(PAIE_CAB.nom)} &lt;${esc(PAIE_CAB.mail)}&gt;<br><b>Objet :</b> Éléments de paie ${esc(paieDe(PAIE_NOM_MOIS))} · ${esc(ENTREPRISE.nom)}<br><br>Bonjour,<br><br>Vous trouverez ci-joint les éléments variables de paie ${esc(paieDe(PAIE_NOM_MOIS))} pour nos ${V.length} salariés : un relevé par personne et le fichier d’import. Le mois est verrouillé de notre côté.<br><br>Bien à vous,<br>${esc(ENTREPRISE.nom)}</div>
@@ -12587,7 +12656,7 @@ document.addEventListener('click', ev => {
   }
   if (a === 'verrouok') { PAIE.verrou = { le:'31/10 · ' + hNow(), par:paieQui(), emp:paieEmpreinte() }; PAIE.etape = 'verrou'; fermerPanneau(); rendre(); return toast(`${PAIE_MOIS_MAJ} est verrouillé.`); }
   if (a === 'envoyer') return paieEnvoyer();
-  if (a === 'envoiok') { const f = document.getElementById('pa-format'); if (f) PAIE.format = f.value; PAIE.envoi = { le:'31/10 · ' + hNow(), a:PAIE_CAB.mail }; PAIE.etape = 'envoye'; fermerPanneau(); rendre(); return toast(`Parti chez ${PAIE_CAB.nom} : ${PT_GENS.length} relevés et le fichier d’import.`); }
+  if (a === 'envoiok') { if (!secuGarde('paie-envoi', secuRejouerClic(b))) return; const f = document.getElementById('pa-format'); if (f) PAIE.format = f.value; PAIE.envoi = { le:'31/10 · ' + hNow(), a:PAIE_CAB.mail }; PAIE.etape = 'envoye'; fermerPanneau(); rendre(); return toast(`Parti chez ${PAIE_CAB.nom} : ${PT_GENS.length} relevés et le fichier d’import.`); }
   if (a === 'recevoir') return paieRecevoir();
   if (a === 'simuler') { PT_GENS.forEach(k => { if (!PAIE.bulletins[k]) PAIE.bulletins[k] = { nom:`Bulletin ${PAIE_NOM_MOIS} - ${paieNomPers(k)}.pdf`, le:'31/10', url:null }; }); return paieRecevoirMaj(); }
   if (a === 'distribuer') { if (PAIE.mode === 'cabinet' && Object.keys(PAIE.bulletins).length < PT_GENS.length) return toast('Il manque encore des fiches : dépose celles des autres salariés avant de distribuer.'); if (PAIE.mode === 'op' && !PAIE.valide) return toast('D’abord valider les fiches de paie.'); if (PAIE.mode === 'op') PT_GENS.forEach(k => { PAIE.bulletins[k] = { nom:`Fiche de paie ${PAIE_NOM_MOIS} - ${paieNomPers(k)}.pdf`, le:'31/10', url:null, calc:true }; });
@@ -12605,7 +12674,7 @@ document.addEventListener('click', ev => {
     if (!(bse >= PAIE_TX.smic)) return toast(`Le salaire de base ne peut pas être sous le SMIC (${nbFr(PAIE_TX.smic)} € pour 151,67 h, exemple).`); if (!(tx >= 0 && tx <= 43)) return toast('Le taux d’impôt est entre 0 et 43 %.');
     PAIE_SAL[x].base = cpRp(bse); PAIE_SAL[x].pas = cpRp(tx); if (PAIE.calc && !PAIE.valide) PAIE.fiches[x] = paieBulletin(x); fermerPanneau(); rendre();
     return toast(PAIE.valide ? 'Enregistré : les fiches d’octobre sont validées, le changement vaudra pour novembre.' : `Enregistré${PAIE.calc ? ' : sa fiche est recalculée' : ''}.`); }
-  if (a === 'comptabiliser') { if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.'); }
+  if (a === 'comptabiliser') return paieComptabiliser();
   if (a === 'dsn') { if (!PAIE.valide) return toast('D’abord valider les fiches de paie.'); PAIE.dsn = { le:'31/10 · ' + hNow() }; rendre(); return toast('DSN d’octobre préparée : à déposer avant le 15 novembre.'); }
   if (a === 'confirme') return paieConfirmer(x);
   if (a === 'signaler') return ouvrirPanneau(`<span class="surtitre">Mes heures · ${esc(PAIE_NOM_MOIS)}</span><h2>Signaler une erreur</h2><span class="gris">Dis quel jour et ce qui ne va pas : le bureau corrige, et tu confirmes ensuite.</span><label class="champ">Ce qui ne va pas<textarea id="pa-sig" rows="4" placeholder="ex. Le mardi 27, j’ai fini à 18 h et pas à 17 h"></textarea></label><div class="actions"><button type="button" class="btn" data-paie="signalok|${x}">Envoyer au bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
@@ -12765,7 +12834,11 @@ const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
 /* confirmer SES heures : un geste du salarié sur SES heures, jamais celui d'un écran de comptabilité. « Mes heures » l'appelle directement : passer par un bouton data-paie
    le ferait lire comme un geste de Comptabilité › Paie, que la garde des droits refuse à un compte de terrain (relevé à la recette de l'étape 5 : « Je confirme mes heures » refusé à Sophie). */
 function paieConfirmer(k){ PAIE.confirmes[k] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[k]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
-const paieAller = o => { cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) allerAvecRetour('comptabilite', dou, () => {}); else aller('comptabilite'); };
+function paieComptabiliser(){
+  if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
+  if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
+}
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) allerAvecRetour('comptabilite', dou, () => {}); else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -13160,11 +13233,21 @@ const COMMUNES = [['la rochelle','La Rochelle',1,0,'La Rochelle'],['lagord','Lag
    jamais — l'étape tombait au dépôt (0 km) et le technicien partait au mauvais endroit. Centres de commune, à quelques centaines de mètres. */
 const COMMUNES_GEO = { 'la rochelle':[46.1603,-1.1511], 'lagord':[46.1853,-1.1507], 'puilboreau':[46.1795,-1.1133], 'nieul sur mer':[46.1736,-1.1853], 'perigny':[46.1456,-1.1066],
   'aytre':[46.1331,-1.1228], 'angoulins':[46.0967,-1.0953], 'chatelaillon':[46.0712,-1.0912], 'salles sur mer':[46.0836,-1.0402], 'rochefort':[45.9378,-0.9617], 'marans':[46.3114,-0.9970] };
-function geoDeAdresse(adr){ const a = sansAccent(adr || ''), c = COMMUNES.find(x => a.includes(x[0])); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
+/* La commune d'une adresse est celle qui SUIT le code postal (ou, sans code postal, le dernier morceau après la virgule) : une rue peut porter
+   le nom d'une autre commune (« 12 Route de La Rochelle, 17300 Rochefort » : le client est à Rochefort, pas à 38 km de là — recontrôle du planning,
+   17 novembre). Ce n'est qu'à défaut qu'on cherche dans toute l'adresse, comme avant. */
+function communeDe(adr){
+  const a = sansAccent(adr || ''), cp = a.match(/\b\d{5}\b(.*)$/), vir = a.lastIndexOf(',');
+  const queue = [cp ? cp[1] : '', vir >= 0 ? a.slice(vir + 1) : ''];
+  for (const t of queue) { const c = t.trim() && COMMUNES.find(x => t.includes(x[0])); if (c) return c; }
+  /* ni code postal ni virgule : l'adresse se termine par la commune, donc c'est la dernière nommée qui l'emporte (« 12 Route de La Rochelle Rochefort ») */
+  return COMMUNES.filter(x => a.includes(x[0])).sort((x, y) => a.lastIndexOf(y[0]) - a.lastIndexOf(x[0]))[0] || null;
+}
+function geoDeAdresse(adr){ const c = communeDe(adr); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
 const ADRESSES = ['10 Rue de la Gravière, 17220 Salles-sur-Mer','2 Rue de la Gare, 17220 Salles-sur-Mer','15 Avenue Jean Jaurès, 17000 La Rochelle','8 Rue des Lilas, 17140 Lagord','21 Boulevard Joffre, 17000 La Rochelle','4 Rue du Port, 17000 La Rochelle',
   '3 Avenue de la Plage, 17340 Châtelaillon-Plage','14 Rue Gambetta, 17440 Aytré','6 Rue des Marais, 17180 Périgny','12 Rue de la République, 17300 Rochefort'];
 const sansAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[-']/g,' ');
-function reconnaitre(adr){ const a = sansAccent(adr || ''); const c = COMMUNES.find(x => a.includes(x[0])); return c ? { commune:c[1], zone:c[2], km:c[3], secteur:c[4], min:Math.round(c[3] * 1.3 + 6) } : null; }
+function reconnaitre(adr){ const c = communeDe(adr); return c ? { commune:c[1], zone:c[2], km:c[3], secteur:c[4], min:Math.round(c[3] * 1.3 + 6) } : null; }
 let TYPES = ['Dépannage','Entretien','Installation','Mise en service','Visite de contrôle','2ᵉ passage'];
 const TITRES = { 'Dépannage':'Dépannage climatisation', 'Entretien':'Entretien climatisation', 'Installation':'Installation d’un split mural', 'Mise en service':'Mise en service pompe à chaleur', 'Visite de contrôle':'Visite de contrôle', '2ᵉ passage':'2ᵉ passage' };
 const MOTIFS = { 'Dépannage':'Ex. : la clim fait du bruit et ne refroidit plus depuis ce matin', 'Entretien':'Ex. : entretien annuel, accès par la cour', 'Installation':'Ex. : un split dans la chambre, le client fournit le support', 'Mise en service':'Ex. : appareil posé la semaine dernière, à mettre en route', 'Visite de contrôle':'Ex. : vérifier l’étanchéité après réparation', '2ᵉ passage':'Ex. : remplacer la pièce commandée' };
@@ -13687,6 +13770,7 @@ function avertEnCours(i){ return i && i.st !== 'fait' ? '<div class="alerte"><b>
 /* [14] le mot qui accompagne le retour sur « Ma journée » */
 function rlRefus(r, p){ if (!r || r === 'accueil') return; let m;
   if (!routeConnue(r)) m = 'Cette page n’existe pas.';
+  else if (r === 'securite') m = 'Cette page n’est pas pour toi.';
   else if (droitRaison(r) === 'case') m = 'Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir (Équipe, tes droits).';   /* d'abord : pour la gestion, « tu ne vois que les tiennes » était faux (c'est la case qui ferme) · 13 novembre 2026 */
   else if (r === 'inter') { const n = INTS.find(o => o.id === p); m = n && n.tech ? 'Cette intervention est à ' + esc(prenomDe(n.tech)) + ' : tu ne vois que les tiennes.' : 'Cette intervention n’est pas encore attribuée : tu ne vois que les tiennes.'; }
   else if (r === 'clientvoit') m = 'Cet aperçu est celui d’une intervention d’un collègue : tu ne vois que les tiennes.';
@@ -19630,7 +19714,7 @@ vueTechFrais = function () {
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
   const h = v0.apply(this, arguments), moi = rlQui(), D = axMesDemandes(moi), att = D.filter(d => d.etat === 'attente').length, ach = D.filter(d => d.etat === 'aacheter').length;
   const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
-  const cle = 'data-go="techfrais">Voir mes notes</button></div></div>';
+  const cle = 'data-go="techfrais">Voir mes frais</button></div></div>';
   return h.includes(cle) ? h.replace(cle, cle + carte) : h; }; })();
 
 /* ───────── la note de frais : un formulaire plus juste ───────── */
@@ -19866,7 +19950,7 @@ function entEtatCartes(){
       lignes:[(siretOk ? 'SIRET ' + E.siret : '') + (E.forme ? (siretOk ? ' · ' : '') + E.forme : '')].filter(Boolean) },
     { k:'logo', ic:'entLogo', t:'Ton logo', aide:'Il s’écrit en haut de tes factures, devis et contrats.', ok:true, etat:E.logo ? 'Choisi' : 'Les initiales ' + entInitiales() + ' sont utilisées', logo:true, lignes:[] },
     { k:'banque', ic:'entBanque', t:'Ta banque et ton comptable', aide:'Ton IBAN, pour que tes clients te paient, et le cabinet qui reçoit tes bilans et ta paie.', ok:!!String(E.iban || '').trim(), manque:E.iban ? [] : ['l’IBAN'],
-      lignes:[E.iban ? 'IBAN ' + E.iban + (E.bic ? ' · BIC ' + E.bic : '') : '', CP_EXPERT.cab ? 'Cabinet : ' + CP_EXPERT.cab : ''].filter(Boolean) },
+      lignes:[E.iban ? 'IBAN ' + hintIban(E.iban) + (E.bic ? ' · BIC ' + E.bic : '') : '', E.iban && secuMasqueActif() ? 'Afficher l’IBAN' : '', CP_EXPERT.cab ? 'Cabinet : ' + CP_EXPERT.cab : ''].filter(Boolean) },
     { k:'horaires', ic:'entHoraires', t:'Tes horaires et tes tarifs', aide:'Ta journée de travail, ton tarif et tes déplacements : le planning, les devis et les factures au temps les reprennent.', ok:true,
       lignes:[`${horaire(PARAMS.debut)} – ${horaire(PARAMS.fin)} · ${eur(TARIFS.horaire)} HT de l’heure`, `Déplacement : ${[1, 2, 3].map(z => eur(TARIFS.zone[z])).join(' · ')}`] }
   ];
@@ -20013,6 +20097,7 @@ document.addEventListener('change', ev => { const i = ev.target.closest && ev.ta
 /* carte 4 : ta banque et ton comptable */
 const entIbanOk = v => { const s = v.replace(/\s/g, '').toUpperCase(); if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(s) || s.length < 14 || s.length > 34) return false; const r = s.slice(4) + s.slice(0, 4); let m = 0; for (const c of r) m = (m * (/[A-Z]/.test(c) ? 100 : 10) + (/[A-Z]/.test(c) ? c.charCodeAt(0) - 55 : +c)) % 97; return m === 1; };
 function entPanBanque(){
+  if (!secuGarde('banque-ouvrir', () => entPanBanque())) return;
   const E = ENTREPRISE;
   entPanneau(`<span class="surtitre">Mon entreprise</span><h2>Ta banque et ton comptable</h2><span class="gris">Ton IBAN, pour que tes clients te paient, et le cabinet qui reçoit tes bilans et ta paie.</span>
     <div class="groupe">Ton compte</div>
@@ -20025,6 +20110,8 @@ function entPanBanque(){
     <div class="actions"><button type="button" class="btn" data-ent="banqueok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 function entEnregistrerBanque(){
+  if (!secuGarde('banque-enregistrer', () => entEnregistrerBanque())) return;
+  { const f = document.getElementById('en-iban'); if (f && f.dataset.masque === '1' && f.value === hintIban(ENTREPRISE.iban)) { f.value = ENTREPRISE.iban; f.dataset.masque = '0'; } }   /* un IBAN re-masqué à l'expiration et jamais retouché : on garde celui de la fiche */
   const V = entVerifier([
     ['en-iban', v => !v ? '' : ENT_INTERDIT.test(v) || !entIbanOk(v) ? 'Cet IBAN ne semble pas juste. Vérifie-le : il commence par FR et compte 27 caractères.' : ''],
     ['en-bic', v => !v ? '' : /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(v) ? '' : 'Un BIC a huit ou onze signes.'],
@@ -20034,6 +20121,7 @@ function entEnregistrerBanque(){
   if (!V) return;
   const iban = V['en-iban'].replace(/\s/g, '').toUpperCase();
   Object.assign(ENTREPRISE, { iban:iban.replace(/(.{4})/g, '$1 ').trim(), bic:V['en-bic'].toUpperCase() });
+  if (secuMasqueActif()) { SECU.parcours.add('iban'); setTimeout(opsDemo, 0); }
   Object.assign(CP_EXPERT, { cab:V['en-cab'], qui:V['en-expqui'], mail:V['en-expmail'] });
   entApresEnregistrement('Ta banque et ton comptable sont enregistrés.');
 }
@@ -20394,6 +20482,7 @@ function eqxMeilleur(i, sauf) {
   return R[0] || null;
 }
 function eqxDepart(k) {
+  if (!secuGarde('equipe-retirer', () => eqxDepart(k), { k })) return;
   const p = eqDe(k), R = eqxRestes(k), autres = eqxActifs().filter(o => o.k !== k);
   const techs = autres.filter(eqxTerrain);
   if (!R.ints.length && !R.veh.length && !R.taches.length && !R.pt && !(R.cp && R.cp.reste > 0)) return eqxDesactiver(k, {});
@@ -20408,6 +20497,7 @@ function eqxDepart(k) {
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
 }
 function eqxDesactiver(k, ch) {
+  if (!secuGarde('equipe-retirer', () => eqxDesactiver(k, ch), { k })) return;
   const p = eqDe(k), avant = eqxPrise(), R = eqxRestes(k), reprises = {}; let aReplanifier = 0;
   const mode = ch.int === undefined ? 'auto' : ch.int;
   R.ints.forEach(i => { let ok = '';
@@ -20520,12 +20610,14 @@ document.addEventListener('click', ev => {
   ev.stopImmediatePropagation(); ev.preventDefault();
   if (a === 'habajout') return eqxAjoutPanneau(x);
   if (a === 'renouv') return eqxRenouvPanneau(x, +y);
+  if (a === 'mdp' && !secuGarde('equipe-inviter', secuRejouerClic(b), { k:x, v:'repose' })) return;
   if (a === 'mdp' || a === 'relancer') { const p = eqDe(x); eqxJ(a === 'mdp' ? 'a envoyé un lien de mot de passe à' : 'a renvoyé l’invitation à', p, { det:p.mail });
     return toast(a === 'mdp' ? `Lien envoyé à ${esc(p.mail)} : la personne choisit elle-même son nouveau mot de passe.` : `Invitation renvoyée à ${esc(p.mail)}.`); }
   if (a === 'actif') { const p = eqDe(x);
     if (p.actif) return eqxDepart(x);
     if (!droitSp(eqDe(acteur()), 'comptes')) return droitsRefus('comptes', 'sp', 'eq', 'actif');
     if (eqxPlein()) return eqxPleinPanneau('reactiver');
+    if (!secuGarde('equipe-inviter', secuRejouerClic(b), { k:x })) return;
     const avant = eqxPrise(); p.actif = true; eqxSynchro();
     eqxFait(avant, `Le compte de ${esc(eqNom(p))} est réactivé.`, 'a réactivé le compte de', p); foGarder(() => eqFiche(x)); return; }
   if (a === 'habok') { const n = eqxVal('eq-hn'); if (!n) return toast('Donne le nom de l’habilitation.');
@@ -20540,13 +20632,14 @@ document.addEventListener('click', ev => {
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     { const dup = EQUIPE.find(o => String(o.mail || '').trim().toLowerCase() === m.toLowerCase()); if (dup) return toast(`Cette adresse est déjà celle de ${esc(eqNom(dup))} : chaque personne se connecte avec la sienne.`); }
     if (eqxPlein()) return eqxPleinPanneau('inviter');
+    if (!secuGarde('equipe-inviter', secuRejouerClic(b))) return;
     const avant = eqxPrise(), k = 'u' + Date.now().toString(36), prof = document.getElementById('eq-prof').value, terrain = document.getElementById('eq-terrain').checked;
     const couleur = EQX_PALETTE[EQUIPE.filter(o => !EQX_BASE.concat(['marc', 'julie']).includes(o.k)).length % EQX_PALETTE.length];
     EQUIPE.push({ k, prenom:pr, nom:no, role:eqxVal('eq-r') || PROFILS[prof].nom, mail:m, tel:'', actif:true, invite:true, terrain, couleur, droits:copieProfil(prof), habil:[] });
     H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:couleur }; eqxSynchro();
     const p = eqDe(k); eqxJ('a invité', p, { det:PROFILS[prof].nom + ' · ' + m });
-    fermerPanneau(); rendre();
-    return toast(`Invitation envoyée à ${esc(m)}${terrain ? ' · elle apparaît au planning' : ''}.`, [{ lib:'Régler ses droits', fn:() => eqFiche(k) }, { lib:'Annuler', fn:() => { eqxRend(avant); eqxJ('a annulé son dernier geste', p, { det:'l’invitation de ' + eqNom(p) }); fermerPanneau(); rendre(); toast('Invitation annulée : la place est rendue.'); } }]);
+    rendre();
+    return secuPanProv(k, 'L’invitation est partie par e-mail (le lien et l’identifiant). Le mot de passe provisoire se remet en main propre.', () => toast(`Invitation envoyée à ${esc(m)}${terrain ? ' · elle apparaît au planning' : ''}.`, [{ lib:'Régler ses droits', fn:() => eqFiche(k) }, { lib:'Annuler', fn:() => { eqxRend(avant); eqxJ('a annulé son dernier geste', p, { det:'l’invitation de ' + eqNom(p) }); fermerPanneau(); rendre(); toast('Invitation annulée : la place est rendue.'); } }]));
   }
 }, true);
 
@@ -20617,6 +20710,7 @@ document.addEventListener('toggle', ev => { if (ev.target.classList && ev.target
 /* ═ 11. Les changements de droits : confirmer ce qui s'ouvre, écrire ce qui change ═ */
 document.addEventListener('change', ev => {
   const t = ev.target;
+  if (t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }
   if (t.matches('[data-eqt]')) { ev.stopImmediatePropagation(); const k = t.dataset.eqt, p = eqDe(k), m0 = droitsReglable(k); if (m0) { droitsRestaurer(t); return toast(m0); }
     const avant = eqxPrise(); p.terrain = t.checked; eqxSynchro();
     eqxFait(avant, `${esc(p.prenom)} ${t.checked ? 'travaille maintenant sur le terrain : son application s’ouvre sur sa journée.' : 'ne travaille plus sur le terrain : son application s’ouvre sur les écrans du bureau.'}`, 'a changé « Travaille sur le terrain » pour', p, { avant:'sur le terrain : ' + (t.checked ? 'non' : 'oui'), apres:'sur le terrain : ' + (t.checked ? 'oui' : 'non') });
@@ -20644,6 +20738,7 @@ document.addEventListener('change', ev => {
     return eqxProfilAppliquer(p.k, pk); }
 }, true);
 function eqxProfilAppliquer(k, pk) {
+  if (!secuGarde('equipe-droits', () => eqxProfilAppliquer(k, pk), { k })) return;
   const p = eqDe(k), avant = eqxPrise(), d = eqxDiff(p.droits, copieProfil(pk)), av = eqxProfilTitre(p);
   p.droits = copieProfil(pk);
   eqxFait(avant, `Profil « ${esc(PROFILS[pk].nom)} » appliqué à ${esc(p.prenom)}.`, 'a changé le profil de', p, { avant:av, apres:PROFILS[pk].nom, det:[d.plus.length ? '+ ' + d.plus.join(' ; ') : '', d.moins.length ? '− ' + d.moins.join(' ; ') : ''].filter(Boolean).join(' · ') || undefined });
@@ -22239,13 +22334,18 @@ function opdCreer(){
   z.innerHTML = `<iframe title="Documents sur mesure : devis et contrats" src="${opdSrc()}"></iframe><div class="opdz-att" role="status"><div class="opdz-att-c"><b>Ouverture de l’atelier…</b><span class="gris petit opdz-sous"></span><div class="actions"><button type="button" class="btn gris" data-opdz="reessayer" hidden>Réessayer</button><button type="button" class="btn gris" data-opdz="fermer">Fermer</button></div></div></div>`;
   document.body.appendChild(z); return z;
 }
+/* le cadre de l'atelier est créé AU DÉMARRAGE (caché), pas à la première ouverture. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
+   ensuite effacée (on ferme l'atelier, on change d'écran : les entrées d'après partent), le cadre devient orphelin et son premier Retour dans l'éditeur ne fait RIEN — un appui perdu, puis un second qui
+   ferme tout (reproduit sur la page d'avant aussi : une fois l'atelier ouvert, fermé, puis rouvert après un changement d'écran). Créé à l'entrée de base, qui ne s'efface jamais, il reste rattaché. */
+function opdPrecharger(){ try { opdCreer(); } catch (e) { /* sans cadre au démarrage, l'ouverture le créera */ } }
+if (document.readyState === 'complete') opdPrecharger(); else addEventListener('load', opdPrecharger);
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
   if (!rlPermis(droit)) return toast('Ton rôle n’a pas accès à ' + (droit === 'contrats' ? 'l’atelier de contrats.' : 'l’atelier de devis.'));
   const z = opdCreer(); if (!z.hidden) return;   // un double toucher ne l'ouvre pas deux fois
   OPDZ.depart = o.depart ? '[data-opd="' + faire + '"]' + (o.client ? '[data-cli="' + o.client + '"]' : '') + (o.id ? '[data-id="' + o.id + '"]' : '') : '';
-  OPDZ.overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; fermerPanneau(); fermerMenu(); z.hidden = false;
+  OPDZ.overflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; fermerPanneau(); fermerMenu(); z.hidden = false; calSync();   // l'entrée d'historique de la page est posée TOUT DE SUITE, avant que le cadre de l'atelier pose les siennes : dans l'ordre inverse (l'observateur ne passe qu'ensuite), le premier Retour dans l'éditeur ne faisait rien
   const m = { opd_ouvrir:{ faire, ...(o.client && opdCli(o.client) ? { client:o.client } : {}), ...(faire === 'doc' ? { id:o.id } : {}) } };
   OPDZ.file = [m];
   if (OPDZ.pret) { opdAttente(false); z.querySelector('.opdz-att').hidden = true; opdEnvoyer(OPDZ.file.shift()); const f = opdCadre(); try { f.contentWindow.focus(); } catch (e) {} }
@@ -23946,7 +24046,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-ma
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
   document.addEventListener('touchend', relache, { passive:true });
-  document.addEventListener('touchcancel', fin, { passive:true });
+  document.addEventListener('touchcancel', () => { fin(); tenu = false; }, { passive:true });   // le système a repris le doigt : il ne produit AUCUN clic, donc rien à avaler au toucher suivant
   document.addEventListener('mousedown', ev => { if (ev.button === 0 && ev.target.closest('.opg-barre')) debut(ev.clientX, ev.clientY); });
   document.addEventListener('mousemove', ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fin(); });
   document.addEventListener('mouseup', relache);
@@ -23993,7 +24093,7 @@ function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, 
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
-const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais',
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
   pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
   equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
   planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
@@ -24008,6 +24108,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (rlPermis('clients')) {
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
+    ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Mon compte', ic:'👤', m:'mot de passe téléphone connexions appareils sécurité profil', fn:() => secuMonCompte() }] : []),
     ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', m:'déconnexion quitter fermer la session', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
     { g:'Aide', l:'Raccourcis clavier', ic:'⌨️', d:'?', fn:() => rcAide() });
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
@@ -24257,22 +24358,6 @@ function sessionOuvrir(k){ const vueVoulue = SESSION_VUE; SESSION_VUE = null; co
   return v; }; }
 document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#cpsys [data-cpsys="retour"]'); if (!b || ROLE !== 'compta') return;
   ev.stopPropagation(); ev.preventDefault(); if (MODE_APP) sessionFermer(); else { sessionOuvrir('marc'); aller('equipe'); } }, true);
-/* ── la fiche d'une personne : « ouvrir l'application comme elle » (c'est ce que fait sa connexion) ── */
-{ const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
-  if (p && p.actif && k !== 'marc' && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${k}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);
-  if (p && A && peut('admin', 'm') && !P.querySelector('.cn-acces')) { const c = secuCompte(k), id = cnxLogin(p), perso = !!c.empreinte, maj = t => t.charAt(0).toUpperCase() + t.slice(1), verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee');
-    /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le bloc « Démonstration ») */
-    const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
-    const telTxt = verrou ? `<b style="color:var(--rouge)">Verrouillé ${verrou.jusqua == null ? 'depuis ' + esc(secuQuand(verrou.le)) + ' (bloquée depuis son téléphone)' : 'jusqu’à ' + secuHHMM(verrou.jusqua) + ' (cinq erreurs)'}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : '<b>À activer à sa première connexion</b>';
-    A.insertAdjacentHTML('beforebegin', `<div class="cn-acces"><span class="surtitre">Connexion</span>
-      <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
-      <div class="ligne"><span>Identifiant</span><b class="mono">${esc(id)}</b></div>
-      <div class="ligne"><span>Mot de passe</span><b>${perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
-      ${perso ? '' : '<small class="gris">' + esc(p.prenom) + ' le change à sa première connexion.</small>'}
-      <div class="ligne"><span>Téléphone</span>${telTxt}</div>
-      <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(maj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : 'Jamais'}</b></div>
-      <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${perso ? `<button type="button" class="btn gris" data-cnx="repose|${k}">Reposer un mot de passe provisoire</button>` : ''}</div></div>`); }
-  return v; }; }
 /* ── l'écran de chargement et la connexion (mode application) ── */
 const CNX_LOGO = 'data:image/png;base64,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';
 /* ── chargement animé et connexion PAR LIEN · 12 novembre 2026 ──
@@ -24698,7 +24783,7 @@ const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.
 /* un nom saisi par une personne passe par esc() à l'écran et refuse < > " à la saisie ; il est borné */
 const secuNomPropre = (t, max) => String(t || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, max || 60);
 const secuNomAppareil = k => SECU_DEPART.appareils[k] || ('Téléphone de ' + ((eqDe(k) || {}).prenom || 'toi'));
-const secuJ = (action, k, detail) => { SECU.journal.push({ ts:secuMaint(), action, k, detail:detail || '' }); if (SECU.journal.length > 300) SECU.journal.shift(); };   /* jamais un nombre, un code, un mot de passe, une clé, un PIN */
+const secuJ = (action, k, detail) => { SECU.journal.push({ ts:secuMaint(), action, k, detail:detail || '' }); if (SECU.journal.length > 300) SECU.journal.shift(); secuJournalEntreprise(action, k, detail); };   /* jamais un nombre, un code, un mot de passe, une clé, un PIN */
 const secuPinFaible = p => /^(\d)\1{5}$/.test(p) || '01234567890123456789'.includes(p) || '98765432109876543210'.includes(p) || /^(\d\d)\1\1$/.test(p) || /^(\d{3})\1$/.test(p);
 /* un compte de sécurité par personne, créé à la demande (une personne invitée en a un dès qu'on le lit : son mot de passe provisoire est tiré à cet instant) */
 function secuCompte(k){ let c = SECU.comptes[k]; if (c) return c; const p = eqDe(k); if (!p) return null;
@@ -24755,7 +24840,8 @@ function secuVerifierNombre(id, saisi){ const d = SECU.demandes.find(x => x.id =
    Léa est verrouillée depuis hier à 18:02 ; les quatre autres personnes ont un mot de passe provisoire et un téléphone à activer. */
 function secuDemarrer(){ const now = secuMaint();
   SECU.comptes = {}; SECU.demandes = []; SECU.sessions = {}; SECU.confirmeA = {}; SECU.ui = {}; SECU.journal = []; SECU.parcours = new Set(); SECU.decalage = 0; SECU.vraie = null; SECU.horsLigne = false; SECU.message = null;
-  SECU.pc = { ecran:null, k:null, demandeId:null }; SECU.cases.autre = false; SECU.cases.nuit = false;
+  SECU.pc = { ecran:null, k:null, demandeId:null }; SECU.cases.autre = false; SECU.cases.nuit = false; SECU.pirate = null; SECU.conf = null; SECU.panProv = null; { const z = document.getElementById('sec-conf'); if (z) z.remove(); }
+  JOURNAL = JOURNAL.filter(j => j.type !== 'securite');
   EQUIPE.forEach(p => secuCompte(p.k));
   SECU_DEPART.telPrets.forEach(k => { const c = secuCompte(k), clair = secuMdpProvisoire(); secuMdpDefinir(k, clair); c.demoClair = clair;
     secuTelCreer(k, secuNomAppareil(k), SECU_DEPART.pin); c.tel.activeLe = now - 12 * 86400000; secuUi(k).ecran = 'verrouille'; });
@@ -24765,6 +24851,9 @@ function secuDemarrer(){ const now = secuMaint();
   const hier = new Date(now); hier.setHours(18, 2, 0, 0); hier.setDate(hier.getDate() - 1);
   SECU_DEPART.verrouilles.forEach(k => { const c = secuCompte(k); c.verrou = { le:hier.getTime(), par:'telephone', jusqua:null, n:1 };
     c.histo.push({ ts:hier.getTime(), appareil:'Firefox · Linux', adresse:'192.0.2.51', raisons:['Appareil jamais utilisé pour ce compte', 'Réseau (adresse) jamais utilisé', 'En dehors des heures de travail habituelles (7 h – 21 h)'], resultat:'bloquee' }); });
+  /* les deux lignes « d'avant » du journal de l'entreprise (Léa a bloqué une connexion hier, Karim en a approuvé une inhabituelle ce matin) : l'Historique ne s'ouvre pas vide */
+  secuJournalEntreprise('login.denied_by_user', 'lr', '', { d:jour(-1), h:'18:02' }); secuJournalEntreprise('account.locked', 'lr', 'bloqué depuis le téléphone', { d:jour(-1), h:'18:02' });
+  secuJournalEntreprise('mfa.approved_on_phone', 'kb', 'connexion inhabituelle', { d:AUJ, h:'07:40' });
   SECU.telCourant = 'marc'; }
 /* ══ LE TÉLÉPHONE SIMULÉ « OP Security » ══ */
 function secuUi(k){ let u = SECU.ui[k]; if (!u) { const c = SECU.comptes[k] || secuCompte(k); u = SECU.ui[k] = { tel:(c && c.tel) || null, ecran:c && c.tel ? 'verrouille' : 'neuf', pin:'', pin1:'', pinValide:'', err:'', info:'', infoTon:'', retour:null, derniere:0, blocage:null, supprimer:false, saisie:false }; } return u; }
@@ -24892,12 +24981,14 @@ function opsBloquer(k, id){ const d = SECU.demandes.find(x => x.id === id); secu
   opsRetour(k, 'Connexion bloquée. Ton compte est verrouillé et toutes tes connexions sont fermées. Un administrateur doit changer ton mot de passe.', 'danger', 0); opsDessiner(); opsDemo(); }
 /* ⛔ un seul chemin ferme le compte quand la personne dit « Ce n'est pas moi » : la demande est refusée, les autres sont retirées, le compte est verrouillé SANS durée, les connexions ouvertes sont fermées */
 function secuBloquer(k, d){ const c = secuCompte(k), now = secuMaint(); if (d) d.etat = 'refusee';
+  if (d && SECU.pirate && SECU.pirate.id === d.id) { SECU.pirate.issue = 'bloque'; SECU.parcours.add('pirate'); }
+  if (d && SECU.conf && SECU.conf.id === d.id) secuConfFermer(false, true);
   SECU.demandes.forEach(x => { if (x.k === k && x.etat === 'attente') x.etat = 'annulee'; });
   c.verrou = { le:now, par:'telephone', jusqua:null, n:1 };
   const fermees = SECU.sessions[k] && !SECU.sessions[k].auto ? 1 : 0;
   secuHisto(k, { appareil:d ? d.appareil : secuAppareilCourant().nom, adresse:d ? d.adresse : secuAppareilCourant().adresse, raisons:d ? d.raisons : [], resultat:'bloquee', fermees });
   secuJ('login.denied_by_user', k, 'bloqué depuis le téléphone'); secuJ('account.locked', k, 'bloqué depuis le téléphone');
-  secuFermerSessions(k, 'bloquee');
+  secuFermerSessions(k, 'bloquee'); opsDemo();
   if (d) secuPcSuite(d); }
 function secuFermerSessions(k, raison){ const avait = !!SECU.sessions[k]; delete SECU.sessions[k]; delete SECU.confirmeA[k]; if (SESSION === k && avait) sessionFermer(raison); }
 /* le bloc « Démonstration » : tout ce qui n'existera PAS dans la vraie application (boutons de simulation, mots de passe provisoires lisibles, cases « autre ordinateur ») vit ici, repliable */
@@ -24913,6 +25004,7 @@ function opsDemo(){ const d = document.querySelector('#opsec .sec-demo'); if (!d
     <h3>Parcours conseillé</h3><ol class="sec-parcours">${SECU_PARCOURS.map(([k, l]) => `<li class="${SECU.parcours.has(k) ? 'fait' : ''}"><span aria-hidden="true">${SECU.parcours.has(k) ? '✓' : '○'}</span> ${esc(l)}${SECU.parcours.has(k) ? '<i class="sr"> (fait)</i>' : ''}</li>`).join('')}</ol>
     <h3>Ma prochaine connexion</h3><div data-sec="cases-demo-bloc">${secuCasesHtml()}</div>
     <h3>Le téléphone</h3><label class="sec-case"><input type="checkbox" data-secd="hl"${SECU.horsLigne ? ' checked' : ''}><span>Le téléphone n’a pas de réseau</span></label>
+    ${secuDemoSimul()}
     <div class="sec-boutons"><button type="button" class="ops-btn ghost" data-secd="tous">Activer tous les téléphones d’un coup</button><button type="button" class="ops-btn ghost" data-secd="reinit">Recommencer la démonstration</button></div>
     <h3>Faire avancer l’horloge</h3><div class="sec-boutons h"><button type="button" class="ops-btn ghost" data-secd="h" data-m="5">+5 minutes</button><button type="button" class="ops-btn ghost" data-secd="h" data-m="15">+15 minutes</button><button type="button" class="ops-btn ghost" data-secd="h" data-m="4320">+3 jours</button></div>
     <h3>Mots de passe provisoires (démonstration)</h3><ul class="sec-prov">${prov}</ul><p class="sec-note">En vrai, l’administrateur le remet en main propre et il ne s’affiche qu’une fois.</p>
@@ -24948,13 +25040,16 @@ function opsClic(ev){ const b = ev.target.closest && ev.target.closest('[data-op
 function secuDemoClic(b){ const a = b.dataset.secd;
   if (a === 'tous') { EQUIPE.forEach(p => { const c = secuCompte(p.k); if (!c.tel && p.actif) { secuTelCreer(p.k, secuNomAppareil(p.k), SECU_DEPART.pin); secuReconnaitre(p.k, secuAppareilCourant()); } }); SECU.parcours.add('activer'); opsDessiner(); opsDemo(); return; }
   if (a === 'reinit') { secuDemarrer(); SECU.message = null; if (SESSION) { SESSION = null; sessionFermer('reinit'); } else if (document.getElementById('cnx')) cnxMontrer('La démonstration repart de zéro.', '', true); opsDessiner(true); opsDemo(); return; }
+  if (a === 'pirate') { const k = SECU.telCourant; secuPirate(k); opsDessiner(true); opsDemo(); return; }
+  if (a === 'vol') { secuVolSession(); opsDessiner(true); opsDemo(); return; }
+  if (a === 'support') return secuSupportDeverrouille();
   if (a === 'h') { SECU.decalage += (parseInt(b.dataset.m, 10) || 0) * 60000; secuTic(); opsDessiner(true); opsDemo(); return; } }
 function opsSaisie(ev){ const t = ev.target, a = t.dataset && t.dataset.ops; if (!a) return;
   if (a === 'nombre-champ') { const v = t.value.replace(/\D/g, '').slice(0, 2); if (v !== t.value) t.value = v; }
   else if (a === 'nom-champ') { const v = t.value.replace(/[<>"]/g, ''); if (v !== t.value) t.value = v; }
   else if (a === 'code-champ') { const v = t.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); if (v !== t.value) t.value = v; } }
 function opsChange(ev){ const t = ev.target;
-  if (t.dataset && t.dataset.ops === 'qui') { SECU.telCourant = t.value; opsDessiner(true); return; }
+  if (t.dataset && t.dataset.ops === 'qui') { SECU.telCourant = t.value; opsDessiner(true); opsDemo(); return; }
   if (t.dataset && t.dataset.secd === 'case') { SECU.cases[t.dataset.c] = t.checked; secuCasesSync(); return; }
   if (t.dataset && t.dataset.secd === 'hl') { SECU.horsLigne = t.checked; opsDessiner(true); } }
 /* UNE source d'état pour les deux cases « autre ordinateur / pleine nuit » : celles de l'écran de connexion et celles du bloc se suivent */
@@ -24975,7 +25070,7 @@ function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); 
   const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
   const cur = [parseInt(r.style.right || '16', 10), parseInt(r.style.bottom || '16', 10)]; if (libre(cur)) return;   /* la place se lit dans le style : une donnée data-* qui vaudrait « 16 » ressemblerait à un nombre rangé */
   const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
-function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
+function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer(); secuConfTic();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
   document.querySelectorAll('[data-sec="expire"][data-fin]').forEach(e => { const r = parseInt(e.dataset.fin, 10) - now; if (r > 0) e.textContent = e.dataset.pre + secuDuree(r); });
@@ -24989,6 +25084,8 @@ function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVi
 ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(e => addEventListener(e, () => { const s = SESSION && SECU.sessions[SESSION]; if (s && !s.auto) s.derniereActivite = secuMaint(); }, { capture:true, passive:true }));
 /* ── ce que fait l'ordinateur d'une demande que le téléphone vient de traiter ── */
 function secuTraiter(d, res){ const k = d.k, c = secuCompte(k), now = secuMaint();
+  if (d.motif !== 'connexion') { if (res === 'mauvais') { secuEchec(k, 'nombre'); secuJ('login.number_mismatch', k, 'action sensible'); } return secuConfSuite(d, res); }   /* une confirmation d'action sensible n'est pas une connexion : ni historique ni appareil reconnu */
+  if (SECU.pirate && SECU.pirate.id === d.id) { SECU.pirate.issue = res === 'ok' ? 'entre' : 'mauvais'; opsDemo(); }
   if (res === 'ok' && d.motif === 'connexion') { secuReconnaitre(k, { id:d.appareilId, nom:d.appareil, adresse:d.adresse }); c.echecs = 0; c.nVerrous = 0; SECU.confirmeA[k] = now;
     secuHisto(k, { appareil:d.appareil, adresse:d.adresse, raisons:d.raisons, resultat:'approuvee' }); secuJ('mfa.approved_on_phone', k, d.raisons.length ? 'connexion inhabituelle' : '');
     SECU.parcours.add('nombre'); if (d.raisons.length && d.source === 'ici') SECU.parcours.add('autre'); if (eqDe(k) && sessionRole(eqDe(k)) !== 'patron') SECU.parcours.add('technicienne'); }
@@ -25004,7 +25101,402 @@ function secuPcSuite(d){ if (SECU.pc.demandeId !== d.id || !document.getElementB
 function secuApprouveePC(d){ const p = eqDe(d.k), c = secuCompte(d.k);
   if (!c.empreinte) cnxGlisser(() => cnxPremier(p)); else cnxEntrer(p, d.raisons.length ? 'Connexion inhabituelle approuvée. Cet ordinateur est maintenant reconnu.' : null); }
 function secuSessionPoser(k){ const auto = SECU.auto || SECU.secondaire; SECU.sessions[k] = { debut:secuMaint(), appareilId:secuAppareilCourant().id, auto, derniereActivite:secuMaint() };
-  SECU.pc = { ecran:null, k:null, demandeId:null }; if (!auto) { SECU.ouvert = false; opsDessiner(true); } }
+  SECU.pc = { ecran:null, k:null, demandeId:null }; if (!auto) { SECU.ouvert = false; opsDessiner(true); } opsDemo(); }
+/* ══ OP SECURITY · ÉTAPE 3 · 17 novembre 2026 ══
+   Le pirate et le verrouillage, la page Sécurité, Équipe (nouveau téléphone, déverrouiller, mot de passe provisoire), Mon compte.
+   Spécification : scratchpad/proto-final/refonte/DOUBLE-AUTHENTIFICATION.md § 4 à § 7. Même règle qu'à l'étape 2 : rien de ceci n'est de la sécurité (aucun serveur),
+   tout est en mémoire, aucun secret n'est rangé nulle part ; ce qui n'existera pas dans la vraie application vit dans le bloc « Démonstration ». */
+/* la ligne « Mon téléphone (démonstration) » du pied du menu : le menu se dessine avant que SECU existe (zone morte temporelle), d'où le try */
+function secuLigneTel(){ try { return SECU.auto || !SECU_DEMO ? '' : '<button type="button" class="cn-out cn-tel" data-cnx="montel">Mon téléphone (démonstration)</button>'; } catch (e) { return ''; } }
+const SECU_30J = 30 * 86400000;
+const secuMaj = t => t.charAt(0).toUpperCase() + t.slice(1);
+/* la case « Gérer la sécurité des connexions » de la personne qui agit : jamais le nom de son rôle (un rôle est un nom, une règle est une case) */
+const secuPeut = () => droitSp(eqDe(acteur()), 'securite');
+/* la personne dont le téléphone confirme : l'administrateur, même pendant « Ouvrir l'application comme … » */
+const secuQui = () => SECU.vraie || SESSION;
+const SECU_RES_SEC = { approuvee:'Approuvée sur le téléphone', bloquee:'Bloquée depuis le téléphone', nombre:'Mauvais nombre tapé', code:'Code refusé (connexion inhabituelle)', fermee:'Connexion fermée par sécurité' };
+const SECU_RES_CPT = { approuvee:'Connexion approuvée', bloquee:'Bloquée depuis le téléphone', nombre:'Mauvais nombre tapé', code:'Code refusé (connexion inhabituelle)', fermee:'Connexion fermée par sécurité', annulee:'Annulée' };
+/* ── le journal de l'entreprise : seuls les événements qui comptent y passent (une connexion ordinaire noierait l'entreprise) ── */
+const SECU_JOURNAL_ENT = { 'login.unusual':'a tenté une connexion inhabituelle', 'login.denied_by_user':'a bloqué une connexion depuis son téléphone', 'account.locked':': compte verrouillé',
+  'login.number_mismatch':'a tapé un mauvais nombre sur son téléphone', 'login.code_refused_unusual':'a vu son code refusé (connexion inhabituelle)', 'mfa.approved_on_phone':'a approuvé une connexion inhabituelle',
+  'mfa.device_activated':'a activé son téléphone', 'session.hijack_suspected':': connexion utilisée depuis un autre navigateur' };
+function secuJournalEntreprise(action, k, detail, quand){ const t = SECU_JOURNAL_ENT[action]; if (!t || !eqDe(k)) return;
+  if (action === 'mfa.approved_on_phone' && detail !== 'connexion inhabituelle') return;   /* une approbation ordinaire n'est pas un événement */
+  const det = action === 'login.denied_by_user' ? '' : action === 'mfa.approved_on_phone' ? 'depuis un appareil ou un réseau jamais utilisé' : detail || '';
+  JOURNAL.push({ id:'j' + JOURNAL.length, d:quand ? quand.d : AUJ, h:quand ? quand.h : hm(MAINT_MIN), qui:k, type:'securite', action:t, el:null, det, neuf:!quand }); hOuverts.add(quand ? quand.d : AUJ); }
+/* ── B1 · le pirate, le vol de session ── */
+const SECU_RAISONS_PIRATE = ['Appareil jamais utilisé pour ce compte', 'Réseau (adresse) jamais utilisé', 'En dehors des heures de travail habituelles (7 h – 21 h)'];
+/* « Simuler une connexion pirate » : une demande de connexion rouge POUR LE COMPTE du téléphone affiché, venue d'ailleurs, avec les trois raisons ; elle compte dans les 6 demandes du quart d'heure */
+function secuPirate(k){ const c = secuCompte(k); if (!c || !c.tel || c.tel.efface) return null;
+  const d = secuDemander(k, 'connexion', { source:'pirate', appareil:{ id:'pirate', nom:'Firefox · Linux', adresse:SECU_ADRESSE_PIRATE }, raisons:SECU_RAISONS_PIRATE.slice() });
+  if (!d) { SECU.pirate = { k, id:null, issue:'trop' }; return null; }
+  d.heure = SECU_REGLES.nuitHeure; SECU.pirate = { k, id:d.id, issue:null };
+  secuJ('login.unusual', k, d.appareil + ' · ' + d.adresse);
+  SECU.ouvert = true; SECU.telCourant = k; return d; }
+/* « Simuler le vol de ma connexion » : un cookie de session rejoué dans un autre navigateur ; la session se ferme, le compte N'EST PAS verrouillé (la personne se reconnecte avec son téléphone) */
+function secuVolSession(){ const k = SESSION; if (!k || SECU.auto || !SECU.sessions[k]) return false;
+  const app = secuAppareilCourant(); secuHisto(k, { appareil:app.nom, adresse:app.adresse, resultat:'fermee' }); secuJ('session.hijack_suspected', k, 'Connexion utilisée depuis un autre navigateur');
+  secuFermerSessions(k, 'vol'); return true; }
+/* ce que le bloc « Démonstration » dit du pirate : ce que voit le pirate (le nombre), et ce qui s'est passé ; le nombre n'est jamais montré ailleurs que sur l'écran qui a lancé la demande */
+function secuAvisPirate(){ const a = SECU.pirate; if (!a) return ''; const p = eqDe(a.k), pr = p ? esc(p.prenom) : '', d = a.id && SECU.demandes.find(x => x.id === a.id);
+  if (a.issue === 'trop') return '<p class="sec-avis" role="status">Trop de demandes de connexion pour ce compte : attends quelques minutes, ou avance l’horloge.</p>';
+  if (a.issue === 'entre') return '<p class="sec-avis rouge" role="status">Le pirate est entré. Voilà ce qu’aucune protection ne peut empêcher : une personne qui tape un nombre qu’on lui présente. Regarde la page Sécurité : la connexion y est en rouge.</p>';
+  if (a.issue === 'bloque') return `<p class="sec-avis" role="status">Le pirate est arrêté : ${pr} a touché « Ce n’est pas moi ». Son compte est verrouillé et toutes ses connexions sont fermées.</p>`;
+  if (a.issue === 'mauvais') return `<p class="sec-avis" role="status">Le pirate a tapé un mauvais nombre : sa demande est annulée par sécurité.</p>`;
+  if (!d || !secuDemandeVivante(d)) return '<p class="sec-avis" role="status">La demande du pirate a expiré.</p>';
+  return `<p class="sec-avis" role="status">Démonstration : un pirate qui connaît le mot de passe de ${pr} essaie de se connecter depuis un autre pays. Regarde le téléphone : déverrouille-le avec son PIN si besoin.</p>
+    <p class="sec-avis">Sur l’écran du pirate, le nombre affiché est <b data-sec="nombre-pirate">${d.nombre}</b>. Si ${pr} le tape sur son téléphone, il laisse entrer le pirate : c’est la limite de ce système, et la raison de la règle « ne tape jamais un nombre que tu n’as pas demandé toi-même ».</p>`; }
+/* les boutons de simulation du bloc « Démonstration » : grisés tant que leur condition n'est pas remplie, et ils le DISENT (infobulle) */
+function secuDemoSimul(){ const c = secuCompte(SECU.telCourant), ok = !!(c && c.tel && !c.tel.efface), co = !!(SESSION && SECU.sessions[SESSION] && !SECU.sessions[SESSION].auto);
+  const seulVerrouille = EQUIPE.filter(p => p.actif && droitAdmin(p)).length > 0 && EQUIPE.filter(p => p.actif && droitAdmin(p)).every(p => { const cc = SECU.comptes[p.k]; return cc && secuVerrouMaj(cc); });
+  return `<div class="sec-boutons"><button type="button" class="ops-btn danger" data-secd="pirate"${ok ? '' : ' disabled title="Disponible après l’activation du téléphone"'}>Simuler une connexion pirate</button>
+    <button type="button" class="ops-btn ghost" data-secd="vol"${co ? '' : ' disabled title="Disponible quand quelqu’un est connecté"'}>Simuler le vol de ma connexion</button>
+    ${seulVerrouille ? '<button type="button" class="ops-btn ghost" data-secd="support">Un administrateur déverrouille mon compte (démonstration)</button>' : ''}</div>${secuAvisPirate()}`; }
+
+/* ── B2 · la page « Sécurité » ── */
+/* les lignes : les connexions inhabituelles ou refusées des 30 derniers jours, de TOUTES les personnes ; les chiffres suivent ces lignes, ils ne sont pas écrits à part */
+function secuLignes(){ const now = secuMaint(), L = [];
+  EQUIPE.forEach(p => { const c = SECU.comptes[p.k]; if (!c) return;
+    c.histo.forEach(h => { if (h.resultat === 'annulee' || now - h.ts > SECU_30J) return; if (h.raisons.length || h.resultat !== 'approuvee') L.push({ p, h }); }); });
+  return L.sort((a, b) => b.h.ts - a.h.ts); }
+const secuVerrous = () => EQUIPE.filter(p => { const c = SECU.comptes[p.k]; return c && secuVerrouMaj(c); });
+const secuVerrouFiche = c => c.verrou.jusqua == null ? 'Verrouillé depuis ' + secuQuand(c.verrou.le) + ' (bloquée depuis son téléphone)' : 'Verrouillé jusqu’à ' + secuHHMM(c.verrou.jusqua) + ' (cinq erreurs)';
+const secuVerrouTexte = c => c.verrou.jusqua == null ? 'Verrouillé depuis ' + secuQuand(c.verrou.le) + ' : bloquée depuis son téléphone' : 'Verrouillé jusqu’à ' + secuHHMM(c.verrou.jusqua) + ' : cinq erreurs';
+const secuAv = p => `<span class="eq-av" style="--c:${(H_GENS[p.k] || {}).c || '#5b6676'}">${esc(p.prenom[0] + p.nom[0])}</span>`;
+function vueSecurite(){
+  const tete = '<div class="tete"><div><span class="surtitre">Personnel</span><h1>Sécurité</h1><span class="gris">Qui s’est connecté de façon inhabituelle ou s’est fait refuser, et quels comptes sont verrouillés.</span></div></div>';
+  if (!secuPeut()) return tete + '<div class="info" role="status">Cette page n’est pas pour toi.</div>';
+  if (secuMasqueActif() && !SECU.parcours.has('securite')) { SECU.parcours.add('securite'); setTimeout(opsDemo, 0); }   /* le parcours conseillé du bloc « Démonstration » se coche tout seul */
+  const L = secuLignes(), V = secuVerrous(), bloq = L.filter(x => x.h.resultat === 'bloquee').length, moi = SECU.vraie || SESSION;
+  const kpi = (n, un, plus, rouge) => `<div class="kpi"><b${rouge && n ? ' style="color:var(--rouge)"' : ''}>${n || 'Aucune'}</b><span>${n > 1 ? plus : un}</span></div>`;
+  const cartes = `<div class="kpis sec-kpis">${kpi(L.length, 'connexion inhabituelle ou refusée', 'connexions inhabituelles ou refusées', false)}${kpi(bloq, 'bloquée depuis un téléphone', 'bloquées depuis un téléphone', true)}${kpi(V.length, 'compte verrouillé', 'comptes verrouillés', true)}</div>`;
+  const verrous = V.length ? `<div class="carte sec-verrous" role="region" aria-label="Comptes verrouillés"><h2 class="cmd-titre">Comptes verrouillés</h2>${V.map(p => `<div class="sec-vl">${secuAv(p)}<span class="fo-n"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(secuVerrouTexte(SECU.comptes[p.k]))}</span></span>${p.k === moi ? '<span class="gris petit sec-soi">Pour ton propre compte, demande à un autre administrateur.</span>' : `<button type="button" class="btn" data-sec2="deverrouiller|${esc(p.k)}">Déverrouiller</button>`}</div>`).join('')}</div>` : '';
+  const mot = h => h.resultat === 'approuvee' ? 'Inhabituelle' : 'Refusée';
+  const pourquoi = h => h.raisons.length ? `<ul class="sec-rs">${h.raisons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '<span class="gris">—</span>';
+  const ligne = ({ p, h }) => `<tr class="sec-rouge"><td>${esc(secuMaj(secuQuand(h.ts)))}</td><td><b>${esc(eqNom(p))}</b></td><td>${esc(h.appareil)}</td><td class="sec-adr">${esc(h.adresse)}</td><td>${pourquoi(h)}</td><td><span class="st st-r">${mot(h)}</span> ${esc(SECU_RES_SEC[h.resultat] || h.resultat)}</td></tr>`;
+  const carte = ({ p, h }) => `<article class="sec-carte sec-rouge"><div class="sec-ct"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(secuMaj(secuQuand(h.ts)))}</span></div><div class="sec-cr"><span class="st st-r">${mot(h)}</span> <span>${esc(SECU_RES_SEC[h.resultat] || h.resultat)}</span></div>
+    <div class="gris petit sec-adr">${esc(h.appareil)} · ${esc(h.adresse)}</div>${pourquoi(h)}</article>`;
+  const liste = L.length ? `<div class="sec-lignes"><table class="sec-tab"><thead><tr><th>Date</th><th>Qui</th><th>Appareil</th><th>Adresse (IP)</th><th>Pourquoi</th><th>Résultat</th></tr></thead><tbody>${L.map(ligne).join('')}</tbody></table><div class="sec-cartes">${L.map(carte).join('')}</div></div>`
+    : '<div class="carte sec-vide gris"><span aria-hidden="true">🛡️</span> Rien d’inhabituel pour l’instant.</div>';
+  return tete + cartes + verrous + `<h2 class="cmd-titre sec-titre">Connexions inhabituelles ou refusées</h2>` + liste
+    + '<p class="gris petit sec-pied">Une connexion inhabituelle (autre appareil, autre réseau, hors des heures de travail, mots de passe faux juste avant) n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.</p>'; }
+
+/* ── B3 · Équipe : le téléphone, le mot de passe provisoire, les gestes d'un administrateur ── */
+/* un mot de passe provisoire : tiré au hasard, un par personne, montré UNE fois, à remettre en main propre. L'UNIQUE endroit (avec le bloc « Démonstration ») où il s'affiche : aucun bouton Copier, jamais dans un data-, jamais dans un toast */
+function secuPanProv(k, verte, suite){ const p = eqDe(k), c = secuCompte(k); if (!p) return;
+  SECU.panProv = { k, suite:suite || null };
+  eqxPan(`<span class="surtitre">Équipe</span><h2>Mot de passe provisoire pour ${esc(p.prenom)}</h2>
+    ${verte ? `<div class="info sec-vert" role="status">${esc(verte)}</div>` : ''}
+    <p>Remets ce mot de passe à <b>${esc(p.prenom)} en main propre</b>, après avoir vérifié son identité.</p>
+    <p class="sec-provmdp" data-sec="provisoire">${esc(c.prov || '')}</p>
+    <p class="gris petit">Valable 72 heures (jusqu’au ${secuJJMM(c.provJusqua).slice(0, 5)} à ${secuHHMM(c.provJusqua)}). Il ne sera plus affiché.</p>
+    <div class="actions"><button type="button" class="btn" data-sec2="prov-ok">Terminé</button></div>`); }
+function secuProvTermine(){ const s = SECU.panProv; SECU.panProv = null; fermerPanneau(); const z = document.querySelector('[data-sec="provisoire"]'); if (z) z.textContent = ''; if (s && s.suite) s.suite(); opsDemo(); }
+/* la case « J'ai vérifié l'identité en personne » : le bouton reste grisé tant qu'elle n'est pas cochée, ET la fonction la relit (un clic forcé ne la contourne pas) */
+const secuVerifCoche = () => { const i = document.getElementById('sec-verif'); return !!(i && i.checked); };
+function secuPanTelephone(k){ const p = eqDe(k); if (!p || !secuPeut()) return;
+  if (k === acteur()) return toast('Pour ton propre compte, demande à un autre administrateur.');
+  eqxPan(`<span class="surtitre">Équipe</span><h2>Nouveau téléphone pour ${esc(p.prenom)}</h2>
+    <p>Avant de continuer, <b>vérifie que c’est bien ${esc(p.prenom)}, en personne</b> (pas par message, pas par téléphone).</p>
+    <label class="fo-garder sec-verif"><input type="checkbox" id="sec-verif" data-sec2="verif"><span>J’ai vérifié l’identité de ${esc(p.prenom)} en personne</span></label>
+    <ul class="sec-conseq"><li>Son ancien téléphone ne pourra plus approuver aucune connexion.</li><li>Toutes les connexions de ${esc(p.prenom)} seront fermées.</li><li>${esc(p.prenom)} recevra un nouveau mot de passe provisoire, à lui remettre en main propre. À sa prochaine connexion, ${esc(p.prenom)} activera OP Security sur son nouveau téléphone.</li></ul>
+    <p class="gris petit">Il n’existe pas de code de secours : c’est voulu.</p>
+    <div class="actions"><button type="button" class="btn rouge" data-sec2="tel-ok|${esc(k)}" id="sec-tel-ok" disabled>Nouveau téléphone pour ${esc(p.prenom)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+/* ⛔ UNE fonction fait le geste, quel que soit le chemin (la fiche, la carte rouge de la Sécurité) : droit, personne ≠ soi, case, puis re-confirmation, puis les effets */
+function secuNouveauTelephone(k, par){ const p = eqDe(k); if (!p || !secuPeut()) return false;
+  if (k === (par || acteur())) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
+  if (!secuVerifCoche()) return false;
+  if (!secuGarde('equipe-telephone', () => secuNouveauTelephone(k, par), { k, v:'tel' })) return false;
+  const c = secuCompte(k); c.tel = null; c.codeActivation = null; c.appareils = []; c.verrou = null; c.echecs = 0; c.nVerrous = 0;
+  SECU.demandes.forEach(d => { if (d.k === k && d.etat === 'attente') d.etat = 'annulee'; });
+  secuFermerSessions(k, 'admin'); secuProvisoireNeuf(k); secuJ('mfa.device_revoked', k, '');
+  eqxJ('a donné un nouveau téléphone à', p, { det:'l’ancien téléphone est révoqué' });
+  opsDessiner(true); opsDemo();
+  secuPanProv(k, 'L’ancien téléphone de ' + p.prenom + ' est révoqué : il ne peut plus approuver de connexion.'); return true; }
+function secuPanDeverrouiller(k){ const p = eqDe(k), c = p && SECU.comptes[p.k]; if (!p || !secuPeut() || !c || !secuVerrouMaj(c)) return;
+  if (k === acteur()) return toast('Pour ton propre compte, demande à un autre administrateur.');
+  const tel = c.verrou.jusqua == null;
+  eqxPan(`<span class="surtitre">Équipe</span><h2>Déverrouiller le compte de ${esc(p.prenom)}</h2>
+    <p>${tel ? esc(p.prenom) + ' a bloqué une connexion depuis son téléphone : quelqu’un connaissait peut-être son mot de passe.' : esc(p.prenom) + ' a fait cinq erreurs de suite : le compte s’est verrouillé.'} Pour la protéger, son mot de passe est remplacé. Vérifie que c’est bien ${esc(p.prenom)}, en personne, puis remets-lui le nouveau mot de passe provisoire.</p>
+    <label class="fo-garder sec-verif"><input type="checkbox" id="sec-verif" data-sec2="verif"><span>J’ai vérifié l’identité de ${esc(p.prenom)} en personne</span></label>
+    <div class="actions"><button type="button" class="btn rouge" data-sec2="dev-ok|${esc(k)}" id="sec-tel-ok" disabled>Déverrouiller et changer le mot de passe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+function secuDeverrouiller(k, par){ const p = eqDe(k), c = p && SECU.comptes[p.k]; if (!p || !secuPeut() || !c) return false;
+  if (k === (par || acteur())) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
+  if (!secuVerifCoche()) return false;
+  if (!secuGarde('equipe-telephone', () => secuDeverrouiller(k, par), { k, v:'dev' })) return false;
+  const tel = c.verrou && c.verrou.jusqua == null; c.verrou = null; c.echecs = 0; c.nVerrous = 0; c.appareils = [];
+  secuProvisoireNeuf(k); secuJ('account.unlocked', k, '');
+  eqxJ('a déverrouillé le compte de', p, { det:'son mot de passe est remplacé' }); opsDemo();
+  secuPanProv(k, 'Le compte de ' + p.prenom + ' est déverrouillé. Son mot de passe est remplacé : celui que ' + (tel ? 'connaissait le pirate' : 'la personne avait tapé') + ' ne marche plus.'); return true; }
+/* le support TeamOP (hors de l'application) déverrouille un administrateur seul : le prototype le joue par un bouton marqué « démonstration » */
+function secuSupportDeverrouille(){ EQUIPE.forEach(p => { const c = SECU.comptes[p.k]; if (p.actif && droitAdmin(p) && c && secuVerrouMaj(c)) { c.verrou = null; c.echecs = 0; c.nVerrous = 0; c.appareils = []; secuProvisoireNeuf(p.k); secuJ('account.unlocked', p.k, 'support'); } }); opsDemo(); }
+function secuDeconnecter(k){ const p = eqDe(k); if (!p || !secuPeut()) return false;
+  if (k === acteur()) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
+  if (!secuGarde('equipe-telephone', () => secuDeconnecter(k), { k, v:'deco' })) return false;
+  SECU.demandes.forEach(d => { if (d.k === k && d.etat === 'attente') d.etat = 'annulee'; });
+  secuFermerSessions(k, 'admin'); eqxJ('a déconnecté partout', p, {}); opsDessiner(true); opsDemo(); toast('Les connexions de ' + esc(p.prenom) + ' sont fermées.'); return true; }
+function secuPanDeconnecter(k){ const p = eqDe(k); if (!p || !secuPeut()) return;
+  eqxPan(`<span class="surtitre">Équipe</span><h2>Déconnecter ${esc(p.prenom)} partout</h2><p>Fermer toutes les connexions de ${esc(p.prenom)} ? Il devra se reconnecter avec son téléphone.</p>
+    <div class="actions"><button type="button" class="btn rouge" data-sec2="deco-ok|${esc(k)}">Déconnecter</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+/* « Reposer un mot de passe provisoire » : la personne a oublié le sien ; un nouveau est tiré (l'ancien ne marche plus), ses connexions se ferment, son téléphone ne change PAS */
+function secuReposer(k){ const p = eqDe(k); if (!p || !peut('admin', 'm')) return false;
+  if (!secuGarde('equipe-inviter', () => secuReposer(k), { k, v:'repose' })) return false;
+  secuProvisoireNeuf(k); secuFermerSessions(k, 'admin'); opsDemo();
+  secuPanProv(k, '', null); toast('Mot de passe provisoire reposé. À sa prochaine connexion, ' + esc(p.prenom) + ' choisira le sien.'); return true; }
+/* la fiche d'une personne : le bloc « Connexion » (jamais un mot de passe lisible) et les gestes d'un administrateur */
+function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLogin(p), perso = !!c.empreinte, verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee'), soi = k === acteur(), sec = secuPeut();
+  /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le panneau d'un geste et dans le bloc « Démonstration ») */
+  const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
+  const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : '<b>À activer à sa première connexion</b>';
+  const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : '';
+  return `<div class="cn-acces"><span class="surtitre">Connexion</span>
+    <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
+    <div class="ligne"><span>Identifiant</span><b class="mono">${esc(id)}</b></div>
+    <div class="ligne"><span>Mot de passe</span><b>${perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
+    ${perso ? '' : '<small class="gris">' + esc(p.prenom) + ' le change à sa première connexion.</small>'}
+    <div class="ligne"><span>Téléphone</span>${telTxt}</div>
+    <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : 'Jamais'}</b></div>
+    ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
+    ${sec && soi ? '<small class="gris">Pour ton propre compte, demande à un autre administrateur.</small>' : ''}
+    <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}<button type="button" class="btn gris" data-cnx="repose|${esc(k)}">Reposer un mot de passe provisoire</button></div></div>`; }
+{ const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
+  if (p && p.actif && k !== acteur() && secuPeut() && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${esc(k)}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);
+  if (p && A && peut('admin', 'm') && !P.querySelector('.cn-acces')) { A.insertAdjacentHTML('beforebegin', secuFicheConnexion(k));
+    const c = SECU.comptes[k], m = P.querySelector('[data-eq^="mdp"]'); if (m && c && secuVerrouMaj(c)) { m.disabled = true; m.title = 'Compte verrouillé : utilise « Déverrouiller »'; } }
+  return v; }; }
+/* Équipe : la carte d'une personne dit son téléphone et son verrou ; en tête de l'écran, une carte rouge s'il y a des comptes verrouillés (jamais quand tout va bien) */
+{ const c0 = eqxCarte; eqxCarte = function(p){ let h = c0.apply(this, arguments); if (!p.actif) return h; const c = secuCompte(p.k), verrou = c && secuVerrouMaj(c);
+  const pastille = verrou ? '<span class="st st-r">Verrouillé</span>' : c && !c.tel ? '<span class="st st-o">Téléphone à activer</span>' : '';
+  h = h.replace(/<\/span>(\s*)<span class="eq-puces">/, pastille + '</span>$1<span class="eq-puces">');
+  if (c && c.tel) h = h.replace('<span class="eq-puces">', `<span class="eq-puces"><span>📱 ${esc(c.tel.nom)}</span>`);
+  return h; }; }
+{ const v0 = vueEquipe; vueEquipe = function(){ const h = v0.apply(this, arguments); if (!secuPeut()) return h; const V = secuVerrous(); if (!V.length) return h;
+  const noms = V.map(p => esc(eqNom(p))).join(', ');
+  return h.replace('<div class="kpis">', `<div class="alerte sec-bandeau" role="status"><span><b>${V.length} compte${V.length > 1 ? 's' : ''} verrouillé${V.length > 1 ? 's' : ''} : ${noms}.</b></span><button type="button" class="btn gris" data-sec2="voir">Voir</button></div><div class="kpis">`); }; }
+/* une personne désactivée ne peut plus rien approuver : ses connexions se ferment et ses demandes tombent (son téléphone, lui, n'est PAS révoqué : celle qui revient retrouve le sien) */
+{ const s0 = eqxSynchro; eqxSynchro = function(){ const r = s0.apply(this, arguments);
+  EQUIPE.forEach(p => { if (!p.actif && SECU.comptes[p.k]) { SECU.demandes.forEach(d => { if (d.k === p.k && d.etat === 'attente') d.etat = 'annulee'; }); secuFermerSessions(p.k, 'admin'); } });
+  Object.keys(SECU.comptes).forEach(k => { if (!EQUIPE.some(p => p.k === k)) { delete SECU.comptes[k]; delete SECU.ui[k]; } });   /* « Annuler » une invitation retire aussi le compte de sécurité : sans ça, un compte-fantôme resterait avec son mot de passe */
+  return r; }; }
+
+/* ── « Ouvrir l'application comme … » : une porte dans la vie de quelqu'un, gardée, journalisée, signalée par une bande permanente ── */
+function secuVoirComme(k){ const p = eqDe(k); if (!p || !p.actif || !secuPeut()) return false; if (k === acteur()) return false;
+  if (!secuGarde('voir-comme', () => secuVoirComme(k), { k, note:'Tu verras ce que ' + p.prenom + ' voit. Rien ne lui est signalé. Le journal garde la trace.' })) return false;
+  const vraie = SECU.vraie || SESSION; eqxJ('a ouvert l’application comme', p, {}); SECU.vraie = vraie;
+  fermerPanneau(); if (!sessionOuvrir(k)) { SECU.vraie = null; return false; } secuBande(); return true; }
+function secuBande(){ let z = document.querySelector('.sec-bande'); const k = SESSION;
+  if (!SECU.vraie || !k || k === SECU.vraie) { if (z) z.remove(); document.documentElement.classList.remove('sec-voir'); return; }
+  const p = eqDe(k), h = `<span class="sec-bande-t">Tu vois l’application comme <b>${esc(p.prenom)}</b>.</span><button type="button" class="sec-bande-b" data-sec2="revenir">Revenir à mon compte</button>`;
+  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); }
+function secuRevenir(){ const v = SECU.vraie; SECU.vraie = null; const s = v && SECU.sessions[v]; secuBande();
+  if (s && secuSessionVive(s)) { sessionOuvrir(v); aller('equipe'); } else sessionFermer('inactif'); }
+const secuSessionVive = s => secuMaint() - s.derniereActivite < SECU_REGLES.inactiviteMs;
+
+/* ── B4 · Mon compte : sa propre sécurité, pour chacun ── */
+const SECU_SAVOIR = ['Cette protection est très solide, mais aucune protection n’est parfaite.', 'Ne tape jamais un nombre que tu n’as pas demandé toi-même : si quelqu’un te le demande, c’est une arnaque.', 'Garde ton code PIN pour toi, et ton téléphone avec toi.', 'Si tu perds ton téléphone, préviens ton administrateur tout de suite.', 'Si OP Security te montre une connexion que tu ne reconnais pas : touche « Ce n’est pas moi ».'];
+function secuMonCompte(){ const k = SESSION; if (!k) return; if (SECU.vraie && SECU.vraie !== k) return toast('Pour ouvrir ton compte, reviens d’abord à ton compte.');
+  const p = eqDe(k), c = secuCompte(k); if (!p || !c) return; const s = SECU.sessions[k], ici = s ? s.appareilId : 'ici';
+  const histo = c.histo.slice(0, 20).map(h => `<li class="sec-h${h.raisons.length || h.resultat !== 'approuvee' ? ' sec-rouge' : ''}"><div class="sec-h1"><b>${esc(secuMaj(secuQuand(h.ts)))}</b>${h.raisons.length || h.resultat !== 'approuvee' ? `<span class="st st-r">${h.resultat === 'approuvee' ? 'Inhabituelle' : 'Refusée'}</span>` : ''}<span>${esc(SECU_RES_CPT[h.resultat] || h.resultat)}</span></div>
+    <div class="gris petit sec-adr">${esc(h.appareil)} · ${esc(h.adresse)}</div>${h.raisons.length ? `<ul class="sec-rs">${h.raisons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</li>`).join('');
+  const apps = c.appareils.map(a => `<li class="sec-ap"><div class="fo-n"><b>${esc(a.nom)}${a.id === ici ? ' <span class="st st-v">Cet appareil</span>' : ''}</b><span class="gris petit">Première connexion ${esc(secuQuand(a.premiere))} · dernière ${esc(secuQuand(a.derniere))}</span><span class="gris petit sec-adr">${esc(a.adresse)}</span></div>${a.id === ici ? '' : `<button type="button" class="btn gris sec-oubli" data-sec2="oublier|${esc(a.id)}">Oublier</button>`}</li>`).join('');
+  foOuvrir(`<button type="button" class="sec-retour" data-ferme="1">‹ Retour</button><span class="surtitre">${esc(p.role)}</span><div class="eq-tete">${secuAv(p)}<h2>Mon compte</h2></div>
+    <div class="gris petit sec-ident">${esc(eqNom(p))} · ${esc(p.mail)} · identifiant <b>${esc(cnxLogin(p))}</b></div>
+    <div class="carte sec-bloc"><h3>Mon téléphone</h3><p>${c.tel ? 'OP Security est activée sur <b>' + esc(c.tel.nom) + '</b> (depuis le ' + secuJJMM(c.tel.activeLe) + '). Chaque connexion se confirme sur ce téléphone.' : 'OP Security n’est pas encore activée sur un téléphone.'}</p>
+      <p class="gris petit">Tu as perdu ton téléphone ? Va voir ton administrateur avec une pièce d’identité : il vérifie que c’est bien toi, puis il active ton nouveau téléphone. Il n’existe pas de code de secours : c’est voulu, personne ne peut s’en servir à ta place.</p></div>
+    <div class="carte sec-bloc"><h3>Mon mot de passe</h3><button type="button" class="btn gris" data-sec2="mdp">Changer mon mot de passe</button></div>
+    <div class="carte sec-bloc"><h3>Historique de mes connexions</h3>${histo ? `<ul class="sec-histo">${histo}</ul>` : '<p class="gris">Aucune connexion pour l’instant.</p>'}</div>
+    <div class="carte sec-bloc"><h3>Appareils reconnus</h3><p class="gris petit">Une connexion depuis un autre appareil est signalée comme inhabituelle : elle doit être approuvée sur ton téléphone et le code à 6 chiffres est refusé.</p>${apps ? `<ul class="sec-apps">${apps}</ul>` : '<p class="gris">Aucun appareil reconnu.</p>'}</div>
+    <div class="carte sec-bloc sec-savoir"><h3>Ce qu’il faut savoir</h3><ul>${SECU_SAVOIR.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`, true); }
+function secuPanMdp(){ const k = SESSION; if (!k) return;
+  eqxPan(`<span class="surtitre">Mon compte</span><h2>Changer mon mot de passe</h2>
+    <label class="champ">Mot de passe actuel<input id="sec-m0" type="password" autocomplete="current-password"></label>
+    <label class="champ">Nouveau mot de passe<input id="sec-m1" type="password" autocomplete="new-password"></label>
+    <label class="champ">Encore une fois<input id="sec-m2" type="password" autocomplete="new-password"></label>
+    <p class="gris petit" id="sec-maide">12 caractères au moins. Une phrase de plusieurs mots est idéale, par exemple « cheval agrafe batterie correcte ».</p>
+    <p class="cn-err sec-merr" id="sec-merr" role="alert"></p>
+    <div class="actions"><button type="button" class="btn" data-sec2="mdp-ok">Changer mon mot de passe</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
+/* mêmes règles et mêmes messages qu'au choix du premier mot de passe (§ 3.3) ; l'empreinte et le sel sont renouvelés, les autres connexions se ferment */
+function secuMdpChanger(a0, a, b){ const k = SESSION, c = k && SECU.comptes[k]; if (!c) return 'Reconnecte-toi.';
+  if (!secuMdpJuste(c, a0)) return 'Mot de passe actuel incorrect.';
+  const sans = a.replace(/\s/g, '');
+  if (sans.length < SECU_REGLES.mdpMin) return 'Trop court : ' + SECU_REGLES.mdpMin + ' caractères au minimum, sans compter les espaces.';
+  if (SECU_MDP_COURANTS.includes(sans.toLowerCase())) return 'Ce mot de passe est trop courant. Choisis-en un autre.';
+  if (new Set(sans).size < 6) return 'Ce mot de passe est trop répétitif.';
+  if (a !== b) return 'Les deux mots de passe ne sont pas les mêmes.';
+  if (secuMdpJuste(c, a)) return 'Le nouveau mot de passe doit être différent de l’ancien.';
+  secuMdpDefinir(k, a); c.echecs = 0; opsDemo(); return ''; }
+
+/* les clics et les saisies des écrans de cette étape (data-sec2) : un seul écouteur, jamais un attribut qui porte un secret */
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-sec2]'); if (!b) return; const [a, x] = b.dataset.sec2.split('|');
+  if (a === 'verif') return;
+  ev.stopPropagation();
+  if (a === 'voir') return aller('securite');
+  if (a === 'deverrouiller') return secuPanDeverrouiller(x);
+  if (a === 'telephone') return secuPanTelephone(x);
+  if (a === 'deconnecter') return secuPanDeconnecter(x);
+  if (a === 'tel-ok') return secuNouveauTelephone(x);
+  if (a === 'dev-ok') return secuDeverrouiller(x);
+  if (a === 'deco-ok') { fermerPanneau(); return secuDeconnecter(x); }
+  if (a === 'prov-ok') return secuProvTermine();
+  if (a === 'revenir') return secuRevenir();
+  if (a === 'mdp') return secuPanMdp();
+  if (a === 'mdp-ok') { const m = secuMdpChanger(document.getElementById('sec-m0').value, document.getElementById('sec-m1').value, document.getElementById('sec-m2').value), e = document.getElementById('sec-merr');
+    if (m) { e.textContent = m; const h = document.getElementById('sec-maide'); if (h && /Trop court/.test(m)) h.style.display = 'none'; return; }
+    fermerPanneau(); secuMonCompte(); return toast('Mot de passe changé. Tes autres connexions ont été fermées.'); }
+  if (a === 'oublier') { const c = SECU.comptes[SESSION], ap = c && c.appareils.find(o => o.id === x); if (!ap) return;
+    return eqxPan(`<span class="surtitre">Mon compte</span><h2>Oublier cet appareil ?</h2><p>Oublier ${esc(ap.nom)} ? La prochaine connexion depuis cet appareil sera signalée comme inhabituelle.</p>
+      <div class="actions"><button type="button" class="btn rouge" data-sec2="oublier-ok|${esc(x)}">Oublier</button><button type="button" class="btn gris" data-pretour="1" data-sec2="oublier-non">Annuler</button></div>`); }
+  if (a === 'oublier-ok') { const c = SECU.comptes[SESSION]; if (c) c.appareils = c.appareils.filter(o => o.id !== x); fermerPanneau(); return secuMonCompte(); }
+  if (a === 'oublier-non') { fermerPanneau(); return secuMonCompte(); } }, true);
+document.addEventListener('change', ev => { if (ev.target.id !== 'sec-verif') return; const b = document.getElementById('sec-tel-ok'); if (b) b.disabled = !ev.target.checked; });
+
+/* ── B5 · les gestes sensibles : une confirmation sur le téléphone, valable 5 minutes ──
+   Règle : un geste est sensible s'il montre ou change l'argent, la paie ou les comptes de l'équipe. La liste est UNE TABLE (SECU_GESTES) : un geste neuf de ces trois zones s'y inscrit ou n'existe pas.
+   La garde se pose dans la fonction qui MONTRE ou ÉCRIT, en première instruction après le contrôle des droits : un second chemin (menu, recherche, raccourci) ne la contourne pas.
+   Ce qui n'est PAS gardé, et pourquoi : l'IBAN que l'entreprise imprime sur ses propres factures et devis (une consigne de paiement faite pour être lue par ses clients), l'IBAN de « Mon espace client »,
+   les virements de l'atelier de documents (il n'y fait que lire), et toute lecture sans effet (le planning, une intervention). */
+const SECU_GESTES = {
+  'banque-ouvrir':{ phrase:'voir ton IBAN et ta banque', portes:['entPanBanque', 'data-ent="carte|banque"'] },
+  'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'data-ent="banqueok"'] },
+  'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'data-ac="virement"'] },
+  'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'data-ac="virok"'] },
+  'compta-banque':{ phrase:'voir la banque de la comptabilité', portes:['opc_sensible'] },
+  'compta-export':{ phrase:'exporter la comptabilité', portes:['opc_sensible'] },
+  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'data-paie="voirfiches"'] },
+  'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'data-paie="envoyer"', 'data-pt="export"'] },
+  'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'data-paie="comptabiliser"'] },
+  'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'data-eqx="profok'] },
+  'equipe-inviter':{ phrase:'inviter ou réactiver quelqu’un', alt:{ repose:'reposer un mot de passe' }, portes:['data-eq="inviterok"', 'data-eq="actif"', 'secuReposer'] },
+  'equipe-retirer':{ phrase:'désactiver le compte de {prenom}', portes:['eqxDepart', 'data-eq="actif"'] },
+  'equipe-telephone':{ phrase:'donner un nouveau téléphone à {prenom}', alt:{ dev:'déverrouiller le compte de {prenom}', deco:'déconnecter {prenom} partout' }, portes:['secuNouveauTelephone', 'secuDeverrouiller', 'secuDeconnecter'] },
+  'voir-comme':{ phrase:'voir l’application comme {prenom}', portes:['secuVoirComme', 'data-cnx="comme'] } };
+const secuPhrase = (cle, o) => { const G = SECU_GESTES[cle] || {}; o = o || {}; let t = (o.v && G.alt && G.alt[o.v]) || G.phrase || 'faire cette action'; const p = o.k && eqDe(o.k); return t.replace('{prenom}', p ? p.prenom : 'cette personne'); };
+/* la confirmation (ou la connexion approuvée, qui compte déjà pour une) ouvre une fenêtre de 5 minutes pour TOUS les gestes sensibles de CETTE personne : elle ne se prolonge PAS quand on s'en sert */
+const secuFenetreValide = k => { const t = SECU.confirmeA[k]; return !!t && secuMaint() - t < SECU_REGLES.confirmationMs; };
+const secuMasqueActif = () => typeof MODE_APP !== 'undefined' && MODE_APP && !!SESSION && !SECU.auto;
+/* ⛔ rend VRAI si le geste peut partir ; sinon ouvre la confirmation, REJOUE le geste une fois confirmé, et rend FAUX (sans confirmation valable, un geste sensible NE FAIT RIEN) */
+function secuGarde(cle, rejouer, o){ o = o || {};
+  if (!SECU_GESTES[cle]) throw new Error('geste sensible inconnu : ' + cle);
+  if (typeof MODE_APP === 'undefined' || !MODE_APP || !SESSION) return true;   /* le prototype nu n'a pas de compte : rien à confirmer */
+  if (SECU.auto) return true;                                                   /* ?auto= (les sondes des autres voies, en local) : accordé d'office */
+  if (SECU.secondaire) { toast('Pour cette action, reviens dans la première fenêtre : la confirmation sur le téléphone s’y passe.'); if (o.refus) o.refus(); return false; }
+  const qui = secuQui(); if (secuFenetreValide(qui)) return true;
+  secuConfirmer(qui, cle, rejouer, o); return false; }
+function secuConfirmer(qui, cle, rejouer, o){ secuConfFermer(true, false, true); const c = secuCompte(qui);
+  if (!c || !c.tel || c.tel.efface) { SECU.conf = { id:null, cle, rejouer:null, o:o || {}, qui, mort:'revoque', codesFaux:0 }; return secuConfDessiner(); }
+  const d = secuDemander(qui, cle, {}); SECU.conf = { id:d ? d.id : null, cle, rejouer, o:o || {}, qui, mort:d ? null : 'trop', codesFaux:0 };
+  if (d) { SECU.telCourant = qui; if (opsLarge()) SECU.ouvert = true; }
+  secuConfDessiner(); opsDessiner(true); opsDemo(); }
+function secuConfFermer(annulerDemande, reussi, muet){ const s = SECU.conf; if (!s) { const z = document.getElementById('sec-conf'); if (z) z.remove(); return; }
+  const d = s.id && SECU.demandes.find(x => x.id === s.id); if (annulerDemande && d && d.etat === 'attente') d.etat = 'annulee';
+  SECU.conf = null; const z = document.getElementById('sec-conf'); if (z) z.remove();
+  if (!reussi && !muet && s.o && s.o.refus) s.o.refus();
+  if (s.avant && s.avant.isConnected) { try { s.avant.focus({ preventScroll:true }); } catch (e) {} } }
+function secuConfDessiner(){ const s = SECU.conf; let z = document.getElementById('sec-conf'); if (!s) { if (z) z.remove(); return; }
+  const d = s.id && SECU.demandes.find(x => x.id === s.id), vive = d && secuDemandeVivante(d), phrase = secuPhrase(s.cle, s.o), t = '<h2 id="sec-conf-t">Confirme sur ton téléphone</h2>';
+  let corps;
+  if (s.mort === 'revoque') corps = t + '<p role="alert">Ton téléphone n’est plus autorisé. Demande un nouveau téléphone à ton administrateur.</p><div class="sec-conf-act"><button type="button" class="btn gris" data-sec3="annuler">Fermer</button></div>';
+  else if (s.mort === 'trop') corps = t + '<p role="alert">Trop de demandes de confirmation. Attends quelques minutes avant de réessayer.</p><div class="sec-conf-act"><button type="button" class="btn gris" data-sec3="annuler">Fermer</button></div>';
+  else if (!vive) corps = t + '<p role="alert">La demande a expiré.</p><div class="sec-conf-act"><button type="button" class="btn plein" data-sec3="recommencer">Recommencer</button><button type="button" class="btn gris" data-sec3="annuler">Annuler</button></div>';
+  else corps = `${t}<p>Pour ${esc(phrase)}, OP GESTION vérifie que c’est bien toi.</p>${s.o && s.o.note ? `<p class="gris petit">${esc(s.o.note)}</p>` : ''}
+    <ol class="sec-etapes plat"><li>1. Ouvre OP Security et tape ton code PIN.</li><li>2. Tape ce nombre :</li></ol>
+    <div class="sec-nombre" data-sec="nombre" role="img" aria-label="Nombre à taper sur ton téléphone : ${d.nombre}">${d.nombre}</div>
+    <p class="cn-expl sec-centre sec-expire" data-sec="expire" data-fin="${d.jusqua}" data-pre="Cette demande expire dans ">Cette demande expire dans ${secuDuree(d.jusqua - secuMaint())}</p>
+    <details class="sec-codes"><summary>Le téléphone n’a pas de réseau ?</summary><label>Code à 6 chiffres affiché dans OP Security<input id="sec-conf-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000"></label><button type="button" class="btn" data-sec3="code6">Valider le code</button></details>
+    <p class="cn-err" id="sec-conf-err" role="alert"></p><div class="sec-conf-act"><button type="button" class="btn gris" data-sec3="annuler">Annuler</button></div>${typeof cnxPastilleTel === 'function' && !opsLarge() ? cnxPastilleTel() : ''}`;
+  if (!z) { s.avant = document.activeElement; document.body.insertAdjacentHTML('beforeend', '<div id="sec-conf" role="dialog" aria-modal="true" aria-labelledby="sec-conf-t"><div class="sec-conf-c"></div></div>'); z = document.getElementById('sec-conf'); }
+  const c = z.querySelector('.sec-conf-c'); if (c.dataset.sig !== corps) { c.innerHTML = corps; c.dataset.sig = corps; const f = c.querySelector('[data-sec3="annuler"],[data-sec3="recommencer"]'); if (f && !c.contains(document.activeElement)) { try { f.focus({ preventScroll:true }); } catch (e) {} } } }
+/* ce que l'ordinateur fait quand le téléphone traite une confirmation : le geste reprend là où il s'était arrêté, ou il est ANNULÉ (rien ne s'est passé) */
+function secuConfSuite(d, res){ const s = SECU.conf; if (!s || s.id !== d.id) return;
+  if (res === 'ok') { SECU.confirmeA[s.qui] = secuMaint(); const r = s.rejouer; secuConfFermer(false, true); toast('C’est confirmé. Tu peux continuer pendant 5 minutes.'); if (r) r(); return; }
+  if (res === 'mauvais') { secuConfFermer(false); toast('Mauvais nombre : l’action est annulée par sécurité.'); } }
+function secuConfCode(texte){ const s = SECU.conf, d = s && s.id && SECU.demandes.find(x => x.id === s.id); if (!d || !secuDemandeVivante(d)) return; const c = secuCompte(s.qui), e = document.getElementById('sec-conf-err');
+  if (!secuVerifierCode(c, texte)) { s.codesFaux = (s.codesFaux || 0) + 1; secuEchec(s.qui, 'code');
+    if (s.codesFaux >= SECU_REGLES.codesMax) { d.etat = 'annulee'; secuConfFermer(false); return toast('Trop de codes erronés : l’action est annulée.'); }
+    if (e) e.textContent = 'Code invalide ou déjà utilisé.'; return; }
+  d.etat = 'approuvee'; secuConfSuite(d, 'ok'); }
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-sec3]'); if (!b) return; ev.stopPropagation(); const s = SECU.conf, a = b.dataset.sec3;
+  if (a === 'annuler') return secuConfFermer(true);
+  if (a === 'recommencer' && s) { const o = { ...s }; return secuConfirmer(o.qui, o.cle, o.rejouer, o.o); }
+  if (a === 'code6') { const i = document.getElementById('sec-conf-code'); return secuConfCode(i ? i.value : ''); } }, true);
+/* Échap = « Annuler » : la fenêtre du dessus se ferme, pas le panneau dessous (elle est écoutée avant tout le reste) */
+window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || !SECU.conf) return; ev.stopImmediatePropagation(); ev.preventDefault(); secuConfFermer(true); }, true);
+/* ── l'IBAN : masqué par défaut, ouvert par S1 seulement ; il se re-masque quand les 5 minutes sont passées ── */
+const hintIban = i => { const s = String(i || '').replace(/\s/g, ''); if (!s) return ''; if (!secuMasqueActif()) return i; return s.slice(0, 2) + '•• •••• •••• ' + s.slice(-4); };
+function secuIbanSurveille(){ const f = document.getElementById('en-iban'); if (!f || !secuMasqueActif()) return; const k = secuQui(); if (!k || secuFenetreValide(k) || f.dataset.masque) return;
+  const stock = String(ENTREPRISE.iban || '').replace(/\s/g, ''), P = f.closest('.panneau');
+  if (stock && f.value.replace(/\s/g, '') === stock) { f.value = hintIban(ENTREPRISE.iban); f.dataset.masque = '1'; toast('Cinq minutes ont passé : ton IBAN est de nouveau masqué.'); }
+  f.dataset.masque = f.dataset.masque || '0';
+  if (P && !P.querySelector('.sec-expire-pan')) P.querySelector('.surtitre').insertAdjacentHTML('afterend', '<div class="info sec-expire-pan" role="status">La confirmation a expiré : elle sera redemandée à l’enregistrement.</div>'); }
+/* ── la fenêtre de 5 minutes se surveille à la seconde (l'horloge de démonstration l'avance) ── */
+let SECU_FEN_AVANT = false;
+function secuConfTic(){ const k = secuQui(), v = !!k && secuFenetreValide(k); if (SECU_FEN_AVANT && !v) { const w = secuCadre(); if (w) { try { w.postMessage({ opc_confirme:{ expire:true } }, '*'); } catch (e) {} } } SECU_FEN_AVANT = v;
+  const s = SECU.conf; if (s && s.id) { const d = SECU.demandes.find(x => x.id === s.id); if (d && !secuDemandeVivante(d) && d.etat === 'expiree') secuConfDessiner(); } secuIbanSurveille(); }
+/* le cadre de la Comptabilité demande une confirmation (la banque, le FEC, l'envoi au cabinet) : la page tient le téléphone, le cadre ne fait que DEMANDER (contrat : voir prototype-comptabilite.html, « OP Security »).
+   La réception est filtrée sur la fenêtre du cadre lui-même ; ce qui arrive est contrôlé (forme, clé de la table) et ne sert que de clé. */
+const SECU_CADRE_CLES = ['compta-banque', 'compta-export'];
+const secuCadre = () => { const z = document.querySelector('#cpsys iframe'); return z ? z.contentWindow : null; };
+addEventListener('message', ev => { const w = secuCadre(); if (!w || ev.source !== w) return; const d = ev.data, m = d && typeof d === 'object' ? d.opc_sensible : null;
+  if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !/^[a-z0-9]{1,40}$/.test(m.id) || !SECU_CADRE_CLES.includes(m.cle)) return;
+  const rep = ok => { try { w.postMessage({ opc_confirme:{ id:m.id, ok } }, '*'); } catch (e) {} };
+  if (secuGarde(m.cle, () => rep(true), { refus:() => rep(false) })) rep(true); });
+/* rejouer un clic : le bouton est encore là (la fenêtre de confirmation est une autre couche, rien n'a redessiné dessous) ; sinon on le retrouve par son attribut */
+function secuRejouerClic(b){ const at = [...b.attributes].find(a => a.name.startsWith('data-')); return () => { const e = b.isConnected ? b : at && document.querySelector('[' + at.name + '="' + at.value + '"]'); if (e) e.click(); }; }
+/* une case de droits qui change : restaurée tout de suite (état avant = état après), puis rejouée une fois confirmé */
+function secuGardeCase(t){ const k = (t.dataset.eqd || t.dataset.eqs || t.dataset.eqt || '').split('|')[0], apres = t.checked;
+  return secuGarde('equipe-droits', () => { t.checked = apres; t.dispatchEvent(new Event('change', { bubbles:true })); }, { k, restaurer:() => { t.checked = !apres; } }) || (t.checked = !apres, false); }
+
+/* ── les styles de l'étape 3 (le téléphone garde les siens, plus haut) ── */
+document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
+.sec-avis{margin:0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--lien) 10%,transparent);border:1px solid color-mix(in srgb,var(--lien) 30%,transparent);font-size:14px;overflow-wrap:anywhere}
+.sec-avis.rouge{border-color:var(--rouge);background:color-mix(in srgb,var(--rouge) 12%,transparent)}
+.sec-avis b{font-family:var(--mono,ui-monospace,Menlo,monospace);font-size:18px}
+.sec-demo .ops-btn.danger{color:var(--rouge);border-color:var(--rouge)}
+.sec-demo .ops-btn[disabled]{opacity:.55;cursor:not-allowed}
+.sec-kpis{margin-bottom:12px}
+.sec-verrous{border-color:color-mix(in srgb,var(--rouge) 45%,var(--trait));background:color-mix(in srgb,var(--rouge) 7%,var(--surf));margin-bottom:12px}
+.sec-vl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0}.sec-vl .fo-n{flex:1 1 220px;min-width:0}.sec-vl .btn{min-height:44px}.sec-soi{flex:1 1 220px}
+.sec-titre{margin:18px 0 8px}
+.sec-lignes{container-type:inline-size}
+.sec-tab{width:100%;border-collapse:collapse;font-size:14px;background:var(--surf);border:1px solid var(--trait);border-radius:14px}
+.sec-tab th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--doux);padding:10px;border-bottom:1px solid var(--trait)}
+.sec-tab td{padding:10px;vertical-align:top;border-bottom:1px solid var(--trait)}
+.sec-tab tr:last-child td{border-bottom:0}
+.sec-tab tr.sec-rouge td:first-child{box-shadow:inset 4px 0 0 var(--rouge)}
+.sec-adr{overflow-wrap:anywhere}
+.sec-rs{margin:4px 0 0;padding-left:18px;color:var(--rouge);font-size:13.5px}
+.sec-cartes{display:none;gap:10px;grid-template-columns:minmax(0,1fr)}
+@container (max-width:760px){.sec-tab{display:none}.sec-cartes{display:grid}}
+.sec-carte{background:var(--surf);border:1px solid var(--trait);border-left:4px solid var(--rouge);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sec-ct{display:flex;justify-content:space-between;gap:4px 10px;flex-wrap:wrap}.sec-ct b{overflow-wrap:anywhere}.sec-cr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sec-vide{display:flex;gap:10px;align-items:center}
+.sec-pied{margin-top:14px}
+.sec-bandeau{display:flex;align-items:center;justify-content:space-between;gap:10px 12px;flex-wrap:wrap}.sec-bandeau .btn{min-height:44px}
+.eq-c .bx-t{flex-wrap:wrap;row-gap:6px}.eq-c .bx-t .fo-n{flex:1 1 130px;min-width:0}
+.sec-provmdp{font-family:var(--mono,ui-monospace,Menlo,monospace);font-size:22px;font-weight:700;user-select:text;-webkit-user-select:text;overflow-wrap:anywhere;padding:14px;border-radius:12px;background:var(--surf-in,var(--surf));border:1px solid var(--trait);margin:0;letter-spacing:.02em}
+.sec-vert{border-color:color-mix(in srgb,var(--vert) 45%,transparent);background:color-mix(in srgb,var(--vert) 10%,transparent)}
+.sec-verif{min-height:48px;align-items:center}.sec-verif input{width:24px;height:24px;flex:none}
+.sec-conseq{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.sec-expire-pan{margin-bottom:8px}
+.sec-retour{display:none;min-height:48px;margin:0 0 6px;padding:0 6px;background:none;border:0;color:var(--lien);font:inherit;font-size:16px;font-weight:600;cursor:pointer;text-align:left}
+@media (max-width:760px){.sec-retour{display:inline-flex;align-items:center}}
+.sec-bloc{margin:12px 0}.sec-bloc h3{margin:0 0 8px}.sec-ident{overflow-wrap:anywhere}
+.sec-histo,.sec-apps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.sec-h{border-left:3px solid transparent;padding-left:10px}.sec-h.sec-rouge{border-left-color:var(--rouge)}.sec-h1{display:flex;gap:4px 8px;flex-wrap:wrap;align-items:center}
+.sec-ap{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}.sec-ap .fo-n{flex:1 1 200px;min-width:0}.sec-oubli{min-height:44px}
+.sec-savoir ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+#sec-conf{position:fixed;inset:0;z-index:100002;display:grid;place-items:center;background:rgba(8,12,24,.55);padding:16px;box-sizing:border-box}
+.sec-conf-c{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--feuille,var(--surf));color:var(--encre);border:1px solid var(--trait);border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+.sec-conf-c h2{margin:0}.sec-conf-c p{margin:0}.sec-conf-act{display:flex;gap:8px;flex-wrap:wrap}.sec-conf-act .btn{min-height:48px}
+@media (max-width:760px){#sec-conf{place-items:end center;padding:0}.sec-conf-c{width:100%;border-radius:26px 26px 0 0;padding-bottom:max(20px,env(safe-area-inset-bottom))}}
+.sec-bande{position:fixed;top:0;left:0;right:0;height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:10px 14px;padding:0 12px;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px;overflow:hidden}
+.sec-bande-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec-bande-b{flex:none;min-height:44px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+html.sec-voir body{padding-top:44px}
+.cn-compte,.cn-tel,.cn-quit{min-height:44px}.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}.sec-adr{overflow-wrap:anywhere}.sec-tab td.sec-adr{min-width:9.5em}
+@media (min-width:1100px){.cn-tel{display:none}}
+</style>`);
+
 /* ── les écrans de connexion (§ 3) : toujours une carte .cn-carte dans #cnx, le logo et le nom ne bougent pas d'un écran à l'autre ── */
 const cnxIdNorm = t => String(t || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');   /* « Léa » passe comme « lea » : on compare sans accents · 13 novembre 2026 */
 const cnxPastilleTel = () => SECU_DEMO ? '<button type="button" class="ops-pastille" data-ops-ouvrir>Ouvrir OP Security</button>' : '';
@@ -25095,6 +25587,7 @@ function cnxValider(){ const id = cnxIdNorm(document.getElementById('cn-id').val
   cnxGlisser(() => cnxConfirmer(p, d)); }
 function cnxEntrer(p, texte){ SECU.pc = { ecran:null, k:null, demandeId:null }; cnxCharger(() => { sessionOuvrir(p.k); toast(texte || 'Bonjour ' + p.prenom); }, 'Connexion de ' + p.prenom + '…', 1100); }
 function sessionFermer(raison){ const k = SESSION; SESSION = null; if (k) { delete SECU.sessions[k]; delete SECU.confirmeA[k]; }
+  if (SECU.vraie) { delete SECU.sessions[SECU.vraie]; delete SECU.confirmeA[SECU.vraie]; SECU.vraie = null; } secuConfFermer(true, false, true); secuBande();   /* se déconnecter pendant « Ouvrir comme » ferme aussi la session de l'administrateur */
   Object.keys(SECU.ui).forEach(j => { const u = SECU.ui[j]; if (u.ecran === 'ouvert') { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } });
   SECU.auto = false; SECU.pc = { ecran:null, k:null, demandeId:null }; SECU.ouvert = opsLarge();
   if (typeof gdQuitter === 'function' && GD.actif) gdQuitter(); fermerPanneau(); fermerMenu();
@@ -25131,10 +25624,12 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   else if (a === 'annuler-demande') cnxAnnulerDemande();
   else if (a === 'recommencer') { const p = eqDe(SECU.pc.k); SECU.pc = { ecran:null, k:null, demandeId:null }; cnxGlisser(() => cnxMontrer('', p ? cnxLogin(p) : '')); }
   else if (a === 'code6') cnxCode6();
-  else if (a === 'repose') { ev.stopPropagation(); const p = eqDe(x); secuProvisoireNeuf(x); secuFermerSessions(x, 'admin'); eqFiche(x); opsDemo(); toast('Mot de passe provisoire reposé. À sa prochaine connexion, ' + p.prenom + ' choisira le sien.'); }
+  else if (a === 'repose') { ev.stopPropagation(); secuReposer(x); }
   else if (a === 'copier') { ev.stopPropagation(); copierTexte(b.dataset.t, { ok:'Copié.' }); }
   else if (a === 'sortir') { ev.stopPropagation(); sessionFermer(); }
-  else if (a === 'comme') { ev.stopPropagation(); fermerPanneau(); sessionOuvrir(x); toast('Tu vois l’application comme ' + eqDe(x).prenom + '.' + (MODE_APP ? '' : ' Pour revenir : « Tester en tant que » › Patron.')); }
+  else if (a === 'comme') { ev.stopPropagation(); secuVoirComme(x); }
+  else if (a === 'moncompte') { ev.stopPropagation(); fermerMenu(); secuMonCompte(); }
+  else if (a === 'montel') { ev.stopPropagation(); fermerMenu(); opsMonter(); opsOuvrir(); }
 });
 /* ── plusieurs fenêtres sur Mac · 13 novembre 2026 ──
    Justin : « sur Mac, qu'on puisse ouvrir d'autres catégories en clic droit dans une autre fenêtre, sans que ça relance

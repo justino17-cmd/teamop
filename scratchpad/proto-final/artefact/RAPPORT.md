@@ -83,4 +83,43 @@ Une application iPhone ou Android compilée (WKWebView, WebView) n'est pas un ar
 
 ## 3. Mesures
 
-(voir la fin de ce fichier — complétée après les dernières sondes)
+**Le bac mord** (`artefact-bac-preuve.js`). Sur la version d'AVANT (copie du 17 novembre au matin), sans pont « downloads » : 4 téléchargements inertes comptés (CSV frais d'un véhicule, CSV coût des véhicules, FEC provisoire,
+PDF de l'atelier), 1 `window.open` à vide (bulletin de paie) — et **chaque écran annonçait le contraire** (« Frais exportés pour ton expert-comptable », « Fichier des écritures téléchargé », « PDF téléchargé »).
+Sur la version corrigée : plus un seul lien inerte, chaque geste dit ce qui se passe, le bulletin s'ouvre dans la page (5 ✓).
+
+**Sondes** (toutes sous le bac à sable ; chiffres du 17 novembre) :
+
+| sonde | ce qu'elle joue | résultat |
+|---|---|---|
+| `artefact-telechargements.js` | pont (nom, type, taille, 8 premiers octets), refus, échec, trop lourd, trop de demandes, extension refusée, fichier vide, sans pont, 4 états du presse-papiers, 3 liens tel/mailto/sms × 2 appareils, carte (tient dans l'écran, pas sur la barre du bas), visionneur de fichier choisi, câblage des gestes réels (CSV ×2, FEC), un seul `.download =` par fichier | 63 ✓ · 0 ✗ |
+| `artefact-cadres.js` | comptabilité (FEC par le vrai bouton), atelier de documents (PDF), paiement ; le cadre n'a PAS `window.claude` ; pont du parent, refus, sans pont | 26 ✓ · 0 ✗ |
+| `artefact-courrier.js` | Boîte mail › Écrire › Joindre un PDF › Aperçu › Télécharger : le PDF arrive au pont ; refus ; sans pont | 14 ✓ · 0 ✗ |
+| `artefact-rangement.js` | 3 variantes de rangement refusé × 3 rôles × 2 appareils (ouverture, 14 écrans, devis rapide, thème nuit) + 3 pages voisines seules | 144 ✓ · 0 ✗ |
+| `artefact-adresses.js` | toutes les routes de la table des écrans (aucune hors forme, aucune réservée), adresses écrites, fiches, #settings / #comment-123 / #upgrade | 24 ✓ · 0 ✗ |
+| `artefact-carte.js` | hôtes coupés comptés ; la carte dit « Carte réelle indisponible ici… dessin simplifié » avec « Réessayer » | 10 ✓ · 0 ✗ |
+| `artefact-captures.js` | carte du numéro et carte « à copier », mac/iPhone, jour/nuit, contraste de l'encre ≥ 4,5 | 16 ✓ · 0 ✗ |
+| `artefact-recensement.js` | part du DOM : chaque geste qui sort (télécharger, exporter, copier, appeler, écrire, site, fichier joint), sur chaque écran du menu ET dans les fenêtres/fiches qu'un geste ouvre ; touché pour de vrai | gérant mac 43 ✓ / iPhone 57 ✓ ; secrétariat mac 39 ✓ / iPhone 62 ✓ ; technicienne mac 29 ✓ / iPhone 49 ✓ (population : de 43 à 94 gestes jugés par passage, 5 minutes chacun) |
+
+Le recensement a, entre autres, prouvé **de bout en bout un vrai PDF** : « ⤓ Télécharger le PDF » (document en grand) livre au pont un fichier non vide. Il a trouvé un dernier défaut : le bouton « Appeler Karim » du planning
+annonçait « 📞 Appel de Karim… » avec un numéro fictif ; il montre désormais le vrai numéro dans la carte.
+
+**Mutations** (`artefact-mutations.js`, 16, sur des copies ; l'ancien texte est vérifié unique avant chaque mutation) : **16 mordent, 0 survivante** — pont plus demandé (17 ✗), refus annoncé comme un enregistrement, sans pont annoncé « enregistré »,
+CSV revenu au lien à la main, carte du numéro retirée, copie refusée sans texte à copier, texte non sélectionné d'avance, fichier blob: sans visionneur, bulletin revenu à `window.open`, module qui ne demande plus à son hôte (×2),
+comptabilité et atelier sans le pont du parent, rangement non protégé (espace, thème, IndexedDB du module).
+
+**Bancs du dépôt** (depuis l'arbre de travail) : `compiler-pages` ✓, `verifier-syntaxe` ✓, test-835 (844 ✓), test-836 (307 ✓), test-837 (122 ✓), test-1008 (54 ✓), test-2994 (15 ✓), `verif-secrets.sh` ✓ — tous à 0 ✗.
+
+**Défauts de l'outil lui-même, trouvés en route** (la règle du dépôt : une mesure qui échoue dit pourquoi) : le bac comptait « inerte » un lien que la page prend en charge elle-même (décision déplacée en fin de remontée) ;
+un Blob fabriqué dans un CADRE n'est pas un `instanceof Blob` de la page du haut (le bac refusait le fichier à tort) ; le premier recensement de gestes d'un cadre rendait « 0 candidat » (l'état d'un filtre « Par mois » changeait la liste pour les suivants : les candidats se testent
+tout de suite après leur découverte).
+
+## 4. Ce qui n'a PAS pu être vérifié (à DIRE)
+
+- **Le vrai artefact** : le pont `downloads` réel (fenêtre de confirmation, refus par le visiteur, comportement sur iPhone/Android de claude.ai) n'est simulé que d'après `downloads.d.ts` 0.2.75. La capacité `downloads` doit être DÉCLARÉE à la publication (`capabilities: {downloads: true}` ; `sample` si l'IA de l'atelier doit servir) : à vérifier sur la publication.
+- **Même origine des cadres** (voir en tête) : si le cadre de l'artefact sert les pages voisines d'une origine opaque, `window.parent.claude` n'est pas lisible et un cadre dit « pas disponible ici » ; un pont `postMessage` est la parade (non écrit).
+- **La carte réelle avec bibliothèques chargées** : sans Internet, cdnjs est injoignable ici ; le repli « bibliothèque de carte injoignable » est joué, pas le cas « bibliothèques chargées, tuiles coupées » (4 erreurs ou 10 s, déjà prévu par la page).
+- **`html2canvas`** (PDF de l'atelier des documents, par la page voisine) : chargé depuis cdnjs, injoignable ici : le PDF de l'atelier est joué par la fonction d'enregistrement, pas par sa fabrication complète.
+- **Images `blob:`** (photos de tickets, justificatifs) : leur affichage dans un cadre verrouillé dépend de la politique de contenu réelle de l'artefact.
+- **Les liens `tel:`/`mailto:`/`sms:`** sur un vrai téléphone : le bac les annule ; la carte est donc affichée même quand le système les ouvrirait bien.
+- Un recensement de 5 minutes par passage ne couvre pas tout (12 à 14 routes « non faites » par passage du gérant, listées par la sonde) : la couverture par fonction (fichier de sortie, fenêtre, fiche) est complète, celle des écrans l'est à moitié.
+- **Machine partagée** : pendant la session, des fichiers `/tmp/chaine*.sh` d'autres agents ont pu être écrasés ou allongés par mes essais (noms trop génériques) ; tout est rangé désormais dans `/tmp/opg-artefact/`.
