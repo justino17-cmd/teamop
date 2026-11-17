@@ -3271,6 +3271,7 @@ body.dp-ouvert{overflow:hidden}
 .ac-g{position:relative;--nomw:250px;--teteh:66px}
 @media (max-width:760px){.ac-g{--nomw:128px}}
 .carte.ac .ac-nom{width:var(--nomw)}
+.ac-mo em{left:calc(var(--nomw) + 8px)}   /* le nom du mois colle à droite de la colonne des noms (250 px) : à 208 px il passait 42 px SOUS elle sur iPad, et « Octobre 2026 » se lisait « re 2026 » */
 .carte.ac.ac-eq .ac-tete{height:var(--teteh);min-height:var(--teteh)}
 .carte.ac .ac-c.we,.carte.ac .ac-c.fer,.carte.ac .ac-tetep .ac-jn.we,.carte.ac .ac-tetep .ac-jn.fer,.carte.ac.ac-eq .ac-c.etr{background:var(--ac-nt)}
 .carte.ac .ac-tetep .ac-jn.fer,.carte.ac .ac-tetep .ac-jn.fer small{color:var(--orange)}
@@ -5166,14 +5167,18 @@ function manque(F){
   if (!F.compte.trim()) L.push('« ' + MOT_COMPTE[F.metier].toLowerCase() + ' »');
   return L;
 }
+/* la liste vide dit POURQUOI et quoi faire (comme Tâches et l'Accueil) : « Rien ici. » seul laissait un débutant sans piste */
+function intVide(f){
+  const [t, d, creer] = { auj:['Rien de prévu aujourd’hui', 'Quand une intervention est posée sur ce jour, elle s’affiche ici.', 1], avenir:['Aucune intervention à venir', 'Programme-en une, elle s’affichera ici dès qu’elle a une date.', 1], plan:['Rien à planifier', 'Une intervention sans date ni technicien attend ici qu’on la place au planning.', 0], fait:['Aucune intervention terminée', 'Chaque intervention terminée s’ajoute ici, avec son compte rendu.', 0] }[f] || ['Aucune intervention', 'Crée la première avec « Nouvelle intervention ».', 1];
+  return `<div class="t-vide"><b>${t}</b><span>${d}</span>${creer ? '<button type="button" class="btn" data-creer="1" style="margin-top:12px">＋ Nouvelle intervention</button>' : ''}</div>`; }
 function vueInterventions(){
   const f = filtreInt, L = [...INTS].filter(i => f === 'tout' ? true : f === 'auj' ? i.d === AUJ && i.st !== 'annulee' : f === 'avenir' ? i.d > AUJ && i.st !== 'fait' && i.st !== 'annulee' : f === 'plan' ? i.st === 'aplanifier' : i.st === 'fait').sort((a,b) => (a.d+a.h).localeCompare(b.d+b.h));
   const n = k => INTS.filter(i => k === 'auj' ? i.d === AUJ && i.st !== 'annulee' : k === 'avenir' ? i.d > AUJ && i.st !== 'fait' && i.st !== 'annulee' : k === 'plan' ? i.st === 'aplanifier' : k === 'fait' ? i.st === 'fait' : true).length;
   return `<div class="tete"><div><span class="surtitre">Travail</span><h1>Interventions</h1></div><button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button></div>
   <div class="seg" role="group" aria-label="Filtre">${[['auj','Aujourd’hui'],['avenir','À venir'],['plan','À planifier'],['fait','Terminées'],['tout','Toutes']].map(([k,l])=>`<button type="button" data-filtreint="${k}" aria-pressed="${f===k}">${l} · ${n(k)}</button>`).join('')}</div>
   <div class="carte tableau liste-bureau" style="padding:6px 8px"><table class="l"><thead><tr><th>Quand</th><th>Intervention</th><th>Client</th><th>Technicien</th><th>État</th></tr></thead><tbody>
-  ${L.map(i=>`<tr class="clic" data-go="inter-x-${i.id}"><td style="white-space:nowrap">${i.st === 'aplanifier' ? '<b>Date à fixer</b>' : `<b>${jlib(i.d)}</b> · ${i.h}`}</td><td><b>${esc(i.titre)}</b><br><span class="gris mini">${i.type} · ${duree(i.dur)}</span></td><td>${esc(CLIENTS[i.cli].nom)}</td><td><span style="display:inline-flex;gap:8px;align-items:center">${avatar(tech(i.tech),'p')}${tech(i.tech).nom}</span></td><td><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></td></tr>`).join('') || '<tr><td colspan="5" class="gris">Rien ici.</td></tr>'}</tbody></table></div>
-  <div class="carte liste-tel">${L.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span>${i.st === 'aplanifier' ? '<b class="jl-h">Date à fixer</b>' : `<b class="jl-h">${i.h}</b><span class="gris mini">${jlib(i.d)}</span>`}</span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}<br>${i.type} · ${duree(i.dur)}</span></span></span><span>›</span></button>`).join('') || '<span class="gris">Rien ici.</span>'}</div>`;
+  ${L.map(i=>`<tr class="clic" data-go="inter-x-${i.id}"><td style="white-space:nowrap">${i.st === 'aplanifier' ? '<b>Date à fixer</b>' : `<b>${jlib(i.d)}</b> · ${i.h}`}</td><td><b>${esc(i.titre)}</b><br><span class="gris mini">${i.type} · ${duree(i.dur)}</span></td><td>${esc(CLIENTS[i.cli].nom)}</td><td><span style="display:inline-flex;gap:8px;align-items:center">${avatar(tech(i.tech),'p')}${tech(i.tech).nom}</span></td><td><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></td></tr>`).join('') || `<tr><td colspan="5">${intVide(f)}</td></tr>`}</tbody></table></div>
+  <div class="carte liste-tel">${L.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span>${i.st === 'aplanifier' ? '<b class="jl-h">Date à fixer</b>' : `<b class="jl-h">${i.h}</b><span class="gris mini">${jlib(i.d)}</span>`}</span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}<br>${i.type} · ${duree(i.dur)}</span></span></span><span>›</span></button>`).join('') || intVide(f)}</div>`;
 }
 let filtreInt = 'auj';
 function vueFiche(id){
