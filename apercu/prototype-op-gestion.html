@@ -1337,6 +1337,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   background:color-mix(in srgb,var(--tc) 13%,var(--mix-carte));border:1px solid color-mix(in srgb,var(--tc) 32%,transparent);box-shadow:0 1px 2px rgba(0,0,0,.06);
   color:var(--encre);text-align:left;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:box-shadow .15s,transform .2s var(--ressort)}
 .pc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.pc.fait{cursor:pointer}   /* une intervention terminée s'ouvre, elle ne se déplace pas : la main qui attrape promettait un geste qui ne vient pas (recontrôle du planning, 17 novembre) */
 .pc:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);z-index:4}
 .pc .h{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.01em}
 .pc .h .ic{margin-left:auto;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--c) 18%,transparent);color:color-mix(in srgb,var(--c) 78%,var(--encre))}
@@ -2642,7 +2643,7 @@ body.dp-ouvert{overflow:hidden}
   .ts-g{grid-column:1/-1;order:3;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px;overscroll-behavior-x:contain}.ts-g::-webkit-scrollbar{display:none}
   .ts-g>*{flex:none;white-space:nowrap}.ts-g .ts-fait{order:-1}}
 .t-confier{display:flex;align-items:center;gap:8px}.t-confier select{min-height:38px}
-.t-ici-tout{display:block;padding:10px;border-top:1px solid var(--trait);color:var(--lien);font-weight:700;text-decoration:none;font-size:13.5px}
+.t-ici-tout{display:flex;align-items:center;min-height:44px;padding:10px;border-top:1px solid var(--trait);color:var(--lien);font-weight:700;text-decoration:none;font-size:13.5px}
 .t-ici{margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--lien) 8%,var(--feuille));border:1px solid color-mix(in srgb,var(--lien) 22%,transparent);padding:4px 6px}
 .t-ici summary{display:flex;align-items:center;gap:8px;padding:10px 10px;cursor:pointer;list-style:none;min-height:44px}.t-ici summary::-webkit-details-marker{display:none}
 .t-ici summary::after{content:'›';margin-left:auto;transition:rotate .2s;color:var(--doux)}.t-ici[open] summary::after{rotate:90deg}
@@ -4428,7 +4429,8 @@ function crReel(){ if (crReelEtat === 'ko') return; const el = document.getEleme
   crChargerLeaflet().then(() => { try { crMonter(el); } catch (e) { try { if (el._m) el._m.remove(); } catch (x) {} el._m = null; crLf = null; crRepli(e && e.message || 'la carte n’a pas pu s’afficher'); } }, e => crRepli(e && e.message)); }
 function crMonter(el){
   if (!el.isConnected || el._m) return;
-  if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
+  /* l'ancienne carte cesse d'écouter AVANT d'être retirée : plus aucun mouvement tardif d'une carte morte ne retrace ou ne mémorise quoi que ce soit */
+  if (crLf && crLf.map) { try { crLf.map.off('moveend'); crLf.map.remove(); } catch (e) {} }
   const map = L.map(el, { zoomControl:false, attributionControl:true, zoomSnap:MAC ? 0 : .25, zoomDelta:1, wheelPxPerZoomLevel:90, maxZoom:19, minZoom:4 })   /* zoom ENTIER : un demi-zoom agrandit les tuiles d'un niveau sur celles d'un autre, et la couture se voyait (un rectangle clair au milieu de la carte, 5 novembre 2026) */; el._m = map;
   if (!crGlPossible()) { try { map.remove(); } catch (e) {} el._m = null; return crRepli('cet appareil ne sait pas dessiner la carte'); }
   const gl = L.maplibreGL({ style:crStyle(), attributionControl:false }).addTo(map);
@@ -4440,7 +4442,10 @@ function crMonter(el){
   /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
      recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
      sur leur voisin (planning-07, rejoué sur iPhone) */
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
+  /* la vue retenue porte le jour et la personne DE CETTE CARTE (pris au montage), pas ceux du moment : un « moveend » tardif de l'ancienne carte (le zoom qui finit
+     de s'animer pendant que « Suivant » change la date) y écrivait le nouveau jour avec l'ancien cadrage, et le nouveau jour s'ouvrait là où on regardait la veille */
+  const jourCarte = plRef, focusCarte = crFocus;
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:jourCarte, focus:focusCarte }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4459,6 +4464,9 @@ function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
   const map = crLf.map, g = crLf.couche; g.clearLayers();
+  /* les bulles de trajet (« 54 min · 41 km ») vivent dans un calque À ELLES, sous celui des repères : Leaflet range les repères d'un même calque par leur
+     hauteur à l'écran, et une bulle posée plus bas que le repère d'une urgence le recouvrait (recontrôle du planning, 17 novembre) */
+  if (!map.getPane('crTrajets')) map.createPane('crTrajets').style.zIndex = 590;
   const d = plRef, T = crTournees(d), C = crAConfier(d), maint = d === AUJ ? MAINT_MIN : d < AUJ ? 9e9 : -1;
   T.forEach(({ t, S, retour }) => { if (!S.length) return; const loin = crFocus && crFocus !== t.id;
     let prec = CR_DEPOT;
@@ -4467,7 +4475,7 @@ function crTracerReel(){
       L.polyline([o.a, o.b], { color:'#ffffff', weight:8, opacity:.85 * op, interactive:false }).addTo(g);
       L.polyline([o.a, o.b], { color:t.c, weight:4.5, opacity:op, dashArray:o.retour ? '2 9' : null, lineCap:'round', interactive:false }).addTo(g);
       if (!loin && !o.retour && map.latLngToContainerPoint(o.a).distanceTo(map.latLngToContainerPoint(o.b)) > 120) { const txt = crMinTxt(o.tr.min) + ' · ' + crKmTxt(o.tr.km), w = Math.round(txt.length * 6.6 + 18);
-        L.marker([(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2], { interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${o.retard ? 'r' : ''}">${txt}</span>`, iconSize:[w, 22], iconAnchor:[w / 2, 11] }) }).addTo(g); } }); });
+        L.marker([(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2], { pane:'crTrajets', interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="cr-lbl-tr ${o.retard ? 'r' : ''}">${txt}</span>`, iconSize:[w, 22], iconAnchor:[w / 2, 11] }) }).addTo(g); } }); });
   const pins = [{ dep:1, ll:CR_DEPOT }];
   T.forEach(({ t, S }) => S.forEach(x => { if (!x.bureau) pins.push({ id:x.i.id, ll:crPos(x), c:t.c, n:x.n, loin:crFocus && crFocus !== t.id, retard:x.retard, nom:CLIENTS[x.i.cli].nom, h:x.i.h, qui:t.nom }); }));
   C.forEach(i => pins.push({ id:i.id, ll:CR_GEO[i.cli] || CR_DEPOT, c:i.urgent ? 'var(--rouge)' : 'var(--orange)', n:'!', urgent:i.urgent, conf:1, loin:!!crFocus, nom:CLIENTS[i.cli].nom, h:i.h, qui:'à confier' }));
@@ -4479,10 +4487,15 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* ni sous un bouton de la carte — mesuré sur la carte telle qu'elle est : sur iPad, le dernier repère de Sophie (Rochefort) tombait sous « Auto · Jour · Nuit »
+       et le toucher y changeait le fond de carte (recontrôle du planning, 17 novembre) ; le plan de la page donne le rectangle de chaque groupe de boutons */
+    const cont = map.getContainer().getBoundingClientRect(), obst = [...document.querySelectorAll('#cr-carte .cr-fonds, #cr-carte .cr-outils, #cr-carte .cr-chips, #cr-carte .cr-note')].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+      .map(r => [r.left - cont.left - 17, r.top - cont.top - 17, r.right - cont.left + 17, r.bottom - cont.top + 17]);
+    const sous = (x, y) => obst.some(r => x > r[0] && x < r[2] && y > r[1] && y < r[3]);
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178) && !sous(x, y);
     /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
        que de laisser le repère sur son voisin */
-    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    if (!lib(X, Y, ecart) || (X > 0 && X < sz.x && Y > 0 && Y < sz.y && sous(X, Y))) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
@@ -4523,6 +4536,12 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('[data
 document.addEventListener('drop', e => { const c = e.target.closest?.('[data-crcible]'); document.querySelectorAll('.cr-t.cible').forEach(x => x.classList.remove('cible')); if (!c) return; e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) crConfier(id, c.dataset.crcible); });
 document.addEventListener('mouseover', e => { if (plVue !== 'carte') return; const a = e.target.closest?.('.cr-arr[data-crsel]'); const g = document.querySelector(`[data-crpin="${a ? a.dataset.crsel : '_'}"]`); document.querySelectorAll('.cr-pin.survol').forEach(x => x !== g && x.classList.remove('survol', 'on')); if (g && !g.classList.contains('on')) g.classList.add('survol', 'on'); });
 addEventListener('resize', () => { if (route === 'planning' && plVue === 'carte') { if (crEmpileRendu !== null && crEmpile() !== crEmpileRendu) { rendre(); return; } crAjusterHauteur(); crDessiner(); if (crLf && crLf.map && crLf.el.isConnected) crLf.map.invalidateSize(); if (document.getElementById('cr-ftel')) crFiche(); } });
+/* Vue d'ensemble : une carte DÉJÀ à moitié visible (le bout qui dépasse de la colonne des noms) n'est pas ramenée par le navigateur au focus — scroll-padding ne
+   joue que pour ce qui est hors champ. Au clavier la carte restait donc presque entièrement cachée sous les noms, seul l'anneau de focus dépassait (recontrôle du
+   planning, 17 novembre). On la ramène nous-mêmes, d'un geste, à droite de la colonne. */
+document.addEventListener('focusin', ev => { const e = ev.target, sc = e.closest && e.closest('.pl-defile'); if (!sc || e.closest('.pg-tec') || !sc.querySelector('.pg-g')) return;
+  requestAnimationFrame(() => { const col = sc.querySelector('.pg-tec'); if (!col || !sc.contains(e)) return; const ar = col.getBoundingClientRect().right, r = e.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+    if (r.width && r.left < ar - 1 && r.right > sr.left) sc.scrollBy({ left:r.left - ar - 4, behavior:'auto' }); }); });
 document.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || route !== 'planning' || plVue !== 'carte') return; if (crPlein) { crPlein = false; rendre(); } else if (crSel && !document.querySelector('.voile')) crChoisir(null, true); });
 
 /* ══ LE GESTE : glisser (souris, ou doigt après appui long), deux barres d'heure, enregistré au lâcher ══ */
@@ -4698,7 +4717,11 @@ function heureSous(col, y){ const r = col.getBoundingClientRect(); return Math.m
 /* souris */
 document.addEventListener('mousedown', ev => {
   if (ev.button !== 0) return; const t = ev.target.closest('[data-tire]'), el = t || ev.target.closest('.pc[data-int],.pc[data-bur]'); if (!el) return; if (el.closest('.fen') && (el.dataset.int || el.dataset.bur || el.dataset.tire) !== 'brouillon') return;   /* dans la fenêtre de création, on ne déplace que le brouillon · 13 novembre 2026 */
-  const i = trouve(el.dataset.int || el.dataset.bur || el.dataset.tire); if (!i || i.st === 'fait') return;
+  const i = trouve(el.dataset.int || el.dataset.bur || el.dataset.tire); if (!i) return;
+  if (i.st === 'fait') {   /* un glissement qui ne déplace rien se DIT, une fois : sinon le geste a l'air de n'avoir pas pris */
+    let parle = false; const a0 = ev.clientX, b0 = ev.clientY, dit = e => { if (!parle && Math.hypot(e.clientX - a0, e.clientY - b0) > 8) { parle = true; removeEventListener('mousemove', dit); toast('Une intervention terminée ne se déplace pas.'); } },
+      fin = () => { removeEventListener('mousemove', dit); removeEventListener('mouseup', fin); if (parle) bloque(); };   /* le relâcher d'un glissement ne doit pas « cliquer » la colonne dessous (menu Créer ici) */
+    addEventListener('mousemove', dit); addEventListener('mouseup', fin); return; }
   ev.preventDefault(); const x0 = ev.clientX, y0 = ev.clientY; let parti = false;
   const copie = ev.altKey;
   const mv = e => { if (!parti && Math.hypot(e.clientX - x0, e.clientY - y0) > 4) { parti = true; fermerMenu(); debutGeste(el, x0, y0, t ? 'taille' : 'deplacer'); if (G && copie && !t && !estBloc(G.i) && G.i.st !== 'brouillon') { G.copie = true; G.el.classList.remove('source'); G.f.querySelector('.t').textContent = 'Copie · ' + G.i.titre; } } if (parti) suivre(e.clientX, e.clientY); };
@@ -13158,11 +13181,21 @@ const COMMUNES = [['la rochelle','La Rochelle',1,0,'La Rochelle'],['lagord','Lag
    jamais — l'étape tombait au dépôt (0 km) et le technicien partait au mauvais endroit. Centres de commune, à quelques centaines de mètres. */
 const COMMUNES_GEO = { 'la rochelle':[46.1603,-1.1511], 'lagord':[46.1853,-1.1507], 'puilboreau':[46.1795,-1.1133], 'nieul sur mer':[46.1736,-1.1853], 'perigny':[46.1456,-1.1066],
   'aytre':[46.1331,-1.1228], 'angoulins':[46.0967,-1.0953], 'chatelaillon':[46.0712,-1.0912], 'salles sur mer':[46.0836,-1.0402], 'rochefort':[45.9378,-0.9617], 'marans':[46.3114,-0.9970] };
-function geoDeAdresse(adr){ const a = sansAccent(adr || ''), c = COMMUNES.find(x => a.includes(x[0])); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
+/* La commune d'une adresse est celle qui SUIT le code postal (ou, sans code postal, le dernier morceau après la virgule) : une rue peut porter
+   le nom d'une autre commune (« 12 Route de La Rochelle, 17300 Rochefort » : le client est à Rochefort, pas à 38 km de là — recontrôle du planning,
+   17 novembre). Ce n'est qu'à défaut qu'on cherche dans toute l'adresse, comme avant. */
+function communeDe(adr){
+  const a = sansAccent(adr || ''), cp = a.match(/\b\d{5}\b(.*)$/), vir = a.lastIndexOf(',');
+  const queue = [cp ? cp[1] : '', vir >= 0 ? a.slice(vir + 1) : ''];
+  for (const t of queue) { const c = t.trim() && COMMUNES.find(x => t.includes(x[0])); if (c) return c; }
+  /* ni code postal ni virgule : l'adresse se termine par la commune, donc c'est la dernière nommée qui l'emporte (« 12 Route de La Rochelle Rochefort ») */
+  return COMMUNES.filter(x => a.includes(x[0])).sort((x, y) => a.lastIndexOf(y[0]) - a.lastIndexOf(x[0]))[0] || null;
+}
+function geoDeAdresse(adr){ const c = communeDe(adr); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
 const ADRESSES = ['10 Rue de la Gravière, 17220 Salles-sur-Mer','2 Rue de la Gare, 17220 Salles-sur-Mer','15 Avenue Jean Jaurès, 17000 La Rochelle','8 Rue des Lilas, 17140 Lagord','21 Boulevard Joffre, 17000 La Rochelle','4 Rue du Port, 17000 La Rochelle',
   '3 Avenue de la Plage, 17340 Châtelaillon-Plage','14 Rue Gambetta, 17440 Aytré','6 Rue des Marais, 17180 Périgny','12 Rue de la République, 17300 Rochefort'];
 const sansAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[-']/g,' ');
-function reconnaitre(adr){ const a = sansAccent(adr || ''); const c = COMMUNES.find(x => a.includes(x[0])); return c ? { commune:c[1], zone:c[2], km:c[3], secteur:c[4], min:Math.round(c[3] * 1.3 + 6) } : null; }
+function reconnaitre(adr){ const c = communeDe(adr); return c ? { commune:c[1], zone:c[2], km:c[3], secteur:c[4], min:Math.round(c[3] * 1.3 + 6) } : null; }
 let TYPES = ['Dépannage','Entretien','Installation','Mise en service','Visite de contrôle','2ᵉ passage'];
 const TITRES = { 'Dépannage':'Dépannage climatisation', 'Entretien':'Entretien climatisation', 'Installation':'Installation d’un split mural', 'Mise en service':'Mise en service pompe à chaleur', 'Visite de contrôle':'Visite de contrôle', '2ᵉ passage':'2ᵉ passage' };
 const MOTIFS = { 'Dépannage':'Ex. : la clim fait du bruit et ne refroidit plus depuis ce matin', 'Entretien':'Ex. : entretien annuel, accès par la cour', 'Installation':'Ex. : un split dans la chambre, le client fournit le support', 'Mise en service':'Ex. : appareil posé la semaine dernière, à mettre en route', 'Visite de contrôle':'Ex. : vérifier l’étanchéité après réparation', '2ᵉ passage':'Ex. : remplacer la pièce commandée' };
