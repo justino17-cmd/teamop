@@ -11,7 +11,8 @@
   "numéros : devis composé D-2026-042, devis rapide D-2026-043, devis composé D-2026-044, aucun numéro en double (10 numéros relevés) ; brouillon, envoyé, signé (raccourci DIT : la signature au doigt n'est pas rejouée) : onglets À envoyer / En attente / Acceptés / Refusés / Tous et quatre chiffres du haut recalculés (+1, +57,60 €) : mac et iphone ; fiche du client",
   "sorties : Échap sans contenu (ferme), Échap avec contenu (confirmation), Échap sur la confirmation, croix, Continuer, Abandonner (rien créé, rouvert vide), Retour du navigateur (UNE entrée d'historique consommée, saisie reprise AVEC le dire « Ton devis en cours est repris ») : devis et contrat, mac et iphone, 31 contrôles chacun",
   "rotation et redimensionnement : mac 1440 → 1180 → 1024 → 900 → 1440 ; ipad portrait → paysage → 1024 → 900 → 1440, avec et sans l'aperçu plein écran ouvert",
-  "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad"
+  "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad",
+  "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)"
  ],
  "defauts": [
   {
@@ -114,6 +115,64 @@
    "preuve": "valeurs.js : « prix « 199,90 » (champ relu : « 199,9 ») » sur mac et iphone ; capture devis-android-jour-marc-3-remise.png (fiche Ligne de prix : « 199,9 »)",
    "ou": "scratchpad/proto-final/atelier/page.source:5261 (rawMontant(l.puC))",
    "correction": "Rendre le champ avec deux décimales quand on le quitte (199,90) ; garder la saisie brute pendant la frappe"
+  },
+  {
+   "n": "tout-06",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / Composer un contrat > « Créer le devis » (« Créer le contrat »), ordinateur à deux colonnes",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "windows jour"
+   ],
+   "etapes": [
+    "Ordinateur (1366 px ou plus)",
+    "Composer un devis : un client, un article",
+    "Double-cliquer vite sur « Créer le devis » (en haut à droite)"
+   ],
+   "attendu": "Le devis est créé et l'éditeur s'ouvre ; le second clic est ignoré",
+   "constate": "L'éditeur s'ouvre, et le second clic tombe sur le bouton « Envoyer » qui prend la place de « Créer » au même endroit : la fenêtre « Envoyer le devis » s'ouvre (adresse du client déjà remplie, « Envoyer (exemple) » prêt à toucher) ; pour un contrat : « Envoyer à signer — Avant d'envoyer, il manque : adresse du site ». Un double clic est un geste courant à la souris",
+   "preuve": "double-creer.js : « devis après un double clic sur Créer : dialogue [Envoyer le devis Pour Objet Message D-2026-042.pdf] » et « contrat : dialogue [Envoyer à signer Avant d'envoyer Il manque : adresse du site] » sur mac ET windows (4/4) ; capture dbl-mac-jour-devis.png ; sur iPad (une colonne, « Créer » en bas) le même double clic ne fait rien de tel (0/2)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5653-5672 (viergeCreer ferme la fenêtre et ouvre l'éditeur de façon synchrone) et :1486 (.vv-pl .fen-pied passe en haut à droite à partir de 1032 px, juste sous le futur bouton « Envoyer » de l'éditeur)",
+   "correction": "Ignorer les clics de l'éditeur pendant 400 ms après la création (par exemple pointer-events:none sur la barre de l'éditeur le temps d'un fondu), ou ne pas faire coïncider « Créer » et « Envoyer »"
+  },
+  {
+   "n": "tout-07",
+   "gravite": "gênant",
+   "ecran": "Devis et Contrats > liste « Composés dans l'atelier » et éditeur d'un document composé",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": [
+    "Composer un devis (ou un contrat), le créer, revenir à OP GESTION",
+    "Chercher comment le supprimer : ligne de la liste, éditeur (menu « Plus d'actions » au téléphone, barre à l'ordinateur)"
+   ],
+   "attendu": "Un brouillon fait par erreur ou pour essayer se supprime ; sinon la liste s'encombre pour toujours",
+   "constate": "Aucun geste « Supprimer » ni « Dupliquer » : le menu de l'éditeur au téléphone ne contient que Annuler, Rétablir, Modèles, Optimiser avec l'IA ; à l'ordinateur « Supprimer la ligne » ne vise qu'une ligne du devis. Et le numéro est donné dès la création (D-2026-042 en brouillon), alors que « Devis rapide » dit « Le numéro se donnera à l'envoi » : chaque essai consomme un numéro qu'on ne peut plus rendre",
+   "preuve": "menu-editeur.js : iphone « éléments du menu : [Annuler, Rétablir, Modèles, Optimiser avec l'IA] », mac « [Ligne de prix, Section, En option, Dupliquer, Monter, Descendre, Supprimer la ligne] » (ce sont des gestes de ligne) ; cas-limites.js iphone : « gestes supprimer/dupliquer visibles dans l'éditeur : [] » ; code : la suppression d'un document n'existe que dans le menu de l'accueil de l'atelier (page.source:3185-3187), masqué dans OP GESTION (html[data-app] #vue-accueil{display:none}, :1399)",
+   "ou": "scratchpad/proto-final/atelier/page.source:3184-3188 (ACTIONS['menu-doc'], le seul « Supprimer » d'un document, dans l'accueil de l'atelier) et :1398 (html[data-app] #vue-accueil{display:none}) ; apercu/prototype-op-gestion.html : opdLigne (20534) et opdCarte (20543), sans geste de suppression",
+   "correction": "Ajouter « Supprimer ce brouillon » (avec confirmation) à la ligne de la liste ou dans le menu de l'éditeur, limité aux brouillons ; ne donner le numéro qu'à l'envoi comme « Devis rapide », ou dire dans l'éditeur « Numéro provisoire »"
+  },
+  {
+   "n": "tout-08",
+   "gravite": "détail",
+   "ecran": "Devis et Contrats > carte « Composés dans l'atelier »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer et créer un devis ou un contrat",
+    "Revenir sur la page Devis (ou Contrats)"
+   ],
+   "attendu": "Le titre de la carte est calé comme le contenu qu'il annonce, avec l'aération des cartes voisines (21 px du bord, aligné sur le numéro du document)",
+   "constate": "Le titre « COMPOSÉS DANS L'ATELIER · 1 » est collé à 9 px du bord de la carte, 12 px à gauche du numéro (293 contre 305 à l'ordinateur ; 25 contre 33 à 390 px) : il a l'air posé après coup. Le mot « atelier » ne dit rien à un débutant (la page de Devis l'explique plus bas seulement)",
+   "preuve": "titre-liste.js : décalage 9 px (devis et contrat, mac et iphone, 4/4), cartes à padding 6px 8px ; captures liste-mac-jour-1-brouillon.png et contrat-ct-mac-jour-marc-3-liste.png comparées au tableau de la carte voisine",
+   "ou": "apercu/prototype-op-gestion.html : opdCarte (20543), le titre n'a pas le rembourrage des lignes",
+   "correction": "Rembourrer le titre comme les lignes (12 px de plus à gauche) ; envisager « Devis préparés avec le compositeur » / « Documents composés » plutôt que « atelier »"
   }
  ]
 }

@@ -3412,6 +3412,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-sept{margin:6px 0}
 .tt-jr{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);color:var(--encre);font:inherit;cursor:pointer;min-height:56px;padding:9px 4px;display:flex;align-items:center;gap:12px}
 .tt-jr b{font-variant-numeric:tabular-nums;white-space:nowrap}.tt-jr.ouv b{color:var(--orange)}.tt-jr.manque .fo-n{color:var(--doux)}
+.tt-jr{flex-wrap:nowrap}.tt-jr>.fo-n{flex:1 1 0;min-width:0}   /* une ligne de jour ne passe jamais sur deux niveaux : le chevron tombait seul sous le texte à 360 px (la règle des .fo-r de téléphone les fait passer à la ligne) */
 .tt-jd{flex:none;min-width:54px;font-weight:650;font-variant-numeric:tabular-nums}
 .tt-h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
 .tt-det{border-bottom:1px solid var(--trait);padding:2px 0}
@@ -3459,10 +3460,12 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-mh-auj{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px}.tt-mh-auj .btn{min-height:44px}
 .tt-pret{display:flex;flex-direction:column;gap:10px}.tt-pret .fo-n{gap:2px;font-size:16px}.tt-pret .btn.large{width:100%}.tt-pret .lien{align-self:flex-start;min-height:44px}
 .tt-mh-k{margin:12px 0 6px}
+@media (min-width:761px){.tt-pret .btn.large{width:auto;min-width:320px;align-self:flex-start}}   /* sur ordinateur le bouton n'a pas à faire 1 100 px de large */
 .tt-mh-j{display:flex;flex-direction:column;gap:2px}.tt-mh-j>h3{margin:0 0 2px}
 .tt-mh-sem{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:10px 0 0;font-size:15px}.tt-mh-sem:first-of-type{margin-top:2px}.tt-tot-s{font-variant-numeric:tabular-nums;font-weight:700}
 .tt-fiches{display:flex;flex-direction:column;gap:2px}.tt-fp{min-height:60px}.tt-fp .fo-n{flex:1 1 auto;min-width:0}.tt-fp .btn{min-height:44px;flex:none}
-@media (max-width:760px){.tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
+@media (max-width:760px){.tt-pied{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;margin:0 -22px;padding:10px 22px calc(12px + env(safe-area-inset-bottom,0px));background:var(--feuille);border-top:1px solid var(--trait)}   /* au téléphone le bouton reste collé au bas de la feuille, au-dessus du clavier et de l'encoche */
+.tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -12551,9 +12554,11 @@ const TOUR_PAIE = [
     { c:'#contenu [data-paie="releve|tl"]', t:'Ouvre le relevé de Tom', p:'Sa ligne dit « Erreur signalée ». Le relevé s’ouvre en grand.', ok:() => gdPanneau() },
     { c:'#calque .paie-etat', t:'Ce que Tom a écrit', p:'Son message arrive ici, avec la date. Le bouton « Corriger la journée » ouvre directement le bon jour.', suivant:1, si:() => !!PAIE.signales.tl },
     { c:'#calque [data-paie="corriger|tl"]', t:'Touche « Corriger la journée »', p:'La fiche du jour s’ouvre : les heures pointées, et ce qui était prévu au planning.', ok:() => !!document.getElementById('pt-motif'), si:() => !!PAIE.signales.tl },
-    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : sans motif, l’heure ne change pas. Tom le lira sur son relevé.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => !!document.getElementById('pt-motif') },
     { c:() => { const s = PAIE.signales.tl, d = s && paieJourSignale('tl'), p = d && POINTAGES.find(o => o.qui === 'tl' && o.date === d), i = p && document.querySelector(`#calque [data-ptc="${p.id}|fin"]`); return i ? (i.nextElementSibling && i.nextElementSibling.classList.contains('dt-btn') ? i.nextElementSibling : i) : null; },
-      t:'Mets l’heure de fin que Tom indique', get p(){ const a = (PAIE.signales.tl || {}).apres; return a ? `Touche l’heure de fin, puis choisis ${+a.slice(0, 2)} h et ${a.slice(3)} : c’est l’heure que Tom donne. La trace s’écrit toute seule.` : 'Touche l’heure de fin et choisis l’heure que Tom donne : la trace s’écrit toute seule.'; }, ok:() => PT_TRACE.some(t => t.qui === 'tl' && t.champ === 'fin' && /^31\/10/.test(t.le)) },
+      t:'Mets l’heure de fin que Tom indique', get p(){ const a = (PAIE.signales.tl || {}).apres; return a ? `Touche l’heure de fin, puis choisis ${+a.slice(0, 2)} h et ${a.slice(3)} : c’est l’heure que Tom donne. Rien n’est écrit tant que tu n’as pas enregistré.` : 'Touche l’heure de fin et choisis l’heure que Tom donne. Rien n’est écrit tant que tu n’as pas enregistré.'; },
+      ok:() => { const s = PAIE.signales.tl, d = s && paieJourSignale('tl'), p = d && POINTAGES.find(o => o.qui === 'tl' && o.date === d), i = p && document.querySelector(`#calque [data-ptc="${p.id}|fin"]`); return !!i && i.value !== p.fin; } },
+    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : le bouton « Enregistrer la correction » reste gris tant que tu n’as pas écrit pourquoi. Tom le lira sur son relevé.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => { const m = document.getElementById('pt-motif'); return !!m && m.offsetParent !== null; } },
+    { c:'#tt-enr', t:'Touche « Enregistrer la correction »', p:'L’heure d’avant, la nouvelle, qui, quand et pourquoi sont gardés. Si Tom avait déjà confirmé, il devra reconfirmer.', ok:() => PT_TRACE.some(t => t.qui === 'tl' && t.champ === 'fin' && /^31\/10/.test(t.le)) },
     { c:'#calque .paie-trs', t:'La trace est écrite', p:'L’heure d’avant barrée, la nouvelle, qui l’a changée, quand, et pourquoi. Si Tom avait déjà confirmé, il devrait reconfirmer.', suivant:1, si:() => !!document.querySelector('#calque .paie-trs') },
     gdFermer,
     { c:'#contenu [data-paie="releve|tl"]', t:'Rouvre le relevé de Tom', p:'On lui dit que c’est corrigé.', ok:() => gdPanneau() || !PAIE.signales.tl },
@@ -16484,9 +16489,8 @@ function ttFicheJour(k, d){
   const edit = !verr && P.length ? `<div class="tt-edit" id="tt-edit" hidden><div class="tt-motif" id="tt-motif-bloc"><b>Pourquoi changes-tu cette heure ?</b><span class="gris petit">Obligatoire. ${esc(prenom)} le verra sur ses heures du mois.</span>
       <input class="saisie" id="pt-motif" placeholder="Ex. : oubli de pointer en partant" autocomplete="off" maxlength="140" aria-label="Pourquoi changes-tu cette heure ?"></div>
       <span class="tt-err" id="tt-err" role="alert"></span>
-      <div class="actions"><button type="button" class="btn large" id="tt-enr" data-tt="jourok|${k}|${d}" disabled>Enregistrer la correction</button></div><span class="tt-aide-o" id="tt-aide">Écris d’abord pourquoi.</span></div>` : '';
+      <div class="tt-pied"><div class="actions"><button type="button" class="btn large" id="tt-enr" data-tt="jourok|${k}|${d}" disabled>Enregistrer la correction</button></div><span class="tt-aide-o" id="tt-aide">Écris d’abord pourquoi.</span></div></div>` : '';
   const trace = T.map(t => `<div class="paie-tr"><span class="paie-tr-c"><b>${t.champ === 'journee' ? 'Journée ajoutée : ' + esc(t.apres) : (t.champ === 'debut' ? 'Début' : t.champ === 'fin' ? 'Fin' : 'Pause') + ' : <s>' + esc(String(t.avant)) + '</s> → ' + esc(String(t.apres))}</b><span class="gris petit">par ${esc(prenomDe(t.par))} · le ${esc(t.le.replace(' · ', ' à '))} · parce que : ${esc(t.motif)}</span></span></div>`).join('');
-  TT.ficheCle = k + '|' + d;
   foOuvrir(`<span class="surtitre">${esc(jlong(d))}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${g.c || '#5b6676'}" aria-hidden="true">${esc(g.ini || (g.nom || k).split(' ').map(x => x[0]).join('').slice(0, 2))}</span><h2>${esc(H_NOM(k))}</h2></div>
     ${PT_VALIDE[k + L] ? `<div class="info petit">✔ La semaine du ${esc(jCourt(L))} est validée pour la paie. Si tu corriges une heure, elle repasse à valider.</div>` : ''}
     ${a && !P.length ? `<div class="info petit">${esc(a.type)} ce jour-là (Absences et congés).</div>` : ''}
