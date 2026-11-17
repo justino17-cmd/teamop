@@ -3,7 +3,7 @@
 // première connexion (choisir son mot de passe), « Rester connecté » coché ou non, « Mot de passe oublié ? », « Changer d'entreprise »,
 // compte désactivé, clavier (Entrée, Tab ne sort pas de l'écran), « Se déconnecter ». Le prototype n'a pas de serveur : tout est local.
 // Usage : PROFIL=mac|iphone|… NUIT=1 node coque-connexion.js   (rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe)
-const L = require('../../lib.js'), v = L.v;
+const L = require('../../lib.js'), v = L.v, S = require('../../sondes/secu-commun.js');   /* double authentification : la première connexion se joue par les outils des sondes secu-* */
 const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-coque/';
 const att = (p, f, ms) => L.attendre(p, f, ms || 9000);
@@ -54,14 +54,16 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   v('« Mot de passe oublié ? » : le message est lisible (pas de rouge d’erreur)', await p.evaluate(() => getComputedStyle(document.getElementById('cn-err')).color) !== 'rgb(220, 38, 38)');
   await p.screenshot({ path: CAP + `connexion-oubli-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
   // compte désactivé
+  const provTom = await S.provisoire({ p }, 'tl');   // le provisoire de Tom, lu dans le bloc « Démonstration » (seul endroit)
   await p.evaluate(() => { eqDe('tl').actif = false; });
-  await taper('#cn-id', 'tom'); await taper('#cn-mdp', 'Bienvenue17'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await taper('#cn-id', 'tom'); await taper('#cn-mdp', provTom); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   v('compte désactivé : le dit et dit à qui s’adresser', /désactivé/.test(await txt(p, '#cn-err') || '') && /administrateur/.test(await txt(p, '#cn-err') || ''), await txt(p, '#cn-err'));
   await p.evaluate(() => { eqDe('tl').actif = true; });
   // identifiant avec accent / majuscules / espace final
-  await taper('#cn-id', ' Léa '); await taper('#cn-mdp', 'Bienvenue17'); await p.keyboard.press('Enter');
-  v('« Léa » (accent, majuscule, espace) passe vers la première connexion', await att(p, () => !!document.getElementById('cn-form-premier')));
-  v('première connexion : dit le prénom et explique', /Bonjour Léa/.test(await txt(p, '#cn-form-premier h1') || '') && /première connexion/.test(await txt(p, '#cn-form-premier .cn-expl') || ''));
+  const provSophie = await S.provisoire({ p }, 'sm');
+  await taper('#cn-id', ' SOPHIE '); await taper('#cn-mdp', provSophie); await p.keyboard.press('Enter');
+  v('« SOPHIE » (majuscules, espaces) passe vers la première connexion (l’activation du téléphone)', await att(p, () => !!document.getElementById('cn-form-activer')));
+  v('première connexion : dit « Active OP Security » et explique', /Active OP Security/.test(await txt(p, '#cn-form-activer h1') || '') && /chaque connexion se confirme sur ton téléphone/.test(await txt(p, '#cn-form-activer .cn-expl') || ''));
   await tap('[data-cnx="retour"]');
   v('« Revenir à la connexion » ramène à l’identifiant', await att(p, () => !!document.getElementById('cn-form')));
   // « Changer d'entreprise »
@@ -69,45 +71,36 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   v('« Changer d’entreprise » ramène à l’écran du lien', await att(p, () => !!document.getElementById('cn-form-lien')));
   v('« Changer d’entreprise » oublie vraiment l’entreprise (rangement local)', (await p.evaluate(() => localStorage.getItem('opg_proto_espace'))) === null);
   await taper('#cn-lien', 'teamop.fr/e/clim-services-17'); await p.keyboard.press('Enter'); await att(p, () => !!document.getElementById('cn-form'));
-  // 4. première connexion de Marc : les règles du mot de passe
-  await p.waitForTimeout(600);
-  await taper('#cn-id', 'marc'); await taper('#cn-mdp', 'Bienvenue17'); await p.keyboard.press('Enter');
-  v('marc + mot de passe provisoire → « Choisis ton mot de passe »', await att(p, () => !!document.getElementById('cn-form-premier')));
+  // 4. première connexion de Marc : provisoire → téléphone → code de vérification → mot de passe à lui (les règles du mot de passe sont jouées par secu-activation)
   await p.waitForTimeout(600);
   await p.screenshot({ path: CAP + `connexion-premier-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
-  const essai = async (a, b) => { await taper('#cn-n1', a); await taper('#cn-n2', b); await p.keyboard.press('Enter'); await p.waitForTimeout(300); return txt(p, '#cn-err'); };
-  v('mot de passe trop court refusé, dit pourquoi', /Trop court/.test(await essai('abc', 'abc') || ''));
-  v('l’aide « 8 caractères minimum » ne se répète pas à côté de l’erreur « Trop court »', await p.evaluate(() => { const a = document.getElementById('cn-aide'); return !a || getComputedStyle(a).display === 'none'; }));
-  v('huit espaces refusés (on compte les caractères utiles)', /Trop court/.test(await essai('        ', '        ') || ''));
-  v('deux mots de passe différents refusés', /pas les mêmes/.test(await essai('Marc12345', 'Marc12346') || ''));
-  v('le mot de passe provisoire refusé comme mot de passe personnel', /différent/.test(await essai('Bienvenue17', 'Bienvenue17') || ''));
-  await taper('#cn-n1', 'Marc12345'); await taper('#cn-n2', 'Marc12345');
-  await p.locator('#cn-form-premier button[type=submit]').first()[c.doigt ? 'tap' : 'click']();
+  const MDP_MARC = 'Cheval-agrafe-Marc-2026';
+  await S.activer({ p, err:c.err }, 'marc', { mdp:MDP_MARC, guide:true });
   v('mot de passe valable : on entre dans l’application (Bonjour Marc)', await att(p, () => /Bonjour Marc/.test((document.querySelector('#contenu h1') || {}).textContent || '') && !document.getElementById('cnx'), 12000));
   v('après la connexion : plus aucun écran de connexion ni guide devant sans que ce soit voulu', !(await sur(p, '#cnx')));
   const guide = await att(p, () => !!document.getElementById('nv'), 6000);
   v('le guide des nouveautés s’ouvre seul à la PREMIÈRE connexion de la personne', guide);
   if (guide) { v('le guide a un titre et un bouton pour le fermer (« Passer »)', /Bienvenue/.test(await txt(p, '#nv h2') || '') && await sur(p, '#nv [data-nv="fermer"]'), await txt(p, '#nv h2')); await p.screenshot({ path: CAP + `connexion-guide-${PROFIL}${NUIT ? '-nuit' : ''}.png` }); await p.keyboard.press('Escape'); await p.waitForTimeout(500); v('Échap ferme le guide', !(await sur(p, '#nv'))); }
-  // 5. « Rester connecté » (coché par défaut) : un rechargement garde la session
+  // 5. plus de « Rester connecté » : un rechargement ferme la session (décision 6 de la double authentification), la reconnexion se fait par le nombre
+  v('la case « Rester connecté » n’existe plus', !(await p.evaluate(() => !!document.getElementById('cn-reste'))));
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(6500);
-  v('« Rester connecté » coché : après rechargement on est toujours dedans', await att(p, () => !document.getElementById('cnx') && !!document.querySelector('#contenu h1'), 8000));
-  // se déconnecter
+  v('après rechargement : l’écran de connexion, aucune session gardée', await att(p, () => !!document.getElementById('cn-form'), 8000) && await p.evaluate(() => SESSION === null));
+  await p.evaluate(() => { const b = document.getElementById('nv'); if (b) b.remove(); });
+  // se déconnecter : on rouvre une session (première connexion de Julie, complète) puis « Se déconnecter »
+  await S.activer({ p, err:c.err }, 'julie', { mdp:'Cheval-agrafe-Julie-2026' });
   await p.evaluate(() => sessionFermer());
   v('« Se déconnecter » : retour à l’écran de connexion (pas celui du lien)', await att(p, () => !!document.getElementById('cn-form') && !document.getElementById('cn-form-lien'), 8000));
-  v('[coque-01] après déconnexion : rien de la personne précédente ne reste dans la page derrière la connexion', await p.evaluate(() => { const c = document.getElementById('contenu'); return !c || !/Marc/.test(c.textContent) ; }), 'le texte de l’écran de Marc reste dans la page derrière la connexion');
-  await taper('#cn-id', 'marc'); await taper('#cn-mdp', 'Marc12345'); 
-  await p.locator('#cn-reste').uncheck();
-  await p.keyboard.press('Enter');
-  v('reconnexion avec le mot de passe choisi', await att(p, () => !document.getElementById('cnx') && /Bonjour Marc/.test((document.querySelector('#contenu h1') || {}).textContent || ''), 12000));
+  v('[coque-01] après déconnexion : rien de la personne précédente ne reste dans la page derrière la connexion', await p.evaluate(() => { const c = document.getElementById('contenu'); return !c || !/Julie/.test(c.textContent) ; }), 'le texte de l’écran de Julie reste dans la page derrière la connexion');
+  const nombre = await S.jour({ p, err:c.err }, 'julie', 'Cheval-agrafe-Julie-2026');
+  v('reconnexion avec le mot de passe choisi, par le NOMBRE tapé sur le téléphone', await att(p, () => !document.getElementById('cnx') && !!SESSION, 12000) && /^[1-9][0-9]$/.test(nombre), nombre);
   await p.waitForTimeout(3000);
   v('le guide ne se rouvre pas à la deuxième connexion', !(await sur(p, '#nv')));
-  await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(6500);
-  v('« Rester connecté » décoché : après rechargement on retombe sur la connexion', await att(p, () => !!document.getElementById('cn-form'), 8000));
+  await p.evaluate(() => sessionFermer()); await att(p, () => !!document.getElementById('cn-form'), 8000);
   // 6. le clavier : Tab ne sort pas de l'écran de connexion
   const sorti = await p.evaluate(async () => { const r = []; for (let i = 0; i < 14; i++) { const e = document.activeElement; r.push(e && e.closest ? !!e.closest('#cnx') : false); document.activeElement && document.activeElement.blur && 0; } return r; });
   await p.focus('#cn-id'); let dehors = 0;
-  for (let i = 0; i < 14; i++) { await p.keyboard.press('Tab'); if (!await p.evaluate(() => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cnx')))) dehors++; }
-  v('[coque-01] Tab ne sort jamais de l’écran de connexion (14 tabulations)', dehors === 0, dehors + ' tabulations tombées derrière l’écran de connexion');
+  for (let i = 0; i < 14; i++) { await p.keyboard.press('Tab'); if (!await p.evaluate(() => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cnx, #opsec')))) dehors++; }
+  v('[coque-01] Tab ne sort jamais de l’écran de connexion ni du téléphone OP Security (14 tabulations)', dehors === 0, dehors + ' tabulations tombées derrière l’écran de connexion');
   v('aucune erreur de console pendant tout le parcours', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer();
   process.exit(L.bilan() ? 1 : 0);

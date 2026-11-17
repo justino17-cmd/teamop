@@ -36,7 +36,8 @@ const retour = async c => { await c.p.evaluate(() => { if (SESSION) sessionFerme
     if (c.p.viewportSize().width >= 1100) for (const [nom, sel] of [['le titre de la carte rouge du téléphone', '#opsec .ops-carte.rouge h2'], ['une raison rouge du téléphone', '#opsec .ops-raisons li']]) { const r = await contraste(c, sel); v(mode + ' · contraste AU PIXEL : ' + nom + ' ≥ 4,5:1', r.ratio >= 4.5, { ratio:r.ratio, fond:r.fond, encre:r.encre }); }
     console.log('── le code à 6 chiffres est REFUSÉ pour une connexion inhabituelle ──');
     const ech0 = await c.p.evaluate(() => ({ pas:SECU.comptes.kb.tel.dernierPas, echecs:SECU.comptes.kb.echecs }));
-    const rep = await c.p.evaluate(() => { const bon = secuTotp(SECU.comptes.kb.tel.cle, secuMaint()); cnxCode6(bon); return { msg:(document.getElementById('cn-err') || {}).textContent, s:SESSION, journal:SECU.journal.filter(j => j.action === 'login.code_refused_unusual').length, pas:SECU.comptes.kb.tel.dernierPas }; });
+    const rep = await c.p.evaluate(() => { const bon = secuTotp(SECU.comptes.kb.tel.cle, secuMaint()); cnxCode6(bon); return { s:SESSION, journal:SECU.journal.filter(j => j.action === 'login.code_refused_unusual').length, pas:SECU.comptes.kb.tel.dernierPas }; });
+    rep.msg = await S.erreur(c);   /* cnxDire écrit à la trame suivante */
     v(mode + ' · même avec le BON code : « Connexion inhabituelle : seule l’approbation sur le téléphone est acceptée. », personne n’entre', /Connexion inhabituelle : seule l’approbation sur le téléphone est acceptée\./.test(rep.msg) && rep.s === null, rep);
     v(mode + ' · la tentative est au journal (login.code_refused_unusual) et le pas du code n’est pas consommé', rep.journal === 1 && rep.pas === ech0.pas, { rep, ech0 });
     const n = await S.lireNombre(c); await S.approuver(c, 'kb', n); const app = await S.attendreApp(c, 15000);
