@@ -223,3 +223,16 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       du métier 3D compris : la garde du rôle passe avant) ; « Demander un contrat » laisse une trace visible côté client (« Demande envoyée
       le … ») et ne crée pas une seconde tâche si on redemande ; un mot très long ne sort pas de sa carte ; « CTR-2026-011 » ne se coupe pas ;
       pour une entreprise cliente, on salue la personne (« Bonjour Mme … ») ou « Bonjour, » — jamais « Bonjour Syndic Foncia ».
+
+- [ ] **Véhicules et Temps de travail — décisions du chef du 17/11, 12 h 25 (vehtemps)** : les cinq « doutes » de la relecture du gérant
+      (`refonte/vehtemps-relecture-gerant.json`) ne restent pas « à soumettre », ils s'APPLIQUENT : · **Pas pointé alors qu'une intervention
+      tourne** : dans Temps de travail, la ligne d'une personne « Pas encore commencé » qui a une intervention en cours ou terminée aujourd'hui
+      le dit (« Une intervention est en cours depuis 08:30, rien n'est pointé »), pour que le gérant sache quoi faire du rappel. · **La semaine
+      EN COURS ne se valide pas** : « Valider les N personnes en règle » et « Valider ce qui est en règle » ne prennent que les semaines FINIES ;
+      la semaine en cours le dit (« Semaine en cours : elle se valide une fois finie ») et son bouton de validation n'est pas proposé. · **Mois** :
+      quand une semaine est à cheval sur deux mois, la feuille de la personne porte une ligne « dont X en octobre », pour que la somme des lignes
+      retombe sur le chiffre du haut. · **Assurance payée à l'année** : le chiffre du haut de Véhicules reste ce qui a été PAYÉ dans le mois, et il
+      le dit (« payés en octobre (hors taxes) »), avec dessous « dont l'assurance de l'année : 4 200 € » quand une prime annuelle y est ; le coût
+      au kilomètre continue de la lisser sur douze mois. · **Deux mots pour un fait** : partout, relevé de la Paie compris, « en plus » (jamais
+      « sup. ») et « payée avec novembre » (jamais « se termine en novembre · sur novembre ») — ce sont deux mots à aligner dans un écran validé,
+      pas un écran à redessiner.
