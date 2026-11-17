@@ -26,7 +26,7 @@ const { L, v, ouvrirComme, toast, fin } = require('./droits-commun.js');
   const g3 = await c.p.evaluate(() => { const i = document.querySelector('input[data-eqs="sm|corrpt"]'); if (!i) return null; const avant = eqDe('sm').droits.sp.corrpt; i.checked = true; i.dispatchEvent(new Event('change', { bubbles:true })); return { avant, apres:eqDe('sm').droits.sp.corrpt }; }); await L.calme(c.p, 300); n++;
   v('donner « Corriger les pointages » (qu\'Alix n\'a pas) : refusé', !!g3 && g3.apres === g3.avant, g3);
   // le dernier administrateur ne se désactive pas
-  await ouvrir('marc'); const dernier = await c.p.evaluate(() => { const b = document.querySelector('[data-eq="actif|marc"]'); return { off:b.disabled, actif:eqDe('marc').actif }; }); n++;
+  await ouvrir('marc'); const dernier = await c.p.evaluate(() => { const b = document.querySelector('[data-eq="desact|marc"]'); return { off:b.disabled, actif:eqDe('marc').actif }; }); n++;
   v('le dernier administrateur : « Désactiver le compte » est désactivé', dernier.off === true && dernier.actif === true, dernier);
   await L.fin(c);
   // une personne SANS « L'entreprise et l'équipe › Modifier » : un clic synthétique sur une case de droit est avalé (garde de fiche)

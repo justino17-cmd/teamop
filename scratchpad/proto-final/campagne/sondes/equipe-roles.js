@@ -4,7 +4,7 @@
 // usage : node equipe-roles.js [mac|iphone|…]
 const E = require('./equipe-outils.js'); const { L, v } = E;
 const PROFIL = process.argv[2] || 'mac';
-const ECRITURE = [/data-eq=inviter$/, /data-eqx=modifier/, /data-eq=mdp/, /data-eq=actif/, /data-eq=habajout/, /data-eq=renouv/, /data-eqx=regles/, /data-cnx=repose/, /data-cnx=comme/, /data-sec2=telephone/, /data-sec2=deconnecter/];
+const ECRITURE = [/data-eq=inviter$/, /data-eqx=modifier/, /data-eq=mdp/, /data-eq=actif/, /data-eq=desact/, /data-eq=habajout/, /data-eq=renouv/, /data-eqx=regles/, /data-cnx=repose/, /data-cnx=comme/, /data-sec2=telephone/, /data-sec2=deconnecter/];
 (async () => {
   // ── les personnes de la démonstration qui n'ont NI Équipe NI Mon entreprise
   for (const qui of ['julie', 'sm', 'kb']) {
