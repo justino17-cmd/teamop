@@ -41,7 +41,8 @@ const dit = (titre, l) => { const a = titre.toLowerCase(), b = l.toLowerCase(); 
       console.log('  · touchées : ' + n + ' / ' + lignes.length);
       // Ctrl/Cmd + 1…9 : la neuvième ligne de la colonne est la neuvième rubrique
       const R = await p.evaluate(() => rcRubriques().map(r => r.l));
-      for (const i of [1, 3, 9].filter(i => R[i - 1])) { await p.keyboard.press('Control+' + i); await L.calme(p, 400); const t = await h1(p); v(qui + ' : Ctrl+' + i + ' ouvre « ' + R[i - 1] + ' » (écran « ' + t.slice(0, 30) + ' »)', dit(t, R[i - 1])); }
+      const CMD = (await p.evaluate(() => MAC)) ? 'Meta' : 'Control';   // un iPad se dit « Macintosh » : son clavier a ⌘, pas Ctrl
+      for (const i of [1, 3, 9].filter(i => R[i - 1])) { await p.keyboard.press(CMD + '+' + i); await L.calme(p, 400); const t = await h1(p); v(qui + ' : ' + (CMD === 'Meta' ? 'Cmd' : 'Ctrl') + '+' + i + ' ouvre « ' + R[i - 1] + ' » (écran « ' + t.slice(0, 30) + ' »)', dit(t, R[i - 1])); }
       // le logo ramène à l'écran d'ouverture du rôle
       await L.toucher(c, '#menu .logo'); await L.calme(p, 400);
       const t0 = await h1(p); v(qui + ' : le logo ramène à l’écran d’ouverture (« ' + t0 + ' »)', /Bonjour|Ma journée|Comptabilité/.test(t0));
@@ -97,11 +98,11 @@ const dit = (titre, l) => { const a = titre.toLowerCase(), b = l.toLowerCase(); 
         const titre = await p.evaluate(() => (document.querySelector('#calque .panneau h2') || {}).textContent);
         v('marc : « Personnaliser la barre du bas » ouvre « Ma barre »', titre === 'Ma barre', titre);
         await p.screenshot({ path: CAP + `menu-ma-barre-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
-        const retourBarre = await p.evaluate(() => { const b = document.querySelector('#calque .rl-retour, #calque [data-rl="retour"], #calque .lien.retour'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
+        const retourBarre = await p.evaluate(() => { const b = document.querySelector('#calque .p-retour'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
         console.log('  · « Ma barre » porte un bouton retour :', retourBarre);
-        if (retourBarre) { const avant = await p.evaluate(() => (document.querySelector('#calque .panneau h2') || {}).textContent); await L.toucher(c, '#calque .rl-retour, #calque [data-rl="retour"], #calque .lien.retour'); await L.calme(p, 500);
+        if (retourBarre) { const avant = await p.evaluate(() => (document.querySelector('#calque .panneau h2') || {}).textContent); await L.toucher(c, '#calque .p-retour'); await L.calme(p, 500);
           const apres = await p.evaluate(() => ({ h2: (document.querySelector('#calque .panneau h2') || {}).textContent || null, hash: location.hash }));
-          v('[coque-10] « ‹ Retour » de « Ma barre » ramène à la feuille Menu (et non à un autre écran du parcours) — il a mené à ' + JSON.stringify(apres), apres.h2 === 'Menu', apres);
+          v('« ‹ Retour » de « Ma barre » ramène à la feuille Menu (et non à un autre écran du parcours) — il a mené à ' + JSON.stringify(apres), apres.h2 === 'Menu', apres);
           await L.toucher(c, '.tt-menu'); await L.toucher(c, '[data-mabarre="~ouvrir"]'); await L.calme(p, 400); }
         const nbLignes = await p.evaluate(() => document.querySelectorAll('#calque .mb-l').length);
         v('marc : « Ma barre » propose toutes les rubriques du menu (' + nbLignes + ')', nbLignes === (await p.evaluate(() => rlLignes().length)));

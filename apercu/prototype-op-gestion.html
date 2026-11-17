@@ -216,6 +216,15 @@ div.ligne-clic:hover{border-color:var(--trait)}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
   body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
+/* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
+#sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
+#sortie-carte .sc-t{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#sortie-carte .sc-x{flex:none;min-width:44px;min-height:44px;margin:-10px -10px -10px 0;border:0;background:none;color:inherit;font-size:24px;line-height:1;border-radius:999px}
+#sortie-carte .sc-v{-webkit-user-select:text;user-select:text;font-weight:700;font-size:18px;padding:10px 12px;border-radius:12px;background:var(--surf);border:1px solid var(--trait2);white-space:pre-wrap;max-height:30vh;overflow:auto}
+#sortie-carte .sc-a{display:flex;gap:10px;flex-wrap:wrap}
+@media (max-width:760px){#sortie-carte{bottom:124px}body:has(.fen-voile) #sortie-carte{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}
+body.dp-ouvert #sortie-carte{z-index:300}
+.vfl-img{display:block;max-width:100%;max-height:60vh;margin:0 auto 12px;object-fit:contain;border-radius:12px}
 /* ── barre du bas d'OP GESTION ── */
 .opg-barre{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px;border-radius:34px;background:var(--tab-fond);border:1px solid var(--tab-lise);box-shadow:0 24px 56px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.32);-webkit-backdrop-filter:blur(40px) saturate(2.2) brightness(1.06);backdrop-filter:blur(40px) saturate(2.2) brightness(1.06)}
 .opg-tab{min-height:48px;border:0;background:none;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--tab-ink);font-size:11px;font-weight:600}
@@ -2656,8 +2665,9 @@ body.dp-ouvert{overflow:hidden}
 .a-flash{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--vert) 10%,var(--feuille));border:1px solid color-mix(in srgb,var(--vert) 35%,transparent)}
 /* calendrier */
 .ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.a-avis{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
-.a-avis-c{overflow-wrap:anywhere;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
+/* le texte garde au moins 180 px : si les gestes (« Voir au planning › », « Vu ») ne tiennent pas à côté, ils passent SOUS le texte au lieu de l'écraser (12 px de large à 320 px, un mot par ligne : défaut des recontrôles du 17 novembre) */
+.a-avis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
+.a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
 .a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
@@ -2688,6 +2698,8 @@ body.dp-ouvert{overflow:hidden}
 /* Calendrier des absences : flèches de période et pastilles de personnes à 44 px au doigt (défaut taches-absences-07). Le recensement `.st-nav`
    est partagé avec Statistiques : on ne touche que celui du calendrier. */
 @media (max-width:760px),(pointer:coarse){.ac-ctrl .ac-nav button{width:44px;height:44px;flex:none}.ac-ctrl .ac-chip{min-height:44px}}
+/* « 2 semaines · 1 mois … 6 mois » tient sur une ligne dès 320 px : à 15 px et 16 px de marge, « 6 mois » sortait de la rangée (on ne voyait que « 6 ») */
+@media (max-width:400px){.ac-ctrl .ac-per{padding:2px;gap:0}.ac-ctrl .ac-per button{padding:0 3px;font-size:13px;min-width:0}}
 /* Soldes à 320 px : la colonne « À surveiller » sortait de sa boîte sans rien dire (tableau de 337 px dans 286). On resserre les colonnes
    et le texte, et la dernière passe à la ligne (défaut taches-absences-09). */
 @media (max-width:760px){.a-leg{display:flex}.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 6px}.as-t th:first-child,.as-t td:first-child{padding-left:12px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{font-size:10.5px;white-space:normal}.as-lg{display:none}.ac-aide{font-size:13px}.ac-nom{width:132px;padding:8px}.ac-nom small{display:none}.ac-nn{display:none}.ac-qui{margin-left:0;width:100%}.ac-ctrl .ac-per{width:100%}.ac-nav{flex:1}}
@@ -4506,9 +4518,88 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
-  t.classList.add('on'); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
+
+/* ══ LES SORTIES DE LA PAGE, DANS L'ARTEFACT (17 novembre 2026) ══
+   Ce prototype s'ouvre aussi dans un « artefact » de claude.ai : la page y vit dans un cadre verrouillé, où un lien « download », une adresse blob:,
+   window.open, alert/confirm/print ne font RIEN, sans un mot. Un fichier ne sort que par le pont « downloads » (window.claude.use), que le visiteur
+   confirme ET PEUT REFUSER ; un lien tel:/mailto:/sms: peut ne rien faire et la page ne peut pas le savoir. D'où UNE fonction par besoin :
+   · telechargerFichier : le pont d'abord (celui de la page du haut quand on est dans un cadre), jamais d'annonce « téléchargé » sans réponse du pont,
+     le refus et l'échec se DISENT ; sans pont : le lien, avec une phrase qui ne promet rien ; dans un cadre sans pont : le texte à copier (si c'est du texte) ;
+   · copierTexte : le presse-papiers (dans le geste), sinon une copie par sélection, sinon le texte SÉLECTIONNÉ à copier à la main ;
+   · sortieCarte : après un lien tel:/mailto:/sms:, le numéro ou l'adresse se LIT, se sélectionne, se copie — et rien n'annonce un appel ou un envoi. */
+let _pontFichiers = null;
+async function pontFichiers(){
+  if (_pontFichiers) return _pontFichiers;
+  let cl = null; try { cl = window.claude || (window.parent !== window ? window.parent.claude : null); } catch (e) { cl = null; }
+  let p = null; try { p = cl && typeof cl.use === 'function' ? await cl.use('downloads') : null; } catch (e) { p = null; }
+  return (_pontFichiers = p && typeof p.save === 'function' ? p : null);   // un « rien » n'est pas retenu : on le redemandera
+}
+const nomAvecExt = (nom, type) => /\.[a-z0-9]{2,5}$/i.test(nom) ? nom : nom + '.' + (({ 'image/jpeg':'jpg', 'image/png':'png', 'image/webp':'webp', 'application/pdf':'pdf', 'text/plain':'txt', 'text/csv':'csv' })[type] || 'pdf');
+async function telechargerFichier(nom, data, o){
+  o = o || {};
+  const vide = data == null || (typeof data === 'string' ? !data.length : !(data.size || data.byteLength));
+  if (vide) { toast('Ce fichier est vide : rien à enregistrer.'); return 'vide'; }
+  const texte = typeof o.texte === 'string' ? o.texte : (typeof data === 'string' ? data : null);
+  const pont = await pontFichiers();
+  if (pont) {
+    try { await pont.save({ filename:nom, data }); toast(o.ok || 'Fichier enregistré : ' + esc(nom)); return 'enregistre'; }
+    catch (e) { const c = e && e.code;
+      if (c === 'declined') { toast('Rien n’a été enregistré : tu as refusé le téléchargement. Tu peux recommencer.'); return 'refuse'; }
+      if (c === 'rate_limited') { toast('Une demande d’enregistrement est déjà ouverte : réponds-y, puis recommence.'); return 'attente'; }
+      if (c === 'too_large') { toast('Ce fichier est trop lourd pour être enregistré d’ici.'); return 'trop-lourd'; }
+      if (c === 'rejected_extension' || c === 'extension_not_enabled') { toast('Ce type de fichier ne peut pas être enregistré d’ici.'); return 'type'; }
+      toast('L’enregistrement n’a pas abouti.'); return 'echec'; }
+  }
+  let cadre = false; try { cadre = window.top !== window; } catch (e) { cadre = true; }
+  if (cadre) {   // un cadre verrouillé sans pont : un lien ne ferait rien. Du texte se copie ; un PDF, on le dit.
+    if (texte) sortieCarte('Le téléchargement n’est pas disponible ici', texte.length > 600 ? texte.slice(0, 600) + '…' : texte, { copie:texte, aide:'Copie ce texte et colle-le dans un fichier « ' + nom + ' ».', duree:30000 });
+    else toast('Le téléchargement n’est pas disponible ici : ouvre OP GESTION dans son propre onglet pour enregistrer « ' + esc(nom) + ' ».');
+    return 'indisponible';
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('« ' + esc(nom) + ' » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque ici.'); return 'lien';
+}
+function sortieCarte(titre, valeur, o){
+  o = o || {}; const ancien = document.getElementById('sortie-carte'); if (ancien) ancien.remove();
+  const z = document.createElement('div'); z.id = 'sortie-carte'; z.setAttribute('role', 'status');
+  z.innerHTML = `<div class="sc-t"><b>${esc(titre)}</b><button type="button" class="sc-x" data-sortie="fermer" aria-label="Fermer">×</button></div><div class="sc-v" tabindex="0">${esc(valeur)}</div>${o.aide ? `<span class="gris petit">${esc(o.aide)}</span>` : ''}<div class="sc-a"><button type="button" class="btn petit" data-sortie="copier" data-t="${esc(o.copie != null ? o.copie : valeur)}">Copier</button></div>`;
+  document.body.appendChild(z); clearTimeout(sortieCarte.t); sortieCarte.t = setTimeout(() => z.remove(), o.duree || 14000);
+  try { const r = document.createRange(); r.selectNodeContents(z.querySelector('.sc-v')); const g = getSelection(); g.removeAllRanges(); g.addRange(r); } catch (e) {}   // sélectionné d'avance : un appui long ou Ctrl + C suffit
+}
+function copieSecours(t, o){
+  o = o || {};
+  try { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand && document.execCommand('copy'); a.remove(); if (ok) { toast(o.ok || 'Copié.'); return true; } } catch (e) {}
+  sortieCarte(o.titre || 'Copie ce texte à la main', t.length > 600 ? t.slice(0, 600) + '…' : t, { copie:t, aide:'Appuie longtemps sur le texte (ou Ctrl + C) pour le copier.', duree:25000 });
+  return false;
+}
+function copierTexte(t, o){
+  o = o || {}; t = String(t);
+  try { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(() => { toast(o.ok || 'Copié.'); return true; }, () => copieSecours(t, o)); } catch (e) {}
+  return Promise.resolve(copieSecours(t, o));
+}
+const fmtTel = n => { const d = String(n).replace(/[^\d+]/g, ''); return /^0\d{9}$/.test(d) ? d.replace(/(\d\d)(?=\d)/g, '$1 ').trim() : String(n).trim(); };
+document.addEventListener('click', ev => {
+  const t = ev.target.closest ? ev.target : ev.target.parentElement; if (!t) return;
+  const a = t.closest('a[href^="tel:"],a[href^="mailto:"],a[href^="sms:"]');
+  if (a) { const h = a.getAttribute('href'), k = h.split(':')[0], v = decodeURIComponent(h.slice(k.length + 1).split('?')[0]).trim();
+    // un geste qui parle lui-même (« 📞 Appel de… » du planning, data-kappel) a déjà dit ce qu'il fait : la carte viendrait en double
+    if (!a.hasAttribute('data-kappel') && v) sortieCarte(k === 'tel' ? 'Pour appeler' : k === 'sms' ? 'Pour envoyer un SMS au' : 'Pour écrire à', k === 'mailto' ? v : fmtTel(v), { aide:k === 'mailto' ? 'Si ton appareil n’ouvre pas ta messagerie, copie l’adresse.' : 'Si ton appareil ne lance rien, copie le numéro.' }); return; }
+  const b = t.closest('[data-sortie]'); if (!b) return; const q = b.dataset.sortie;
+  if (q === 'fermer') { const z = document.getElementById('sortie-carte'); if (z) z.remove(); }
+  else if (q === 'copier') copierTexte(b.dataset.t || '', { ok:'Copié.' });
+  else if (q === 'enregistrer') { const bl = BLOBS_LOCAUX.get(b.dataset.u); if (bl) telechargerFichier(nomAvecExt(b.dataset.n || bl.name || 'fichier', bl.type), bl); else toast('Ce fichier n’est plus disponible sur cet appareil.'); }
+});
+/* un fichier choisi par la personne (photo, PDF) : sa copie en mémoire (BLOBS_LOCAUX) permet de le montrer dans la page et de l'enregistrer — window.open sur une adresse blob: ne fait rien dans l'artefact */
+const BLOBS_LOCAUX = new Map(); { const cou = URL.createObjectURL.bind(URL); URL.createObjectURL = b => { const u = cou(b); try { BLOBS_LOCAUX.set(u, b); } catch (e) {} return u; }; }
+function voirFichierLocal(url, nom){
+  const b = BLOBS_LOCAUX.get(url), type = (b && b.type) || '', n = nom || (b && b.name) || 'Fichier';
+  ouvrirPanneau(`<h2>${esc(n)}</h2>${/^image\//.test(type) ? `<img class="vfl-img" src="${esc(url)}" alt="${esc(n)}">` : '<p class="gris">Ce fichier ne s’affiche pas dans cette page : enregistre-le sur ton appareil pour l’ouvrir.</p>'}<div class="actions"><button type="button" class="btn" data-sortie="enregistrer" data-u="${esc(url)}" data-n="${esc(n)}">Enregistrer sur cet appareil</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
+}
+document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
@@ -5157,7 +5248,7 @@ function panneauReglagesRdv(){
     <div class="carte"><h3>Limites</h3>
       <label class="champ">Pas de demande avant<select data-rr="delai">${[0,1,2,3,5].map(n=>`<option value="${n}" ${R.delai===n?'selected':''}>${n ? n + ' jour' + (n>1?'s':'') : 'aujourd’hui'}</option>`).join('')}</select></label>
       <label class="champ">Jusqu’à<select data-rr="horizon">${[7,14,21,30].map(n=>`<option value="${n}" ${R.horizon===n?'selected':''}>${n} jours à l’avance</option>`).join('')}</select></label></div>
-    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention, touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
+    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
 }
 
 /* ══ FACTURES ══ */
@@ -5546,15 +5637,9 @@ function docEnPdf(el, titre){
   const octets = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) octets[i] = out.charCodeAt(i) & 255;
   return { octets, pages: pages.length };
 }
-let _telechargement;
 async function pdfTelecharger(el, nom){
   const { octets, pages } = docEnPdf(el, nom.replace(/\.pdf$/, ''));
-  try {
-    if (_telechargement === undefined) _telechargement = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-    if (_telechargement) { const r = await _telechargement.save({ filename:nom, data:new Blob([octets], { type:'application/pdf' }) }); if (r !== 'declined') toast(`PDF prêt · ${pages} page${pages > 1 ? 's' : ''}`); return; }
-  } catch (e) { if (e && e.code === 'declined') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([octets], { type:'application/pdf' })); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast(`PDF téléchargé · ${pages} page${pages > 1 ? 's' : ''}`);
+  await telechargerFichier(nom, new Blob([octets], { type:'application/pdf' }), { ok:`PDF enregistré : ${esc(nom)} · ${pages} page${pages > 1 ? 's' : ''}` });
 }
 /* l'envoi par e-mail, depuis l'application : à qui, l'objet, le message (modifiable), le PDF joint */
 const ENVOIS = [];
@@ -6785,7 +6870,8 @@ let DECISIONS_ABS = [
 // le bureau qui se met à sa place. Avant, tout lisait l'interrupteur `aComme` seul : masqué en mode application (aCommeSeg) mais resté à
 // 'marc', il faisait voir à la technicienne les gestes du bureau (« ＋ Nouvelle absence » validée tout de suite, pour n'importe quel collègue).
 // « Voir comme Marc » : un raccourci de REVUE (il change l'écran de rôle). Une vraie technicienne n'a pas de Marc à devenir : bouton mort.
-const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; rendre(); scrollTo({ top:0 }); } };
+const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; if (typeof ROLE !== 'undefined' && ROLE === 'tech') return rlChanger('patron', { h:'absences', muet:true });   // revue en technicien : le rôle change vraiment, sinon l'écran restait en lecture seule
+    rendre(); scrollTo({ top:0 }); } };
 const aLecture = () => (typeof ROLE !== 'undefined' && ROLE === 'tech') || aComme !== 'marc';
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
@@ -7082,8 +7168,13 @@ function aApercu(){ // ce que l'absence touche, avant d'enregistrer
   const el = document.getElementById('an-apercu'); if (!el) return;
   const a = { tech:document.getElementById('an-t').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null };
   if (!a.du || !a.au || a.au < a.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
-  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
+  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au), btn = document.querySelector('[data-anouvok]');
+  // mêmes règles que la demande du technicien : rien à poser un week-end, et une demande déjà en attente sur ces jours se traite d'abord
+  // (sinon l'accorder plus tard doublerait l'absence et débiterait le solde en plus : défaut des recontrôles du 17 novembre)
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
+  if (btn) btn.disabled = !!(autre || attente || !aJours(a));
+  if (!aJours(a)) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y a rien à poser. Choisis d’autres dates.</small></div>'; return; }
+  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (attente && !autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)}</b><small>Une demande attend ta réponse sur ces jours : accorde-la ou refuse-la d’abord, dans « À valider ».</small></div>` : '') + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
 }
 /* valider : l'absence entre au planning, chaque intervention va à la personne choisie (ou passe « à planifier » + une tâche),
    la décision reste écrite, et on MONTRE le planning du jour, avec ce qui a bougé */
@@ -7232,6 +7323,8 @@ document.addEventListener('click', ev => {
   if (b.dataset.anouvok) { const a = { tech:document.getElementById('an-t').value, type:document.getElementById('an-ty').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null, motif:document.getElementById('an-m').value.trim() };
     if (!a.du || !a.au || a.au < a.du) return toast('La date de fin est avant la date de début');
     if (a.demi && a.du !== a.au) a.demi = null;
+    if (!aJours(a)) return toast('Ces jours ne sont pas travaillés : choisis d’autres dates');
+    if (DEMANDES_ABS.some(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au)) return toast(`${aPrenom(a.tech)} a une demande en attente sur ces jours : accorde-la ou refuse-la d’abord`);
     const autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);   // même garde que « déplacer » et la demande du technicien
     if (autre) return toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)} : choisis d’autres dates`);
     const moves = aValider(a, 'saisie'); fermerPanneau();
@@ -7278,7 +7371,7 @@ function aMenu(k, id, x, y){ if (aLecture()) return; const a = (k === 'd' ? DEMA
 function aMenuType(a, x, y){ ouvrirMenu(x, y, 'Changer le type', [{ ic:'‹', l:'Retour', garde:true, fn:() => aMenu('a', a.id, x, y) }, '---',
   ...Object.keys(A_TYPES).map(k => ({ ic:A_TYPES[k][1], l:(k === a.type ? '✓ ' : '') + k, fn:() => { if (k === a.type) return; const av = a.type; a.type = k;
     journalAjout('marc', 'equipe', 'a changé le type de l’absence', { lib:tech(a.tech).nom }, { avant:av, apres:k }); aRendreGarde();
-    toast(`Absence de ${aPrenom(a.tech)} : ${av.toLowerCase()} → ${k.toLowerCase()}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
+    toast(`Absence de ${aPrenom(a.tech)} : ${aTypeBas(av)} → ${aTypeBas(k)}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
 /* déplacer ou redater une absence VALIDÉE : jamais par-dessus une autre absence de la même personne ; on dit ce que ça touche au planning */
 function aAppliquer(a, du, au, demi){
   if (!du || !au || au < du) { toast('La date de fin est avant la date de début'); return false; }
@@ -7494,6 +7587,9 @@ document.addEventListener('click', ev => {
     return aAppliquer(a, document.getElementById('ax-du').value, document.getElementById('ax-au').value, document.getElementById('ax-demi').value || null); }
 });
 document.addEventListener('change', ev => { const id = ev.target.id || '';
+  // « Au » suit « Du » tant qu'on n'a pas touché « Au » : choisir un début après la fin par défaut ne laisse plus « La date de fin est avant… »
+  if (id === 'ad-au') ev.target.dataset.touche = '1';
+  if (id === 'ad-du') { const au = document.getElementById('ad-au'); if (au && !au.dataset.touche && ev.target.value && au.value < ev.target.value) { au.value = ev.target.value; if (typeof dtPeindre === 'function') dtPeindre(au); } }   // dtPeindre : le bouton de date montre la nouvelle valeur
   if (['ad-ty', 'ad-du', 'ad-au'].includes(id)) aApercuDemande();
   if (['ax-du', 'ax-au', 'ax-demi'].includes(id)) { const b = document.querySelector('[data-axok]'); if (b) aApercuDates(ABSENCES.find(x => x.id === b.dataset.axok)); } });
 document.addEventListener('input', ev => { if (['ad-du', 'ad-au'].includes(ev.target.id || '')) aApercuDemande(); });
@@ -8102,9 +8198,7 @@ function cpFec(){
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
   const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
-  try { if (_telechargement === undefined) _telechargement = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-    if (_telechargement) { const r = await _telechargement.save({ filename:nom, data }); if (r !== 'declined') toast('Fichier des écritures prêt'); return; } } catch (e) { if (e && e.code === 'declined') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Fichier des écritures téléchargé');
+  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom) });
 }
 async function cpSceller(){
   CP.fecEnvoye = cpFec(); CP.empreinte = null;
@@ -8262,7 +8356,11 @@ function lireHash(){
   scrollTo({ top:0 });
 }
 addEventListener('hashchange', lireHash);
-function ouvrirPanneau(html, large){ const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
+function ouvrirPanneau(html, large){
+  /* un message posé il y a plus d'un instant (« Ajoutée pour demain · Annuler ») ne reste pas collé sur le bas de la fiche qu'on ouvre juste après : il couvrait « Reporter » et « Confier à ».
+     Un message de LA MÊME action (moins de 0,4 s) reste, et un panneau déjà ouvert qu'on redessine n'y touche pas. */
+  { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
+  const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
@@ -8418,7 +8516,7 @@ const ACTIONS = {
   envoiMail(b){ panneauMail(b.dataset.id); },
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
-  copierSms(b){ const t = texteSms(b.dataset.id); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Texte copié : colle-le dans un message.'), () => toast('Copie impossible ici : sélectionne le texte à la main.')); },
+  copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
   modifierOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
@@ -10142,7 +10240,7 @@ document.addEventListener('click', ev => {
     const p = d3P(d3Cli, AUJ, H_NOM(rlQui()) || 'Marc Leblanc', et, q ? [[document.getElementById('d3-prod').value, document.getElementById('d3-lot').value || '—', q]] : [], document.getElementById('d3-obs').value.trim() || 'Passage effectué.', reco ? [['r' + Date.now(), reco, null]] : []);
     const deja = D3_PASSAGES.filter(o => o.cli === p.cli && o.d === p.d).length; if (deja) p.id += '-' + (deja + 1); D3_PASSAGES = D3_PASSAGES.concat(p); /* [5] un 2e passage du jour s'ajoute, il n'écrase pas le 1er */ fermerPanneau(); rendre(); return toast(`Passage enregistré : la carte des box et le registre sont à jour.`, { lib:route === 'registre' ? 'Voir la carte' : 'Voir le registre', fn:() => aller(route === 'registre' ? 'carteBox' : 'registre') }); }
   if (a === 'pdf') return toast('Dans l’application, le registre part en PDF au nom de l’entreprise (passages, produits avec lot et AMM, recommandations, plan des box). Ici, c’est un aperçu : aucun fichier n’est fabriqué.');
-  if (a === 'lien') { const u = 'https://teamop.fr/registre/' + d3Cli + '-demo'; return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Lien copié (exemple) : il montrera le registre à jour, en lecture seule.'), () => toast('Copie impossible ici : le lien serait ' + esc(u) + '.')); }
+  if (a === 'lien') { const u = 'https://teamop.fr/registre/' + d3Cli + '-demo'; return copierTexte(u, { ok:'Lien copié (exemple) : il montrera le registre à jour, en lecture seule.', titre:'Le lien du registre (exemple)' }); }
 });
 document.addEventListener('change', ev => { const t = ev.target; if (!t.matches('[data-d3reco]')) return; const r = D3_PASSAGES.flatMap(p => p.recos).find(o => o[0] === t.dataset.d3reco); r[2] = t.checked ? AUJ : null; rendre(); toast(t.checked ? 'Notée comme faite par le client.' : 'Remise en attente.'); });
 
@@ -11134,7 +11232,7 @@ function cxFactureFictive(a){
     <div class="ff-l"><span>Total HT</span><span>${eur(a.ht)}</span></div><div class="ff-l"><span>${a.autoliq ? 'TVA : autoliquidation' : a.tva ? 'TVA ' + String(a.tva).replace('.', ',') + ' %' : 'Pas de TVA'}</span><span>${eur(tva)}</span></div>
     <div class="ff-l ff-tot"><span>Total TTC</span><b>${eur(ttc)}</b></div>${a.ech ? `<div class="ff-p">À payer avant le ${esc(a.ech)}/2026</div>` : ''}</div>`;
 }
-const cxPhotoHtml = (url, type) => /pdf/.test(type || '') ? `<iframe class="cx-jpdf" src="${url}" title="Justificatif"></iframe>` : `<img class="cx-jphoto" src="${url}" alt="Photo du justificatif">`;
+const cxPhotoHtml = (url, type) => /pdf/.test(type || '') ? `<iframe class="cx-jpdf" src="${url}" title="Justificatif"></iframe><p class="gris petit">Si le PDF ne s’affiche pas ici : <button type="button" class="lien" data-sortie="enregistrer" data-u="${esc(url)}" data-n="justificatif.pdf">enregistrer le PDF</button>.</p>` : `<img class="cx-jphoto" src="${url}" alt="Photo du justificatif">`;
 function cxJustifDoc(type, id){   // { titre, html, vraie }
   if (type === 'ndf') { const n = NDF.find(x => x.id === id); if (!n) return null;
     return { titre:'Ticket · ' + n.objet, vraie:!!n.photo, html:n.photo ? cxPhotoHtml(n.photo, n.photoType) : cxTicketFictif({ lieu:cxLieuTicket(n.objet), objet:n.objet.split(',')[0], d:jlong(n.d), h:cxHeure(n.id), ttc:n.ttc, tva:n.tva }) }; }
@@ -11356,8 +11454,10 @@ const GESTES = {
   rgf:{ k:'inter', d:'m' }, rlv:{ k:'inter', d:'m' }, suite:{ k:'inter', d:'m' },
   d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
   /* planning, absences, tâches */
-  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, atdem:{ k:'planif', d:'c' }, atenvoi:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
+  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
   kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  /* « Mes congés » : la demande de la technicienne, sa réponse à une proposition, le retrait de sa demande sont SES gestes (comme « Mes tâches », ci-dessous), jamais une case de planning : classés « planif », ils refusaient « Envoyer la demande à Marc » à toute technicienne (« Ce geste n'est pas ouvert à ton compte »). Décider d'une absence (aok, anouvok…) reste au planning. */
+  atdem:{ d:'l' }, atenvoi:{ d:'l' }, atrep:{ d:'l' }, atrepondre:{ d:'l' }, atrepok:{ d:'l' }, atretire:{ d:'l' }, atvoir:{ d:'l' }, addemi:{ d:'l' },
   /* « Mes tâches » est un outil PERSONNEL, toujours ouvert : ses gestes ne dépendent d'aucune case (les Tâches sortent des cases, spec § 2.6) */
   tkxs:{ d:'l' }, tajout:{ d:'l' }, tkxajout:{ d:'l' }, tnouv:{ d:'l' }, tfait:{ d:'l' }, tmodif:{ d:'l' }, tpiece:{ d:'l' }, tqui:{ d:'l' },
   tsdok:{ d:'l' }, tsfait:{ d:'l' }, tsqui:{ d:'l' }, tsdatep:{ d:'l' }, tsdevis:{ d:'l' },
@@ -12143,7 +12243,7 @@ function paieSemLigne(w, fin){
   const sup = w.s25 + w.s50, note = w.avant ? `avec les jours de fin ${paieMoisVoisin(-1)}` : w.report ? `se termine en ${paieMoisVoisin(1)}` : '';
   return `<div class="paie-semaine${fin ? ' a4' : ''}"><span class="paie-sem-t">Semaine du ${esc(jCourt(w.L))}${note ? `<small class="gris">${note}</small>` : ''}</span><b class="paie-sem-n">${ptH(w.tot)}</b><span class="${sup && w.ici ? 'fo-up' : 'gris'} petit paie-sem-sup">${sup ? '+' + ptH(sup) + ' sup.' + (w.report ? ` · sur ${paieMoisVoisin(1)}` : '') : '—'}</span>${fin ? `<span class="paie-sem-a">${fin}</span>` : ''}</div>${fin && !w.valide && w.alertes.length ? `<div class="paie-al">${w.alertes.map(a => `<span class="ve-pt ve-${a.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span>${esc(a.t)}`).join('<br>')}</div>` : ''}`;
 }
-const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${t.toLowerCase()}`).join(', ') || '—';
+const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${aTypeBas(t)}`).join(', ') || '—';
 /* où en est le mois : cinq étapes, chacune dit ce qui manque et où le régler */
 function paieEtapes(V){
   const ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), nonVal = V.reduce((s, v) => s + v.nonValidees, 0), sig = V.filter(v => v.signale), conf = V.filter(v => v.confirme).length;
@@ -12326,7 +12426,7 @@ document.addEventListener('change', ev => {
 });
 function paieBulletinVoir(k, mois){
   const b = mois ? null : PAIE.bulletins[k];
-  if (b && b.url) return window.open(b.url, '_blank', 'noopener');
+  if (b && b.url) return voirFichierLocal(b.url, b.nom);   // window.open ne fait rien dans l'artefact : le fichier se montre dans la page et s'enregistre
   if (PAIE.mode === 'op' && (!b || b.calc)) { const ym = mois ? '2026-' + String(['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre'].indexOf(mois.split(' ')[0]) + 1).padStart(2, '0') : null; return paieDocPlein(paieBulletinDoc(k, ym)); }
   ouvrirPanneau(`<span class="surtitre">Fiche de paie · ${esc(mois || PAIE_NOM_MOIS)}</span><h2>${esc(paieNomPers(k))}</h2>
     <div class="paie-bul"><span aria-hidden="true">📄</span><b>${esc(b ? b.nom : 'Bulletin ' + mois + ' - ' + paieNomPers(k) + '.pdf')}</b><span class="gris petit">Dans la vraie version, c’est le PDF envoyé par ${esc(PAIE_CAB.nom)} qui s’ouvre ici, tel quel. Le prototype n’invente pas de fiche de paie : ses montants viennent du cabinet.</span></div>
@@ -17784,8 +17884,7 @@ function vxFraisSuppr(vid, cle){
 function vxCsv(vid){
   const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
   const csv = '﻿' + ['Date;Libellé;Montant HT;Origine', ...F.map(f => `${dFr(f.d)};${q(f.lib)};${n(f.ht.toFixed(2))};${f.achat ? 'Achats' : f.ndf ? 'Note de frais' : 'Véhicule'}`)].join('\r\n') + '\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = `frais-${v.plaque}.csv`; document.body.appendChild(a); a.click(); a.remove();
-  vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); toast(`Frais de ${esc(v.plaque)} exportés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.`);
+  telechargerFichier(`frais-${v.plaque}.csv`, csv, { ok:`Frais de ${esc(v.plaque)} enregistrés (${vxN(F.length, 'ligne')}) pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') vxJ('a exporté les frais du véhicule', v, { det:vxN(F.length, 'ligne') }); });
 }
 
 /* ─── 4. le technicien : son camion, son plein, son compteur, ses soucis ─── */
@@ -18192,8 +18291,7 @@ function vhCoutPanel(){
 function vhCsvFlotte(){
   const q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
   const csv = '﻿' + ['Véhicule;Plaque;Dépensé sur 12 mois (hors taxes);Kilomètres relevés;Coût au kilomètre', ...VEHICULES.map(v => { const c = vxCalcCout(v, '12m'); return `${q(vhNom(v))};${q(v.plaque)};${n(c.total.toFixed(2))};${c.km != null ? c.km : ''};${c.auKm != null ? n(c.auKm.toFixed(2)) : ''}`; })].join('\r\n') + '\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = 'cout-des-vehicules.csv'; document.body.appendChild(a); a.click(); a.remove();
-  journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); toast(`Coût des ${VEHICULES.length} véhicules exporté, pour ton expert-comptable.`);
+  telechargerFichier('cout-des-vehicules.csv', csv, { ok:`Coût des ${VEHICULES.length} véhicules enregistré, pour ton expert-comptable.` }).then(r => { if (r === 'enregistre' || r === 'lien') journalAjout(rlQui(), 'vehicule', 'a exporté le coût des véhicules', { lib:'Les véhicules', id:'' }, { det:vxN(VEHICULES.length, 'véhicule') }); });
 }
 
 /* ── les trois feuilles que la fiche réclame (la suite de la refonte les reprendra une à une) : le rendez-vous, un document, le matériel ── */
@@ -18581,6 +18679,7 @@ function courrierAgir(id, x){
   courrierRafraichir();
 }
 const courrierHoteApi = {
+  telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
   lecture:x => { if (x.local) return null; const m = mlDe(x.id); return m ? courrierBandeau(m) : null; },
   agir:(id, x) => courrierAgir(id, x),
   pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
@@ -20662,7 +20761,7 @@ function rgPlanifier(k){
 function rgProdMaj(){ const z = rgGet('rg-prod-zone'); if (z) z.innerHTML = rgProdZone(d3Cli); }
 function rgLien(a, x){
   const k = d3Cli, L = RG_LIEN[k], u = 'https://teamop.fr/registre/' + k + '-demo';
-  if (a === 'copier') return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast('Lien copié (exemple) : il montrera le registre à jour, en lecture seule.'), () => toast('Copie impossible ici : le lien serait ' + esc(u) + '.'));
+  if (a === 'copier') return copierTexte(u, { ok:'Lien copié (exemple) : il montrera le registre à jour, en lecture seule.', titre:'Le lien du registre (exemple)' });
   if (a === 'qr') { const b = rgGet('rg-qrb'); if (!b) return; b.classList.toggle('rg-cache'); const t = document.querySelector('[data-rg="lien|qr"]'); if (t) { const ouvert = !b.classList.contains('rg-cache'); t.setAttribute('aria-expanded', ouvert); t.textContent = ouvert ? 'Masquer le QR code' : 'Afficher le QR code'; } return; }
   if (a === 'duree') { const av = { duree:L.duree, fin:L.fin }; L.duree = x; L.fin = x === '1 jour' ? ajoute(AUJ, 1) : x === '7 jours' ? ajoute(AUJ, 7) : x === '1 an' ? ajoute(AUJ, 365) : null; rendre(); return toast(`Lien valable ${x === 'sans limite' ? 'sans limite de durée' : x}${L.fin ? ' : jusqu’au ' + rgJA(L.fin) : ''}.`, { lib:'Annuler', fn:() => { Object.assign(L, av); rendre(); } }); }
   if (a === 'fermer') { const av = { ...L }; L.actif = false; journalAjout(rlQui(), 'registre', 'a fermé le lien de contrôle', { lib:'Registre · ' + D3_CLI[k].nom, cli:RG_SITES[k] }); const jr = JOURNAL.at(-1); rendre(); return toast('Lien fermé : il n’ouvre plus rien.', { lib:'Annuler', fn:() => { Object.assign(L, av); const j = JOURNAL.indexOf(jr); if (j >= 0) JOURNAL.splice(j, 1); rendre(); } }); }
@@ -23565,16 +23664,17 @@ document.addEventListener('click', ev => { if (mbAvale && Date.now() - mbAvale <
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-mabarre]'); if (b) { ev.stopPropagation(); mbBasculer(b.dataset.mabarre); } }, true);
 { const b0 = mbBasculer; mbBasculer = function(k){ if (k === '~ouvrir') { mbPanneau(); return; } return b0.apply(this, arguments); }; }
 /* l'appui long sur la barre ouvre « Ma barre ». La feuille monte SOUS le doigt : le clic du relâcher est avalé, où qu'il tombe, et lui seul. */
-{ let t = null, x0 = 0, y0 = 0;
+{ let t = null, x0 = 0, y0 = 0, tenu = false;   // `tenu` : le doigt de l'appui long est encore posé — seul SON relâcher renouvelle l'avale (sinon, sans clic au relâcher, le premier toucher suivant était avalé à son tour)
   const fin = () => { if (t) { clearTimeout(t); t = null; } };
-  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
+  const relache = () => { fin(); if (tenu) { tenu = false; mbAvale = Date.now(); } };
+  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); tenu = true; if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
-  document.addEventListener('touchend', () => { fin(); if (mbAvale) mbAvale = Date.now(); }, { passive:true });
+  document.addEventListener('touchend', relache, { passive:true });
   document.addEventListener('touchcancel', fin, { passive:true });
   document.addEventListener('mousedown', ev => { if (ev.button === 0 && ev.target.closest('.opg-barre')) debut(ev.clientX, ev.clientY); });
   document.addEventListener('mousemove', ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fin(); });
-  document.addEventListener('mouseup', () => { fin(); if (mbAvale) mbAvale = Date.now(); });
+  document.addEventListener('mouseup', relache);
   document.addEventListener('contextmenu', ev => { if (ev.target.closest('.opg-barre')) ev.preventDefault(); });
 }
 if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
@@ -23750,7 +23850,7 @@ function rcLigneBouger(sens, cible){ if (cible && cible.closest && cible.closest
 /* une ligne qui n'est pas un bouton s'ouvre aussi avec Entrée, une fois choisie au clavier */
 document.addEventListener('keydown', ev => { if (ev.key !== 'Enter' || !rcBureau()) return; const el = ev.target.closest && ev.target.closest('#contenu [data-go][tabindex]'); if (el && !/^(BUTTON|A)$/.test(el.tagName)) { ev.preventDefault(); el.click(); } });
 const RC_TYPES = { client:'le client', inter:'l’intervention', devis:'le devis', facture:'la facture', contrat:'le contrat' };
-function rcCopier(t){ try { navigator.clipboard.writeText(t).then(() => toast('Copié : ' + t), () => toast('La copie n’a pas pu se faire')); } catch (e) { toast('La copie n’a pas pu se faire'); } }
+function rcCopier(t){ copierTexte(t, { ok:'Copié : ' + t }); }
 document.addEventListener('contextmenu', ev => { if (ev.defaultPrevented || !rcBureau()) return;
   const el = ev.target.closest && ev.target.closest('#contenu [data-go]'); if (!el || el.closest('.pl-defile')) return;
   const m = /^(client|inter|devis|facture|contrat)-x-(.+)$/.exec(el.dataset.go); if (!m) return; ev.preventDefault();
@@ -24745,7 +24845,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   else if (a === 'recommencer') { const p = eqDe(SECU.pc.k); SECU.pc = { ecran:null, k:null, demandeId:null }; cnxGlisser(() => cnxMontrer('', p ? cnxLogin(p) : '')); }
   else if (a === 'code6') cnxCode6();
   else if (a === 'repose') { ev.stopPropagation(); const p = eqDe(x); secuProvisoireNeuf(x); secuFermerSessions(x, 'admin'); eqFiche(x); opsDemo(); toast('Mot de passe provisoire reposé. À sa prochaine connexion, ' + p.prenom + ' choisira le sien.'); }
-  else if (a === 'copier') { ev.stopPropagation(); const t = b.dataset.t; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copié.'), () => toast('Sélectionne le texte pour le copier.')); }
+  else if (a === 'copier') { ev.stopPropagation(); copierTexte(b.dataset.t, { ok:'Copié.' }); }
   else if (a === 'sortir') { ev.stopPropagation(); sessionFermer(); }
   else if (a === 'comme') { ev.stopPropagation(); fermerPanneau(); sessionOuvrir(x); toast('Tu vois l’application comme ' + eqDe(x).prenom + '.' + (MODE_APP ? '' : ' Pour revenir : « Tester en tant que » › Patron.')); }
 });

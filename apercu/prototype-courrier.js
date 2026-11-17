@@ -1665,7 +1665,7 @@ var MARKUP = `
   var UN_COTE = COTES.length === 1;
   var LS = String(opt.cleStockage || "opcourrier");
   var TITRE = String(opt.titre || "OP Courrier");
-  var HOTE = (opt.hote && typeof opt.hote === "object") ? opt.hote : null;   // points d'extension facultatifs de l'hôte (H1-H8) : sans lui, le module est celui de la production
+  var HOTE = (opt.hote && typeof opt.hote === "object") ? opt.hote : null;   // points d'extension facultatifs de l'hôte (H1-H9) : sans lui, le module est celui de la production
   // L'horloge de l'hôte (H8) : le prototype vit un 31 octobre fictif ; sans elle « Hier », « Ce soir » et les envois programmés seraient décalés de deux semaines. Un hôte sans horloge : l'heure de l'appareil.
   function maintenant(){ try{ if(opt.horloge){ var t=+opt.horloge(); if(isFinite(t)) return t; } }catch(e){} return Date.now(); }
   var SIGNER = opt.signer !== false;   // D08 : un hôte qui n'a pas la signature ne montre ni « Faire signer » ni le dossier Signatures
@@ -2778,6 +2778,15 @@ var MARKUP = `
     if(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i.test(n)) n="_"+n;
     if(n.length>120){ var d=n.lastIndexOf("."), ext=d>0&&n.length-d<=12?n.slice(d):""; n=n.slice(0,120-ext.length)+ext; }
     return n||"piece-jointe"; }
+  // Un fichier à ENREGISTRER (H9) : l'hôte d'abord (« telecharger(nom, blob) ») — dans un artefact un lien « download » ne fait rien, seul le pont de l'hôte
+  // enregistre, et il dit LUI-MÊME ce qui s'est passé (accepté, refusé, indisponible). Rend une promesse de VRAI si l'hôte s'en est chargé (le module ne
+  // parle pas par-dessus lui), de FAUX si le lien a été posé (production, sans hôte : le comportement d'avant).
+  function enregistrerFichier(blob,nom,porte){
+    if(HOTE&&typeof HOTE.telecharger==="function"){ var r; try{ r=HOTE.telecharger(nom,blob); }catch(e){ r=null; }
+      if(r===true||(r&&typeof r.then==="function")) return Promise.resolve(r).then(function(){ return true; },function(){ return true; }); }
+    var url=URL.createObjectURL(blob), l=document.createElement("a"), t=porte||sr;
+    l.href=url; l.download=nom; l.rel="noopener"; l.hidden=true; t.appendChild(l); l.click(); t.removeChild(l);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); return Promise.resolve(false); }
   // ---------- Le fichier d'une pièce, gardé sur CET appareil : l'aperçu d'un PDF avant d'envoyer (signature, message en rédaction) ----------
   // Avant, le module ne gardait que le nom et la taille : le document ne s'ouvrait nulle part, même rangé dans Signatures. Le fichier vit dans IndexedDB (une base par
   // clé de stockage : `<cleStockage>_fichiers`), JAMAIS dans localStorage (5 Mo partagés) ni dans les données de l'entreprise ; la pièce garde seulement `fid`, sa clé.
@@ -2808,7 +2817,8 @@ var MARKUP = `
   // Le balayage : une pièce n'est « orpheline » que si AUCUN message de la mémoire ne la désigne, relu au retour de la liste des clés (le fichier est posé et la pièce désignée dans le même
   // instant, donc une clé vue ici est déjà désignée). Une demande ANNULÉE ne garde pas son fichier.
   function fichiersBalayer(){
-    if(!vivant||!window.indexedDB) return;
+    var idbOk=false; try{ idbOk=!!window.indexedDB; }catch(e){}   // un rangement refusé peut jeter dès l'accès (cadre verrouillé)
+    if(!vivant||!idbOk) return;
     idbFaire("readonly",function(st){ return st.getAllKeys(); }).then(function(cles){
       var vus={}; MESSAGES.forEach(function(m){ if(m.sign&&m.sign.st==="cancelled") return; fidsDe(m).forEach(function(k){ vus[k]=1; }); });
       fichiersEffacer((cles||[]).filter(function(k){ return !vus[k]; })); }).catch(function(){}); }
@@ -2838,7 +2848,7 @@ var MARKUP = `
     app.inert=true; $("#overlays").appendChild(el); pdfv={el:el,url:url,retour:retour,nom:nom};
     el.addEventListener("click",function(e){ var b=e.target.closest("[data-pv]"); if(!b) return;
       if(b.getAttribute("data-pv")==="close"){ fermerApercu(); return; }
-      var l=document.createElement("a"); l.href=url; l.download=nomFichierSur(nom); l.rel="noopener"; l.hidden=true; el.appendChild(l); l.click(); l.remove(); });
+      enregistrerFichier(new Blob([blob],{type:"application/pdf"}),nomFichierSur(nom),el); });
     el.addEventListener("keydown",function(e){
       if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); fermerApercu(); return; }
       if(e.key!=="Tab") return;
@@ -2866,10 +2876,8 @@ var MARKUP = `
       fin(); if(!vivant) return;
       if(!b||typeof b.size!=="number"||typeof b.slice!=="function") throw new Error("pièce illisible");
       // Le contenu n'est jamais ouvert ici : un Blob neutre (octet-stream) enregistré sous un nom assaini, sans aperçu ni lien externe.
-      var nom=nomFichierSur(a.name), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
-      l.href=url; l.download=nom; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
-      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000);
-      toast("Pièce téléchargée : "+nom);
+      var nom=nomFichierSur(a.name);
+      return enregistrerFichier(new Blob([b],{type:"application/octet-stream"}),nom).then(function(hote){ if(!hote&&vivant) toast("Pièce téléchargée : "+nom); });
     }).catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
   // Le tri est recalculé à chaque rendu complet : nouveaux messages, règles apprises et contacts (Envoyés) sont toujours à jour.
   function threadHtml(m){
@@ -3322,11 +3330,10 @@ var MARKUP = `
     pr.forEach(function(x){ h+='<button type="button" class="btn" data-act="signProof:'+(+x.n)+'">'+(pr.length>1?"Preuve — "+H(x.nom):"Dossier de preuve")+'</button>'; });
     return h||'<span style="font-size:12px">Le PDF signé se prépare — rouvrez cette demande dans un instant.</span>'; }
   // Le fichier téléchargé : un Blob neutre enregistré sous un nom assaini (jamais ouvert ici)
-  function signEnregistrer(b,nom){
+  function signEnregistrer(b,nom,preuve){
     if(!b||typeof b.size!=="number"||!b.size) throw new Error("Le service de signature a rendu un fichier vide.");
-    var n=nomFichierSur(nom), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
-    l.href=url; l.download=n; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
-    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); return n; }
+    var n=nomFichierSur(nom);
+    enregistrerFichier(new Blob([b],{type:"application/octet-stream"}),n).then(function(hote){ if(!hote&&vivant) toast((preuve?"Dossier de preuve téléchargé : ":"PDF signé téléchargé : ")+n); }); return n; }
   // Les gestes d'une demande déjà envoyée : relancer, annuler, télécharger. Un seul à la fois par demande ; l'échec du serveur se dit.
   function signActSrv(act,m){
     var g=m.sign, P=act.split(":"), a=P[0], k=+P[1];
@@ -3341,7 +3348,7 @@ var MARKUP = `
       Promise.resolve().then(function(){ return preuve?SRC.signature.preuve(g.srv,k):SRC.signature.signe(g.srv,k); }).then(function(b){
         fin(); if(!vivant) return;
         var nom=preuve?"Dossier de preuve — "+(x.nom||k)+".pdf":String(d.nom||"document").replace(/\.pdf$/i,"")+" (signé).pdf";
-        toast((preuve?"Dossier de preuve téléchargé : ":"PDF signé téléchargé : ")+signEnregistrer(b,nom)); })
+        signEnregistrer(b,nom,preuve); })
         .catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
     else fin(); }
   function signAct(act,m){

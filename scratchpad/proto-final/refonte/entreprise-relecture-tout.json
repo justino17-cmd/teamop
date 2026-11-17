@@ -1,0 +1,65 @@
+{
+  "lot": "entreprise",
+  "angle": "tout : profils mac, windows, ipad, iphone, android, petit ; jour et nuit ; mode application ; Mon entreprise (cartes, champs, facture débloquée, liens), cases de la fiche d'une personne et effet promis, Achats et frais",
+  "etat": "en cours (premier point d'étape, 17 novembre 2026)",
+  "couvert": [
+    "Mon entreprise comme Marc, 6 profils x jour/nuit : 5 cartes, 6 liens, aucun débordement, cibles >= 44 px au doigt (32 contrôles, 0 échec), captures regardées (mac jour, ipad jour, petit jour, iphone nuit)",
+    "panneau Ton entreprise : 12 refus joués sur mac et iphone (message exact, écrit sous le champ, aria-invalid, panneau gardé, fiche inchangée)",
+    "panneaux mentions légales, banque, horaires : valeurs fausses et limites jouées sur mac (SIRET, TVA, IBAN, BIC, e-mail comptable, tarif, durée, zones, journée)",
+    "chemin « il manque le SIRET » : bandeau, Compléter, SIRET seul, joué sur mac et iphone"
+  ],
+  "defauts": [
+    {
+      "n": "tout-01",
+      "gravite": "gênant",
+      "ecran": "Mon entreprise > Tes mentions légales (cxFicheLegale) ; bandeau « Il manque ton SIRET… Compléter »",
+      "role": "Marc (gérant)",
+      "profils": "mac, iphone (jour)",
+      "etapes": "1. ENTREPRISE.siret, forme, capital et rcs vidés (une entreprise qui n'a encore rien rempli). 2. Mon entreprise : le bandeau dit « Il manque ton SIRET : une facture ne peut pas partir sans. » 3. Compléter. 4. Taper un SIRET juste (73282932000074) et Enregistrer.",
+      "attendu": "Le SIRET s'enregistre, la facture est débloquée (§ 1.7 : « Ça prend trente secondes » ; § 1.4 : le SIRET est la seule condition de refus).",
+      "constate": "Refus : « Choisis la forme juridique. » ; trois erreurs sous les champs forme, capital, immatriculation ; ENTREPRISE.siret reste vide, le bandeau reste. Pour débloquer l'envoi d'une facture le gérant doit inventer ou connaître en plus forme, capital, RCS.",
+      "preuve": "/tmp/rel/a4.js rendu 0 ✓ 2 ✗ (mac, iphone) ; code : entEnregistrerLegal, lignes ~19601-19607 (fl-forme, fl-cap, fl-rcs refusent à vide) ; capture siret-seul-iphone.png",
+      "ou": "apercu/prototype-op-gestion.html, entEnregistrerLegal",
+      "correction": "Ne refuser que ce qui est FAUX (SIRET, TVA mal formés), jamais ce qui est vide : forme, capital, immatriculation, assurance restent « à compléter » (le bandeau et la carte les listent déjà) ; ne les exiger qu'à l'envoi d'un PDF « aux normes » (Comptabilité > Conformité), pas à l'enregistrement."
+    },
+    {
+      "n": "tout-02",
+      "gravite": "détail",
+      "ecran": "Mon entreprise > Ton entreprise, champ Téléphone",
+      "role": "Marc",
+      "profils": "mac, iphone",
+      "etapes": "Taper « ...... » (ou « ++++++ ») dans Téléphone, Enregistrer.",
+      "attendu": "« Ce numéro de téléphone ne semble pas juste. »",
+      "constate": "Enregistré tel quel (« Ton entreprise est enregistrée. »), le point suivrait sur les documents.",
+      "preuve": "/tmp/rel/a2.js (2 ✗ sur mac, 2 ✗ sur iphone) ; code : /^[0-9 +.\\-]{6,20}$/ accepte des signes seuls",
+      "ou": "entEnregistrerIdent, champ en-tel",
+      "correction": "Exiger au moins 6 chiffres : (v.match(/\\d/g) || []).length >= 6."
+    },
+    {
+      "n": "tout-03",
+      "gravite": "détail",
+      "ecran": "Mon entreprise > les cinq panneaux, téléphone",
+      "role": "Marc",
+      "profils": "iphone (390x844)",
+      "etapes": "Ouvrir « Ton entreprise » : huit champs ; le bouton Enregistrer est à y=989 pour un écran de 844.",
+      "attendu": "§ 1.2 : « Enregistrer » collé en bas de la feuille.",
+      "constate": "Les boutons sont en fin de défilement (position statique) ; il faut défiler ; avec le clavier ouvert, plus encore. Même grammaire que les autres panneaux de l'application (aucun n'est collé), donc écart à la spécification plus qu'à l'usage.",
+      "preuve": "/tmp/rel/a2.js : {bas:989,H:844,vis:false,pos:\"static\"} ; aucun .actions sticky dans la feuille de style",
+      "ou": "feuille .panneau .actions",
+      "correction": "Coller .actions en bas du panneau sous 760 px (position:sticky;bottom:0 avec fond), pour toutes les feuilles, ou corriger la spécification."
+    },
+    {
+      "n": "tout-04",
+      "gravite": "détail",
+      "ecran": "Mon entreprise > Tes horaires et tes tarifs",
+      "role": "Marc",
+      "profils": "mac",
+      "etapes": "Tarif horaire « 65,555 » ; Enregistrer.",
+      "attendu": "Refus ou arrondi au centime.",
+      "constate": "TARIFS.horaire = 65.555 stocké tel quel, les factures au temps calculent des fractions de centime.",
+      "preuve": "/tmp/rel/a3.js : tarifs après {\"horaire\":65.555}",
+      "ou": "entEnregistrerHoraires",
+      "correction": "Math.round(x*100)/100 à l'écriture (tarif et zones)."
+    }
+  ]
+}
