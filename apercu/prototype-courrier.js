@@ -845,7 +845,7 @@ var CSS = `
   .opc .ag .mitem.dng{color:var(--red-text)}
 
   /* ---------- Toast (HUD) ---------- */
-  .opc .toast{position:fixed;left:calc(var(--opc-x,0px) + 16px);right:calc(var(--opc-r,0px) + 16px);margin:0 auto;width:fit-content;bottom:calc(22px + var(--opc-bas,0px) + var(--sa-bottom));z-index:200;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:14px;background:var(--toast);color:#fff;font-size:13px;font-weight:500;-webkit-backdrop-filter:saturate(1.6) blur(20px);backdrop-filter:saturate(1.6) blur(20px);box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .22s,transform .3s var(--ease)}
+  .opc .toast{position:fixed;left:calc(var(--opc-x,0px) + 16px);right:calc(var(--opc-r,0px) + 16px);margin:0 auto;width:fit-content;bottom:calc(22px + var(--opc-bas,0px) + var(--opc-sur,0px) + var(--sa-bottom));z-index:200;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:14px;background:var(--toast);color:#fff;font-size:13px;font-weight:500;-webkit-backdrop-filter:saturate(1.6) blur(20px);backdrop-filter:saturate(1.6) blur(20px);box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .22s,transform .3s var(--ease)}
   .opc .toast.show{opacity:1;transform:none}
   .opc .toast.show.act .undo{pointer-events:auto} /* le HUD ne capte jamais les touchers ; seuls « Annuler l'envoi » / « Annuler » sont cliquables */
   .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
@@ -1016,7 +1016,7 @@ var CSS = `
     .opc:where([data-fmt="mac"]) .sched-pop > .sched{min-height:0;overflow:auto;border-radius:12px}
     .opc:where([data-fmt="mac"]) .sched-pop::before{content:"";position:absolute;top:-6px;left:var(--arrow-x,40px);width:12px;height:12px;background:inherit;border-radius:2px 0 0 0;transform:rotate(45deg);box-shadow:-.5px -.5px 0 var(--pop-edge)}
 
-    .opc:where([data-fmt="mac"]) .toast{left:var(--opc-cx,50%);right:auto;margin:0;max-width:calc(var(--opc-lw,360px) - 24px);bottom:calc(16px + var(--opc-bas,0px));gap:10px;padding:8px 8px 8px 12px;transform:translate(-50%,14px)}
+    .opc:where([data-fmt="mac"]) .toast{left:var(--opc-cx,50%);right:auto;margin:0;max-width:calc(var(--opc-lw,360px) - 24px);bottom:calc(16px + var(--opc-bas,0px) + var(--opc-sur,0px));gap:10px;padding:8px 8px 8px 12px;transform:translate(-50%,14px)}
     .opc:where([data-fmt="mac"]) .toast.show{transform:translate(-50%,0)}
   }
   @keyframes opc-sheetDown {from{opacity:0;transform:translateY(-24px)}}
@@ -1413,7 +1413,7 @@ var CSS = `
     .opc:where([data-fmt="phone"]) .sched-go .btn{width:100%;height:50px;border-radius:12px;background:var(--tint);color:var(--on-tint);font-weight:600}
 
     .opc:where([data-fmt="phone"]) .gcard .fld label{flex:0 0 116px}   /* colonne d’étiquettes plus étroite (valeurs alignées) : une adresse de 22 caractères tient entière */
-    .opc:where([data-fmt="phone"]) .toast{bottom:calc(49px + 14px + var(--opc-bas,0px) + var(--sa-bottom));max-width:calc(100vw - 32px);font-size:15px;padding:11px 12px 11px 16px}
+    .opc:where([data-fmt="phone"]) .toast{bottom:calc(49px + 14px + var(--opc-bas,0px) + var(--opc-sur,0px) + var(--sa-bottom));max-width:calc(100vw - 32px);font-size:15px;padding:11px 12px 11px 16px}
     .opc:where([data-fmt="phone"]) .toast .undo{position:relative;padding:9px 12px}
     .opc:where([data-fmt="phone"]) .toast .undo::before{content:"";position:absolute;inset:-4px -2px}   /* zone tactile de 44 pt */
     .opc:where([data-fmt="phone"]) .toast.quiet,.opc:where([data-fmt="phone"]) .toast.quiet .undo{opacity:0 !important;pointer-events:none !important}   /* HUD caché : son bouton ne capte rien non plus */
@@ -4306,7 +4306,18 @@ var MARKUP = `
   function undoHidden(){ return isPhone()&&app.getAttribute("data-view")!=="reading"; }   // iPhone : la barre du bas porte déjà « Annuler l'envoi »
   function notify(msg){ if(toastKind==="act"&&$("#toast").classList.contains("show")) queuedMsg=msg; else toast(msg); }
   var REFUS_RE=/^(Ajoutez|Adresse du destinataire|Au plus|Une seule|Bientôt|Impossible|Envoi impossible|Rien n’est parti|Traduction impossible|Téléchargement impossible|Non enregistré|Déplacement non|Suivi non|On ne répond|Il manque|«.*doit être joint|L’état des signatures|La boîte n’a pas|Gestion des boîtes indisponible|Précisez|Choisissez)/;
-  function toast(msg,action){
+  // La bulle de l'HÔTE (#toast du prototype, « Commande … terminée ») et celle du module ne se recouvrent pas : quand l'hôte parle d'abord, la nôtre se pose AU-DESSUS de la sienne
+  // (l'hôte, lui, retire une bulle simple du module quand il parle après). Mesuré sur la hauteur réelle (position:fixed, bottom calculé), jamais sur un rectangle en pleine transition.
+  function surHote(){
+    var t=$("#toast"); if(!t) return; t.style.setProperty("--opc-sur","0px");
+    try{ var h=document.getElementById("toast"); if(!h||!h.classList.contains("on")) return;
+      var hb=h.getBoundingClientRect(), mb=t.getBoundingClientRect();
+      if(hb.right<=mb.left+1||mb.right<=hb.left+1) return;   // côte à côte : rien à faire
+      var haut=(parseFloat(getComputedStyle(h).bottom)||0)+h.offsetHeight+10, b0=parseFloat(getComputedStyle(t).bottom)||0;
+      if(b0<haut) t.style.setProperty("--opc-sur",Math.round(haut-b0)+"px"); }catch(e){}
+  }
+  function toast(msg,action){ toastCorps(msg,action); surHote(); }
+  function toastCorps(msg,action){
     clearTimeout(toastTimer);
     var t=$("#toast"); t.classList.remove("quiet");
     // le calque est fixé à l'écran : on lui dit où est le module (bord gauche, bord droit, distance au bas, milieu de la colonne de liste)
@@ -4530,7 +4541,7 @@ var MARKUP = `
   if(restoredLost) toast(restoredLost>1?restoredLost+" envois n’ont pas été confirmés : les messages sont dans Brouillons":"Un envoi n’a pas été confirmé : le message est dans Brouillons");
   charger(false);
   // Le format suit le conteneur (la fenêtre change, le menu de l'hôte s'ouvre…) ; le module s'éteint si l'hôte a retiré son conteneur
-  try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); catFade(); });
+  try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); fitSheetTitles(); catFade(); });   /* le titre d'une feuille se REMESURE aussi quand le format reste « téléphone » (debout ↔ paysage) : placeChrome ne repasse alors pas */
     obsTaille.observe(hote); finis.push(function(){ obsTaille.disconnect(); }); }catch(e){}
   var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&maintenant()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true);
     if(!document.hidden&&maintenant()-SIGN_RAF.t>=60000-100&&signEnCours()) signRafraichir(false); },Math.max(250,Math.min(5000,opt.intervalle||60000)));

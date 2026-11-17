@@ -2,7 +2,7 @@
 // montants recalculés au centime). node client-mots-documents.js [profil] [app]  → « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const O = require('./client-outils.js'), L = O.L, v = L.v;
 const profil = process.argv[2] || 'mac', app = process.argv.includes('app');
-const TUTOIEMENT = /\b(tu|ton|ta|tes|toi|te)\b|\b(Signe|Coche|Indique|Touche|Choisis|Dis|Recharge)\b/;
+const TUTOIEMENT = /(?<!\p{L})(tu|ton|ta|tes|toi|te)(?!\p{L})|(?<!\p{L})(Signe|Coche|Indique|Touche|Choisis|Dis|Recharge)(?!\p{L})/u;   // \b ne connaît pas les lettres accentuées : « êtes » contenait « tes »
 const BUREAU = /sans réponse|côté bureau|à planifier|relancé|brouillon|avalider|aplanifier|le bureau|à envoyer|à chiffrer/i;
 const ECHAFAUDAGE = /prototype|pour l’essai|d’essai|dans la vraie version|rien n’est enregistré|tester en tant que|simul/i;
 const ANGLAIS = /\b(login|e-?mail ok|checkout|cancel|submit|dashboard|reply|deadline|call)\b/i;
