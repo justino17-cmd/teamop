@@ -243,7 +243,7 @@ aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). �
 proposait d'en créer un second : évité). Le serveur d'atelier existe donc ; son adresse n'est pas encore connue ici, son mot de
 passe ne doit jamais l'être. PREMIERS GESTES à lui donner à la reprise, avant toute installation : clé SSH à la place du mot de
 passe, pare-feu (22, 80, 443), mises à jour de sécurité automatiques — puis seulement la forge.
-**Vu dans son espace IONOS après la commande (17 novembre, vers 17 h 40)** : le serveur d'atelier (« My VPS », « VPS 12-24-720 »,
+**Vu dans son espace IONOS après la commande (17 novembre, vers 17 h 27)** : le serveur d'atelier (« My VPS », « VPS 12-24-720 »,
 Ubuntu 24.04) est en ALLEMAGNE (Berlin) — le choix « EU » de la commande ne laissait pas choisir le pays ; dit à Justin : sans
 gravité pour un serveur d'essais aux données fictives, mais AUCUNE donnée réelle de client n'y va sans que les pages légales le
 disent d'abord. Le serveur actuel s'appelle « TeamOP » et porte la taille « VPS 4-4-120 » : sans doute 4 cœurs, 4 Go, 120 Go
