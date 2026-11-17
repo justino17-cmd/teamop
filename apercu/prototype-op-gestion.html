@@ -5158,7 +5158,7 @@ document.addEventListener('click', ev => {
 function kpiAbsence(n){
   const a = ABSENCES[n]; fermerPanneau(); const J = []; for (let d = a.du; d <= a.au && J.length < 7; d = ajoute(d, 1)) if (dObj(d).getDay() % 6) J.push(d);
   plVue = 'multi'; multiJours = J.length ? J : [a.du]; multiGrp = 'personne'; multiExclu = new Set(); plMasques = new Set(TECHS.map(t => t.id).filter(x => x !== a.tech && x !== ''));
-  if (route !== 'planning') aller('planning'); else rendre(); toast(`${tech(a.tech).nom} pendant son absence, et « Non assigné » pour réaffecter.`);
+  if (route !== 'planning') aller('planning'); else rendre(); toast(`Planning de ${tech(a.tech).nom} pendant son absence, avec la colonne « Non assigné » pour réaffecter.`);
 }
 /* un seul formulaire d'absence · 13 novembre 2026 : l'ancien formulaire du compteur (ab-*) n'avait ni demi-journée, ni aperçu des conflits,
    ni solde, et il enregistrait l'absence SANS confier les interventions du jour (la colonne « Absent » gardait ses cartes). On ouvre
@@ -6675,7 +6675,7 @@ function vueHistorique(){
   const gensVus = Object.keys(H_GENS).filter(k => JOURNAL.some(j => j.qui === k) && (hVoirComme === 'marc' || k === hVoirComme));
   const clis = Object.keys(CLIENTS).filter(k => JOURNAL.some(j => j.el && j.el.cli === k));
   const filtres = hQui !== 'tous' || hType !== 'tous' || hCli !== 'tous' || hJourSel !== 'tous' || hCherche, ouvert = d => filtres || hOuverts.has(d);
-  return `<div class="tete tete-h"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
+  return `<div class="tete tete-h"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y supprime ni ne s’y modifie.</span></div>
     <button type="button" class="btn gris" data-hexport="1">Exporter en PDF</button></div>
   ${enApp() ? '' : `<div class="h-comme"><span class="gris petit">Pour l’essai, voir comme :</span><div class="seg" role="group" aria-label="Voir comme">${[['marc', 'Marc · gérant'], ['sm', 'Sophie · technicienne']].map(([k, l]) => `<button type="button" data-hcomme="${k}" aria-pressed="${hVoirComme === k}">${l}</button>`).join('')}</div>
     ${hVoirComme !== 'marc' ? '<span class="h-note">Sans le droit « Tout voir », Sophie ne voit que ses propres actions.</span>' : ''}</div>`}
@@ -7589,7 +7589,7 @@ function aExport(){
   const L = ABSENCES.filter(a => a.du <= d1 && a.au >= d0 && (!ids || ids.includes(a.tech))).sort((a, b) => a.du.localeCompare(b.du));
   const titre = aPerLib() + (ids ? ' · ' + noms : '');
   ouvrirPanneau(`<h2>Exporter les absences</h2><span class="gris">${ids ? noms + ', ' : 'Toute l’équipe, '}${aPerLib()} — la période et les personnes choisies au calendrier.</span>
-  <div class="bil" role="document" data-nom="Absences ${titre}.pdf" data-a="" data-objet="Relevé des absences — ${titre}">
+  <div class="bil" role="document" data-nom="Absences ${String(titre).replace(/^Du /, 'du ')}.pdf" data-a="" data-objet="Relevé des absences — ${titre}">
     <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
       <div class="bil-titre"><small>Relevé des absences</small><b>${aPerLib()}</b><span>${ids ? noms + ' · ' : ''}du ${aDate(d0, true)} au ${aDate(d1, true)}</span></div></header>
     <section><h5>Absences validées · ${L.length}</h5><table><thead><tr><th>Personne</th><th class="bil-bur">Type</th><th>Période</th><th class="n">Jours ouvrés</th><th class="bil-bur">Motif</th></tr></thead><tbody>
@@ -8515,7 +8515,7 @@ function vueComptabilite(){
   const soldeBq = cpR(CP_SOLDE_01 + CP_RELEVE.reduce((s, r) => s + r.m, 0)), espTech = cpR(ca.chezTech.reduce((s, e) => s + e.ttc, 0));
   const enRoute = cpR(rap.attente.reduce((s, x) => s + (x.t === 'enc' ? x.e.ttc : x.t === 'depot' ? x.dp.m : -cpTTC(x.a)), 0)), enMain = cpR(ca.solde + espTech + ca.chq.reduce((s, e) => s + e.ttc, 0));   // la banque, plus ce qui y va, plus ce qui est encore en main
   const tabs = [['ensemble','Le mois'],['banque','Banque' + (rap.aExpliquer.length ? ' · ' + rap.aExpliquer.length : '')],['caisse','Caisse'],['tva','TVA'],['ecritures','Journal']];
-  const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} et octobre n’accepte plus de geste : une erreur se corrige en novembre, par un avoir ou une écriture de correction. Rien ne s’efface.</span>${enApp() ? '' : '<button type="button" class="lien" data-cp="rouvrir">Rouvrir octobre (pour l’essai)</button>'}</div>` : '';
+  const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} et octobre n’accepte plus de geste : une erreur se corrige en novembre, par un avoir ou une écriture de correction. Rien ne se supprime.</span>${enApp() ? '' : '<button type="button" class="lien" data-cp="rouvrir">Rouvrir octobre (pour l’essai)</button>'}</div>` : '';
   return `<div class="tete"><div><span class="surtitre">Ventes</span><h1>Comptabilité</h1><span class="gris">Octobre 2026 · tout s’écrit tout seul depuis les factures, les paiements, les achats et la banque. Tu vérifies, tu envoies à ton expert-comptable.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button>${CP.envoye ? '' : `<button type="button" class="btn" data-cp="envoi">Envoyer octobre à ${esc(CP_EXPERT.qui.split(' ')[0])}</button>`}</div></div>
   ${clos}
@@ -8643,7 +8643,7 @@ document.addEventListener('click', ev => {
     <div><b>2 · La banque se pointe toute seule</b><span class="gris petit">Chaque ligne du relevé retrouve sa facture ou son achat. Si une ligne reste seule, l’application te demande ce que c’est, en un clic (« c’est un paiement de… », « ce sont des frais bancaires »).</span></div>
     <div><b>3 · L’argent en main finit à la banque</b><span class="gris petit">Les espèces et les chèques reçus par un technicien sont suivis jusqu’au dépôt : rien ne se perd dans une camionnette.</span></div>
     <div><b>4 · La TVA est calculée</b><span class="gris petit">Pour tes interventions, elle est due quand le client paie. Celle de tes achats se récupère quand tu as la facture : une photo suffit.</span></div>
-    <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne s’efface.</span></div></div>`);
+    <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne se supprime.</span></div></div>`);
   if (a === 'regimes') return ouvrirPanneau(`<h2>Les régimes de TVA</h2>
     <div class="ligne"><span><b>Réel normal</b> (le tien)<br><span class="gris petit">Une déclaration chaque mois ; ce que montre cet écran.</span></span></div>
     <div class="ligne"><span><b>Réel simplifié</b><br><span class="gris petit">Une déclaration par an et deux acomptes dans l’année.</span></span></div>
@@ -10416,7 +10416,7 @@ document.addEventListener('click', ev => {
     H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:'#6b7280' };
     fermerPanneau(); rendre(); return toast(`Invitation envoyée à ${esc(m)}.`, { lib:'Régler ses droits', fn:() => eqFiche(k) }); }
   if (a === 'actif') { const p = eqDe(x); if (!p.actif && EQUIPE.filter(o => o.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');   // même règle que l’invitation
-    p.actif = !p.actif; rendre(); foGarder(() => eqFiche(x)); return toast(p.actif ? `Le compte de ${esc(eqNom(p))} est réactivé.` : `Le compte de ${esc(eqNom(p))} est désactivé : la personne ne peut plus se connecter, rien de ce qu’elle a fait n’est effacé.`); }
+    p.actif = !p.actif; rendre(); foGarder(() => eqFiche(x)); return toast(p.actif ? `Le compte de ${esc(eqNom(p))} est réactivé.` : `Le compte de ${esc(eqNom(p))} est désactivé : la personne ne peut plus se connecter, rien de ce qu’elle a fait n’est supprimé.`); }
   if (a === 'mdp' || a === 'relancer') return toast(a === 'mdp' ? `Lien envoyé à ${esc(eqDe(x).mail)} : la personne choisit elle-même son nouveau mot de passe.` : `Invitation renvoyée à ${esc(eqDe(x).mail)}.`);
   if (a === 'renouv') { const p = eqDe(x); p.habil[+y][1] = ajoute(AUJ, 3 * 365); rendre(); foGarder(() => eqFiche(x)); return toast('Habilitation renouvelée pour trois ans.'); }
   if (a === 'habajout') { const p = eqDe(x); ouvrirPanneau(`<span class="surtitre">${esc(eqNom(p))}</span><h2>Ajouter une habilitation</h2><label class="champ">Laquelle<input id="eq-hn" list="eq-hl" autocomplete="off"><datalist id="eq-hl">${['Habilitation électrique BR', 'Habilitation électrique B1V', 'Aptitude fluides frigorigènes, catégorie I', 'Prévention du risque amiante, sous-section 4', 'Travail en hauteur', 'CACES R486 (nacelle)', 'Certibiocide'].map(o => `<option value="${o}">`).join('')}</datalist></label>
@@ -11318,7 +11318,7 @@ document.addEventListener('click', ev => {
     const m = y === 'choix' ? (document.getElementById('cx-pmode') || {}).value || 'Virement' : y;
     o.paye = cxDm(AUJ); o.mode = m; if (typeof acSel !== 'undefined') acSel.delete(o.id);
     const liste = y === 'choix'; fermerPanneau(); rendre(); if (liste && ACHATS.some(z2 => !z2.paye && z2.mode !== 'Note de frais' && z2.mode !== 'Prélèvement')) cxPayerListe();
-    return toast(`${esc(o.ref)} payée par ${m.toLowerCase()} (${eur(cpTTC(o))}) : écrite en comptabilité. Une erreur se corrige par une écriture inverse, pas en effaçant.`); }
+    return toast(`${esc(o.ref)} payée par ${m.toLowerCase()} (${eur(cpTTC(o))}) : écrite en comptabilité. Une erreur se corrige par une écriture inverse, pas en supprimant.`); }
   if (a === 'factureok') {
     const cli = document.getElementById('nf-c').value, o = document.getElementById('nf-o').value.trim(), d = document.getElementById('nf-d').value.trim(), qTxt = document.getElementById('nf-q').value.trim(), q = cxNum(qTxt), p = cxNum(document.getElementById('nf-p').value), t = +document.getElementById('nf-t').value;
     if (!cli) { document.getElementById('nf-c').focus(); return toast('Choisis le client.'); }
@@ -11646,7 +11646,7 @@ function cxConformite(K, D){
       d:'Au même moment, ta plateforme transmettra à l’administration les montants, la TVA et les dates de paiement de tes ventes aux particuliers. Ce sont des totaux, pas le détail de chaque client. Chaque paiement est enregistré ici avec sa date : c’est la donnée qu’il faudra.' },
     { g:'efacture', k:'chorus', s:'info', t:'Un client public ?', ref:'Chorus Pro, obligatoire pour les factures au secteur public',
       d:'Une mairie, une école, un hôpital : la facture se dépose sur Chorus Pro, le portail de l’État. Aucun de tes clients n’est public aujourd’hui.' },
-    { g:'argent', k:'inalterable', s:'att', t:'Des paiements qu’on ne peut ni modifier ni effacer', ref:'CGI, art. 286, I-3° bis' + aVoir,
+    { g:'argent', k:'inalterable', s:'att', t:'Des paiements qu’on ne peut ni modifier ni supprimer', ref:'CGI, art. 286, I-3° bis' + aVoir,
       d:'Un logiciel qui enregistre les paiements de clients particuliers doit les rendre inaltérables, les sécuriser, les conserver et les archiver. L’éditeur doit en fournir la preuve (certificat ou attestation). Sans cette preuve, c’est l’entreprise qui l’utilise qui risque l’amende. TeamOP la fournira ici, dès qu’elle est délivrée.' },
     { g:'argent', k:'banque', v:1, s:rap.aExpliquer.length ? 'non' : 'ok', t:'La banque rapprochée', ref:'Le solde du compte en comptabilité doit être celui de la banque',
       d:rap.aExpliquer.length ? `${pl(rap.aExpliquer.length, 'ligne')} du relevé sans explication : tant qu’elles restent, la comptabilité et la banque ne disent pas la même chose.` : `Les ${CP_RELEVE.length} lignes du relevé d’octobre ont chacune leur pièce.`,
@@ -11801,7 +11801,7 @@ function cxVueArchives(K, D){
       <div class="ligne"><span><b>Le dossier pour ton expert-comptable</b><br><span class="gris petit">Écritures, factures, justificatifs et relevé rapproché, envoyés en une fois.</span></span><button type="button" class="btn gris petit" data-cx="sec|envoi">Ouvrir</button></div></div>
     <div class="carte"><h3>Les mois</h3>${mois.map(([m, d, s]) => `<div class="ligne"><span><b>${m}</b><br><span class="gris petit">${esc(d)}</span></span><span class="st ${s[1]}">${s[0]}</span></div>`).join('')}</div></div>
    <div class="col"><div class="carte"><h3>Ce qui est gardé, et combien de temps</h3>${garde.map(g => `<div class="ligne"><span>${g}</span><b>10 ans</b></div>`).join('')}
-      <span class="gris petit" style="display:block;margin-top:8px">Dix ans à partir de la clôture de l’exercice (Code de commerce, art. L123-22) ; pour l’administration fiscale, la durée de conservation de certains documents est de six ans (LPF, art. L102 B). Rien ne s’efface avant : une pièce envoyée reste telle quelle, une erreur se corrige par une nouvelle pièce.</span></div>
+      <span class="gris petit" style="display:block;margin-top:8px">Dix ans à partir de la clôture de l’exercice (Code de commerce, art. L123-22) ; pour l’administration fiscale, la durée de conservation de certains documents est de six ans (LPF, art. L102 B). Rien ne se supprime avant : une pièce envoyée reste telle quelle, une erreur se corrige par une nouvelle pièce.</span></div>
     <div class="carte"><h3>Si tu changes de logiciel</h3><span class="gris petit">Tout se récupère : les écritures au format FEC, les factures en PDF, les clients et les paiements en tableur. Tes données t’appartiennent.</span></div></div></div>`;
 }
 
@@ -11871,7 +11871,7 @@ document.addEventListener('click', ev => {
   ev.stopPropagation(); ev.preventDefault();
   ouvrirPanneau(`<h2>Comment ça marche</h2><span class="gris">Tu ne tapes rien : tu travailles dans l’application, la comptabilité se fait toute seule. Elle est rangée en espaces, comme chez un expert-comptable.</span>
     <div class="cp-aide">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.', paie:'Les heures du mois, les fiches de paie, les salariés, les charges et la déclaration sociale (réservé au gérant).' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
-    <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne s’efface.</span></div></div>`);
+    <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne se supprime.</span></div></div>`);
 }, true);
 
 /* ─── voir un justificatif (8 novembre 2026, Justin, sur la fiche d'une note de frais : « comment on voit le ticket ») ───
@@ -13395,7 +13395,7 @@ const GD_GESTES = [
     { c:'.panneau .cx-argent', t:'Tout est là', p:'Prévu, facturé, encaissé, reste à encaisser et la marge ; en dessous, la frise du devis au paiement. Rien n’a été saisi deux fois.', suivant:true } ],
   [ { c:'#contenu .cp-etapes', t:'Les vérifications du mois', p:'Tu es Julie : avant d’envoyer le mois à l’expert-comptable, ces points se vérifient tout seuls. Ceux qui restent ouverts sont écrits dans le message.', suivant:true },
     { c:'#contenu [data-cp="envoi"]', t:'Appuie sur « Envoyer »', p:'L’expert-comptable reçoit tout, rangé, dans le format que lit son logiciel.', ok:() => !!document.querySelector('.panneau [data-mailenvoi]') || !!CP.envoye },
-    { c:'.panneau [data-mailenvoi]', t:'Envoie', p:'Octobre est gardé tel quel : une erreur se corrigera en novembre, rien ne s’efface.', ok:() => !!CP.envoye } ]
+    { c:'.panneau [data-mailenvoi]', t:'Envoie', p:'Octobre est gardé tel quel : une erreur se corrigera en novembre, rien ne se supprime.', ok:() => !!CP.envoye } ]
 ];
 const gdDevis = () => { dvInit(); const d = DV.find(x => x.num === DEVIS_SUITE.num); return !!d && d.e === 'accepte'; };
 /* les visites : le test de A à Z, et une visite par partie de l'application (8 novembre 2026, Justin : « je veux un système de suivi
@@ -14059,7 +14059,7 @@ const TOUR_APP = [
   tourPartie('statistiques', 'Statistiques', 'Les statistiques : comment va l’entreprise', 'Ici tu vois si l’entreprise avance : le facturé, l’encaissé, les devis, le travail de chacun. Tu choisis la période, tout se recalcule.', [
     ['#contenu .st-barre-per', 'Choisis la période', 'Un mois, trois mois ou douze mois, et les flèches pour reculer. Chaque chiffre est comparé à la période d’avant.'],
     ['#contenu .st-kpis', 'Les chiffres clés', 'Le facturé, l’encaissé, le nombre d’interventions, les devis acceptés. Plus bas : la courbe sur douze mois, le détail par technicien, par type d’intervention et par client. « Bilan du mois en PDF » prépare le document pour ton comptable.']]),
-  tourPartie('historique', 'Historique', 'L’historique : qui a fait quoi, et quand', 'Chaque geste fait dans l’application s’écrit ici tout seul, avec le nom de la personne et l’heure. Rien ne s’y efface, rien ne s’y modifie : c’est ta preuve en cas de question.', [
+  tourPartie('historique', 'Historique', 'L’historique : qui a fait quoi, et quand', 'Chaque geste fait dans l’application s’écrit ici tout seul, avec le nom de la personne et l’heure. Rien ne s’y supprime, rien ne s’y modifie : c’est ta preuve en cas de question.', [
     ['#contenu .h-filtres', 'Retrouve un geste', 'Filtre par personne, par catégorie ou par mot. Tu peux aussi exporter la période en PDF.']]),
   tourPartie('planning', 'Planning', 'Le planning : qui va où, et quand', 'C’est ici que tu organises les journées de l’équipe. Tu vois chaque technicien, ses interventions, ses absences, et tu déplaces une intervention en la faisant glisser.', [
     ['#contenu .pl-barre', 'Change de vue', 'Jour, semaine, mois, vue d’ensemble, ou la carte des tournées. Les flèches changent de date. « ＋ Nouvelle intervention » en crée une directement à la bonne heure.'],
@@ -20995,7 +20995,7 @@ function eqxDepart(k) {
   const techs = autres.filter(eqxTerrain);
   if (!R.ints.length && !R.veh.length && !R.taches.length && !R.pt && !(R.cp && R.cp.reste > 0)) return eqxDesactiver(k, {});
   const prop = R.ints.map(i => ({ i, r:eqxMeilleur(i, k) }));
-  eqxPan(`<span class="surtitre">Équipe</span><h2>Avant de désactiver ${esc(eqNom(p))}</h2><span class="gris">Le compte se ferme, rien de ce que la personne a fait n’est effacé. Voici ce qui lui reste, à reprendre :</span>
+  eqxPan(`<span class="surtitre">Équipe</span><h2>Avant de désactiver ${esc(eqNom(p))}</h2><span class="gris">Le compte se ferme, rien de ce que la personne a fait n’est supprimé. Voici ce qui lui reste, à reprendre :</span>
     ${R.ints.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.ints.length, 'intervention')} à venir</h3><label class="champ">Reprendre par<select id="eqx-dint"><option value="auto">Au mieux de chacun (proposé)</option>${techs.map(o => `<option value="${o.k}">${esc(eqNom(o))}</option>`).join('')}<option value="">Laisser non assignées</option></select></label>
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
@@ -23740,7 +23740,7 @@ immChap('statistiques', 'statistiques', 'Statistiques', 'Les statistiques : comm
 (() => { const c = IMM_CHAPS.statistiques, g = c.go; c.go = () => { immPilotageStats(); g(); }; })();
 
 immChap('historique', 'historique', 'Historique', 'L’historique : qui a fait quoi, et quand',
-  'L’Historique garde la trace de tout ce qui se passe dans l’entreprise : qui a fait quoi, et à quelle heure. Rien ne s’y efface et rien ne s’y modifie, même pour le gérant. C’est ta preuve en cas de doute, et le moyen de retrouver une action.', [
+  'L’Historique garde la trace de tout ce qui se passe dans l’entreprise : qui a fait quoi, et à quelle heure. Rien ne s’y supprime et rien ne s’y modifie, même pour le gérant. C’est ta preuve en cas de doute, et le moyen de retrouver une action.', [
   { c:'.h-jour.ouvert', t:'Un journal rangé par jour', p:'Le journal est rangé par jour, le plus récent en haut. Chaque jour dit combien d’actions ont eu lieu et qui les a faites. Aujourd’hui est déjà ouvert : à chaque ligne, l’heure, la personne, ce qu’elle a fait, et pour quel client.' },
   { c:'.h-jour.ouvert .h-l:nth-child(3)', t:'Le logiciel écrit aussi', p:'Cette ligne n’a pas été faite par une personne : c’est OP GESTION lui-même qui a envoyé le compte rendu au client, dès que le technicien a terminé. Tout ce que le logiciel fait tout seul est écrit ici.' },
   { c:'.h-filtres', t:'Retrouver une action', p:'Pour retrouver une action, tu as la recherche, les puces par type, et les listes Personne, Jour et Client. Les puces suivent les catégories de l’application. Je touche « Factures et paiements ».', jouer:() => immClic('[data-htype="facture"]') },
@@ -25484,7 +25484,7 @@ function secuUi(k){ let u = SECU.ui[k]; if (!u) { const c = SECU.comptes[k] || s
 /* le téléphone relit le compte à chaque dessin : un nouveau téléphone donné par l'administrateur le RÉVOQUE (il s'efface et le dit) */
 function opsSynchro(k){ const c = secuCompte(k), u = secuUi(k); if (u.tel === (c.tel || null)) return u;
   if (u.tel) { u.tel = c.tel || null; u.ecran = c.tel ? 'verrouille' : 'neuf'; u.pin = ''; u.pin1 = ''; u.pinValide = ''; u.retour = null; u.blocage = null; u.supprimer = false;
-    u.info = 'Ce téléphone n’est plus autorisé (un nouveau téléphone a été activé, ou ton compte a été réinitialisé). Le compte a été effacé de cet appareil.'; u.infoTon = 'danger'; }
+    u.info = 'Ce téléphone n’est plus autorisé (un nouveau téléphone a été activé, ou ton compte a été réinitialisé). Le compte a été supprimé de cet appareil.'; u.infoTon = 'danger'; }
   else { u.tel = c.tel; u.ecran = 'verrouille'; u.info = ''; }
   return u; }
 let OPS_ID = 0;
@@ -25539,7 +25539,7 @@ function opsEcran(k){ const c = secuCompte(k), u = opsSynchro(k), p = eqDe(k), n
       <p class="ops-note">Activé sur ${esc(c.tel.nom)} · Verrouillage automatique après 60 s ou en quittant l’application.</p><button type="button" class="ops-lien danger" data-ops="supprimer">Supprimer de ce téléphone</button></div>`; }
   /* pas installée (ou effacée) : les écrans d'installation */
   const pcA = SECU.pc.ecran === 'activer' && SECU.pc.k === k && !c.tel;
-  if (c.tel && c.tel.efface) return tete + `<div class="ops-centre">${opsLogo(true)}<h1>OP Security</h1>${u.info ? `<p class="ops-bloc ${u.infoTon || 'danger'}" role="alert">${esc(u.info)}</p>` : '<p class="ops-bloc danger" role="alert">Le compte a été effacé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone.</p>'}</div>`;
+  if (c.tel && c.tel.efface) return tete + `<div class="ops-centre">${opsLogo(true)}<h1>OP Security</h1>${u.info ? `<p class="ops-bloc ${u.infoTon || 'danger'}" role="alert">${esc(u.info)}</p>` : '<p class="ops-bloc danger" role="alert">Le compte a été supprimé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone.</p>'}</div>`;
   if (u.ecran === 'pin1' || u.ecran === 'pin2') return tete + `<div class="ops-centre">${opsCadenas()}<h1>${u.ecran === 'pin1' ? 'Choisis un code PIN' : 'Confirme le code PIN'}</h1><p>${u.ecran === 'pin1' ? '6 chiffres que toi seul connais.' : 'Tape-le une seconde fois.'}</p>${opsPoints(u.pin.length)}${opsErr(u.err)}</div>${opsPave()}`;
   if (u.ecran === 'activer') return tete + `<div class="ops-centre">${opsCadenas()}<h1>Activer ce téléphone</h1><p>Sur l’ordinateur, connecte-toi : un code d’activation s’affiche.</p>${opsErr(u.err)}</div>
     <div class="ops-bas"><button type="button" class="ops-btn" data-ops="scanner">Scanner le code d’activation</button><button type="button" class="ops-btn ghost" data-ops="saisir-code">Saisir le code à la main</button></div>`;
@@ -25585,7 +25585,7 @@ function opsPinFin(k, p){ const u = secuUi(k), c = secuCompte(k);
   else if (u.ecran === 'pin2') { if (p !== u.pin1) { u.err = 'Les deux codes ne correspondent pas. Recommence.'; u.ecran = 'pin1'; u.pin1 = ''; } else { u.pinValide = p; u.pin1 = ''; u.ecran = 'activer'; } }
   else if (u.ecran === 'verrouille' && c.tel) { if (secuEmpreinte(p, c.tel.pinSel) === c.tel.pinEmp) { c.tel.pinEssais = 0; u.ecran = 'ouvert'; u.derniere = secuMaint(); u.retour = null; }
     else { c.tel.pinEssais = (c.tel.pinEssais || 0) + 1; const reste = SECU_REGLES.pinMax - c.tel.pinEssais;
-      if (reste <= 0) { c.tel.efface = true; u.ecran = 'neuf'; u.info = 'Trop de codes PIN erronés : le compte a été effacé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone.'; u.infoTon = 'danger'; secuJ('mfa.device_wiped', k, 'cinq codes PIN faux'); }
+      if (reste <= 0) { c.tel.efface = true; u.ecran = 'neuf'; u.info = 'Trop de codes PIN erronés : le compte a été supprimé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone.'; u.infoTon = 'danger'; secuJ('mfa.device_wiped', k, 'cinq codes PIN faux'); }
       else u.err = 'Code PIN incorrect. ' + reste + ' essai' + (reste > 1 ? 's' : '') + ' avant effacement.'; } }
   opsDessiner(); }
 function opsActiverAvec(k, texte, nom){ const c = secuCompte(k), u = secuUi(k), a = c.codeActivation, n = String(texte || '').replace(/[\s-]/g, '').toUpperCase();
