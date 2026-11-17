@@ -46,7 +46,7 @@
   "defaut": "contrats-07 : la fiche n'avait ni date de fin, ni Renouveler, ni Mettre fin ; après la dernière visite faite, aucune suite proposée",
   "etat": "corrigé",
   "changement": "En-tête : « Fin le 31/12/2026 » (« Début le … · fin le … » pour un envoyé). Carte « La suite du contrat » : « Renouveler pour un an » (cases Contrats : créer) et « Mettre fin au contrat » (cases : modifier), chacun avec une confirmation qui DIT ce qui change (panneau de la page, pas de boîte du navigateur). Renouveler = un contrat suivant (CTR suivant, mêmes conditions, an suivant), ses visites posées « à planifier », la facture de l'année / du premier mois préparée, une ligne à l'Historique ; l'ancien dit « renouvelé jusqu'au … » et n'est plus compté deux fois (« HT par an », Tâches, Statistiques) ; un second « Oui » ne renouvelle pas deux fois. Mettre fin = fin aujourd'hui (31/10/2026), les visites non faites sortent du planning (la confirmation le dit), plus de proposition de renouvellement ni de facture à venir, état « Terminé le … » partout (liste, fiche, client, espace client, Comptabilité). Une fois toutes les visites faites, la carte l'annonce (« Les 6 visites sont faites… »). Le courriel de proposition reste le premier pas (lien « D'abord, proposer le renouvellement au client par e-mail »). Gestes inscrits dans la table des droits (GESTES).",
-  "preuve": "restes-contrats-1.js (mac 55 ✓, iPhone nuit 55 ✓, Android 55 ✓ · 0 ✗) ; contrats-renouvellement.js 11 ✓ (avant : 9 ✓ · 3 ✗, les 3 ✗ étaient ce défaut ; le ✗ restant était mon test du courriel, mis à jour) ; captures renouveler-panneau, renouvele-fiche, fin-panneau, termine-fiche (Mac jour, iPhone nuit) regardées ; mutations C6, C7, C8 mordent"
+  "preuve": "restes-contrats-1.js (Mac 57 ✓ · 0 ✗, iPhone 59 ✓ · 0 ✗ sur la dernière version ; iPad, Windows nuit, Android, iPhone nuit 55 ✓ · 0 ✗ avant les deux dernières vérifications) ; contrats-renouvellement.js 12 ✓ · 0 ✗ (avant : 9 ✓ · 3 ✗, les 3 ✗ étaient ce défaut) ; captures renouveler-panneau, renouvele-fiche, fin-panneau, termine-fiche (Mac jour, iPhone nuit) regardées ; mutations C6, C7, C8 mordent"
  },
  {
   "nom": "contrats",
@@ -101,8 +101,8 @@
   "nom": "contrats",
   "defaut": "Trouvé en vérifiant : les visites d'un contrat renouvelé reprenaient les dates et les états des visites de l'ANCIEN contrat du même client (même titre « Contrat — visite n sur N »)",
   "etat": "corrigé",
-  "changement": "visitesDe ne retient une visite que si elle porte son contrat (ctr) ou n'en porte aucun.",
-  "preuve": "restes-contrats-1.js « ses 4 visites sont posées à planifier » + capture renouvele-fiche regardée ; mutation C15 mord"
+  "changement": "visitesDe ne retient pour un contrat que les visites que ctrDeVisite lui attribue : celles qui portent son identifiant, et celles du départ (sans contrat noté), qui vont au premier contrat signé du client. Première version (« sans contrat noté ou le sien ») insuffisante : mon test a montré les visites 2 et 3 de l'ancien contrat dans la fiche du nouveau, corrigée.",
+  "preuve": "restes-contrats-1.js « la fiche du nouveau contrat montre SES 4 visites, toutes À planifier » (rouge avant la seconde correction : [À planifier, Terminée, Planifiée, À planifier], vert après) ; mutation C15 mord"
  },
  {
   "nom": "contrats",
@@ -145,5 +145,12 @@
   "etat": "à soumettre à Justin",
   "changement": "Rien à corriger : limites du prototype. La date dépassée est jouée en changeant la date de fin d'un contrat (« échu depuis 16 jours »).",
   "preuve": "—"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Contre-épreuve de la correction : les 17 mutations (une par défaut remis) sont-elles vues ?",
+  "etat": "corrigé",
+  "changement": "campagne/sondes/mutations-restes-contrats.py remet 17 défauts un à un sur une COPIE de la page (l'ancien texte est vérifié unique et le fichier vérifié changé). 14 mordent du premier coup ; 3 ont SURVÉCU et dit que la sonde ne regardait pas là : C8 (les visites non faites restent au planning après « Mettre fin » : la sonde ne comparait pas les identifiants de visites d'avant et d'après), C12 (l'ordre au téléphone : mutation jouée sur Mac au lieu de l'iPhone), C15 (les visites du renouvellement : la sonde lisait les données, pas la fiche). Sondes durcies, mutations rejouées : 17 sur 17 mordent.",
+  "preuve": "journal hors dépôt mutations-restes-contrats.log ; « == 14 mordent · 3 survivent » puis C8, C12, C15 « MORD »"
  }
 ]
