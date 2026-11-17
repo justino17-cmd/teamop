@@ -1581,7 +1581,8 @@ var CSS = `
   .opc:where([data-fmt="phone"]) #btnCompose svg{width:22px;height:22px}
   .opc:where([data-fmt="phone"]) #btnCompose .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
   /* sur une ligne choisie (bleu plein), la pastille s'ASSOMBRIT au lieu de s'éclaircir : un voile blanc sous du texte blanc tombait à 3,4:1 de nuit (bleu éclairci, 11,5 px) */
-  .opc .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff}
+  /* …mais seulement là où la ligne choisie EST bleue : sur téléphone et iPad portrait (une colonne) elle reste claire (« .msg.sel{background:none} » plus haut), et un voile noir sur du blanc donnait du texte blanc sur gris, 2,1:1 de jour */
+  .opc:where(:not([data-fmt="phone"])) .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff}
   /* le grand titre d'un téléphone en paysage : la règle « paysage » plus haut (22 px) PERDAIT contre la règle « clamp(21px,7.2vw,31px) » écrite plus loin, de même force — le titre restait à 31 px (mesuré). Écrite ici, en dernier, elle gagne. */
   @media (max-height:500px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
