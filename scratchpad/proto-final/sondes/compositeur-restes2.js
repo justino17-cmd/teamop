@@ -86,7 +86,7 @@ const toastParent = p => p.evaluate(() => { const t = document.getElementById('t
       const t = await toastParent(p);
       v(`${tag} · F1 (${faire}) l'atelier est rangé et la PAGE dit « Brouillon supprimé » (${JSON.stringify(t)})`, t.present && t.on && /Brouillon supprimé/.test(t.texte) && t.atelierRange && t.vis !== 'hidden' && t.op > .5, t);
       v(`${tag} · F2 (${faire}) la bulle est dans l'écran (haut ${t.haut}, bas ${t.bas}, écran ${t.H}) et rien d'autre ne la couvre`, t.haut >= 0 && t.bas <= t.H, t);
-      const cache = await p.evaluate(() => { const e = document.getElementById('toast'); const r = e.getBoundingClientRect(); e.style.pointerEvents = 'auto'; const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); e.style.pointerEvents = ''; return { ok: !!x && (e === x || e.contains(x)), sur: x ? x.tagName + '#' + x.id + '.' + String(x.className).slice(0, 30) : null }; });
+      const cache = await p.evaluate(() => { const e = document.getElementById('toast'); if (!e) return { ok: false, sur: 'bulle absente' }; const r = e.getBoundingClientRect(); e.style.pointerEvents = 'auto'; const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); e.style.pointerEvents = ''; return { ok: !!x && (e === x || e.contains(x)), sur: x ? x.tagName + '#' + x.id + '.' + String(x.className).slice(0, 30) : null }; });
       v(`${tag} · F2b (${faire}) rien ne couvre la bulle (${JSON.stringify(cache)})`, cache.ok, cache);
       await L.capture(c, CAP + tag + '-supprime-' + faire + '.png');
       await p.waitForTimeout(6300);
