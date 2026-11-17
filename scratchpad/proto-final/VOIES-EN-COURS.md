@@ -7,13 +7,12 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 28 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 41 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
-| securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
 
 ## Les sessions SŒURS (d'autres machines) — mode d'emploi : `workflows/SESSION-SOEUR.md`
@@ -60,6 +59,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 35 | session_01PfEEAE6Dx8R8cDTAgEhREX | `{voie:"final-regard", role:"gerant", rubriques:["Registre sanitaire","Carte des box","Devis xylophage"], suffixe:"f"}` (les trois écrans 3D, et le Registre vu par la technicienne) | 12 h 22 | |
 | 36 | session_01PfEEAGt4nyu6bqwDCac1di | `{voie:"final-regard", role:"technicien", rubriques:["Mon camion"], suffixe:"b"}` (reste pour le technicien : Mes frais, Mes heures, après les sœurs 23 et 26) | 12 h 22 | |
 | 37 | session_01PfEEAGKe9aa56NXBMnLkg5 | `{voie:"restes", noms:["nuit"], tours:1}` (décision du chef de 12 h 30 : de nuit le bouton principal devient clair, le miroir du jour ; tous les écrans de nuit recapturés et regardés — ligne « (nuit) » de `final/vus-par-le-chef.md`) | 12 h 28 | |
+| 38 | session_01PfEEAEjQacyMHRDkuz6SZH | `{voie:"restes", noms:["securite"], tours:2}` (recontrôle de la sécurité rendu à 12 h 41 : 14 failles fermées sur 18, 5 variantes ouvertes dont S01 haute, 4 casses dont une Boîte mail qui jette sur un e-mail sans adresse ; décisions du chef dans sa consigne : nettoyer à l’entrée, échapper à la sortie, jamais les deux) | 12 h 41 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
