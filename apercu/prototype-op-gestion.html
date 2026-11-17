@@ -8395,6 +8395,8 @@ function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
    · Avancer après un Retour ne rouvre pas une fenêtre vide : l'entrée atteinte est repoussée aussitôt ;
    · un rechargement fenêtre ouverte : la page ne rouvre rien, et l'entrée orpheline est reculée au chargement ;
    · l'atelier de devis (#opdz) et le module de courrier (prototype-courrier.js, entrées {opcourrier}) ont leurs propres entrées dans le même historique : on ne lit que `state.cal`.
+   · la Comptabilité plein cadre (#cpsys) n'est PAS un calque : c'est une route (#comptabilite), l'entrée d'historique est celle de l'adresse — Retour la quitte comme n'importe quel écran, sans sortir de l'application ;
+     son bouton « ‹ OP GESTION » recule d'une entrée au lieu d'en ajouter une (calRevenirA).
    Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre, artefact), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
 const CAL_GENRES = [
   { k:'panneau',     ouvert:() => !!document.querySelector('#calque .voile'),            ferme:() => fermerPanneau() },   // fiches, formulaires, la feuille « Menu »
