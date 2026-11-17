@@ -30,14 +30,14 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   // la Banque le sait-elle ? 
   await X.compta(c, 'banque'); const att = await p.evaluate(() => cpRapprocher().attente.length); v('B4 la Banque montre les paiements du chèque et du virement « pas encore à la banque »', att === s0.attente + 2, { avant: s0.attente, apres: att });
   // relevé fournisseur
-  await X.compta(c, 'fournisseurs'); await L.toucher(c, '[data-cx="relevef|dko"]'); const rel = await X.panneau(p); await L.capture(c, X.CAP + `${profil}-parcours-b-releve.png`);
-  v('B5 le relevé Daikin dit « Tu lui dois au 31 octobre » et un montant', /Tu lui dois au 31 octobre/.test(rel), rel.slice(0, 300));
-  const ok = await p.evaluate(() => { const o = cxFournisseurs().find(x => x.k === 'dko'); const sold = [...document.querySelectorAll('#calque .cx-bal-tot b')].map(b => b.textContent); return { du: o.du, sold }; });
+  await X.compta(c, 'fournisseurs'); await L.toucher(c, '[data-cx="relevef|cpa"]'); const rel = await X.panneau(p); await L.capture(c, X.CAP + `${profil}-parcours-b-releve.png`);
+  v('B5 le relevé Clim Pièces dit « Tu lui dois au 31 octobre » et un montant', /Tu lui dois au 31 octobre/.test(rel), rel.slice(0, 300));
+  const ok = await p.evaluate(() => { const o = cxFournisseurs().find(x => x.k === 'cpa'); const sold = [...document.querySelectorAll('#calque .cx-bal-tot b')].map(b => b.textContent); return { du: o.du, sold }; });
   const du = Math.round(ok.du * 100), lu = L.cents(ok.sold[0] || '0'); v('B5 le solde du relevé = « Tu lui dois » de la liste, au centime', du === lu, ok);
   // payer depuis le relevé : « Payée par virement »
-  const avant = (await S()).nb; await L.toucher(c, '#calque [data-cx^="payer|a9|"]'); v('B6 « Payée par virement » du relevé paie la facture', (await S()).nb === avant - 1);
+  const avant = (await S()).nb; await L.toucher(c, '#calque [data-cx^="payer|a7|"]'); v('B6 « Payée par virement » du relevé paie la facture du ventilateur', (await S()).nb === avant - 1);
   // l'écran « fournisseurs » se met à jour
-  await p.keyboard.press('Escape'); await X.compta(c, 'fournisseurs'); const fd = await p.evaluate(() => document.querySelector('.cx-kpis4 .kpi:nth-child(3) b').textContent); v('B7 « encore à payer » = 171,00 € (il ne reste que le ventilateur)', L.cents(fd) === 17100, fd);
+  await p.keyboard.press('Escape'); await X.compta(c, 'fournisseurs'); const fd = await p.evaluate(() => document.querySelector('.cx-kpis4 .kpi:nth-child(3) b').textContent); v('B7 « encore à payer » = 0,00 € (les trois factures sont réglées)', L.cents(fd) === 0, fd);
   await L.capture(c, X.CAP + `${profil}-parcours-b-fournisseurs.png`);
   v('B erreurs JavaScript : aucune', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);

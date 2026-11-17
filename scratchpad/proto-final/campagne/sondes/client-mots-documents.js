@@ -2,7 +2,7 @@
 // montants recalculés au centime). node client-mots-documents.js [profil] [app]  → « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const O = require('./client-outils.js'), L = O.L, v = L.v;
 const profil = process.argv[2] || 'mac', app = process.argv.includes('app');
-const TUTOIEMENT = /\b(tu|ton|ta|tes|toi|te)\b|\b(Signe|Coche|Indique|Touche|Choisis|Dis|Recharge)\b/;
+const TUTOIEMENT = /(?<!\p{L})(tu|ton|ta|tes|toi|te)(?!\p{L})|(?<!\p{L})(Signe|Coche|Indique|Touche|Choisis|Dis|Recharge)(?!\p{L})/u;   // \b ne connaît pas les lettres accentuées : « êtes » contenait « tes »
 const BUREAU = /sans réponse|côté bureau|à planifier|relancé|brouillon|avalider|aplanifier|le bureau|à envoyer|à chiffrer/i;
 const ECHAFAUDAGE = /prototype|pour l’essai|d’essai|dans la vraie version|rien n’est enregistré|tester en tant que|simul/i;
 const ANGLAIS = /\b(login|e-?mail ok|checkout|cancel|submit|dashboard|reply|deadline|call)\b/i;
@@ -11,7 +11,7 @@ const ANGLAIS = /\b(login|e-?mail ok|checkout|cancel|submit|dashboard|reply|dead
   const zone = () => p.evaluate(() => { const z = document.querySelector('#docplein') || document.querySelector('#calque .panneau') || document.querySelector('.ec') || document.querySelector('#contenu'); return z ? z.innerText.replace(/\s+/g, ' ').trim() : ''; });
   const juge = (nom, t) => { const m = (re) => (t.match(re) || [])[0];
     v(`${nom} : pas de tutoiement`, !TUTOIEMENT.test(t), m(TUTOIEMENT) && ('« ' + t.slice(Math.max(0, t.search(TUTOIEMENT) - 30), t.search(TUTOIEMENT) + 60) + ' »'));
-    v(`${nom} : pas de vocabulaire du bureau`, !BUREAU.test(t), m(BUREAU) && ('« ' + t.slice(Math.max(0, t.search(BUREAU) - 30), t.search(BUREAU) + 60) + ' »'));
+    v(`${nom} : client-07 · pas de vocabulaire du bureau`, !BUREAU.test(t), m(BUREAU) && ('« ' + t.slice(Math.max(0, t.search(BUREAU) - 30), t.search(BUREAU) + 60) + ' »'));
     if (app) v(`${nom} : aucun reste d’échafaudage (mode application)`, !ECHAFAUDAGE.test(t) && !/^TESTER/.test(t), m(ECHAFAUDAGE) && ('« ' + t.slice(Math.max(0, t.search(ECHAFAUDAGE) - 30), t.search(ECHAFAUDAGE) + 80) + ' »'));
     v(`${nom} : pas de mot anglais`, !ANGLAIS.test(t), m(ANGLAIS)); };
   const clis = await p.evaluate(() => Object.keys(CLIENTS));

@@ -1,0 +1,2459 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-paie-paiemois": {
+   "recenses": 45,
+   "touches": 45,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Le mois",
+     "data": "data-cx=sec|paiemois",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Fiches de paie",
+     "data": "data-cx=sec|fiches",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 132,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Salariés",
+     "data": "data-cx=sec|salaries",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Charges et déclarations",
+     "data": "data-cx=sec|charges",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 200,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "OP GESTION les calcule",
+     "data": "data-paie=mode|op",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 206,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "Le cabinet les fait",
+     "data": "data-paie=mode|cabinet",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 158,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Valider ce qui est en règle",
+     "data": "data-paie=validertout",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "27 semaines validées. À regarder d’abord, une alerte du Code du travail : Karim (semaine du 19 oct.)",
+     "sansNom": false,
+     "l": 195,
+     "h": 34
+    },
+    {
+     "i": 16,
+     "lib": "Demander aux salariés de confirmer",
+     "data": "data-paie=relancer",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Chaque salarié qui n’a pas confirmé reçoit une notification : « Ton relevé d’heures est prêt, confir",
+     "sansNom": false,
+     "l": 265,
+     "h": 34
+    },
+    {
+     "i": 17,
+     "lib": "Verrouiller octobre",
+     "data": "data-paie=verrouiller",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "D’abord les heures : 1 journée restée ouverte · 6 personnes ont encore des heures à valider · 1 erre",
+     "sansNom": false,
+     "l": 148,
+     "h": 34
+    },
+    {
+     "i": 18,
+     "lib": "Sophie MartinTechnicienne 170h4617h31— —1 j ✎ 1À confirmer›",
+     "data": "data-paie=releve|sm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 19,
+     "lib": "170h46",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 20,
+     "lib": "17h31",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 21,
+     "lib": "—",
+     "data": "data-l=Sup. 50 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 22,
+     "lib": "—",
+     "data": "data-l=Nuit",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 23,
+     "lib": "1 j",
+     "data": "data-l=Absences",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 24,
+     "lib": "✎ 1",
+     "data": "data-l=Corrections",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 132,
+     "h": 23
+    },
+    {
+     "i": 25,
+     "lib": "Karim BenaliChef d’équipe 190h4325h250h33 0h30— ✎ 1Confirmé›",
+     "data": "data-paie=releve|kb",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 26,
+     "lib": "190h43",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 27,
+     "lib": "25h25",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 28,
+     "lib": "0h33",
+     "data": "data-l=Sup. 50 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 29,
+     "lib": "0h30",
+     "data": "data-l=Nuit",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 30,
+     "lib": "—",
+     "data": "data-l=Absences",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 31,
+     "lib": "Léa RouxTechnicienne 171h1523h45— —1 j —À confirmer›",
+     "data": "data-paie=releve|lr",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 32,
+     "lib": "171h15",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 33,
+     "lib": "23h45",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 34,
+     "lib": "—",
+     "data": "data-l=Corrections",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 132,
+     "h": 23
+    },
+    {
+     "i": 35,
+     "lib": "Tom LeroyTechnicien 154h5518h05— —2 j —Erreur signalée›",
+     "data": "data-paie=releve|tl",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 36,
+     "lib": "154h55",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 37,
+     "lib": "18h05",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 38,
+     "lib": "2 j",
+     "data": "data-l=Absences",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 39,
+     "lib": "Julie PetitSecrétariat 178h4522h55— —— —Confirmé›",
+     "data": "data-paie=releve|julie",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 40,
+     "lib": "178h45",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 41,
+     "lib": "22h55",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 42,
+     "lib": "Marc LeblancGérant 179h20—— —— —À confirmer›",
+     "data": "data-paie=releve|marc",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 66
+    },
+    {
+     "i": 43,
+     "lib": "179h20",
+     "data": "data-l=Heures",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    },
+    {
+     "i": 44,
+     "lib": "—",
+     "data": "data-l=Sup. 25 %",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 106,
+     "h": 23
+    }
+   ]
+  },
+  "marc-mac-paie-fiches": {
+   "recenses": 43,
+   "touches": 43,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Le mois",
+     "data": "data-cx=sec|paiemois",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Fiches de paie",
+     "data": "data-cx=sec|fiches",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 133,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Salariés",
+     "data": "data-cx=sec|salaries",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Charges et déclarations",
+     "data": "data-cx=sec|charges",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 200,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Sophie MartinTechnicienne frigoriste2 803,68 €579,34 €2 394,",
+     "data": "data-paie=fiche|sm",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 14,
+     "lib": "2 803,68 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 15,
+     "lib": "579,34 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 16,
+     "lib": "2 394,09 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 17,
+     "lib": "3 830,29 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 18,
+     "lib": "Karim BenaliChef d’équipe frigoriste3 583,31 €711,32 €3 008,",
+     "data": "data-paie=fiche|kb",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 19,
+     "lib": "3 583,31 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 20,
+     "lib": "711,32 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 21,
+     "lib": "3 008,74 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 22,
+     "lib": "5 107,35 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 23,
+     "lib": "Léa RouxTechnicienne frigoriste2 869,66 €579,98 €2 524,88 €3",
+     "data": "data-paie=fiche|lr",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 24,
+     "lib": "2 869,66 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 25,
+     "lib": "579,98 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 26,
+     "lib": "2 524,88 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 27,
+     "lib": "3 882,67 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 28,
+     "lib": "Tom LeroyTechnicien frigoriste2 527,93 €524,79 €2 194,58 €3 ",
+     "data": "data-paie=fiche|tl",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 29,
+     "lib": "2 527,93 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 30,
+     "lib": "524,79 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 31,
+     "lib": "2 194,58 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 32,
+     "lib": "3 279,99 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 33,
+     "lib": "Julie PetitSecrétaire administrative2 734,33 €555,78 €2 139,",
+     "data": "data-paie=fiche|julie",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 34,
+     "lib": "2 734,33 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 35,
+     "lib": "555,78 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 36,
+     "lib": "2 139,59 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 37,
+     "lib": "3 401,22 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 38,
+     "lib": "Marc LeblancGérant (assimilé salarié)3 800,00 €833,32 €2 732",
+     "data": "data-paie=fiche|marc",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 39,
+     "lib": "3 800,00 €",
+     "data": "data-l=Brut",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 40,
+     "lib": "833,32 €",
+     "data": "data-l=Cotisations salarié",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 41,
+     "lib": "2 732,36 €",
+     "data": "data-l=Net payé",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    },
+    {
+     "i": 42,
+     "lib": "5 091,17 €",
+     "data": "data-l=Coût employeur",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 23
+    }
+   ]
+  },
+  "marc-mac-paie-salaries": {
+   "recenses": 46,
+   "touches": 46,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Le mois",
+     "data": "data-cx=sec|paiemois",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Fiches de paie",
+     "data": "data-cx=sec|fiches",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 132,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Salariés",
+     "data": "data-cx=sec|salaries",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Charges et déclarations",
+     "data": "data-cx=sec|charges",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 200,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Sophie MartinTechnicienne frigoristeouvrier11/04/20222 450,0",
+     "data": "data-paie=sal|sm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 14,
+     "lib": "ouvrier",
+     "data": "data-l=Statut",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 15,
+     "lib": "11/04/2022",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 16,
+     "lib": "2 450,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 17,
+     "lib": "16,15 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 18,
+     "lib": "3,30 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Sophie Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    },
+    {
+     "i": 19,
+     "lib": "Karim BenaliChef d’équipe frigoristeouvrier06/01/20202 900,0",
+     "data": "data-paie=sal|kb",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 20,
+     "lib": "06/01/2020",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 21,
+     "lib": "2 900,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 22,
+     "lib": "19,12 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 23,
+     "lib": "4,60 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Karim Benali",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    },
+    {
+     "i": 24,
+     "lib": "Léa RouxTechnicienne frigoristeouvrier12/06/20232 400,00 €15",
+     "data": "data-paie=sal|lr",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 25,
+     "lib": "12/06/2023",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 26,
+     "lib": "2 400,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 27,
+     "lib": "15,82 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 28,
+     "lib": "0,00 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Léa Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    },
+    {
+     "i": 29,
+     "lib": "Tom LeroyTechnicien frigoristeouvrier02/09/20242 200,00 €14,",
+     "data": "data-paie=sal|tl",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 30,
+     "lib": "02/09/2024",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 31,
+     "lib": "2 200,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 32,
+     "lib": "14,51 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 33,
+     "lib": "1,20 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Tom Leroy",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    },
+    {
+     "i": 34,
+     "lib": "Julie PetitSecrétaire administrativeETAM06/09/20212 300,00 €",
+     "data": "data-paie=sal|julie",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 67
+    },
+    {
+     "i": 35,
+     "lib": "ETAM",
+     "data": "data-l=Statut",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 36,
+     "lib": "06/09/2021",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 37,
+     "lib": "2 300,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 38,
+     "lib": "15,16 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 39,
+     "lib": "2,10 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Julie Petit",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    },
+    {
+     "i": 40,
+     "lib": "Marc LeblancGérant (assimilé salarié)cadre01/03/20193 800,00",
+     "data": "data-paie=sal|marc",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1098,
+     "h": 66
+    },
+    {
+     "i": 41,
+     "lib": "cadre",
+     "data": "data-l=Statut",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 42,
+     "lib": "01/03/2019",
+     "data": "data-l=Entré le",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 43,
+     "lib": "3 800,00 €",
+     "data": "data-l=Salaire de base",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 44,
+     "lib": "25,05 €",
+     "data": "data-l=Taux horaire",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 23
+    },
+    {
+     "i": 45,
+     "lib": "7,40 %›",
+     "data": "data-l=Impôt (taux)",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Marc Leblanc",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 160,
+     "h": 29
+    }
+   ]
+  },
+  "marc-mac-paie-charges": {
+   "recenses": 13,
+   "touches": 13,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Le mois",
+     "data": "data-cx=sec|paiemois",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Fiches de paie",
+     "data": "data-cx=sec|fiches",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 132,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Salariés",
+     "data": "data-cx=sec|salaries",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Charges et déclarations",
+     "data": "data-cx=sec|charges",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 202,
+     "h": 46
+    }
+   ]
+  }
+ },
+ "err": []
+}

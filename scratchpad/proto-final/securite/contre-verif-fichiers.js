@@ -21,7 +21,7 @@ const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" onl
     // témoin : le clic ordinaire est bien intercepté (sinon la sonde ne regarde pas la même chose que l'ancienne)
     const [popClic] = await Promise.all([c.ctx.waitForEvent('page', { timeout: 4000 }).catch(() => null), lien.click()]);
     L.v('témoin : le clic ordinaire n\'ouvre pas d\'onglet (l\'hôte l\'intercepte)', !popClic, popClic ? 'onglet ouvert' : 'aucun onglet');
-    await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); await p.waitForTimeout(400);
+    await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} vehFiche('veh1', 'papiers'); }); await p.waitForTimeout(800);
     // le clic du milieu
     const [pop] = await Promise.all([c.ctx.waitForEvent('page', { timeout: 6000 }).catch(() => null), lien.click({ button: 'middle' })]);
     if (pop) { await pop.waitForLoadState('load').catch(() => {}); await pop.waitForTimeout(700);
