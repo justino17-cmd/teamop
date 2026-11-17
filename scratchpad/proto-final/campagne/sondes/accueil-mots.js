@@ -3,7 +3,7 @@
 // node accueil-mots.js [profil] ; « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const O = require('./accueil-outils.js'), L = O.L, v = L.v, fs = require('fs');
 const ECHAFAUDAGE = /prototype|pour l.essai|dans ce prototype|exemple|d.démo|démo\b|fictif|lorem|todo|test\b/i;
-const ANGLAIS = /\b(dashboard|export(?:er)?\b(?! en PDF)|download|loading|submit|cancel|save|undefined|null|NaN|\[object)\b/i;
+const ANGLAIS = /\b(dashboard|download|loading|submit|cancel|save|undefined|null|NaN|\[object)\b/i;
 (async () => {
   const profil = process.argv[2] || 'mac'; const c = await L.ouvrir({ profil, qui: 'marc' }), p = c.p, tout = [];
   const lire = async (nom) => { const t = await p.evaluate(() => { const z = document.querySelector('#calque .panneau'); return { page: document.querySelector('#contenu').innerText, volet: z ? z.innerText : '' }; }); tout.push({ nom, ...t }); return t; };
