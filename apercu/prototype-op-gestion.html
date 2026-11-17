@@ -11594,7 +11594,7 @@ function droitsGeste(ev){
 function droitsRestaurer(el){
   if (!el) return;
   if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
-  else if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.defaultSelected); if (o) el.value = o.value; }
+  else if (el.tagName === 'SELECT') { el.selectedIndex = Math.max(0, [...el.options].findIndex(x => x.defaultSelected)); }   /* l'option d'avant, ou la première (le navigateur n'a posé « selected » nulle part) */
   else if ('value' in el) el.value = el.defaultValue;
 }
 function droitsInstaller(){
