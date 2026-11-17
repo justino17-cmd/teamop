@@ -72,6 +72,18 @@ const L = require('../lib.js'), O = require('./injection-outils.js');
   const r11 = await ev(() => ({ bonnes: ['u', 'kg', 'pièce(s)', 'paquet de 100', '€/h', 'boîte d\'1', 'boîte d’1', 'm²', 'le kg', 'm³', 'g/m²', 'l/min', 'lot'].map(u => [u, uniteSure(u)]), mauvaises: ['<b>', 'a"b', 'a`b', 'x\u0000y', 'x‮y', '', 'x'.repeat(21)].map(u => [u, uniteSure(u)]) }));
   L.v('unités : les unités de bonne foi passent', r11.bonnes.every(([u, v]) => v === u.replace(/\s+/g, ' ').trim()), r11.bonnes.filter(([u, v]) => v !== u));
   L.v('unités : < > " ` les caractères de contrôle, le vide et plus de 20 signes sont refusés', r11.mauvaises.every(([, v]) => v === ''), r11.mauvaises.filter(([, v]) => v));
+  // ═══ S11 : l'import de prix d'un fournisseur (fichier hostile, jamais rejoué avant ce tour) ═══
+  const r13 = await ev(() => { const f = MES_FOURN[0], rows = [['<img src=x onerror=__xss(\'n9100\')>Câble "rouge" `x`', '12,5', 'pièce(s)', '=cmd|x', '123'], ['Prix infini', '1e999', 'u', 'R1', ''], ['Prix énorme', '1e7', 'u', 'R2', ''], ['Prix NaN', 'NaN', 'u', 'R3', ''], ['Prix négatif', '-4', 'u', 'R4', ''], ['x'.repeat(100000), '5', '<b>', 'y'.repeat(500), 'z'.repeat(100)], ['Bonne ligne & fils', '7,25', 'le kg', 'R5', '']];
+    for (let i = 0; i < 20000; i++) rows.push(['Ligne ' + i, '1', 'u', 'R' + i, '']);
+    FO_IMP = { f, h: ['Désignation', 'Prix net', 'Unité', 'Référence', 'Code-barres'], rows, m: { nom: 0, net: 1, u: 2, ref: 3, ean: 4 }, fichier: 'essai.csv', garder: true };
+    const t0 = performance.now(); const out = foLignes(); const ms = Math.round(performance.now() - t0);
+    const un = out.find(o => /Câble/.test(o.nom)), grand = out.find(o => o.nom.length >= 150), bonne = out.find(o => /Bonne ligne/.test(o.nom));
+    return { n: out.length, ms, un: un && { nom: un.nom, ref: un.ref, u: un.u, pa: un.pa }, grand: grand && { nom: grand.nom.length, ref: grand.ref.length, ean: grand.ean.length, u: grand.u }, bonne: bonne && { nom: bonne.nom, u: bonne.u, pa: bonne.pa }, prix: out.map(o => o.pa), infini: out.some(o => /Prix (infini|énorme|NaN|négatif)/.test(o.nom)), reconnus: [...out].filter(o => !Number.isFinite(o.pa) || o.pa <= 0 || o.pa > 1e6).length }; });
+  L.v('S11 : population : la ligne piégée, la ligne géante et la bonne ligne sont lues, sur 20 007 lignes (en moins de 3 s : ' + r13.ms + ' ms)', !!r13.un && !!r13.grand && !!r13.bonne && r13.n >= 20000 && r13.ms < 3000, { n: r13.n, ms: r13.ms });
+  L.v('S11 : le nom et la référence piégés perdent < > " ` et la formule de tête (= + - @) ; l\'unité « pièce(s) » passe', !!r13.un && !/[<>"`]/.test(r13.un.nom) && !/^[=+\-@]/.test(r13.un.ref) && r13.un.u === 'pièce(s)', r13.un);
+  L.v('S11 : un nom de 100 000 signes est borné (200), sa référence (40), son code-barres (20) ; une unité « <b> » est refusée', !!r13.grand && r13.grand.nom <= 200 && r13.grand.ref <= 40 && r13.grand.ean <= 20 && r13.grand.u === '', r13.grand);
+  L.v('S11 : prix infini (1e999), énorme (1e7), NaN ou négatif : la ligne est ignorée ; aucun prix hors ]0 ; 1 000 000]', !r13.infini && r13.reconnus === 0, { infini: r13.infini, hors: r13.reconnus });
+  L.v('S11 : « Bonne ligne & fils » se lit telle quelle (7,25 €, « le kg »)', !!r13.bonne && r13.bonne.nom === 'Bonne ligne & fils' && r13.bonne.pa === 7.25 && r13.bonne.u === 'le kg', r13.bonne);
   const nErr = c.err.filter(e => !/ResizeObserver/.test(e)); L.v('aucune erreur de page', nErr.length === 0, nErr.slice(0, 3));
   await L.fin(c);
   // ═══ S06 : le FEC de la Comptabilité (autre page) ═══
