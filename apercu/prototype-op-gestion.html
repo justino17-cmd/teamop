@@ -539,6 +539,7 @@ html .ms-g>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2
 html .ms-lien{min-height:28px;padding:0;font:inherit;color:var(--lien);text-decoration:none;font-weight:600;text-align:left;display:inline}html .ms-lien:hover{text-decoration:underline}
 html .ms-ann{align-self:flex-start;min-height:44px;color:var(--lien);font-weight:650}
 html .ms-att{border:0;min-height:44px;cursor:pointer}
+html span.ms-att{min-height:0;cursor:default}   /* pour qui n’accepte pas : une étiquette, pas un bouton */
 html .ms-puces{display:flex;flex-wrap:wrap;gap:8px}html .ms-puces .puce-c{min-height:44px}
 html .ms-seg2{display:flex;max-width:100%;width:100%}html .ms-seg2 button{flex:1 1 0;min-width:0;white-space:normal;line-height:1.2;padding:6px 8px;min-height:44px}
 html .ms-quoi{display:flex;flex-direction:column;gap:10px;margin-top:8px}html .ms-q{min-height:76px;gap:14px;justify-content:flex-start}html .ms-q>.fo-n{flex:1 1 0;min-width:0}
@@ -693,6 +694,11 @@ html .fx-tout{margin:8px 0;min-height:46px}
 html .fx-dir{align-items:center}
 html .fx-voir .cmd-pre{white-space:pre-wrap;overflow-wrap:anywhere}
 html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html .fx-etape>b{font-size:16px}
+/* tablette (le menu latéral garde 272 px) : « Photographier une facture » devient un bouton carré comme au téléphone, et « Plus » reste à côté du noir sur UNE rangée — sans ça, Plus tombait seul sur une troisième ligne */
+@media (min-width:761px) and (max-width:960px){
+  html .fx-tete .actions{flex-wrap:nowrap}html .fx-photo .fx-lib{display:none}
+  html #contenu .tete.fx-tete .actions>.fx-photo{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0}
+}
 @media (max-width:760px){
   html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:12px 8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
@@ -9624,7 +9630,9 @@ function cmdPaniers(){
   DEM_ACHAT.filter(d => d.etat === 'attente' && d.pid && !d.tache).forEach(d => { const x = PRODUITS.find(o => o.id === d.pid && !o.retire); if (!x || CMD_HORS.has(x.id) || dansBrouillon(x.id) || enCommande(x) > 0) return;
     const qui = 'Demandé par ' + prenomDe(d.qui), L0 = Object.values(P).flatMap(pp => pp.lignes).find(l => l.k === x.id), four = CMD_DEPL[x.id] || x.four;
     if (L0) { L0.pourquoi = (L0.pourquoi ? L0.pourquoi + ' · ' : '') + qui; L0.demande = d; return; }
-    mettre(four, { k:x.id, x, nom:x.nom, ref:x.ref, q:CMD_PANIER[x.id] || Math.max(d.q, 1), pu:prixChez(x, four), u:x.u, pourquoi:qui + (d.pourquoi ? ' : ' + d.pourquoi : ''), demande:d }); });
+    /* UNE demande, UNE quantité : ce que l’atelier a déjà se transfère (Achats et frais le dit : « les 4 qui manquent partent dans la commande »), la commande ne porte que le reste — sinon Commandes proposait 10 là où Achats annonçait 4 */
+    const at = Math.max(0, stkAt(x, 'atelier')), reste = Math.max(d.q - at, 0); if (!CMD_PANIER[x.id] && !(reste > 0)) return;   // l’atelier couvre toute la demande : rien à acheter, un transfert suffit
+    mettre(four, { k:x.id, x, nom:x.nom, ref:x.ref, q:CMD_PANIER[x.id] || Math.max(reste, 1), pu:prixChez(x, four), u:x.u, pourquoi:qui + (d.pourquoi ? ' : ' + d.pourquoi : '') + (at > 0 ? ` · ${prNum(Math.min(at, d.q))} ${x.u} sont déjà à l’atelier` : ''), demande:d }); });
   Object.keys(CMD_PANIER).filter(k => k.startsWith('+')).forEach(k => { const x = PRODUITS.find(o => o.id === k.slice(1)); if (!x || CMD_HORS.has(k) || dansBrouillon(x.id)) return; const four = CMD_DEPL[k] || x.four;   // déjà dans un brouillon : il y est, pas en double
     mettre(four, { k, x, nom:x.nom, ref:x.ref, q:CMD_PANIER[k], pu:prixChez(x, four), u:x.u, ajoute:true }); });
   return Object.values(P);
@@ -10530,14 +10538,20 @@ document.addEventListener('click', ev => {
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x), A = ACHATS.find(o => o.id === x);
   if (a === 'onglet') { const deja = acOnglet === x && b.classList.contains('kpi'); acOnglet = x; rendre(); if (deja) { const l = document.querySelector('.ach-d, .ach-n'); if (l) l.scrollIntoView({ behavior:'smooth', block:'start' }); else toast('Rien d’autre à décider ici.'); } return; }
   if (a === 'allernotes') { acOnglet = 'notes'; return aller('achats'); }
-  if (a === 'transfert') { const s = acSource(d), q = Math.min(d.q, s.at), m = { type:'transfert', pid:s.x.id, q, de:'atelier', vers:s.camion.id };
-    stkAppliquer(m); MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'transfert', pid:s.x.id, q:m.q, de:'atelier', vers:s.camion.id, qui:acteur(), motif:'Demande de ' + H_NOM(d.qui) });
+  if (a === 'transfert' || a === 'transfertok') { const s = acSource(d), q = Math.min(d.q, s.at), m = { type:'transfert', pid:s.x.id, q, de:'atelier', vers:s.camion.id };
+    /* un camion au garage ne reçoit rien sans qu’on le dise (la même phrase que « Déplacer » dans Stock) */
+    if (a === 'transfert' && bxGarage(s.camion.id)) return ouvrirPanneau(`<span class="surtitre">Achats et frais</span><h2>Transférer vers ${esc(s.versLe)}</h2><div class="info petit fo-alerte">Ce camion est au garage. Tu les mets quand même ?</div>
+      <div class="actions"><button type="button" class="btn" data-ac="transfertok|${d.id}">Oui, transférer ${prNum(q)} ${esc(s.x.u)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+    /* chaque geste de stock se défait (spécification Matériel § 3.6) : la photo reprend aussi la demande, la commande préparée et le numéro de brouillon */
+    const photo = sxPhoto(), dAvant = { ...d }, cmdAvant = COMMANDES.map(c => [c, c.st === 'brouillon' ? JSON.parse(JSON.stringify(c)) : null]), numAvant = cmdNum;
+    photo.apres = () => { Object.keys(d).forEach(k => delete d[k]); Object.assign(d, dAvant); COMMANDES.splice(0, COMMANDES.length, ...cmdAvant.map(([c, b]) => (b && Object.assign(c, b), c))); cmdNum = numAvant; };
+    fermerPanneau(); stkAppliquer(m); MVTS.unshift({ id:'m' + Date.now().toString(36), d:AUJ, h:hm(MAINT_MIN), type:'transfert', pid:s.x.id, q:m.q, de:'atelier', vers:s.camion.id, qui:acteur(), motif:'Demande de ' + H_NOM(d.qui) });
     const reste = Math.max(0, d.q - m.q);
     acNoter(d, `${prNum(m.q)} ${s.x.u} transférés de l’atelier vers ${s.versLe}${reste && s.f ? `, ${prNum(reste)} ${s.x.u} commandés chez ${s.f.nom}` : ''}`);
     acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » : ${prNum(m.q)} ${s.x.u} sont dans ton camion : je les ai sortis de l’atelier pour toi.${reste && s.f ? ` Les ${prNum(reste)} ${s.x.u} qui manquent sont commandés.` : ''}`);
     rendre();
-    if (reste && s.f) { const dej = !!cmdBrouillonDe(s.x.four); acVersCommande(s, reste, d); return toast(`${prNum(m.q)} ${esc(s.x.u)} transférés vers ${esc(s.versLe)}. Les ${prNum(reste)} ${esc(s.x.u)} restants ${dej ? 'sont ajoutés au brouillon de commande' : 'sont dans un nouveau brouillon de commande'} ${esc(s.f.nom)} : vérifie-le, puis envoie-le.`); }
-    return toast(`Rien acheté : ${prNum(m.q)} ${esc(s.x.u)} passent de l’atelier vers ${esc(s.versLe)}. ${esc(H_NOM(d.qui))} reçoit une notification.`, { lib:'Voir le stock', fn:() => aller('stock') }); }
+    if (reste && s.f) { const dej = !!cmdBrouillonDe(s.x.four); acVersCommande(s, reste, d); return sxToast(`${prNum(m.q)} ${esc(s.x.u)} transférés vers ${esc(s.versLe)}. Les ${prNum(reste)} ${esc(s.x.u)} restants ${dej ? 'sont ajoutés au brouillon de commande' : 'sont dans un nouveau brouillon de commande'} ${esc(s.f.nom)} : vérifie-le, puis envoie-le.`, null, photo, 'le transfert vers ' + s.versLe); }
+    return sxToast(`Rien acheté : ${prNum(m.q)} ${esc(s.x.u)} passent de l’atelier vers ${esc(s.versLe)}. ${esc(H_NOM(d.qui))} reçoit une notification.`, { lib:'Voir le stock', fn:() => aller('stock') }, photo, 'le transfert vers ' + s.versLe); }
   if (a === 'commande') { const s = acSource(d); acNoter(d, `ajouté à la commande ${s.f.nom}`); acPrevenir(d.qui, `« ${d.quoi} » est ajouté à la commande ${s.f.nom}. On te préviendra à la réception.`); rendre(); return acVersCommande(s, d.q, d); }
   if (a === 'magasin') { acNoter(d, 'achat en magasin approuvé, à la carte de l’entreprise : ticket à prendre en photo'); ACHATS.push({ id:'a' + Date.now(), d:dFr(AUJ).slice(0, 5), four:'Achat en magasin', objet:d.quoi + ' (' + H_NOM(d.qui) + ')', ht:d.est, tva:20, compte:d.est > 500 ? '2154' : '6063', mode:'Carte', paye:dFr(AUJ).slice(0, 5), piece:null, ref:'à justifier' });
     acPrevenir(d.qui, `C’est bon pour « ${d.quoi} » (environ ${eur0(d.est)}). Achète-le avec la carte de l’entreprise et prends le ticket en photo dans OP GESTION.`); rendre(); return toast(`Approuvé. ${esc(H_NOM(d.qui))} reçoit une notification ; le ticket est attendu dans Comptabilité › Factures › Sans justificatif.`); }
@@ -14720,6 +14734,7 @@ function matAFaire(){
     if (att.length || fac) L.push({ k:retard ? 'r' : 'f', t:[att.length ? `${sxPl(att.length, 'livraison')} attendue${att.length > 1 ? 's' : ''}${retard ? `, dont ${retard} en retard` : ''}` : '', fac ? `${sxPl(fac, 'facture')} à comparer` : ''].filter(Boolean).join(' · '), rub:'Commandes', go:'data-ms="t|liv"' }); }
   if (voit('stock') && typeof msAccepte === 'function' && msAccepte() && STK_VALID) { const e = matEnvoisAAccepter(); if (e.n) L.push({ k:'b', t:`${sxPl(e.n, 'envoi')} à accepter`, rub:'Stock', go:'data-go="stock"' }); }
   if (voit('boxes')) { const c = camionsARemplir(); if (c.n) L.push({ k:'a', t:`${sxPl(c.n, 'article')} ${c.n > 1 ? 'manquent' : 'manque'} dans ${sxPl(c.camions.length, 'camion')}`, rub:'Dépôts et camions', go:'data-ms="t|cam"' }); }
+    if (voit('boxes')) { const B = sxBoutsBas().filter(b => lieu(b.lieu) && !lieu(b.lieu).ferme); if (B.length) L.push({ k:'a', t:`Bouteille presque vide : ${esc(sxBoutsTxt(B.slice(0, 2)))}${B.length > 2 ? '…' : ''}`, rub:'Dépôts et camions', go:B.length === 1 ? `data-md="fiche|${B[0].lieu}"` : 'data-ms="t|cam"' }); }
   return L.slice(0, 4);
 }
 function matCarteAccueil(){
@@ -15194,11 +15209,15 @@ SX.bout = [
   { id:'R410-1180', pid:'p8', cap:11.3, reste:4, lieu:'atelier' }, { id:'REC-0003', pid:'p4', cap:10, reste:2.1, lieu:'atelier', rec:true }
 ];
 SX.reg = [
-  { id:'rg2', d:jour(-9), cli:'hp', equip:'Mitsubishi PUHZ', fluide:'R410A', charge:1.2, recup:0, bout:'R410-1180', qui:'kb', inter:null },
-  { id:'rg1', d:jour(-16), cli:'vp', equip:'Daikin RXM35R', fluide:'R32', charge:0, recup:2.1, bout:'REC-0003', qui:'sm', inter:null }
+  /* chaque ligne du registre renvoie à SON intervention (le nom du client s’ouvre) : une charge de Karim chez l’Hôtel de la Plage pendant sa visite d’hier, une récupération de Sophie chez Le Vieux Port pendant le dépannage du jour */
+  { id:'rg2', d:jour(-1), cli:'hp', equip:'Mitsubishi PUHZ', fluide:'R410A', charge:1.2, recup:0, bout:'R410-1180', qui:'kb', inter:'i25' },
+  { id:'rg1', d:AUJ, cli:'vp', equip:'Daikin RXM35R', fluide:'R32', charge:0, recup:2.1, bout:'REC-0003', qui:'sm', inter:'i1' }
 ];
 const sxEstFluide = x => !!x && x.cat === 'Fluides frigorigènes';
-const sxBoutEtat = b => b.rec ? (b.reste > .05 ? ['À retraiter', 'st-o'] : ['Vide', 'st-g']) : b.reste <= .05 ? ['Vide, à rendre', 'st-r'] : b.reste >= b.cap - .05 ? ['Pleine', 'st-v'] : ['Entamée', 'st-b'];
+const sxBoutEtat = b => b.rec ? (b.reste > .05 ? ['À retraiter', 'st-o'] : ['Vide', 'st-g']) : b.reste <= .05 ? ['Vide, à rendre', 'st-r'] : b.reste >= b.cap - .05 ? ['Pleine', 'st-v'] : b.reste <= 1 ? ['Presque vide', 'st-o'] : ['Entamée', 'st-b'];
+/* UNE règle de « bouteille presque vide » (reste ≤ 1 kg, spec Matériel § 5.5) : Mon camion, la carte et la fiche du camion, l’Accueil et la fiche de l’article la lisent toutes */
+const sxBoutsBas = l => SX.bout.filter(b => !b.rec && b.reste <= 1 && (!l || b.lieu === l));
+const sxBoutsTxt = L => L.map(b => b.id + ' (' + prNum(b.reste) + ' kg)').join(', ');
 const sxBoutsDe = (pid, l) => SX.bout.filter(b => !b.rec && b.pid === pid && (!l || b.lieu === l));
 /* le poids restant baisse quand le mouvement qui le porte est appliqué (à la validation du bureau) : la seule porte du stock reste stkAppliquer */
 const sxAppliquer0 = stkAppliquer;
@@ -15219,6 +15238,7 @@ function sxRestaurer(p){
   SX.bout.splice(0, SX.bout.length, ...p.bout.map(b => ({ ...b }))); SX.reg.splice(0, SX.reg.length, ...p.reg); SX.refus.splice(0, SX.refus.length, ...p.refus); DEM_ACHAT.splice(0, DEM_ACHAT.length, ...p.dem); if (p.ach) ACHATS.splice(0, ACHATS.length, ...p.ach);
   Object.keys(DOTATION).forEach(k => delete DOTATION[k]); Object.assign(DOTATION, JSON.parse(JSON.stringify(p.dot))); p.ldot.forEach(([l, d]) => { l.dot = d; });
   if (p.ntf) NOTIFS.splice(0, NOTIFS.length, ...p.ntf);
+  if (p.apres) p.apres();   // ce que la photo ne couvre pas (une demande d’achat, une commande préparée) : le geste qui l’a posé le défait lui-même
   if (p.lx) { LIEUX.length = Math.min(LIEUX.length, p.nl); p.lx.forEach(([l, c, d, n, r, no, a, f]) => { l.cible = c; l.dotP = d; l.nom = n; l.resp = r; l.note = no; l.adr = a; if (f === undefined) delete l.ferme; else l.ferme = f; }); }
 }
 function sxAnnule(p, lib, sig){
@@ -15260,7 +15280,8 @@ const matDCourt = d => { const o = dObj(d); return o.getDate() + '/' + (o.getMon
 function matEtat(x){
   const c = enCommande(x);
   if (c > 0) { const k = COMMANDES.filter(cmdOuverte).filter(o => o.lignes.some(l => l.pid === x.id && l.recu < l.q)).sort((a, b) => ((a.st === 'partielle' ? a.reliquat : a.prevue) || '9').localeCompare((b.st === 'partielle' ? b.reliquat : b.prevue) || '9'))[0], d = k && (k.st === 'partielle' ? k.reliquat : k.prevue);
-    return { k:'commande', mot:'Commandé · ' + (d ? 'arrive le ' + matDCourt(d) : 'en route'), cls:'st-b' }; }
+    const tard = d && tJours(d) < 0;   // une date passée ne s’annonce pas « arrive le » : Commandes dit déjà « En retard », Stock dit la même chose
+    return { k:'commande', mot:'Commandé · ' + (tard ? 'en retard' : d ? 'arrive le ' + matDCourt(d) : 'en route'), cls:tard ? 'st-o' : 'st-b' }; }
   if (x.q <= 0 && x.seuil > 0) return { k:'plus', mot:'Plus en stock', cls:'st-r' };
   if (x.seuil > 0 && x.q <= x.seuil) return { k:'bientot', mot:'Bientôt fini', cls:'st-o' };
   if (x.q <= 0) return { k:'besoin', mot:'Acheté au besoin', cls:'st-g' };
@@ -15342,6 +15363,7 @@ Object.assign(IC, {
   deplacer:'<path d="M4 8h14M14 4l4 4-4 4"/><path d="M20 16H6M10 12l-4 4 4 4"/>',
   compter:'<path d="M5 9h14M5 15h14M8 20L16 4"/>',
   coche:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  exporter:'<path d="M12 4v10M8 10.5l4 4 4-4"/><path d="M5 15v4.5h14V15"/>',   // un fichier qu’on télécharge (l’appareil photo disait « photographier »)
   livraison:'<path d="M3.5 8.5L12 4.5l8.5 4v8L12 20.5l-8.5-4z"/><path d="M8 11.5l4 2 4-2"/>'
 });
 /* le technicien demande une pièce : une demande d’article du catalogue arrive aussi dans « À commander » (une seule règle de comptage), sauf quand
@@ -15401,7 +15423,7 @@ function vueMonCamion(){
   const moi = sxMoi(), L = sxMonLieu();
   if (!L) return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mon camion</h1><span class="gris">Aucun camion ne t’est confié pour l’instant : demande au bureau.</span></div></div>`;
   const V = typeof VEHICULES !== 'undefined' && VEHICULES.find(v => v.lieu === L.id), g = bxGarage(L.id), M = lieuManques(L.id), A = lieuArticles(L.id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), D = L.dot ? DOTATION[L.dot] || {} : {}, E = sxEnvois(moi), N = rlNotifsListe(moi, true);
-  const bas = SX.bout.filter(b => !b.rec && b.lieu === L.id && b.reste <= 1), liste = Object.keys(D).length > 0;
+  const bas = sxBoutsBas(L.id), liste = Object.keys(D).length > 0;
   const att = pid => MVTS_ATT.find(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === pid);
   const prenables = M.filter(o => stkAt(o.x, 'atelier') > 0 && !att(o.x.id));
   const aBord = `<div class="carte mc-liste">${A.map(x => { const a = stkAt(x, L.id), c = D[x.id], ko = c && a < c;
@@ -15796,7 +15818,8 @@ function msBandeau(){
 }
 function msTuiles(){
   const nc = cmdNbACommander(), att = COMMANDES.filter(cmdOuverte), retard = att.some(c => (c.st === 'partielle' ? c.reliquat : c.prevue) < AUJ), cam = camionsARemplir().n;
-  const t = (k, n, couleur, texte) => `<button type="button" class="kpi" data-ms="t|${k}"><b style="color:var(--${n ? couleur : 'vert'})">${n}</b><span>${texte}</span></button>`;
+  /* une tuile qui MÈNE quelque part n’est un bouton que pour qui a la rubrique : sinon elle ne dit que le chiffre (un bouton qui mène à un refus est un piège) */
+  const t = (k, n, couleur, texte) => { const m = `<b style="color:var(--${n ? couleur : 'vert'})">${n}</b><span>${texte}</span>`; return rlPermis(k === 'cam' ? 'boxes' : 'produits') ? `<button type="button" class="kpi" data-ms="t|${k}">${m}</button>` : `<div class="kpi">${m}</div>`; };
   return `<div class="kpis ptx-k3 ms-kpis"${matVis('stock-tuiles')}>${t('cmd', nc, 'orange', nc ? 'à commander' : 'rien à commander')}${t('liv', att.length, retard ? 'orange' : 'encre', att.length ? (att.length > 1 ? 'livraisons attendues' : 'livraison attendue') : 'aucune livraison attendue')}${t('cam', cam, 'orange', cam ? (cam > 1 ? 'manquent dans les camions' : 'manque dans les camions') : 'les camions sont prêts')}</div>`;
 }
 const msLieuxDe = x => [['atelier', stkAt(x, 'atelier')], ...Object.entries(x.loc || {})].filter(([k, v]) => v > 0);
@@ -15821,7 +15844,7 @@ function msArticles(){
   const parCat = reste.length > 40 ? [...new Set(reste.map(x => x.cat))].map(c => `<details class="ms-cat" ${q ? 'open' : ''}><summary class="groupe">${esc(c)}</summary>${reste.filter(x => x.cat === c).map(x => matLigneArticle(x, lf)).join('')}</details>`).join('') : null;
   return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
     ${vide || rien || `<div class="carte dv-liste ms-liste"${matVis('stock-liste')}>${grp('À surveiller', surv)}${parCat ? `<div class="groupe">Tout le reste</div>${parCat}` : grp(surv.length ? 'Tout le reste' : 'Tous les articles', reste)}</div>`}
-    ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;
+    ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l && !q ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;   // le montant est celui de TOUT le stock : une recherche ne le recopie pas sous un seul article
 }
 /* ── la page ── */
 function vueStock(){
@@ -15861,7 +15884,7 @@ function msPhraseHtml(m){
 const MS_JIC = { sortie:'sortir', entree:'ranger', transfert:'deplacer', correction:'compter' };
 function msLigneJournal(m, att, dernier){
   return `<div class="ms-g${att ? ' att' : ''}"><span class="ms-gi" aria-hidden="true">${svg(MS_JIC[m.type] || 'compter')}</span><span class="fo-n"><span class="ms-ph">${msPhraseHtml(m)}</span>${dernier ? '<button type="button" class="lien ms-ann" data-sx="annuler">Annuler ce geste</button>' : ''}</span>
-    <span class="fo-dr"><span class="petit">${m.h}</span>${att ? `<button type="button" class="st st-o ms-att" data-ms="envois">À accepter</button>` : m.valPar ? `<span class="gris petit">${m.valPar === 'auto' ? 'accepté tout seul' : 'accepté par ' + esc(prenomDe(m.valPar))}</span>` : ''}</span></div>`;
+    <span class="fo-dr"><span class="petit">${m.h}</span>${att ? (msAccepte() ? `<button type="button" class="st st-o ms-att" data-ms="envois">À accepter</button>` : `<span class="st st-o ms-att">En attente du gérant</span>`) : m.valPar ? `<span class="gris petit">${m.valPar === 'auto' ? 'accepté tout seul' : 'accepté par ' + esc(prenomDe(m.valPar))}</span>` : ''}</span></div>`;
 }
 function msJournal(){
   const { att, faits } = msMvVisibles(), tous = [...att.map(m => [m, true]), ...faits.map(m => [m, false])], jours = [...new Set(tous.map(([m]) => m.d))].sort().reverse();
@@ -15893,7 +15916,7 @@ function msMenuPlus(b){
   const D = SX.dernier && SX.dernier.sig === sxSig() ? SX.dernier : null, it = [];
   if (SX.bout.length) it.push({ ic:svg('fluide'), l:'Registre des fluides', fn:sxRegistre });
   it.push({ ic:svg('compter'), l:'Compter un lieu…', fn:() => matCompter() });
-  it.push({ ic:svg('photo'), l:'Exporter l’historique', fn:sxExport });
+  it.push({ ic:svg('exporter'), l:'Exporter l’historique', fn:sxExport });
   if (msReglages()) it.push({ ic:svg('coche'), l:'Réglages du stock', fn:msReglagesVue });
   it.push('---', { ic:'↺', l:'Annuler le dernier geste', s:D ? '' : 'rien à annuler', fn:() => D ? sxAnnule(D.photo, D.lib, D.sig) : toast('Il n’y a rien à annuler : le dernier geste est déjà passé.') });
   msMenu(b, '', it);
@@ -15904,7 +15927,7 @@ function msReglagesVue(){
     <label class="fo-garder ms-reg"><input type="checkbox" data-msr="valid" ${STK_VALID ? 'checked' : ''}><span><b>Je dois accepter ce que les techniciens notent</b><span class="gris petit">Tant que tu n’as pas accepté, le stock ne bouge pas.</span></span></label>
     <label class="fo-garder ms-reg"><input type="checkbox" data-sxauto="1" ${SX.autoUsage ? 'checked' : ''} ${STK_VALID ? '' : 'disabled'}><span><b>Accepter tout seul ce qu’un technicien a utilisé chez un client</b><span class="gris petit">Seul ce qu’il prend à l’atelier me demande mon accord.</span></span></label>
     <label class="champ">Me rappeler de compter chaque lieu tous les (mois)<input type="number" inputmode="numeric" min="1" max="24" data-msr="freq" value="${f}"></label>
-    <span class="gris petit">Cette durée vaut pour tous les lieux. Pour un lieu seul, ouvre sa fiche et choisis « Modifier ce lieu ».</span>
+    <span class="gris petit">Cette durée vaut pour tous les lieux. Pour un lieu seul, ouvre sa fiche, touche « Plus », puis « Changer le nom… » : la durée s’y règle aussi.</span>
     <div class="fo-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);
 }
 
@@ -16065,6 +16088,15 @@ function matCVue(){
     <div class="carte ms-cliste">${corps || '<div class="gris">Rien à compter ici pour l’instant.</div>'}</div>
     <div class="fo-pied"><span class="gris petit ms-csom">${E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.'}</span><button type="button" class="btn" data-ms="cok">Enregistrer le comptage</button><button type="button" class="btn gris" data-ms="cpt|">Changer de lieu</button></div>`, true);
 }
+/* PENDANT la frappe, l’écart et le pied se mettent à jour SUR PLACE (la feuille ne se redessine pas : le curseur resterait nulle part) ; le redessin complet, lui, attend « change » */
+function matCMajPlace(t){
+  const C = MAT.C; if (!C) return; const x = PRODUITS.find(o => o.id === t.dataset.mscq), n = foNum(t.value); if (!x || n == null || !(n >= 0)) return;
+  C.v[x.id] = n; const a = stkAt(x, C.lieu), e = stkR(n - a), l = t.closest('.mat-l'), ph = l && l.querySelector('.fo-n .petit');
+  if (ph) { ph.className = (e ? 'mc-o' : 'gris') + ' petit'; ph.textContent = e ? (e < 0 ? `${prNum(-e)} de moins que prévu` : `${prNum(e)} de plus que prévu`) : 'Prévu ' + prNum(a); }
+  if (l) { let ev = l.querySelector('.ms-ev€'); if (e && x.pa) { if (!ev) { ev = document.createElement('span'); ev.className = 'gris petit ms-ev€'; l.appendChild(ev); } ev.textContent = eur(e * x.pa); } else if (ev) ev.remove(); }
+  const E = msCLignes(C.lieu).filter(o => C.v[o.id] != null && stkR(C.v[o.id] - stkAt(o, C.lieu))), val = E.reduce((sum, o) => sum + stkR(C.v[o.id] - stkAt(o, C.lieu)) * (o.pa || 0), 0), z = document.querySelector('#calque .ms-csom');
+  if (z) z.textContent = E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.';
+}
 function matCEnregistrer(){
   const C = MAT.C; if (!C) return; const l = C.lieu, snap = sxPhoto(), moi = sxQui(), n = [], att = [];
   msCLignes(l).forEach(x => { if (C.v[x.id] == null) return; const e = stkR(C.v[x.id] - stkAt(x, l)); if (!e) return;
@@ -16072,7 +16104,7 @@ function matCEnregistrer(){
   SX.invs[l] = AUJ; MAT.C = null; fermerPanneau(); prCatalogueMaj();
   sxJournal('a compté', lieuNom(l), n.length + att.length ? sxPl(n.length + att.length, 'écart') : 'tout est juste');
   rendre();
-  const nom = lieu(l).type === 'atelier' ? 'l’atelier' : lieuNom(l).toLowerCase().replace('camion de', 'le camion de');
+  const nom = mdDe(lieu(l));   // « le camion de Léa » : le prénom garde sa majuscule (on ne passe plus le nom en minuscules)
   sxToast(att.length ? `Comptage envoyé au gérant : ${sxPl(att.length, 'écart')} à accepter.` : n.length ? `Comptage enregistré : ${sxPl(n.length, 'écart')} noté${n.length > 1 ? 's' : ''} dans ${esc(nom)}.` : `Tout est juste dans ${esc(nom)} : la date de comptage est notée.`, null, snap, 'le comptage de ' + lieuNom(l));
 }
 
@@ -16206,6 +16238,7 @@ document.addEventListener('input', ev => {
   if (t.matches('[data-msg="qi"]') && MAT.G) { MAT.G.qi = t.value; MAT.G.choisirInter = true; const z = t.closest('label'), L = z && z.nextElementSibling; if (L) L.innerHTML = msIntsPour(t.value).map(o => `<button type="button" class="ligne-clic" data-ms="ginter|${o.id}"><span class="fo-n"><b>${esc(matInterTitre(o))}</b><span class="gris petit">${esc(matInterQuand(o))}</span></span></button>`).join(''); return; }
   if (t.matches('[data-msg="texte"]') && MAT.G) { MAT.G.texte = t.value; return; }
   if (t.matches('[data-msg="montant"]') && MAT.G) { MAT.G.montant = t.value; return; }
+  if (t.matches('[data-mscq]') && MAT.C) return matCMajPlace(t);
 });
 document.addEventListener('change', ev => {
   const t = ev.target; if (!t.matches) return; const G = MAT.G, C = MAT.C;
@@ -16254,7 +16287,6 @@ document.addEventListener('change', ev => {
   if (t.matches('[data-sxdu]')) { SX.mvDu = t.value; return rendre(); }
   if (t.matches('[data-sxau]')) { SX.mvAu = t.value; return rendre(); }
   if (t.matches('[data-sxqui]')) { SX.mvQui = t.value; return rendre(); }
-  if (t.matches('[data-sxfreq]')) { SX.freq[t.dataset.sxfreq] = +t.value; return rendre(); }
 });
 document.addEventListener('toggle', ev => { const d = ev.target; if (d && d.matches && d.matches('details[data-sxgrp]')) { SX.invOuv = SX.invOuv || {}; SX.invOuv[d.dataset.sxgrp] = d.open; } }, true);
 /* ── boxes ── */
@@ -16348,14 +16380,18 @@ function mdCompte(id){
   return { du, b:j == null ? (plein ? 'Pas encore' : '—') : du ? msQuand(j).replace(/^compté /, '') : jCourt(d) };
 }
 /* la carte d'un lieu : la MÊME pour les trois sortes, même hauteur (le noir ne « saute » plus d'une carte à l'autre) */
+/* UN compte de « bientôt finis » à l’atelier : ce qui est PRÉSENT à l’atelier et demande de l’attention — la carte, la fiche et la liste de la fiche lisent la même fonction (un article « Nulle part pour l’instant » n’est pas à l’atelier : il se voit dans Stock › À surveiller, pas ici) */
+function mdBientotFinis(id){ return lieuArticles(id).filter(x => !x.retire && ['plus', 'bientot'].includes((matEtat(x) || {}).k)); }
 function mdCarte(l, bas){
   const A = lieuArticles(l.id), M = bxManques(l.id), g = bxGarage(l.id), D = bxDot(l.id), c = mdCompte(l.id), V = bxVeh(l.id), dep = l.type === 'depot', atl = l.type === 'atelier';
-  const bf = atl ? PRODUITS.filter(x => !x.retire && ['plus', 'bientot'].includes((matEtat(x) || {}).k)).length : 0;
+  const bf = atl ? mdBientotFinis(l.id).length : 0;
   let pas = '', l3 = '';
   if (g) { pas = `<span class="st st-b">${esc(bxGarageTxt(g))}</span>`; l3 = M.length ? 'On le remplira à son retour' : ''; }
   else if (M.length) { pas = `<span class="st st-o">Il manque ${sxPl(M.length, 'article')}</span>`; l3 = dep && bas && bas.visite ? `${sxPl(M.length, 'article')} à remettre avant la visite ${mdVisite(bas.visite.d)}` : 'Il manque : ' + mdListeNoms(M); }
   else if (D && Object.keys(D).length) { pas = `<span class="st st-v">${dep ? 'Prête' : 'Prêt'}</span>`; l3 = dep ? 'Tout est sur place' : 'Tout est à bord'; }
   else if (atl && bf) pas = `<span class="st st-o">${bf} bientôt fini${bf > 1 ? 's' : ''}</span>`;
+  const B = g ? [] : sxBoutsBas(l.id);   // une bouteille presque vide se voit côté bureau, sur la carte comme dans la fiche
+  if (B.length) { if (M.length) l3 += (l3 ? ' · ' : '') + 'Bouteille presque vide'; else { pas = `<span class="st st-o">Bouteille presque vide</span>`; l3 = sxBoutsTxt(B); } }
   const l2 = l.type === 'vehicule' ? [H_NOM(l.tech), V && V.plaque].filter(Boolean).join(' · ') : dep ? (l.note || 'Responsable ' + H_NOM(l.resp)) : l.adr || '';
   const ch = (b, t, cl) => `<span><b${cl ? ` class="${cl}"` : ''}>${b}</b><small>${t}</small></span>`;
   return `<button type="button" class="carte client-carte md-c" data-md="fiche|${l.id}"><span class="md-t"><b>${esc(l.type === 'atelier' ? 'L’atelier' : l.nom)}</b>${pas}</span>
@@ -16365,8 +16401,10 @@ function mdCarte(l, bas){
 /* l'unique bandeau : « Avant les visites » — la meilleure idée de l'ancien écran (bxBesoins), plus une ligne parmi six */
 function mdBandeau(){
   const G = bxBesoins(); if (!G.length) return '';
-  const n = G.reduce((s, g) => s + g.L.length, 0), i0 = G[0].L[0].int;
-  return `<div class="carte dv-focus ms-bandeau"${matVis('depots-visites')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>Avant les visites : ${n} pièce${n > 1 ? 's prévues manquent' : ' prévue manque'} dans ${G.length > 1 ? G.length + ' camions' : 'le camion de ' + esc(prenomDe(G[0].l.tech))}</b><span class="gris petit">${esc(G.map(g => prenomDe(g.l.tech)).join(', '))} · ${esc(i0.titre)}</span></span>
+  const n = G.reduce((s, g) => s + g.L.length, 0), V = [...new Set(G.flatMap(g => g.L.map(o => o.int.id)))], i0 = G[0].L[0].int;
+  /* le titre d’une visite ne se lie jamais à des personnes qui n’y vont pas : un seul camion et une seule visite le nomment, sinon on COMPTE les visites */
+  const qui = G.map(g => prenomDe(g.l.tech)).join(', '), suite = G.length === 1 && V.length === 1 ? i0.titre : sxPl(V.length, 'visite') + ' d’ici ' + dObj(jour(3)).toLocaleDateString('fr-FR', { weekday:'long' });
+  return `<div class="carte dv-focus ms-bandeau"${matVis('depots-visites')}><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>Avant les visites : ${n} pièce${n > 1 ? 's prévues manquent' : ' prévue manque'} dans ${G.length > 1 ? G.length + ' camions' : 'le camion de ' + esc(prenomDe(G[0].l.tech))}</b><span class="gris petit">${esc(qui)} · ${esc(suite)}</span></span>
     <span class="ms-bd"><button type="button" class="btn petit" data-md="avant">Voir</button></span></div></div>`;
 }
 function vueBoxes(){
@@ -16385,7 +16423,7 @@ function mdMenuPlus(b){
   const f = LIEUX.filter(l => l.ferme), it = [{ ic:svg('compter'), l:'Compter un lieu…', fn:() => matCompter() }];
   if (mdReservesOk()) it.push({ ic:svg('reserve'), l:'Nouvelle réserve chez un client', fn:() => bxNouveau('') });
   if (f.length) it.push({ ic:svg('reserve'), l:`Réserves fermées (${f.length})`, fn:mdFermes });
-  it.push({ ic:svg('photo'), l:'Exporter', fn:sxExport });
+  it.push({ ic:svg('exporter'), l:'Exporter', fn:sxExport });
   msMenu(b, '', it);
 }
 function mdFermes(){
@@ -16413,7 +16451,7 @@ function bxFiche(id, hl){
   L.sort((p, r) => { const k = o => o.cible != null && o.cible - o.a > 0 ? (o.a <= 0 ? 0 : 1) : 2; return k(p) - k(r) || p.x.nom.localeCompare(r.x.nom, 'fr'); });
   const tout = L.length; if (q) L = L.filter(o => pdxChercheOk(o.x, q));
   const surv = o => ['plus', 'bientot'].includes((matEtat(o.x) || {}).k), haut = atl ? L.filter(surv) : L.filter(o => o.cible != null && o.cible - o.a > 0), bas = L.filter(o => !haut.includes(o));
-  const bf = atl ? PRODUITS.filter(x => !x.retire && ['plus', 'bientot'].includes((matEtat(x) || {}).k)).length : 0, contrat = dep && typeof CONTRATS !== 'undefined' ? CONTRATS.find(c => c.cli === l.cli) : null;
+  const bf = atl ? mdBientotFinis(id).length : 0, contrat = dep && typeof CONTRATS !== 'undefined' ? CONTRATS.find(c => c.cli === l.cli) : null;
   const surt = (veh ? 'Camion' + (V ? ' · ' + V.plaque : '') : dep ? 'Réserve chez un client' : 'Atelier') + (l.ferme ? ' · fermée' : '');
   const sous = veh ? 'Conducteur : ' + esc(H_NOM(l.tech)) + (V ? ` · <button type="button" class="lien" data-ve="fiche|${V.id}">${esc(V.plaque)} ›</button>` : '') : dep ? esc((CLIENTS[l.cli] || { nom:'' }).nom) + ' · responsable ' + esc(H_NOM(l.resp)) + (l.note ? ' · ' + esc(l.note) : '') : 'Responsable ' + esc(H_NOM(l.resp)) + (l.adr ? ' · ' + esc(l.adr) : '');
   const noir = l.ferme ? `<button type="button" class="btn" data-md="rouvrir|${id}">Rouvrir cette réserve</button>`
@@ -16421,6 +16459,7 @@ function bxFiche(id, hl){
   const dem = veh && !l.ferme ? (bxBesoins().find(o => o.l.id === id) || null) : null, hist = MVTS.filter(o => o.de === id || o.vers === id).slice(0, 5);
   foOuvrir(`<div data-md-p="fiche"></div><span class="surtitre">${esc(surt)}</span><h2>${esc(l.type === 'atelier' ? 'L’atelier' : l.nom)}</h2><div class="gris petit md-sous">${sous}</div>
     ${g ? `<div class="info petit fo-alerte"><b>${esc(bxGarageTxt(g))}</b>${g.garage ? ' · ' + esc(g.garage).replace(/\.$/, '') : ''}. On le remplira à son retour.</div>` : ''}
+    ${sxBoutsBas(id).length ? `<div class="info petit fo-alerte"><b>Bouteille presque vide</b> : ${esc(sxBoutsTxt(sxBoutsBas(id)))}. Pense à en préparer une autre.</div>` : ''}
     ${l.ferme ? `<div class="info petit fo-alerte">Cette réserve est fermée : elle ne se propose plus dans les déplacements.</div>` : ''}
     <div class="kpis ptx-k3 md-kpis"><div class="kpi"><b>${A.length}</b><span>article${A.length > 1 ? 's' : ''}</span></div><div class="kpi"><b>${eur(lieuValeur(id))}</b><span>en stock</span></div>${atl ? `<div class="kpi"><b style="color:var(--${bf ? 'orange' : 'vert'})">${bf}</b><span>bientôt fini${bf > 1 ? 's' : ''}</span></div>` : D ? `<div class="kpi"><b style="color:var(--${M.length ? 'orange' : 'vert'})">${M.length}</b><span>${M.length > 1 ? 'manquent' : 'manque'}</span></div>` : ''}</div>
     ${l.ferme ? '' : `<div class="md-btns">${noir}<button type="button" class="btn gris" data-md="deplacer|${id}">Déplacer</button><button type="button" class="btn gris" data-md="compter|${id}">Compter</button><button type="button" class="btn gris" data-md="fplus|${id}" aria-haspopup="menu">Plus ▾</button></div>`}
@@ -16555,7 +16594,7 @@ function mdCmdAdd(pid, q, intId){
 /* ── modifier un lieu : nom, responsable, accès, dotation ; fermer une réserve ── */
 function bxModifier(id){
   const l = lieu(id), D = bxDot(id);
-  BX.mod = { id, nom:l.nom, resp:l.resp || '', note:l.type === 'depot' ? (l.note || '') : (l.adr || '') };
+  BX.mod = { id, nom:l.nom, resp:l.resp || '', note:l.type === 'depot' ? (l.note || '') : (l.adr || ''), freq:SX.freq[id] ? String(Math.max(1, Math.round(SX.freq[id] / 30))) : '' };
   bxModVue(false);
 }
 function bxModVue(surPlace){
@@ -16564,13 +16603,16 @@ function bxModVue(surPlace){
     <label class="champ">Nom<input class="saisie" data-bxl-mod="nom" value="${esc(M.nom)}"></label>
     ${t === 'vehicule' ? `<div class="gris petit">Le conducteur se change dans Véhicules. Deux camions qui portent le même nom se confondent dans les listes : ajoute la plaque ou le modèle.</div>` : `<label class="champ">Responsable<select data-bxl-mod="resp">${Object.entries(H_GENS).filter(([k]) => k !== 'client' && k !== 'auto').map(([k, g]) => `<option value="${k}" ${M.resp === k ? 'selected' : ''}>${esc(g.nom)}</option>`).join('')}</select></label>
       <label class="champ">${t === 'depot' ? 'Où, comment y accéder' : 'Adresse'}<input class="saisie" data-bxl-mod="note" value="${esc(M.note)}"></label>`}
+    <label class="champ">Me rappeler de le compter tous les (mois)<input class="saisie" type="number" inputmode="numeric" min="1" max="24" data-bxl-mod="freq" value="${esc(M.freq)}" placeholder="${Math.round(((SX.freqDef || 0) * 30 || ({ vehicule:90, atelier:180, depot:180 }[t] || 180)) / 30)}"></label><span class="gris petit">Laisse vide pour suivre la durée du Stock (Plus › Réglages du stock).</span>
     <div class="fo-pied"><button type="button" class="btn" data-bxl="modok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`;
   if (surPlace) foGarder(() => foOuvrir(html, true)); else foOuvrir(html, true);
 }
 function bxModOk(){
   const M = BX.mod, l = LIEUX.find(o => o.id === M.id); if (!l) return;
   const pris = LIEUX.find(o => o.id !== l.id && !o.ferme && (M.nom.trim() || l.nom) && nomNorm(o.nom) === nomNorm(M.nom.trim() || l.nom)); if (pris) return toast(`« ${esc(pris.nom)} » existe déjà : deux lieux au même nom se confondent dans les listes. Ajoute la plaque ou un détail.`);
-  const snap = sxPhoto(), nom = M.nom.trim() || l.nom;
+  const snap = sxPhoto(), nom = M.nom.trim() || l.nom, fAvant = SX.freq[l.id];
+  const mois = Math.round(Number(String(M.freq || '').replace(',', '.'))); if (mois >= 1) SX.freq[l.id] = Math.min(24, mois) * 30; else delete SX.freq[l.id];   // vide : la durée du Stock
+  snap.apres = () => { if (fAvant) SX.freq[l.id] = fAvant; else delete SX.freq[l.id]; };
   l.nom = nom; if (l.type !== 'vehicule') l.resp = M.resp;
   if (l.type === 'depot') l.note = M.note.trim(); else if (l.type === 'atelier') l.adr = M.note.trim();
   bxJ('a modifié le lieu', nom);
@@ -16933,12 +16975,13 @@ function fournFiche(id){
       ${lg('Téléphone', `<span class="pdx-tel">${txt('tel', '05 …', 'inputmode="tel"')}${f.tel ? `<a class="btn gris petit" href="${lienTel(f.tel)}">Appeler</a>` : ''}</span>`)}
       ${lg('E-mail pour les commandes', `<input class="saisie" type="email" inputmode="email" data-fochamp="${f.id}|mail" value="${esc(f.mail || '')}" placeholder="commandes@…">`, f.mail ? '' : '<span class="st st-o">À ajouter</span> Ajoute-le pour envoyer les commandes')}
       ${d ? `<div class="ligne"><span>Son site</span><a class="lien" href="${esc(d.site)}" target="_blank" rel="noopener noreferrer">${esc(d.site.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))} ↗</a></div>` : ''}</div>
+    <!-- au comptoir on emporte : ni livraison gratuite, ni port, ni délai (une saisie par notion, spec § 7.4) -->
     <div class="carte fx-fc"><h3>Comment il livre</h3>
-      ${f.hist ? `<div class="gris petit">Il livre à l’heure ${f.hist.heure} % du temps, en ${prNum(f.hist.delai)} jour${f.hist.delai >= 2 ? 's' : ''} en moyenne.</div>` : ''}
+      ${f.hist && !comptoir ? `<div class="gris petit">Il livre à l’heure ${f.hist.heure} % du temps, en ${prNum(f.hist.delai)} jour${f.hist.delai >= 2 ? 's' : ''} en moyenne.</div>` : ''}
       ${comptoir ? '' : lg('Livré en', `<span class="fx-jours"><input class="saisie fx-n" inputmode="numeric" data-pdxfo="${f.id}|dj" value="${f.dj == null ? '' : f.dj}" placeholder="1"><span>jour${f.dj > 1 ? 's' : ''}</span></span>`)}
       <label class="fo-garder fx-case"><input type="checkbox" data-fx="comptoir|${f.id}" ${comptoir ? 'checked' : ''}><span>Je le retire au comptoir</span></label>
-      ${lg('Livraison gratuite à partir de', `<span class="fx-jours">${nb('franco', f.franco, '0,00')}<span>€</span></span>`)}
-      ${lg('Sinon, frais de port', `<span class="fx-jours">${nb('port', f.port, '0,00')}<span>€</span></span>`)}
+      ${comptoir ? '' : lg('Livraison gratuite à partir de', `<span class="fx-jours">${nb('franco', f.franco, '0,00')}<span>€</span></span>`)}
+      ${comptoir ? '' : lg('Sinon, frais de port', `<span class="fx-jours">${nb('port', f.port, '0,00')}<span>€</span></span>`)}
       ${lg('Commander avant', `<input class="saisie fx-n" type="time" step="900" data-pdxfo="${f.id}|avant" value="${esc(f.avant || '')}">`, comptoir ? 'pour retirer le jour même' : f.dj === 1 ? 'pour être livré le lendemain' : f.dj > 1 ? 'pour être livré en ' + f.dj + ' jours' : '')}</div>
     <div class="carte fx-fc"><h3>Mon compte</h3>
       ${lg('Mon numéro de client', `<input class="saisie" data-fochamp="${f.id}|compte" value="${esc(f.compte || '')}" placeholder="ex. 004521">`)}
