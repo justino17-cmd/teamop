@@ -3558,9 +3558,10 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:760px){.vh-rl{grid-template-columns:minmax(0,1fr) auto}.vh-rb{grid-column:1/-1;grid-row:2}}
 /* le matériel de sécurité : huit lignes à 44 px et plus, un interrupteur chacune */
 .vh-mat{display:flex;flex-direction:column}.vh-mat-l{min-height:52px;cursor:pointer;justify-content:space-between}
-.vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}
-.vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
-.vh-sw:checked{background:var(--vert)}.vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}   /* plus spécifique que la case de 20 px des lignes .fo-r */
+.fo-r input[type=checkbox].vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
+.fo-r input[type=checkbox].vh-sw:checked{background:var(--vert)}.fo-r input[type=checkbox].vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw:focus-visible{outline:2px solid var(--lien);outline-offset:2px}
 .vh-fichier{cursor:pointer;min-height:44px;flex-wrap:wrap}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
@@ -17828,7 +17829,7 @@ function vhPapiers(v){
 function vhCleFrais(f){ return f.own != null && f.own !== 'a' ? 'o' + f.own : f.own === 'a' ? 'a' + f.achat : f.achat ? 'A' + f.achat : f.ndf ? 'N' + f.ndf : ''; }
 function vhDepenses(v){
   const per = [['mois', 'Ce mois-ci'], ['12m', '12 mois'], ['tout', 'Tout']], c = vxCalcCout(v, VX.periode), F = vehFrais(v).filter(f => VX.periode === 'mois' ? f.d.slice(0, 7) === AUJ.slice(0, 7) : VX.periode === '12m' ? f.d >= ajoute(AUJ, -365) : true);
-  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' ? 'sur 12 mois' : 'depuis le premier relevé du compteur';
+  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' && c.deb <= ajoute(AUJ, -365) ? 'sur 12 mois' : 'depuis le ' + vhJM(c.deb);   // jamais « sur 12 mois » pour quatre mois de données : on dit depuis quand on compte
   const bits = []; if (c.auKm != null) bits.push(vhEuro2(c.auKm) + ' du kilomètre'); if (VX.periode !== 'mois' && c.parMois) bits.push(eur0(c.parMois) + ' par mois');
   const bilan = `${eur0(c.total)} dépensés ${sur}${bits.length ? ', soit ' + bits.join(' et ') : ''}.${c.conso != null ? ' ' + c.conso.toFixed(1).replace('.', ',') + (v.energie === 'Électrique' ? ' kWh' : ' litres') + ' aux 100 km.' : ''}`;
   const connu = vxDebut(v), vides = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); if (d.slice(0, 7) < connu.slice(0, 7)) vides.push(d); }
