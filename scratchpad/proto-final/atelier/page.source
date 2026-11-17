@@ -1924,7 +1924,7 @@ function nouveauContrat(o){
   if(pin) nd.identId=pin;      // absent = l'en-tête par défaut : un contrat fait sans choisir est identique à celui d'avant
   return nd;
 }
-const OPG={donnees:false,role:{devis:false,contrats:false,entreprise:false,creer:true,modifier:true},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:''};
+const OPG={donnees:false,role:{devis:false,contrats:false,entreprise:false,creer:true,modifier:true},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:'',motifFin:''};
 function prochainNumero(type){
   if(APP){      // la série d'OP GESTION : son préfixe, son dernier numéro, et tout ce que cet appareil a déjà composé (y compris dans un autre onglet)
     const N=OPG.numeros[type], re=new RegExp('^'+N.prefixe.replace(/[.*+?^${}()|[\]\\\-]/g,'\\$&')+'(\\d+)$'); let max=N.dernier;
@@ -3913,7 +3913,7 @@ ACTIONS['supprimer-brouillon']=async()=>{
   const d=D(); if(!d||d.etat!=='brouillon') return;
   if(!await confirmer({titre:'Supprimer ce brouillon ?',texte:`« ${d.nom} »${d.meta&&d.meta.numero?' ('+d.meta.numero+')':''} sera supprimé. Tu ne pourras pas le retrouver.`,ok:'Supprimer',danger:true})) return;
   const id=d.id; fermerDoc(); if(APP) OPG.connus.add(id);      // « connu » : sauverStock relit le rangement et y retrouverait ce document, qu'il ré-adopterait comme celui d'un autre onglet
-  S.docs=S.docs.filter(x=>x.id!==id); sauverStock(); toast('Brouillon supprimé');
+  S.docs=S.docs.filter(x=>x.id!==id); sauverStock(); toast('Brouillon supprimé'); OPG.motifFin='supprime';      // dans OP GESTION le cadre est rangé aussitôt : la confirmation se dit dans la page parente (opd_fermer motif « supprime »)
 };
 
 
@@ -5678,6 +5678,17 @@ function ouvrirVierge(retour,type,opt){
     const t=ev.target; if(!t.dataset||(t.dataset.vvQ===undefined&&t.dataset.vvP===undefined)) return;
     const q=t.dataset.vvQ!==undefined, id=t.dataset.id, l=V.lignes.find(x=>x.id===id); if(!l) return;
     if(!V.erreurs[(q?'q:':'p:')+id]){ delete V.erreurs[(q?'qb:':'pb:')+id]; t.value=q?rawQte(l.qteM):champPrix(l.puC) }
+  });
+  /* un collage sur plusieurs lignes dans « Délai » / « Paiement » est aplati AVANT d'entrer dans le champ, par une insertion que le navigateur sait défaire :
+     réécrire t.value après coup vidait la pile d'annulation (Ctrl+Z ne rendait plus rien après un collage). Un seul geste d'annulation rend le champ d'avant le collage. */
+  f.fen.addEventListener('beforeinput',ev=>{
+    const t=ev.target; if(!t||(t.id!=='vv-delai'&&t.id!=='vv-paiement')||ev.isComposing) return;
+    if(ev.inputType!=='insertFromPaste'&&ev.inputType!=='insertFromDrop'&&ev.inputType!=='insertText') return;
+    const brut=typeof ev.data==='string'&&ev.data!==''?ev.data:(ev.dataTransfer?ev.dataTransfer.getData('text/plain'):''); if(!/[\r\n]/.test(brut)) return;
+    ev.preventDefault();
+    const plat=brut.replace(/\s*[\r\n]+\s*/g,' ');
+    let ok=false; try{ ok=document.execCommand('insertText',false,plat) }catch(e){}
+    if(!ok){ t.setRangeText(plat,t.selectionStart,t.selectionEnd,'end'); t.dispatchEvent(new Event('input',{bubbles:true})) }      // navigateur sans insertText : tant pis pour l'annulation, jamais pour la saisie
   });
   f.fen.addEventListener('keydown',ev=>{
     if(ev.key!=='Enter'||ev.isComposing) return; const t=ev.target;
@@ -7691,7 +7702,7 @@ function opdRole(r){
   if((!OPG.role.devis&&!OPG.role.contrats)||(type==='devis'&&!OPG.role.devis)||(type==='contrat'&&!OPG.role.contrats)){ const etait=OPG.ouvert; opdFermerTout(); OPG.ouvert=false; if(etait) opdPoster({opd_fermer:{motif:'role'}}) }
 }
 function opdOuvrir(o){
-  if(!o||typeof o!=='object'||Array.isArray(o)) return; const faire=own(o,'faire');
+  if(!o||typeof o!=='object'||Array.isArray(o)) return; const faire=own(o,'faire'); OPG.motifFin='';      // une ouverture neuve ne garde pas le mot de fin d'une suppression d'avant
   const refuser=m=>{ OPG.ouvert=false; opdPoster({opd_fermer:{motif:m}}) };
   if(!OPG.donnees) return refuser('absent');
   if(faire==='devis'||faire==='contrat'){
@@ -7729,7 +7740,7 @@ function opdDocsEnvoyer(force){ const l=opdDocs(), sig=JSON.stringify(l); if(!fo
 function opdClientCree(c){ opdPoster({opd_client:{id:c.id,nom:c.nom,pro:!!c.pro,adresse:c.adresse||'',cp:c.cp||'',ville:c.ville||'',email:c.email||'',tel:c.tel||''}}); }
 function opdRienAMontrer(){ return !FEN&&!POP&&S.vue!=='editeur'&&!apercuOuvert()&&!document.querySelector('.voile,#cl-signer'); }
 /* quand il n'y a plus rien à montrer, l'atelier demande sa fermeture — après un court délai, pour laisser passer une réouverture (un sous-écran qui revient) */
-function opdPlanifierFin(){ if(!OPG.ouvert) return; clearTimeout(OPG.tFin); OPG.tFin=setTimeout(()=>{ if(OPG.ouvert&&opdRienAMontrer()){ OPG.ouvert=false; opdPoster({opd_fermer:{motif:'fin'}}) } },140); }
+function opdPlanifierFin(){ if(!OPG.ouvert) return; clearTimeout(OPG.tFin); OPG.tFin=setTimeout(()=>{ if(OPG.ouvert&&opdRienAMontrer()){ OPG.ouvert=false; const m=OPG.motifFin==='supprime'?'supprime':'fin'; OPG.motifFin=''; opdPoster({opd_fermer:{motif:m}}) } },140); }
 function opdStockage(ev){
   if(ev.storageArea!==localStorage||ev.key!==CLE_STOCK||!ev.newValue) return; let o=null; try{ o=JSON.parse(ev.newValue) }catch(e){ return }
   if(adopterAutres(o,true)){ rendreAccueil(); opdDocsEnvoyer() }      // l'onglet qui n'édite pas reprend la liste de l'autre

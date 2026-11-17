@@ -49,7 +49,7 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   v('R1-8 le prix de la visite est arrondi au CENTIME (6 visites × 166,67 = 1 000,02 : le contrat a 1 000 €)', !!f1 && Math.abs(f1.lignes[0][2] * 100 - Math.round(f1.lignes[0][2] * 100)) < 1e-6, f1 && f1.lignes[0]);
   await L.aller(p, 'facture-x-f-' + vis[0].id); t = await txt(p);
   await L.capture(c, CAP + `R1-facture-v1-${tag}.png`);
-  v('R1-9 l\'écran de la facture montre Total HT 166,67 € et TTC 183,33 € (166,67 × 1,10)', /166,67/.test(t) && /183,33/.test(t), (t.match(/Total HT.{0,80}/) || [''])[0] + ' | ' + (t.match(/Total TTC.{0,40}/) || [''])[0]);
+  v('R1-9 l\'écran de la facture montre Total HT 166,67 € et TTC 183,34 € (166,67 × 1,10 = 183,337, arrondi au centime : le recontrôle de la campagne attendait 183,33 par une erreur de calcul)', /166,67/.test(t) && /183,34/.test(t), (t.match(/Total HT.{0,80}/) || [''])[0] + ' | ' + (t.match(/Total TTC.{0,40}/) || [''])[0]);
   // 4. la fiche, la liste et Statistiques disent la même chose
   await L.aller(p, 'contrat-x-' + k.id); t = await txt(p);
   v('R1-10 la fiche : « 1 sur 6 faites »', /1 sur 6 faites/i.test(t), (t.match(/.{0,40}faites.{0,40}/) || [''])[0]);
