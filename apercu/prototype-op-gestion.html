@@ -202,6 +202,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 div.ligne-clic:hover{border-color:var(--trait)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .alerte{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--rouge) 11%,transparent);border:1px solid color-mix(in srgb,var(--rouge) 35%,transparent)}
+/* de jour, une teinte sombre posée à 11 % sur le verre donne un gris-rose terne à côté des cartes blanches (vu par le chef, 17 novembre) : on mêle la teinte à du BLANC, le fond devient un rose clair franc ; la nuit garde le voile d'avant */
+:root:not([data-mode="nuit"]) .alerte{background:color-mix(in srgb,var(--rouge) 9%,#fff);border-color:color-mix(in srgb,var(--rouge) 32%,#fff)}
 .info{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--bleu) 9%,transparent);border:1px solid color-mix(in srgb,var(--bleu) 28%,transparent)}
 .ok-bloc{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--vert) 11%,transparent);border:1px solid color-mix(in srgb,var(--vert) 32%,transparent)}
 .av{width:36px;height:36px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:#fff;background:color-mix(in srgb,var(--tc) 82%,#000);text-shadow:0 1px 1px rgba(0,0,0,.25)}
@@ -2014,6 +2016,7 @@ body.cx-plein #contenu{transform:none!important;animation:none!important}
 .rl-retour-a{color:var(--doux);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .rl-retour:hover{border-color:var(--trait2)}
 @media (max-width:760px){ .rl-retour{font-size:14.5px} }
+.rl-retour.rl-colle{position:sticky;top:max(8px,env(safe-area-inset-top,0px));z-index:29;background:var(--feuille);box-shadow:0 6px 16px rgba(11,20,38,.14)}   /* opaque : sur la vitre, le texte de la page passait au travers de la barre */
 /* placer une demande, visite pour un devis, notes de frais du technicien */
 .rl-placer .actions{margin-top:6px}
 .rl-photos{display:flex;flex-wrap:wrap;gap:8px}
@@ -12134,8 +12137,8 @@ const DROIT_PHRASES = {
   compta:{ v:'voir la comptabilité', c:'noter une dépense, une écriture', m:'payer, valider, relancer, régler la fiche légale', s:'supprimer une écriture' },
   stock:{ v:'voir le stock, les fournisseurs, les dépôts et les camions', c:'créer un produit, un fournisseur, un dépôt, une commande', m:'modifier, inventorier, transférer, réceptionner, ajouter à son camion', s:'retirer, jeter, supprimer ; régler le stock et changer un prix de vente' },
   temps:{ v:'voir les véhicules et les heures de toute l’équipe', c:'ajouter un pointage, un véhicule, un plein', m:'modifier un véhicule, valider des heures, terminer une journée', s:'clore un pointage, supprimer un frais ou un document de véhicule' },
-  /* ⛔ « tout-08 » : le module de courrier (shadow DOM, écrit par la voie mail) ne lit pas encore capacites().droits : écrire, répondre, classer et supprimer un courriel ne sont PAS gardés. Les phrases ne promettent donc que ce que la page garde vraiment : la gestion des BOÎTES (connecter, reconnecter, déconnecter, règles) */
-  com:{ v:'voir la boîte mail', c:'connecter une boîte, ajouter une règle', m:'reconnecter une boîte, changer son mot de passe', s:'déconnecter une boîte, retirer une règle' },
+  /* « tout-08 » : le module de courrier lit capacites().droits (écrire = Créer, répondre et ranger = Modifier, supprimer = Supprimer) : un geste refusé n'est pas proposé et le dit s'il est tenté */
+  com:{ v:'voir et lire les courriels', c:'écrire un message, le transférer, connecter une boîte, ajouter une règle', m:'répondre, marquer, archiver, ranger, reconnecter une boîte, changer son mot de passe', s:'supprimer un courriel, déconnecter une boîte, retirer une règle' },
   achats:{ v:'voir les demandes et les notes de frais', c:'faire une demande ou une note de frais', m:'décider d’une demande, valider une note, fixer un budget', s:'annuler une demande, supprimer une note' },
   admin:{ v:'voir l’accueil, les statistiques, l’historique, l’équipe et l’entreprise', c:'inviter une personne, ajouter une habilitation', m:'régler l’entreprise, les comptes et les droits, et la paie', s:'désactiver un compte, annuler une invitation' }
 };
@@ -12260,7 +12263,7 @@ function droitsMotsVerbes(L){ return L.length === 1 ? L[0] : L.slice(0, -1).join
 function droitsNote(){
   const c = document.getElementById('contenu'); if (!c || ROLE === 'client' || ROLE === 'compta') return;
   c.querySelectorAll('.droits-note').forEach(e => e.remove());
-  if (['entreprise', 'accueil', 'boiteMail'].includes(route) || !ROUTE_DROIT[route] || route === 'taches') return;   /* boiteMail : la note « tu peux regarder, pas le modifier » mentirait, le module de courrier ne lit pas les droits (« tout-08 ») */
+  if (['entreprise', 'accueil'].includes(route) || !ROUTE_DROIT[route] || route === 'taches') return;   /* la Boîte mail porte la note comme les autres rubriques depuis que le module lit les droits (« tout-08 ») */
   const p = eqDe(acteur()); if (!p || droitAdmin(p)) return;
   const T = ROUTE_DROIT[route][droitForme(p)] || []; const cat = T[0] && T[0].split('.')[0]; if (!cat || !droitCase(p, cat)) return;
   const actifs = ['c', 'm', 's'].filter(x => droitCaseActive(cat, x)); if (!actifs.length) return;
@@ -19326,7 +19329,7 @@ function courrierImageOctets(m, nom){   // synchrone (toDataURL) : la taille ann
 function courrierSource(){
   const boite = id => ML_BOITES.find(o => o.id === id);
   return {
-    capacites:() => Promise.resolve({ droits:{ com:droitsDe('com'), clients:droitsDe('crm'), interventions:droitsDe('inter'), devis:droitsDe('ventes') }, marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== acteur() && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
+    capacites:() => Promise.resolve({ droits:{ ecrire:peut('com', 'c'), ranger:peut('com', 'm'), supprimer:peut('com', 's') }, refus:g => { const x = { ecrire:'c', ranger:'m', supprimer:'s' }[g]; DROITS_REFUS.push({ cat:'com', x, fam:'ml', verbe:g }); return 'Ce geste n’est pas ouvert à ton compte : ' + DROIT_PHRASES.com[x] + '. Demande à ' + droitPremierAdmin() + '.'; }, marquage:true, deplacement:true, suivi:true, moi:prenomDe(mbxPar()), equipe:COLLEGUES.filter(q => q !== acteur() && eqDe(q) && eqDe(q).actif).map(prenomDe), telechargerPiece:true, programmeServeur:true, oauth:true, boutonsFournisseurs:true, gererBoites:true,
       dossiers:['inbox', 'sent', 'archive'], destinataires:5, pj:{ nombre:5, octets:8 * 1048576 }, signature:false, signatureMaintenance:false, journalEnvois:false, traduire:false }),
     boites:() => Promise.resolve(ML_BOITES.map(o => ({ id:o.id, email:o.adr, nom:o.id === 'b1' ? 'Clim Services 17' : 'Marc Leblanc', cote:'pro', fournisseur:o.fourni }))),
     messages:({ boite:id, dossier }) => {
@@ -19491,7 +19494,7 @@ function vueBoiteMail(){
   const msg = e === 'pret' ? '' : e === 'echec'
     ? `<div class="carte courrier-msg" role="alert"><b>La boîte mail n’a pas pu s’ouvrir.</b><span class="gris petit">Le fichier qui la fait marcher est introuvable ou n’est pas arrivé. Vérifie ta connexion, puis réessaie.</span><button type="button" class="btn" data-courrier="reessayer">Réessayer</button></div>`
     : `<div class="carte courrier-msg" role="status"><b>Ouverture de la boîte mail…</b>${COURRIER.tard ? '<span class="gris petit">Ça prend plus de temps que d’habitude.</span><button type="button" class="btn" data-courrier="reessayer">Réessayer</button>' : ''}</div>`;
-  return `<div class="tete mbx-tete"><div><span class="surtitre">Clients et ventes</span><h1>Boîte mail</h1><span class="gris">${nT ? mbxNb(nT, 'message') + ' à traiter.' : 'Tout est traité.'}</span></div><button type="button" class="btn mbx-ecrire" data-mbx-ecrire="1">＋ Écrire</button></div>${msg}<div id="courrier-place" class="courrier-place"></div>`;
+  return `<div class="tete mbx-tete"><div><span class="surtitre">Clients et ventes</span><h1>Boîte mail</h1><span class="gris">${nT ? mbxNb(nT, 'message') + ' à traiter.' : 'Tout est traité.'}</span></div>${peut('com', 'c') ? '<button type="button" class="btn mbx-ecrire" data-mbx-ecrire="1">＋ Écrire</button>' : ''}</div>${msg}<div id="courrier-place" class="courrier-place"></div>`;
 }
 
 /* ── les modèles de réponse suivent le sujet du message ── */
@@ -20572,7 +20575,8 @@ function entEnregistrerHoraires(){
   if (!V) return;
   PARAMS.debut = entMin(V['en-debut']); PARAMS.fin = entMin(V['en-fin']);
   /* au centime : « 65,555 » ne doit pas faire calculer des fractions de centime sur les factures au temps (relecture « tout-04 ») */
-  const cent = x => Math.round(x * 100) / 100;
+  /* l'exposant décimal (« 1,005e2 ») évite l'erreur de la virgule flottante : 1,005 × 100 vaut 100,4999… et tombait sur 1 au lieu de 1,01 */
+  const cent = x => Number(Math.round(x + 'e2') + 'e-2');
   TARIFS.horaire = cent(entNb(V['en-horaire'])); TARIFS.minimum = Math.round(entNb(V['en-minimum']) * 60);
   [1, 2, 3].forEach(z => { TARIFS.zone[z] = cent(entNb(V['en-z' + z])); });
   entApresEnregistrement('Tes horaires et tes tarifs sont enregistrés.');
@@ -20585,7 +20589,8 @@ function entCompleter(M){
   if (route === 'entreprise') { fermerPanneau(); return entOuvrirCarte(k); }
   aller('entreprise'); entApres(() => entOuvrirCarte(k));
 }
-function entDefiler(sel){ const e = document.querySelector(sel); if (e) { e.scrollIntoView({ block:'center' }); e.classList.add('ent-flash'); setTimeout(() => e.classList.remove('ent-flash'), 1800); } }
+/* la page défile jusqu'au réglage, donc la barre « ‹ Retour · Mon entreprise » (posée en haut de la page) sortait de l'écran : elle se colle en haut le temps de cette arrivée (relecture « tout-11 ») */
+function entDefiler(sel){ const e = document.querySelector(sel); if (e) { const b = document.querySelector('.rl-retour'); if (b) b.classList.add('rl-colle'); e.scrollIntoView({ block:'center' }); e.classList.add('ent-flash'); setTimeout(() => e.classList.remove('ent-flash'), 1800); } }
 function entPanMetiers(){
   ouvrirPanneau(`<span class="surtitre">Mon entreprise</span><h2>Tes métiers</h2><div class="fo-bloc">${PACKS_ENT.map(k => `<div class="fo-r"><span class="fo-n"><b>${esc(PACKS[k].nom)}</b></span></div>`).join('') || '<div class="gris petit">Aucun.</div>'}</div>
     <span class="gris petit">Réglé par TEAM OP à l’ouverture de ton compte.</span><div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
@@ -20643,9 +20648,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
 .ent-ban .btn{flex:none}
 /* sur téléphone, les huit champs de « Ton entreprise » repoussent « Enregistrer » à 989 px sur un écran de 844 : la rangée de boutons reste collée en bas de la feuille,
-   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). La feuille n'a plus de rembourrage en bas : c'est la rangée qui porte l'encoche (une marge basse négative sur un élément collant remonte aussi le point où il se colle). */
-@media (max-width:760px){#calque .panneau.ent-pan{padding-bottom:0}#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
+   avec son propre fond (relecture « tout-03 » ; la spécification § 1.2 le demandait). La feuille n'a plus de rembourrage en bas : c'est la rangée qui porte l'encoche (une marge basse négative sur un élément collant remonte aussi le point où il se colle). 
+   scroll-padding-bottom : un champ refusé prend le focus et le navigateur le range au bord bas, donc SOUS la rangée collée (avec son message) : 200 px, car 140 px laissait le message coupé. */
+@media (max-width:760px){#calque .panneau.ent-pan{padding-bottom:0;scroll-padding-bottom:200px}#calque .panneau.ent-pan > .actions:last-child{position:sticky;bottom:0;z-index:2;background:var(--feuille);margin:0 -16px;padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 12px -8px var(--feuille)}}
 .ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
+:root:not([data-mode="nuit"]) .ent-ban.attention{background:color-mix(in srgb,#e8a317 17%,#fff);border-color:color-mix(in srgb,#c9840a 45%,#fff)}   /* même raison que .alerte : de jour, l'ambre se mêle au blanc, pas au verre */
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
 .ent-c .bx-t{align-items:center}
