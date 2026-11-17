@@ -23,7 +23,7 @@
 //   await c.p.click(...); const e = await bac.etat(c); // e.fichiers, e.liensInertes, e.dialogues, e.navigations, e.coupes…
 // Ou, pour une page déjà ouverte : await bac.poser(page, contexte, opts) — réinstalle le bac et RECHARGE la page (un script
 // d'initialisation ne s'exécute qu'avant les scripts de la page).
-// Options : refuser:true (le visiteur refuse chaque enregistrement), echec:'unavailable'|'too_large'|'rate_limited' (le pont rejette
+// Options : strict:true (le pont refuse un Blob / ArrayBuffer né dans un autre cadre), refuser:true (le visiteur refuse chaque enregistrement), echec:'unavailable'|'too_large'|'rate_limited' (le pont rejette
 // avec ce code), pont:false (window.claude absent partout), presse:'ok'|'refuse'|'absent'|'sel' (« sel » : pas de navigator.clipboard, mais la copie par
 // sélection marche ; « refuse » et « absent » : rien ne copie), rangement:'refuse'|'methodes'|'vide'.
 const path = require('path');
@@ -65,6 +65,9 @@ function initBac(o) {
       if (typeof nom !== 'string' || !nom || nom.length > 512) throw { code: 'bad_request', message: 'nom de fichier invalide' };
       const ext = (nom.split('.').pop() || '').toLowerCase();
       if (!/\./.test(nom) || EXT.indexOf(ext) < 0) throw { code: 'rejected_extension', message: 'extension refusée : ' + nom };
+      // option strict : un pont qui TESTE le type contre SES constructeurs (« instanceof Blob » de la page du haut) : un Blob ou un ArrayBuffer né dans un cadre voisin
+      // n'en est pas un, même s'il en a toute la forme — la réponse est bad_request, comme le ferait un pont qui vérifie le type (restes artefact, tour 2)
+      if (o.strict && !(typeof d === 'string' || d instanceof Blob || d instanceof ArrayBuffer || d instanceof Object.getPrototypeOf(Uint8Array))) { J.refus.push({ nom, code: 'bad_request' }); throw { code: 'bad_request', message: 'type de données refusé (pas un Blob de cette fenêtre)' }; }
       let taille = 0, debut = '';
       if (typeof d === 'string') { taille = new TextEncoder().encode(d).length; debut = d.slice(0, 8); }
       else if (d && typeof d.size === 'number' && typeof d.slice === 'function' && typeof d.arrayBuffer === 'function') { taille = d.size; try { const b = new Uint8Array(await d.slice(0, 8).arrayBuffer()); debut = String.fromCharCode(...b); } catch (e) {} }   // un Blob fabriqué dans un CADRE n'est pas un « instanceof Blob » de la page du haut
