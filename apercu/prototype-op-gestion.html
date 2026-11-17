@@ -237,6 +237,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 
 /* ── la Comptabilité complète s'ouvre comme une fenêtre par-dessus OP GESTION (Justin, 10 novembre 2026) ── */
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
+body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -8377,10 +8378,37 @@ function ouvrirPanneau(html, large){
      Un message de LA MÊME action (moins de 0,4 s) reste, et un panneau déjà ouvert qu'on redessine n'y touche pas. */
   { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
   const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
+  if (!document.querySelector('#calque .panneau') && av && av !== document.body) PANNEAU_AVANT = av;   /* le bouton qui ouvre la fenêtre : on le lui rend à la fermeture (clavier, lecteur d'écran) */
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
   { const z = document.getElementById('cpsys'), v = document.querySelector('#calque .voile'); if (z && !z.hidden && v) v.style.zIndex = '9100'; }   // un panneau ouvert pendant la Comptabilité plein écran (z-index 9000) restait dessous, invisible
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
-function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
+let PANNEAU_AVANT = null;
+function fermerPanneau(){ const c = document.getElementById('calque'), avait = !!c.querySelector('.panneau'); c.innerHTML = '';
+  if (avait && PANNEAU_AVANT) { const a = PANNEAU_AVANT; PANNEAU_AVANT = null; if (a.isConnected && !a.disabled && a.focus && !a.closest('[inert]')) a.focus({ preventScroll:true }); } }
+/* ── une fenêtre garde le focus, et le rend ── campagne coque, 17 novembre 2026 (coque-01, coque-11)
+   Toutes les fenêtres se déclarent aria-modal, mais rien ne retenait Tab : au clavier (ou avec un lecteur d'écran, ou le clavier d'un iPad)
+   le focus sortait de la fenêtre vers la page cachée derrière — 30 tabulations sur 30 au bureau pour le panneau des raccourcis (son seul
+   élément focalisable est ✕), jusqu'à 19 sur 30 pour la feuille « Menu » d'un Android, 9 sur 14 pour l'écran de connexion.
+   Un seul gestionnaire pour toutes : la fenêtre du dessus (la plus haute par son z-index) boucle sur ses propres éléments. La recherche (#pal) a
+   déjà sa règle (Tab n'y fait rien) : on la laisse. */
+(() => { const SEL = 'a[href],button,input:not([type="hidden"]),select,textarea,summary,[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+  const visible = e => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const zDe = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { const c = getComputedStyle(n); if (c.position === 'fixed' || c.position === 'absolute') { const z = parseInt(c.zIndex, 10); if (!isNaN(z)) return z; } } return 0; };
+  const modaleHaute = () => { let best = null, bz = -1; document.querySelectorAll('[aria-modal="true"]').forEach(m => { if (!visible(m) || m.closest('[inert]')) return; const z = zDe(m); if (z >= bz) { best = m; bz = z; } }); return best; };
+  const focalisables = m => { const L = [...m.querySelectorAll(SEL)].filter(e => !e.disabled && !e.closest('[hidden],[inert]') && visible(e) && (e.tabIndex >= 0));
+    return L.filter(e => !(e.type === 'radio' && !e.checked && L.some(o => o !== e && o.type === 'radio' && o.name === e.name && o.checked))); };
+  document.addEventListener('keydown', ev => { if (ev.key !== 'Tab' || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const m = modaleHaute(); if (!m || m.id === 'pal') return;
+    const L = focalisables(m), a = document.activeElement, dedans = !!(a && m.contains(a));
+    if (!L.length) { ev.preventDefault(); if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1'); m.focus({ preventScroll:true }); return; }
+    if (!dedans) { ev.preventDefault(); (ev.shiftKey ? L[L.length - 1] : L[0]).focus({ preventScroll:true }); return; }
+    if (ev.shiftKey && (a === L[0] || a === m)) { ev.preventDefault(); L[L.length - 1].focus({ preventScroll:true }); }
+    else if (!ev.shiftKey && a === L[L.length - 1]) { ev.preventDefault(); L[0].focus({ preventScroll:true }); } }, true);
+  /* la feuille « Menu » du téléphone ne survit pas à un élargissement de la fenêtre : sur l'écran de bureau elle resterait posée, avec son voile qui avale le premier toucher (coque-08) */
+  matchMedia('(min-width:761px)').addEventListener('change', e => { if (e.matches && document.querySelector('#calque .panneau .fm-liste')) fermerPanneau(); });
+  /* tant que l'écran de connexion est là, l'application derrière n'existe ni pour le clavier ni pour un lecteur d'écran (coque-01) */
+  const fond = () => { const on = !!document.getElementById('cnx'); document.querySelectorAll('.app, #barre-bas, #fenetre').forEach(e => { if (on) { e.setAttribute('inert', ''); e.setAttribute('aria-hidden', 'true'); } else { e.removeAttribute('inert'); e.removeAttribute('aria-hidden'); } }); };
+  new MutationObserver(fond).observe(document.body, { childList:true }); fond(); })();
 
 /* la signature : un vrai tracé au doigt ou à la souris */
 function brancherSignature(idCanvas, _f, id){
@@ -10461,7 +10489,7 @@ vueComptabilite = function(){
     fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
     tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D), paiemois:() => paieVueMois(), fiches:() => paieVueFiches(), salaries:() => paieVueSalaries(), charges:() => paieVueCharges() }[O]();
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris">Tes ventes, tes achats, ta trésorerie et ta TVA, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies.</span></div>
-    <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Ajouter</button></div></div>
+    <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Nouvelle opération</button></div></div>
   ${clos}
   <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
   <div class="cx-sous" role="tablist" aria-label="${esc(G[1])}">${G[3].map(([k, l]) => `<button type="button" role="tab" data-cx="sec|${k}" aria-selected="${O === k}">${l}${nb[k] ? `<span class="cx-nb">${nb[k]}</span>` : ''}</button>`).join('')}</div>
@@ -10480,7 +10508,7 @@ function cxVueFactures(D, famille){
   if (CX.st === 'sanspiece' && !sans) CX.st = 'tous'; if (CX.cat === 'avoirs' && CX.st !== 'tous') CX.st = 'tous';
   const c = CX_CATS.find(o => o.k === CX.cat);
   return `<div class="cx-cats" role="group" aria-label="Catégories">${famille === 'ventes' ? chip('ventes', '', 'Factures et avoirs') + cats('ventes') : chip('achats', '', 'Tous les achats') + cats('achats')}</div>
-    ${c ? `<div class="cx-explique"><span aria-hidden="true">${c.ic}</span><span><b>${c.l}</b> · ${c.d}.${c.k === 'clients' ? ' Elles se préparent toutes seules à la fin de chaque intervention : tu valides, elles partent.' : c.fam === 'achats' ? ' Ajoute une facture ou une photo de ticket avec « ＋ Ajouter ».' : ''}</span></div>` : ''}
+    ${c ? `<div class="cx-explique"><span aria-hidden="true">${c.ic}</span><span><b>${c.l}</b> · ${c.d}.${c.k === 'clients' ? ' Elles se préparent toutes seules à la fin de chaque intervention : tu valides, elles partent.' : c.fam === 'achats' ? ' Ajoute une facture ou une photo de ticket avec « ＋ Nouvelle opération ».' : ''}</span></div>` : ''}
     <div class="cx-outils"><div class="seg" role="group" aria-label="Où elles en sont">${filtres.map(([k, l]) => `<button type="button" data-cx="st|${k}" aria-pressed="${CX.st === k}">${l}</button>`).join('')}</div>
       <input class="saisie cx-q" type="search" placeholder="${famille === 'ventes' ? 'Chercher un client, un numéro de facture…' : 'Chercher un fournisseur, un numéro…'}" value="${esc(CX.q)}" data-cxq="1" aria-label="Chercher une facture"></div>
     <div id="cx-liste">${cxListe(D)}</div>
@@ -10617,7 +10645,7 @@ function cxEnvoi(E){
 
 /* ─── Ajouter : une facture client, une dépense, un paiement ─── */
 function cxNouveau(){
-  ouvrirPanneau(`<span class="surtitre">Comptabilité</span><h2>Ajouter</h2><div class="cx-choix">
+  ouvrirPanneau(`<span class="surtitre">Comptabilité</span><h2>Nouvelle opération</h2><div class="cx-choix">
     <button type="button" data-cx="facture"><span aria-hidden="true">🧾</span><b>Facture client</b><span class="gris petit">Pour une vente sans intervention : une pièce, un acompte… Les autres se préparent toutes seules à la fin de l’intervention.</span></button>
     <button type="button" data-cx="depense"><span aria-hidden="true">📦</span><b>Facture fournisseur ou dépense</b><span class="gris petit">Matériel, carburant, assurance, téléphone… avec sa photo, rangée dans sa catégorie.</span></button>
     <button type="button" data-action="ajoutEnc"><span aria-hidden="true">💶</span><b>Paiement reçu</b><span class="gris petit">Un client t’a payé : sa facture passe payée.</span></button>
@@ -12843,7 +12871,7 @@ const TOUR_COMPTA = [
     { c:'#cx-liste [data-cx^="doc|ach|"]', t:'Ouvre un achat sans justificatif', p:'On voit ce qui a été payé, quand, à qui, et ce qui manque.', ok:() => gdPanneau() },
     { c:'#calque .panneau .cx-bloc', t:'La pièce justificative', p:'Une photo de la facture suffit : prise au téléphone ou glissée depuis un e-mail, elle est rangée avec l’achat et envoyée à ton expert-comptable.', suivant:1, si:() => gdPanneau() },
     gdFermer,
-    { c:'.tete [data-cx="nouveau"]', t:'« ＋ Ajouter » : un achat, une dépense, un paiement', p:'Pour ce qui n’arrive pas tout seul. Le reste (commandes aux fournisseurs, notes de frais, banque) s’écrit sans que tu le tapes.', suivant:1 } ] },
+    { c:'.tete [data-cx="nouveau"]', t:'« ＋ Nouvelle opération » : une facture, une dépense, un paiement', p:'Pour ce qui n’arrive pas tout seul. Le reste (commandes aux fournisseurs, notes de frais, banque) s’écrit sans que tu le tapes.', suivant:1 } ] },
   { r:'gestion', cat:'Achats', t:'Notes de frais & fournisseurs', d:'Ce que l’équipe avance de sa poche (un repas, un plein, un parking), et ce que tu dois à chaque fournisseur.', go:gdCompta('ndf'), gestes:[
     { c:'.cx-explique', t:'Comment marche une note de frais', p:'Le technicien prend le ticket en photo depuis son téléphone. Tu valides, c’est remboursé avec la paie.', suivant:1 },
     { c:'input[data-ndfregle]', t:'Les notes sans ticket : un réglage du patron', p:'Certains patrons acceptent de rembourser sans ticket. Si la case est cochée, on peut valider sans ticket, mais une question est posée à chaque fois. Seul le patron peut changer ce réglage.', suivant:1 },
@@ -19319,7 +19347,7 @@ vueAchats = function () {
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
   const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
   return `<div class="tete ach-tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
-      ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
+      ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Nouvelle demande d’achat</button></div>'}</div>
     <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
     ${compta ? `<div class="groupe">Ça se règle dans la Comptabilité</div><div class="fo-bloc ach-compta">
@@ -23701,7 +23729,7 @@ if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getE
    Une recherche rapide (Cmd K), des raccourcis qui ne volent jamais une frappe dans un champ, et la carte qui obéit au trackpad
    (deux doigts déplacent, le pincement zoome). Rien ici ne s'allume sur un téléphone : pas de clavier, pas de palette. */
 document.head.insertAdjacentHTML('beforeend', `<style id="app-mac">
-#pal{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,14,28,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#pal{position:fixed;inset:0;z-index:9200;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,14,28,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .pal-b{width:min(640px,100%);max-height:70vh;display:flex;flex-direction:column;border-radius:20px;background:var(--feuille,#f8f9fc);border:1px solid var(--trait);box-shadow:0 40px 90px rgba(0,0,0,.38);overflow:hidden;color:var(--encre)}
 .pal-c{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--trait)}
 .pal-c svg{flex:none;width:20px;height:20px;color:var(--doux)}
@@ -23735,7 +23763,10 @@ function rcRubriques(){ return rlLignes().filter(c => !c.ec).map(c => ({ k:c.k, 
 function rcChampRecherche(){ return [...document.querySelectorAll('#contenu input[type="search"],#contenu input[placeholder^="Recherch"],#contenu input[placeholder^="Cherch"],#contenu input[placeholder^="Trouver"]')].find(i => i.offsetParent !== null && !i.disabled) || null; }
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
-const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais' };
+const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
+  equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
+  planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
@@ -23747,7 +23778,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (rlPermis('clients')) {
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
-    ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
+    ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', m:'déconnexion quitter fermer la session', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
     { g:'Aide', l:'Raccourcis clavier', ic:'⌨️', d:'?', fn:() => rcAide() });
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
   return E; }
@@ -23771,12 +23802,12 @@ const RC_LISTE = [
   ['Partout', [['Rechercher, aller à une rubrique ou à un client', [RC_CMD, 'K']], ['Aller à la rubrique 1 à 9 du menu', [RC_CMD, '1…9']], ['Écran précédent', [RC_CMD, '[']], ['Écran suivant', [RC_CMD, ']']], ['Chercher dans l’écran', ['/']], ['Annuler le dernier geste', [RC_CMD, 'Z']], ['Fermer la fenêtre ou le panneau', ['Échap']], ['Afficher ces raccourcis', ['?']]]],
   ['Créer', [['Nouvelle intervention', ['N']], ['Nouveau devis', ['D']], ['Nouveau client', ['C']], ['Nouvelle tâche', ['A']]]],
   ['Listes', [['Ligne suivante', ['↓']], ['Ligne précédente', ['↑']], ['Ouvrir la ligne choisie', ['Entrée']], ['Menu de la ligne', ['Clic droit']]]],
-  ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']]]],
-  ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
+  ['Planning', [['Période précédente', ['←']], ['Période suivante', ['→']], ['Revenir à aujourd’hui', ['T']], ['Menu d’une intervention, d’une case du planning', ['Clic droit']]]],
+  ['Trackpad', [['Écran précédent ou suivant', ['2 doigts ← →']], ['Déplacer la carte', ['2 doigts']], ['Zoomer la carte', ['Pincer']]]],   /* l'application ne tient ces trois gestes que sur Mac (`if (MAC)`) : la rubrique ne s'affiche que là (campagne, coque-06) */
 ];
 /* seuls les raccourcis de création que la personne a le droit de faire sont listés (une touche qui ne ferait rien n'est pas promise) */
 const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
-function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
+function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length && (t !== 'Trackpad' || MAC)).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
 function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
@@ -23806,12 +23837,13 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
   if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(rcCible(ev))) return;
   /* la Boîte mail a SES raccourcis (c écrire, / chercher, r répondre, j k e f…) : le prototype ne prend aucune touche qui vient d'elle */
   if (ev.target && ev.target.closest && ev.target.closest('#courrier-hote')) return;   /* l'événement est reciblé sur la racine du module (un div DANS #courrier-hote) */
-  const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #cpsys:not([hidden]), #opdz:not([hidden]), #gd-bulle');
+  const ouvert = document.querySelector('#calque .voile, .fen-voile, .ctx, #opdz:not([hidden]), #gd-bulle'), plein = !!document.querySelector('#cpsys:not([hidden])');
   if (k === '?') { ev.preventDefault(); opgRaccourci('aide'); return; }
-  if (ouvert) return;
+  if (ouvert) return;   /* la Comptabilité plein écran n'est pas « un panneau ouvert » : « ? » l'annonçait déjà, N D C A et « / » doivent donc y marcher aussi (campagne, coque-10) */
   if (k === '/') { ev.preventDefault(); opgRaccourci('chercher'); return; }
   if (k.toLowerCase() === 'n' && !ev.shiftKey) { if (opgRaccourci('intervention')) ev.preventDefault(); return; }
   { const c = !ev.shiftKey && RC_CREER.find(c => c.t.toLowerCase() === k.toLowerCase()); if (c) { if (opgRaccourci(c.nom)) ev.preventDefault(); return; } }
+  if (plein) return;
   if ((k === 'ArrowDown' || k === 'ArrowUp') && !ev.shiftKey && rcLigneBouger(k === 'ArrowDown' ? 1 : -1, ev.target)) { ev.preventDefault(); return; }
   if (route === 'planning' && !ev.shiftKey && !CREA) { const b = k === 'ArrowLeft' ? '[data-plnav="-1"]' : k === 'ArrowRight' ? '[data-plnav="1"]' : k.toLowerCase() === 't' ? '[data-plnav="0"]' : '';
     const el = b && document.querySelector('#contenu ' + b); if (el && !ev.target.closest('.pl-defile,#cr-svg,[role="tablist"],[role="radiogroup"]')) { ev.preventDefault(); el.click(); } }
@@ -24163,7 +24195,10 @@ function cnxLogin(p){ const b = o => cnxSlug(o.prenom).replace(/-/g, ''), i = EQ
 /* ce qu'on colle : le lien entier, l'adresse de l'application, ou le nom de l'entreprise */
 const cnxLienLire = t => cnxSlug(String(t || '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop());
 const cnxTete = () => `<span class="cn-logo" style="display:block;overflow:hidden">${CNX_DESSIN}</span><span class="cn-app">OP GESTION</span>`;
-function cnxMontrer(err, ident, doux){ document.getElementById('cnx')?.remove();
+function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEach(i => { const e = document.getElementById(i); if (e) e.innerHTML = ''; });
+  const z = document.getElementById('cpsys'); if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } }   /* avant la connexion, ou après « Se déconnecter », rien de l'écran de la personne d'avant ne reste dans la page (« Bonjour Marc », montants) · coque-01 */
+(() => { const r0 = rendre; rendre = function(){ if (typeof MODE_APP !== 'undefined' && MODE_APP && !SESSION && document.getElementById('cnx')) { cnxVider(); return; } return r0.apply(this, arguments); }; })();   /* « Se déconnecter » change d'écran PAR une transition : le dessin de l'écran du gérant arrivait APRÈS le vidage, derrière la connexion — tant que personne n'est connecté, rien ne se dessine */
+function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
      sans le marquer « vu » : la personne le retrouvera à sa prochaine connexion · 14 novembre 2026 */
@@ -24172,19 +24207,19 @@ function cnxMontrer(err, ident, doux){ document.getElementById('cnx')?.remove();
     <form class="cn-carte" id="cn-form-lien" novalidate>
       <h1>Bienvenue</h1>
       <p class="cn-expl">Pour relier cet appareil à ton entreprise, ouvre le <b>lien de connexion</b> qu’elle t’a envoyé par e-mail. Tu peux aussi le coller ici.</p>
-      <label>Lien de connexion<input id="cn-lien" type="text" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="teamop.fr/e/ton-entreprise"></label>
+      <label>Lien de connexion<input id="cn-lien" type="text" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="teamop.fr/e/ton-entreprise" value="${esc(lien || '')}"></label>
       <p class="cn-err" id="cn-err" role="alert">${esc(err || '')}</p>
       <button type="submit" class="btn plein">Continuer</button>
     </form>
     <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p></div></div>`);
-    const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) l.focus(); return; }
+    const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) { l.focus(); if (l.value) l.select(); } return; }   /* un lien refusé reste dans le champ, sélectionné : la personne le corrige au lieu de le recoller en entier */
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><div class="cn-col">${cnxTete()}
     <span class="cn-pastille"><span>✓ ${esc(ENTREPRISE.nom)} · lien vérifié</span></span>
     <form class="cn-carte" id="cn-form" novalidate>
       <h1>Connexion</h1>
       <p class="cn-expl">Accès réservé à l’équipe. Après ton mot de passe, tu confirmes sur ton téléphone avec OP Security.</p>
-      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton identifiant" value="${esc(ident || '')}"></label>
-      <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+      <label>Identifiant<input id="cn-id" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ton prénom (voir ton message)" value="${esc(ident || '')}"></label>
+      <label>Mot de passe<input id="cn-mdp" type="password" autocomplete="current-password" placeholder="Ton mot de passe"></label>
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
     </form>${cnxPastilleTel()}${cnxDemoCases()}
@@ -24230,7 +24265,7 @@ function cnxGlisser(suite){ const col = document.querySelector('#cnx .cn-col');
   setTimeout(() => { suite(); const n = document.querySelector('#cnx .cn-col'); if (n) n.classList.add('cn-fixe', 'cn-arrive'); }, 230); }
 function cnxRelier(texte){ const sl = cnxLienLire(texte), surPlace = false;   /* un écran de chargement, dans le style du lancement (Justin, 13 novembre 2026) */
   const fin = () => { if (sl !== ESPACE_SLUG) return false; ESPACE = ESPACE_SLUG; cnxGarder(); return true; };
-  if (!surPlace) { cnxCharger(() => { if (!fin()) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.'); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); return; }
+  if (!surPlace) { cnxCharger(() => { if (!fin()) return cnxMontrer('Lien de connexion invalide — redemande-le à ton entreprise.', '', false, texte); cnxMontrer(); toast('Appareil relié à ' + ENTREPRISE.nom); }, 'Vérification du lien…', 1300); return; }
   const rendre = cnxOccupe('Vérification du lien…');
   setTimeout(() => { if (!fin()) { rendre(); return cnxDire('Lien de connexion invalide — redemande-le à ton entreprise.'); } cnxGlisser(() => cnxMontrer()); }, 750); }
 document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
