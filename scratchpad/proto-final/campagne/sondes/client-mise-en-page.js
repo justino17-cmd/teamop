@@ -3,7 +3,7 @@
 const O = require('./client-outils.js'), L = O.L, v = L.v;
 const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', longs = process.argv.includes('longs'), app = process.argv.includes('app');
 const tag = `${profil}-${nuit ? 'nuit' : 'jour'}${longs ? '-longs' : ''}${app ? '-app' : ''}`;
-const ECHAF = /^(📘 Apprendre|De A à Z|Patron|Gestion|Technicien|Client|Métiers)/;   // la bande « Tester en tant que » du prototype nu est de l'échafaudage, pas l'écran du client
+const ECHAF = /^(📘 Apprendre|De A à Z|(👔|🧾|🧰|🙋)?(Patron|Gestion|Technicien|Client)\b|Métiers)/u;   // la bande « Tester en tant que » du prototype nu est de l'échafaudage, pas l'écran du client
 const contraste = p => p.evaluate(() => { const lum = ([r, g, b]) => { const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
   const lire = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { c: v.slice(0, 3), a: v.length > 3 ? v[3] : 1 }; };
   const fond = e => { let n = e; const pile = []; while (n && n.nodeType === 1) { const b = lire(getComputedStyle(n).backgroundColor); if (b && b.a > 0) { pile.push(b); if (b.a >= .99) break; } n = n.parentElement; } let base = [255, 255, 255]; if (document.documentElement.dataset.mode === 'nuit') base = [11, 20, 38];
