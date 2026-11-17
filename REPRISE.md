@@ -387,6 +387,12 @@ CONTINUENT — ils coupent et effacent le socle — et remontent seulement « co
 supprimé : ces trois gestes de la Tour marchent encore mais AFFICHENT un avertissement Firebase jusqu'au retrait du code. Dit à
 Justin : il peut supprimer le projet quand il a regardé ce qu'il contient ; la décision est la sienne. À faire ensuite : retirer
 ce code et ses bancs, et dire dans `REPRISE.md` si le projet a été supprimé (ne pas le supposer).
+⛔ **FIREBASE — NE PAS SUPPRIMER LE PROJET AVANT D'AVOIR DÉMÉNAGÉ LA CLÉ GEMINI (vu sur les captures de Justin, 17 novembre, vers
+23 h 15).** Supprimer le projet Firebase `elan-gestion` supprime le projet Google Cloud du même nom et désactive TOUTES ses API
+(restaurable 30 jours). Ses identifiants : la clé d'API « TEAM OP Blog » (API Gemini, créée le 26 octobre 2026 — celle du blog
+automatique), la clé de navigateur créée par Firebase, aucun client OAuth, deux comptes de service (`firebase-adminsdk`, et celui
+de la clé Gemini). Donc : créer une clé Gemini dans un AUTRE projet, la poser là où l'ancienne est rangée (secrets des workflows
+du blog, voir `blog-publication.yml`), vérifier une publication, PUIS supprimer. Justin s'est arrêté à l'écran de confirmation.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
