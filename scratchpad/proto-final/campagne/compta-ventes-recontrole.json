@@ -1,0 +1,153 @@
+{
+ "partie": "compta-ventes",
+ "date": "2026-11-17",
+ "recontroleur": "étape 3 sur 3 (adverse)",
+ "regles": [
+  "compta-ventes-01",
+  "compta-ventes-02",
+  "compta-ventes-05",
+  "compta-ventes-07",
+  "compta-ventes-08",
+  "compta-ventes-09",
+  "compta-ventes-10",
+  "compta-ventes-12",
+  "compta-ventes-12b",
+  "compta-ventes-13",
+  "compta-ventes-14",
+  "compta-ventes-18"
+ ],
+ "pasRegles": [
+  {
+   "n": "compta-ventes-06",
+   "constat": "Réglé pour l'essentiel (avoir dès l'envoi, état « Annulée par un avoir », plus d'encaissement ni de relance, retiré du « à recevoir », cadre « Annulée »), mais trois suites manquent : (1) la tâche « Relancer le paiement de la facture FAC-2026-0128 » (urgente) reste OUVERTE dans Tâches et sur la fiche annulée (« 1 tâche ouverte pour cette facture ») ; (2) l'avoir « Annuler cette facture » est offert à une facture EN RETARD encaissée en partie (500 € reçus), alors qu'une facture « envoyée » encaissée en partie ne l'offre pas : l'avoir fait 1 240,00 € TTC, la fiche dit « Déjà reçu − 500 € · Reste à payer 0,00 € · Plus rien n'est à payer » sans un mot sur les 500 € à rendre ; (3) une facture PAYÉE avoirée reste « Payée · virement » dans le cadre (l'avoir n'y est pas listé) — le texte de la correction disait « plus payée »."
+  },
+  {
+   "n": "compta-ventes-21",
+   "constat": "Réglé sur iPhone, Android et 320 px pour « Revenir au tableau de bord », « Fermer la fenêtre » et les filtres de Ventes ; PAS réglé pour « Plus bas » du menu du cadre : 295×36 (iPhone), 292×36 (Android), 257×36 (320 px). Cause : `.cmpt-plus{min-height:44px}` est dans un @media (pointer:coarse) à la ligne 508 de prototype-comptabilite.html, écrasé par `.cmpt-plus{...min-height:36px}` de même spécificité écrite plus loin (ligne 556). Et sur iPad (820 px, doigt) les 14 entrées du menu du cadre répondent sur 295×40 : `@media (min-width:761px){.menu a{min-height:40px}}` (ligne 559) annule le 44 px au doigt. La sonde corrections-mep échoue d'ailleurs à 26 ✓ · 2 ✗ sur iphone, petit, android et ipad."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une facture annulée par un avoir garde sa tâche de relance ouverte",
+   "gravite": "gênant",
+   "etapes": "Marc (Mac) : fiche FAC-2026-0128 (en retard) › Annuler cette facture par un avoir › Créer l'avoir ; ouvrir la fiche, puis Tâches.",
+   "constat": "La fiche annulée dit « 1 tâche ouverte pour cette facture » ; Tâches propose toujours « !Relancer le paiement de la facture FAC-2026-0128 » avec son bouton de relance, alors que la facture est « annulée : plus aucune relance ne part ». La correction 06 a posé l'état « annulée » sans fermer ce qui y était rattaché. Sonde : compta-ventes-recontrole-r2b.js (R2b-1, R2b-3). À corriger : à l'avoir, terminer (ou retirer) les tâches de relance de cette facture, comme le fait la relance envoyée (facRelanceNoter)."
+  },
+  {
+   "titre": "Facture en retard encaissée en partie puis annulée : les 500 € reçus ne sont dits nulle part",
+   "gravite": "gênant",
+   "etapes": "Fiche FAC-2026-0128 › Paiement en partie 500 › Enregistrer › « Annuler cette facture par un avoir » (offert car l'état reste « en retard ») › Créer l'avoir de 1 240,00 €.",
+   "constat": "Capture r2b-mac-fiche-annulee-500.png : « Déjà reçu − 500,00 € », « Reste à payer 0,00 € », « Plus rien n'est à payer » ; l'avoir est de 1 240,00 € TTC, « Encaissé en octobre » du cadre garde les 500 €. Rien ne dit au gérant qu'il doit 500 € au client. Incohérence avec une facture « envoyée » encaissée en partie (état « partielle ») qui, elle, n'offre pas l'avoir. À corriger au plus simple : refuser l'avoir (ou dire « 500 € reçus : à rembourser ») quand `recu > 0` ; la règle complète du remboursement partiel est à soumettre à Justin."
+  },
+  {
+   "titre": "Facture faite à la main pour un particulier : TVA 20 % proposée et fiche qui dit « client professionnel »",
+   "gravite": "gênant",
+   "etapes": "Comptabilité › Ventes › ＋ Ajouter › Facture client › client « M. et Mme Durand » (particulier) › désignation, prix › Créer ; lire la fiche.",
+   "constat": "Le champ TVA reste à 20 % quel que soit le client (aucun changement en choisissant un particulier), et la fiche écrit « TVA 20 % client professionnel » à côté de M. et Mme Durand. Un particulier en logement de plus de 2 ans est à 10 % ; l'étiquette est fausse et le taux par défaut aussi. Sonde : compta-ventes-recontrole-r4.js (2 ✗). À corriger : proposer 10 % pour un client particulier (ou « À choisir ») et ne libeller « client professionnel » que si le client en est un."
+  },
+  {
+   "titre": "Menu du cadre « OP COMPTABLE » à 40 px au doigt sur iPad",
+   "gravite": "détail",
+   "etapes": "iPad (820 px) : onglet Comptabilité › cadre : toucher les entrées du menu (Tableau de bord, À vérifier…).",
+   "constat": "14 cibles de 295×40 px (plancher 44). Cause : `@media (min-width:761px){.menu a{min-height:40px}}`. Pas sous (pointer:coarse). Même famille que 21."
+  },
+  {
+   "titre": "« Plus bas » du cadre à 36 px au téléphone",
+   "gravite": "détail",
+   "etapes": "iPhone, Android ou 320 px : cadre › Ventes et encaissements, mesurer « Plus bas » (aria-label « Voir les rubriques suivantes »).",
+   "constat": "295×36, 292×36, 257×36 : la règle à 44 px écrite pour le corriger est battue par `.cmpt-plus{min-height:36px}` écrit plus bas dans le fichier."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-a.js (mac)",
+   "resultat": "36 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-b.js (mac)",
+   "resultat": "28 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-c.js (mac)",
+   "resultat": "24 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-d.js (mac)",
+   "resultat": "27 ✓ · 0 ✗ APRÈS correction de la sonde : le cadre des documents est désormais préchargé et L.cadre le prenait pour la Comptabilité (« aller is not defined ») ; outils et parcours d visent maintenant prototype-comptabilite.html"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-e.js (mac)",
+   "resultat": "13 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-f.js (mac)",
+   "resultat": "26 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-g.js (mac)",
+   "resultat": "8 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-h.js (mac)",
+   "resultat": "11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-i.js (mac)",
+   "resultat": "7 ✓ · 0 ✗ (600 devis)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-j.js (mac)",
+   "resultat": "23 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-annulee-cadre.js (mac)",
+   "resultat": "9 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-corrections-mep.js",
+   "resultat": "windows 14 ✓ · 0 ✗ ; iphone, petit, android : 26 ✓ · 2 ✗ (« Plus bas » 36 px) ; ipad : 26 ✓ · 2 ✗ (menu du cadre 40 px)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-mise-en-page.js",
+   "resultat": "iphone marc 100 ✓ · 0 ✗ ; android marc 100 ✓ · 0 ✗ ; ipad julie 100 ✓ · 0 ✗ ; windows marc 40 ✓ · 0 ✗ (jour et nuit)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-balayage.js : recontrole-balayage-compta-ventes-marc-mac.json",
+   "resultat": "237 gestes recensés sur 8 écrans, 237 touchés, 0 erreur de page ; seuls les deux champs de recherche ne changent rien (normal)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-balayage.js : recontrole-balayage-compta-ventes-julie-iphone.json",
+   "resultat": "144 gestes recensés sur 4 écrans (Julie, iPhone), 0 erreur de page ; seuls les deux champs de recherche ne changent rien"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r1.js (mac, marc)",
+   "resultat": "21 ✓ · 0 ✗ — parcours A par les vrais gestes : menu › cadre › « Factures et paiements » › nouvelle facture 3 × 1 234,50 › ligne ajoutée, nommée, retirée puis rétablie › envoi › 1 000,50 en partie › solde par chèque › cadre et fiche client"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r2.js / r2b.js (mac)",
+   "resultat": "r2 4 ✓ · 0 ✗ (exploration) ; r2b 4 ✓ · 2 ✗ (tâche de relance d'une facture annulée)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r3.js (iphone, julie, nuit)",
+   "resultat": "9 ✓ · 0 ✗ — intervention terminée › facture préparée › envoi › PDF du cadre identique"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r4.js (mac)",
+   "resultat": "1 ✓ · 2 ✗ (TVA d'un particulier)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-recontrole-r5.js (mac)",
+   "resultat": "2 ✓ · 1 ✗ (facture payée avoirée toujours « Payée » dans le cadre)"
+  },
+  {
+   "fichier": "contrôles",
+   "resultat": "compiler-pages, verifier-syntaxe (41 pages), test-835 844 ✓, test-836 307 ✓, test-837 122 ✓, test-1008 54 ✓, test-2994 15 ✓, verif-secrets : tous à 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Remboursement partiel : une facture encaissée en partie puis annulée laisse des euros reçus sans trace de remboursement. Faut-il refuser l'avoir tant qu'un paiement existe, ou proposer « rembourser X € » ?",
+  "Les 7 points soumis (11 colonne « Prix HT » qui montre le prix unitaire, 15 onglets coupés au téléphone, 16 tête trop haute, 17 fiche facture trop haute, 19 la porte « Comptabilité » ouvre OP COMPTABLE avant les factures, 20 module « Paiement en ligne » avec son harnais de test, 22 deux barres du haut) restent ouverts : ce sont des décisions de dessin de Justin. Je les confirme tous encore présents (11 vu sur l'aperçu de ma facture à deux lignes : colonne Prix HT = prix unitaire pour 3 × 1 234,50).",
+  "Contrat facturé « au mois » : aucune facturation mensuelle n'est écrite dans le prototype (déjà signalé).",
+  "Une facture payée puis avoirée reste « Payée » dans le cadre : voulu (le remboursement se note à part) ou à montrer comme « Payée · avoir AV-… » ?"
+ ]
+}

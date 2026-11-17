@@ -3,10 +3,11 @@
 // écran, fenêtre, message, contenu, case) et on relève ce qui ne répond pas, qui n'a pas de nom, ou qui mène hors de l'écran sans le dire.
 // Usage : node metier-3d-gestes.js <profil> <qui> [routes]. Rend « N ✓ · M ✗ » ; les gestes qui ne font rien sont des ✗ nommés.
 const fs = require('fs'), O = require('./metier-3d-outils.js'), L = O.L;
-const profil = process.argv[2] || 'mac', qui = process.argv[3] || 'marc', routes = (process.argv[4] || 'registre,carteBox,devisXylo').split(',');
-let ok = 0, ko = 0; const defauts = [], sansEffet = [], hors = [];
+const CONFS = (process.argv[2] || 'mac:marc').split(',').map(x => { const [profil, qui, r] = x.split(':'); return { profil, qui, routes: (r ? r.split('+') : (qui === 'sm' ? ['registre'] : ['registre', 'carteBox', 'devisXylo'])) }; });
+let ok = 0, ko = 0;
 const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ ' + nom + (det ? ' — ' + det : '')); } };
-(async () => {
+(async () => { for (const { profil, qui, routes } of CONFS) {
+  const defauts = [], sansEffet = [], hors = [], couverts = [];
   const c = await O.ouvrir({ profil, qui, packs: O.METIERS.d3 }), p = c.p; let recenses = 0, touches = 0;
   const zones = ['#contenu', '#calque'];
   for (const r of routes) {
@@ -21,6 +22,9 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
         const e = cand.find(x => { const l = (x.getAttribute('aria-label') || x.textContent || x.title || '').replace(/\s+/g, ' ').trim().slice(0, 60); const d = [...x.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 40)).join(' '); return l === lib && d === data; });
         if (!e) return { trouve: false }; e.scrollIntoView({ block: 'center' }); const rc = e.getBoundingClientRect(); return { trouve: true, x: rc.left + rc.width / 2, y: rc.top + rc.height / 2, l: Math.round(rc.width), h: Math.round(rc.height) }; }, { lib: g.lib, data: g.data, balise: g.balise });
       if (!res.trouve) continue;
+      // un élément dans un menu FERMÉ (« Plus d'actions ») est dans le DOM mais ne reçoit rien : il se teste par son menu (metier-3d-carte-boutons.js), pas ici
+      const recu = await p.evaluate(({ x, y, lib }) => { const e = document.elementFromPoint(x, y); if (!e) return false; const c = e.closest('button,a,summary,label,[data-go],[role=button]') || e; return (c.getAttribute('aria-label') || c.textContent || c.title || '').replace(/\s+/g, ' ').trim().slice(0, 60) === lib; }, { x: res.x, y: res.y, lib: g.lib });
+      if (!recu) { couverts.push({ r, lib: g.lib }); continue; }
       // un vrai toucher / clic à la position de l'élément (comme un doigt), et la cible doit être L'ÉLÉMENT (ou son contenu)
       const cible = await p.evaluate(({ x, y, lib }) => { const e = document.elementFromPoint(x, y); return e ? (e.closest('button,a,summary,label,[data-go],[role=button]') ? (e.closest('button,a,summary,label,[data-go],[role=button]').textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) : (e.textContent || '').trim().slice(0, 40)) : ''; }, { x: res.x, y: res.y, lib: g.lib });
       try { if (c.doigt) await p.touchscreen.tap(res.x, res.y); else await p.mouse.click(res.x, res.y); } catch (e) { continue; }
@@ -33,12 +37,14 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
       if (c.doigt && (res.h < 36)) defauts.push({ r, type: 'cible < 36 px', g: { lib: g.lib, h: res.h, l: res.l } });
     }
   }
-  console.log(JSON.stringify({ profil, qui, recenses, touches, sansEffet: sansEffet.length, hors: hors.length, sansNom: defauts.filter(d => d.type === 'sans nom').length, petitesCibles: defauts.filter(d => d.type.startsWith('cible')).length }));
+  console.log(JSON.stringify({ profil, qui, recenses, touches, sansEffet: sansEffet.length, hors: hors.length, couverts: couverts.length, sansNom: defauts.filter(d => d.type === 'sans nom').length, petitesCibles: defauts.filter(d => d.type.startsWith('cible')).length }));
+  couverts.forEach(s => console.log('  NON TOUCHABLE (menu fermé ou recouvert) ' + s.r + ' : « ' + s.lib + ' »'));
   sansEffet.forEach(s => console.log('  SANS EFFET ' + s.r + ' : « ' + s.lib + ' » ' + s.data + ' (cible touchée : « ' + s.cible + ' », ' + s.l + '×' + s.h + ')'));
   hors.forEach(s => console.log('  VERS AILLEURS ' + s.r + ' : « ' + s.lib + ' » → ' + s.vers));
   defauts.forEach(d => console.log('  ' + d.type.toUpperCase() + ' ' + d.r + ' : ' + JSON.stringify(d.g)));
   v('aucun geste sans effet', sansEffet.length === 0); v('aucun élément sans nom', defauts.filter(d => d.type === 'sans nom').length === 0);
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3).join(' // '));
   fs.writeFileSync(O.CAP + `gestes-${profil}-${qui}.json`, JSON.stringify({ recenses, touches, sansEffet, hors, defauts }, null, 1));
-  await L.fin(c); await L.fermer(); process.exit(O.bilan('metier-3d-gestes ' + profil + ' ' + qui, ok, ko, []));
+  await L.fin(c); }
+  await L.fermer(); process.exit(O.bilan('metier-3d-gestes', ok, ko, []));
 })().catch(async e => { console.log('ERREUR de sonde', e.stack); await L.fermer(); process.exit(2); });

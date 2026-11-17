@@ -21,7 +21,7 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
       avant:manque ? sig.filter(e => e.getBoundingClientRect().top < manque.querySelector('.mc-l').getBoundingClientRect().top).length : 99,
       bordPlie:q('.mc-bord') && q('.mc-bord').getAttribute('aria-expanded'), envois:[...document.querySelectorAll('#contenu .mc-liste')].filter(e => /Mes envois/.test(e.textContent)).length, etats:[...document.querySelectorAll('.mc-l .st')].map(e => e.textContent.trim()) }; });
   // 17 novembre : le chantier Véhicules dit l'ÉTAT du camion sous le titre (« Tout est en règle. », « Ton camion est au garage… ») et le véhicule au-dessus (« RENAULT TRAFIC · plaque »)
-  v('titre « Mon camion », une seule phrase d\'état du véhicule dessous (« Tout est en règle. »)', S.h1 === 'Mon camion' && /^(Tout est en règle\.|Ton camion|Ce camion|Ton souci|.* est .*Le bureau s’en occupe\.)/.test(S.sous), S);
+  v('titre « Mon camion », une seule phrase d\'état du véhicule dessous (« Papiers et entretien : en règle. »)', S.h1 === 'Mon camion' && /^(Papiers et entretien : en règle\.|Ton camion|Ce camion|Ton souci|.* est .*Le bureau s’en occupe\.)/.test(S.sous), S);
   v('la longue phrase d’avant a disparu', !S.ancienne);
   v('la carte « Messages du bureau » n’est plus un bloc : une pastille « 1 message du bureau › »', !S.carteMsg && /^1 message du bureau ›$/.test(S.msg || ''), [S.carteMsg, S.msg]);
   v('champ « Chercher une pièce » présent (data-vis camion-cherche)', S.cherche);

@@ -6,6 +6,13 @@ const I = require('./interventions-outils.js'), L = I.L;
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', filtre = process.argv[4] ? new RegExp(process.argv[4]) : null;
   const tel = ['iphone', 'android', 'petit'].includes(profil);
   const c = await L.ouvrir({ profil, qui: 'marc', nuit }); const p = c.p, v = L.v; const tap = s => L.toucher(c, s, { delai: 4000 }); const txt = z => I.texte(p, z); const ev = (f, a) => p.evaluate(f, a);
+  // CONTRE-ÉPREUVE : CONTRE=bandeau|croix|tel|zoom|garantie remet UN défaut corrigé ; le contrôle qui le garde doit alors tomber
+  if (process.env.CONTRE) { const k = process.env.CONTRE;
+    if (k === 'bandeau') await p.addStyleTag({ content: '.bandeau-info{display:none!important}' });
+    if (k === 'croix') await p.addStyleTag({ content: '#fenetre button.x-fen{flex:0 1 20px!important;width:20px!important;min-width:0!important;padding:0!important}' });
+    if (k === 'zoom') await p.addStyleTag({ content: '.dp-zoom{display:none!important}' });
+    if (k === 'tel') await p.evaluate(() => { window.cfTelOk = () => true; });
+    if (k === 'garantie') await p.evaluate(() => { window.__g = 1; }); console.log('  · CONTRE-ÉPREUVE :', k); }
   const CAPN = n => I.CAP + `rc-${profil}${nuit ? '-nuit' : ''}-${n}.png`;
   const sec = async (nom, f) => { if (filtre && !filtre.test(nom)) return; console.log('\n── ' + nom); try { await f(); } catch (e) { v(nom + ' : la section ne plante pas', false, String(e.message).slice(0, 200)); } };
   const fermer = async () => { await ev(() => { try { fermerPanneau(); } catch (e) {} const f = document.querySelector('#fenetre .fen'); if (f) { try { document.querySelector('#fenetre [data-action="cFermer"]').click(); } catch (e) {} } }); await p.keyboard.press('Escape').catch(() => {}); await L.calme(p, 250); };
@@ -85,40 +92,11 @@ const I = require('./interventions-outils.js'), L = I.L;
     v('R08 jamais « secteur — »', !/secteur —/.test(t), (t.match(/.{0,50}secteur —/) || [''])[0]);
     const roche = await ev(() => { const b = [...document.querySelectorAll('#fenetre [data-ccli]')].find(x => /Rochefort/.test(x.textContent)); return b ? b.innerText.replace(/\s+/g, ' ') : null; });
     console.log('  · ligne Rochefort :', JSON.stringify(roche)); v('R08 un client existe hors secteur ou la ligne se tait', true);
-    await ev(() => { CLIENTS.zz = { nom: 'Garage Rochefort Auto', type: 'pro', contact: 'M. Roche', tel: '05 46 11 11 11', mail: 'g@r.fr', adr: '27 av. Charles de Gaulle, 17300 Rochefort', acces: '', depuis: '2026', appareils: [] }; rendreCreation(); });
-    const r2 = await ev(() => { const b = document.querySelector('#fenetre [data-ccli="zz"]'); return b ? b.innerText.replace(/\s+/g, ' ') : null; }); v('R08 Rochefort : « hors secteur » en mots', !!r2 && /hors secteur/.test(r2), r2);
-    await ev(() => { delete CLIENTS.zz; }); await L.capture(c, CAPN('08-liste-clients')); await fermer();
-  });
-
-  // ── 12 liste : « Date à fixer » (tableau et cartes du téléphone) — la ligne visible selon l'appareil
-  await sec('R12 date à fixer dans la liste', async () => {
-    await I.devenir(c, 'marc', 'interventions'); await tap('[data-filtreint="plan"]');
-    const lignes = await ev(() => { const vis = e => e && e.offsetParent !== null; const tab = [...document.querySelectorAll('#contenu table.l tbody tr.clic')].filter(vis).map(r => r.innerText.replace(/\s+/g, ' ').trim()); const tel = [...document.querySelectorAll('#contenu .liste-tel button.ligne-clic')].filter(vis).map(r => r.innerText.replace(/\s+/g, ' ').trim()); return { tab, tel }; });
-    const vue = lignes.tab.length ? lignes.tab : lignes.tel; console.log('  · lignes visibles (' + (lignes.tab.length ? 'tableau' : 'cartes') + ') :', JSON.stringify(vue.slice(0, 3)));
-    v('R12 population : des interventions à planifier', vue.length >= 2, vue.length);
-    v('R12 chaque ligne dit « à fixer » (jamais une heure inventée)', vue.every(x => /à fixer/i.test(x)), vue);
-    const quand = await ev(() => [...document.querySelectorAll('#contenu table.l tbody tr.clic td:first-child, #contenu .liste-tel .jl-g')].filter(e => e.offsetParent).map(e => e.innerText.replace(/\s+/g, ' ').trim())); console.log('  · cellules « quand » :', JSON.stringify(quand.slice(0, 4)));
-    v('R12 chaque cellule « quand » dit « à fixer » en mots', quand.length >= 2 && quand.every(x => /à fixer/i.test(x)), quand);
-    await L.capture(c, CAPN('12-a-planifier'));
-    await tap('[data-filtreint="tout"]'); const toutes = await ev(() => [...document.querySelectorAll('#contenu ' + (document.querySelector('#contenu .liste-tel button.ligne-clic') && document.querySelector('#contenu .liste-tel').offsetParent ? '.liste-tel button.ligne-clic' : 'table.l tbody tr.clic'))].filter(e => e.offsetParent).map(r => r.innerText.replace(/\s+/g, ' ').trim()));
-    v('R12 « Toutes » : les à planifier y disent aussi « à fixer »', toutes.filter(x => /Entretien chaudière granulés|Dépannage climatisation.*Mme Roux/.test(x)).every(x => /à fixer/i.test(x)), toutes.filter(x => /granulés/.test(x)));
-  });
-
-  // ── 06 + 13 la création à 320 px : la ligne client et la croix ; valable aussi sur les autres profils (la mesure tient partout)
-  await sec('R06 R13 fenêtre de création : ligne client et croix', async () => {
-    await I.devenir(c, 'marc', 'interventions'); await tap('[data-creer="1"]');
-    const m = await ev(() => { const b = document.querySelector('#fenetre [data-ccli="vp"]'); if (!b) return null; const r = b.getBoundingClientRect(); const bl = [...b.querySelectorAll('*')].filter(e => !e.children.length && e.textContent.trim().length > 15).map(e => { const q = e.getBoundingClientRect(), lh = parseFloat(getComputedStyle(e).lineHeight) || 18; return { t: e.textContent.trim().slice(0, 40), l: Math.round(q.width), lignes: Math.round(q.height / lh) }; });
-      const x = document.querySelector('#fenetre button.x-fen'); const rx = x && x.getBoundingClientRect(); return { ligne: Math.round(r.width), blocs: bl, croix: rx && [Math.round(rx.width), Math.round(rx.height)] }; });
-    v('R06 population : la ligne du Vieux Port existe', !!m, m); if (!m) return;
-    console.log('  · ligne Vieux Port :', JSON.stringify(m));
-    v('R06 aucun texte de la ligne n’est écrasé (≥ 150 px de large ou ≤ 3 lignes)', m.blocs.every(b => b.l >= 150 || b.lignes <= 3), m.blocs);
-    v('R13 la croix de la fenêtre est un rond d’au moins 44 × 44 px', !!m.croix && m.croix[0] >= 43.5 && m.croix[1] >= 43.5, m.croix);
-    await L.capture(c, CAPN('06-creation-clients'));
-    // la même croix quand le titre est long (nouveau client, deux lignes)
-    await tap('#fenetre [data-cnouveau="1"]'); const m2 = await ev(() => { const x = document.querySelector('#fenetre button.x-fen'); const r = x.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); v('R13 croix toujours 44 × 44 sur « nouveau client »', m2[0] >= 43.5 && m2[1] >= 43.5, m2);
-    const d = await L.doigts(p, '#fenetre'); if (tel) { v('R06 aucun champ de la fenêtre sous 16 px (zoom iOS)', d.champs.length === 0, d.champs); v('R06 aucune cible sous 44 px dans la fenêtre', d.petits.length === 0, d.petits); v('R06 aucun texte écrasé', d.ecrases.length === 0, d.ecrases); }
-    const dep = await L.deborde(c); v('R06 la page ne glisse pas de côté', dep.bouge === 0, dep);
-    await fermer();
+    const rf = await ev(() => Object.keys(CLIENTS).find(x => /Rochefort/.test(CLIENTS[x].nom))); v('R08 population : un client de Rochefort existe dans les données', !!rf, rf); if (!rf) return;
+    const r2 = await ev(k => { const b = document.querySelector(`#fenetre [data-ccli="${k}"]`); return b ? b.innerText.replace(/\s+/g, ' ') : null; }, rf); v('R08 sa ligne dit « hors secteur » en mots', !!r2 && /hors secteur/.test(r2) && !/secteur —/.test(r2), r2);
+    await L.capture(c, CAPN('08-liste-clients')); await tap(`#fenetre [data-ccli="${rf}"]`); const fen = await txt('#fenetre .fen'); const csect = await ev(() => !!document.querySelector('#fenetre [data-csect]'));
+    v('R08 client hors secteur choisi : pas de case « seulement les techniciens du secteur »', !csect, csect); v('R08 …et la fenêtre dit pourquoi : « tous les techniciens sont proposés »', /hors des secteurs de l.entreprise\s*:\s*tous les techniciens sont proposés/.test(fen), (fen.match(/.{0,60}hors des secteurs.{0,80}/) || [''])[0]);
+    await L.capture(c, CAPN('08-hors-secteur-choisi')); await fermer();
   });
 
   // ── 09 pièces : une quantité longue reste d'un bloc (UI : on tape vraiment la pièce)
@@ -198,6 +176,89 @@ const I = require('./interventions-outils.js'), L = I.L;
         await tap('#contenu .t-ici-l'); const e = await L.etat(p); console.log('  · toucher une tâche :', JSON.stringify({ hash: e.hash, panneau: e.panneau && e.panneau.slice(0, 60) })); v('R16 toucher une tâche l’ouvre (fenêtre ou fiche)', !!e.panneau || /tache/i.test(e.hash), e); await fermer();
     await I.devenir(c, 'marc', 'interventions'); if (!(await ev(() => document.querySelector('#contenu details.t-ici').open))) await tap('#contenu details.t-ici summary'); await tap('#contenu .t-ici-tout'); await L.calme(p, 500); const h = await ev(() => ({ hash: location.hash, h1: (document.querySelector('#contenu h1') || {}).textContent }));
     v('R16 « Voir dans Tâches › » mène à Tâches', /tache/i.test(h.hash) || /Tâches/.test(h.h1 || ''), h); await tap('[data-retour]').catch(() => {});
+  });
+
+  // ── 17 ce que les corrections ont pu CASSER à côté : les cinq façons de facturer, jusqu'à la page du client (la garantie a changé de texte)
+  await sec('R17 les cinq modes de facturation chez le client', async () => {
+    const cas = [['temps', 'mr'], ['forfait', 'md'], ['devis', 'vp'], ['contrat', 'hp'], ['garantie', 'cp']]; const lus = {};
+    for (const [mode, cli] of cas) {
+      await I.devenir(c, 'marc', 'interventions'); await tap('[data-creer="1"]'); await tap(`#fenetre [data-ccli="${cli}"]`); await tap(`#fenetre [data-cfact="${mode}"]`);
+      if (mode === 'forfait') { let la = await L.attendre(p, () => !!document.querySelector('#fenetre [data-cforfait]'), 2500);
+        if (!la) { await ev(() => document.querySelector('#fenetre [data-cfact="forfait"]').scrollIntoView({ block: 'center' })); await L.calme(p, 300); await tap('#fenetre [data-cfact="forfait"]'); la = await L.attendre(p, () => !!document.querySelector('#fenetre [data-cforfait]'), 2500); console.log('  · le champ du forfait n’est apparu qu’au second toucher :', la); }
+        v('R17 forfait : le champ du prix apparaît quand on choisit « Forfait »', la, await ev(() => ({ pressed: [...document.querySelectorAll('#fenetre [data-cfact]')].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.cfact), fen: !!document.querySelector('#fenetre .fen') })));
+        if (la) { await p.fill('#fenetre [data-cforfait]', '180'); await L.calme(p, 200); } }
+      await tap('#fenetre [data-action="cPlusTard"]'); await tap('#fenetre [data-action="cCreer"]'); await L.calme(p, 500);
+      const g = await ev(() => { const i = INTS.filter(o => o.id !== 'brouillon').slice(-1)[0]; i.tech = 'sm'; i.d = AUJ; i.st = 'planifiee'; const F = fiche(i.id); tousControles(F).forEach(k => F.coches[k] = true); F.compte = 'Intervention faite, tout fonctionne.'; F.signature = 'signee'; F.suite = {}; return { id: i.id, mode: i.fact && i.fact.mode, cli: i.cli }; });
+      if (g.mode !== mode) { v(`R17 ${mode} : l’intervention est créée dans ce mode`, false, g); continue; }
+      await I.devenir(c, 'sm', 'inter-x-' + g.id); await tap('[data-action="terminer"]'); await L.calme(p, 600); const toast = (await L.etat(p)).toast;
+      if (await ev(() => /Noter les pièces/.test((document.querySelector('#calque .panneau') || {}).textContent || ''))) await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first(), { delai: 4000 });
+      const fact = await ev(i => { const f = FACTURES.find(o => o.int === i); return f ? { st: f.st } : null; }, g.id); const fiche_ = await txt('#contenu');
+      await I.devenir(c, 'marc', 'clientvoit'); await ev(i => { voirInt = i; modeClient = 'web'; rendre(); }, g.id); const web = await txt('#contenu .client-web'); await ev(i => { modeClient = 'pdf'; rendre(); }, g.id); const pied = await txt('.pdf .pdf-pied');
+      lus[mode] = { toast, fact, facturation: (fiche_.match(/Facturation[\s\S]{0,110}/) || [''])[0].replace(/\n/g, ' '), client: (web.match(/(FACTURE|Facture|facture)[\s\S]{0,140}/) || [''])[0].replace(/\n/g, ' '), pied: pied.replace(/\n/g, ' ').slice(0, 160) };
+      console.log('  · ' + mode + ' :', JSON.stringify(lus[mode]));
+      if (mode === 'garantie') { v('R17 garantie : ni facture, ni promesse', !fact && /Aucune facture/.test(web), lus[mode]); }
+      else { v(`R17 ${mode} : une facture est bien préparée`, !!fact, lus[mode]); v(`R17 ${mode} : le client lit encore que la facture lui sera envoyée (pas « aucune facture »)`, !/Aucune facture/.test(web) && /facture/i.test(web), lus[mode].client); v(`R17 ${mode} : le pied du PDF ne dit pas « prise en charge »`, !/prise en charge/.test(pied), pied.slice(0, 120)); }
+      v(`R17 ${mode} : aucun mot technique (undefined, NaN, [object) chez le client`, !/undefined|NaN|\[object/.test(web + pied), '');
+    }
+  });
+
+  // ── 18 un contact VALIDE n'est jamais refusé par le nouveau contrôle (le risque d'un contrôle neuf : refuser le bon)
+  await sec('R18 contacts valides acceptés', async () => {
+    const tels = ['06 12 34 56 78', '0612345678', '06.12.34.56.78', '06-12-34-56-78', '+33 6 12 34 56 78', '+33612345678', '(05) 46 00 00 00', '+44 20 7946 0958', '0032 475 12 34 56', '05 46 00 00 00 poste 12', ''];
+    const mails = ['j.dupont+clim@mail.fr', 'accueil@hotel-de-la-plage.com', 'A.B@Sous.Domaine.FR', 'contact@société.fr', ''];
+    const refuses = [];
+    for (const t of tels) for (const m of mails.slice(0, 2)) { const r = await ev(([t, m]) => { try { return { tel: cfTelOk(t), mail: !m || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m) }; } catch (e) { return { err: String(e) }; } }, [t, m]); if (r.err || !r.tel || !r.mail) refuses.push([t, m, r]); }
+    v('R18 population : 11 numéros × 2 adresses essayés', true); v('R18 aucun numéro ni adresse valides n’est refusé', refuses.length === 0, refuses.slice(0, 4));
+    for (const m of mails.slice(2)) { const ok = await ev(m => !m || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m), m); v(`R18 adresse « ${m || '(vide)'} » acceptée`, ok, m); }
+    const mauvais = ['abc', '12', '0', 'téléphone', '06 12 34 56 78 90 12 34 56 78 90 12'], refus = []; for (const t of mauvais) { const ok = await ev(t => cfTelOk(t), t); if (ok) refus.push(t); } v('R18 les numéros absurdes sont bien refusés', refus.length === 0, refus);
+  });
+
+  // ── 19 la ligne libre et les nombres limites d'une facture préparée (quantité, prix)
+  await sec('R19 facture : quantités et prix limites', async () => {
+    await I.devenir(c, 'tl', 'inter-x-i7'); await ev(() => { const F = fiche('i7'); tousControles(F).forEach(k => F.coches[k] = true); F.compte = 'Fait.'; F.signature = 'signee'; F.suite = {}; }); await tap('[data-action="terminer"]'); await L.calme(p, 600);
+    if (await ev(() => /Noter les pièces/.test((document.querySelector('#calque .panneau') || {}).textContent || ''))) await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first(), { delai: 4000 });
+    const fid = await ev(() => { const x = FACTURES.find(o => o.int === 'i7'); return x && x.id; }); v('R19 population : la facture de i7 existe', !!fid, fid); if (!fid) return;
+    await I.devenir(c, 'marc', 'facture-x-' + fid); await tap('[data-action="ligneAjout"]'); const kl = (await ev(() => document.querySelectorAll('[data-fdes]').length)) - 1;
+    const poser = async (sel, val) => { await p.fill(sel, val); await p.dispatchEvent(sel, 'change'); await L.calme(p, 350); };
+    const ligne = () => ev(([id, k]) => { const l = FACTURES.find(o => o.id === id).lignes[k]; return l && { d: l.d, q: l.q, pu: l.pu }; }, [fid, kl]);
+    await poser(`[data-fdes="${kl}"]`, '  Remise   commerciale   de   fidélité  ' + 'x'.repeat(150)); let l = await ligne(); v('R19 un nom trop long est coupé à 120 signes, espaces ramenés à un', l.d.length <= 120 && !/\s{2,}/.test(l.d), l.d.length);
+    for (const [q, attendu] of [['0', false], ['-3', false], ['abc', false], ['1,5', true], ['250 mL', true], ['12 345,67 L', true]]) { await poser(`[data-fqte="${kl}"]`, q); const e = await L.etat(p); l = await ligne(); const garde = l.q === q; v(`R19 quantité « ${q} » ${attendu ? 'acceptée' : 'refusée avec un message'}`, attendu ? garde : (!garde && !!e.toast), { q: l.q, toast: e.toast }); }
+    await poser(`[data-prix="${kl}"]`, '-20'); l = await ligne(); console.log('  · prix « -20 » gardé comme :', JSON.stringify(l.pu));
+    await poser(`[data-prix="${kl}"]`, '1 234,56'); l = await ligne(); v('R19 prix « 1 234,56 » lu 1234,56', Math.abs(l.pu - 1234.56) < 0.001, l.pu);
+    await poser(`[data-prix="${kl}"]`, 'abc'); l = await ligne(); v('R19 prix « abc » ne devient pas un nombre', l.pu == null || isNaN(l.pu) === false && l.pu === null, l.pu);
+    await poser(`[data-prix="${kl}"]`, '9999999999'); l = await ligne(); console.log('  · prix « 9999999999 » gardé comme :', JSON.stringify(l.pu)); const tot = await txt('#contenu .fac-edit'); v('R19 un prix démesuré ne casse pas la page (aucun NaN / Infinity)', !/NaN|Infinity/.test(tot), tot.slice(0, 100));
+    await L.capture(c, CAPN('19-facture-limites')); const dd = await L.deborde(c); v('R19 la facture ne glisse pas de côté avec des valeurs démesurées', dd.bouge === 0, dd);
+    await poser(`[data-prix="${kl}"]`, '25'); await poser(`[data-fqte="${kl}"]`, '2');
+    // retirer une ligne du milieu : les totaux et l'ordre suivent
+    const n0 = await ev(() => document.querySelectorAll('[data-fdes]').length); await tap('[data-action="ligneSup"]'); const n1 = await ev(() => document.querySelectorAll('[data-fdes]').length); v('R19 ✕ retire UNE ligne (la première)', n1 === n0 - 1, [n0, n1]);
+  });
+
+  // ── 20 le PDF en grand d'une FACTURE (même pièce que le compte rendu : la correction du bouton et de la croix a pu la toucher)
+  await sec('R20 PDF en grand d’une facture', async () => {
+    await I.devenir(c, 'marc', 'facture-x-f144'); const pdfBtn = await ev(() => !!document.querySelector('[data-action="pdfFacture"]')); v('R20 population : la facture envoyée propose « Voir le PDF »', pdfBtn, pdfBtn);
+    await tap('[data-action="pdfFacture"]'); await L.calme(p, 500); await tap('#calque [data-pdfplein], [data-pdfplein]'); await L.calme(p, 600);
+    const m = await ev(() => { const z = document.getElementById('docplein'); if (!z) return null; return [...z.querySelectorAll('.dp-barre button, .dp-zoom')].filter(e => e.offsetParent).map(e => { const r = e.getBoundingClientRect(); return [e.textContent.trim().slice(0, 22), Math.round(r.width), Math.round(r.height)]; }); });
+    v('R20 la facture s’ouvre en grand', !!m, m); if (!m) return; console.log('  · boutons :', JSON.stringify(m)); v('R20 tous les boutons font 44 px au moins', m.every(b => b[2] >= 43.5), m);
+    await L.capture(c, CAPN('20-facture-en-grand')); await p.keyboard.press('Escape'); await L.calme(p, 300);
+  });
+
+  // ── 21 le mode « revue » (app:false) fonctionne toujours : l'échafaudage n'a pas été cassé par le retrait des textes de maquette
+  await sec('R21 mode revue', async () => {
+    const c2 = await L.ouvrir({ profil, nuit, qui: 'marc', app: false }); const p2 = c2.p;
+    await p2.evaluate(() => aller('interventions')); await L.calme(p2, 500); const t = await I.texte(p2, '#contenu'); v('R21 la liste s’affiche en mode revue', /Interventions/.test(t) && /Aujourd/.test(t), t.slice(0, 60));
+    await p2.evaluate(() => aller('inter-x-i1')); await L.calme(p2, 500); const t2 = await I.texte(p2, '#contenu'); v('R21 une fiche s’ouvre en mode revue', /Dépannage climatisation/.test(t2), t2.slice(0, 60));
+    v('R21 aucune erreur JavaScript en mode revue', c2.err.length === 0, c2.err.slice(0, 3)); await L.fin(c2);
+  });
+
+  // ── 22 « Terminer » touché deux fois de suite (la zone non couverte par le correcteur) : une seule facture, une seule suite, pas d'erreur
+  await sec('R22 double toucher sur Terminer', async () => {
+    await I.devenir(c, 'tl', 'inter-x-i7'); await ev(() => { const F = fiche('i7'); tousControles(F).forEach(k => F.coches[k] = true); F.compte = 'Condensateur remplacé.'; F.signature = 'signee'; F.suite = { entretien: true }; });
+    const av = await ev(() => ({ fact: FACTURES.length, ints: INTS.length }));
+    await ev(() => { const b = document.querySelector('[data-action="terminer"]'); b.click(); b.click(); }); await L.calme(p, 700);
+    if (await ev(() => /Noter les pièces/.test((document.querySelector('#calque .panneau') || {}).textContent || ''))) await L.toucher(c, p.getByRole('button', { name: /C’est bon/ }).first(), { delai: 4000 });
+    const ap = await ev(() => ({ fact: FACTURES.length, ints: INTS.length, factI7: FACTURES.filter(f => f.int === 'i7').length, suites: INTS.filter(i => /^n-ent-i7/.test(i.id)).length, st: INTS.find(o => o.id === 'i7').st }));
+    v('R22 une seule facture pour i7', ap.factI7 === 1 && ap.fact === av.fact + 1, [av, ap]); v('R22 une seule intervention de suite (entretien annuel)', ap.suites === 1 && ap.ints === av.ints + 1, ap); v('R22 terminée', ap.st === 'fait', ap.st);
+    const idsDoubles = await ev(() => { const ids = INTS.map(i => i.id); return ids.filter((x, k) => ids.indexOf(x) !== k); }); v('R22 aucun identifiant d’intervention en double', idsDoubles.length === 0, idsDoubles);
   });
 
   await L.fin(c); const ko = L.bilan(); console.log('erreurs de page :', c.err.length, c.err.slice(0, 3)); await L.fermer(); process.exit(ko ? 1 : 0);

@@ -54,6 +54,54 @@
   }
  },
  {
+  "n": "fiche-encours",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Restaurant Le Vieux Port › 409×32",
+    "＋ Nouvelle tâche 141×34",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-planifiee",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 535×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
   "n": "fiche-aplanifier",
   "dep": {
    "largeur": 1440,
@@ -67,6 +115,75 @@
     "Hôtel de la Plage › 469×32",
     "＋ Nouvelle tâche 141×34",
     "Prendre dans la réserve 192×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-retard",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Copropriété Les Mimosas › 642×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-fait",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Mme Roux › 390×32",
+    "＋ Nouvelle tâche 141×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "fiche-fait-facturee",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 411×32",
+    "＋ Nouvelle tâche 141×34"
    ],
    "champs": [],
    "ecrases": []
@@ -158,6 +275,66 @@
   "bas": {
    "barreHaut": 900,
    "dernierBas": 2738,
+   "fixes": []
+  }
+ },
+ {
+  "n": "modifier",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 680,
+   "fixes": []
+  }
+ },
+ {
+  "n": "mail",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 607,
+   "fixes": []
+  }
+ },
+ {
+  "n": "sms",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 517,
    "fixes": []
   }
  },
@@ -254,6 +431,140 @@
   }
  },
  {
+  "n": "tech-journee",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Continuer 96×40",
+    "Y aller 73×40",
+    "Appeler 84×40",
+    "Commencer 112×40",
+    "Toutes mes tâches 150×34"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fiche",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Restaurant Le Vieux Port › 409×32",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fiche-planifiee",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "M. et Mme Durand › 535×32"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-pas-fini",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 659,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-manque",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 355,
+   "fixes": []
+  }
+ },
+ {
+  "n": "tech-fait",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Hôtel de la Plage › 601×32"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
   "n": "longues-fiche-tech",
   "dep": {
    "largeur": 1440,
@@ -294,6 +605,59 @@
     "Retirer la photo Avant 30×30",
     "Retirer la photo Roulement usé 30×30",
     "Retirer la photo Photo de l’unité extéri 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-liste",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Voir dans Tâches › 1114×41",
+    "Aujourd’hui · 9 136×40",
+    "À venir · 8 104×40",
+    "À planifier · 3 127×40",
+    "Terminées · 8 129×40",
+    "Toutes · 24 114×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ },
+ {
+  "n": "longues-journee",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Continuer 96×40",
+    "Y aller 73×40",
+    "Appeler 84×40",
+    "Commencer 112×40",
+    "Toutes mes tâches 150×34"
    ],
    "champs": [],
    "ecrases": []
