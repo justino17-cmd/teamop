@@ -1975,6 +1975,17 @@ body.cx-plein #contenu{transform:none!important;animation:none!important}
 .ec-l .actions{grid-column:1 / -1;justify-content:flex-start}
 .ec-l .actions:empty{display:none}
 .ec-dr{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+/* un mot très long (une adresse web collée dans une demande) passe à la ligne au lieu de sortir de la carte ; un numéro, lui, ne se coupe jamais */
+.ec-l > span:first-child{min-width:0;overflow-wrap:anywhere}
+.ec-num{white-space:nowrap}
+/* le client voit l'entreprise UNE fois : sa marque est en haut du menu (ordinateur) ou de la barre du haut (téléphone), pas répétée dans la page ; et UNE seule navigation par appareil (client-14, client-15) */
+.ec-sur{display:none}
+body.rl-client .ec-sur{display:block}
+body.rl-client .ec-tete{display:none}
+@media (max-width:760px){ body.rl-client .ec-seg{display:none} }
+.rl-contact{display:flex;flex-direction:column;gap:6px;margin:8px;padding:14px;border-radius:14px;background:var(--surf-in)}
+.rl-contact .btn{min-height:44px;justify-content:center}
+.rl-ent img{display:block}
 .ec-pied{text-align:center;margin-top:6px}
 /* le parcours de A à Z */
 .rl-et{list-style:none;margin:10px 0;padding:0;display:flex;flex-direction:column}
@@ -3829,6 +3840,9 @@ const TECHS = [
   { id:'sm', nom:'Sophie Martin', c:'#1f9d6b' }, { id:'kb', nom:'Karim Benali', c:'#2f6fe0' },
   { id:'lr', nom:'Léa Roux', c:'#8b5cf6' }, { id:'tl', nom:'Tom Leroy', c:'#d97706' }, { id:'', nom:'Non assigné', c:'#7b8496' }
 ];
+/* « Bonjour Syndic Foncia » : on salue une PERSONNE (« M. Durand », « Marc Durand, gérant »), jamais un service ou un organisme ; à défaut, « Bonjour » tout court (client-recontrole). UNE définition pour l'espace du client et pour les courriels du bureau. */
+function saluer(contact){ const p = String(contact || '').split(',')[0].trim();
+  return p && !/^(syndic|service|accueil|secr[ée]tariat|direction|comptabilit[ée]|cabinet|soci[ée]t[ée]|agence|gestion|contact|bureau|mairie|[ée]quipe|h[ôo]tel|restaurant|copropri[ée]t[ée]|camping)(?=$|[\s,.'’-])/i.test(p) ? 'Bonjour ' + p : 'Bonjour'; }
 const CLIENTS = {
   vp:{ nom:'Restaurant Le Vieux Port', type:'pro', contact:'Marc Durand, gérant', tel:'06 12 34 56 78', mail:'marc@vieuxport.fr', adr:'12 quai Valin, 17000 La Rochelle', acces:'Entrée par la cour. Unité extérieure sur le toit, clé au bar.', depuis:'2025',
     appareils:[{ nom:'Daikin FTXM35R', det:'Split mural salle · R32 · 2021 · n° J012345' }, { nom:'Daikin RXM35R', det:'Unité extérieure, toit · R32 · 2021' }] },
@@ -3862,7 +3876,7 @@ let INTS = [
   { id:'i10', d:jour(2), h:'16:30', dur:60, tech:'', cli:'mr', titre:'Dépannage climatisation', type:'Dépannage', st:'aplanifier' },
   { id:'i11', d:jour(3), h:'08:00', dur:120, tech:'tl', cli:'mi', titre:'Contrat — visite 3 sur 4', type:'Contrat', st:'planifiee' },
   { id:'i12', d:jour(3), h:'10:00', dur:60, tech:'sm', cli:'cm', titre:'Entretien climatisation', type:'Entretien', st:'planifiee' },
-  { id:'i13', d:jour(4), h:'13:30', dur:120, tech:'kb', cli:'vp', titre:'Remplacer le ventilateur extérieur', type:'2ᵉ passage', st:'planifiee' },
+  { id:'i13', d:jour(4), h:'13:30', dur:120, tech:'kb', cli:'vp', titre:'Remplacer la carte électronique de l’unité extérieure', type:'2ᵉ passage', st:'planifiee' },
   { id:'i14', d:jour(5), h:'09:30', dur:60, tech:'lr', cli:'hp', titre:'Contrat — visite 2 sur 2', type:'Contrat', st:'planifiee' },
   { id:'i15', d:jour(6), h:'11:00', dur:90, tech:'tl', cli:'md', titre:'Visite de contrôle pompe à chaleur', type:'Entretien', st:'planifiee' }
 ];
@@ -5241,10 +5255,10 @@ function feuillePasFini(id){
 /* ══ CE QUE VOIT LE CLIENT : le lien et le PDF ══ */
 let voirInt = 'i1', modeClient = 'pdf';
 const lienClient = id => 'https://climservices17.teamop.fr/r/' + ({ i1:'7Q2K' }[id] || id.toUpperCase() + 'X4');
-function texteSms(id){ const i = INTS.find(o => o.id === id), c = CLIENTS[i.cli]; return `Bonjour ${c.contact.split(',')[0]}, ici ${ENTREPRISE.nom}. Votre intervention du ${jlong(i.d)} est terminée. Votre compte rendu (avec le PDF) : ${lienClient(id)} — Une question ? ${ENTREPRISE.tel}`; }
+function texteSms(id){ const i = INTS.find(o => o.id === id), c = CLIENTS[i.cli]; return `${saluer(c.contact)}, ici ${ENTREPRISE.nom}. Votre intervention du ${jlong(i.d)} est terminée. Votre compte rendu (avec le PDF) : ${lienClient(id)} — Une question ? ${ENTREPRISE.tel}`; }
 const boutonsEnvoi = id => { const dj = fiche(id).envoye; return `<div class="actions"><button type="button" class="btn${dj ? ' gris' : ''}" data-action="envoiMail" data-id="${id}">✉️ ${dj ? 'Renvoyer' : 'Envoyer'} par e-mail</button><button type="button" class="btn gris" data-action="envoiSms" data-id="${id}">💬 ${dj ? 'Envoyer aussi' : 'Envoyer'} par SMS</button></div>`; };
 function panneauMail(id){ const i = INTS.find(o => o.id === id), c = CLIENTS[i.cli];
-  ouvrirPanneau(`<h2>Envoyer par e-mail</h2>${avertEnCours(i)}<div class="carte" style="font-size:15px;line-height:1.55"><b>De :</b> ${ENTREPRISE.nom} &lt;${ENTREPRISE.mail}&gt;<br><b>À :</b> ${esc(c.mail)}<br><b>Objet :</b> Compte rendu de votre intervention du ${jcourt(i.d)}<br><br>Bonjour ${esc(c.contact.split(',')[0])},<br><br>Votre intervention du ${jlong(i.d)} est terminée. Vous trouverez le compte rendu en pièce jointe.<br>Vous pouvez aussi le consulter en ligne : <span style="color:var(--lien)">${lienClient(id)}</span><br><br>Bien à vous,<br>${ENTREPRISE.nom} · ${ENTREPRISE.tel}<br><br><span class="st st-b">📎 Compte-rendu-${jcourt(i.d).replace('/','-')}.pdf</span></div>
+  ouvrirPanneau(`<h2>Envoyer par e-mail</h2>${avertEnCours(i)}<div class="carte" style="font-size:15px;line-height:1.55"><b>De :</b> ${ENTREPRISE.nom} &lt;${ENTREPRISE.mail}&gt;<br><b>À :</b> ${esc(c.mail)}<br><b>Objet :</b> Compte rendu de votre intervention du ${jcourt(i.d)}<br><br>${esc(saluer(c.contact))},<br><br>Votre intervention du ${jlong(i.d)} est terminée. Vous trouverez le compte rendu en pièce jointe.<br>Vous pouvez aussi le consulter en ligne : <span style="color:var(--lien)">${lienClient(id)}</span><br><br>Bien à vous,<br>${ENTREPRISE.nom} · ${ENTREPRISE.tel}<br><br><span class="st st-b">📎 Compte-rendu-${jcourt(i.d).replace('/','-')}.pdf</span></div>
   <span class="faible mini">Part depuis OP GESTION, au nom de ton entreprise, avec le PDF joint. La réponse du client arrive dans ta boîte.</span>
   <button type="button" class="btn large" data-action="envoiMailOk" data-id="${id}">Envoyer</button>`); }
 function panneauSms(id){ const i = INTS.find(o => o.id === id), c = CLIENTS[i.cli], t = texteSms(id), num = c.tel.replace(/\s/g,'');
@@ -6020,7 +6034,7 @@ function devisLignes(x){ // un devis d'exemple des statistiques : fourniture, ma
 function docDevis(x){
   const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
   const fin = new Date(+y, +m - 1, +j + (x.valid || 30)), valid = String(fin.getDate()).padStart(2, '0') + '/' + String(fin.getMonth() + 1).padStart(2, '0') + '/' + fin.getFullYear();
-  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`Bonjour ${c.contact.split(',')[0]},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(ht * (1 + tva / 100))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
+  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`${saluer(c.contact)},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(ht * (1 + tva / 100))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
     <div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}<br>${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div>
       <div style="text-align:right;margin-left:auto"><h4>Devis</h4><b>${x.num || 'Brouillon'}</b><br>Établi le ${j}/${m}/${y}<br>Valable jusqu’au ${valid}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Objet</h6>${esc(x.objet)}${c.adr ? '<br>Lieu : ' + esc(c.adr) : ''}</div></div>
@@ -6314,7 +6328,7 @@ const stDues = L => { const d = stToutes(L).filter(x => x.st === 'envoyee' || x.
 function stRelanceFacture(x){
   const c = CLIENTS[x.cli];
   return { titre:'Relancer le paiement', a:c.mail, objet:`Facture ${x.num} — règlement en attente`, pj:x.num + '.pdf', apres:() => { const f = FACTURES.find(o => o.num === x.num); if (f) { facRelanceNoter(f); rendre(); } },
-    corps:`Bonjour ${c.contact.split(',')[0]},\n\nSauf erreur de notre part, la facture ${x.num} du ${jcourt(x.d)} (${x.titre.toLowerCase()}), d’un montant de ${eur(stTTC(x))} TTC, échue le ${x.ech}, reste à régler.\n\nVous pouvez la régler en ligne depuis le lien reçu avec la facture, ou par virement :\nIBAN ${ENTREPRISE.iban}\n\nSi le règlement est déjà parti, merci de ne pas tenir compte de ce message.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` };
+    corps:`${saluer(c.contact)},\n\nSauf erreur de notre part, la facture ${x.num} du ${jcourt(x.d)} (${x.titre.toLowerCase()}), d’un montant de ${eur(stTTC(x))} TTC, échue le ${x.ech}, reste à régler.\n\nVous pouvez la régler en ligne depuis le lien reçu avec la facture, ou par virement :\nIBAN ${ENTREPRISE.iban}\n\nSi le règlement est déjà parti, merci de ne pas tenir compte de ce message.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` };
 }
 function stGestesDus(x){
   const t = `Récupérer ${eur(stTTC(x))} · ${CLIENTS[x.cli].nom}`, s = `${x.num} · échéance ${x.ech}`;
@@ -6404,8 +6418,8 @@ function stRelanceContrat(c){
   const cl = CLIENTS[c.cli], signe = c.st === 'signe';
   panneauEnvoi({ titre:signe ? 'Proposer le renouvellement' : 'Relancer la signature', a:cl.mail, pj:c.num + '.pdf',
     objet:signe ? `Votre contrat d’entretien ${c.num} arrive à échéance le ${c.fin}` : `Votre contrat d’entretien ${c.num} attend votre signature`,
-    corps:signe ? `Bonjour ${cl.contact.split(',')[0]},\n\nVotre contrat d’entretien ${c.num} (${c.titre.toLowerCase()}) arrive à échéance le ${c.fin}.\n\nCette année, nous sommes passés ${ctrFaites(c)} fois sur les ${c.freq} visites prévues. Souhaitez-vous le renouveler pour une nouvelle année, aux mêmes conditions (${eur(c.prix)} HT, soit ${eur(ctrTTC(c.prix, c))} TTC par an, ${c.freq} visite${c.freq > 1 ? 's' : ''}) ? Nous pouvons aussi l’adapter si vos besoins ont changé.\n\nIl vous suffit de répondre à ce message ou de nous appeler au ${ENTREPRISE.tel}. Le contrat actuel est joint pour mémoire.\n\nBien cordialement,\n${ENTREPRISE.nom}`
-      : `Bonjour ${cl.contact.split(',')[0]},\n\nNous vous avons envoyé le ${c.envoye} le contrat d’entretien ${c.num} (${c.titre.toLowerCase()}, ${eur(c.prix)} HT, soit ${eur(ctrTTC(c.prix, c))} TTC par an). Il n’est pas encore signé.\n\nVous pouvez le signer en ligne depuis le lien reçu, en deux minutes. Il est joint à ce message.\n\nUne question ? Répondez simplement à ce message ou appelez-nous au ${ENTREPRISE.tel}.\n\nBien cordialement,\n${ENTREPRISE.nom}`,
+    corps:signe ? `${saluer(cl.contact)},\n\nVotre contrat d’entretien ${c.num} (${c.titre.toLowerCase()}) arrive à échéance le ${c.fin}.\n\nCette année, nous sommes passés ${ctrFaites(c)} fois sur les ${c.freq} visites prévues. Souhaitez-vous le renouveler pour une nouvelle année, aux mêmes conditions (${eur(c.prix)} HT, soit ${eur(ctrTTC(c.prix, c))} TTC par an, ${c.freq} visite${c.freq > 1 ? 's' : ''}) ? Nous pouvons aussi l’adapter si vos besoins ont changé.\n\nIl vous suffit de répondre à ce message ou de nous appeler au ${ENTREPRISE.tel}. Le contrat actuel est joint pour mémoire.\n\nBien cordialement,\n${ENTREPRISE.nom}`
+      : `${saluer(cl.contact)},\n\nNous vous avons envoyé le ${c.envoye} le contrat d’entretien ${c.num} (${c.titre.toLowerCase()}, ${eur(c.prix)} HT, soit ${eur(ctrTTC(c.prix, c))} TTC par an). Il n’est pas encore signé.\n\nVous pouvez le signer en ligne depuis le lien reçu, en deux minutes. Il est joint à ce message.\n\nUne question ? Répondez simplement à ce message ou appelez-nous au ${ENTREPRISE.tel}.\n\nBien cordialement,\n${ENTREPRISE.nom}`,
     apres:() => { c.relance = '31 octobre'; rendre(); } });
 }
 document.addEventListener('click', ev => {
@@ -6414,7 +6428,7 @@ document.addEventListener('click', ev => {
   else if (b.dataset.streldev) { const x = JSON.parse(decodeURIComponent(b.dataset.streldev)), c = CLIENTS[x.cli];
     if (x.ht == null) x.ht = devisLignes(x).reduce((s, l) => s + l[1] * l[2], 0);   // un devis venu d'ailleurs que des statistiques n'a que ses lignes
     panneauEnvoi({ titre:'Relancer le devis', a:c.mail, pj:x.num + '.pdf', objet:`Devis ${x.num} — ${x.objet}`,
-      corps:`Bonjour ${c.contact.split(',')[0]},\n\nJe reviens vers vous au sujet du devis ${x.num} (${x.objet.toLowerCase()}, ${eur(x.ht)} HT) envoyé le ${jcourt(x.d)}.\n\nAvez-vous pu le regarder ? Je reste disponible pour en parler ou l’ajuster. Vous pouvez l’accepter en ligne depuis le lien reçu, et choisir votre date d’intervention.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` }); }
+      corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet du devis ${x.num} (${x.objet.toLowerCase()}, ${eur(x.ht)} HT) envoyé le ${jcourt(x.d)}.\n\nAvez-vous pu le regarder ? Je reste disponible pour en parler ou l’ajuster. Vous pouvez l’accepter en ligne depuis le lien reçu, et choisir votre date d’intervention.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` }); }
   else stRelanceContrat(CONTRATS.find(c => c.id === b.dataset.strelctr));
 });
 
@@ -6568,8 +6582,8 @@ let JOURNAL = (() => {
   aj('2026-10-29', '10:05', 'julie', 'client', 'a modifié la fiche client', { t:'client', id:'mi', lib:'Copropriété Les Mimosas', cli:'mi' }, { avant:'Téléphone 05 46 77 88 00', apres:'Téléphone 05 46 77 88 99' });
   aj('2026-10-29', '11:20', 'marc', 'facture', 'a relancé la facture', { t:'facture', id:'f128', lib:'FAC-2026-0128', cli:'md' }, { det:'2ᵉ relance par e-mail' });
   aj('2026-10-27', '09:31', 'marc', 'contrat', 'a envoyé le contrat à signer', { t:'contrat', id:'c3', lib:'CTR-2026-011', cli:'cm' }, { det:'Entretien chauffe-eau thermodynamique · 120,00 € HT / an' });
-  aj('2026-10-28', '14:02', 'client', 'devis', 'a accepté le devis', { t:'devis', id:'D-2026-034', lib:'D-2026-034', cli:'vp' }, { det:'Remplacer le ventilateur extérieur · 448,17 € HT · date choisie : mer. 4/11' });
-  aj('2026-10-26', '18:12', 'marc', 'devis', 'a envoyé le devis', { t:'devis', id:'D-2026-034', lib:'D-2026-034', cli:'vp' }, { det:'Remplacer le ventilateur extérieur · 448,17 € HT' });
+  aj('2026-10-28', '14:02', 'client', 'devis', 'a accepté le devis', { t:'devis', id:'D-2026-034', lib:'D-2026-034', cli:'vp' }, { det:'Remplacer la carte électronique de l’unité extérieure · 448,17 € HT · date choisie : mer. 4/11' });
+  aj('2026-10-26', '18:12', 'marc', 'devis', 'a envoyé le devis', { t:'devis', id:'D-2026-034', lib:'D-2026-034', cli:'vp' }, { det:'Remplacer la carte électronique de l’unité extérieure · 448,17 € HT' });
   aj('2026-10-31', '08:05', 'kb', 'inter', 'a signalé un retard', { t:'inter', id:'i3', lib:'Récupération du fluide d’un ancien split', cli:'mi' }, { det:'« Bouchons sur la rocade, j’arrive vers 9 h 30 »' });
   aj('2026-10-29', '15:40', 'marc', 'equipe', 'a donné un droit', { lib:'Julie Petit' }, { avant:'Comptabilité : lecture seule', apres:'Comptabilité : voir et gérer' });
   aj('2026-10-24', '09:12', 'marc', 'equipe', 'a validé l’absence', { lib:'Léa Roux' }, { det:'Congé payé · du ven. 30/10 au mar. 3/11' });
@@ -8108,7 +8122,7 @@ function dvTrace(x, t, action){ x.trace.push([jcourt(AUJ), t]); if (action) jour
 function dvTachesFinir(x, quoi, but){ TACHES.filter(t => !t.fait && t.lien && t.lien.t === 'devis' && t.lien.id === x.num && (!but || tBut(t) === but)).forEach(t => tFaire(t, quoi)); }
 function dvCorps(x, num){
   const c = CLIENTS[x.cli];
-  return `Bonjour ${c.contact.split(',')[0]},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
+  return `${saluer(c.contact)},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
 }
 function dvEnvoyer(x){
   if (!dvComplet(x)) { toast('Chiffre toutes les lignes avant d’envoyer.'); return; }
@@ -8122,7 +8136,7 @@ function dvEnvoyer(x){
 function dvRelancer(x){
   const c = CLIENTS[x.cli], n = -tJours(x.d);
   panneauEnvoi({ titre:'Relancer le devis', a:c.mail, objet:`Devis ${x.num} — ${x.objet}`, pj:'Devis ' + x.num + '.pdf',
-    corps:`Bonjour ${c.contact.split(',')[0]},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\nMarc\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
+    corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\nMarc\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
     apres:() => { x.relances++; x.relanceLe = AUJ; dvTrace(x, 'Relancé par Marc (e-mail)', 'a relancé le devis'); const T = document.getElementById('toast'), av = T ? T.innerHTML : ''; dvTachesFinir(x, 'relance du devis envoyée le 31/10 à ' + hm(MAINT_MIN), 'relancer'); const plus = T && T.innerHTML !== av && T.firstElementChild ? ' ' + T.firstElementChild.innerHTML : ''; rendre(); toast('Relance envoyée à ' + esc(c.mail) + '.' + plus); } });
 }
 function dvAccepter(x, o){
@@ -8330,7 +8344,7 @@ let ACHATS = [   // factures et tickets des fournisseurs d'octobre (fictifs) —
   { id:'a4', d:'17/10', fid:'fd', four:'Frigo Distribution 17', objet:'Fluide R32 · 2 bouteilles', ht:240.00, tva:20, compte:'607', mode:'Carte', paye:'17/10', piece:null, ref:'CB-FD17-1710', just:null },
   { id:'a5', d:'20/10', fid:'orange', four:'Orange Pro', objet:'Téléphones et internet · octobre', ht:54.99, tva:20, compte:'626', mode:'Prélèvement', paye:'20/10', piece:'facture', ref:'ORANGE-2026-10', just:'Facture Orange (reçue par e-mail)' },
   { id:'a6', d:'26/10', fid:'lmpro', four:'Leroy Merlin Pro', objet:'Petit outillage', ht:45.83, tva:20, compte:'6063', mode:'Carte', paye:'26/10', piece:null, ref:'CB-LM-2610', just:null },
-  { id:'a7', d:'28/10', fid:'cpa', four:'Clim Pièces Atlantique', objet:'Ventilateur extérieur (Le Vieux Port)', ht:142.50, tva:20, compte:'607', mode:null, ech:'27/11', piece:'facture', ref:'FA-CPA-88790', just:'FA-CPA-88790.pdf' }
+  { id:'a7', d:'28/10', fid:'cpa', four:'Clim Pièces Atlantique', objet:'Carte électronique unité extérieure (Le Vieux Port)', ht:142.50, tva:20, compte:'607', mode:null, ech:'27/11', piece:'facture', ref:'FA-CPA-88790', just:'FA-CPA-88790.pdf' }
 ];
 const CP_SOLDE_01 = 8412.36;   // solde du compte au 1er octobre
 const CP_RELEVE = [   // le relevé d'octobre, tel que la banque l'envoie (importé le 31/10 à 7 h)
@@ -9125,7 +9139,7 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-devisok]'))) { SUITE_ETAT[b.dataset.devisok] = 'accepte'; rendre(); toast('Côté bureau : « Devis accepté », à envoyer le choix de date.'); return; }
   if ((b = q('[data-devislien]'))) { const k = b.dataset.devislien, cl = CLIENTS[INTS.find(o => o.id === k).cli];
     panneauEnvoi({ titre:'Envoyer le choix de date au client', a:cl.mail, objet:`Votre devis ${DEVIS_SUITE.num} est pris en compte : choisissez votre date`,
-      corps:`Bonjour ${cl.contact.split(',')[0]},\n\nMerci : votre devis ${DEVIS_SUITE.num} est pris en compte.\n\nChoisissez la date qui vous convient depuis votre lien personnel (le même lien part aussi par SMS).\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
+      corps:`${saluer(cl.contact)},\n\nMerci : votre devis ${DEVIS_SUITE.num} est pris en compte.\n\nChoisissez la date qui vous convient depuis votre lien personnel (le même lien part aussi par SMS).\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
       apres:() => { SUITE_ETAT[k] = 'lien'; rendre(); toast('✉️ E-mail envoyé · 📱 SMS avec le même lien envoyé au client'); } }); return; }
   if ((b = q('[data-voirrdv]'))) { const n = INTS.find(x => x.id === b.dataset.voirrdv); n.demande.vu = true; kpiPlacer(n.id); return; }
   if ((b = q('[data-rdvok]'))) { rdvEnvoyer(); rendre(); toast(RDV.rappel ? 'Côté bureau : demande à rappeler.' : 'Côté bureau : rendez-vous posé au planning, « accepté par le client ».'); return; }
@@ -12325,7 +12339,8 @@ const LIB_ROLE = {
   patron:{}, gestion:{ taches:'Mes tâches' },
   tech:{ taches:'Mes tâches', absences:'Mes congés' }
 };
-const LIGNES_CLIENT = [['accueil', 'Accueil', '🏠'], ['factures', 'Mes factures', '🧾'], ['interventions', 'Mes interventions', '🧰'], ['devis', 'Mes devis', '💰'], ['contrats', 'Mon contrat', '📑']];
+/* UNE navigation par appareil, les MÊMES mots dans le MÊME ordre partout (barre du bas, onglets de la page, ligne lue au lecteur d'écran) · client-14 */
+const LIGNES_CLIENT = [['accueil', 'Accueil', '🏠'], ['factures', 'Factures', '🧾'], ['interventions', 'Interventions', '🧰'], ['devis', 'Devis', '💰'], ['contrats', 'Contrat', '📑']];
 const enApp = () => typeof MODE_APP !== 'undefined' && !!MODE_APP;
 /* le guide des nouveautés est déclaré plus bas : tant qu'il ne l'est pas (le tout premier dessin), on le dit lu */
 const nvLu = () => { try { return !!nvVu(); } catch (e) { return true; } };
@@ -12362,11 +12377,13 @@ function rlLien(c, base){
   if (c.ec) return `<button type="button" class="rl-mlien${on ? ' on' : ''}" data-ec="tab|${c.k}">${corps}</button>`;
   return `<a href="#${c.k}" class="${on ? 'on' : ''}${c.sous ? ' avec-sous' : ''}" ${on ? 'aria-current="page"' : ''}>${corps}</a>`;
 }
+/* la marque d'un CLIENT, c'est l'entreprise qui le sert : son logo ou ses initiales, jamais le carré « OP » du logiciel · client-15 */
+function rlMarqueEnt(){ const L = ENTREPRISE.logo; return `<i class="rl-ent">${L ? `<img src="${esc(L)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">` : esc(entInitiales())}</i>`; }
 /* le logo ramène à l'écran d'ouverture du rôle, pour tous les rôles (Justin : « le logo, on clique dessus, ça revient à l'accueil ») */
 function rlLogo(tel){
   const h = '#' + rlOuverture(), ent = ROLE === 'client' ? 'Espace client' : ENTREPRISE.nom;
-  const marque = ROLE === 'client' ? `<i class="rl-ent">CS</i><span><b>${esc(ENTREPRISE.nom)}</b><small>Espace client</small></span>` : `<i>OP</i><span><b>OP GESTION</b><small>${esc(ENTREPRISE.nom)}</small></span>`;
-  if (tel) return `<a class="logo" href="${h}" data-logo="1" aria-label="${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'} : revenir à l’écran d’ouverture"><i>OP</i><b>${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'}</b></a>`;
+  const marque = ROLE === 'client' ? `${rlMarqueEnt()}<span><b>${esc(ENTREPRISE.nom)}</b><small>Espace client</small></span>` : `<i>OP</i><span><b>OP GESTION</b><small>${esc(ENTREPRISE.nom)}</small></span>`;
+  if (tel) return `<a class="logo" href="${h}" data-logo="1" aria-label="${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'} : revenir à l’écran d’ouverture">${ROLE === 'client' ? rlMarqueEnt() : '<i>OP</i>'}<b>${ROLE === 'client' ? esc(ENTREPRISE.nom) : 'OP GESTION'}</b></a>`;
   return `<a class="logo" href="${h}" data-logo="1" title="OP GESTION, ${esc(ent)}" aria-label="OP GESTION, ${esc(ent)} : revenir à l’écran d’ouverture">${marque}</a>`;
 }
 /* le pied : l'apparence, puis ce qui n'existe que dans l'application (Nouveautés, la barre, la déconnexion). L'échafaudage de revue
@@ -12383,12 +12400,14 @@ function rlPied(feuille){
 /* UN seul mot, celui que la fiche Équipe porte (« Gérant », « Secrétariat », « Technicienne »). Sans personne connectée (le prototype nu, où l'on choisit un rôle
    dans « Tester en tant que »), c'est la personne que le rôle représente (R.qui) qui donne son poste : le nom du rôle de revue (« Patron », « Gestion »,
    « Technicien ») ne s'affiche jamais sous un nom, il disait « Patron » à l'ordinateur quand la feuille du téléphone disait « Gérant ». */
-const sousMoi = R => { const p = (typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null) || (R.qui ? eqDe(R.qui) : null); return p && p.role ? p.role : (H_GENS[R.qui] || {}).role || R.l; };
+const sousMoi = R => { if (ROLE === 'client') return 'Client'; const p = (typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null) || (R.qui ? eqDe(R.qui) : null); return p && p.role ? p.role : (H_GENS[R.qui] || {}).role || R.l; };
 function rlMenu(base, sansMoi){
   const R = ROLES[ROLE], moiOk = RL_ACTIF && !sansMoi;
   const moi = moiOk ? `<div class="rl-moi"><span class="rl-av" style="--c:${(H_GENS[R.qui] || {}).c || 'var(--fill)'}">${R.ic}</span><span><b>${esc(ROLE === 'client' ? CLIENTS[RL_CLI.cli].nom : H_NOM(R.qui))}</b><small>${esc(sousMoi(R))}</small></span></div>` : '';
   let g = null;
-  const L = rlLignes().map(c => { const t = c.g !== g && c.g ? `<div class="grp">${esc(c.g)}</div>` : ''; g = c.g; return t + rlLien(c, base); }).join('');
+  /* UNE navigation par appareil (client-14) : à l'ordinateur ce sont les onglets de la page, au téléphone la barre du bas ; le menu de gauche d'un client ne les répète pas, il dit comment joindre l'entreprise */
+  const L = ROLE === 'client' ? `<div class="rl-contact"><b>Une question ?</b><span class="gris petit">${esc(ENTREPRISE.nom)} vous répond.</span><a class="btn gris" href="${lienTel(ENTREPRISE.tel)}">Appeler ${esc(ENTREPRISE.tel)}</a></div>`
+    : rlLignes().map(c => { const t = c.g !== g && c.g ? `<div class="grp">${esc(c.g)}</div>` : ''; g = c.g; return t + rlLien(c, base); }).join('');
   return `${rlLogo(false)}${moi}<div class="m-liste">${L}</div>${rlPied(false)}`;
 }
 function menu(base){ return rlMenu(base, true); }
@@ -12423,12 +12442,12 @@ const MB_COURT = { securite:'Sécurité', entreprise:'Entreprise', produits:'Pro
 const BARRE_ROLE = {
   equipe:['comptabilite', 'devis', 'clients', 'taches', 'achats', 'interventions', 'planning', 'boiteMail', 'stock', 'pointage'],
   terrain:['majournee', 'techfrais', 'mesheures', 'taches', 'moncamion', 'absences'],
-  client:['accueil', 'factures', 'devis', 'interventions', 'contrats']
+  client:['accueil', 'factures', 'interventions', 'devis', 'contrats']
 };
 const BARRE_MOT = {
   gestion:{ comptabilite:'Comptabilité', devis:'Devis', clients:'Clients', taches:'Tâches', achats:'Achats' },
   tech:{ majournee:'Journée', techfrais:'Frais', mesheures:'Heures', taches:'Tâches', moncamion:'Camion' },
-  client:{ accueil:'Accueil', factures:'Factures', devis:'Devis', interventions:'Interventions', contrats:'Contrat' }
+  client:{ accueil:'Accueil', factures:'Factures', interventions:'Interventions', devis:'Devis', contrats:'Contrat' }
 };
 let mbMem = null;
 function mbLire(){ if (mbMem) return mbMem; try { const v = JSON.parse(localStorage.getItem(MB_CLE) || 'null'); if (Array.isArray(v) && v.length) return v.filter(k => typeof k === 'string').slice(0, MB_MAX); } catch (e) {} return null; }
@@ -12452,8 +12471,8 @@ function rlBarre(base){
   const b = rlLigneActive(base);
   return `<nav class="opg-barre" aria-label="Catégories principales" style="grid-template-columns:repeat(${T.length},minmax(min-content,1fr))">${T.map(t => {
     const ic = ROLE === 'client' ? svg(t.k) : (IC[t.k] ? svg(t.k) : `<span class="emo" aria-hidden="true">${(LIG[t.k] || {}).ic || ''}</span>`);
-    const n = ROLE === 'client' ? 0 : rlPastille(t.k), on = ROLE === 'client' ? (route === 'espaceclient' && EC.tab === t.k) : t.k === b;
-    return `<button type="button" class="opg-tab${on ? ' on' : ''}" ${ROLE === 'client' ? `data-ec="tab|${t.k}"` : `data-tab="${t.k}"`} aria-label="${esc(t.nom)}${n ? ' · ' + n : ''}"${on ? ' aria-current="page"' : ''}>${ic}<span class="t-n">${esc(t.mot)}</span>${n ? `<i class="nb">${n}</i>` : ''}</button>`; }).join('')}</nav>`;
+    const n = ROLE === 'client' ? ({ factures:ecAFaire(RL_CLI.cli).dues.length, devis:ecAFaire(RL_CLI.cli).aSigner.length }[t.k] || 0) : rlPastille(t.k), on = ROLE === 'client' ? (route === 'espaceclient' && EC.tab === t.k) : t.k === b;
+    return `<button type="button" class="opg-tab${on ? ' on' : ''}" ${ROLE === 'client' ? `data-ec="tab|${t.k}"` : `data-tab="${t.k}"`} aria-label="${esc(t.nom)}${n ? (ROLE === 'client' ? ', ' + n + (t.k === 'factures' ? ' à régler' : ' à signer') : ' · ' + n) : ''}"${on ? ' aria-current="page"' : ''}>${ic}<span class="t-n">${esc(t.mot)}</span>${n ? `<i class="nb">${n}</i>` : ''}</button>`; }).join('')}</nav>`;
 }
 function barreBas(base){ return rlBarre(base); }
 /* le logo ramène à l'écran d'ouverture ; une ligne de la feuille d'un client referme la feuille (l'onglet change derrière) */
@@ -12468,14 +12487,14 @@ function menuBouton(){
 }
 /* la feuille « Menu » : la liste complète du rôle, puis le pied. Une seule fonction, un seul titre, aucun gestionnaire qui la reconnaît à son titre. */
 function feuilleMenu(){
-  const L = rlLignes(); let g = null, h = '';
+  const L = ROLE === 'client' ? [] : rlLignes(); let g = null, h = '';   /* un client navigue par la barre du bas : sa feuille n'a que l'apparence et son compte (client-14) */
   const base = rlLigneActive(BASE[route] || route);
   L.forEach(c => { if (c.g !== g) { g = c.g; if (g) h += `<div class="plus-grp">${esc(g)}</div>`; }
     const n = rlPastille(c.k), ax = c.k === 'achats' && ['patron', 'gestion'].includes(ROLE) && typeof axTotalAttente === 'function' ? axTotalAttente() : 0;
     const on = c.ec ? (route === 'espaceclient' && EC.tab === c.k) : base === c.k;
     h += `<button type="button" class="ligne-clic${on ? ' on' : ''}" ${c.ec ? `data-ec="tab|${c.k}" data-fm="1"` : `data-go="${c.k}"`} ${on ? 'aria-current="page"' : ''}><span style="display:flex;gap:12px;align-items:center;min-width:0"><span class="plus-ic" aria-hidden="true">${emoLigne(c)}</span><span class="m-t"><b>${esc(c.l)}</b>${c.sous ? `<small class="m-sous">${esc(c.sous)}</small>` : ''}</span></span><span style="display:flex;gap:8px;align-items:center">${n ? `<span class="t-nb rouge">${n}</span>` : ''}${ax ? `<span class="t-nb ax-nb" role="img" aria-label="${ax} à décider ou à valider dans Achats et frais">${ax}</span>` : ''}${c.fait && !enApp() ? '<small class="m-faite">faite</small>' : ''}›</span></button>`; });
   const p = eqDe(SESSION) || (ROLE === 'patron' ? eqDe('marc') : null);
-  ouvrirPanneau(`<h2>Menu</h2>${p && enApp() ? `<p class="mini fm-moi" style="margin:0">${esc(eqNom(p))} · ${esc(p.role)}</p>` : ''}<div class="fm-liste">${h}</div>${rlPied(true)}`);
+  ouvrirPanneau(`<h2>Menu</h2>${ROLE === 'client' ? `<p class="mini fm-moi" style="margin:0">${esc(CLIENTS[RL_CLI.cli].nom)} · Client</p>` : p && enApp() ? `<p class="mini fm-moi" style="margin:0">${esc(eqNom(p))} · ${esc(p.role)}</p>` : ''}<div class="fm-liste">${h}</div>${rlPied(true)}`);
 }
 
 /* ─── le rendu : le patron garde tout ; un rôle ne voit que ses écrans ─── */
@@ -12564,15 +12583,23 @@ function rlNdfForm(){
 
 /* ─── le client : son espace ─── */
 const EC = { tab:'accueil' };
+/* ce qui attend le client : les factures à régler et les devis à signer. L'onglet de la page (ordinateur) et la barre du bas (téléphone) lisent la même chose */
+function ecAFaire(k){
+  const dues = FACTURES.filter(f => f.cli === k && f.num !== '—' && ['envoyee', 'retard', 'partielle'].includes(f.st));
+  const aSigner = dvInit().filter(d => d.cli === k && d.num && dvEtat(d) === 'attente');
+  return { dues, aSigner };
+}
+/* la demande de contrat qui attend le bureau : la tâche « Proposer un contrat… » encore ouverte. UNE source pour la carte du client et pour le refus d'une seconde demande · client-06 */
+const ecDemandeContrat = k => (typeof TACHES !== 'undefined' ? TACHES : []).find(x => !x.fait && x.origine === 'demande du client' && x.lien && x.lien.t === 'client' && x.lien.id === k && /^Proposer un contrat/.test(x.t));
 function vueEspaceClient(){
-  const k = RL_CLI.cli, c = CLIENTS[k], prenom = c.contact.split(',')[0];
-  const facs = FACTURES.filter(f => f.cli === k && f.num !== '—'), dues = facs.filter(f => ['envoyee', 'retard', 'partielle'].includes(f.st)), du = cpR(dues.reduce((s, f) => s + restant(f), 0));
-  const devis = dvInit().filter(d => d.cli === k && d.num), aSigner = devis.filter(d => dvEtat(d) === 'attente');
+  const k = RL_CLI.cli, c = CLIENTS[k];
+  const facs = FACTURES.filter(f => f.cli === k && f.num !== '—'), dues = ecAFaire(k).dues, du = cpR(dues.reduce((s, f) => s + restant(f), 0));
+  const devis = dvInit().filter(d => d.cli === k && d.num), aSigner = ecAFaire(k).aSigner;
   const ints = INTS.filter(i => i.cli === k && i.st !== 'annulee'), avenir = ints.filter(i => i.st !== 'fait' && i.d >= AUJ).sort((a, b) => (a.d + a.h).localeCompare(b.d + b.h)), passees = ints.filter(i => i.st === 'fait').sort((a, b) => b.d.localeCompare(a.d));
   const prochaine = avenir.find(i => i.st !== 'aplanifier');   // une date provisoire (« à planifier ») n'est pas un rendez-vous
   const ctr = CONTRATS.filter(o => o.cli === k);
   const fac = f => { const s = f.st === 'payee' ? ['Payée le ' + f.paye, 'st-v'] : f.st === 'avoir' ? ['Avoir', 'st-p'] : f.st === 'retard' ? ['En retard', 'st-r'] : f.st === 'partielle' ? ['Payée en partie', 'st-b'] : ['À régler avant le ' + f.ech, 'st-o'];
-    return `<div class="ec-l"><span><b>${esc(f.num)}</b><br><span class="gris petit">${esc(String(f.objet).split(' · ' + f.emise).join(''))} · du&nbsp;${f.emise}</span></span><span class="ec-dr"><b>${eur(ttcDe(f))}</b><span class="st ${s[1]}">${s[0]}</span></span>
+    return `<div class="ec-l"><span><b class="ec-num">${esc(f.num)}</b><br><span class="gris petit">${esc(String(f.objet).split(' · ' + f.emise).join(''))} · du&nbsp;${f.emise}</span></span><span class="ec-dr"><b>${eur(ttcDe(f))}</b><span class="st ${s[1]}">${s[0]}</span></span>
       <span class="actions">${['envoyee', 'retard', 'partielle'].includes(f.st) ? `<button type="button" class="btn petit" data-ec="payer|${f.id}">Payer ${eur(restant(f))}</button>` : ''}<button type="button" class="btn gris petit" data-ec="fpdf|${f.id}">Voir</button></span></div>`; };
   const intL = i => { const t = tech(i.tech), fini = i.st === 'fait';
     return `<div class="ec-l"><span><b>${i.st === 'aplanifier' ? 'Rendez-vous à fixer' : jlong(i.d) + (fini ? '' : ' · ' + i.h)}</b><br><span class="gris petit">${esc(i.titre)}${i.tech ? ' · ' + esc(t.nom.split(' ')[0]) : ''}${i.st === 'retard' ? ' · nous vous appelons' : ''}</span>${i.clientDit ? `<br><span class="gris petit">Votre demande : « ${esc(i.clientDit)} » · ${esc(String(i.clientDispo || '').toLowerCase())}</span>` : ''}</span><span class="ec-dr"><span class="st ${fini || i.st === 'encours' ? 'st-v' : i.st === 'aplanifier' || i.st === 'retard' ? 'st-o' : 'st-b'}">${fini ? 'Faite' : i.st === 'aplanifier' ? 'Date à fixer' : i.st === 'encours' ? 'En cours' : i.st === 'retard' ? 'Un peu de retard' : 'Prévue'}</span></span>
@@ -12580,13 +12607,13 @@ function vueEspaceClient(){
   /* les mots du CLIENT, pas ceux du bureau : « Envoyé · sans réponse » le lisait comme un retardataire, « relancé N× » lui disait combien de fois on l'avait relancé, « à planifier » est la conséquence interne de son accord (client-07) */
   const DV_MOTS = { attente:['À signer', 'st-o'], accepte:['Accepté', 'st-v'], refuse:['Refusé', 'st-r'], expire:['Expiré', 'st-g'], remplace:['Remplacé', 'st-g'] };
   const dvQuandClient = d => { const e = dvEtat(d); return e === 'attente' ? 'valable jusqu’au ' + dvFr(ajoute(d.d, d.valid)) : e === 'expire' ? 'expiré le ' + dvFr(ajoute(d.d, d.valid)) : e === 'accepte' ? 'accepté le ' + d.rep : e === 'refuse' ? 'refusé le ' + d.rep : 'remplacé par un nouveau devis'; };
-  const dvL = d => { const e = dvEtat(d), mot = DV_MOTS[e] || DV_MOTS.attente; return `<div class="ec-l"><span><b>${esc(d.objet)}</b><br><span class="gris petit">Devis ${esc(d.num)} · ${dvQuandClient(d)}</span></span><span class="ec-dr"><b>${dvComplet(d) ? eur(dvTTC(d)) : '—'}</b><span class="st ${mot[1]}">${mot[0]}</span></span>
+  const dvL = d => { const e = dvEtat(d), mot = DV_MOTS[e] || DV_MOTS.attente; return `<div class="ec-l"><span><b>${esc(d.objet)}</b><br><span class="gris petit">Devis <span class="ec-num">${esc(d.num)}</span> · ${dvQuandClient(d)}</span></span><span class="ec-dr"><b>${dvComplet(d) ? eur(dvTTC(d)) : '—'}</b><span class="st ${mot[1]}">${mot[0]}</span></span>
     <span class="actions">${e === 'attente' ? `<button type="button" class="btn petit" data-ec="signer|${esc(d.num)}">Lire et signer</button>` : e === 'expire' ? `<button type="button" class="btn petit" data-ec="nvdevis|${esc(d.num)}">Demander un nouveau devis</button>` : ''}${e === 'attente' ? '' : `<button type="button" class="btn gris petit" data-dv="pdf|${esc(d.num)}">Voir</button>`}</span></div>`; };
-  const onglets = [['accueil', 'Accueil'], ['factures', 'Factures' + (dues.length ? ' · ' + dues.length : '')], ['interventions', 'Interventions'], ['devis', 'Devis' + (aSigner.length ? ' · ' + aSigner.length : '')], ['contrats', 'Contrat']];
+  const onglets = [['accueil', 'Accueil'], ['factures', 'Factures' + (dues.length ? ' · ' + dues.length : '')], ['interventions', 'Interventions'], ['devis', 'Devis' + (aSigner.length ? ' · ' + aSigner.length : '')], ['contrats', 'Contrat']];   /* le même ordre que la barre du bas (client-14) */
   const corps = EC.tab === 'factures' ? `<div class="carte">${facs.map(fac).join('') || '<span class="gris">Aucune facture.</span>'}</div>${du ? `<div class="carte"><h3>Payer par virement</h3><div class="ligne ec-vir"><span>IBAN</span><b class="mono">${esc(ENTREPRISE.iban)}</b><button type="button" class="btn gris petit" data-ec="copier|iban" aria-label="Copier l’IBAN">Copier</button></div>${ENTREPRISE.bic ? `<div class="ligne ec-vir"><span>BIC</span><b class="mono">${esc(ENTREPRISE.bic)}</b><button type="button" class="btn gris petit" data-ec="copier|bic" aria-label="Copier le BIC">Copier</button></div>` : ''}<span class="gris petit">Indiquez le numéro de la facture dans le libellé du virement : elle passera payée dès que ${esc(ENTREPRISE.nom)} le reçoit.</span></div>` : ''}`
     : EC.tab === 'interventions' ? `<div class="carte"><h3>À venir</h3>${avenir.map(intL).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div><div class="carte"><h3>Déjà faites</h3>${passees.map(intL).join('') || '<span class="gris petit">Aucune.</span>'}</div>`
     : EC.tab === 'devis' ? `<div class="carte">${devis.map(dvL).join('') || '<span class="gris">Aucun devis.</span>'}</div>`
-    : EC.tab === 'contrats' ? (ctr.length ? ctr.map(o => `<div class="carte"><h3>${esc(o.titre)}</h3><div class="ligne"><span>Contrat ${esc(o.num)}</span><span class="st ${o.st === 'signe' ? 'st-v' : o.st === 'termine' ? 'st-g' : 'st-o'}">${o.st === 'signe' ? 'Signé le ' + esc(o.signe) : o.st === 'termine' ? 'Terminé le ' + esc(o.termine) : 'À signer'}</span></div><div class="ligne"><span>Visites</span><b>${ctrFaites(o)} sur ${o.freq} cette année</b></div><div class="ligne"><span>Prix par an</span><b>${eur(o.prix)} HT · ${eur(ctrTTC(o.prix, o))} TTC</b></div>${o.st === 'envoye' ? `<div class="actions"><button type="button" class="btn" data-go="signer-x-${o.id}">Lire et signer</button></div>` : ''}</div>`).join('') : '<div class="carte gris">Pas de contrat d’entretien. Demandez-en un : une visite par an, et vous êtes prioritaire en cas de panne.<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ecctr="1">Demander un contrat</button></div></div>')
+    : EC.tab === 'contrats' ? (ctr.length ? ctr.map(o => `<div class="carte"><h3>${esc(o.titre)}</h3><div class="ligne"><span>Contrat <span class="ec-num">${esc(o.num)}</span></span><span class="st ${o.st === 'signe' ? 'st-v' : o.st === 'termine' ? 'st-g' : 'st-o'}">${o.st === 'signe' ? 'Signé le ' + esc(o.signe) : o.st === 'termine' ? 'Terminé le ' + esc(o.termine) : 'À signer'}</span></div><div class="ligne"><span>Visites</span><b>${ctrFaites(o)} sur ${o.freq} cette année</b></div><div class="ligne"><span>Prix par an</span><b>${eur(o.prix)} HT · ${eur(ctrTTC(o.prix, o))} TTC</b></div>${o.st === 'envoye' ? `<div class="actions"><button type="button" class="btn" data-go="signer-x-${o.id}">Lire et signer</button></div>` : ''}</div>`).join('') : (ecDemandeContrat(k) ? `<div class="carte"><h3>Votre demande est envoyée</h3><span class="gris">Demande envoyée le ${jlong(ecDemandeContrat(k).d)} : nous vous rappelons pour vous proposer un contrat d’entretien.</span></div>` : '<div class="carte gris">Pas de contrat d’entretien. Demandez-en un : une visite par an, et vous êtes prioritaire en cas de panne.<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ecctr="1">Demander un contrat</button></div></div>'))
     : `<div class="ec-tuiles">
         <div class="ec-tuile ${du ? 'att' : ''}"><span>À régler</span><b>${eur(du)}</b>${dues.length ? `<button type="button" class="btn petit" data-ec="tab|factures">Voir et payer</button>` : '<span class="gris petit">Tout est réglé, merci !</span>'}</div>
         <div class="ec-tuile ${aSigner.length ? 'att' : ''}"><span>Devis à signer</span><b>${aSigner.length}</b>${aSigner.length ? `<button type="button" class="btn petit" data-ec="signer|${esc(aSigner[0].num)}">Lire et signer</button>` : '<span class="gris petit">Aucun.</span>'}</div>
@@ -12594,7 +12621,7 @@ function vueEspaceClient(){
       ${passees[0] ? `<div class="carte"><h3>Votre dernière intervention</h3>${intL(passees[0])}</div>` : ''}
       <div class="carte"><h3>Besoin de nous ?</h3><span class="gris petit">Une panne, un entretien, un devis : dites-nous ce qui se passe, on vous rappelle pour fixer la date.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ec="demande">Demander une intervention</button><a class="btn gris" href="${lienTel(ENTREPRISE.tel)}">Appeler ${esc(ENTREPRISE.tel)}</a></div></div>`;
   return `<div class="ec"><div class="ec-tete">${logoEnt('span')}<div><b>${esc(ENTREPRISE.nom)}</b><span class="gris petit">Votre espace client</span></div></div>
-    <h1>Bonjour ${esc(prenom)}</h1><span class="gris">${esc(c.nom)} · ${esc(c.adr)}</span>
+    <span class="gris petit ec-sur">Votre espace client</span><h1>${esc(saluer(c.contact))}</h1><span class="gris">${esc(c.nom)} · ${esc(c.adr)}</span>
     <div class="ec-seg" role="tablist">${onglets.map(([t, l]) => `<button type="button" role="tab" data-ec="tab|${t}" aria-selected="${EC.tab === t}">${l}</button>`).join('')}</div>
     ${corps}
     <div class="gris mini ec-pied">${esc(ENTREPRISE.nom)} · ${esc(ENTREPRISE.adr)} · ${esc(ENTREPRISE.tel)} · ${esc(ENTREPRISE.mail)}</div></div>`;
@@ -12605,12 +12632,13 @@ function ecPayer(f){
     <div class="cx-montants deux"><div><span>Montant</span><b>${eur(m)}</b></div><div><span>Facture</span><b>${esc(f.num)}</b></div></div>
     <label class="champ">Numéro de carte<input class="saisie mono" id="ec-cb" inputmode="numeric" value="4242 4242 4242 4242"></label>
     <div class="cx-2"><label class="champ" style="flex:1 1 120px">Expire fin<input class="saisie" id="ec-ex" value="12/28"></label><label class="champ" style="flex:1 1 120px">Code au dos<input class="saisie" id="ec-cvc" inputmode="numeric" value="123"></label></div>
-    <span class="gris petit">Carte d’essai : aucun argent ne bouge. Sur un vrai paiement, la page est celle de la banque (paiement sécurisé, validation par l’application de la banque).</span>
+    <span class="gris petit">Démonstration : aucun paiement réel. Dans l’application, le paiement se fait sur la page sécurisée de la banque.</span>
     <div class="actions"><button type="button" class="btn" data-ec="payok|${f.id}">Payer ${eur(m)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 /* ecDemande(true) : la demande d'un CONTRAT d'entretien. Elle a sa fenêtre et son effet — une tâche « proposer un contrat » pour le bureau —, pas ceux d'une demande d'intervention : le client demandait une chose, la fenêtre en annonçait une autre (client-06) */
 function ecDemande(contrat){
   const c = CLIENTS[RL_CLI.cli];
+  if (contrat && ecDemandeContrat(RL_CLI.cli)) return toast('Votre demande de contrat est déjà envoyée : nous vous rappelons.');   /* une demande déjà partie ne se redouble pas : le bureau recevrait deux tâches (client-06) */
   ouvrirPanneau(`<span class="surtitre">${esc(ENTREPRISE.nom)}</span><h2>${contrat ? 'Demander un contrat d’entretien' : 'Demander une intervention'}</h2>
     <label class="champ">${contrat ? 'Quel appareil, en premier ?' : 'Pour quel appareil ?'}<select class="saisie" id="ed-a">${c.appareils.map(a => `<option>${esc(a.nom)}</option>`).join('')}<option>${contrat ? 'Tous mes appareils' : 'Autre, ou je ne sais pas'}</option></select></label>
     ${contrat ? '' : `<label class="champ">C’est pour<select class="saisie" id="ed-t"><option value="Dépannage">Une panne</option><option value="Entretien">Un entretien</option><option value="Devis">Un devis (nouvel appareil, travaux)</option></select></label>`}
@@ -12709,10 +12737,11 @@ document.addEventListener('click', ev => {
   if (a === 'demandeok') {
     const m = document.getElementById('ed-m').value.trim(), ap = document.getElementById('ed-a').value, dispo = document.getElementById('ed-d').value, k = RL_CLI.cli;
     if (!m) return toast(x === 'contrat' ? 'Dites-nous en quelques mots ce que vous cherchez.' : 'Dites-nous en quelques mots ce qui se passe.');
+    if (x === 'contrat' && ecDemandeContrat(k)) { fermerPanneau(); rendre(); return toast('Votre demande de contrat est déjà envoyée : nous vous rappelons.'); }
     if (x === 'contrat') {   /* une demande de contrat n'ouvre PAS d'intervention : le bureau reçoit une tâche, et rappelle pour proposer le contrat */
       if (typeof TACHES !== 'undefined') TACHES.push({ id:'t' + Date.now(), t:`Proposer un contrat d’entretien à ${CLIENTS[k].nom}`, qui:'marc', d:AUJ, h:null, urgent:false, lien:{ t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, note:m + ' (' + ap + ' · ' + dispo.toLowerCase() + ')', origine:'demande du client' });
       journalAjout('client', 'client', 'a demandé un contrat d’entretien', { t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, { det:m });
-      fermerPanneau(); rendre(); return toast('Demande envoyée : on vous rappelle pour vous proposer un contrat.'); }
+      fermerPanneau(); rendre(); return toast('Demande envoyée : nous vous rappelons pour vous proposer un contrat.'); }
     const ty = document.getElementById('ed-t').value, id = 'ic' + Date.now().toString(36);
     INTS.push({ id, d:ouvres(1, ajoute(AUJ, 1))[0], h:'09:00', dur:60, tech:'', cli:k, titre:(ty === 'Devis' ? 'Visite pour un devis' : ty) + ' · ' + ap, type:ty === 'Devis' ? 'Visite' : ty, st:'aplanifier', motif:m + ' (' + dispo.toLowerCase() + ')', clientDit:m, clientDispo:dispo, origine:'client' });   /* `demande` est déjà pris (l'objet du Planning) : ce que le client a écrit se range à part, pour qu'il le retrouve (client-16) */
     if (typeof TACHES !== 'undefined') TACHES.push({ id:'t' + Date.now(), t:`Rappeler ${CLIENTS[k].nom} pour fixer la date (demande en ligne)`, qui:'marc', d:AUJ, h:null, urgent:ty === 'Dépannage', but:'planifier', lien:{ t:'inter', id, lib:ty, cli:k }, note:m, origine:'demande du client' });
@@ -13583,7 +13612,7 @@ function gdApprendre(){
 (() => { const b0 = rlBande; rlBande = function(){ return b0.apply(this, arguments).replace('<button type="button" class="rl-az"', '<button type="button" class="rl-app" data-gd="apprendre"><span aria-hidden="true">📘</span> Apprendre</button><button type="button" class="rl-az"'); }; })();
 
 const prixCatalogue = nom => { const x = CATALOGUE.find(c => c[0] === nom); return x ? x[1] : null; };
-const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer le ventilateur extérieur', lignes:[['Ventilateur extérieur Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
+const DEVIS = { vp:{ num:'D-2026-034', objet:'Remplacer la carte électronique de l’unité extérieure', lignes:[['Carte électronique unité extérieure Daikin', 1, 289], ['Main-d’œuvre remplacement (2 h)', 1, 130], ['Déplacement', 1, 29.17]] },
                 md:{ num:'D-2026-031', objet:'Remplacement de la pompe de relevage', lignes:[['Pompe de relevage', 1, 119], ['Main-d’œuvre (1 h)', 1, 65], ['Déplacement', 1, 29.17]] } };
 const devisOk = k => { const d = DEVIS[k]; return d && devisDe(d.num).e === 'accepte' ? d : null; };   // un devis en attente ne facture rien : on ne propose que l’accepté
 const SECT_TECH = { sm:['La Rochelle','Nord'], kb:['La Rochelle','Sud'], lr:['Nord','La Rochelle'], tl:['Sud'], '':['La Rochelle','Nord','Sud'] };
@@ -21394,7 +21423,7 @@ function rgSaisieRendre(){
     ${ouvertes.length ? `<div class="info petit"><b>Toujours à faire chez le client</b>${ouvertes.map(r => `<br>« ${esc(r.txt)} » · déjà signalée le ${jCourt(r.p.d)}`).join('')}<br>Elles seront rappelées dans le compte rendu de ce passage.</div>` : ''}
     <label class="champ">Recommandation au client (facultatif)<input id="rg-reco" placeholder="ex. boucher l’accès sous la porte" autocomplete="off"></label>
     <label class="fo-garder"><input type="checkbox" id="rg-envoi" checked><span>Envoyer cette recommandation au client par e-mail<span class="gris petit"> · à ${esc(cli.mail)}</span></span></label>
-    <details class="rg-det"><summary>Voir le message</summary><p class="petit">Bonjour ${esc(cli.contact.split(',')[0])}, suite à notre passage de ce jour chez ${esc(D3_CLI[k].nom)}, nous vous recommandons : <i>votre recommandation</i>. Vous la retrouvez dans votre registre sanitaire. Un rappel vous sera envoyé dans 15 jours. ${esc(ENTREPRISE.nom)}</p></details>
+    <details class="rg-det"><summary>Voir le message</summary><p class="petit">${esc(saluer(cli.contact))}, suite à notre passage de ce jour chez ${esc(D3_CLI[k].nom)}, nous vous recommandons : <i>votre recommandation</i>. Vous la retrouvez dans votre registre sanitaire. Un rappel vous sera envoyé dans 15 jours. ${esc(ENTREPRISE.nom)}</p></details>
     <label class="champ">Contact présent sur place<input id="rg-contact" value="${esc(cli.contact.split(',')[0])}" autocomplete="off"></label>
     <div class="actions"><button type="button" class="btn gris petit" data-rg="signer" aria-expanded="false">Faire signer le client</button></div>
     <div class="rg-sig rg-cache" id="rg-sigb"><canvas id="rg-sig" width="640" height="220" aria-label="Signature du client"></canvas><button type="button" class="lien" data-rg="signeff">Effacer</button></div>
@@ -23176,7 +23205,7 @@ new MutationObserver(L => { for (const m of L) m.addedNodes.forEach(n => { if (n
 /* ── 10. quand les métiers de l'entreprise changent (réglage de la Tour), tout ce qui en dépend se remet d'aplomb — appelé à chaque rendu, ne fait rien si rien n'a changé ── */
 let metiersEtat = null;
 function metiersSync(){
-  if (METIERS_3D.includes(route) && !metiersA3d()) {   // une adresse tapée à la main : retour à l'accueil, avec un mot
+  if (METIERS_3D.includes(route) && !metiersA3d() && ROLE !== 'client') {   /* un CLIENT qui tape l'adresse d'un de ces écrans ne lit pas le métier de l'entreprise, et en tutoiement : la garde du rôle (rlRefus) lui dit « Cette page n'est pas dans votre espace » · client-04 */ // une adresse tapée à la main : retour à l'accueil, avec un mot
     route = 'accueil'; param = null; histRemplacer('#accueil');
     toast('Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour à l’accueil.'); }
   const cle = PACKS_ENT.join('|'); if (cle === metiersEtat) return; metiersEtat = cle;
