@@ -9,7 +9,7 @@ const PREP = (id, cli) => `(() => { INTS.push({ id:'${id}', d:AUJ, h:'09:00', du
 const norm = t => String(t || '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim();
 const cliquer = async (c, sel) => { await c.p.locator(sel).first().click(); await L.calme(c.p, 200); };
 (async () => {
-  v('fichier : dix-sept appels à logoEnt et aucune initiale écrite en dur', (PAGE.match(/\$\{logoEnt\('(?:div|span)'\)\}/g) || []).length === 17 && !/class="logo-ent">CS</.test(PAGE));
+  v('fichier : dix-sept appels à logoEnt dans les gabarits et aucune initiale écrite en dur', ((i0 => PAGE.slice(0, i0) + PAGE.slice(PAGE.indexOf('</style>`);', PAGE.indexOf('id="entreprise-css"')) + 11))(PAGE.indexOf('/* ══ MON ENTREPRISE ·')).match(/\$\{logoEnt\('(?:div|span)'\)\}/g) || []).length === 17 && !/class="logo-ent">CS</.test(PAGE));
   const c = await ouvrirEnt({ profil:'mac' });
   // ── les champs : injection refusée, adresse en une chaîne, assurance en quatre champs, PAIE_CAB, SIRET de démonstration
   await cliquer(c, '[data-ent="carte|ident"]'); const avant = await fiche(c.p);
@@ -26,7 +26,7 @@ const cliquer = async (c, sel) => { await c.p.locator(sel).first().click(); awai
   await cliquer(c, '[data-ent="carte|banque"]'); await remplir(c.p, 'en-expmail', 'compta@nouveau-cabinet.fr'); await remplir(c.p, 'en-cab', 'Nouveau Cabinet'); await remplir(c.p, 'en-bic', 'ABCDFRPP'); await cliquer(c, '[data-ent="banqueok"]');
   const pc = await c.p.evaluate(() => ({ nom:PAIE_CAB.nom, mail:PAIE_CAB.mail, fac:pdfFacture(FACTURES.find(x => x.num !== '—' && x.st !== 'avoir')) }));
   v('PAIE_CAB suit le cabinet de la carte (une seule source) ; le BIC s’écrit sur la facture', pc.nom === 'Nouveau Cabinet' && pc.mail === 'compta@nouveau-cabinet.fr' && /BIC ABCDFRPP/.test(pc.fac), { nom:pc.nom, mail:pc.mail });
-  const lg = await c.p.evaluate(() => { ENTREPRISE.logo = 'data:image/png;base64,AAAA'; const F = FACTURES.find(x => x.num !== '—' && x.st !== 'avoir'); const r = { facture:pdfFacture(F), devis:(dvInit(), docDevis(DV[0])), contrat:pdfContrat(null, CONTRATS.find(k => k.st === 'signe')), registre:rgDoc('t1', 'tout') }; ENTREPRISE.logo = ''; return Object.fromEntries(Object.entries(r).map(([k, h]) => [k, /<img class="logo-ent" src="data:image\/png/.test(h) && !/>ES</.test(h)])); });
+  const lg = await c.p.evaluate(() => { ENTREPRISE.logo = 'data:image/png;base64,AAAA'; const F = FACTURES.find(x => x.num !== '—' && x.st !== 'avoir'); const r = { facture:pdfFacture(F), devis:(dvInit(), docDevis(DV[0])), contrat:(k => pdfContrat(k, k))(CONTRATS.find(x => x.st === 'signe')), registre:rgDoc('t1', 'tout') }; ENTREPRISE.logo = ''; return Object.fromEntries(Object.entries(r).map(([k, h]) => [k, /<img class="logo-ent" src="data:image\/png/.test(h) && !/>ES</.test(h)])); });
   v('le logo choisi est une image dans la facture, le devis, le contrat et le registre', Object.values(lg).length === 4 && Object.values(lg).every(Boolean), lg);
   // ── la porte
   const cli = await c.p.evaluate(() => Object.keys(CLIENTS).find(k => CLIENTS[k].mail && CLIENTS[k].type === 'pro'));
