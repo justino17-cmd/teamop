@@ -16,7 +16,7 @@ catch (e) { console.log('✗ voies.js ne se compile pas :', e.message); process.
 // Les voies à table fixe, et celles qui se construisent à partir des arguments (avec un jeu d'arguments d'essai).
 const ESSAIS = [
   ['materiel', {}], ['vehtemps', {}], ['mail', {}], ['menu', {}], ['double-auth', {}], ['compositeur', {}], ['securite', {}],
-  ['entreprise', {}], ['artefact', {}], ['guide', {}],
+  ['entreprise', {}], ['artefact', {}], ['retour', {}], ['guide', {}],
   ['campagne', { cles: ['coque', 'accueil', 'planning', 'taches-absences', 'interventions', 'clients', 'contrats', 'compta-ventes', 'compta-reste', 'technicien', 'client', 'metier-3d', 'devis-atelier', 'mail', 'achats', 'materiel', 'vehicules-temps', 'equipe'], arbre: '/home/user/wt-x' }],
   ['final-rejeu', { familles: ['atelier', 'mail'], arbre: '/home/user/wt-x' }],
   ['final-regard', { role: 'gerant', rubriques: ['Accueil', 'Planning'], arbre: '/home/user/wt-x' }],
