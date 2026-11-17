@@ -13,7 +13,10 @@ const JEUX = [['plomberie'], ['chauffage'], ['nettoyage'], ['electricite'], ['3d
     const h = [...(clim ? [] : D.trouver(t, O.MOTS_CLIM)), ...(d3 ? [] : D.trouver(t, O.MOTS_3D))].filter(x => !x.donnee);
     v(`${nom} : la fenêtre n'a aucun mot d'un métier qu'elle n'a pas (hors données d'exemple)`, h.length === 0, h.slice(0, 4).map(x => '…' + x.ctx + '…').join(' ¦ '));
     const types = await p.evaluate(() => { const s = [...document.querySelectorAll('.fen select')].map(x => [...x.options].map(o => o.textContent.trim())); return s; });
-    notes.push(`${nom} · fenêtre : ${e.texte.slice(0, 230)} ¦ listes : ${types.map(x => x.slice(0, 9).join(' / ')).join(' || ').slice(0, 300)}`);
+    const ty = await p.evaluate(() => ({ types: [...document.querySelectorAll('.fen [data-ctype]')].map(b => b.textContent.trim()), motif: (document.querySelector('.fen [data-cchamp="motif"]') || {}).placeholder || '', titre: (document.querySelector('.fen [data-cchamp="titre"]') || {}).value || '' }));
+    v(`${nom} : la fenêtre offre les types d'intervention du métier (population : ${ty.types.length})`, ty.types.length >= 4, JSON.stringify(ty));
+    v(`${nom} : « Traitement du bois » est dans les types seulement avec la 3D (types lus : ${ty.types.length})`, ty.types.includes('Traitement du bois') === d3, ty.types.join(', '));
+    notes.push(`${nom} · types : ${ty.types.join(' / ')} · exemple de motif : « ${ty.motif} »`);
     v(`${nom} : « Traitement du bois » proposé seulement avec la 3D`, /Traitement du bois/.test(t) === d3, '');
     v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2).join(' // '));
     await p.keyboard.press('Escape'); await L.calme(p, 300); await L.fin(c); }

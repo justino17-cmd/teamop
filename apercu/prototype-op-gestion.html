@@ -22625,6 +22625,16 @@ function opdCreer(){
    ensuite effacée (on ferme l'atelier, on change d'écran : les entrées d'après partent), le cadre devient orphelin et son premier Retour dans l'éditeur ne fait RIEN — un appui perdu, puis un second qui
    ferme tout (reproduit sur la page d'avant aussi : une fois l'atelier ouvert, fermé, puis rouvert après un changement d'écran). Créé à l'entrée de base, qui ne s'efface jamais, il reste rattaché. */
 function opdPrecharger(){ try { opdCreer(); } catch (e) { /* sans cadre au démarrage, l'ouverture le créera */ } }
+/* le cadre ne retarde PAS le chargement de la page (un cadre qui charge retient l'évènement « load » : 14 s mesurées avec un atelier lent) : tant que la page charge, on attend la fin ; le droit se relit à ce moment-là */
+const opdDroitCadre = () => (!enApp() || !!SESSION) && !!(rlPermis('devis') || rlPermis('contrats'));
+let opdAttendLoad = false;
+function opdPreparer(){
+  if (document.getElementById('opdz') || opdAttendLoad) return;
+  if (document.readyState === 'complete') { if (opdDroitCadre()) opdPrecharger(); return; }
+  opdAttendLoad = true; addEventListener('load', () => { opdAttendLoad = false; if (!document.getElementById('opdz') && opdDroitCadre()) opdPrecharger(); }, { once:true });
+}
+/* un rôle qui n'a plus droit à l'atelier n'en garde pas le cadre (il porterait les documents et les clients de la personne d'avant) : fermé, retiré ; un rôle qui y a droit le retrouve au prochain rendu */
+function opdRetirer(){ const z = document.getElementById('opdz'); if (!z) return; if (!z.hidden) opdFermer('role'); clearTimeout(OPDZ.tAtt); z.remove(); OPDZ.pret = false; OPDZ.file = []; OPDZ.sigDon = ''; }
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
@@ -22687,8 +22697,8 @@ document.addEventListener('click', ev => {
   else if (a === 'reessayer') { const f = opdCadre(); if (!f) return; OPDZ.pret = false; opdAttente(false); clearTimeout(OPDZ.tAtt); OPDZ.tAtt = setTimeout(() => { if (opdOuvert() && !OPDZ.pret) opdAttente(true); }, 8000); f.src = opdSrc(); }
 });
 window.addEventListener('storage', ev => { if (ev.key !== OPD_CLE || !ev.newValue) return; try { opdDocsRecus(JSON.parse(ev.newValue)); } catch (e) {} });   // un autre onglet a rangé sa liste
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { if (!document.getElementById('opdz') && (rlPermis('devis') || rlPermis('contrats'))) opdPrecharger(); opdSync(); } catch (e) {} return v; }; })();
-(() => { const c0 = rlChanger; rlChanger = function(){ const v = c0.apply(this, arguments); opdEnvoyer(opdRoleMsg()); if (opdOuvert() && !(rlPermis('devis') || rlPermis('contrats'))) opdFermer('role'); return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { opdPreparer(); opdSync(); } catch (e) {} return v; }; })();
+(() => { const c0 = rlChanger; rlChanger = function(){ const v = c0.apply(this, arguments); opdEnvoyer(opdRoleMsg()); if (!(rlPermis('devis') || rlPermis('contrats'))) opdRetirer(); return v; }; })();
 (() => { const m0 = cxEnLigneMode; cxEnLigneMode = function(){ m0(); opdEnvoyer(opdModeMsg()); }; })();
 /* un paiement que la banque de la Comptabilité range sur une facture : la facture de l'application est payée, et le paiement paraît dans ses encaissements */
 function opLiaPaiement(q){

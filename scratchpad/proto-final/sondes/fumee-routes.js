@@ -25,13 +25,16 @@ const NUIT = process.env.NUIT === '1', CAP = process.env.CAP || '';
       else { await L.aller(c.p, li.k); await L.calme(c.p, 400); }
       const e = await c.p.evaluate(() => { const z = document.getElementById('contenu'), cadre = document.querySelector('#cmpt:not([hidden]) iframe, #opdz:not([hidden]) iframe');
         const h1 = (document.querySelector('#contenu h1') || {}).textContent || '';
-        return { route, hash: location.hash, h1: h1.trim().slice(0, 60), texte: z ? z.innerText.trim().length : 0, indefini: z ? (z.innerText.match(/undefined|\[object Object\]|NaN(?![a-zà-ÿ])/g) || []).slice(0, 3) : [], plein: !!cadre }; });
+        return { route, hash: location.hash, h1: h1.trim().slice(0, 60), texte: z ? z.innerText.trim().length : 0, indefini: z ? (z.innerText.match(/undefined|\[object Object\]|NaN(?![a-zà-ÿ])/g) || []).slice(0, 3) : [],
+          /* un texte échappé DEUX fois se lit « L&#39;atelier », « Dupont &amp; fils » : le risque de toute correction de sécurité qui ajoute un esc() */
+          entites: z ? (z.innerText.match(/&(amp|lt|gt|quot|apos|nbsp|#0?39|#x27);/g) || []).slice(0, 3) : [], plein: !!cadre }; });
       // Une rubrique peut s'ouvrir dans une fenêtre plein écran (la Comptabilité) : son contenu est alors dans un cadre.
       const cadre = e.plein ? L.cadre(c.p) : null;
       const dansCadre = cadre ? await cadre.evaluate(() => document.body.innerText.trim().length).catch(() => 0) : 0;
       if (client) v(`${tag} · ${li.l} : c'est bien l'onglet demandé`, await c.p.evaluate(k => EC.tab === k, li.k));
       v(`${tag} · ${li.l} (#${li.k}) : s'ouvre — un titre ou une fenêtre, du contenu`, ((e.h1.length > 1 || client) && e.texte > 40) || dansCadre > 40, e);
       v(`${tag} · ${li.l} : aucun « undefined », « [object Object] » ni « NaN » affiché`, !e.indefini.length, e.indefini);
+      v(`${tag} · ${li.l} : aucun texte échappé deux fois (« &amp; », « &#39; » lisibles à l'écran)`, !e.entites.length, e.entites);
       v(`${tag} · ${li.l} : aucune erreur JavaScript`, c.err.length === avant, c.err.slice(avant, avant + 2));
       const d = await L.deborde(c);
       v(`${tag} · ${li.l} : la page ne glisse pas de côté`, !d || !(d.bouge > 0), d);
