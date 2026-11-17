@@ -1521,8 +1521,10 @@ var CSS = `
   @media (max-height:500px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:22px;line-height:28px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{padding-bottom:0}
-    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt-sub{display:none}   /* le pied de la liste dit déjà « N non lus » */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap;padding-bottom:6px}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat{height:36px}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .rangeail{padding-top:4px;padding-bottom:4px}   /* « N messages rangés ailleurs » : le lien « Voir tout » garde sa zone de 44 px */
   }
   .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
   /* ordinateur-13 : l'écran était écrit en 11–13 px, alors que Clients et Devis sont à 16 px : on monte les libellés de dossiers, de filtres, de catégories, les pastilles,
@@ -1578,7 +1580,12 @@ var CSS = `
   .opc:where([data-fmt="phone"]) #btnCompose{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;height:46px;padding:0 4px}
   .opc:where([data-fmt="phone"]) #btnCompose svg{width:22px;height:22px}
   .opc:where([data-fmt="phone"]) #btnCompose .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
-  .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
+  /* sur une ligne choisie (bleu plein), la pastille s'ASSOMBRIT au lieu de s'éclaircir : un voile blanc sous du texte blanc tombait à 3,4:1 de nuit (bleu éclairci, 11,5 px) */
+  .opc .msg.sel .hpast{background:rgba(0,0,0,.3);color:#fff}
+  /* le grand titre d'un téléphone en paysage : la règle « paysage » plus haut (22 px) PERDAIT contre la règle « clamp(21px,7.2vw,31px) » écrite plus loin, de même force — le titre restait à 31 px (mesuré). Écrite ici, en dernier, elle gagne. */
+  @media (max-height:500px){
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
+  }
 `;
 var FEUILLE = null;
 function feuilleDans(sr) {
@@ -1665,7 +1672,7 @@ var MARKUP = `
   var UN_COTE = COTES.length === 1;
   var LS = String(opt.cleStockage || "opcourrier");
   var TITRE = String(opt.titre || "OP Courrier");
-  var HOTE = (opt.hote && typeof opt.hote === "object") ? opt.hote : null;   // points d'extension facultatifs de l'hôte (H1-H8) : sans lui, le module est celui de la production
+  var HOTE = (opt.hote && typeof opt.hote === "object") ? opt.hote : null;   // points d'extension facultatifs de l'hôte (H1-H9) : sans lui, le module est celui de la production
   // L'horloge de l'hôte (H8) : le prototype vit un 31 octobre fictif ; sans elle « Hier », « Ce soir » et les envois programmés seraient décalés de deux semaines. Un hôte sans horloge : l'heure de l'appareil.
   function maintenant(){ try{ if(opt.horloge){ var t=+opt.horloge(); if(isFinite(t)) return t; } }catch(e){} return Date.now(); }
   var SIGNER = opt.signer !== false;   // D08 : un hôte qui n'a pas la signature ne montre ni « Faire signer » ni le dossier Signatures
@@ -2778,6 +2785,15 @@ var MARKUP = `
     if(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i.test(n)) n="_"+n;
     if(n.length>120){ var d=n.lastIndexOf("."), ext=d>0&&n.length-d<=12?n.slice(d):""; n=n.slice(0,120-ext.length)+ext; }
     return n||"piece-jointe"; }
+  // Un fichier à ENREGISTRER (H9) : l'hôte d'abord (« telecharger(nom, blob) ») — dans un artefact un lien « download » ne fait rien, seul le pont de l'hôte
+  // enregistre, et il dit LUI-MÊME ce qui s'est passé (accepté, refusé, indisponible). Rend une promesse de VRAI si l'hôte s'en est chargé (le module ne
+  // parle pas par-dessus lui), de FAUX si le lien a été posé (production, sans hôte : le comportement d'avant).
+  function enregistrerFichier(blob,nom,porte){
+    if(HOTE&&typeof HOTE.telecharger==="function"){ var r; try{ r=HOTE.telecharger(nom,blob); }catch(e){ r=null; }
+      if(r===true||(r&&typeof r.then==="function")) return Promise.resolve(r).then(function(){ return true; },function(){ return true; }); }
+    var url=URL.createObjectURL(blob), l=document.createElement("a"), t=porte||sr;
+    l.href=url; l.download=nom; l.rel="noopener"; l.hidden=true; t.appendChild(l); l.click(); t.removeChild(l);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); return Promise.resolve(false); }
   // ---------- Le fichier d'une pièce, gardé sur CET appareil : l'aperçu d'un PDF avant d'envoyer (signature, message en rédaction) ----------
   // Avant, le module ne gardait que le nom et la taille : le document ne s'ouvrait nulle part, même rangé dans Signatures. Le fichier vit dans IndexedDB (une base par
   // clé de stockage : `<cleStockage>_fichiers`), JAMAIS dans localStorage (5 Mo partagés) ni dans les données de l'entreprise ; la pièce garde seulement `fid`, sa clé.
@@ -2808,7 +2824,8 @@ var MARKUP = `
   // Le balayage : une pièce n'est « orpheline » que si AUCUN message de la mémoire ne la désigne, relu au retour de la liste des clés (le fichier est posé et la pièce désignée dans le même
   // instant, donc une clé vue ici est déjà désignée). Une demande ANNULÉE ne garde pas son fichier.
   function fichiersBalayer(){
-    if(!vivant||!window.indexedDB) return;
+    var idbOk=false; try{ idbOk=!!window.indexedDB; }catch(e){}   // un rangement refusé peut jeter dès l'accès (cadre verrouillé)
+    if(!vivant||!idbOk) return;
     idbFaire("readonly",function(st){ return st.getAllKeys(); }).then(function(cles){
       var vus={}; MESSAGES.forEach(function(m){ if(m.sign&&m.sign.st==="cancelled") return; fidsDe(m).forEach(function(k){ vus[k]=1; }); });
       fichiersEffacer((cles||[]).filter(function(k){ return !vus[k]; })); }).catch(function(){}); }
@@ -2838,7 +2855,7 @@ var MARKUP = `
     app.inert=true; $("#overlays").appendChild(el); pdfv={el:el,url:url,retour:retour,nom:nom};
     el.addEventListener("click",function(e){ var b=e.target.closest("[data-pv]"); if(!b) return;
       if(b.getAttribute("data-pv")==="close"){ fermerApercu(); return; }
-      var l=document.createElement("a"); l.href=url; l.download=nomFichierSur(nom); l.rel="noopener"; l.hidden=true; el.appendChild(l); l.click(); l.remove(); });
+      enregistrerFichier(new Blob([blob],{type:"application/pdf"}),nomFichierSur(nom),el); });
     el.addEventListener("keydown",function(e){
       if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); fermerApercu(); return; }
       if(e.key!=="Tab") return;
@@ -2866,10 +2883,8 @@ var MARKUP = `
       fin(); if(!vivant) return;
       if(!b||typeof b.size!=="number"||typeof b.slice!=="function") throw new Error("pièce illisible");
       // Le contenu n'est jamais ouvert ici : un Blob neutre (octet-stream) enregistré sous un nom assaini, sans aperçu ni lien externe.
-      var nom=nomFichierSur(a.name), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
-      l.href=url; l.download=nom; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
-      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000);
-      toast("Pièce téléchargée : "+nom);
+      var nom=nomFichierSur(a.name);
+      return enregistrerFichier(new Blob([b],{type:"application/octet-stream"}),nom).then(function(hote){ if(!hote&&vivant) toast("Pièce téléchargée : "+nom); });
     }).catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
   // Le tri est recalculé à chaque rendu complet : nouveaux messages, règles apprises et contacts (Envoyés) sont toujours à jour.
   function threadHtml(m){
@@ -3058,6 +3073,15 @@ var MARKUP = `
   var SHEET_FOOT='<div class="sheet-foot" data-slot="foot"></div>';
   // Boutons des feuilles : barre de navigation sur iPad/iPhone (Annuler à gauche, action à droite),
   // pied de feuille sur Mac (Annuler puis bouton par défaut, en bas à droite). data-home = place tactile, data-mac = place Mac.
+  // Le titre de la feuille d'écriture tient entre « Annuler » et « Envoyer » (écrit en toutes lettres) : sur un petit téléphone il ne reste que 71 à 141 px, « Nouveau message » en demande 144 et sortait en « Nouveau messa… ». On le MESURE : s'il ne tient pas, la version courte le remplace ; il redevient entier dès qu'il y a la place (rotation, tablette).
+  var TITRE_COURT={"Nouveau message":"Message","Message programmé":"Programmé"};
+  function fitSheetTitles(){
+    $$("#overlays .sheet-title .t-main[data-court]").forEach(function(t){
+      var long=t.getAttribute("data-long"), court=t.getAttribute("data-court");
+      if(t.textContent!==long) t.textContent=long;
+      if(court!==long&&t.clientWidth&&t.scrollWidth>t.clientWidth+1) t.textContent=court;
+    });
+  }
   function placeSheetChrome(){
     var mac=layout()==="mac", a=actif();
     $$("#overlays .sheet").forEach(function(sh){
@@ -3067,6 +3091,7 @@ var MARKUP = `
         var slot=sh.querySelector('[data-slot="'+where+'"]'); if(slot) slot.appendChild(el);
       });
     });
+    fitSheetTitles();
     if(a&&a!==document.body&&sr.contains(a)&&actif()!==a){ try{ a.focus({preventScroll:true}); }catch(e){} }
   }
 
@@ -3322,11 +3347,10 @@ var MARKUP = `
     pr.forEach(function(x){ h+='<button type="button" class="btn" data-act="signProof:'+(+x.n)+'">'+(pr.length>1?"Preuve — "+H(x.nom):"Dossier de preuve")+'</button>'; });
     return h||'<span style="font-size:12px">Le PDF signé se prépare — rouvrez cette demande dans un instant.</span>'; }
   // Le fichier téléchargé : un Blob neutre enregistré sous un nom assaini (jamais ouvert ici)
-  function signEnregistrer(b,nom){
+  function signEnregistrer(b,nom,preuve){
     if(!b||typeof b.size!=="number"||!b.size) throw new Error("Le service de signature a rendu un fichier vide.");
-    var n=nomFichierSur(nom), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
-    l.href=url; l.download=n; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
-    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); return n; }
+    var n=nomFichierSur(nom);
+    enregistrerFichier(new Blob([b],{type:"application/octet-stream"}),n).then(function(hote){ if(!hote&&vivant) toast((preuve?"Dossier de preuve téléchargé : ":"PDF signé téléchargé : ")+n); }); return n; }
   // Les gestes d'une demande déjà envoyée : relancer, annuler, télécharger. Un seul à la fois par demande ; l'échec du serveur se dit.
   function signActSrv(act,m){
     var g=m.sign, P=act.split(":"), a=P[0], k=+P[1];
@@ -3341,7 +3365,7 @@ var MARKUP = `
       Promise.resolve().then(function(){ return preuve?SRC.signature.preuve(g.srv,k):SRC.signature.signe(g.srv,k); }).then(function(b){
         fin(); if(!vivant) return;
         var nom=preuve?"Dossier de preuve — "+(x.nom||k)+".pdf":String(d.nom||"document").replace(/\.pdf$/i,"")+" (signé).pdf";
-        toast((preuve?"Dossier de preuve téléchargé : ":"PDF signé téléchargé : ")+signEnregistrer(b,nom)); })
+        signEnregistrer(b,nom,preuve); })
         .catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
     else fin(); }
   function signAct(act,m){
@@ -3618,7 +3642,7 @@ var MARKUP = `
     ov.innerHTML='<div class="sheet compose" id="cSheet" role="dialog" aria-modal="true" aria-labelledby="cTitle">'+
       sheetBar('<button class="btn back-btn" id="cSchedBack" type="button" data-home="l" data-ord="0" aria-label="Retour au message"><span class="ic" aria-hidden="true">'+I.chevL+'</span><span class="lbl" aria-hidden="true">Message</span></button>'+
           '<button class="btn" id="cCancel" type="button" data-home="l" data-mac="cf" data-ord="1">Annuler</button>',
-        '<span class="t t-main">'+title+'</span><span class="t t-sched">Programmer l’envoi</span>',
+        '<span class="t t-main" data-long="'+H(title)+'" data-court="'+H(TITRE_COURT[title]||title)+'">'+title+'</span><span class="t t-sched">Programmer l’envoi</span>',
         '<button class="btn sched-btn" id="cSched" type="button" data-home="r" data-mac="l" data-ord="3" data-ordm="4" aria-expanded="false" aria-controls="cSchedWrap" aria-label="Programmer l’envoi" title="Programmer l’envoi">'+I.clock+'<span class="lbl">Programmer</span></button>'+
         '<button class="btn primary send-btn" id="cSend" type="button" data-home="r" data-mac="l" data-ord="4" data-ordm="3" aria-label="Envoyer" title="Envoyer"><span class="ic-plane">'+I.sent+'</span><span class="lbl">Envoyer</span>'+I.sendUp+'</button>',"cTitle")+
       '<div class="sheet-body compose-body">'+

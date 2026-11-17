@@ -1,0 +1,332 @@
+{
+ "profil": "iphone",
+ "qui": "sm",
+ "route": "moncamion",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mon camion",
+   "panneau": "Menu",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "1 message du bureau ›",
+   "data": "data-mat=messages",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mon camion",
+   "panneau": "Message du bureau",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 191,
+   "h": 44
+  },
+  {
+   "i": 3,
+   "lib": "Chercher une pièce : où elle est, combien",
+   "data": "",
+   "touche": true,
+   "change": [],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "J’ai utilisé chez un client",
+   "data": "data-vis=camion-utilise data-mat=usage",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mon camion",
+   "panneau": "J’ai utilisé chez un client",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 56
+  },
+  {
+   "i": 5,
+   "lib": "J’ai pris à l’atelier",
+   "data": "data-mat=prise",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mon camion",
+   "panneau": "J’ai pris à l’atelier",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 174,
+   "h": 56
+  },
+  {
+   "i": 6,
+   "lib": "Il me manque une pièce",
+   "data": "data-mat=manque",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mon camion",
+   "panneau": "Il me manque une pièce",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 174,
+   "h": 56
+  },
+  {
+   "i": 7,
+   "lib": "J’ai tout pris : 3 articles",
+   "data": "data-mat=toutpris",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "Envoyé au bureau : Filtre à charbon et 2 autres.Annuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 134,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "Je l’ai pris à l’atelier : Filtre à charbon",
+   "data": "data-mat=pris|p1",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "Envoyé au bureau : Filtre à charbon × 1.Annuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "Je l’ai pris à l’atelier : Fluide R32 (le kg)",
+   "data": "data-mat=pris|p4",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "Envoyé au bureau : Fluide R32 (le kg) × 0,5.Annuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 10,
+   "lib": "Je l’ai pris à l’atelier : Nettoyant échangeur (0,5 L)",
+   "data": "data-mat=pris|p5",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "Envoyé au bureau : Nettoyant échangeur (0,5 L) × 1.Annuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 11,
+   "lib": "À bord · 6 articles›",
+   "data": "data-mat=bord",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 56
+  },
+  {
+   "i": 12,
+   "lib": "Ma journée",
+   "data": "data-tab=majournee",
+   "touche": false,
+   "change": [],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 13,
+   "lib": "Mes frais",
+   "data": "data-tab=techfrais",
+   "touche": false,
+   "change": [],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 14,
+   "lib": "Mes heures · 1",
+   "data": "data-tab=mesheures",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 15,
+   "lib": "Mes tâches",
+   "data": "data-tab=taches",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 16,
+   "lib": "Mon camion",
+   "data": "data-tab=moncamion",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  }
+ ],
+ "err": []
+}

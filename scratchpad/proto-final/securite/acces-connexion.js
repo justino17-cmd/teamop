@@ -34,7 +34,9 @@ async function tenter(p, id, mdp, att) { await p.fill('#cn-id', id); await p.fil
   const dur = Date.now() - t0;
   console.log('C. 40 essais faux sur « marc » :', dur, 'ms · messages distincts :', [...dist].join(' | '));
   rap.essais = { n: 40, ms: dur, messages: [...dist] };
-  L.v('C. au bout de 40 essais faux le compte se verrouille ou ralentit', dist.size > 1 || dur > 40 * 1500, { messages: [...dist], ms: dur });
+  // (double authentification : le verrou existe — 5 échecs, 15 minutes — mais la MÊME phrase répond, exprès : on ne dit pas qu'un compte est verrouillé. Le verrou se prouve donc par le BON mot de passe, refusé.)
+  const provMarc = await c.p.evaluate(() => SECU.comptes.marc.prov), bon = await tenter(c.p, 'marc', provMarc, 700);
+  L.v('C. au bout de 40 essais faux le compte est verrouillé : le BON mot de passe est refusé, par la même phrase', !!provMarc && /incorrect/.test(bon.err) && !bon.premier && !bon.charge, { messages: [...dist], ms: dur, bon });
   const inconnu = await tenter(c.p, 'personne-inconnue', 'x'); const connu = await tenter(c.p, 'marc', 'x');
   L.v('C. même message pour un identifiant inconnu et un identifiant connu (pas de sondage des comptes)', inconnu.err === connu.err, [inconnu.err, connu.err]);
   const jules = await tenter(c.p, 'MARC ', 'Bienvenue17', 700); // le mot de passe provisoire COMMUN de la page
