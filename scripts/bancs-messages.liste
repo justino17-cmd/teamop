@@ -182,6 +182,9 @@ tests/test-944.js
 tests/test-945.js
 tests/test-946.js
 #
+# ── Les OUTILS des bancs (17 novembre 2026) : l'horloge qu'un banc avance ne rend jamais l'heure réelle (le fichier se remplace d'un geste, un contenu illisible ne décide de rien), et un port déjà pris ne fait pas prendre le service d'un autre pour le sien ──
+tests/test-947.js
+#
 # ── La sauvegarde hors site (étape 3, 2 octobre 2026) : le module seul (950), puis le VRAI service, un faux coffre S3 qui recalcule les signatures et les deux outils de Justin (951) ──
 tests/test-950.js
 tests/test-951.js

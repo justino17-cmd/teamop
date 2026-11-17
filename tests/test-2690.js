@@ -225,7 +225,7 @@ async function toutes(base, chemin, limite) {
       const r = await appeler(A.base, '/api/admin/sante'), s = r.j;
       const health = await (await fetch(A.base + '/health')).json();
       v('200, JSON, jamais mis en cache, ni cookie ni en-tête CORS', [r.code, /^application\/json/.test(r.h.get('content-type')), r.h.get('cache-control'), r.h.get('set-cookie'), [...r.h.keys()].filter(k => /^access-control-/i.test(k))], [200, true, 'no-store', null, []]);
-      v('l\'instance, la révision et la version du service', [s.instance, s.sha, /^\d+\.\d+\.\d+/.test(s.version), typeof s.version_page, s.version_page > 0], ['beta', 'banc0000', true, 'number', true]);
+      v('l\'instance, la révision et la version du service', [s.instance, s.sha, /^\d+\.\d+\.\d+/.test(s.version), typeof s.version_page, s.version_page > 0], ['beta', A.sha, true, 'number', true]);
       v('⛔ `sante` porte EXACTEMENT les champs de /health (ce que le service agrège), pas un de plus ni de moins', [Object.keys(s.sante).sort(), s.sante.ok, s.sante.base.ok], [Object.keys(health).sort(), true, true]);
       v('le décompte : les comptes par origine (actifs, supprimés, suppression programmée), les espaces, les abonnements par statut', [s.decompte.comptes.beta, s.decompte.comptes.compte, s.decompte.comptes.telephone, s.decompte.espaces, s.decompte.abonnements], [
         { actifs: 2, supprimes: 0, suppression_programmee: 0 }, { actifs: 5, supprimes: 1, suppression_programmee: 1 }, { actifs: 1, supprimes: 0, suppression_programmee: 0 }, 3, { active: { n: 1, places: 3 }, past_due: { n: 1, places: 1 } }]);

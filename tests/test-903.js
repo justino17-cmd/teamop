@@ -42,7 +42,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
     {
       const c = T.client(svc.base);
       const h = await c.get('/health');
-      v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
+      v('/health répond 200 {ok:true, instance, sha} — le sha est celui que le lancement a posé (`svc.sha` : l\'identité de CE service, qui dit aussi que c\'est bien lui qui répond)', [h.code, h.j.ok, h.j.instance, h.j.sha, /^banc[0-9a-f]{8}$/.test(svc.sha)], [200, true, 'beta', svc.sha, true]);
       v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['appels', 'base', 'boitesMail', 'boucle', 'disque', 'facturation', 'flux', 'instance', 'ok', 'pieces', 'porte', 'push', 'quotasRefus', 'reunions', 'sauvegarde', 'sha', 'sms', 'stripeEchecMin', 'transcription', 'uptimeS', 'version', 'visio']);
       v('⛔ /health publie le SERVEUR DE VISIO en agrégat — sans bloc de configuration, il se dit ABSENT et rien d\'autre (jamais une adresse, une clé, une salle ni une personne)', h.j.visio, { configuree: false });
       v('⛔ /health publie la TRANSCRIPTION en agrégat — sans bloc de configuration, elle se dit ABSENTE, sans crier (jamais une adresse, un secret, un texte ni une personne)', h.j.transcription, { configuree: false, ok: false, file: 0, faites: 0, vides: 0, echecs: 0, echecsSonde: 0 });

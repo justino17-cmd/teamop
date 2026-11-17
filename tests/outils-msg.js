@@ -43,60 +43,100 @@ async function attendre(cond, plafondMs = 8000, pasMs = 15) {
   }
 }
 
+/* ⛔ L'HORLOGE D'UN SERVICE SE REMPLACE D'UN SEUL GESTE — JAMAIS « TRONQUER PUIS ÉCRIRE » (17 novembre 2026).
+   `fs.writeFileSync` ouvre le fichier en le VIDANT, puis écrit : entre les deux, le service qui demande l'heure (il relit ce fichier
+   à chaque `Date.now()`, et ses minuteries n'attendent pas le banc) le lisait vide et retombait sur l'heure RÉELLE — vingt-huit jours
+   après l'horloge du banc. Son balayeur d'appels finissait alors l'appel en cours (« perdu ») ou la sonnerie (« manquée ») : test-981
+   tombait deux fois sur 180 passages à douze de front, et il est mort en CI le 5 et le 16 novembre (« undefined.lie », 39 ✓). On écrit donc À CÔTÉ, puis on
+   RENOMME : un renommage remplace le fichier d'un coup, un lecteur voit l'ancien contenu ou le nouveau, jamais un fichier vide.
+   Le greffon (`lib-horloge-msg.js`) garde l'autre moitié : un contenu qui n'est pas un entier ne remet plus l'horloge à l'heure réelle.
+   `tests/test-947.js` tient les deux — et une cinquantaine de bancs avancent une horloge par ici. */
+function ecrireDecalage(fichier, decalage) {
+  const neuf = fichier + '.neuf';
+  fs.writeFileSync(neuf, String(decalage));
+  fs.renameSync(neuf, fichier);
+}
+
 /* ── Le service ────────────────────────────────────────────────────────────────────────── */
+/* ⛔ LE SERVICE QUI RÉPOND SUR LE PORT EST-IL CELUI QU'ON VIENT DE LANCER ? (17 novembre 2026). `portLibre()` rend un port libre À L'INSTANT où on le demande ; le service ne
+   l'écoute qu'un dixième de seconde plus tard. Deux bancs lancés en même temps sur une machine peuvent donc recevoir le MÊME port : le second service meurt (`EADDRINUSE`), mais
+   `/health` répond quand même — c'est le service de l'AUTRE banc. L'outil rendait alors un service « vivant » qui était celui d'un autre : des 401 `session_requise` partout, sur
+   une base qui n'est pas celle du banc (vu une fois sur 120 passages de test-981 à douze de front ; rejoué en imposant le port : `scratchpad/sonde-collision-port.js`). La CI n'y
+   est pas exposée (une suite à la fois par machine), mais les lots de mutations jouent deux copies de front, et on charge une machine en lançant plusieurs passages.
+   Chaque lancement porte donc une IDENTITÉ (`OPMSG_SHA`, que `/health` redit dans `sha` — `svc.sha`) : tant que `/health` ne la rend pas, ce n'est pas notre service. Port pris
+   (un autre service y répond, ou le nôtre est mort sur `EADDRINUSE`) : on recommence sur un port neuf et des données neuves, cinq fois au plus — sauf si le banc a IMPOSÉ le port
+   ou le dossier (un redémarrage) : là, on le DIT au lieu de deviner. `tests/test-947.js` joue les deux. */
+const ESSAIS_PORT = 5;
 async function lancerService(opts = {}) {
   const o = Object.assign({ instance: 'beta', config: {}, env: {}, cle: crypto.randomBytes(32).toString('hex'), dossier: null, attendreSante: true }, opts);
   const racine = o.dossier || fs.mkdtempSync(path.join(os.tmpdir(), 'banc-msg-'));
   const data = path.join(racine, 'data'), cred = path.join(racine, 'cred'), cfgPath = path.join(racine, 'config.json');
   fs.mkdirSync(cred, { recursive: true });
   if (o.cle) fs.writeFileSync(path.join(cred, 'kek'), o.cle, { mode: 0o600 });
-  const port = o.port || await portLibre();
-  const base = 'http://127.0.0.1:' + port;
-  const defauts = {
-    origines: [base], cookie: { nom: 'opm', secure: false },
-    /* Les bancs relâchent les plafonds de CONFORT pour jouer beaucoup de gestes ; les bancs
-       d'anti-abus (test-908) les remettent à leur valeur de production. */
-    quotas: { ip: { max: 100000, fenetreMs: 60000 }, ecriture: { max: 100000, fenetreMs: 60000 }, beta_ip: { max: 100000, fenetreMs: 900000 }, beta_login: { max: 100000, fenetreMs: 900000 }, lien_ip: { max: 100000, fenetreMs: 60000 }, msg: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 }, lien: { max: 100000, fenetreMs: 3600000 }, moi_maj: { max: 100000, fenetreMs: 3600000 } },
-    beta: { urlGestion: o.urlGestion || 'http://127.0.0.1:1', relectureMs: 3600000, timeoutMs: 2000 },
-    pulsationMs: 20000, presenceGraceMs: 400, balayageMs: 3600000, disqueMinMo: 0,
-    /* ⛔ le trajet calcule chez l'IGN (13 octobre 2026) : un banc ne sort JAMAIS sur Internet — en bêta, la porte de test vise un port local fermé (le calcul se dit indisponible) et un
-       banc du trajet y pose son faux IGN (`env: { OPMSG_TEST_TRAJET }`) ; en production, la porte est refusée : le trajet y est FERMÉ, sauf banc qui le règle lui-même */
-    ...(o.instance === 'prod' ? { trajet: false } : {}),
-  };
-  /* Fusion à UN niveau : quotas, beta et cookie se complètent, ils ne se remplacent pas. */
-  const cfg = Object.assign({}, defauts, o.config);
-  for (const k of ['quotas', 'beta', 'cookie']) if (o.config && o.config[k] && typeof o.config[k] === 'object') cfg[k] = Object.assign({}, defauts[k], o.config[k]);
-  if (o.quotasProd) cfg.quotas = {};   // les plafonds de PRODUCTION, tels que le service les porte
-  fs.writeFileSync(cfgPath, JSON.stringify(cfg));
-  const env = Object.assign({}, process.env, {
-    OPMSG_CONFIG: cfgPath, OPMSG_DATA: data, OPMSG_INSTANCE: o.instance, PORT: String(port),
-    CREDENTIALS_DIRECTORY: cred, OPMSG_SHA: 'banc0000',
-  }, o.instance === 'beta' ? { OPMSG_TEST_TRAJET: '127.0.0.1:10' } : {}, o.env);
   /* Une horloge décalable (voir `lib-horloge-msg.js`) : le banc avance les DATES du processus. */
-  let decalage = o.decalageInitial || 0; const fichierDecalage = path.join(racine, 'decalage-horloge');   // `decalageInitial` : un REDÉMARRAGE reprend l'horloge là où le processus d'avant l'avait laissée
-  if (o.horloge) {
-    fs.writeFileSync(fichierDecalage, String(decalage));
-    env.OPMSG_HORLOGE_DECALAGE = fichierDecalage;
-    env.NODE_OPTIONS = ((env.NODE_OPTIONS || '') + ' --require=' + path.join(__dirname, 'lib-horloge-msg.js')).trim();
+  let decalage = o.decalageInitial || 0; const fichierDecalage = path.join(racine, 'decalage-horloge');   // `decalageInitial` : un REDÉMARRAGE reprend l'horloge là où le processus d'avant l'avait laissée — et un service peut NAÎTRE à l'heure du banc
+  const dabord = Array.isArray(o.portsDabord) ? o.portsDabord.slice() : [];   // des ports à essayer AVANT d'en tirer un libre : pour le banc de l'outil seulement (il y met un port déjà pris)
+  for (let essai = 1; ; essai++) {
+    const port = o.port || dabord.shift() || await portLibre();
+    const base = 'http://127.0.0.1:' + port;
+    const defauts = {
+      origines: [base], cookie: { nom: 'opm', secure: false },
+      /* Les bancs relâchent les plafonds de CONFORT pour jouer beaucoup de gestes ; les bancs
+         d'anti-abus (test-908) les remettent à leur valeur de production. */
+      quotas: { ip: { max: 100000, fenetreMs: 60000 }, ecriture: { max: 100000, fenetreMs: 60000 }, beta_ip: { max: 100000, fenetreMs: 900000 }, beta_login: { max: 100000, fenetreMs: 900000 }, lien_ip: { max: 100000, fenetreMs: 60000 }, msg: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 }, lien: { max: 100000, fenetreMs: 3600000 }, moi_maj: { max: 100000, fenetreMs: 3600000 } },
+      beta: { urlGestion: o.urlGestion || 'http://127.0.0.1:1', relectureMs: 3600000, timeoutMs: 2000 },
+      pulsationMs: 20000, presenceGraceMs: 400, balayageMs: 3600000, disqueMinMo: 0,
+      /* ⛔ le trajet calcule chez l'IGN (13 octobre 2026) : un banc ne sort JAMAIS sur Internet — en bêta, la porte de test vise un port local fermé (le calcul se dit indisponible) et un
+         banc du trajet y pose son faux IGN (`env: { OPMSG_TEST_TRAJET }`) ; en production, la porte est refusée : le trajet y est FERMÉ, sauf banc qui le règle lui-même */
+      ...(o.instance === 'prod' ? { trajet: false } : {}),
+    };
+    /* Fusion à UN niveau : quotas, beta et cookie se complètent, ils ne se remplacent pas. */
+    const cfg = Object.assign({}, defauts, o.config);
+    for (const k of ['quotas', 'beta', 'cookie']) if (o.config && o.config[k] && typeof o.config[k] === 'object') cfg[k] = Object.assign({}, defauts[k], o.config[k]);
+    if (o.quotasProd) cfg.quotas = {};   // les plafonds de PRODUCTION, tels que le service les porte
+    fs.writeFileSync(cfgPath, JSON.stringify(cfg));
+    const env = Object.assign({}, process.env, {
+      OPMSG_CONFIG: cfgPath, OPMSG_DATA: data, OPMSG_INSTANCE: o.instance, PORT: String(port),
+      CREDENTIALS_DIRECTORY: cred, OPMSG_SHA: 'banc' + crypto.randomBytes(4).toString('hex'),   // l'identité de CE lancement (un banc peut poser la sienne : `env`)
+    }, o.instance === 'beta' ? { OPMSG_TEST_TRAJET: '127.0.0.1:10' } : {}, o.env);
+    const sha = String(env.OPMSG_SHA || '').replace(/[^0-9a-zA-Z._-]/g, '').slice(0, 64) || 'inconnu';   // ce que le service en redira (`config.js` l'assainit ainsi)
+    if (o.horloge) {
+      fs.writeFileSync(fichierDecalage, String(decalage));   // avant le lancement : personne ne le lit encore (ensuite : `ecrireDecalage`)
+      env.OPMSG_HORLOGE_DECALAGE = fichierDecalage;
+      env.NODE_OPTIONS = ((env.NODE_OPTIONS || '') + ' --require=' + path.join(__dirname, 'lib-horloge-msg.js')).trim();
+    }
+    const sortie = new Sortie();
+    const enfant = spawn(process.execPath, [path.join(SERVICE, 'index.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    enfant.stdout.on('data', d => sortie.ajouter(d)); enfant.stderr.on('data', d => sortie.ajouter(d));
+    let sorti = null; enfant.on('exit', (code) => { sorti = code; });
+    const svc = {
+      base, port, racine, data, cred, cfgPath, cle: o.cle, config: cfg, sortie, enfant, sha,
+      fichierHorloge: o.horloge ? fichierDecalage : null,   // le fichier que le service relit à chaque `Date.now()` (pour le banc de l'outil lui-même, `test-947`)
+      sorti: () => sorti,
+      avancer(ms) { decalage += ms; ecrireDecalage(fichierDecalage, decalage); },
+      async arreter(nettoyer = true) {
+        try { if (sorti === null) { enfant.kill('SIGTERM'); await attendre(() => sorti !== null, 4000); if (sorti === null) enfant.kill('SIGKILL'); } } catch (e) {}
+        if (nettoyer && !o.dossier) { try { fs.rmSync(racine, { recursive: true, force: true }); } catch (e) {} }
+      },
+    };
+    if (!o.attendreSante) return svc;
+    /* « vivant » : NOTRE service répond (son identité) ; « autre » : `/health` répond, mais ce n'est pas lui ; « mort » : il est sorti avant de répondre */
+    const vivant = await attendre(async () => {
+      if (sorti !== null) return 'mort';
+      try { const r = await FETCH(base + '/health'); if (!r.ok) return false; const j = await r.json().catch(() => null); return j && j.sha === sha ? true : 'autre'; } catch (e) { return false; }
+    }, 10000, 50);
+    if (vivant === true) return svc;
+    if (vivant === 'autre') await attendre(() => sorti !== null, 8000, 10);   // le nôtre meurt de lui-même sur un port pris : on attend SA fin (un geste, pas une durée) avant de lire ce qu'il a écrit
+    const s = sortie.texte(), pris = vivant === 'autre' || (vivant === 'mort' && /EADDRINUSE/.test(s));
+    if (pris && !o.port && !o.dossier && essai < ESSAIS_PORT) {
+      await svc.arreter(false);
+      try { fs.rmSync(data, { recursive: true, force: true }); } catch (e) { /* rien n'y était */ }   // ce que le service mort a pu y poser (sa base, un bail) ne doit pas attendre le suivant
+      continue;
+    }
+    await svc.arreter();
+    throw new Error('le service n\'a pas démarré : ' + (vivant === 'autre' ? 'le port ' + port + ' est tenu par un AUTRE service (un banc lancé en même temps ?) — `/health` y répond, mais pas le nôtre'
+      : vivant === 'mort' ? 'sorti avant /health' + (pris ? ' (port ' + port + ' déjà pris)' : '') : 'délai') + (pris && !o.port && !o.dossier ? ' — ' + ESSAIS_PORT + ' ports essayés' : '') + '\n' + s.slice(0, 800));
   }
-  const sortie = new Sortie();
-  const enfant = spawn(process.execPath, [path.join(SERVICE, 'index.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
-  enfant.stdout.on('data', d => sortie.ajouter(d)); enfant.stderr.on('data', d => sortie.ajouter(d));
-  let sorti = null; enfant.on('exit', (code) => { sorti = code; });
-  const svc = {
-    base, port, racine, data, cred, cfgPath, cle: o.cle, config: cfg, sortie, enfant,
-    sorti: () => sorti,
-    avancer(ms) { decalage += ms; fs.writeFileSync(fichierDecalage, String(decalage)); },
-    async arreter(nettoyer = true) {
-      try { if (sorti === null) { enfant.kill('SIGTERM'); await attendre(() => sorti !== null, 4000); if (sorti === null) enfant.kill('SIGKILL'); } } catch (e) {}
-      if (nettoyer && !o.dossier) { try { fs.rmSync(racine, { recursive: true, force: true }); } catch (e) {} }
-    },
-  };
-  if (o.attendreSante) {
-    const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; try { return (await FETCH(base + '/health')).ok; } catch (e) { return false; } }, 10000, 50);
-    if (vivant !== true) { const s = sortie.texte(); await svc.arreter(); throw new Error('le service n\'a pas démarré : ' + (vivant === 'mort' ? 'sorti avant /health' : 'délai') + '\n' + s.slice(0, 800)); }
-  }
-  return svc;
 }
 
 class Sortie {
