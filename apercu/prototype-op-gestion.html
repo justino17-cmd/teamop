@@ -364,7 +364,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   #contenu .tkx-resume{padding:6px 10px;font-size:14px}#contenu .tkx-resume .tkx-retard-p{padding:0 12px}.tkx-pills{flex:1 1 100%}.tkx-pill{padding:0 10px;font-size:14px;flex:1 1 auto;justify-content:center}
   .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}
   /* 320 et 360 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a ; 390 px tient déjà) */
-  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
+  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap;gap:4px}.tkx-pill{flex:1 1 0;min-width:0;padding:0 3px;font-size:13px;gap:3px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
   .tkx-s{grid-template-columns:auto minmax(0,1fr)}.tkx-s-g{flex:1 1 100%}.tkx-s-g .btn{flex:1}
   .tkx-s-ch label{flex:1 1 100%;justify-content:space-between}.tkx-s-ch .saisie{flex:1 1 auto}
   .tkx-s-haut .btn{flex:1 1 100%}
@@ -7417,7 +7417,7 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
         : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
       const bandes = [...A.map(a => [a, false]), ...D.map(a => [a, true])].map(([a, att]) => { const ds = S.filter(d => dans.has(d) && d >= a.du && d <= a.au); if (!ds.length) return '';
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
-        return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]), ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
+        return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, (T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]).map(([px, pad, cl]) => [px, Math.max(pad, demi ? 18 : 0), cl]))   /* une demi-journée garde 9 px de marge de chaque côté : à 4 ou 8 px comptés, « ½ j Autre » était mesuré 47 px pour 29 de place */, ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
       return `<div class="acm-sem">${cells}${bandes}</div>`; }).join('');
     return `<div class="carte acm${etroit ? ' acm-etroit' : ''}"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }

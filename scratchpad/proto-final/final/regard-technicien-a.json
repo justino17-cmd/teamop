@@ -1,6 +1,6 @@
 {
  "role": "technicien (sm) puis chef d'équipe (kb)",
- "etat": "en cours : technicienne vue sur six profils jour et nuit ; chef d'équipe à faire",
+ "etat": "terminé pour la technicienne (six profils, jour et nuit) et le chef d'équipe (six profils, jour et nuit) ; compte : voir comptes",
  "rubriques": [
   {
    "nom": "Ma journée",
@@ -102,6 +102,35 @@
    "constat": "« Ton habilitation « Habilitation électrique BR » se termine dans 24 jours » : le mot répété",
    "etat": "corrigé",
    "changement": "« Ton habilitation électrique BR se termine dans 24 jours »"
+  },
+  {
+   "n": 10,
+   "ecran": "Mes congés › calendrier, demande en attente d'une demi-journée",
+   "profils": "ipad, iphone, android",
+   "jourNuit": "jour et nuit",
+   "constat": "« ½ j Autre » mesuré 47 px pour 29 de place : texte coupé en « ½ j Au »",
+   "etat": "corrigé",
+   "changement": "la mesure de l'étiquette compte les 9 px de marge d'une demi-journée (18 px au moins) : « ½ Autre » à l'iPad, « ½ » au téléphone"
+  },
+  {
+   "n": 11,
+   "ecran": "Mes tâches › pastilles de filtre",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "après le premier correctif la rangée dépassait de 3 px le bord du champ de recherche",
+   "etat": "corrigé",
+   "changement": "écart et marge des pastilles resserrés (4 px, 3 px)"
   }
- ]
+ ],
+ "comptes": {
+  "captures_prises": 1480,
+  "captures_regardees": "une trentaine de planches (une planche = 3 à 8 captures côte à côte, jour et nuit), soit environ 120 captures lues à l'œil ; les 1 360 autres sont les défilements, états et profils que les planches regroupent",
+  "defauts_vus": 11,
+  "corriges": 11,
+  "laisses": [
+   "« M. et / Mme Durand » se coupe entre « et » et « Mme » dans une ligne de tâche étroite (donnée du client, pas une mise en page)",
+   "« 3 articles à remettre à bord » : le mot décidé par le chef est « manque à bord » ; il vit dans les fichiers de Matériel et Véhicules, repris par leurs voies",
+   "à 320 px la première intervention de Ma journée ne montre que son en-tête au-dessus de la barre (décision du chef, 17/11, technicien-02 : le haut de la carte est au-dessus de la barre) : à soumettre si Justin veut plus"
+  ]
+ }
 }
