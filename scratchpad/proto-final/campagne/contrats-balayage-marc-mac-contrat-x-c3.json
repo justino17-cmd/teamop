@@ -1,0 +1,166 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "contrat-x-c3",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "‹ Retour",
+   "data": "data-retour=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Contrats",
+   "panneau": "",
+   "hash": "#contrats",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "Cabinet dentaire Martin ›",
+   "data": "data-go=client-x-cm",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "Cabinet dentaire Martin",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 314,
+   "h": 32
+  },
+  {
+   "i": 2,
+   "lib": "Renvoyer le lien",
+   "data": "data-action=relanceContrat data-id=c3",
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "",
+   "hash": "#contrat-x-c3",
+   "toast": "Lien de signature renvoyé au client.",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 161,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "Voir ce que le client voit",
+   "data": "data-go=signer-x-c3",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 222,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "＋ Nouvelle tâche",
+   "data": "data-tkxnouv=contrat|c3",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "Nouvelle tâche",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 141,
+   "h": 34
+  },
+  {
+   "i": 5,
+   "lib": "⤢ Voir en grand",
+   "data": "data-pdfplein=1",
+   "touche": true,
+   "change": [],
+   "h1": "CTR-2026-011",
+   "panneau": "",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 159,
+   "h": 46
+  },
+  {
+   "i": 6,
+   "lib": "⤓ Télécharger le PDF",
+   "data": "data-pdfdl=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "toast",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "Fichier",
+   "hash": "#contrat-x-c3",
+   "toast": "« Contrat CTR-2026-011.pdf » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloque",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 200,
+   "h": 46
+  },
+  {
+   "i": 7,
+   "lib": "✉ Envoyer par e-mail",
+   "data": "data-pdfmail=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "Envoyer le PDF",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 202,
+   "h": 46
+  }
+ ],
+ "err": []
+}

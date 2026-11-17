@@ -10,7 +10,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
 (async () => {
   let c = await L.ouvrir({ profil: PROFIL, qui: QUI }), p = c.p;
   // ---- Jour / Nuit / Auto
-  const choisir = async m => { if (TEL) { await L.toucher(c, '.tt-menu'); await L.toucher(c, `#calque [data-modetheme="${m}"]`); await L.ranger(p); } else await L.toucher(c, `#menu [data-modetheme="${m}"]`); await L.calme(p, 400); };
+  const choisir = async m => { if (await p.evaluate(() => { const e = document.getElementById('cpsys'); return !!e && !e.hidden && e.getBoundingClientRect().width > 0; })) { await p.locator('[data-cpsys="retour"]').first().click(); await L.calme(p, 700); }   // l'écran d'ouverture de la secrétaire est la Comptabilité plein écran : le pied du menu est derrière, on en sort comme elle le fait
+    if (TEL) { await L.toucher(c, '.tt-menu'); await L.toucher(c, `#calque [data-modetheme="${m}"]`); await L.ranger(p); } else await L.toucher(c, `#menu [data-modetheme="${m}"]`); await L.calme(p, 400); };
   await p.emulateMedia({ colorScheme: 'light' });
   await choisir('nuit'); v('Nuit : l’écran passe en nuit', (await mode(p)) === 'nuit');
   v('Nuit : le bouton « Nuit » est marqué choisi (aria-pressed) dans le menu', await p.evaluate(t => { if (t) return true; return document.querySelector('#menu [data-modetheme="nuit"]').getAttribute('aria-pressed') === 'true'; }, TEL));

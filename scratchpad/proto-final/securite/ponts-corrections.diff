@@ -1,0 +1,343 @@
+CORRECTIFS PROPOSÉS — angle « ponts » (17 novembre 2026). Rien n'est appliqué : le chef de chantier décide. Se rejoue : git apply --check <ce fichier>, puis git apply.
+Ce que contient chaque morceau (les mêmes sondes, rejouées contre une copie corrigée, passent : voir ponts.json › contreEpreuve) :
+ · prototype-op-gestion.html : ponts-01 (documents du véhicule : types refusés hors images raster et PDF), ponts-02 (fiches de paie : PDF seulement),
+   ponts-03 (postMessage adressé à l'origine), ponts-04 (?auto= refusé dans la coque), ponts-05 (empreintes SRI de Leaflet, MapLibre, plugin), ponts-08 (liaison : le drapeau seul dans l'adresse) ;
+ · prototype-comptabilite.html : ponts-03 (envois adressés à l'origine), ponts-08 (reçoit « liaison=1 » et attend opc_ventes) ;
+ · scratchpad/proto-final/atelier/page.source : ponts-03, ponts-05 (html2canvas). ⛔ Ensuite : bash scratchpad/proto-final/atelier/fabriquer.sh (prototype-documents.html se fabrique, il ne se retouche pas).
+Pas dans ce fichier : le contrôle de source de l'écouteur de la Comptabilité (acces-13, injection-04) ; le côté « réception » de ponts-03 (refuser ev.origin ≠ location.origin sauf « null ») ; les trois réglages de la coque Android (ponts-06, ponts-07).
+
+--- a/apercu/prototype-op-gestion.html
++++ b/apercu/prototype-op-gestion.html
+@@ -2127,8 +2127,6 @@
+ @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
+ .pg-g .pl-jh{position:sticky;top:0}
+ .pg-tec{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--grille);position:sticky;left:0;z-index:3;background:var(--carte-fond)}
+-/* la colonne des noms colle à gauche : sans cette marge, amener une carte à l'écran (clavier, lecteur d'écran, « scrollIntoView ») la posait SOUS les noms */
+-.pl-defile:has(.pg-g){scroll-padding-left:172px}@media (max-width:760px){.pl-defile:has(.pg-g){scroll-padding-left:150px}}
+ .pg-tec b{display:block;font-size:15px;line-height:1.2}.pg-tec small{display:block;color:var(--doux);font-size:13px}
+ .pl-cel{border-top:1px solid var(--grille);border-left:1px solid var(--grille);padding:6px;display:flex;flex-direction:column;gap:6px;min-height:96px;cursor:copy}
+ .pl-cel.auj{background:var(--cel-auj)}
+@@ -3651,7 +3649,9 @@
+ .fo-r input[type=checkbox].vh-sw:checked{background:var(--vert)}.fo-r input[type=checkbox].vh-sw:checked::after{transform:translateX(20px)}
+ .fo-r input[type=checkbox].vh-sw:focus-visible{outline:2px solid var(--lien);outline-offset:2px}
+ .vh-fichier{cursor:pointer;min-height:44px;flex-wrap:wrap}
+-</style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
++</style><script>
++const OPG_CIBLE = location.origin === 'null' ? '*' : location.origin;   /* l'adresse de destination des messages entre pages : la nôtre (le bac à sable de l'artefact n'en a pas : « null » → « * ») */
++(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
+ <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
+ <script>
+ droitsInstaller();   /* la garde des droits se pose AVANT tout autre écouteur (étape 5) : function déclarée plus bas, remontée */
+@@ -4353,11 +4353,11 @@
+   if (window.L && L.map && L.maplibreGL) return Promise.resolve();   // le dernier morceau, pas Leaflet seul : sans le plugin, « Réessayer » repartait pour rien
+   if (crLeaflet) return crLeaflet;
+   crLeaflet = new Promise((ok, ko) => {
+-    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
+-    const j = document.createElement('script'); j.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+-    const suite = (src, test, puis) => { const x = document.createElement('script'); x.src = src; x.onload = () => test() ? puis() : ko(new Error('bibliothèque illisible')); x.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(x); };
+-    const c2 = document.createElement('link'); c2.rel = 'stylesheet'; c2.href = 'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css'; document.head.appendChild(c2);
+-    j.onload = () => window.L && L.map ? suite('https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js', () => !!window.maplibregl, () => suite('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js', () => !!L.maplibreGL, ok)) : ko(new Error('bibliothèque illisible')); j.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(j);
++    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; c.integrity = 'sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb'; c.crossOrigin = 'anonymous'; document.head.appendChild(c);
++    const j = document.createElement('script'); j.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; j.integrity = 'sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO'; j.crossOrigin = 'anonymous';
++    const suite = (src, test, puis, sri) => { const x = document.createElement('script'); x.src = src; x.integrity = sri; x.crossOrigin = 'anonymous'; x.onload = () => test() ? puis() : ko(new Error('bibliothèque illisible')); x.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(x); };
++    const c2 = document.createElement('link'); c2.rel = 'stylesheet'; c2.href = 'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css'; c2.integrity = 'sha384-K282sW/zFjTkrjR/+yr1H+gCukuy4OEYrkXRybV88g7pk+kZZYpNV6SAV59NcgFg'; c2.crossOrigin = 'anonymous'; document.head.appendChild(c2);
++    j.onload = () => window.L && L.map ? suite('https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js', () => !!window.maplibregl, () => suite('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js', () => !!L.maplibreGL, ok, 'sha384-4CB9Vtol9LN6lGgBCvmPLbUEZwilrqIvPieSRurgAXAB7FVJaLS9n8WyAIA5wjQ+'), 'sha384-KKgyz2mG25bKJ1O2PyqTJPlAF8Kw2BpDmsLTNBXslICOBvhTAyF5F0XhLWF2ZovY') : ko(new Error('bibliothèque illisible')); j.onerror = () => ko(new Error('bibliothèque de carte injoignable')); document.head.appendChild(j);
+     setTimeout(() => ko(new Error('bibliothèque de carte trop lente')), 12000); });
+   crLeaflet.catch(() => { crLeaflet = null; });
+   return crLeaflet;
+@@ -4378,10 +4378,8 @@
+   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
+   map.attributionControl.setPrefix(false);
+   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
+-  /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
+-     recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
+-     sur leur voisin (planning-07, rejoué sur iPhone) */
+-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
++  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; });
++  map.on('zoomend', () => crTracerReel());
+   map.on('click', () => { if (crSel) crChoisir(null, true); });
+   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
+     let fini = false, erreurs = 0;
+@@ -4391,11 +4389,8 @@
+   }
+   crTracerReel();
+ }
+-/* la place prise en haut de la carte par la rangée de personnes (elle passe sur deux lignes sur un petit écran) : un repère ne doit pas s'y cacher,
+-   sinon le toucher tombe sur la puce « Karim » (planning-07) */
+-function crHautLibre(){ const ch = document.querySelector('#cr-carte .cr-chips'), z = document.getElementById('cr-lf'); if (!ch || !z) return 84; return Math.max(84, Math.round(ch.getBoundingClientRect().bottom - z.getBoundingClientRect().top + 26)); }
+ function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
+-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, crHautLibre()] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
++  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
+ /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
+ function crTracerReel(){
+   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
+@@ -4420,10 +4415,8 @@
+   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
+     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
+        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
+-    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+-    /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
+-       que de laisser le repère sur son voisin */
+-    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
++    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
++    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
+     if (k) { const v = map.containerPointToLatLng([X, Y]);
+       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
+@@ -11390,17 +11383,8 @@
+ /* la catégorie de l'écran ouvert (une famille inconnue la prend) */
+ const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[droitForme(eqDe(acteur()))] || T.equipe || T.terrain); return f && f[0] ? f[0].split('.')[0] : null; };
+ /* la portée suit la FORME : sur l'écran d'un terrain, noter un paiement sur place ou envoyer le compte rendu est un geste de SA fiche d'intervention (inter › Modifier), pas celui d'un devis ou d'une facture du bureau */
+-/* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
+-const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
+-/* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
+-const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+-const gesteForme = (g, fam, verbe) => {
+-  if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
+-  const B = TERRAIN_BUREAU[fam];
+-  if (B && (B === '*' || B.has(verbe))) return { ...g, x:'b' };   /* réservé au bureau : aucune case ne l'ouvre à un terrain */
+-  return g.cat === 'ventes' && TERRAIN_VENTES.has(fam + '|' + verbe) ? { ...g, cat:'inter', x:'m' } : g;
+-};
+-const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe), fam, verbe);
++const gesteForme = g => g && g.cat === 'ventes' && droitForme(eqDe(acteur())) === 'terrain' ? { ...g, cat:'inter', x:'m' } : g;
++const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe));
+ function gesteBrut(fam, verbe){
+   const E = GESTES[fam], T = GESTES_TJ[fam];
+   if (E) {
+@@ -11431,7 +11415,7 @@
+ function droitsRefus(cat, x, fam, verbe){
+   DROITS_REFUS.push({ cat, x, fam, verbe });
+   const t = Date.now(); if (t - droitsRefusVu < 900) return; droitsRefusVu = t;
+-  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'b' ? 'ce geste est réservé au bureau, il n’est pas sur l’écran d’un terrain' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
++  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
+   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
+   return false;
+ }
+@@ -11478,7 +11462,7 @@
+   p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
+   const R = [];
+   Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
+-    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }, fam, v); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
++    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+     if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
+   Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+   /* un bouton, un lien, une ligne : on ne le dessine pas. Un champ de saisie ou une case : on le FIGE (sa valeur reste lisible, rien ne s'écrit : la garde rend la valeur d'avant) */
+@@ -12285,7 +12269,7 @@
+ document.addEventListener('change', ev => {
+   const t = ev.target; if (!t.matches('[data-paiefichiers]')) return;
+   const F = [...t.files], ok = [], perdu = [];
+-  F.forEach(f => { const n = f.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); const k = PT_GENS.find(g => paieNomPers(g).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(' ').every(p => n.includes(p)) || n.includes(paieNomPers(g).split(' ').slice(-1)[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')));
++  F.forEach(f => { if (f.type !== 'application/pdf') { perdu.push(f.name); return; } const n = f.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); const k = PT_GENS.find(g => paieNomPers(g).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(' ').every(p => n.includes(p)) || n.includes(paieNomPers(g).split(' ').slice(-1)[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')));
+     if (k) { PAIE.bulletins[k] = { nom:f.name, le:'31/10', url:URL.createObjectURL(f) }; ok.push(k); } else perdu.push(f.name); });
+   paieRecevoirMaj();
+   toast(`${ok.length} fiche${ok.length > 1 ? 's' : ''} rangée${ok.length > 1 ? 's' : ''}${perdu.length ? ` · ${perdu.length} sans nom reconnu : ${perdu.join(', ')}` : ''}.`);
+@@ -13107,7 +13091,7 @@
+ function vueComptaSysteme(){ return `<div class="tete"><div><h1>Comptabilité</h1><span class="gris">La comptabilité s’ouvre dans sa fenêtre.</span></div></div><div class="carte cpsys-attente"><span class="gris">Si elle ne s’est pas ouverte, rouvre-la.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-cpsys="ouvrir">Ouvrir la comptabilité</button><button type="button" class="btn gris" data-cpsys="quotidien">Factures et paiements</button></div></div>`; }
+ function cpSysMode(){ if (cpSysEcho) return; const f = document.querySelector('#cpsys iframe'); if (!f) return; const m = document.documentElement.dataset.mode === 'nuit' ? 'nuit' : 'jour';
+   try { const w = f.contentWindow; if (w && w.OPC_APPARENCE && w.opcAppliquer) { w.OPC_APPARENCE.mode = m; w.opcAppliquer(); if (w.opcRafraichir) w.opcRafraichir(); return; } } catch (e) { /* cadre d'une autre origine (fichier ouvert du disque) : on lui écrit */ }
+-  try { f.contentWindow.postMessage({ opc_mode:m }, '*'); } catch (e) {} }
++  try { f.contentWindow.postMessage({ opc_mode:m }, OPG_CIBLE); } catch (e) {} }
+ function cpSysMaj(){
+   let z = document.getElementById('cpsys'); const voulu = route === 'comptabilite' && cpSysteme;
+   if (!voulu) { if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
+@@ -17643,7 +17627,7 @@
+ }
+ /* un document (carte grise, attestation, procès-verbal) : une photo, une miniature */
+ function vxDocAjouter(vid, k, f){
+-  const v = vehDe(vid); if (!v || !f) return; const N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le procès-verbal de contrôle' }, av = v.docs[k] || null;
++  const v = vehDe(vid); if (!v || !f) return; if (!/^(image\/(png|jpe?g|gif|webp|heic|heif)|application\/pdf)$/.test(f.type || '')) return toast('Ce type de fichier n’est pas accepté : choisis une photo (PNG, JPEG) ou un PDF.'); const N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le procès-verbal de contrôle' }, av = v.docs[k] || null;
+   v.docs[k] = { nom:f.name, type:f.type, url:URL.createObjectURL(f), d:AUJ }; const j = vxJ('a ajouté ' + N[k], v, { det:f.name });
+   foGarder(() => vxFiche(v.id)); toast(`${N[k][0].toUpperCase() + N[k].slice(1)} ajoutée pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { if (av) v.docs[k] = av; else delete v.docs[k]; vxJRetirer(j); foGarder(() => vxFiche(v.id)); } });
+ }
+@@ -18041,7 +18025,7 @@
+ function vhPapiers(v){
+   const D = [['carte', 'Carte grise'], ['assur', 'Attestation d’assurance'], ['ct', 'Rapport du contrôle technique']], ajoutes = D.filter(([k]) => v.docs[k]), manquent = D.length - ajoutes.length;
+   const docs = ajoutes.map(([k, l]) => { const d = v.docs[k];
+-    return `<div class="fo-r vh-doc"><span class="fo-n"><b>${l}</b><span class="gris petit">Ajouté le ${esc(vhJM(d.d))} · ${esc(d.nom)}</span></span>${d.url && /^image/.test(d.type) ? `<a class="vx-mini" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="Voir ${esc(l)}"><img alt="" src="${esc(d.url)}"></a>` : '<span class="st st-v">Ajouté</span>'}${vhPeut('docdel') ? `<button type="button" class="lien" data-vh="docdel|${v.id}|${k}">Retirer</button>` : ''}</div>`; }).join('');
++    return `<div class="fo-r vh-doc"><span class="fo-n"><b>${l}</b><span class="gris petit">Ajouté le ${esc(vhJM(d.d))} · ${esc(d.nom)}</span></span>${d.url && /^image\/(png|jpe?g|gif|webp)$/.test(d.type) ? `<a class="vx-mini" href="${esc(d.url)}" target="_blank" rel="noopener" aria-label="Voir ${esc(l)}"><img alt="" src="${esc(d.url)}"></a>` : '<span class="st st-v">Ajouté</span>'}${vhPeut('docdel') ? `<button type="button" class="lien" data-vh="docdel|${v.id}|${k}">Retirer</button>` : ''}</div>`; }).join('');
+   const inc = v.incidents.slice().sort((a, b) => b.d.localeCompare(a.d)).map(x => { const am = x.k === 'amende';
+     const titre = am ? 'Amende' + (x.montant ? ' de ' + eur(x.montant) : '') + ' du ' + vhJM(x.d) : 'Accident du ' + vhJM(x.d), sous = am ? (x.qui ? 'Conducteur : ' + H_NOM(x.qui) : '') : [x.lieu, x.tiers && 'tiers : ' + x.tiers, x.franchise && 'franchise ' + eur(x.franchise)].filter(Boolean).join(' · ');
+     return `<div class="fo-r vh-inc"><span class="fo-n"><b>${esc(titre)}</b>${sous ? `<span class="gris petit">${esc(sous)}</span>` : ''}</span>${x.clos ? '<span class="st st-v">Réglé</span>' : am && x.limite ? `<span class="st st-o">à désigner avant le ${esc(vhJM(x.limite))}</span>` : '<span class="st st-o">En cours</span>'}${!x.clos && vhPeut('incclos') ? `<button type="button" class="btn petit gris" data-vh="incclos|${v.id}|${x.id}">${am ? 'Conducteur désigné' : 'Dossier clos'}</button>` : ''}</div>`; }).join('');
+@@ -21591,7 +21575,7 @@
+ /* ─── le pont avec la fenêtre Comptabilité ─── */
+ let CMPT_PRET = false, CMPT_FILE = [];
+ const cmptCadre = () => { const z = document.getElementById('cpsys'); return z && z.querySelector('iframe'); };
+-function cmptEnvoyer(m){ const f = cmptCadre(); if (f && CMPT_PRET) { try { f.contentWindow.postMessage(m, '*'); return; } catch (e) {} } if (!m.opc_role) CMPT_FILE.push(m); }   /* le rôle courant est envoyé de toute façon quand la fenêtre dit qu'elle est prête */
++function cmptEnvoyer(m){ const f = cmptCadre(); if (f && CMPT_PRET) { try { f.contentWindow.postMessage(m, OPG_CIBLE); return; } catch (e) {} } if (!m.opc_role) CMPT_FILE.push(m); }   /* le rôle courant est envoyé de toute façon quand la fenêtre dit qu'elle est prête */
+ const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { droits:{ ...droitsDe('compta'), qui:droitPremierAdmin() }, role:ROLE === 'patron' ? 'patron' : 'gestion', paie:ROLE === 'patron' || ROLE === 'compta'   /* la Paie de la fenêtre : le patron, et le comptable du cabinet qui fait les fiches — pas la gestion des factures · 13 novembre 2026 */, prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
+ const cmptNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+ function cmptVersFenetre(o){
+@@ -21610,7 +21594,7 @@
+ }
+ addEventListener('message', ev => {
+   const z = cmptCadre(); if (!z || ev.source !== z.contentWindow || !ev.data || typeof ev.data !== 'object') return; const d = ev.data;
+-  if (d.opc_pret) { CMPT_PRET = true; OPLIA_SIG = ''; setTimeout(() => opLiaSync(true), 0); try { z.contentWindow.postMessage({ opc_role:cmptRole() }, '*'); CMPT_FILE.splice(0).forEach(m => z.contentWindow.postMessage(m, '*')); } catch (e) {} }
++  if (d.opc_pret) { CMPT_PRET = true; OPLIA_SIG = ''; setTimeout(() => opLiaSync(true), 0); try { z.contentWindow.postMessage({ opc_role:cmptRole() }, OPG_CIBLE); CMPT_FILE.splice(0).forEach(m => z.contentWindow.postMessage(m, OPG_CIBLE)); } catch (e) {} }
+   if (d.opc_ouvrir) cmptOuvrirDepuisFenetre(d.opc_ouvrir);
+   if (d.opc_paiement) opLiaPaiement(d.opc_paiement);
+   if (d.opc_relance) { const q = d.opc_relance, f = q.num ? cmptFactureDe(q.num) : null; if (f && f.st !== 'payee') { facRelanceNoter(f); if (q.n > f.relances) f.relances = q.n; } }
+@@ -21630,12 +21614,12 @@
+     enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
+ }
+ function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
+-  try { u += '?app=1&liaison=' + encodeURIComponent(JSON.stringify(opLiaDonnees())); } catch (e) { u += '?app=1'; } return u; }
++  u += '?app=1&liaison=1'; return u; }   /* le drapeau seul : les factures arrivent par le message opc_ventes, envoyé dès que le cadre dit « prêt » */
+ let OPLIA_SIG = '';
+ function opLiaSync(force){
+   const f = cmptCadre(); if (!f || !CMPT_PRET || typeof MODE_APP === 'undefined' || !MODE_APP) return;
+   let P; try { P = opLiaDonnees(); } catch (e) { return; } const sig = JSON.stringify(P); if (!force && sig === OPLIA_SIG) return; OPLIA_SIG = sig;
+-  try { f.contentWindow.postMessage({ opc_ventes:P }, '*'); } catch (e) {} }
++  try { f.contentWindow.postMessage({ opc_ventes:P }, OPG_CIBLE); } catch (e) {} }
+ (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { opLiaSync(); } catch (e) {} return v; }; })();
+ /* ══ L'ATELIER DE DEVIS ET DE CONTRATS DANS OP GESTION · 16 novembre 2026 ══
+    Justin : « Je veux que tu le mettes dans OP GESTION avec le système de devis. » L'atelier « Documents sur mesure » (prototype-documents.html) s'ouvre dans
+@@ -21729,7 +21713,7 @@
+     .concat(opdPrestations());   // un devis d'entreprise de terrain commence presque toujours par la main-d'œuvre et le déplacement : les tarifs de l'entreprise (TARIFS) sont proposés comme articles, pas à retaper en ligne libre
+   return { entreprise, clients, catalogue, numeros:{ devis:{ prefixe:'D-2026-', dernier:opdDevisMax() }, contrat:{ prefixe:'CTR-2026-', dernier:opdContratMax() } } };
+ }
+-function opdEnvoyer(m){ const f = opdCadre(); if (f && OPDZ.pret) { try { f.contentWindow.postMessage(m, '*'); return true; } catch (e) {} } return false; }
++function opdEnvoyer(m){ const f = opdCadre(); if (f && OPDZ.pret) { try { f.contentWindow.postMessage(m, OPG_CIBLE); return true; } catch (e) {} } return false; }
+ function opdSync(force){
+   if (!OPDZ.pret) return; let P; try { P = opdDonnees(); } catch (e) { return; } const sig = JSON.stringify(P); if (!force && sig === OPDZ.sigDon) return; OPDZ.sigDon = sig; opdEnvoyer({ opd_donnees:P });
+ }
+@@ -24067,12 +24051,12 @@
+ .ops-pastille{display:none}
+ @media (max-width:1099px){
+   #opsec .ops-rond{display:none}
+-  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:#05080f;/* OPAQUE : à 96 % le texte de l'écran de connexion et sa pastille transparaissaient sous le téléphone (mesuré sur iPad en portrait) */align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
++  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:rgba(5,8,14,.96);align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
+   #opsec .ops-tete{width:min(340px,100%);flex:none}#opsec .ops-qui{color:#cfd9ea}#opsec .ops-cacher{display:none}
+   #opsec .ops-revenir{display:block;min-height:48px;flex:1 1 100%;background:#13213a;color:#eef3fb;border-color:#3a4f78}
+   #opsec .ops-qui select{background:#13213a;color:#eef3fb;border-color:#3a4f78}
+   #opsec .ops-cadre{width:320px;max-width:100%;height:min(640px,calc(100dvh - 170px));min-height:440px}
+-  #opsec .sec-demo{width:min(340px,100%);flex:none;--surf:#0f1b30;--encre:#eef3fb;--doux:#aebcd4;--trait:#24365a;--trait2:#3a4f78;--lien:#7aa2ff;--vert:#8fe0ad;--rouge:#ff8f95;background:#0f1b30;color:#eef3fb}   /* le bloc « Démonstration » est posé sur le fond sombre du téléphone : ses couleurs le sont aussi, de jour comme de nuit */
++  #opsec .sec-demo{width:min(340px,100%);flex:none}
+   .ops-pastille{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:14px;border:1px solid #3a4f78;background:#0b1422;color:#eef3fb;font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:0 16px}
+   .ops-pastille::before{content:"📱"}
+ }
+@@ -24080,9 +24064,7 @@
+   #opsec .ops-cadre{width:100%;max-width:none;border:0;border-radius:0;height:auto;min-height:calc(100dvh - 190px)}
+   #opsec .ops-encoche{display:none}
+   #opsec .ops-ecran{min-height:calc(100dvh - 190px)}
+-  /* vue plein écran : l'écran du téléphone remplit la fenêtre de bord à bord, sur un fond OPAQUE (à 96 % le logo de l'écran de connexion transparaissait en filigrane sous la barre du haut) */
+-  #opsec[data-ouvert] .ops-fenetre{padding-left:0;padding-right:0}
+-  #opsec .ops-tete{width:100%;padding:0 14px;box-sizing:border-box}#opsec .sec-demo{width:calc(100% - 28px)}
++  #opsec .ops-tete{width:100%}#opsec .sec-demo{width:100%}
+ }
+ /* le bloc « Démonstration » : le seul endroit où paraissent un mot de passe provisoire, les cases « autre ordinateur » et les boutons de simulation */
+ .sec-demo{border-radius:16px;border:1px dashed var(--trait2);background:var(--surf,#fff);color:var(--encre);font-size:14px}
+@@ -24115,7 +24097,6 @@
+ .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
+ .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
+ .cn-col .ops-pastille{max-width:420px}
+-#cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
+ @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
+ </style>`);
+ /* ══ OP SECURITY · LA DOUBLE AUTHENTIFICATION, ÉTAPE 2 · 17 novembre 2026 ══
+@@ -24189,12 +24170,12 @@
+   nav = /Edg\//.test(u) ? 'Edge' : /OPR\/|Opera/.test(u) ? 'Opera' : /Firefox\/|FxiOS/.test(u) ? 'Firefox' : /Chrome\/|CriOS/.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'Navigateur';
+   return (nav + ' · ' + os).slice(0, 40); }
+ /* ?auto= (les sondes) ne marche qu'EN LOCAL : partout ailleurs (teamop.fr, un artefact publié, un aperçu en ligne) un accès sans téléphone n'existe pas */
+-const secuAutoPermis = loc => { loc = loc || {}; if (loc.protocol === 'file:') return true; return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(loc.hostname); };
++const secuAutoPermis = loc => { loc = loc || {}; if (window.OPG_MODE_APP) return false; if (loc.protocol === 'file:') return true; return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(loc.hostname); };
+ const secuHHMM = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+ const secuJJMM = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
+ function secuQuand(t){ const n = secuMaint(), a = new Date(n), j = new Date(t), m = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime(), j0 = new Date(j.getFullYear(), j.getMonth(), j.getDate()).getTime();
+   return (j0 === m ? 'aujourd’hui' : j0 === m - 86400000 ? 'hier' : 'le ' + secuJJMM(t)) + ' à ' + secuHHMM(t); }
+-const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + '\u00a0min\u00a0' + String(s % 60).padStart(2, '0') + '\u00a0s' : s + '\u00a0s'; };   /* insécables : « 59 » seul sur une ligne, puis « s » seul, à 320 px */
++const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
+ /* un nom saisi par une personne passe par esc() à l'écran et refuse < > " à la saisie ; il est borné */
+ const secuNomPropre = (t, max) => String(t || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, max || 60);
+ const secuNomAppareil = k => SECU_DEPART.appareils[k] || ('Téléphone de ' + ((eqDe(k) || {}).prenom || 'toi'));
+@@ -24468,14 +24449,7 @@
+ function opsSig(k){ const c = secuCompte(k), u = secuUi(k), now = secuMaint();
+   return [u.ecran, u.pin.length, u.err, u.info, u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? u.retour.txt : '', u.blocage, u.supprimer, SECU.horsLigne, !!c.tel, c.tel && c.tel.efface, c.histo.length,
+     SECU.pc.ecran === 'activer' && SECU.pc.k === k, SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)).map(d => d.id).join(',')].join('|'); }
+-/* le bouton rond (52 px) ne recouvre JAMAIS une cible de l'écran : s'il en recouvrirait une, il monte ou se range à gauche d'un cran (jamais la page : aucun rembourrage). Il garde sa place tant qu'elle est libre. */
+-const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76], [76, 136], [136, 16], [136, 76]];
+-function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
+-  const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
+-  const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
+-  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
+-  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+-function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
++function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante);
+   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
+   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
+   document.querySelectorAll('[data-sec="expire"][data-fin]').forEach(e => { const r = parseInt(e.dataset.fin, 10) - now; if (r > 0) e.textContent = e.dataset.pre + secuDuree(r); });
+--- a/apercu/prototype-comptabilite.html
++++ b/apercu/prototype-comptabilite.html
+@@ -4,6 +4,8 @@
+ <meta name="claude:viewport-fit-sides" content="cover">
+ <meta name="robots" content="noindex,nofollow">
+ <script>
++const OPG_CIBLE = location.origin === 'null' ? '*' : location.origin;   /* l'adresse de destination des messages entre pages : la nôtre (le bac à sable de l'artefact n'en a pas : « null » → « * ») */
++
+ /* Avant la première image : le mode (jour, nuit, auto). Une seule couleur, le bleu de TEAM OP, de jour comme de nuit (Justin,
+    10 novembre 2026 : « le mode jour et le mode nuit bleu, pas le reste »). En « auto », on suit le choix de la page
+    qui héberge (data-theme) s'il existe, sinon celui de l'appareil. Le rangement de l'appareil peut manquer : on fait sans. */
+@@ -653,7 +655,7 @@
+    « liaison » de l'adresse du cadre) puis à chaque changement (message opc_ventes). Ouverte seule, sans ce paramètre : le jeu
+    d'exemple d'avant, rien ne change. */
+ let LIA = null, OPL_NUMS = new Set(), OPL_EN_COURS = false;
+-try { const m = /[?&]liaison=([^&#]+)/.exec(location.search); if (m && window.parent !== window && /[?&]app=1\b/.test(location.search)) LIA = JSON.parse(decodeURIComponent(m[1])); } catch (e) { LIA = null; }
++try { const m = /[?&]liaison=([^&#]+)/.exec(location.search); if (m && window.parent !== window && /[?&]app=1\b/.test(location.search)) LIA = m[1] === '1' ? { factures:[], enc:[] } : JSON.parse(decodeURIComponent(m[1])); } catch (e) { LIA = null; }   /* « 1 » : lié à OP GESTION, les factures arrivent par message */
+ if (LIA && !Array.isArray(LIA.factures)) LIA = null;
+ const oplNorm = x => String(x == null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+ const oplMode = m => /^carte/i.test(m || '') ? 'carte' : /^ch/i.test(m || '') ? 'chq' : /^esp/i.test(m || '') ? 'esp' : 'vir';
+@@ -2970,7 +2972,7 @@
+   if ($('#calque').innerHTML) { UI.redimDu = true; return; }          // une fenêtre est ouverte : la courbe se redessinera à sa fermeture (elle restait dessinée à l'ancienne largeur, étirée)
+   clearTimeout(UI._redim); UI._redim = setTimeout(rendre, 180); });
+ function apparence(cle, v){ OPC_APPARENCE[cle] = v; try { localStorage.setItem('opc_' + cle, v); } catch (e) {} opcAppliquer(); rendre();
+-  if (cle === 'mode') { try { if (parent !== window) parent.postMessage({ opc_mode_choisi:v }, '*'); } catch (e) {} } }   /* [n°4] ouverte dans OP GESTION, elle dit son choix à la page qui l'héberge, pour que la barre de la fenêtre suive */
++  if (cle === 'mode') { try { if (parent !== window) parent.postMessage({ opc_mode_choisi:v }, OPG_CIBLE); } catch (e) {} } }   /* [n°4] ouverte dans OP GESTION, elle dit son choix à la page qui l'héberge, pour que la barre de la fenêtre suive */
+ /* [n°5] OP GESTION peut forcer le jour ou la nuit : le pied du menu et le panneau Réglages ouvert disent alors le mode réellement appliqué (aucun message n'est renvoyé : pas de boucle) */
+ window.opcRafraichir = () => { try { rendreMenu(); typo($('#menu')); const h = $('#calque h2'); if (h && h.textContent.trim() === 'Réglages') ouvrirReglages(); } catch (e) {} };
+ /* les gestes qui CHANGENT le dossier : la démo les refuse tant qu'elle joue (elle raconte la journée dans l'ordre ; un geste à la main la ferait avancer sous elle) */
+@@ -3032,7 +3034,7 @@
+ /* [n°8] la touche Échap tapée dans le cadre n'arrive jamais à la page qui l'héberge : on la lui relaie, mais seulement si rien ne s'ouvre ici (fenêtre, menu du téléphone, bulle d'infobulle de graphique, guide) — dans ce cas Échap ferme d'abord cela */
+ window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || ev.defaultPrevented || parent === window) return;
+   if ($('#calque').innerHTML || document.body.classList.contains('menu-ouvert') || document.body.classList.contains('guide-on') || document.querySelector('.prev-bulle:not([hidden])')) return;
+-  try { parent.postMessage({ opc_echap:true }, '*'); } catch (e) {} }, true);
++  try { parent.postMessage({ opc_echap:true }, OPG_CIBLE); } catch (e) {} }, true);
+ /* ══ LA DÉMO — la journée du 31 octobre se joue toute seule, et une bulle dit ce qui se passe ══
+    Justin, 10 novembre 2026 : « avec une démo ». Rien à toucher : chaque plan ouvre le bon écran, joue le moment de la journée
+    (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en quelques phrases. On peut
+@@ -3304,7 +3306,7 @@
+ const CMPT = { role:'gestion', prenom:'Julie', liens:{}, heroReplie:false, sim:null, seuil:20000, seuilOn:false, rappelTva:true, depots:0 };
+ try { CMPT.heroReplie = localStorage.getItem('cmpt_hero_replie') === '1'; } catch (e) {}
+ Object.assign(UI, { vf:'toutes', vq:'', ach:'tous', bq:'tous', bqq:'' });
+-const cmptParent = m => { try { if (parent !== window) { parent.postMessage(m, '*'); return true; } } catch (e) {} return false; };
++const cmptParent = m => { try { if (parent !== window) { parent.postMessage(m, OPG_CIBLE); return true; } } catch (e) {} return false; };
+ const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
+ /* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
+ addEventListener('message', ev => {
+--- a/scratchpad/proto-final/atelier/page.source
++++ b/scratchpad/proto-final/atelier/page.source
+@@ -1705,6 +1705,8 @@
+   <div id="toasts" role="status" aria-live="polite"></div>
+ </div>
+ <script>
++const OPG_CIBLE = location.origin === 'null' ? '*' : location.origin;   /* l'adresse de destination des messages entre pages : la nôtre (le bac à sable de l'artefact n'en a pas : « null » → « * ») */
++
+ 'use strict';
+ /* ═══════════════════════════════════════════════════════════════════════════
+    DOCUMENTS SUR MESURE — le script, en sections numérotées.
+@@ -7438,7 +7440,7 @@
+   if(PDF.promesse) return PDF.promesse;
+   const src=(location.protocol==='file:'&&window.__H2C_SRC)||H2C_CDN;       // l'adresse locale n'existe QUE sur file: (les essais) ; la page publiée charge cdnjs
+   PDF.promesse=new Promise((ok,ko)=>{
+-    const s=document.createElement('script'); s.src=src; s.async=true;
++    const s=document.createElement('script'); s.src=src; s.async=true; if(src===H2C_CDN){ s.integrity='sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H'; s.crossOrigin='anonymous' }
+     const t=setTimeout(()=>{ s.remove(); ko(new Error('délai')) },20000);
+     s.onload=()=>{ clearTimeout(t); window.html2canvas?ok(window.html2canvas):ko(new Error('vide')) };
+     s.onerror=()=>{ clearTimeout(t); s.remove(); ko(new Error('réseau')) };
+@@ -7622,7 +7624,7 @@
+ const RE_PROTO=/^(__proto__|constructor|prototype)$/;      // noms qui existent déjà sur tout objet : jamais un identifiant de client ni d'article (le forme [A-Za-z0-9_-] les laisserait passer)
+ const own=(o,k)=>o&&typeof o==='object'&&Object.prototype.hasOwnProperty.call(o,k)?o[k]:undefined;      // jamais o[k] sur un message : « __proto__ » ou « constructor » n'y sont pas des clés
+ const opdTxt=(v,n)=>typeof v==='string'?v.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n):'';
+-const opdPoster=m=>{ if(HOTE){ try{ HOTE.postMessage(m,'*') }catch(e){} } };
++const opdPoster=m=>{ if(HOTE){ try{ HOTE.postMessage(m, OPG_CIBLE) }catch(e){} } };
+ function appliquerModeApp(m){ const r=document.documentElement; if(m==='nuit') r.setAttribute('data-theme','dark'); else if(m==='jour') r.setAttribute('data-theme','light'); else return; OPG.mode=m; }
+ function opdEntreprise(e){
+   if(!e||typeof e!=='object'||Array.isArray(e)) return;
