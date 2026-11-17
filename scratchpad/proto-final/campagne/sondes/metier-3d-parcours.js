@@ -39,6 +39,7 @@ const S = {
   async B() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); const n0 = await nb(p), k0 = await kpis(p);
     v('B : « Saisir un passage » ouvre la fenêtre', await bouton(c, /Saisir un passage/) && /Saisir un passage/.test(await pan(p)), (await pan(p)).slice(0, 80));
     const t0 = await pan(p); dit('Fenêtre de saisie (début) : ' + t0.slice(0, 520));
+    v('B [metier-3d-09] : « RAS » est dit en toutes lettres (Rien à signaler) dans la fenêtre de saisie', /Rien à signaler/i.test(t0), 'RAS sans explication : ' + (t0.match(/.{20}RAS.{10}/) || [''])[0]);
     // Enregistrer sans avoir relevé aucune box : refus avec un mot clair, rien n'est enregistré
     await bouton(c, /Enregistrer le passage/); const t1 = await toast(p), n1 = await nb(p);
     v('B : sans relevé des box, le passage n\'est PAS enregistré et on dit lesquelles restent', n1.passages === n0.passages && /restent? à relever/.test(t1), `passages ${n0.passages}→${n1.passages} toast=« ${t1} »`);
@@ -96,6 +97,7 @@ const S = {
   async E() { for (const profil of ['mac', 'iphone']) { const c = await ouvrir({ profil }), p = c.p; await L.aller(p, 'devisXylo');
       const t0 = await txt(p); { const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p, 500); const tt = await toast(p), h1 = await p.evaluate(() => location.hash), ra = await p.locator('#dx-raison').textContent().catch(() => '');
       v(`E ${profil} : « Créer le devis » sans client ne crée rien et dit pourquoi`, h1 === h0 && /client/i.test(tt + ra), `hash ${h0} → ${h1} toast=« ${tt} » raison=« ${ra} »`); dit(`${profil} · devis xylophage à l'ouverture (valeurs d'exemple déjà saisies) : ` + (await p.locator('#dx-res').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 260)); }
+      { const zms = await p.evaluate(() => [...document.querySelectorAll('[data-dx^="zm|"]')].map(x => x.value).join(',')); v(`E ${profil} [metier-3d-06] : le devis xylophage s'ouvre sans mesure d'exemple déjà saisie`, !/[1-9]/.test(zms), 'surfaces à l\'ouverture : ' + zms); }
       // client
       const opt = await p.evaluate(() => [...document.querySelector('[data-dx="cli"]').options].filter(o => o.value && o.value !== '__nv').slice(0, 1).map(o => [o.value, o.textContent])[0]); await p.selectOption('[data-dx="cli"]', opt[0]); await L.calme(p, 500);
       // zone : une zone de bois de 42 m² et un mur de 12 m
@@ -126,7 +128,8 @@ const S = {
     const opt = await p.evaluate(() => [...document.querySelector('[data-dxr="cli"]').options].filter(o => o.value)[0].value); await p.selectOption('[data-dxr="cli"]', opt); await L.calme(p, 400);
     await L.toucher(c, p.locator('[data-dxrb^="zadd|"]').first()); await L.calme(p, 300); const zm = p.locator('[data-dxr^="zm|"]').first(); await zm.fill('18,5'); await zm.blur(); await L.calme(p, 500);
     dit('Résumé du relevé : ' + (await p.locator('#dxr-resume').innerText().catch(() => '')).replace(/\s+/g, ' '));
-    await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 800); const t2 = await txt(p);
+    await L.toucher(c, p.locator('#contenu .dx-creer-carte[data-dxrb="envoyer"]').first()); await L.calme(p, 800); let t2 = await txt(p); dit('Après « Envoyer au bureau » (bouton de la carte) : toast « ' + await toast(p) + ' »');
+    if (!/Relevé envoyé/.test(t2)) { await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"]').first()); await L.calme(p, 800); t2 = await txt(p); dit('Après « Envoyer au bureau » (barre du bas) : toast « ' + await toast(p) + ' » ¦ ' + t2.slice(0, 120)); }
     v('F : le relevé part au bureau (« Relevé envoyé »)', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), t2.slice(0, 200));
     // le gérant le retrouve, le chiffre, en fait un devis
     await p.evaluate(() => rlChanger('patron', { h: 'devisXylo', muet: true })); await L.calme(p, 900); const t3 = await txt(p);
@@ -143,7 +146,7 @@ const S = {
     for (const r of ['registre', 'carteBox', 'devisXylo']) { await L.aller(p, r); const t = await txt(p), e = await O.lire(p); v(`G : le bureau ouvre « ${r} »`, e.route === r, 'route=' + e.route); dit(`Bureau · ${r} : ` + t.slice(0, 220)); const g = await L.gestes(p, '#contenu'); dit(`Bureau · ${r} : ${g.length} gestes dont ${g.filter(x => /Saisir|Créer|Relever|Ajouter|Modifier/.test(x.lib)).map(x => x.lib).join(', ')}`); }
     v('G : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async H() { for (const qui of ['marc', 'julie']) { const c = await ouvrir({ qui, packs: O.METIERS.plomb }), p = c.p; await p.evaluate(() => aller('entreprise')); await L.calme(p, 800); if (qui === 'julie') { const e = await O.lire(p); dit('Julie demande « Mon entreprise » : route=' + e.route + ' h1=' + e.h1 + ' toast=« ' + await toast(p) + ' »'); v('H julie : « Mon entreprise » est refusé au bureau (gérant seul)', e.route !== 'entreprise'); await L.fin(c); continue; } const ok1 = await bouton(c, /Tes métiers/, '#contenu button, #contenu a'); await L.calme(p, 500); const pa = await pan(p);
-      dit(`${qui} · « Tes métiers » (plomberie) : ` + pa.slice(0, 400)); v(`H ${qui} : « Tes métiers » s'ouvre, en lecture seule (aucune case à cocher)`, ok1 && /Plomberie/.test(pa) && (await p.locator('#calque input[type=checkbox]').count()) === 0, pa.slice(0, 160));
+      dit(`${qui} · « Tes métiers » (plomberie) : ` + pa.slice(0, 400)); v(`H ${qui} [metier-3d-08] : le panneau dit comment demander un autre métier (contact, message)`, /écris|contact|demande|message|assistance/i.test(pa.replace(/Réglé par TEAM OP à l.ouverture de ton compte\./, '')), pa.slice(0, 160)); v(`H ${qui} : « Tes métiers » s'ouvre, en lecture seule (aucune case à cocher)`, ok1 && /Plomberie/.test(pa) && (await p.locator('#calque input[type=checkbox]').count()) === 0, pa.slice(0, 160));
       v(`H ${qui} : il dit qui règle les métiers`, /TEAM OP|ouverture/.test(pa), pa.slice(0, 200)); await L.ranger(p); v(`H ${qui} : Échap le ferme`, !(await pan(p)));
       await L.fin(c); } },
   async I() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'historique'); const h1 = await txt(p); const puces1 = await p.evaluate(() => [...document.querySelectorAll('#contenu .h-puces button')].map(b => b.textContent.trim()));
@@ -162,10 +165,10 @@ const S = {
   async K() { for (const pack of ['plomberie', 'nettoyage']) { const c = await ouvrir({ packs: [pack] }), p = c.p;
       await L.aller(p, 'taches'); await p.evaluate(() => tPanneau()); await L.calme(p, 600);   // la fenêtre « Nouvelle tâche » (le champ de saisie rapide de l'écran est une autre porte)
       const ph = await p.evaluate(() => { const e = document.getElementById('tk-t'); return e ? e.getAttribute('placeholder') : null; });
-      dit(`${pack} · « Quoi » d'une nouvelle tâche : ${ph}`); v(`K ${pack} : l'exemple du champ « Quoi » d'une tâche ne parle pas de PAC (pompe à chaleur)`, ph !== null && !/PAC|clim|fluide/i.test(ph), String(ph));
+      dit(`${pack} · « Quoi » d'une nouvelle tâche : ${ph}`); v(`K ${pack} [metier-3d-07] : l'exemple du champ « Quoi » d'une tâche ne parle pas de PAC (pompe à chaleur)`, ph !== null && !/PAC|clim|fluide/i.test(ph), String(ph));
       await L.aller(p, 'interventions'); await L.toucher(c, p.locator('#contenu button').filter({ hasText: /Nouvelle intervention/ }).locator('visible=true').first()); await L.calme(p, 700);
       const ph2 = await p.evaluate(() => [...document.querySelectorAll('#calque [placeholder], #contenu [placeholder]')].map(e => e.getAttribute('placeholder')).filter(x => /condensateur|fluide|clim|R32|PAC/i.test(x)));
-      v(`K ${pack} : aucune indication de champ de « Nouvelle intervention » ne parle de condensateur, de fluide ou de clim`, ph2.length === 0, ph2.join(' | '));
+      v(`K ${pack} [metier-3d-07] : aucune indication de champ de « Nouvelle intervention » ne parle de condensateur, de fluide ou de clim`, ph2.length === 0, ph2.join(' | '));
       v(`K ${pack} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } }
 };
 (async () => {
