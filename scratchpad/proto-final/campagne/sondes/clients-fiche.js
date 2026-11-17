@@ -32,7 +32,7 @@ const etat = p => p.evaluate(() => ({ h1: (document.querySelector('#contenu h1')
         tl: document.querySelectorAll('#contenu .grille2 > .carte .tl > button').length, ligne: document.querySelectorAll('#contenu .grille2 > .carte .ligne, #contenu .grille2 > .carte .ligne-clic').length, champs: document.querySelectorAll('#contenu [data-ci]').length }), o);
       let bon = t && r.presse === 'true' && r.corps.trim().length > 0;
       if (o === 'factures') bon = bon && (r.rows === a.nF || (a.nF === 0 && /Aucune facture/.test(r.corps)));
-      if (o === 'infos') bon = bon && r.champs === 6;
+      if (o === 'infos') bon = bon && r.champs === 7;   // nom, contact, téléphone, e-mail, type, adresse, accès (le nom s'est ajouté : clients-06)
       if (o === 'appareils') bon = bon && (r.ligne === a.nApp || (a.nApp === 0 && /Aucun appareil/.test(r.corps)));
       if (o === 'contrats') bon = bon && (r.ligne >= a.nC) ;
       if (o === 'histo') bon = bon && r.tl >= 0;

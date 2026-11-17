@@ -1,0 +1,399 @@
+{
+ "partie": "compta-reste",
+ "date": "2026-11-17",
+ "ecrans": [
+  {
+   "nom": "Achats › Factures & dépenses (liste, filtres, recherche) et ses fenêtres : Nouvelle opération, Facture fournisseur, Paiement fait, fiche d’un achat, justificatif en grand",
+   "fonction": "cxVueFactures / cxListe / cxNouveau / cxDepense / cxPayerListe / cxFicheAchat",
+   "acces": "Comptabilité › Achats"
+  },
+  {
+   "nom": "Achats › Notes de frais (fiche, valider, valider sans ticket, refuser avec motif, annuler, règle « sans ticket »)",
+   "fonction": "cxVueNdf / cxFicheNdf / axRefusNote",
+   "acces": "Comptabilité › Achats › Notes de frais"
+  },
+  {
+   "nom": "Achats › Comptes fournisseurs (liste et relevé d’un fournisseur)",
+   "fonction": "cxVueFournisseurs / cxReleveFour",
+   "acces": "Comptabilité › Achats › Comptes fournisseurs"
+  },
+  {
+   "nom": "Paie › Le mois (étapes, relevés de chacun, corriger une journée, clôturer une journée, verrouiller, envoyer au cabinet)",
+   "fonction": "ptVuePaie / paieEtapes / paieEnvoyer",
+   "acces": "Comptabilité › Paie (patron seul)"
+  },
+  {
+   "nom": "Paie › Fiches de paie (calcul, fiche en grand, valider, distribuer), Salariés (fiche modifiable), Charges et déclarations (organismes, DSN, écriture de paie)",
+   "fonction": "paieVueFiches / paieBulletinDoc / paieVueSalaries / paieSalarie / paieVueCharges / paieComptabiliser",
+   "acces": "Comptabilité › Paie"
+  },
+  {
+   "nom": "Trésorerie › Banque (relevé, expliquer une ligne, soldes, « dans l’application pas encore à la banque »)",
+   "fonction": "cpVueBanque / cpRapprocher",
+   "acces": "Comptabilité › Trésorerie › Banque"
+  },
+  {
+   "nom": "Trésorerie › Paiement en ligne (module prototype-paiement.html dans un cadre, plein écran)",
+   "fonction": "cxVueEnLigne",
+   "acces": "Comptabilité › Trésorerie › Paiement en ligne"
+  },
+  {
+   "nom": "Fiscal › TVA, Journal, Balance, Grand livre, Résultat, Envoi au comptable (et fenêtres Régimes de TVA, FEC, envoi)",
+   "fonction": "cpVueTva / cpVueEcritures / cxBalance / cxGrandLivre / cxResultat / cxEnvoi / cpEnvoyer",
+   "acces": "Comptabilité › Fiscal & comptable"
+  },
+  {
+   "nom": "Conformité › Aux normes (13 points, SIREN, plateforme, fiche légale) et Archives & exports (FEC, Bilan des encaissements PDF, dossier du comptable)",
+   "fonction": "cxVueNormes / cxConformite / cxVueArchives / bilanPdf",
+   "acces": "Comptabilité › Conformité"
+  },
+  {
+   "nom": "Pilotage › Clôture du mois (cinq vérifications, « Voir › », « Marquer payé », envoi)",
+   "fonction": "cxVueCloture / cpEtapes",
+   "acces": "Comptabilité › Pilotage › Clôture du mois"
+  },
+  {
+   "nom": "Cadre « OP COMPTABLE » : Tableau de bord, À vérifier, Ce qui s’est fait tout seul, La journée en direct, Fin de mois, Ventes, Achats, Paie, Banque, Trésorerie à venir, TVA, Bilan, Compte de résultat, Comment ça marche (14 rubriques) ; pilote automatique / « Je valide moi-même »",
+   "fonction": "prototype-comptabilite.html : MENU_SIMPLE, VUES.*",
+   "acces": "Menu › Comptabilité (plein écran)"
+  },
+  {
+   "nom": "Cadre « OP COMPTABLE » vue comptable (Réglages › Comptable) : 26 rubriques dont Saisir une écriture, Brouillard, Journaux, Grand livre, Balance, Immobilisations, Contrôles, FEC, Dossier",
+   "fonction": "prototype-comptabilite.html : MENU_EXPERT",
+   "acces": "Cadre › Réglages › Comptable"
+  }
+ ],
+ "couverture": {
+  "ecrans": 12,
+  "gestesRecenses": 460,
+  "gestesTouches": 460,
+  "parcours": 10,
+  "profils": [
+   "mac",
+   "windows",
+   "ipad",
+   "iphone",
+   "android",
+   "petit"
+  ],
+  "precisions": "Balayage geste par geste sur Mac (460 gestes de 18 onglets, chacun touché dans une page neuve) ; mise en page des 18 onglets (débordement, cibles au doigt, champs, texte écrasé) sur les six profils, jour ET nuit pour iPhone et la moitié des autres, captures regardées ; parcours A à G et cadre sur Mac ; cadre OP COMPTABLE : 168 gestes recensés sur 14 rubriques, parcours du pilote et de la vue comptable (26 rubriques) joués, mais pas chaque bouton un par un."
+ },
+ "nonCouvert": [
+  "Le balayage geste par geste et tous les parcours sont joués sur Mac (souris) ; au doigt (iPhone, iPad, Android, 320 px) seule la mise en page des 18 onglets est mesurée et regardée, pas chaque geste.",
+  "La confirmation sur téléphone d’OP Security (Fiches de paie, envoi à la paie, écriture de paie, virement fournisseur) n’est pas jouée : l’entrée par ?auto= l’accorde d’office. Elle est de la voie « sécurité ».",
+  "Le cadre « OP COMPTABLE » : 168 gestes recensés, les rubriques s’ouvrent toutes sans erreur (32 ✓), mais seuls le pilote (Tout traiter, Je valide moi-même), À vérifier, Fin de mois et la vue comptable sont parcourus ; ses boutons de banque (44), de la journée en direct, de la saisie d’écriture ne sont pas touchés un par un.",
+  "Le téléchargement réel du FEC et du bilan : le navigateur de test dit « téléchargement demandé » ; le fichier ouvert n’est pas relu (voie « artefact »).",
+  "Temps de travail et Mes heures (en refonte) ne sont touchés que par l’onglet Paie › Le mois ; les défauts de ces écrans iraient en zone « refonte ».",
+  "Les écrans de Stock, Boîte mail, atelier de devis ne sont pas de cette partie."
+ ],
+ "defauts": [
+  {
+   "n": "compta-reste-01",
+   "gravite": "bloquant",
+   "ecran": "Cadre « OP COMPTABLE » : Tableau de bord, TVA, Paie (ouvert depuis le menu Comptabilité)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "soumettre",
+   "etapes": "Menu › Comptabilité (ouvre le cadre plein écran). Lire « Argent en banque », « Tu dois aux fournisseurs », « TVA d’octobre » du Tableau de bord, puis la rubrique TVA et la rubrique Paie. Ouvrir ensuite Comptabilité › Trésorerie › Banque, Achats › Comptes fournisseurs, Fiscal › TVA et Paie › Charges dans OP GESTION.",
+   "attendu": "Une seule comptabilité : la même entreprise, au même jour (31/10), donne les mêmes montants des deux côtés.",
+   "constate": "Les deux ne disent pas la même chose. Banque : le cadre 22 165,18 € (21 865,18 + caisse 300) contre 9 792,95 € (relevé) dans OP GESTION. Dû aux fournisseurs : 17 766,00 € contre 896,28 €. TVA collectée : 479,16 € contre 482,81 €. TVA payée sur les achats : 3 457,96 € contre 320,06 €. TVA « à payer à l’État » : 0,00 € contre 162,75 €. Paie d’octobre prévue : 26 734,12 € contre un coût de 24 592,69 € (nets 14 994,24 €). Écritures du mois : 61 contre 51. Seul « Les clients te doivent » (1 475,00 €) est le même, parce que la liaison ne porte que les factures de vente. Le patron qui lit « À payer à l’État 0,00 € » dans le cadre et « 162,75 € » dans la Comptabilité ne sait pas lequel croire : un montant de déclaration est faux d’un côté.",
+   "preuve": "compta-reste-cadre-coherence.js : CC2 à CC8 (7 ✗), chiffres imprimés ; captures mac-cadre-coherence-accueil.png et mac-cadre-coherence-tva.png ; confirmé à l’œil (cadre-mac-jour-tva.png)",
+   "ou": "apercu/prototype-comptabilite.html : VUES.accueil, VUES.tva, VUES.paie (lignes 2426, 2598, 2555) tiennent leur propre grand livre ; la liaison LIA (ligne 651-656) ne relie que les factures de vente",
+   "correction": "Faire lire au cadre le registre d’OP GESTION pour la banque, les achats, la TVA et la paie (la liaison LIA existe déjà pour les ventes), ou à défaut retirer du tableau de bord du cadre les tuiles qui contredisent OP GESTION.",
+   "recommandation": "À trancher par Justin : c’est l’architecture « une seule comptabilité ». Recommandation : étendre la liaison aux achats, à la banque, à la TVA et à la paie avant toute publication ; tant que ce n’est pas fait, ne pas montrer au patron deux « TVA à payer » différentes."
+  },
+  {
+   "n": "compta-reste-02",
+   "gravite": "bloquant",
+   "ecran": "Trésorerie › Paiement en ligne (module dans un cadre)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "soumettre",
+   "etapes": "Comptabilité › Trésorerie › Paiement en ligne › « Voir chez le client » sur FAC-2026-0143 (Cabinet dentaire Martin, 114,00 €) › Carte bancaire › « Payer 114,00 € ». Revenir dans Comptabilité › Ventes › Factures & avoirs.",
+   "attendu": "La facture payée par carte devient payée dans OP GESTION (et paraît dans les paiements, en plus du module).",
+   "constate": "Dans le module la facture est « Payée par carte bancaire », « Tests 1 / 25 ». Dans OP GESTION FAC-2026-0143 reste « envoyée », « à encaisser » reste 1 475,00 €, les encaissements restent à 11. Le module n’a aucun lien avec la comptabilité (il l’avoue : « Pour l’instant, il a ses propres factures d’exemple »). Confirme compta-ventes-20 sous l’angle demandé par Justin (« est-elle payée dans OP GESTION ? » : non).",
+   "preuve": "compta-reste-enligne.js : EL1 ✓ (payée dans le module) ; EL2 et EL3 ✗ ; capture mac-enligne-apres.png",
+   "ou": "apercu/prototype-op-gestion.html:11478 cxVueEnLigne (iframe prototype-paiement.html) ; apercu/prototype-paiement.html : état S.factures propre, aucun postMessage vers le parent",
+   "correction": "Relier le module : une facture d’OP GESTION se paie dans le module (postMessage opc_paiement, comme le fait déjà le cadre « OP COMPTABLE » avec opLiaPaiement), ou ne pas montrer le module dans l’application.",
+   "recommandation": "Déjà soumis (compta-ventes-20). Recommandation : brancher le module sur opLiaPaiement (le point d’entrée existe) puis retirer ses barres d’essai (« Tests 0 / 25 », « + 1 semaine », « Coulisses · simulation »)."
+  },
+  {
+   "n": "compta-reste-03",
+   "gravite": "gênant",
+   "ecran": "Fenêtre « Facture fournisseur ou dépense » (et « Nouvelle facture »)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Comptabilité › Achats › ＋ Nouvelle opération › Facture fournisseur ou dépense ; fournisseur et description remplis ; Montant HT « 1.234,56 » (point des milliers, comme on l’écrit souvent) ; TVA 20 %.",
+   "attendu": "Le montant est lu 1 234,56 (ou la saisie est refusée avec une phrase).",
+   "constate": "Il est lu 1,23 : le Total TTC en direct affiche 1,48 € et, si on enregistre, une dépense de 1,23 € HT entre en comptabilité. « 1 234,56 » (avec espace) et « 1234.56 » sont bien lus.",
+   "preuve": "compta-reste-parcours-a.js : « compta-reste-03 · A3 » ✗ (« 1,48€ »)",
+   "ou": "apercu/prototype-op-gestion.html:10829 const cxNum = v => parseFloat(String(v||'').replace(/\\s/g,'').replace(',','.')) (utilisée par la dépense et la nouvelle facture)",
+   "correction": "Lire un montant par une fonction commune : retirer les points quand une virgule suit (« 1.234,56 »), refuser un montant à plusieurs séparateurs ambigus avec une phrase."
+  },
+  {
+   "n": "compta-reste-04",
+   "gravite": "gênant",
+   "ecran": "Fenêtre « Facture fournisseur ou dépense »",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Même fenêtre ; Montant HT « 12000000 » ou « 1e9 » ; Enregistrer.",
+   "attendu": "Un montant démesuré (faute de frappe : deux zéros de trop) est refusé ou demande confirmation.",
+   "constate": "Rangé sans un mot : « Rangée dans Matériel & produits : 14 400 000,00 € TTC » (et 1 200 000 000,00 € TTC pour « 1e9 »). Les achats, la TVA, la balance et le résultat d’octobre sont faussés d’un coup.",
+   "preuve": "compta-reste-parcours-a.js : « compta-reste-04 · A8b » 2 ✗",
+   "ou": "apercu/prototype-op-gestion.html:10872 depenseok : seuls « ht > 0 » est contrôlé",
+   "correction": "Refuser au-delà d’un plafond raisonnable (1 000 000 € HT) avec « Vérifie le montant : ce chiffre est très élevé. »"
+  },
+  {
+   "n": "compta-reste-05",
+   "gravite": "gênant",
+   "ecran": "Fenêtre « Facture fournisseur ou dépense » : date d’une autre période",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Même fenêtre ; date de la facture « 05/11/2026 » (saisie au clavier) ; Enregistrer.",
+   "attendu": "Une phrase d’utilisateur : « Cette facture n’est pas d’octobre : octobre est le seul mois ouvert. »",
+   "constate": "« Le prototype tient le mois d’octobre : choisis une date d’octobre. Une autre date ne serait comptée nulle part. » : un reste d’échafaudage, et une phrase qui laisse entendre que la dépense serait perdue.",
+   "preuve": "compta-reste-parcours-a.js : « compta-reste-05 · A6 » ✗",
+   "ou": "apercu/prototype-op-gestion.html:10879",
+   "correction": "Réécrire la phrase sans « prototype »."
+  },
+  {
+   "n": "compta-reste-06",
+   "gravite": "gênant",
+   "ecran": "Fiche de paie ouverte en grand (le document remis au salarié)",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "soumettre",
+   "etapes": "Comptabilité › Paie › Le mois (tout valider, verrouiller) › Fiches de paie › Calculer les fiches › toucher la ligne de Sophie Martin.",
+   "attendu": "Un bulletin que le salarié peut recevoir, sans mot d’échafaudage.",
+   "constate": "Le pied du bulletin imprime : « Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale 3 925,00 €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur… ». Le même document est « distribué » aux salariés (« Mes heures »).",
+   "preuve": "compta-reste-parcours-f.js : « compta-reste-06 · F5 » ✗ ; capture mac-paie-fiche-grand.png",
+   "ou": "apercu/prototype-op-gestion.html:12770 paieBulletinDoc (pdf-pied)",
+   "correction": "Garder l’avertissement de fond (calcul indicatif, à valider par l’expert-comptable) mais sans « Prototype » ni « données fictives ».",
+   "recommandation": "Décision de produit : tant que les barèmes sont des exemples, le bulletin doit le dire ; Justin choisit la formulation d’un document remis à un salarié."
+  },
+  {
+   "n": "compta-reste-07",
+   "gravite": "gênant",
+   "ecran": "Paie, Charges, Salariés, Normes, Paiement en ligne, plateforme agréée, import de paie",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Lire les onglets Fiches de paie, Salariés, Charges et déclarations, Conformité › Aux normes, Trésorerie › Paiement en ligne, et les fenêtres « Ta plateforme agréée », « Envoyer au cabinet de paie » (format du fichier).",
+   "attendu": "Pas de phrase qui parle du « prototype », de la « vraie version » ou de données d’exemple à une personne qui travaille.",
+   "constate": "« Taux d’exemple dans ce prototype : un vrai calcul suit les barèmes… » (Fiches de paie) ; « Montants calculés avec des taux d’exemple », « Dans la vraie version, elle part sur net-entreprises.fr » (Charges) ; « non détaillé dans ce prototype » (Salariés) ; « TeamOP la fournira avant la vraie version » (Normes) ; « Dans la vraie version, OP GESTION est prévu pour s’y brancher » (plateforme) ; « dans la vraie version, un fichier tableur » / « Pas de fichier sous la main ? Simuler la réception » (paie) ; « dans la vraie version, ce sont celles de ta Comptabilité » (Paiement en ligne) ; SMIC « (… € pour 151,67 h, exemple) ».",
+   "preuve": "compta-reste-mots.js : « compta-reste-07 » 5 ✗ ; liste complète dans campagne/mots-compta-reste.json",
+   "ou": "apercu/prototype-op-gestion.html:12549, 12561, 12646, 12782, 12823, 11193, 11380, 11489, 12770",
+   "correction": "Réécrire chaque phrase pour dire ce que fait l’application aujourd’hui, sans parler de « version ». Garder « à faire valider par ton expert-comptable » là où c’est un vrai conseil."
+  },
+  {
+   "n": "compta-reste-08",
+   "gravite": "gênant",
+   "ecran": "Cadre « OP COMPTABLE » : Comment ça marche, Banque, Paie, Fin de mois (vue comptable), Dossier, Tableau de bord",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Menu › Comptabilité › cadre › « Comment ça marche » (menu Apprendre) ; Banque ; Paie ; Réglages › Comptable › Clôtures et Dossier et plan comptable.",
+   "attendu": "En application (?app=1), plus aucune phrase de démonstration (le cadre masque déjà « La démo » et « Tests guidés »).",
+   "constate": "L’aide contient « Cette démonstration et la vraie vie », « La banque est simulée », « Les données sont fictives : Clim Services 17 n’existe pas, ses clients non plus », « dans ce prototype, rien n’est transmis » ; Banque : « (ici simulée ; en vrai, un service agréé…) » ; Paie : « taux d’exemple (barèmes 2026, données fictives) » ; Clôtures : « inventaire fictif » ; Dossier : « Entreprise fictive » ; Tableau de bord : « paie et achats d’exemple ».",
+   "preuve": "compta-reste-cadre-mots.js : « compta-reste-08 » 10 ✗",
+   "ou": "apercu/prototype-comptabilite.html : VUES.aide (2687), VUES.banque (2583), VUES.paie (2555), VUES.clotures (2607), VUES.dossier (1875) ; masquage existant : opc-app (ligne 3727)",
+   "correction": "Étendre le masquage de l’application (OPC_APP) à ces phrases et à la section « Cette démonstration et la vraie vie »."
+  },
+  {
+   "n": "compta-reste-09",
+   "gravite": "gênant",
+   "ecran": "Neuf onglets de la Comptabilité (TVA, Journal, Balance, Grand livre, Résultat, Normes, Archives, Clôture, Envoi)",
+   "role": "marc",
+   "profils": [
+    "mac",
+    "iphone",
+    "ipad"
+   ],
+   "decision": "soumettre",
+   "etapes": "Comptabilité › Fiscal › TVA (puis chacun des autres onglets).",
+   "attendu": "Un bandeau qui renvoie vers l’écran complet le nomme sans ambiguïté, et ne renvoie pas quelqu’un déjà dans la Comptabilité vers « la Comptabilité ».",
+   "constate": "« Cet écran est un résumé. Le détail, avec la suite à donner, est dans la Comptabilité. [Ouvrir dans la Comptabilité] », sur les neuf onglets : on est déjà dans « Comptabilité », et le bouton ouvre en fait la fenêtre plein écran « OP COMPTABLE ». Sur Clôture et Envoi : « La clôture du mois se fait dans « Fin de mois », dans la Comptabilité » alors que l’onglet s’appelle « Clôture du mois » et que « Envoyer octobre » est justement sur l’écran Envoi.",
+   "preuve": "compta-reste-details.js : « compta-reste-09 » et « 09b » ✗",
+   "ou": "apercu/prototype-op-gestion.html:22337-22339 cmptApres",
+   "correction": "Nommer la cible : « Ouvrir OP COMPTABLE (la comptabilité complète) » ; dire « Clôture du mois » ; sur Envoi, ne pas renvoyer vers l’écran qui contient déjà le bouton.",
+   "recommandation": "Touche au nom des deux comptabilités (voir compta-ventes-19) : à trancher avec le nom de la porte « Comptabilité » du menu."
+  },
+  {
+   "n": "compta-reste-10",
+   "gravite": "gênant",
+   "ecran": "Conformité › Archives & exports › « Bilan des encaissements (PDF) »",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "corriger",
+   "etapes": "Comptabilité › Conformité › Archives & exports › Bilan des encaissements › Ouvrir ; comparer avec Trésorerie › Paiements (« reçu en octobre ») et Fiscal › TVA.",
+   "attendu": "Le bilan des encaissements d’octobre dit le même total reçu que Paiements (3 085,00 €) et la même TVA collectée (482,81 €).",
+   "constate": "Le bilan dit 3 045,00 € TTC, 11 paiements, TVA 445,17 + 34,00 = 479,17 € : il laisse les 40,00 € d’espèces reçues sur place par un technicien et pas encore sur une facture, que Paiements (« dont 40,00 € reçus sur place ») et la TVA (482,81 €) comptent. Trois « TVA collectée » dans le même produit (479,17 / 479,16 dans le cadre / 482,81).",
+   "preuve": "compta-reste-parcours-g.js : « compta-reste-10 · G5 » ✗ ; capture mac-parcours-g-bilan.png",
+   "ou": "apercu/prototype-op-gestion.html:5578 bilanPdf",
+   "correction": "Ajouter au bilan la ligne « dont 40,00 € reçus sur place, pas encore sur une facture » et compter la TVA de cet acompte."
+  },
+  {
+   "n": "compta-reste-11",
+   "gravite": "gênant",
+   "ecran": "Fiscal › Balance, Grand livre ; Paie › Fiches de paie, Salariés (iPad portrait)",
+   "role": "marc",
+   "profils": [
+    "ipad"
+   ],
+   "decision": "corriger",
+   "etapes": "iPad 820 px de large (portrait), Comptabilité › Fiscal › Balance (puis Grand livre, Paie › Fiches de paie, Salariés).",
+   "attendu": "Les colonnes tiennent, ou le tableau dit qu’il défile (fondu, ombre, flèche).",
+   "constate": "Les tableaux dépassent de leur carte de 154 px (Balance, Grand livre) et de 282 px (Fiches de paie, Salariés) : « Solde créditeur », le solde cumulé, « Net payé » et « Coût employeur » sont coupés au bord, sans aucun indice : « DÉBIT CRÉDIT SOLDE DÉBITEUR CR… » se lit comme une page cassée. On les atteint en faisant glisser le tableau (réglé en overflow:auto) : personne ne le devine. Le Journal est dans le même cas (colonne « Libellé » coupée à 225 px sur 4 lignes).",
+   "preuve": "compta-reste-tableaux.js ipad : « compta-reste-11 » 4 ✗ ; captures mep-ipad-jour-balance.png, mep-ipad-jour-grandlivre.png, mep-ipad-jour-ecritures.png",
+   "ou": "apercu/prototype-op-gestion.html : .cx-liste (ligne 1647) et .pt-paie (1514)",
+   "correction": "Sous 900 px de contenu : fondu à droite + ombre sur le conteneur qui défile (comme les onglets), ou masquer les colonnes secondaires (déjà fait ailleurs avec « seul-etroit »)."
+  },
+  {
+   "n": "compta-reste-12",
+   "gravite": "détail",
+   "ecran": "Fiscal › TVA et Balance",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "soumettre",
+   "etapes": "Comptabilité › Fiscal › TVA : « TVA collectée » ; Fiscal › Balance : compte 44571.",
+   "attendu": "Même montant au centime.",
+   "constate": "TVA collectée 482,81 € à l’écran TVA, 482,80 € au compte 44571 de la balance (et un compte 658 « Écart d’arrondi (charge) » de 0,01 € qui rattrape la différence). Un expert-comptable verra le centime.",
+   "preuve": "compta-reste-parcours-d.js : « compta-reste-12 · E1b » ✗",
+   "ou": "apercu/prototype-op-gestion.html:8150 cpTva (arrondi sur la base) et 8112 cpEcritures (arrondi par paiement)",
+   "correction": "Arrondir au même endroit des deux côtés.",
+   "recommandation": "Un choix de méthode comptable (arrondi par pièce ou sur la base) : à faire valider par l’expert-comptable."
+  },
+  {
+   "n": "compta-reste-13",
+   "gravite": "détail",
+   "ecran": "Conformité › Aux normes",
+   "role": "marc",
+   "profils": [
+    "mac",
+    "iphone",
+    "ipad"
+   ],
+   "decision": "corriger",
+   "etapes": "Comptabilité › Conformité › Aux normes : lire « 0 sur 13 points vérifiés » puis les quatre pastilles.",
+   "attendu": "Les nombres se recoupent.",
+   "constate": "« 0 sur 13 points vérifiés » mais « 6 à régler · 8 à surveiller » (14) : « à surveiller » compte aussi des points qui ne sont pas « vérifiés tout seuls ».",
+   "preuve": "compta-reste-details.js : « compta-reste-13 » ✗",
+   "ou": "apercu/prototype-op-gestion.html:11319-11322 cxVueNormes",
+   "correction": "Compter la même population des deux côtés (13) ou nommer « 14 points, dont 13 se vérifient tout seuls »."
+  },
+  {
+   "n": "compta-reste-14",
+   "gravite": "détail",
+   "ecran": "Paie › Salariés, Fiches de paie (en-têtes de colonnes)",
+   "role": "marc",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "decision": "corriger",
+   "etapes": "Comptabilité › Paie › Salariés.",
+   "attendu": "En-têtes en français correct : « Entré le », « Salaire de base », « Impôt (taux) », « Net payé ».",
+   "constate": "« Entré Le », « Salaire De Base », « Taux Horaire », « Impôt (Taux) », « Cotisations Salarié », « Coût Employeur » : une majuscule à chaque mot.",
+   "preuve": "compta-reste-details.js : « compta-reste-14 » ✗ ; capture mac-jour-marc-salaries.png",
+   "ou": "apercu/prototype-op-gestion.html:1506 .pt-entete{text-transform:capitalize}",
+   "correction": "Retirer text-transform:capitalize."
+  },
+  {
+   "n": "compta-reste-15",
+   "gravite": "détail",
+   "ecran": "Paie › Le mois › relevé d’une personne › « Valider quand même »",
+   "role": "marc",
+   "profils": [
+    "mac"
+   ],
+   "decision": "soumettre",
+   "etapes": "Paie › Le mois › relevé de Karim › « Valider quand même » (semaine à alerte du Code du travail).",
+   "attendu": "Une fenêtre de confirmation qui dit l’alerte.",
+   "constate": "Le bouton ne valide pas : il pose une bulle de 6 secondes qui porte un second bouton « Valider quand même » ; si on est lent ou si on est sur téléphone, rien n’est validé et rien ne le dit.",
+   "preuve": "compta-reste-parcours-f.js : F2 (la validation passe seulement en touchant la bulle)",
+   "ou": "apercu/prototype-op-gestion.html:12584 valsem",
+   "correction": "Confirmer dans une fenêtre, comme « Verrouiller octobre »."
+  },
+  {
+   "n": "compta-reste-20",
+   "gravite": "détail",
+   "ecran": "Achats › Factures & dépenses (total du bas) et Comptes fournisseurs",
+   "role": "marc",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "decision": "corriger",
+   "etapes": "Comptabilité › Achats › Factures & dépenses › « Tous les achats », lire « à payer » en bas de liste ; puis Comptes fournisseurs › « encore à payer ».",
+   "attendu": "Un mot, un montant.",
+   "constate": "« Achats 2 457,05 € · à payer 926,98 € » en bas de la liste, « 896,28 € encore à payer » dans Comptes fournisseurs : l’écart (30,70 €) est celui des trois notes de frais pas encore validées, comptées « à payer » dans la liste.",
+   "preuve": "compta-reste-details.js : « compta-reste-20 » ✗",
+   "ou": "apercu/prototype-op-gestion.html:10744 cxListe (cx-total)",
+   "correction": "Ne pas compter les notes à valider dans « à payer », ou écrire « dont 30,70 € de notes de frais à rembourser »."
+  }
+ ],
+ "sondes": [
+  "compta-reste-outils.js",
+  "compta-reste-balayage.js + compta-reste-balayage-tout.sh (460 gestes)",
+  "compta-reste-parcours-a.js (dépense)",
+  "compta-reste-parcours-b.js (payer un fournisseur)",
+  "compta-reste-parcours-c.js (notes de frais)",
+  "compta-reste-parcours-d.js (banque, TVA, balance, grand livre, résultat)",
+  "compta-reste-parcours-f.js (la paie du mois, de bout en bout)",
+  "compta-reste-parcours-g.js (clôture, envoi, FEC, bilan, normes)",
+  "compta-reste-enligne.js (paiement par carte dans le module)",
+  "compta-reste-cadre-coherence.js, compta-reste-cadre-parcours.js, compta-reste-cadre-explore.js, compta-reste-cadre-mots.js (cadre OP COMPTABLE)",
+  "compta-reste-roles.js",
+  "compta-reste-details.js",
+  "compta-reste-mots.js",
+  "compta-reste-mise-en-page.js",
+  "compta-reste-tableaux.js"
+ ],
+ "mutations": {
+  "script": "compta-reste-mutations.py",
+  "attrapees": "7 sur 7",
+  "detail": [
+   "M1 payer un fournisseur ne marque plus la facture payée : B tombe (10 ✗)",
+   "M2 valider une note de frais ne crée plus la dépense : C tombe",
+   "M3 « frais bancaires » n’explique plus la ligne : D tombe (5 ✗)",
+   "M4 le net payé ajoute l’impôt : F tombe",
+   "M5 la virgule décimale d’une dépense est perdue : A tombe (6 ✗)",
+   "M6 l’envoi ne fige plus octobre : G tombe (5 ✗)",
+   "M7 un montant nul accepté : A tombe (8 ✗) — après avoir rendu la sonde robuste à une fenêtre qui se ferme (elle plantait au lieu de tomber)"
+  ]
+ },
+ "verifie_ok": [
+  "Factures fournisseurs : saisie, doublon refusé, date et échéance contrôlées, TVA et journal recalculés au centime, journal équilibré.",
+  "Paiement d’un fournisseur : 512 et 401 baissent du montant exact, double toucher sans doublon, liste qui s’enchaîne.",
+  "Notes de frais : valider, valider sans ticket (confirmation), refuser (motif obligatoire, annulable), règle « ticket obligatoire » grise et explique.",
+  "Banque : les trois lignes s’expliquent, l’écart de −285,66 € tombe à 0,00 €, la clôture le suit.",
+  "TVA : collectée, déductible, à payer recalculées à part, au centime ; balance équilibrée ; résultat et grand livre justes.",
+  "Paie : de « heures justes » à l’écriture en comptabilité par les seuls boutons ; net = brut − cotisations ; net payé = net − impôt + paniers ; coût = brut + charges + paniers ; totaux de l’écran = somme des six fiches, au centime.",
+  "Clôture : chaque « Voir › » mène où il dit ; envoi fige octobre ; plus aucun geste ne touche octobre ensuite.",
+  "Droits : Julie n’a pas la Paie (menu, adresse, cadre) ; Sophie et Karim n’ont pas la Comptabilité.",
+  "Mise en page : aucun glissement latéral, aucune cible sous 44 px au doigt, aucun champ sous 16 px, sur les six profils ; 0 erreur JavaScript."
+ ]
+}
