@@ -483,7 +483,7 @@ html .mat-pied .btn{flex:1 1 auto}
 html .ms-tete .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 html .ms-bandeau{padding:12px 16px}html .ms-bandeau .dv-tache{border-bottom:0;padding:2px 0;flex-wrap:wrap}html .ms-bandeau .dv-c b{font-size:16px}
 html .ms-bd{display:flex;gap:8px;flex:none}html .ms-bd .btn{min-height:44px}
-html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:anywhere;line-height:1.25}
+html .ms-kpis .kpi{cursor:pointer;min-width:0}html .ms-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .ms-seg{align-self:flex-start;max-width:100%}
 html .ms-cherche{display:flex;gap:10px;align-items:center}html .ms-cherche .saisie{flex:1 1 0;min-width:0;width:auto;margin:0;min-height:48px}html .ms-cherche .btn{flex:none;min-height:48px}
 html .ms-liste{padding:6px 8px;display:flex;flex-direction:column}html .ms-liste .groupe{padding:14px 12px 4px}html .ms-cat>summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center}
@@ -547,6 +547,7 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
   html .ms-l .fo-dr{max-width:44%}
 }
 @media (max-width:340px){html .ms-ic{display:none}html .ms-l{gap:10px}}
+@media (max-width:520px){html .ms-de-vers{grid-template-columns:minmax(0,1fr)}html .ms-echange{justify-self:center;margin:0}}   /* « De » et « Vers » en colonne : le nom du camion s'écrit en entier */
 /* ── boxes ── */
 .bxl-c{gap:8px}
 .bxl-main{display:flex;flex-direction:column;gap:10px;text-align:left;background:none;border:0;padding:0;margin:0;color:var(--encre);font:inherit;cursor:pointer;width:100%;min-width:0;border-radius:12px}
@@ -3412,6 +3413,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-sept{margin:6px 0}
 .tt-jr{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--trait);color:var(--encre);font:inherit;cursor:pointer;min-height:56px;padding:9px 4px;display:flex;align-items:center;gap:12px}
 .tt-jr b{font-variant-numeric:tabular-nums;white-space:nowrap}.tt-jr.ouv b{color:var(--orange)}.tt-jr.manque .fo-n{color:var(--doux)}
+.tt-jr{flex-wrap:nowrap}.tt-jr>.fo-n{flex:1 1 0;min-width:0}   /* une ligne de jour ne passe jamais sur deux niveaux : le chevron tombait seul sous le texte à 360 px (la règle des .fo-r de téléphone les fait passer à la ligne) */
 .tt-jd{flex:none;min-width:54px;font-weight:650;font-variant-numeric:tabular-nums}
 .tt-h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--doux)}
 .tt-det{border-bottom:1px solid var(--trait);padding:2px 0}
@@ -3459,10 +3461,12 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-mh-auj{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px}.tt-mh-auj .btn{min-height:44px}
 .tt-pret{display:flex;flex-direction:column;gap:10px}.tt-pret .fo-n{gap:2px;font-size:16px}.tt-pret .btn.large{width:100%}.tt-pret .lien{align-self:flex-start;min-height:44px}
 .tt-mh-k{margin:12px 0 6px}
+@media (min-width:761px){.tt-pret .btn.large{width:auto;min-width:320px;align-self:flex-start}}   /* sur ordinateur le bouton n'a pas à faire 1 100 px de large */
 .tt-mh-j{display:flex;flex-direction:column;gap:2px}.tt-mh-j>h3{margin:0 0 2px}
 .tt-mh-sem{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:10px 0 0;font-size:15px}.tt-mh-sem:first-of-type{margin-top:2px}.tt-tot-s{font-variant-numeric:tabular-nums;font-weight:700}
 .tt-fiches{display:flex;flex-direction:column;gap:2px}.tt-fp{min-height:60px}.tt-fp .fo-n{flex:1 1 auto;min-width:0}.tt-fp .btn{min-height:44px;flex:none}
-@media (max-width:760px){.tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
+@media (max-width:760px){.tt-pied{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;margin:0 -22px;padding:10px 22px calc(12px + env(safe-area-inset-bottom,0px));background:var(--feuille);border-top:1px solid var(--trait)}   /* au téléphone le bouton reste collé au bas de la feuille, au-dessus du clavier et de l'encoche */
+.tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -4718,7 +4722,7 @@ function panneauSms(id){ const i = INTS.find(o => o.id === id), c = CLIENTS[i.cl
 function compteRenduPdf(id){
   const i = INTS.find(o => o.id === id), F = fiche(id), c = CLIENTS[i.cli], faits = tousControles(F).filter(k => F.coches[k]);
   const sig = F.absent ? '<i>Le client n’était pas sur place : non signé.</i>' : F.signature && F.signature !== 'signee' ? `<img class="sig" src="${F.signature}" alt="Signature du client">` : F.signature ? `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(F.signeNom)}</b>` : '<i>Pas encore signé</i>';
-  return `<div class="pdf"><div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>${ENTREPRISE.tel} · SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>${MOT_COMPTE[F.metier]}</h4>N° CR-2026-${String(/^i\d+$/.test(id) ? +id.slice(1) : 100 + Math.max(0, INTS.filter(o => !/^i\d+$/.test(o.id)).findIndex(o => o.id === id)) + 1).padStart(3, '0')}<br>${jlong(i.d)}</div></div>
+  return `<div class="pdf"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>${ENTREPRISE.tel} · SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>${MOT_COMPTE[F.metier]}</h4>N° CR-2026-${String(/^i\d+$/.test(id) ? +id.slice(1) : 100 + Math.max(0, INTS.filter(o => !/^i\d+$/.test(o.id)).findIndex(o => o.id === id)) + 1).padStart(3, '0')}<br>${jlong(i.d)}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Intervention</h6>${esc(i.titre)}<br>Sur place de ${F.debut} à ${F.fin} · ${tech(i.tech).nom}${c.appareils[0] ? '<br>' + esc(c.appareils[0].nom) + ' · ' + esc(c.appareils[0].det) : ''}</div></div>
     ${i.motif ? `<h6>Pourquoi nous sommes venus</h6><div>« ${esc(i.motif)} »</div>` : ''}
     <h6>${MOT_COMPTE[F.metier]}</h6><div>${esc(F.compte) || '—'}</div>
@@ -4746,7 +4750,7 @@ function vueClientVoit(){
   if (modeClient === 'pdf') return tete + compteRenduPdf(voirInt);
   const f = FACTURES.find(x => x.int === voirInt);
   return tete + `<div class="client-web ${modeClient==='ordi'?'ordi':''}"><div class="url">${modeClient==='ordi'?'<span class="pts"><i></i><i></i><i></i></span>':''}🔒 ${lienClient(voirInt).replace('https://','')}</div><div class="corps">
-    <div style="display:flex;gap:12px;align-items:center"><span class="logo-ent">CS</span><div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">Votre intervention du ${jlong(i.d)}</div></div></div>
+    <div style="display:flex;gap:12px;align-items:center">${logoEnt('span')}<div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">Votre intervention du ${jlong(i.d)}</div></div></div>
     <div class="bloc">${i.st === 'fait' ? '<div class="st st-v" style="align-self:flex-start">✓ Intervention terminée</div>' : '<div class="st st-o" style="align-self:flex-start">Aperçu · l’intervention est encore en cours</div>'}<div class="gris petit">${tech(i.tech).nom} était sur place de ${F.debut} à ${F.fin}</div></div>
     <div class="bloc"><h5>${MOT_COMPTE[F.metier]}</h5><div>${esc(F.compte) || '—'}</div></div>
     <div class="bloc"><h5>Ce qui a été contrôlé</h5><div>${faits.map(k=>'<div>✓ '+esc(k)+'</div>').join('') || '—'}</div></div>
@@ -4891,7 +4895,7 @@ function demandeReponse(id, oui){
 /* ══ LES RÉGLAGES DES RENDEZ-VOUS EN LIGNE (l'entreprise décide quand ses clients peuvent demander) ══ */
 function panneauReglagesRdv(){
   const R = RDV_REGLES, cb = (attr, v, lib) => `<label class="case"><input type="checkbox" data-rr="${attr}" ${v ? 'checked' : ''}> ${lib}</label>`;
-  ouvrirPanneau(`<span class="surtitre">Paramètres</span><h2>Rendez-vous en ligne</h2><span class="gris">Quand tes clients peuvent demander un rendez-vous depuis leur lien. Les moments proposés suivent toujours le planning : si une installation est posée un matin, ce matin n’est plus proposé.</span>
+  ouvrirPanneau(`<span class="surtitre">Planning</span><h2>Rendez-vous en ligne</h2><span class="gris">Quand tes clients peuvent demander un rendez-vous depuis leur lien. Les moments proposés suivent toujours le planning : si une installation est posée un matin, ce matin n’est plus proposé.</span>
     <div class="carte"><h3>Après un devis accepté</h3>${[['date','Le client accepte et choisit sa date tout de suite','posée directement au planning, « accepté par le client »'],['accepte','Le client accepte seulement','le bureau lui envoie ensuite « Choisissez votre date »']].map(([k,l,d])=>`<label class="case"><input type="radio" name="rr-ad" data-rr="apresDevis" value="${k}" ${R.apresDevis===k?'checked':''}><span><b>${l}</b><br><span class="gris petit">${d}</span></span></label>`).join('')}</div>
     <div class="carte">${cb('actif', R.actif, '<span><b>Les clients peuvent demander un rendez-vous</b><br><span class="gris petit">depuis leur lien, après un devis accepté</span></span>')}</div>
     <div class="carte"><h3>Les jours et demi-journées ouverts</h3><div class="rr-grille"><span></span><b>Matin</b><b>Après-midi</b>${[1,2,3,4,5,6].map(j => `<span>${JOURS_SEM[j]}</span>${cb('j' + j + 'matin', R.jours[j].matin, '')}${cb('j' + j + 'aprem', R.jours[j].aprem, '')}`).join('')}</div><div class="alerte petit" id="rr-alerte" role="alert" style="margin-top:10px;${R.actif !== false && Object.values(R.jours).every(j => !j.matin && !j.aprem) ? '' : 'display:none'}">⚠ Aucun créneau n’est ouvert : tes clients ne verront aucun moment libre, seulement « qu’on m’appelle ». Coche au moins une demi-journée.</div></div>
@@ -4983,12 +4987,12 @@ function etapes(f){
 }
 function pdfFacture(f){
   const c = CLIENTS[f.cli], L = lignesDe(f), ht = htDe(f), i = f.int && INTS.find(o => o.id === f.int);
-  return `<div class="pdf" ${f.num==='—' ? 'data-brouillon="1"' : ''}><div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}</div><div style="text-align:right;margin-left:auto"><h4>${f.st==='avoir' ? 'Avoir' : 'Facture'}</h4><b>${f.num==='—'?'FAC-2026-0' + numSuiv:f.num}</b><br>Émise le ${f.emise==='—'?'31/10/2026':f.emise+'/2026'}${f.st==='avoir' ? '' : '<br>Échéance ' + (f.ech==='—'?'30/11/2026':f.ech+'/2026')}</div></div>
+  return `<div class="pdf" ${f.num==='—' ? 'data-brouillon="1"' : ''}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}</div><div style="text-align:right;margin-left:auto"><h4>${f.st==='avoir' ? 'Avoir' : 'Facture'}</h4><b>${f.num==='—'?'FAC-2026-0' + numSuiv:f.num}</b><br>Émise le ${f.emise==='—'?'31/10/2026':f.emise+'/2026'}${f.st==='avoir' ? '' : '<br>Échéance ' + (f.ech==='—'?'30/11/2026':f.ech+'/2026')}</div></div>
     <div class="deux"><div><h6>Facturé à</h6><b>${esc(c.nom)}</b><br>${esc(c.adr)}</div><div><h6>Prestation</h6>${i?`${esc(i.titre)}<br>le ${jlong(i.d)}, ${fiche(i.id).debut} – ${fiche(i.id).fin}<br>par ${tech(i.tech).nom}`:esc(f.objet)}</div></div>
     <table><thead><tr><th>Désignation</th><th class="p-qc">Qté</th><th style="text-align:right">Prix HT</th></tr></thead><tbody>${L.map(l=>`<tr><td>${esc(l.d)}<span class="p-q">\u00a0×\u00a0${esc(l.q)}</span></td><td class="p-qc">${esc(l.q)}</td><td style="text-align:right">${eur(l.pu||0)}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="2">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="2">TVA ${String(f.tva).replace('.',',')} %</td><td style="text-align:right">${eur(ht*f.tva/100)}</td></tr><tr><td colspan="2"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(ht*(1+f.tva/100))}</b></td></tr></tfoot></table>
     ${f.tva===10?'<div class="mini">TVA à 10 % : travaux dans un logement de plus de deux ans, attestation du client conservée.</div>':''}
-    <div class="deux">${f.st==='avoir' ? '' : '<div><h6>Paiement</h6>Virement : ' + ENTREPRISE.iban + '<br>Carte : lien de paiement dans l’e-mail</div>'}<div><h6>Pièce jointe</h6>${i?'Compte rendu de l’intervention du '+jcourt(i.d)+' (PDF)':'—'}</div></div>
+    <div class="deux">${f.st==='avoir' ? '' : '<div><h6>Paiement</h6>Virement : ' + ENTREPRISE.iban + (ENTREPRISE.bic ? ' · BIC ' + ENTREPRISE.bic : '') + '<br>Carte : lien de paiement dans l’e-mail</div>'}<div><h6>Pièce jointe</h6>${i?'Compte rendu de l’intervention du '+jcourt(i.d)+' (PDF)':'—'}</div></div>
     <div class="pdf-pied">${f.st==='avoir'?'':c.type==='pro'?'En cas de retard de paiement : pénalités au taux d’intérêt de la BCE majoré de 10 points, et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L441-10 du Code de commerce). Pas d’escompte pour paiement anticipé.':'Pas d’escompte pour paiement anticipé. En cas de retard, des pénalités au taux légal pourront être appliquées.'} ${ENTREPRISE.nom} · SIRET ${ENTREPRISE.siret}</div></div>`;
 }
 
@@ -5097,7 +5101,7 @@ function vueContratNouveau(){
 function pdfContrat(B, k){
   const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = (Number(B.prix)||0) / (Number(B.freq)||1);
   const sig = k && k.st === 'signe' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
-  return `<div class="pdf" ${k ? '' : 'data-brouillon="1"'}><div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
+  return `<div class="pdf" ${k ? '' : 'data-brouillon="1"'}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
     <h6>Entre les soussignés</h6><div><b>${ENTREPRISE.nom}</b>, représentée par ${ENTREPRISE.patron}, ci-après « le prestataire », et <b>${esc(c.nom)}</b>, ${esc(c.adr)}, ci-après « le client ».</div>
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
     <h6>2 · Ce qui est compris</h6><div>${Mo.presta.map(p=>'• '+esc(p)).join('<br>')}${B.pieces?'<br>• ' + esc(metiersCtr(B.modele).pieces):''}</div>
@@ -5125,7 +5129,7 @@ function vueSigner(id){
   const retour = RL_ACTIF ? '<button type="button" class="lien retour" data-retour="1">‹ Retour</button>' : `<button type="button" class="lien retour" data-go="contrat-x-${id}">‹ Revenir au bureau</button>`;   // en rôle, rlRetourBouton le remplace par l’unique « Retour » (client : vers son espace)
   return `${retour}${chezClient ? '' : `<div class="info petit">C’est la page que ${esc(c.contact.split(',')[0])} ouvre depuis l’e-mail, sur son téléphone ou son ordinateur.</div>`}
   <div class="client-web" style="max-width:620px"><div class="url">🔒 climservices17.teamop.fr/signer/K7P2</div><div class="corps">
-    <div style="display:flex;gap:12px;align-items:center"><span class="logo-ent">CS</span><div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">vous propose un contrat d’entretien</div></div></div>
+    <div style="display:flex;gap:12px;align-items:center">${logoEnt('span')}<div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">vous propose un contrat d’entretien</div></div></div>
     <div class="bloc"><h5>${esc(k.titre)}</h5><div>${k.freq} visite${k.freq>1?'s':''} par an · ${eur(k.prix)} HT par an</div><button type="button" class="btnc clair" data-action="lireContrat" data-id="${id}">Lire le contrat en entier</button></div>
     ${k.st === 'signe' ? `<div class="bloc"><h5>Ce contrat est déjà signé</h5><div>Signé le ${k.signe}. La copie signée a été envoyée par e-mail.</div>${chezClient ? '' : `<button type="button" class="btnc" data-go="contrat-x-${id}">Voir le contrat</button>`}</div>` : `<label class="bloc" style="flex-direction:row;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" id="lu" style="width:24px;height:24px">J’ai lu le contrat et je l’accepte</label>
     <div class="bloc"><h5>Votre signature</h5><canvas class="signe" id="signe-ctr" width="600" height="200" aria-label="Signer ici"></canvas><button type="button" class="lien" data-action="sigCtrEfface">Effacer</button></div>
@@ -5164,7 +5168,7 @@ function vueEncaissements(){
 }
 function bilanPdf(){
   const tot = ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0), parTaux = t => ENCAISSEMENTS.filter(e => e.tva === t).reduce((s,e)=>s+e.ttc,0), ht20 = parTaux(20)/1.2, ht10 = parTaux(10)/1.1, ht55 = parTaux(5.5)/1.055;
-  return `<div class="pdf" data-nom="Bilan des encaissements octobre 2026.pdf" data-a="${esc(CP_EXPERT.mail)}" data-objet="Bilan des encaissements d’octobre 2026 — ${esc(ENTREPRISE.nom)}" data-corps="${esc(`Bonjour,\n\nVoici le bilan des encaissements d’octobre 2026.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}"><div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Bilan des encaissements</h4>Octobre 2026<br>édité le 31/10/2026</div></div>
+  return `<div class="pdf" data-nom="Bilan des encaissements octobre 2026.pdf" data-a="${esc(CP_EXPERT.mail)}" data-objet="Bilan des encaissements d’octobre 2026 — ${esc(ENTREPRISE.nom)}" data-corps="${esc(`Bonjour,\n\nVoici le bilan des encaissements d’octobre 2026.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Bilan des encaissements</h4>Octobre 2026<br>édité le 31/10/2026</div></div>
     <h6>Synthèse</h6><table><tbody><tr><td>Chiffre d’affaires encaissé HT</td><td style="text-align:right">${eur(ht20+ht10+ht55)}</td></tr><tr><td>TVA collectée à 20 % (base ${eur(ht20)})</td><td style="text-align:right">${eur(ht20*.2)}</td></tr><tr><td>TVA collectée à 10 % (base ${eur(ht10)})</td><td style="text-align:right">${eur(ht10*.1)}</td></tr>${ht55 ? '<tr><td>TVA collectée à 5,5 % (base ' + eur(ht55) + ')</td><td style="text-align:right">' + eur(ht55*.055) + '</td></tr>' : ''}<tr><td><b>Total encaissé TTC</b></td><td style="text-align:right"><b>${eur(tot)}</b></td></tr></tbody></table>
     <h6>Par moyen de paiement</h6><table><tbody>${['Carte','Virement','Chèque','Espèces'].map(m=>`<tr><td>${m}</td><td style="text-align:right">${eur(ENCAISSEMENTS.filter(e=>e.mode===m).reduce((s,e)=>s+e.ttc,0))}</td></tr>`).join('')}</tbody></table>
     <h6>Détail · ${ENCAISSEMENTS.length} paiements</h6><table><thead><tr><th>Date</th><th>Client</th><th>Facture</th><th>Moyen</th><th style="text-align:right">TTC</th></tr></thead><tbody>${ENCAISSEMENTS.map(e=>`<tr><td>${e.d}</td><td>${esc(CLIENTS[e.cli].nom)}</td><td>${e.fac}</td><td>${e.mode}</td><td style="text-align:right">${eur(e.ttc)}</td></tr>`).join('')}</tbody></table>
@@ -5397,7 +5401,7 @@ function docDevis(x){
   const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
   const fin = new Date(+y, +m - 1, +j + (x.valid || 30)), valid = String(fin.getDate()).padStart(2, '0') + '/' + String(fin.getMonth() + 1).padStart(2, '0') + '/' + fin.getFullYear();
   return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`Bonjour ${c.contact.split(',')[0]},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(ht * (1 + tva / 100))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
-    <div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}<br>${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div>
+    <div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}<br>${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div>
       <div style="text-align:right;margin-left:auto"><h4>Devis</h4><b>${x.num || 'Brouillon'}</b><br>Établi le ${j}/${m}/${y}<br>Valable jusqu’au ${valid}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Objet</h6>${esc(x.objet)}${c.adr ? '<br>Lieu : ' + esc(c.adr) : ''}</div></div>
     <table><thead><tr><th>Désignation</th><th class="p-qc">Qté</th><th style="text-align:right">Prix unitaire HT</th><th style="text-align:right">Total HT</th></tr></thead>
@@ -5838,7 +5842,7 @@ function stBilan(){
   ouvrirPanneau(`<h2>Bilan · ${per}</h2><span class="gris">Le document tel qu’il sera téléchargé ou envoyé à ton comptable : la synthèse, puis une page par mois.</span>
   <div class="bil" role="document" aria-label="Bilan d’activité ${per}" data-nom="${nom}" data-a="${esc(CP_EXPERT.mail)}" data-objet="Bilan d’activité ${per} — ${ENTREPRISE.nom}" data-corps="${esc(`Bonjour ${CP_EXPERT.qui.split(' ')[0]},\n\nVous trouverez ci-joint le bilan d’activité de ${ENTREPRISE.nom} ${du} : la synthèse de la période, puis le détail mois par mois (chiffre d’affaires, TVA collectée, encaissements, interventions datées et leur règlement).\n\nBien cordialement,\nMarc Leblanc\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`)}">
     <header class="bil-tete">
-      <div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span><span>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}</span></div></div>
+      <div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span><span>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}</span></div></div>
       <div class="bil-titre"><small>Bilan d’activité</small><b>${per}</b><span>${du}</span><span>Édité le 31 octobre 2026</span></div>
     </header>
     <section class="bil-tuiles">
@@ -6023,7 +6027,7 @@ function hExport(){
   const filtre = [hQui !== 'tous' && H_GENS[hQui].nom, hType !== 'tous' && H_TYPES[hType][0], hCli !== 'tous' && CLIENTS[hCli].nom, hCherche && '« ' + hCherche + ' »'].filter(Boolean).join(' · ') || 'toutes les actions';
   ouvrirPanneau(`<h2>Exporter l’historique</h2><span class="gris">Le journal tel qu’il est filtré à l’écran : ${esc(filtre)}.</span>
   <div class="bil" role="document" data-nom="Historique ${ENTREPRISE.nom}.pdf" data-a="" data-objet="Historique des actions — ${ENTREPRISE.nom}">
-    <header class="bil-tete"><div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span><span>SIRET ${ENTREPRISE.siret}</span></div></div>
+    <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span><span>SIRET ${ENTREPRISE.siret}</span></div></div>
       <div class="bil-titre"><small>Historique des actions</small><b>${hJour(jours[jours.length - 1] || AUJ)} → ${hJour(jours[0] || AUJ).toLowerCase()}</b><span>${V.length} actions · ${esc(filtre)}</span></div></header>
     ${jours.map(d => `<section><h5>${hJour(d)}</h5><table><thead><tr><th>Heure</th><th>Qui</th><th>Action</th><th>Détail</th></tr></thead><tbody>${V.filter(j => j.d === d).map(j => `<tr><td>${j.h}</td><td>${H_GENS[j.qui].nom}</td><td>${j.action}${j.el ? ' · ' + esc(cfHEl(j)) : ''}${j.el && j.el.cli && j.el.lib !== CLIENTS[j.el.cli].nom ? ' (' + esc(CLIENTS[j.el.cli].nom) + ')' : ''}</td><td>${j.avant ? esc(j.avant) + ' → ' + esc(j.apres) : esc(cfHDet(j) || '')}</td></tr>`).join('')}</tbody></table></section>`).join('')}
     <footer class="bil-pied"><span>${ENTREPRISE.nom} · journal tenu par OP GESTION, édité le 31 octobre 2026.</span><span>Les lignes de ce journal ne peuvent être ni modifiées ni supprimées dans l’application.</span></footer>
@@ -6212,7 +6216,7 @@ function tExport(){
   const V = tVisibles();
   ouvrirPanneau(`<h2>Exporter les tâches</h2><span class="gris">Toutes les tâches ${tVue === 'moi' ? 'de Marc Leblanc' : tQui !== 'tous' ? 'de ' + tNom(tQui) : 'de toute l’équipe'}, quel que soit l’onglet : à faire (en retard, aujourd’hui, à venir) et faites.</span>
   <div class="bil" role="document" data-nom="Tâches ${ENTREPRISE.nom}.pdf" data-a="" data-objet="Liste des tâches — ${ENTREPRISE.nom}">
-    <header class="bil-tete"><div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
+    <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
       <div class="bil-titre"><small>Liste des tâches</small><b>${tVue === 'moi' ? 'Marc Leblanc' : tQui !== 'tous' ? tNom(tQui) : 'Toute l’équipe'}</b><span>au samedi 31 octobre 2026 · ${V.filter(x => !x.fait).length} à faire</span></div></header>
     ${T_GROUPES.map(([k, l]) => { const L = V.filter(x => tGroupe(x) === k); return L.length ? `<section><h5>${l} · ${L.length}</h5><table><thead><tr><th>Tâche</th><th>Pour qui</th><th>Quand</th><th>Liée à</th></tr></thead><tbody>${L.map(x => `<tr><td>${x.urgent && !x.fait ? '<b>URGENT</b> · ' : ''}${esc(x.t)}${x.note ? '<br><span class="bil-g">' + esc(x.note) + '</span>' : ''}</td><td>${tNom(x.qui)}</td><td>${x.fait ? 'faite le ' + x.fait.quand : tQuand(x)}</td><td>${x.lien ? esc(x.lien.lib) : '—'}</td></tr>`).join('')}</tbody></table></section>` : ''; }).join('')}
     <footer class="bil-pied"><span>${ENTREPRISE.nom} · liste éditée avec OP GESTION le 31 octobre 2026.</span></footer>
@@ -6878,7 +6882,7 @@ function aExport(){
   const titre = aPerLib() + (ids ? ' · ' + noms : '');
   ouvrirPanneau(`<h2>Exporter les absences</h2><span class="gris">${ids ? noms + ', ' : 'Toute l’équipe, '}${aPerLib()} — la période et les personnes choisies au calendrier.</span>
   <div class="bil" role="document" data-nom="Absences ${titre}.pdf" data-a="" data-objet="Relevé des absences — ${titre}">
-    <header class="bil-tete"><div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
+    <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
       <div class="bil-titre"><small>Relevé des absences</small><b>${aPerLib()}</b><span>${ids ? noms + ' · ' : ''}du ${aDate(d0, true)} au ${aDate(d1, true)}</span></div></header>
     <section><h5>Absences validées · ${L.length}</h5><table><thead><tr><th>Personne</th><th class="bil-bur">Type</th><th>Période</th><th class="n">Jours ouvrés</th><th class="bil-bur">Motif</th></tr></thead><tbody>
       ${L.map(a => `<tr><td>${tech(a.tech).nom}<span class="bil-tel bil-sous">${a.motif && a.motif.toLowerCase().startsWith(a.type.toLowerCase()) ? esc(a.motif) : a.type + (a.motif ? ' · ' + esc(a.motif) : '')}</span></td><td class="bil-bur">${a.type}</td><td><span class="bil-bur">${aPeriode(a)}</span><span class="bil-tel">${a.du === a.au ? aCourte(a.du) + (a.demi ? (a.demi === 'matin' ? ' matin' : ' après-midi') : '') : '<span class="bil-nb">' + aCourte(a.du) + ' →</span> <span class="bil-nb">' + aCourte(a.au) + '</span>'}</span></td><td class="n">${aNb(aJours(a, d0, d1))}</td><td class="bil-bur">${esc(a.motif || '')}</td></tr>`).join('') || '<tr><td colspan="5">Aucune absence sur la période.</td></tr>'}</tbody></table></section>
@@ -7543,7 +7547,7 @@ function dvdPreparer(){
 function dvClient(x){
   const c = CLIENTS[x.cli];
   ouvrirPanneau(`<button type="button" class="lien" data-ferme="1" style="align-self:flex-start;margin-top:-6px">‹ Retour</button><span class="surtitre">Ce que voit ${esc(c.contact.split(',')[0])} sur son téléphone</span>
-    <div class="dv-cv"><div class="dv-cv-t"><span class="logo-ent">CS</span><span><b>${ENTREPRISE.nom}</b><small>Devis ${x.num} · valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}</small></span></div>
+    <div class="dv-cv"><div class="dv-cv-t">${logoEnt('span')}<span><b>${ENTREPRISE.nom}</b><small>Devis ${x.num} · valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}</small></span></div>
       <h3>${esc(x.objet)}</h3>
       ${x.lignes.map(l => `<div class="ligne"><span class="petit">${esc(l[0])}${l[1] > 1 ? ' × ' + l[1] : ''}</span><b>${eur(l[1] * l[2])}</b></div>`).join('')}
       <div class="ligne"><span>Total TTC <span class="faible mini">dont TVA ${dvPct(x.tva)}</span></span><b class="dv-cv-tot">${eur(dvTTC(x))}</b></div>
@@ -7925,9 +7929,9 @@ const CATS = [
   ['', [['accueil','📊','Accueil',1],['statistiques','📈','Statistiques',1],['historique','🕘','Historique',1]]],
   ['Travail', [['planning','🗓️','Planning',1],['interventions','🧰','Interventions',1],['taches','✅','Tâches'],['absences','🏖️','Absences et congés',1]]],
   ['Clients et ventes', [['clients','🏢','Clients',1],['devis','💰','Devis',1],['contrats','📑','Contrats',1],['boiteMail','📧','Boîte mail']]],
-  ['Argent', [['comptabilite','📊','Comptabilité',0,'Factures, paiements, paie'],['achats','🛒','Achats et frais']]],
+  ['Argent', [['comptabilite','📊','Comptabilité',0,'Factures, paiements, paie'],['achats','🛒','Achats et frais',0,'Demandes de l’équipe']]],
   ['Matériel', [['stock','🗃️','Stock'],['produits','📦','Fournisseurs, matériel & produits'],['boxes','🧱','Dépôts et camions']]],
-  ['Personnel', [['equipe','👥','Équipe'],['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules']]],
+  ['Personnel', [['equipe','👥','Équipe'],['pointage','⏱️','Temps de travail'],['vehicules','🚐','Véhicules'],['entreprise','🏢','Mon entreprise',1]]],
   [GROUPE_3D, [['registre','📋','Registre sanitaire'],['carteBox','📍','Carte des box'],['devisXylo','🪵','Devis xylophage']]]
 ];
 const CAT_LIGNES = CATS.flatMap(([g, L]) => L.map(([k, ic, l, fait, sous]) => ({ g, k, ic, l, fait:!!fait, tard:fait === 2, sous:sous || '' })));
@@ -7959,7 +7963,7 @@ new MutationObserver(() => { if (mode === 'auto') appliquerMode(); }).observe(do
 const segMode = () => `<div class="mode-seg" role="group" aria-label="Apparence">${[['jour','Jour'],['nuit','Nuit'],['auto','Auto']].map(([k,l])=>`<button type="button" data-modetheme="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div>`;
 const BASE = { clientvoit:'interventions', inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
 /* la table des écrans, dressée à chaque appel (les vues sont réaffectées plus bas : on lit le dernier état) */
-function vues(){ return { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() }; }
+function vues(){ return { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, entreprise:vueEntreprise, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() }; }
 /* une adresse que l'application ne connaît pas : le menu, la barre et les cases d'Équipe n'y mènent jamais */
 /* « constructor », « toString », « __proto__ » sont des noms de l'objet de base : `!!vues()[r]` les croyait connus, l'écran devenait « [object Object] » et
    la page jetait. Une route est une clé PROPRE de la table, jamais un héritage. */
@@ -8033,7 +8037,7 @@ const ACTIONS = {
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:'Remplacer le ventilateur (devis à faire)', type:'2ᵉ passage', st:'aplanifier' });
     const fa = FACTURES.find(x => x.int === id);   // absente : intervention en garantie, sans facture
-    if (reglages.auto && fa && lignesDe(fa).every(l => l.pu != null)) envoyerFacture(fa);
+    if (reglages.auto && fa && lignesDe(fa).every(l => l.pu != null) && entClientJoignable(fa.cli)) envoyerFacture(fa, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
     journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
     rendre(); scrollTo({ top:0 }); toast(fa ? 'Terminée : le compte rendu part au client, la facture est préparée.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
@@ -8064,8 +8068,11 @@ const ACTIONS = {
   apercuEnvoi(b){ const f = FACTURES.find(x => x.id === b.dataset.id), c = CLIENTS[f.cli], avecCr = f.int && INTS.find(o => o.id === f.int);
     ouvrirPanneau(`<h2>Aperçu et envoi</h2>${pdfFacture(f)}${ecartPaie(f)}<div class="carte petit"><b>À :</b> ${esc(c.mail)}<br><b>Objet :</b> Votre facture — ${ENTREPRISE.nom}<br><b>Pièces jointes :</b> ${avecCr ? 'la facture (PDF) et le compte rendu de l’intervention (PDF)' : 'la facture (PDF)'}<br><span class="faible">Un numéro définitif est donné à l’envoi. Une facture envoyée ne se modifie plus : on la corrige par un avoir.</span></div><button type="button" class="btn large" data-action="envoyer" data-id="${f.id}">Valider et envoyer</button>`, true); },
   envoyer(b){ const f = FACTURES.find(x => x.id === b.dataset.id), avecCr = f.int && INTS.find(o => o.id === f.int); if (f.st !== 'avalider') { fermerPanneau(); rendre(); return; }   /* une facture déjà envoyée ne repart pas, ne recompte pas l'acompte et ne change pas d'état · 13 novembre 2026 */
-    envoyerFacture(f); fermerPanneau(); rendre(); toast(avecCr ? 'Facture envoyée au client, avec le compte rendu joint.' : 'Facture envoyée au client.'); },
-  toutValider(){ const L = FACTURES.filter(f => f.st === 'avalider' && lignesDe(f).every(l => l.pu != null)); L.forEach(envoyerFacture); rendre(); toast(`${L.length} facture${L.length>1?'s':''} envoyée${L.length>1?'s':''}.`); },
+    if (!envoyerFacture(f)) return;   /* le manque est dit par la porte : le panneau reste ouvert, et l'écran ne dit pas « envoyée » */
+    fermerPanneau(); rendre(); toast(avecCr ? 'Facture envoyée au client, avec le compte rendu joint.' : 'Facture envoyée au client.'); },
+  toutValider(){ const L = FACTURES.filter(f => f.st === 'avalider' && lignesDe(f).every(l => l.pu != null)), parties = L.filter(f => envoyerFacture(f, true)); rendre();
+    if (L.length && !parties.length) return entRefusFacture(entrepriseManque(), { aucune:true });   /* une seule phrase pour tout le lot, jamais « 0 facture envoyée » */
+    toast(`${parties.length} facture${parties.length>1?'s':''} envoyée${parties.length>1?'s':''}.`); },
   pdfFacture(b){ ouvrirPanneau(`<h2>La facture</h2>${pdfFacture(FACTURES.find(x => x.id === b.dataset.id))}`, true); },
   ligneAjout(b){ const f = FACTURES.find(x => x.id === b.dataset.id); f.lignes = lignesDe(f); f.lignes.push({ d:'Ligne libre', q:'1', pu:null }); rendre(); },
   partiel(b){ if (CP.envoye) { toast('Octobre est envoyé : ce paiement s’écrira en novembre.'); return; } const f = FACTURES.find(x => x.id === b.dataset.id); ouvrirPanneau(`<h2>Paiement en partie</h2><span class="gris">Reste ${eur(restant(f))}</span><label class="champ">Montant reçu<input id="pp-m" inputmode="decimal" value="${(restant(f)/2).toFixed(2).replace('.',',')}"></label><label class="champ">Moyen<select id="pp-mode"><option>Carte</option><option>Virement</option><option>Chèque</option><option>Espèces</option></select></label><button type="button" class="btn large" data-action="partielOk" data-id="${f.id}">Enregistrer le paiement</button>`); },
@@ -8149,7 +8156,7 @@ const ACTIONS = {
   cAjoutTypeOk(b){ ACTIONS_CREA.cAjoutTypeOk(b); },
   commentAuto(){ ouvrirPanneau(`<h2>Comment ça marche</h2>
     <div class="carte"><h3>1 · D’où viennent les prix</h3><div style="line-height:1.55">L’application ne devine rien : elle prend les prix que <b>tu as déjà donnés</b>.<br>• <b>Main-d’œuvre</b> : ton tarif horaire, multiplié par le temps passé sur place (l’heure entamée due si c’est ta règle).<br>• <b>Déplacement</b> : ton forfait, selon la zone du client.<br>• <b>Pièces et produits</b> : le prix de vente de ta fiche produit (stock ou catalogue).<br>• <b>Contrat</b> : le prix par visite écrit dans le contrat.<br>• <b>Devis accepté</b> : les lignes du devis, telles quelles.<br>Une ligne qui n’a aucun de ces prix (une pièce achetée exprès, par exemple) reste <b>« à chiffrer »</b>.</div></div>
-    <div class="carte"><h3>2 · Envoyer toute seule</h3><div style="line-height:1.55">Quand le technicien appuie sur « Terminer », la facture se prépare. Si la case est cochée <b>et</b> que tout est en ordre, elle part tout de suite : numéro définitif, PDF, e-mail au client avec le compte rendu joint. Si le technicien a noté un paiement sur place, elle part déjà marquée payée (ou avec l’acompte déduit).<br><br><b>Elle ne part jamais seule</b> — elle t’attend « à valider » — si :<br>• une ligne n’a pas de prix ;<br>• le client n’a pas d’adresse e-mail ;<br>• le total dépasse le plafond que tu fixes (par exemple 1 000 €) ;<br>• c’est le premier passage chez ce client ;<br>• le technicien a cliqué « Je ne peux pas finir » ;<br>• il manque ton SIRET ou ton adresse dans tes réglages.</div></div>
+    <div class="carte"><h3>2 · Envoyer toute seule</h3><div style="line-height:1.55">Quand le technicien appuie sur « Terminer », la facture se prépare. Si la case est cochée <b>et</b> que tout est en ordre, elle part tout de suite : numéro définitif, PDF, e-mail au client avec le compte rendu joint. Si le technicien a noté un paiement sur place, elle part déjà marquée payée (ou avec l’acompte déduit).<br><br><b>Elle ne part jamais seule</b> — elle t’attend « à valider » — si :<br>• une ligne n’a pas de prix ;<br>• le client n’a pas d’adresse e-mail ;<br>• le technicien a cliqué « Je ne peux pas finir » ;<br>• il manque ton nom, ton adresse ou ton SIRET dans <button type="button" class="lien" data-go="entreprise">Mon entreprise</button>.</div></div>
     <div class="carte"><h3>3 · Relancer tout seul</h3><div style="line-height:1.55">Chaque matin, l’application regarde les factures envoyées dont la date d’échéance est passée et qui ne sont pas payées.<br>• <b>7 jours après l’échéance</b> : un rappel aimable par e-mail, avec la facture et le lien pour payer par carte.<br>• <b>15 jours après</b> : un second rappel, plus ferme ; pour un client professionnel, il rappelle les pénalités et l’indemnité de 40 €.<br>• Ensuite, elle <b>s’arrête</b> et te la signale « à relancer toi-même » (un appel vaut mieux qu’un troisième e-mail).<br><br>Elle arrête tout de suite dès que la facture est payée : paiement en ligne, encaissement noté, ou « payée » cochée. Tu peux aussi couper les relances pour un client précis (un bon client qui paie toujours en retard, une facture contestée). Chaque relance partie s’affiche dans le suivi de la facture.</div></div>
     ${enApp() ? '' : '<div class="info petit">Dans ce prototype, l’envoi automatique est simulé et les relances ne partent pas : c’est la règle qui sera construite.</div>'}`, true); },
   vueEnregistrer(){ ouvrirPanneau(`<h2>Enregistrer cette vue</h2><span class="gris">${[...multiJours].sort().map(jlib).join(', ')} · ${techsVus().map(t=>t.id?t.nom.split(' ')[0]:'Non assigné').join(', ')} · ${multiGrp==='jour'?'par jour':'par personne'}</span><label class="champ">Son nom<input id="vue-nom" placeholder="Ex. : équipe clim, chantier Mimosas"></label><div class="info petit">Les dates sont gardées par rapport à aujourd’hui : « aujourd’hui et lundi » reste « aujourd’hui et lundi » demain.</div><button type="button" class="btn large" data-action="vueEnregistrerOk">Enregistrer</button>`); setTimeout(()=>document.getElementById('vue-nom')?.focus(),60); },
@@ -8162,7 +8169,10 @@ const ACTIONS = {
   modifierOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
-function envoyerFacture(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv++); f.st = 'envoyee'; f.emise = '31/10'; f.ech = '30/11'; f.ht = htDe(f); f.vue = false;
+/* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
+   envoyer, toutValider, terminer (refus silencieux : c'est le geste du technicien) et l'aperçu (qui dit le manque avant le bouton). `muet` : l'appelant dit lui-même le manque, une seule fois. */
+function envoyerFacture(f, muet){ const M = entrepriseManque(); if (M.length) { if (!muet) entRefusFacture(M); return false; } envoyerFactureParti(f); return true; }
+function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv++); f.st = 'envoyee'; f.emise = '31/10'; f.ech = '30/11'; f.ht = htDe(f); f.vue = false;
   const P = f.paieTech; if (!P || P.etat === 'rien') return;
   const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
   f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
@@ -8302,7 +8312,7 @@ typo(document.body);
 queueMicrotask(lireHash);   // après tout le script : chaque écran trouve toutes ses données (DEVIS vit plus bas)
 /* ══ NOUVELLE INTERVENTION : une grande fenêtre, le vrai planning dedans, la facturation réglée par le bureau ══ */
 var CREA = null;
-const PARAMS = { debut:7*60, fin:18*60 };                      // horaires de travail de l'entreprise (Paramètres)
+const PARAMS = { debut:7*60, fin:18*60 };                      // horaires de travail de l'entreprise (se règlent dans « Mon entreprise »)
 const TARIFS = { horaire:65, minimum:60, arrondi:'heure', zone:{ 1:29.17, 2:45, 3:62 } };
 /* ══ MATÉRIEL & PRODUITS ══
    Justin, 6 novembre 2026 : « Produits était la base [d'un premier client] ; maintenant il faut changer le nom — ce sera Matériel et
@@ -10922,7 +10932,7 @@ const cxAPayer = a => !a.paye && a.mode !== 'Note de frais' && a.mode !== 'Prél
 const cxSociete = () => !!ENTREPRISE.forme && !/^Entreprise individuelle/.test(ENTREPRISE.forme);
 function cxMentionsManquantes(){
   const E = ENTREPRISE;
-  return [!E.forme && 'la forme juridique', cxSociete() && !E.capital && 'le capital social', !E.rcs && 'l’immatriculation (RCS ou répertoire des métiers)', !(E.assur && E.assurc && E.zone) && 'l’assurance professionnelle (assureur, coordonnées, zone)'].filter(Boolean);
+  return [!E.forme && 'la forme juridique', cxSociete() && !E.capital && 'le capital social', !E.rcs && 'l’immatriculation (RCS ou répertoire des métiers)', !(E.assureur && E.assurc && E.assurZone) && 'l’assurance professionnelle (assureur, coordonnées, zone)'].filter(Boolean);
 }
 const CX_ETATS = { non:['À régler', 'st-r'], att:['À surveiller', 'st-o'], avenir:['À préparer', 'st-b'], ok:['En règle', 'st-v'], auto:['Fait par OP GESTION', 'st-p'], info:['Bon à savoir', 'st-g'] };
 const cxVerifies = conf => conf.filter(c => c.v);
@@ -10935,7 +10945,7 @@ function cxPdfManque(){
   const tp = cxPdfTexte(pro), tq = cxPdfTexte(part), L = [];
   const doit = (ok, l) => { if (!ok) L.push(l); };
   if (pro) { doit(tp.includes(E.siret), 'le SIRET'); doit(tp.includes(E.tva), 'le n° de TVA'); doit(tp.includes(E.adr.split(',')[0]), 'ton adresse'); doit(/pénalités/i.test(tp), 'les pénalités de retard'); doit(tp.includes('40 €'), 'l’indemnité de 40 €'); doit(/escompte/i.test(tp), 'l’escompte (néant)');
-    if (E.forme) doit(tp.includes(E.forme), 'la forme juridique'); if (E.rcs) doit(tp.includes(E.rcs), 'l’immatriculation'); if (E.assur) doit(tp.includes(E.assur), 'l’assurance'); doit(/Nature de l’opération/.test(tp), 'la nature de l’opération'); }
+    if (E.forme) doit(tp.includes(E.forme), 'la forme juridique'); if (E.rcs) doit(tp.includes(E.rcs), 'l’immatriculation'); if (E.assureur) doit(tp.includes(E.assureur), 'l’assurance'); doit(/Nature de l’opération/.test(tp), 'la nature de l’opération'); }
   if (part && E.mediateur) doit(tq.includes(E.mediateur), 'le médiateur (factures aux particuliers)');
   return L;
 }
@@ -10957,9 +10967,9 @@ function cxConformite(K, D){
       d:manque.length ? `Il manque ${manque.join(', ')} : tes factures partent incomplètes, et une facture incomplète peut valoir une amende. C’est rempli une fois, puis écrit tout seul.`
         : 'Vérifié sur le PDF de tes factures : SIRET, n° de TVA, adresse, forme juridique, immatriculation, assurance, nature de l’opération, pénalités de retard, indemnité de 40 € (clients professionnels) et « pas d’escompte » y sont.',
       act:manque.length ? ['Compléter ma fiche légale', 'data-cx="fiche"'] : ['Voir ma fiche', 'data-cx="fiche"'] },
-    { g:'factures', k:'assurance', v:1, s:E.assur && E.assurc && E.zone ? 'ok' : 'non', t:'Ton assurance écrite sur tes devis et tes factures', ref:'Code de l’artisanat, art. L132-1 et R132-1 · décennale : Code des assurances, art. L241-1' + aVoir,
-      d:E.assur && E.assurc && E.zone ? `${esc(E.assur)} · ${esc(E.zone)} : écrite toute seule en bas de chaque devis et de chaque facture. Vérifie qu’elle est à jour et qu’elle couvre la pose.` : 'L’assureur, ses coordonnées et la zone couverte s’écrivent sur tes devis et tes factures. La pose d’une pompe à chaleur relève en général de la décennale ; pour une climatisation, vois avec ton assureur.',
-      act:E.assur && E.assurc && E.zone ? null : ['Ajouter mon assurance', 'data-cx="fiche"'] },
+    { g:'factures', k:'assurance', v:1, s:E.assureur && E.assurc && E.assurZone ? 'ok' : 'non', t:'Ton assurance écrite sur tes devis et tes factures', ref:'Code de l’artisanat, art. L132-1 et R132-1 · décennale : Code des assurances, art. L241-1' + aVoir,
+      d:E.assureur && E.assurc && E.assurZone ? `${esc(E.assureur)} · ${esc(E.assurZone)} : écrite toute seule en bas de chaque devis et de chaque facture. Vérifie qu’elle est à jour et qu’elle couvre la pose.` : 'L’assureur, ses coordonnées et la zone couverte s’écrivent sur tes devis et tes factures. La pose d’une pompe à chaleur relève en général de la décennale ; pour une climatisation, vois avec ton assureur.',
+      act:E.assureur && E.assurc && E.assurZone ? null : ['Ajouter mon assurance', 'data-cx="fiche"'] },
     { g:'factures', k:'reduit', v:1, s:reduit.length ? 'att' : 'info', t:'Le taux réduit de TVA, avec sa mention', ref:'CGI, art. 279-0 bis et 278-0 bis A' + aVoir,
       d:reduit.length ? `${pl(reduit.length, 'facture')} à 10 % ou 5,5 % (${reduit.map(f => esc(f.num)).join(', ')}). Le taux réduit vaut pour des travaux dans un logement terminé depuis plus de deux ans : le devis ou la facture doit porter la mention prévue, certifiée par ton client. Sans elle, c’est 20 %.` : 'Aucune facture au taux réduit. Dans un logement de plus de deux ans, vérifie que le taux réduit n’a pas été oublié.',
       act:reduit.length ? ['Voir les factures', 'data-cx="sec|fventes|clients"'] : null },
@@ -11143,16 +11153,20 @@ function cxVueArchives(K, D){
 
 /* ─── les trois formulaires de la conformité ─── */
 function cxFicheLegale(){
+  /* « Tes mentions légales » : la carte 2 de Mon entreprise ouvre CE panneau (une seule fonction), et « Compléter ma fiche légale » de la Conformité aussi.
+     Le SIRET et la TVA se règlent ici (ils étaient affichés sans pouvoir être changés) ; l'assurance a QUATRE champs, ceux que l'atelier de devis lit déjà. */
   const E = ENTREPRISE;
-  ouvrirPanneau(`<span class="surtitre">Conformité · ta fiche légale</span><h2>Ce que tes factures et tes devis disent de toi</h2><span class="gris">Rempli une fois, écrit tout seul en bas de chaque facture et de chaque devis.</span>
-    <div class="cx-montants"><div><span>Nom</span><b>${esc(E.nom)}</b></div><div><span>SIRET</span><b>${esc(E.siret)}</b></div><div><span>N° de TVA</span><b>${esc(E.tva)}</b></div></div>
-    <label class="champ">Forme juridique<select class="saisie" id="fl-forme"><option value="">Choisir…</option>${CX_FORMES.map(f => `<option ${E.forme === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label>
-    <label class="champ">Capital social, en euros <span class="faible">(pour une société ; vide pour une entreprise individuelle)</span><input class="saisie" id="fl-cap" inputmode="decimal" value="${esc(E.capital || '')}" placeholder="ex. 5 000"></label>
-    <label class="champ">Immatriculation <span class="faible">(RCS et ville du greffe, ou répertoire des métiers)</span><input class="saisie" id="fl-rcs" value="${esc(E.rcs || '')}" placeholder="ex. RCS La Rochelle"></label>
-    <label class="champ">Assurance professionnelle <span class="faible">(l’assureur et le contrat ; la décennale pour les travaux du bâtiment)</span><input class="saisie" id="fl-ass" value="${esc(E.assur || '')}" placeholder="ex. MAAF Pro, décennale n° 123456"></label>
-    <label class="champ">Coordonnées de l’assureur <span class="faible">(adresse ou téléphone)</span><input class="saisie" id="fl-asc" value="${esc(E.assurc || '')}" placeholder="ex. MAAF, 79036 Niort"></label>
-    <label class="champ">Zone couverte par l’assurance<input class="saisie" id="fl-zone" value="${esc(E.zone || '')}" placeholder="ex. France métropolitaine"></label>
-    <label class="champ">Médiateur de la consommation <span class="faible">(si tu travailles pour des particuliers)</span><input class="saisie" id="fl-med" value="${esc(E.mediateur || '')}" placeholder="le nom et le site du médiateur auquel tu adhères"></label>
+  entPanneau(`<span class="surtitre">Mon entreprise · tes mentions légales</span><h2>Ce que tes factures et tes devis disent de toi</h2><span class="gris">Rempli une fois, écrit tout seul en bas de chaque facture et de chaque devis.</span>
+    ${entChamp('fl-siret', 'SIRET <span class="faible">(14 chiffres)</span>', E.siret, { inputmode:'numeric', placeholder:'ex. 123 456 789 00012', autocomplete:'off', aide:'Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr).' })}
+    ${entChamp('fl-tva', 'Numéro de TVA', E.tva, { placeholder:'ex. FR12 123456789', autocomplete:'off', aide:'Laisse vide si tu ne factures pas de TVA.' })}
+    <div class="champ ent-champ"><label for="fl-forme">Forme juridique</label><select class="saisie" id="fl-forme" aria-describedby="fl-forme-err"><option value="">Choisir…</option>${CX_FORMES.map(f => `<option ${E.forme === f ? 'selected' : ''}>${f}</option>`).join('')}</select><span class="erreur" id="fl-forme-err" role="alert" hidden></span></div>
+    ${entChamp('fl-cap', 'Capital social, en euros <span class="faible">(pour une société ; vide pour une entreprise individuelle)</span>', E.capital, { inputmode:'decimal', placeholder:'ex. 5 000' })}
+    ${entChamp('fl-rcs', 'Immatriculation <span class="faible">(RCS et ville du greffe, ou répertoire des métiers)</span>', E.rcs, { placeholder:'ex. RCS La Rochelle' })}
+    ${entChamp('fl-ass', 'Assureur <span class="faible">(la décennale pour les travaux du bâtiment)</span>', E.assureur, { placeholder:'ex. MAAF Pro' })}
+    ${entChamp('fl-num', 'Numéro de contrat', E.assurNum, { placeholder:'ex. décennale n° 123456' })}
+    ${entChamp('fl-asc', 'Coordonnées de l’assureur <span class="faible">(adresse ou téléphone)</span>', E.assurc, { placeholder:'ex. MAAF, 79036 Niort' })}
+    ${entChamp('fl-zone', 'Zone couverte par l’assurance', E.assurZone, { placeholder:'ex. France métropolitaine' })}
+    ${entChamp('fl-med', 'Médiateur de la consommation <span class="faible">(si tu travailles pour des particuliers)</span>', E.mediateur, { placeholder:'le nom et le site du médiateur auquel tu adhères' })}
     <div class="actions"><button type="button" class="btn" data-cx="ficheok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 function cxSirenForm(){
@@ -11173,10 +11187,10 @@ function cxPlateforme(){
 /* ─── la facture dit ce que la fiche légale contient : mentions en bas, SIREN du client, nature de l'opération ─── */
 (() => { const p0 = pdfFacture; pdfFacture = function(f){ let h = p0.apply(this, arguments); const E = ENTREPRISE, c = CLIENTS[f.cli];
   if (c && c.siren) h = h.replace(`<h6>Facturé à</h6><b>${esc(c.nom)}</b><br>${esc(c.adr)}`, `<h6>Facturé à</h6><b>${esc(c.nom)}</b><br>${esc(c.adr)}<br>SIREN ${esc(c.siren)}`);
-  const m = [E.forme ? E.forme + (cxSociete() && E.capital ? ' au capital de ' + esc(E.capital) + ' €' : '') : '', E.rcs ? esc(E.rcs) : '', 'Nature de l’opération : prestation de services', E.assur ? 'Assurance : ' + esc(E.assur) + (E.assurc ? ' (' + esc(E.assurc) + ')' : '') + (E.zone ? ', zone couverte : ' + esc(E.zone) : '') : '', c && c.type === 'part' && E.mediateur ? 'Médiateur de la consommation : ' + esc(E.mediateur) : ''].filter(Boolean).join(' · ');
+  const m = [E.forme ? E.forme + (cxSociete() && E.capital ? ' au capital de ' + esc(E.capital) + ' €' : '') : '', E.rcs ? esc(E.rcs) : '', 'Nature de l’opération : prestation de services', entAssurTexte(E), c && c.type === 'part' && E.mediateur ? 'Médiateur de la consommation : ' + esc(E.mediateur) : ''].filter(Boolean).join(' · ');
   return h.replace(/(<div class="pdf-pied">)([\s\S]*?)(<\/div><\/div>)$/, (x, a, b, z) => a + b + '<br>' + m + z); }; })();
 (() => { const d0 = docDevis; docDevis = function(x){ const h = d0.apply(this, arguments), E = ENTREPRISE, c = CLIENTS[x.cli];
-  const m = [E.forme ? E.forme + (cxSociete() && E.capital ? ' au capital de ' + esc(E.capital) + ' €' : '') : '', E.rcs ? esc(E.rcs) : '', E.assur ? 'Assurance : ' + esc(E.assur) + (E.assurc ? ' (' + esc(E.assurc) + ')' : '') + (E.zone ? ', zone couverte : ' + esc(E.zone) : '') : '', c && c.type === 'part' && E.mediateur ? 'Médiateur de la consommation : ' + esc(E.mediateur) : ''].filter(Boolean).join(' · ');
+  const m = [E.forme ? E.forme + (cxSociete() && E.capital ? ' au capital de ' + esc(E.capital) + ' €' : '') : '', E.rcs ? esc(E.rcs) : '', entAssurTexte(E), c && c.type === 'part' && E.mediateur ? 'Médiateur de la consommation : ' + esc(E.mediateur) : ''].filter(Boolean).join(' · ');
   return m ? h.replace('<div class="pdf-pied">', '<div class="pdf-pied">' + m + '<br>') : h; }; })();
 
 /* ─── les gestes de la conformité ─── */
@@ -11187,13 +11201,7 @@ document.addEventListener('click', ev => {
   if (a === 'siren') return cxSirenForm();
   if (a === 'plateforme') return cxPlateforme();
   if (a === 'relevef') return cxReleveFour(x);
-  if (a === 'ficheok') {
-    const v = id => (document.getElementById(id) || {}).value.trim(), forme = v('fl-forme'), cap = v('fl-cap'), rcs = v('fl-rcs'), ass = v('fl-ass');
-    if (!forme) return toast('Choisis la forme juridique.');
-    if (!/^Entreprise individuelle/.test(forme) && !(cxNum(cap) > 0)) return toast('Une société écrit son capital sur ses factures : indique-le.');
-    if (!rcs) return toast('Indique ton immatriculation (RCS et ville du greffe, ou répertoire des métiers).');
-    Object.assign(ENTREPRISE, { forme, capital:/^Entreprise individuelle/.test(forme) ? '' : cap, rcs, assur:ass, assurc:v('fl-asc'), zone:v('fl-zone'), mediateur:v('fl-med') });
-    fermerPanneau(); rendre(); return toast(ENTREPRISE.assur && ENTREPRISE.assurc && ENTREPRISE.zone ? 'Fiche légale enregistrée : elle s’écrit toute seule en bas de chaque devis et de chaque facture.' : 'Fiche enregistrée. Il reste l’assurance à compléter (assureur, coordonnées, zone).'); }
+  if (a === 'ficheok') return entEnregistrerLegal();
   if (a === 'sirenok') {
     const I = [...document.querySelectorAll('[data-cxsiren]')], faux = I.find(i => i.value.trim() && !cxSirenOk(i.value));
     if (faux) { faux.focus(); return toast(`Le SIREN de ${esc(CLIENTS[faux.dataset.cxsiren].nom)} ne semble pas juste : neuf chiffres, dont le dernier sert de contrôle.`); }
@@ -11413,6 +11421,7 @@ function rlPastille(k){
   const q = rlQuiMenu(); let n = 0;
   try {
     if (k === 'taches') n = tkxNb(q);
+    else if (k === 'entreprise') n = entModifiable() ? entrepriseManque().length : 0;   // ce qui manque pour qu'une facture parte : seulement pour qui peut le régler
     else if (k === 'mesheures' && ROLE === 'tech') n = paieATraiter(q);
     else if (k === 'moncamion' && ROLE === 'tech') n = SX.refus.filter(o => o.m.qui === q).length;   // la pastille rouge compte les envois REFUSÉS (ce qui demande un geste), pas les messages ni ce qui manque
   } catch (e) { n = 0; }
@@ -11474,7 +11483,7 @@ addEventListener('resize', () => menuRepere());
 /* ── la barre du bas ── */
 const MB_CLE = 'opg_proto_barre', MB_MAX = 5, MB_DEFAUT = ['accueil', 'planning', 'interventions', 'clients', 'comptabilite'];
 /* le mot de la barre : le nom ENTIER de la rubrique quand il tient ; les noms longs ont leur mot (jamais d'abréviation à point) */
-const MB_COURT = { produits:'Produits', absences:'Congés', devisXylo:'Xylophage', registre:'Registre', achats:'Achats', boxes:'Dépôts', pointage:'Heures', stock:'Stock' };
+const MB_COURT = { entreprise:'Entreprise', produits:'Produits', absences:'Congés', devisXylo:'Xylophage', registre:'Registre', achats:'Achats', boxes:'Dépôts', pointage:'Heures', stock:'Stock' };
 const BARRE_ROLE = {
   gestion:['comptabilite', 'devis', 'clients', 'taches', 'achats'],
   tech:['majournee', 'techfrais', 'mesheures', 'taches', 'moncamion'],
@@ -11635,7 +11644,7 @@ function vueEspaceClient(){
   const dvL = d => { const e = dvEtat(d); return `<div class="ec-l"><span><b>${esc(d.objet)}</b><br><span class="gris petit">Devis ${esc(d.num)} · ${dvQuand(d)}</span></span><span class="ec-dr"><b>${dvComplet(d) ? eur(dvTTC(d)) : '—'}</b><span class="st ${DV_ETATS[e][1]}">${DV_ETATS[e][0]}</span></span>
     <span class="actions">${e === 'attente' ? `<button type="button" class="btn petit" data-ec="signer|${esc(d.num)}">Lire et signer</button>` : `<button type="button" class="btn gris petit" data-dv="pdf|${esc(d.num)}">Voir</button>`}</span></div>`; };
   const onglets = [['accueil', 'Accueil'], ['factures', 'Factures' + (dues.length ? ' · ' + dues.length : '')], ['interventions', 'Interventions'], ['devis', 'Devis' + (aSigner.length ? ' · ' + aSigner.length : '')], ['contrats', 'Contrat']];
-  const corps = EC.tab === 'factures' ? `<div class="carte">${facs.map(fac).join('') || '<span class="gris">Aucune facture.</span>'}</div>${du ? `<div class="carte"><h3>Payer par virement</h3><div class="ligne"><span>IBAN</span><b class="mono">${esc(ENTREPRISE.iban)}</b></div><span class="gris petit">Indiquez le numéro de la facture dans le libellé du virement : elle passera payée dès que ${esc(ENTREPRISE.nom)} le reçoit.</span></div>` : ''}`
+  const corps = EC.tab === 'factures' ? `<div class="carte">${facs.map(fac).join('') || '<span class="gris">Aucune facture.</span>'}</div>${du ? `<div class="carte"><h3>Payer par virement</h3><div class="ligne"><span>IBAN</span><b class="mono">${esc(ENTREPRISE.iban)}</b></div>${ENTREPRISE.bic ? `<div class="ligne"><span>BIC</span><b class="mono">${esc(ENTREPRISE.bic)}</b></div>` : ''}<span class="gris petit">Indiquez le numéro de la facture dans le libellé du virement : elle passera payée dès que ${esc(ENTREPRISE.nom)} le reçoit.</span></div>` : ''}`
     : EC.tab === 'interventions' ? `<div class="carte"><h3>À venir</h3>${avenir.map(intL).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div><div class="carte"><h3>Déjà faites</h3>${passees.map(intL).join('') || '<span class="gris petit">Aucune.</span>'}</div>`
     : EC.tab === 'devis' ? `<div class="carte">${devis.map(dvL).join('') || '<span class="gris">Aucun devis.</span>'}</div>`
     : EC.tab === 'contrats' ? (ctr.length ? ctr.map(o => `<div class="carte"><h3>${esc(o.titre)}</h3><div class="ligne"><span>Contrat ${esc(o.num)}</span><span class="st ${o.st === 'signe' ? 'st-v' : 'st-o'}">${o.st === 'signe' ? 'Signé le ' + esc(o.signe) : 'À signer'}</span></div><div class="ligne"><span>Visites</span><b>${o.faites} sur ${o.freq} cette année</b></div><div class="ligne"><span>Prix par an</span><b>${eur(o.prix)} HT</b></div>${o.st !== 'signe' ? `<div class="actions"><button type="button" class="btn" data-go="signer-x-${o.id}">Lire et signer</button></div>` : ''}</div>`).join('') : '<div class="carte gris">Pas de contrat d’entretien. Demandez-en un : une visite par an, et vous êtes prioritaire en cas de panne.<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ecctr="1">Demander un contrat</button></div></div>')
@@ -11645,7 +11654,7 @@ function vueEspaceClient(){
         <div class="ec-tuile"><span>Prochaine visite</span><b>${prochaine ? (prochaine.st === 'encours' ? 'En cours' : jcourt(prochaine.d)) : '—'}</b><span class="gris petit">${prochaine ? esc(prochaine.titre) + ' · ' + (prochaine.st === 'encours' ? (prochaine.tech ? esc(tech(prochaine.tech).nom.split(' ')[0]) + ' est chez vous' : 'sur place') : prochaine.h) : avenir.length ? 'Une date reste à fixer.' : 'Rien de prévu.'}</span></div></div>
       ${passees[0] ? `<div class="carte"><h3>Votre dernière intervention</h3>${intL(passees[0])}</div>` : ''}
       <div class="carte"><h3>Besoin de nous ?</h3><span class="gris petit">Une panne, un entretien, un devis : dites-nous ce qui se passe, on vous rappelle pour fixer la date.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-ec="demande">Demander une intervention</button><a class="btn gris" href="${lienTel(ENTREPRISE.tel)}">Appeler ${esc(ENTREPRISE.tel)}</a></div></div>`;
-  return `<div class="ec"><div class="ec-tete"><span class="logo-ent">CS</span><div><b>${esc(ENTREPRISE.nom)}</b><span class="gris petit">Votre espace client</span></div></div>
+  return `<div class="ec"><div class="ec-tete">${logoEnt('span')}<div><b>${esc(ENTREPRISE.nom)}</b><span class="gris petit">Votre espace client</span></div></div>
     <h1>Bonjour ${esc(prenom)}</h1><span class="gris">${esc(c.nom)} · ${esc(c.adr)}</span>
     <div class="ec-seg" role="tablist">${onglets.map(([t, l]) => `<button type="button" role="tab" data-ec="tab|${t}" aria-selected="${EC.tab === t}">${l}</button>`).join('')}</div>
     ${corps}
@@ -11861,7 +11870,8 @@ const PAIE_MOIS = AUJ.slice(0, 7);                                   // octobre 
 const PAIE_NOM_MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][+PAIE_MOIS.slice(5) - 1] + ' ' + PAIE_MOIS.slice(0, 4);
 const PAIE_MOIS_MAJ = PAIE_NOM_MOIS.charAt(0).toUpperCase() + PAIE_NOM_MOIS.slice(1);
 const PAIE_FERIES = ['2026-11-01', '2026-11-11', '2026-12-25'];
-const PAIE_CAB = typeof CP_EXPERT !== 'undefined' ? { nom:CP_EXPERT.cab, qui:CP_EXPERT.qui, mail:CP_EXPERT.mail } : { nom:'Cabinet de paie', qui:'', mail:'' };
+/* ⛔ plus une COPIE du cabinet de « Mon entreprise » (CP_EXPERT) : des accesseurs. Une donnée en deux exemplaires dont un seul est mis à jour est la panne type de ce dépôt (17 novembre 2026) */
+const PAIE_CAB = { get nom(){ return typeof CP_EXPERT !== 'undefined' ? CP_EXPERT.cab : 'Cabinet de paie'; }, get qui(){ return typeof CP_EXPERT !== 'undefined' ? CP_EXPERT.qui : ''; }, get mail(){ return typeof CP_EXPERT !== 'undefined' ? CP_EXPERT.mail : ''; } };
 const PAIE = { etape:'prep', confirmes:{ kb:{ le:'30/10 · 18:12' }, julie:{ le:'30/10 · 17:40' } }, signales:{},
   primes:{ kb:[{ lib:'Prime d’astreinte (samedi 31/10)', m:60 }] }, envoi:null, bulletins:{}, distribue:null, verrou:null, format:'standard', vus:{} };
 /* chaque correction d'une heure garde sa trace — c'est ce que le salarié voit sur son relevé, et ce qui part au cabinet */
@@ -11987,7 +11997,7 @@ function paieDoc(k){
   const v = paieVariables(k), L = [['Heures travaillées dans le mois', ptH(v.tot)], ['Heures supplémentaires à 25 %', v.s25 ? ptH(v.s25) : '—'], ['Heures supplémentaires à 50 %', v.s50 ? ptH(v.s50) : '—'],
     ['Heures de nuit (21 h – 6 h)', v.nuit ? ptH(v.nuit) : '—'], ['Heures le samedi, le dimanche ou un jour férié', v.weFerie ? ptH(v.weFerie) : '—'], ['Absences', paieAbsTxt(v.abs)], ['Jours de plus de 6 h (paniers repas, selon la convention)', String(v.jours6)],
     ...v.primes.map(p => [p.lib, eur(+p.m || 0)]), ['Frais à rembourser (hors salaire)', v.frais ? eur(v.frais) : '—']];
-  return `<div class="pdf" data-nom="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}.pdf" data-a="${esc(PAIE_CAB.mail)}" data-objet="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}"><div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Relevé des éléments variables de paie</b><br>${esc(PAIE_NOM_MOIS)}</div></div>
+  return `<div class="pdf" data-nom="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}.pdf" data-a="${esc(PAIE_CAB.mail)}" data-objet="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Relevé des éléments variables de paie</b><br>${esc(PAIE_NOM_MOIS)}</div></div>
     <div class="deux"><div><h6>Salarié</h6><b>${esc(paieNomPers(k))}</b><br>${esc((H_GENS[k] || {}).role || '')}</div><div><h6>Pour</h6>${esc(PAIE_CAB.nom)}<br>${esc(PAIE_CAB.qui)}</div></div>
     <table><thead><tr><th>Élément</th><th style="text-align:right">Ce mois-ci</th></tr></thead><tbody>${L.map(([a, b]) => `<tr><td>${esc(a)}</td><td style="text-align:right">${esc(b)}</td></tr>`).join('')}</tbody></table>
     <h6 style="margin-top:14px">Semaine par semaine</h6><table><tbody>${v.semaines.map(w => `<tr><td>Semaine du ${esc(jCourt(w.L))}${w.avant ? ` (avec fin ${paieMoisVoisin(-1)})` : ''}</td><td style="text-align:right">${ptH(w.tot)}${w.s25 + w.s50 ? ' · dont ' + ptH(w.s25 + w.s50) + ' sup.' + (w.report ? ` comptées sur ${paieMoisVoisin(1)}` : '') : ''}</td></tr>`).join('')}</tbody></table>
@@ -12202,7 +12212,7 @@ function paieBulletinDoc(k, ym){
   const tx = x => x == null ? '' : nbFr(Math.abs(x)).replace(/,?0+$/, m => m === ',00' ? '' : m) + ' %';
   const rubs = [...new Set(b.L.map(l => l[0]))];
   return `<div class="pdf paie-bul-doc" data-nom="Fiche de paie ${esc(nomM)} - ${esc(paieNomPers(k))}.pdf" data-a="${esc((H_GENS[k] || {}).mail || '')}" data-objet="Fiche de paie ${esc(nomM)}">
-    <div class="pdf-tete"><div class="logo-ent">CS</div><div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)} · APE 4322B</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Bulletin de paie</b><br>Période ${per}<br>${b.ym === PAIE_MOIS ? 'À payer par virement en fin de mois' : 'Payé le 30/' + b.ym.slice(5, 7) + '/' + b.ym.slice(0, 4) + ' par virement'}</div></div>
+    <div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)} · APE 4322B</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Bulletin de paie</b><br>Période ${per}<br>${b.ym === PAIE_MOIS ? 'À payer par virement en fin de mois' : 'Payé le 30/' + b.ym.slice(5, 7) + '/' + b.ym.slice(0, 4) + ' par virement'}</div></div>
     <div class="deux"><div><h6>Salarié</h6><b>${esc(paieNomPers(k))}</b><br>${esc(S.emploi)} · ${esc(S.niveau)}<br>Entré le ${esc(S.entree.split('-').reverse().join('/'))} · n° de sécurité sociale ${esc(S.secu)}</div><div><h6>Convention</h6>${esc(S.conv)}<br>Statut ${esc(S.statut)} · 151,67 h par mois · taux horaire ${nbFr(b.tH)} €</div></div>
     <table><thead><tr><th>Éléments de paie</th><th style="text-align:right">Base</th><th style="text-align:right">Taux</th><th style="text-align:right">À payer</th></tr></thead><tbody>
       ${b.brutL.map(l => `<tr><td>${esc(l[0])}</td><td style="text-align:right">${esc(l[1])}</td><td style="text-align:right">${l[2] == null ? '' : nbFr(l[2])}</td><td style="text-align:right">${nbFr(l[3])}</td></tr>`).join('')}
@@ -12545,9 +12555,11 @@ const TOUR_PAIE = [
     { c:'#contenu [data-paie="releve|tl"]', t:'Ouvre le relevé de Tom', p:'Sa ligne dit « Erreur signalée ». Le relevé s’ouvre en grand.', ok:() => gdPanneau() },
     { c:'#calque .paie-etat', t:'Ce que Tom a écrit', p:'Son message arrive ici, avec la date. Le bouton « Corriger la journée » ouvre directement le bon jour.', suivant:1, si:() => !!PAIE.signales.tl },
     { c:'#calque [data-paie="corriger|tl"]', t:'Touche « Corriger la journée »', p:'La fiche du jour s’ouvre : les heures pointées, et ce qui était prévu au planning.', ok:() => !!document.getElementById('pt-motif'), si:() => !!PAIE.signales.tl },
-    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : sans motif, l’heure ne change pas. Tom le lira sur son relevé.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => !!document.getElementById('pt-motif') },
     { c:() => { const s = PAIE.signales.tl, d = s && paieJourSignale('tl'), p = d && POINTAGES.find(o => o.qui === 'tl' && o.date === d), i = p && document.querySelector(`#calque [data-ptc="${p.id}|fin"]`); return i ? (i.nextElementSibling && i.nextElementSibling.classList.contains('dt-btn') ? i.nextElementSibling : i) : null; },
-      t:'Mets l’heure de fin que Tom indique', get p(){ const a = (PAIE.signales.tl || {}).apres; return a ? `Touche l’heure de fin, puis choisis ${+a.slice(0, 2)} h et ${a.slice(3)} : c’est l’heure que Tom donne. La trace s’écrit toute seule.` : 'Touche l’heure de fin et choisis l’heure que Tom donne : la trace s’écrit toute seule.'; }, ok:() => PT_TRACE.some(t => t.qui === 'tl' && t.champ === 'fin' && /^31\/10/.test(t.le)) },
+      t:'Mets l’heure de fin que Tom indique', get p(){ const a = (PAIE.signales.tl || {}).apres; return a ? `Touche l’heure de fin, puis choisis ${+a.slice(0, 2)} h et ${a.slice(3)} : c’est l’heure que Tom donne. Rien n’est écrit tant que tu n’as pas enregistré.` : 'Touche l’heure de fin et choisis l’heure que Tom donne. Rien n’est écrit tant que tu n’as pas enregistré.'; },
+      ok:() => { const s = PAIE.signales.tl, d = s && paieJourSignale('tl'), p = d && POINTAGES.find(o => o.qui === 'tl' && o.date === d), i = p && document.querySelector(`#calque [data-ptc="${p.id}|fin"]`); return !!i && i.value !== p.fin; } },
+    { c:'#pt-motif', t:'Écris pourquoi tu corriges', p:'C’est obligatoire : le bouton « Enregistrer la correction » reste gris tant que tu n’as pas écrit pourquoi. Tom le lira sur son relevé.', ok:() => ((document.getElementById('pt-motif') || {}).value || '').trim().length > 3, si:() => { const m = document.getElementById('pt-motif'); return !!m && m.offsetParent !== null; } },
+    { c:'#tt-enr', t:'Touche « Enregistrer la correction »', p:'L’heure d’avant, la nouvelle, qui, quand et pourquoi sont gardés. Si Tom avait déjà confirmé, il devra reconfirmer.', ok:() => PT_TRACE.some(t => t.qui === 'tl' && t.champ === 'fin' && /^31\/10/.test(t.le)) },
     { c:'#calque .paie-trs', t:'La trace est écrite', p:'L’heure d’avant barrée, la nouvelle, qui l’a changée, quand, et pourquoi. Si Tom avait déjà confirmé, il devrait reconfirmer.', suivant:1, si:() => !!document.querySelector('#calque .paie-trs') },
     gdFermer,
     { c:'#contenu [data-paie="releve|tl"]', t:'Rouvre le relevé de Tom', p:'On lui dit que c’est corrigé.', ok:() => gdPanneau() || !PAIE.signales.tl },
@@ -12595,7 +12607,7 @@ function gdApBloc(cle, sous){
 }
 function gdApprendre(){
   const az = rlEtapes(), faitsA = az.filter(e => e.ok()).length;
-  const avenir = [['👔', 'Patron', 'les réglages, l’équipe, les chiffres'], ['🧾', 'Gestion', 'devis, factures, planning, clients'], ['🔧', 'Technicien', 'sa journée, le terrain, les frais'], ['🏠', 'Client', 'son espace : payer, signer, demander']];
+  const avenir = [['👔', 'Patron', 'ton entreprise, l’équipe, les chiffres'], ['🧾', 'Gestion', 'devis, factures, planning, clients'], ['🔧', 'Technicien', 'sa journée, le terrain, les frais'], ['🏠', 'Client', 'son espace : payer, signer, demander']];
   ouvrirPanneau(`<h2>Apprendre OP GESTION</h2>
     <p class="gris">Des visites guidées : l’écran éclaire ce qu’il faut toucher, une bulle dit quoi faire et pourquoi, et une voix te le lit (le bouton 🔊 de la bulle la coupe). Tu peux faire une partie toute seule, et la reprendre quand tu veux.</p>
     ${typeof immBlocApprendre === 'function' ? immBlocApprendre() : ''}
@@ -12725,7 +12737,7 @@ function rendreCreation_(){
     <div class="crea-outils"><div class="seg" role="group" aria-label="Afficher" style="width:auto">${[['jour','Un jour · toute l’équipe'],['semaine','Une personne · sa semaine']].map(([v,l]) => `<button type="button" data-cvue="${v}" aria-pressed="${CREA.vue===v}">${l}</button>`).join('')}</div>
       ${CREA.vue === 'jour' ? `<div class="puces">${jours.map(d => `<button type="button" class="puce-c" data-cjour="${d}" aria-pressed="${CREA.jour===d}">${jlib(d)}</button>`).join('')}</div>` : `<div class="puces">${TECHS.filter(t=>t.id).map(t => `<button type="button" class="puce-c" data-ctech="${t.id}" aria-pressed="${CREA.techSem===t.id}">${avatar(t,'p')}${t.nom.split(' ')[0]}</button>`).join('')}</div>`}
       ${sect && CREA.vue === 'jour' ? `<label class="case" style="border:0;min-height:40px"><input type="checkbox" data-csect="1" ${CREA.secteurSeul?'checked':''}>Seulement les techniciens du secteur ${sect}</label>` : ''}</div>
-    <div class="gris petit" style="margin:6px 0 10px">Les cases « Disponible » sont les trous du planning, entre ${hm(PARAMS.debut)} et ${hm(PARAMS.fin)} (horaires de l’entreprise, dans Paramètres). Touche l’heure où commencer : la nouvelle intervention se pose là. Ensuite tu peux la déplacer (${tactile() ? 'appui long, puis glisse' : 'glisse-la'}), ou tirer son bas pour la durée.</div>
+    <div class="gris petit" style="margin:6px 0 10px">Les cases « Disponible » sont les trous du planning, entre ${hm(PARAMS.debut)} et ${hm(PARAMS.fin)} (tes horaires, dans ${entLien('Mon entreprise')}). Touche l’heure où commencer : la nouvelle intervention se pose là. Ensuite tu peux la déplacer (${tactile() ? 'appui long, puis glisse' : 'glisse-la'}), ou tirer son bas pour la durée.</div>
     ${planningCrea()}
     <div class="actions" style="margin-top:10px"><button type="button" class="btn gris petit" data-action="cPlusTot">Le premier créneau libre</button><button type="button" class="btn gris petit" data-action="cPlusTard">Plus tard · « à planifier »</button></div>
     ${CREA.plusTard ? '<div class="info petit" style="margin-top:8px">Elle va dans la ligne <b>« Non assigné »</b> du planning, et dans le chiffre <b>« à planifier »</b> en haut du planning. Le jour où tu la poses, tu la déplaces sur un technicien.</div>' : ''}</section>`;
@@ -12805,7 +12817,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && CREA && 
 function creaAvaleClic(){ const t0 = Date.now(), avale = e => { if (e.detail >= 2 && Date.now() - t0 < 800) { e.stopPropagation(); e.preventDefault(); } document.removeEventListener('click', avale, true); }; document.addEventListener('click', avale, true); setTimeout(() => document.removeEventListener('click', avale, true), 800); }
 const ACTIONS_CREA = {
   cFermer(){ fermerCreation(); },
-  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" placeholder="Ex. : Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions (réglable aussi dans Paramètres).</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
+  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" placeholder="Ex. : Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions.</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
   cPlusTot(){ for (const d of ouvres(10)) for (const t of TECHS.filter(x => x.id && (!CREA.secteurSeul || !secteurCrea() || SECT_TECH[x.id].includes(secteurCrea())))) { const p = plagesLibres(t.id, d).find(([a,z]) => z - a >= CREA.dur); if (p) { CREA.vue = 'jour'; CREA.jour = d; placerBrouillon(t.id, d, p[0]); rendre(); toast(`Premier créneau libre : ${t.nom} · ${jlong(d)} · ${hm(p[0])}`); return; } } toast('Aucun créneau libre sur les 10 prochains jours.'); },
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
@@ -12992,7 +13004,7 @@ const TOUR_APP = [
   tourPartie('boiteMail', 'Boîte mail', 'La boîte mail : chaque courriel reconnu', 'Tes courriels arrivent ici. L’application reconnaît s’il vient d’un client ou d’un fournisseur, et te propose le geste qui suit, déjà rempli : créer l’intervention, ranger la facture, répondre.', [
     ['#courrier-hote', 'Traite un message', 'Tes boîtes, tes messages, le message ouvert. Quand tu en ouvres un, le bandeau sous son titre dit ce que l’application a reconnu, et ses boutons font le travail en un geste.']]),
   tourPartie('achats', 'Achats et frais', 'Achats et frais : les demandes et les notes de frais', 'Un salarié demande du matériel ou envoie la photo d’un ticket. Toi, tu acceptes ou tu refuses ici. Les factures des fournisseurs et leur paiement, eux, sont dans la Comptabilité.', [
-    ['#contenu .pr-vues', 'Demandes et notes de frais', 'Deux onglets. Chaque carte montre qui demande, quoi, pour combien, avec le justificatif. Accepter une note de frais la fait rembourser sur la prochaine paie.']]),
+    ['#contenu .pr-vues', 'Demandes de matériel et notes de frais', 'Deux onglets. Chaque carte montre qui demande, quoi, pour combien, avec le justificatif. Accepter une note de frais la fait rembourser sur la prochaine paie.']]),
   tourPartie('equipe', 'Équipe', 'L’équipe : les personnes et leurs droits', 'Chaque personne de l’entreprise, ce qu’elle a le droit de voir et de faire, et tout ce que l’application sait d’elle : sa semaine, ses heures, son véhicule, ses congés, ses habilitations.', [
     ['#contenu .eq-grille', 'Une carte par personne', 'Touche une personne pour sa fiche et ses droits : ses coordonnées, son véhicule, ses congés, ses habilitations. Pour inviter quelqu’un, le bouton est en haut de l’écran.']]),
   tourPartie('registre', 'Registre sanitaire', 'Le registre sanitaire (métier de l’hygiène)', 'C’est ce que ton client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.', [
@@ -16478,9 +16490,8 @@ function ttFicheJour(k, d){
   const edit = !verr && P.length ? `<div class="tt-edit" id="tt-edit" hidden><div class="tt-motif" id="tt-motif-bloc"><b>Pourquoi changes-tu cette heure ?</b><span class="gris petit">Obligatoire. ${esc(prenom)} le verra sur ses heures du mois.</span>
       <input class="saisie" id="pt-motif" placeholder="Ex. : oubli de pointer en partant" autocomplete="off" maxlength="140" aria-label="Pourquoi changes-tu cette heure ?"></div>
       <span class="tt-err" id="tt-err" role="alert"></span>
-      <div class="actions"><button type="button" class="btn large" id="tt-enr" data-tt="jourok|${k}|${d}" disabled>Enregistrer la correction</button></div><span class="tt-aide-o" id="tt-aide">Écris d’abord pourquoi.</span></div>` : '';
+      <div class="tt-pied"><div class="actions"><button type="button" class="btn large" id="tt-enr" data-tt="jourok|${k}|${d}" disabled>Enregistrer la correction</button></div><span class="tt-aide-o" id="tt-aide">Écris d’abord pourquoi.</span></div></div>` : '';
   const trace = T.map(t => `<div class="paie-tr"><span class="paie-tr-c"><b>${t.champ === 'journee' ? 'Journée ajoutée : ' + esc(t.apres) : (t.champ === 'debut' ? 'Début' : t.champ === 'fin' ? 'Fin' : 'Pause') + ' : <s>' + esc(String(t.avant)) + '</s> → ' + esc(String(t.apres))}</b><span class="gris petit">par ${esc(prenomDe(t.par))} · le ${esc(t.le.replace(' · ', ' à '))} · parce que : ${esc(t.motif)}</span></span></div>`).join('');
-  TT.ficheCle = k + '|' + d;
   foOuvrir(`<span class="surtitre">${esc(jlong(d))}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${g.c || '#5b6676'}" aria-hidden="true">${esc(g.ini || (g.nom || k).split(' ').map(x => x[0]).join('').slice(0, 2))}</span><h2>${esc(H_NOM(k))}</h2></div>
     ${PT_VALIDE[k + L] ? `<div class="info petit">✔ La semaine du ${esc(jCourt(L))} est validée pour la paie. Si tu corriges une heure, elle repasse à valider.</div>` : ''}
     ${a && !P.length ? `<div class="info petit">${esc(a.type)} ce jour-là (Absences et congés).</div>` : ''}
@@ -18228,7 +18239,7 @@ acDemandes = function () {
   const all = DEM_ACHAT, att = all.filter(d => d.etat === 'attente'), ach = all.filter(d => d.etat === 'aacheter'), fini = all.filter(d => !['attente', 'aacheter'].includes(d.etat));
   const F = axFiltreQui('fd', att), L = att.filter(d => AX.fd === 'tous' || d.qui === AX.fd).sort((a, b) => (a.quand || '9999').localeCompare(b.quand || '9999') || a.d.localeCompare(b.d));
   return `${axLect() ? '<div class="info petit ax-lect">Tu vois les demandes pour préparer les commandes. C’est le patron qui les décide.</div>' : ''}${F}
-    ${L.length ? L.map(axDemCarte).join('') : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune demande en attente. Les techniciens demandent depuis leur téléphone : « Il me faut… ».'}</div>`}
+    ${L.length ? L.map(axDemCarte).join('') : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune demande de matériel en attente. Quand un technicien écrit « Il me faut… » depuis son téléphone, elle arrive ici.'}</div>`}
     ${ach.length ? `<div class="carte ax-acheter"><h2 class="cmd-titre" style="margin:0 0 4px">À acheter · ${ach.length}</h2><span class="gris petit">Acceptées en magasin : le technicien achète, puis ajoute lui-même le ticket et le montant payé.</span>${ach.map(axAcheterLigne).join('')}</div>` : ''}
     ${fini.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Déjà décidées</h2>${fini.map(axDemDecidee).join('')}</div>` : ''}`;
 };
@@ -18257,7 +18268,7 @@ acNotes = function () {
   const regle = `<div class="gris petit ax-regle"><span>${NDF_REGLE.sansTicket ? 'Les notes sans ticket se valident avec une confirmation.' : 'Les notes sans ticket ne se valident pas : il faut le ticket.'} ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="regle">Changer ›</button>' : 'C’est le patron qui décide de ce réglage.'}</span><span>Kilomètres : ${eur(AX.kmTarif)} le km (exemple de démonstration, à vérifier avec ton expert-comptable) ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="kmtarif">Changer ›</button>' : ''}</span></div>`;
   const sit = NDF.filter(n => n.etat !== 'attente');
   return `${regle}${F}
-    ${L.length ? `<div class="carte"><div class="ax-tt"><h2 class="cmd-titre" style="margin:0 0 4px">À valider · ${L.length}</h2>${avecT.length > 1 && AX.fn === 'tous' ? `<button type="button" class="btn petit" data-axa="toutval">Valider les ${avecT.length} notes avec ticket · ${eur(avecT.reduce((s, n) => s + n.ttc, 0))}</button>` : ''}</div>${L.map(axNoteLigne).join('')}</div>` : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune note de frais à valider.'}</div>`}
+    ${L.length ? `<div class="carte"><div class="ax-tt"><h2 class="cmd-titre" style="margin:0 0 4px">À valider · ${L.length}</h2>${avecT.length > 1 && AX.fn === 'tous' ? `<button type="button" class="btn petit" data-axa="toutval">Valider les ${avecT.length} notes avec ticket · ${eur(avecT.reduce((s, n) => s + n.ttc, 0))}</button>` : ''}</div>${L.map(axNoteLigne).join('')}</div>` : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune note de frais à valider. Quand un technicien envoie la photo d’un ticket, elle arrive ici.'}</div>`}
     ${ref.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Déjà refusées</h2>${ref.map(n => `<div class="fo-r">${hAv(n.qui)}<span class="fo-n"><b>${esc(n.objet)} · ${eur(n.ttc)}</b><span class="gris petit">Note ${esc(axNoteNo(n))} · ${esc(H_NOM(n.qui))} · ${jCourt(n.d)}${n.recu ? '' : ' · sans ticket'}</span><span class="petit ve-rt">${n.motif ? esc(n.motif) : 'Refusée'}</span>${n.par ? `<span class="gris petit">Refusée par ${esc(H_NOM(n.par).split(' ')[0])} le ${jCourt(n.le)}</span>` : ''}</span><span class="st st-r">Refusée</span></div>`).join('')}</div>` : ''}
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À rembourser avec la paie de novembre</h2>
       ${Object.keys(parQui).length ? Object.entries(parQui).map(([k, v]) => `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${val.filter(n => n.qui === k).map(n => esc(n.objet) + (n.sansJustif ? ' (validée sans ticket · par ' + esc(H_NOM(n.sansJustif.par).split(' ')[0]) + ' le ' + esc(n.sansJustif.le) + ')' : '')).join(' · ')}</span></span><b>${eur(v)}</b></div>`).join('') : '<span class="gris">Rien pour l’instant.</span>'}
@@ -18310,17 +18321,28 @@ function axToutValider() {
 
 /* ───────── la page Achats ───────── */
 vueAchats = function () {
+  /* « Achats et frais » se comprend sans explication (17 novembre 2026) : c'est la boîte de réception du gérant pour ce que son équipe lui demande de payer.
+     Deux chiffres seulement, qui sont des DEMANDES DE L'ÉQUIPE ; les deux qui menaient dans la Comptabilité deviennent deux lignes, sous le titre qui le dit. */
   const nd = axEnAttente().length, ap = acAPayer(), ret = ap.filter(a => acEch(a) < AUJ), sp = axSansJustif(), nn = NDF.filter(n => n.etat === 'attente').length, na = DEM_ACHAT.filter(d => d.etat === 'aacheter').length;
-  const O = [['demandes', 'Demandes', 'Demandes', nd], ['notes', 'Notes de frais', 'Frais', nn]];
+  const O = [['demandes', 'Demandes de matériel', 'Matériel', nd], ['notes', 'Notes de frais', 'Frais', nn]], lect = axLect();
   if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">Ce que l’équipe demande et les notes de frais à valider. Les factures des fournisseurs, leur paiement et les justificatifs sont dans la Comptabilité.</span></div>
-      ${axLect() ? '' : '<div class="actions"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
-    <div class="kpis"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} ${axLect() ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
-      <button type="button" class="kpi" data-cx="sec|factures|achats|traiter"><b>${eur0(ap.reduce((s, a) => s + acTTC(a), 0))}</b><span>à payer${ret.length ? ` · <span class="ve-rt">${ret.length} en retard</span>` : ''} · dans la Comptabilité ›</span></button>
-      <button type="button" class="kpi" data-cx="sec|factures|achats|sanspiece"><b style="color:${sp ? 'var(--orange)' : 'inherit'}">${sp}</b><span>achat${sp > 1 ? 's' : ''} sans facture · dans la Comptabilité ›</span></button>
+  const compta = rlPermis('comptabilite'), apTot = ap.reduce((t, a) => t + acTTC(a), 0);
+  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">${lect ? 'Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide.' : 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.'}</span></div>
+      ${lect ? '' : '<div class="actions ach-act"><button type="button" class="btn" data-axa="dem">＋ Demande</button></div>'}</div>
+    <div class="kpis ach-k2"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} de matériel ${lect ? 'en attente' : 'à décider'}${na ? ' · ' + na + ' à acheter' : ''}</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
+    ${compta ? `<div class="groupe">Ça se règle dans la Comptabilité</div><div class="fo-bloc ach-compta">
+      <button type="button" class="ligne-clic" data-cx="sec|factures|achats|traiter"><span class="m-t"><b>${eur0(apTot)} de factures fournisseurs à payer${ret.length ? ` · <span class="ve-rt">${ret.length} en retard</span>` : ''}</b></span><span class="fo-chev" aria-hidden="true">›</span></button>
+      <button type="button" class="ligne-clic" data-cx="sec|factures|achats|sanspiece"><span class="m-t"><b>${sp} achat${sp > 1 ? 's' : ''} sans facture</b></span><span class="fo-chev" aria-hidden="true">›</span></button></div>` : ''}
     <div class="seg pr-vues" role="tablist" aria-label="Vues">${O.map(([k, l, c, n]) => `<button type="button" role="tab" data-ac="onglet|${k}" aria-selected="${acOnglet === k}"><span class="l-long">${l}</span><span class="l-court">${c}</span>${n ? ` <span class="pr-nb chaud">${n}</span>` : ''}</button>`).join('')}</div>
+    <button type="button" class="lien ach-aide" data-action="achatsAide">Comment ça marche ?</button>
     ${{ demandes:acDemandes, notes:acNotes }[acOnglet]()}`;
+};
+ACTIONS.achatsAide = function () {
+  ouvrirPanneau(`<span class="surtitre">Achats et frais</span><h2>Comment ça marche ?</h2>
+    <div class="carte"><div style="line-height:1.55"><b>1.</b> Un technicien écrit « Il me faut… » ou envoie la photo d’un ticket depuis son téléphone.<br><b>2.</b> Ça arrive ici.<br><b>3.</b> ${axLect() ? 'Le gérant accepte ou refuse.' : 'Toi, tu acceptes ou tu refuses ; une phrase toute prête t’évite de taper.'}</div></div>
+    <span class="gris petit">Le matériel accepté part en commande ou se prend dans le stock ; la note de frais validée est remboursée avec la paie.</span>
+    <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 };
 
 /* ───────── côté technicien : Mes demandes ───────── */
@@ -18360,7 +18382,7 @@ function axTechNoteLigne(n) {
 vueTechFrais = function () {
   const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d) || b.id.localeCompare(a.id)), D = axMesDemandes(moi);
   const aToi = NDF.filter(n => n.qui === moi && n.etat === 'validee').reduce((s, n) => s + n.ttc, 0), nAtt = D.filter(d => d.etat === 'attente').length;
-  return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Ce que tu avances de ta poche, et ce qu’il te manque pour travailler. Une photo du ticket suffit ; le bureau valide, c’est remboursé avec la paie, hors salaire. Tant qu’une note ou une demande est en attente, tu peux la modifier.</span></div>
+  return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Tu as acheté quelque chose pour le travail ? Envoie la photo du ticket. Il te manque du matériel ? Écris-le : le bureau te répond.</span></div>
       <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Demande d’achat</button></div></div>
     ${rlNotifsCarte(moi)}${aToi ? `<div class="carte ax-atoi"><span class="fo-n"><b>À toi avec la paie de novembre : ${eur(aToi)}</b><span class="gris petit">Les notes déjà validées par le bureau, hors salaire.</span></span></div>` : ''}
     <div class="carte ax-dems"><h3>Mes demandes${nAtt ? ' · ' + nAtt + ' en attente' : ''}</h3>
@@ -18553,6 +18575,360 @@ document.addEventListener('click', ev => {   // APRÈS l'écouteur d'origine (en
   [...new Set(L.map(n => n.qui))].forEach(k => axNotif(k, `Tes notes de frais (${eur(L.filter(n => n.qui === k).reduce((s, n) => s + n.ttc, 0))}) sont parties avec la paie de ${PAIE_NOM_MOIS} : tu les touches avec elle, hors salaire.`));
   rendre(); toast(`Parti chez ${PAIE_CAB.nom}. ${axPl(L.length, 'note')} de frais (${eur(tot)}) ${L.length > 1 ? 'sont remboursées' : 'est remboursée'} avec cette paie.`);
 });
+
+/* ══ MON ENTREPRISE · 17 novembre 2026 (voie « entreprise », étape 4) ══
+   Ce que le gérant règle UNE fois, ici : ce qui s'écrit sur ses factures, ses devis, ses courriels, et la façon dont il travaille. Cinq cartes, une phrase d'aide chacune,
+   les champs qui s'impriment quelque part et aucun autre. Chaque valeur est écrite SOUS LE NOM QUE LES LECTEURS ACTUELS CONNAISSENT (ENTREPRISE, PARAMS, TARIFS, CP_EXPERT) :
+   les ~270 lectures suivent sans câblage. Aucun réglage n'y est copié : une case, un endroit (les six liens du bas MÈNENT là où la case vit).
+   ⛔ L'identité saisie est du TEXTE injecté dans les gabarits (63 lectures de ENTREPRISE.nom sur 102 ne l'échappent pas) : les champs refusent donc < > " .
+   ⛔ Une facture ne PART pas tant que le nom, l'adresse et le SIRET manquent : UNE porte, envoyerFacture, qui rend un booléen (voir plus haut). */
+/* qui peut régler la fiche : le gérant. À brancher sur la case « L'entreprise et l'équipe › Modifier » à l'étape des droits (une seule fonction à changer). */
+function entModifiable(){ return typeof ROLE === 'undefined' || ROLE === 'patron'; }
+const ENT_INTERDIT = /[<>"]/, ENT_MSG_INTERDIT = 'Ce champ ne peut pas contenir de signes < > ni de guillemets droits.';
+const ENT_ADR_RE = /^(.*?),\s*(\d{5})\s+(.+)$/;   // la même expression que opdDonnees() : l'adresse reste UNE chaîne « rue, 17000 Ville »
+function entAdr(){ const a = String(ENTREPRISE.adr || ''), m = ENT_ADR_RE.exec(a); return m ? { rue:m[1], cp:m[2], ville:m[3] } : { rue:a, cp:'', ville:'' }; }
+const entListe = L => L.length > 1 ? L.slice(0, -1).join(', ') + ' et ' + L[L.length - 1] : (L[0] || '');
+const entPremierAdmin = () => (EQUIPE.find(p => p.actif && p.droits && p.droits.profil === 'admin') || EQUIPE[0] || { prenom:'le gérant' }).prenom;
+/* les OBLIGATOIRES seuls : de quoi faire PARTIR une facture. Les autres mentions (forme, capital, immatriculation, assurance) restent celles que « Aux normes » compte déjà. */
+function entrepriseManque(){
+  const E = ENTREPRISE, a = entAdr(), L = [];
+  if (!String(E.nom || '').trim()) L.push({ k:'nom', toi:'le nom de ton entreprise', le:'le nom de l’entreprise' });
+  if (!(a.rue.trim() && /^\d{5}$/.test(a.cp) && a.ville.trim())) L.push({ k:'adr', toi:'ton adresse', le:'l’adresse' });
+  if (!/^\d{14}$/.test(String(E.siret || '').replace(/\s/g, ''))) L.push({ k:'siret', toi:'ton SIRET', le:'le SIRET' });
+  return L;
+}
+function entInitiales(){ const m = String(ENTREPRISE.nom || '').trim().split(/\s+/).filter(Boolean); return (m.slice(0, 2).map(w => Array.from(w)[0]).join('') || '·').toUpperCase(); }
+/* le logo de l'entreprise (une image choisie) ou ses initiales : une seule fabrique pour les 17 gabarits (devis, facture, contrat, bilans, registre, espace client, bon de paie…) */
+function logoEnt(balise){ const t = balise === 'div' ? 'div' : 'span', L = ENTREPRISE.logo;
+  return L ? `<img class="logo-ent" src="${esc(L)}" alt="">` : `<${t} class="logo-ent">${esc(entInitiales())}</${t}>`; }
+/* le texte d'assurance écrit en pied des PDF : UNE définition (devis et facture la lisent) */
+function entAssurTexte(E){ return E.assureur ? 'Assurance : ' + esc(E.assureur) + (E.assurNum ? ' n° ' + esc(E.assurNum) : '') + (E.assurc ? ' (' + esc(E.assurc) + ')' : '') + (E.assurZone ? ', zone couverte : ' + esc(E.assurZone) : '') : ''; }
+/* un lien vers « Mon entreprise » dans une phrase : jamais proposé à qui n'a pas la rubrique */
+function entLien(libelle){ return rlPermis('entreprise') ? `<button type="button" class="lien" data-go="entreprise">${libelle}</button>` : libelle; }
+/* après un aller() : lireHash referme les panneaux, on ouvre le nôtre une fois l'écran dessiné */
+function entApres(fn){ setTimeout(() => { try { fn(); } catch (e) {} }, 160); }
+const entDit = msg => msg + (enApp() ? '' : ' Le prototype ne garde rien quand tu recharges la page.');
+
+/* ── la ligne, les cartes ── */
+const ENT_ICONES = {
+  entreprise:'<path d="M4 20V6l8-3 8 3v14"/><path d="M9 20v-5h6v5M8.5 9.5h1M14.5 9.5h1M8.5 12.5h1M14.5 12.5h1"/>',
+  entLegal:'<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  entLogo:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/>',
+  entBanque:'<path d="M3 9.5L12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  entHoraires:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'
+};
+Object.assign(IC, ENT_ICONES);
+function entEtatCartes(){
+  const E = ENTREPRISE, a = entAdr(), M = entrepriseManque(), L = cxMentionsManquantes(), siretOk = !M.some(m => m.k === 'siret'), adrTxt = a.cp || a.ville ? `${a.rue}, ${a.cp} ${a.ville}`.replace(/\s+$/, '') : a.rue;
+  const manqueIdent = M.filter(m => m.k !== 'siret').map(m => m.k === 'nom' ? 'le nom' : 'l’adresse');
+  const horaire = m => { const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? String(r).padStart(2, '0') : ''); };
+  return [
+    { k:'ident', ic:'entreprise', av:entInitiales(), t:'Ton entreprise', aide:'Son nom, son adresse, comment la joindre.', ok:!manqueIdent.length, manque:manqueIdent,
+      lignes:[E.nom, adrTxt, [E.tel, E.mail].filter(Boolean).join(' · ')].filter(Boolean) },
+    { k:'legal', ic:'entLegal', t:'Tes mentions légales', aide:'Ce qui s’écrit en bas de chaque facture et de chaque devis.', ok:siretOk && !L.length, manque:[...(siretOk ? [] : ['le SIRET']), ...L.map(x => x.replace(/ \(.*\)$/, ''))],
+      lignes:[(siretOk ? 'SIRET ' + E.siret : '') + (E.forme ? (siretOk ? ' · ' : '') + E.forme : '')].filter(Boolean) },
+    { k:'logo', ic:'entLogo', t:'Ton logo', aide:'Il s’écrit en haut de tes factures, devis et contrats.', ok:true, etat:E.logo ? 'Choisi' : 'Les initiales ' + entInitiales() + ' sont utilisées', logo:true, lignes:[] },
+    { k:'banque', ic:'entBanque', t:'Ta banque et ton comptable', aide:'Ton IBAN, pour que tes clients te paient, et le cabinet qui reçoit tes bilans et ta paie.', ok:!!String(E.iban || '').trim(), manque:E.iban ? [] : ['l’IBAN'],
+      lignes:[E.iban ? 'IBAN ' + E.iban + (E.bic ? ' · BIC ' + E.bic : '') : '', CP_EXPERT.cab ? 'Cabinet : ' + CP_EXPERT.cab : ''].filter(Boolean) },
+    { k:'horaires', ic:'entHoraires', t:'Tes horaires et tes tarifs', aide:'Ta journée de travail, ton tarif et tes déplacements : le planning, les devis et les factures au temps les reprennent.', ok:true,
+      lignes:[`${horaire(PARAMS.debut)} – ${horaire(PARAMS.fin)} · ${eur(TARIFS.horaire)} HT de l’heure`, `Déplacement : ${[1, 2, 3].map(z => eur(TARIFS.zone[z])).join(' · ')}`] }
+  ];
+}
+function entLiensLignes(){
+  const R = RDV_REGLES, nj = [1, 2, 3, 4, 5, 6].filter(j => R.jours[j] && (R.jours[j].matin || R.jours[j].aprem)).length;
+  return [
+    { k:'rdv', t:'Rendez-vous en ligne', etat:R.actif === false ? 'Fermé' : `Ouvert ${nj} jour${nj > 1 ? 's' : ''} par semaine`, voit:rlPermis('planning') },
+    { k:'auto', t:'Facture envoyée toute seule', etat:reglages.auto ? 'Activée' : 'Désactivée', voit:rlPermis('comptabilite') },
+    { k:'ndf', t:'Notes de frais', etat:`Kilomètre à ${eur(AX.kmTarif)} · sans ticket : ${NDF_REGLE.sansTicket ? 'avec confirmation' : 'refusées'}`, voit:rlPermis('achats') && entModifiable() },
+    { k:'stock', t:'Sorties de stock à valider', etat:STK_VALID ? 'Activé' : 'Désactivé', voit:rlPermis('stock') && (typeof msReglages !== 'function' || msReglages()) },
+    { k:'boites', t:'Boîtes mail', etat:`${ML_BOITES.length} boîte${ML_BOITES.length > 1 ? 's' : ''} connectée${ML_BOITES.length > 1 ? 's' : ''}`, voit:rlPermis('boiteMail') },
+    { k:'metiers', t:'Tes métiers', etat:PACKS_ENT.map(k => PACKS[k].nom.split(' /')[0]).join(' · ') || 'Aucun', voit:true }
+  ].filter(l => l.voit);
+}
+function vueEntreprise(){
+  const ro = !entModifiable(), M = entrepriseManque(), C = entEtatCartes(), liens = entLiensLignes(), L = cxMentionsManquantes();
+  const bandeau = M.length ? `<div class="ent-ban manque" role="status"><span>${ro ? 'Il manque ' + esc(entListe(M.map(m => m.le))) + ' sur la fiche de l’entreprise : une facture ne peut pas partir sans.' : 'Il manque ' + esc(entListe(M.map(m => m.toi))) + ' : une facture ne peut pas partir sans.'}</span>${ro ? '' : '<button type="button" class="btn" data-ent="completer">Compléter</button>'}</div>`
+    : `<div class="ok-bloc ent-ban" role="status"><span>${L.length ? 'Ta fiche est complète : tes factures peuvent partir. Il reste à compléter, dans tes mentions légales : ' + esc(entListe(L.map(x => x.replace(/ \(.*\)$/, '')))) + '.' : 'Ta fiche est complète : tes factures peuvent partir, et tes mentions légales sont en règle.'}</span></div>`;
+  return `<div class="tete"><div><span class="surtitre">Personnel</span><h1>Mon entreprise</h1><span class="gris">Ce qui s’écrit sur tes factures, tes devis et tes courriels, et la façon dont tu travailles. Tu le règles une seule fois, ici.</span></div></div>
+    ${bandeau}
+    <div class="bx-grille eq-grille ent-grille">${C.map(c => `<button type="button" class="carte bx-c eq-c ent-c" data-ent="carte|${c.k}"><span class="bx-t"><span class="eq-av ent-av${c.logo ? ' ent-av-logo' : ''}" style="--c:var(--lien)">${c.logo ? logoEnt('span') : c.av ? esc(c.av) : svg(c.ic)}</span><span class="fo-n"><b>${c.t}</b></span>${c.etat ? '' : `<span class="st ${c.ok ? 'st-v' : 'st-o'}">${c.ok ? 'Complète' : 'À compléter'}</span>`}</span>
+      <span class="gris petit ent-aide">${c.aide}</span>
+      ${c.manque && c.manque.length ? `<span class="petit ent-manque">Il manque : ${esc(c.manque.join(', '))}</span>` : ''}
+      <span class="ent-res">${c.etat ? `<span class="ent-ligne">${esc(c.etat)}</span>` : ''}${c.lignes.map((l, n) => `<span class="ent-ligne${n ? ' gris' : ''}">${esc(l)}</span>`).join('')}</span></button>`).join('')}</div>
+    ${liens.length ? `<div class="groupe">Ce qui se règle ailleurs</div><div class="fo-bloc ent-liens">${liens.map(l => `<button type="button" class="ligne-clic ent-lien" data-ent="lien|${l.k}"><span class="m-t"><b>${l.t}</b><span class="gris petit">${esc(l.etat)}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>`).join('')}</div>` : ''}`;
+}
+
+/* ── les panneaux : un champ, son étiquette, son message SOUS lui (le clavier d'un téléphone cache le toast) ── */
+function entChamp(id, lib, val, o){ o = o || {};
+  return `<div class="champ ent-champ"><label for="${id}">${lib}</label><input class="saisie" id="${id}" ${o.type ? `type="${o.type}"` : ''} ${o.inputmode ? `inputmode="${o.inputmode}"` : ''} ${o.step ? `step="${o.step}"` : ''} autocomplete="${o.autocomplete || 'off'}" ${o.placeholder ? `placeholder="${esc(o.placeholder)}"` : ''} value="${esc(val == null ? '' : val)}" aria-describedby="${id}-err${o.aide ? ' ' + id + '-aide' : ''}">${o.aide ? `<span class="faible" id="${id}-aide">${o.aide}</span>` : ''}<span class="erreur" id="${id}-err" role="alert" hidden></span></div>`;
+}
+/* un panneau de la fiche : pour qui ne peut que la regarder, il s'ouvre en lecture (champs désactivés, pas d'« Enregistrer ») et le dit en première ligne */
+function entPanneau(html){
+  ouvrirPanneau(html);
+  if (entModifiable()) return;
+  const P = document.querySelector('#calque .panneau'); if (!P) return;
+  P.querySelectorAll('input, select, textarea').forEach(e => { e.disabled = true; });
+  P.querySelectorAll('.actions .btn:not(.gris)').forEach(b => b.remove());
+  P.querySelectorAll('.actions .btn.gris').forEach(b => { b.textContent = 'Fermer'; });
+  P.querySelectorAll('.btn.gris[data-ent="logoretirer"], label.btn[for="en-logo"]').forEach(b => b.remove());
+  const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="info petit" role="status">Tu peux regarder cette fiche ; c’est ${esc(entPremierAdmin())} qui la modifie.</div>`);
+}
+function entEffacer(){ document.querySelectorAll('#calque .ent-champ .erreur').forEach(e => { e.hidden = true; e.textContent = ''; }); document.querySelectorAll('#calque [aria-invalid]').forEach(e => e.removeAttribute('aria-invalid')); }
+function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = document.getElementById(id); if (e) { e.textContent = msg; e.hidden = false; } if (c) c.setAttribute('aria-invalid', 'true'); }
+/* regles : [[id, valeur => message ou '']] ; rend les valeurs (rognées) ou null après avoir écrit chaque message sous son champ, mis le focus sur le premier et dit le premier en toast */
+function entVerifier(regles){
+  entEffacer(); const V = {}, E = [];
+  regles.forEach(([id, fn]) => { const el = document.getElementById(id); V[id] = el ? el.value.trim() : ''; const m = fn(V[id], V); if (m) E.push([id, m]); });
+  E.forEach(([id, m]) => entErr(id, m));
+  if (!E.length) return V;
+  const c = document.getElementById(E[0][0]); if (c) c.focus();
+  toast(esc(E[0][1])); return null;
+}
+const entTexte = (max, vide) => v => !v ? (vide || '') : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > max ? `Ce champ ne peut pas dépasser ${max} signes.` : '';
+const entMailOk = v => !v || (!ENT_INTERDIT.test(v) && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v));
+const entNb = v => { const x = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return isNaN(x) || !/^\s*-?\d+([.,]\d+)?\s*$/.test(String(v)) ? NaN : x; };
+function entApresEnregistrement(msg){ fermerPanneau(); rendre(); toast(entDit(msg)); }
+
+/* carte 1 : ton entreprise */
+function entPanIdent(){
+  const E = ENTREPRISE, a = entAdr();
+  entPanneau(`<span class="surtitre">Mon entreprise</span><h2>Ton entreprise</h2><span class="gris">Son nom, son adresse, comment la joindre. Ils s’écrivent en haut de tes factures, de tes devis et de tes courriels.</span>
+    ${entChamp('en-nom', 'Nom de l’entreprise <span class="faible">(obligatoire)</span>', E.nom, { autocomplete:'organization' })}
+    ${entChamp('en-patron', 'Ton nom, comme dirigeant', E.patron, { autocomplete:'name', aide:'Il est écrit dans tes contrats (« représentée par… »).' })}
+    ${entChamp('en-rue', 'Rue et numéro <span class="faible">(obligatoire)</span>', a.rue, { autocomplete:'address-line1' })}
+    <div class="deux-champs">${entChamp('en-cp', 'Code postal <span class="faible">(obligatoire)</span>', a.cp, { inputmode:'numeric', autocomplete:'postal-code' })}${entChamp('en-ville', 'Ville <span class="faible">(obligatoire)</span>', a.ville, { autocomplete:'address-level2' })}</div>
+    ${entChamp('en-tel', 'Téléphone', E.tel, { type:'tel', autocomplete:'tel' })}
+    ${entChamp('en-mail', 'Adresse e-mail', E.mail, { type:'email', autocomplete:'email' })}
+    ${entChamp('en-site', 'Site internet', E.site, { autocomplete:'url', aide:'Il s’écrit dans les documents sur mesure.' })}
+    <div class="actions"><button type="button" class="btn" data-ent="identok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function entEnregistrerIdent(){
+  const msgAdr = 'Il manque la rue, le code postal ou la ville : une facture doit porter ton adresse.';
+  const V = entVerifier([
+    ['en-nom', entTexte(60, 'Le nom de l’entreprise est obligatoire.')],
+    ['en-patron', entTexte(60)],
+    ['en-rue', v => !v ? msgAdr : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > 80 ? 'La rue ne peut pas dépasser 80 signes.' : ''],
+    ['en-cp', v => /^\d{5}$/.test(v) ? '' : 'Le code postal a cinq chiffres.'],
+    ['en-ville', v => !v ? msgAdr : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > 50 ? 'La ville ne peut pas dépasser 50 signes.' : ''],
+    ['en-tel', v => !v ? '' : !/^[0-9 +.\-]{6,20}$/.test(v) ? 'Ce numéro de téléphone ne semble pas juste.' : ''],
+    ['en-mail', v => entMailOk(v) ? '' : 'Cette adresse e-mail ne semble pas juste.'],
+    ['en-site', v => !v ? '' : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : /\s/.test(v) ? 'Cette adresse de site ne semble pas juste.' : v.length > 80 ? 'Ce champ ne peut pas dépasser 80 signes.' : '']
+  ]);
+  if (!V) return;
+  const site = V['en-site'] && !/^https?:\/\//i.test(V['en-site']) ? 'https://' + V['en-site'] : V['en-site'];
+  Object.assign(ENTREPRISE, { nom:V['en-nom'], patron:V['en-patron'], adr:`${V['en-rue']}, ${V['en-cp']} ${V['en-ville']}`, tel:V['en-tel'], mail:V['en-mail'], site });
+  entApresEnregistrement('Ton entreprise est enregistrée.');
+}
+
+/* carte 2 : tes mentions légales (le panneau est cxFicheLegale, plus haut : une seule fonction) */
+const entSiretForme = d => d.replace(/^(\d{3})(\d{3})(\d{3})(\d{5})$/, '$1 $2 $3 $4');
+function entEnregistrerLegal(){
+  const E = ENTREPRISE;
+  const V = entVerifier([
+    ['fl-siret', v => /^\d{14}$/.test(v.replace(/\s/g, '')) ? '' : 'Le SIRET a quatorze chiffres. Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr).'],
+    ['fl-tva', v => !v || /^FR\d{11}$/i.test(v.replace(/\s/g, '')) ? '' : 'Un numéro de TVA français commence par FR, puis deux chiffres et les neuf chiffres de ton SIREN.'],
+    ['fl-forme', v => v ? '' : 'Choisis la forme juridique.'],
+    ['fl-cap', (v, T) => /^Entreprise individuelle/.test(T['fl-forme'] || '') ? '' : (ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : cxNum(v) > 0 ? '' : 'Une société écrit son capital sur ses factures : indique-le.')],
+    ['fl-rcs', v => !v ? 'Indique ton immatriculation (RCS et ville du greffe, ou répertoire des métiers).' : entTexte(80)(v)],
+    ['fl-ass', entTexte(80)], ['fl-num', entTexte(40)], ['fl-asc', entTexte(120)], ['fl-zone', entTexte(80)], ['fl-med', entTexte(120)]
+  ]);
+  if (!V) return;
+  const siret = V['fl-siret'].replace(/\s/g, ''), tva = V['fl-tva'].replace(/\s/g, '').toUpperCase();
+  const cle = cxSirenOk(siret.slice(0, 9));
+  Object.assign(ENTREPRISE, { siret:entSiretForme(siret), tva:tva ? tva.slice(0, 4) + ' ' + tva.slice(4) : '', forme:V['fl-forme'], capital:/^Entreprise individuelle/.test(V['fl-forme']) ? '' : V['fl-cap'], rcs:V['fl-rcs'],
+    assureur:V['fl-ass'], assurNum:V['fl-num'], assurc:V['fl-asc'], assurZone:V['fl-zone'], mediateur:V['fl-med'] });
+  fermerPanneau(); rendre();
+  const ok = E.assureur && E.assurc && E.assurZone;
+  toast(entDit((cle ? '' : 'Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. ') + (ok ? 'Tes mentions légales sont enregistrées : elles s’écrivent toutes seules en bas de chaque devis et de chaque facture.' : 'Tes mentions légales sont enregistrées. Il reste l’assurance à compléter (assureur, coordonnées, zone).')));
+}
+
+/* carte 3 : ton logo (jamais envoyé nulle part : lu dans le navigateur, gardé tel quel) */
+let ENT_LOGO = undefined;   // undefined : rien de changé ; '' : retirer ; une adresse « data: » : le nouveau
+function entPanLogo(){
+  ENT_LOGO = undefined;
+  entPanneau(`<span class="surtitre">Mon entreprise</span><h2>Ton logo</h2><span class="gris">Il s’écrit en haut de tes factures, devis et contrats. Une image carrée ou large (PNG, JPEG ou SVG), 1 Mo au plus. Elle reste dans ton navigateur : elle n’est envoyée nulle part.</span>
+    <div class="ent-logo-ap" id="en-ap" aria-label="Aperçu du logo">${logoEnt('span')}</div>
+    <div class="actions ent-logo-act"><label class="btn gris" for="en-logo" tabindex="-1">Choisir une image</label><input type="file" id="en-logo" accept="image/png,image/jpeg,image/svg+xml" class="ent-fichier">${ENTREPRISE.logo ? '<button type="button" class="btn gris" data-ent="logoretirer">Retirer le logo</button>' : ''}</div>
+    <span class="erreur" id="en-logo-err" role="alert" hidden></span>
+    <div class="actions"><button type="button" class="btn" data-ent="logook">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function entLogoApercu(){ const a = document.getElementById('en-ap'); if (!a) return; const L = ENT_LOGO === undefined ? ENTREPRISE.logo : ENT_LOGO;
+  a.innerHTML = L ? `<img class="logo-ent" src="${esc(L)}" alt="">` : `<span class="logo-ent">${esc(entInitiales())}</span>`; }
+function entLogoErr(msg){ const e = document.getElementById('en-logo-err'); if (!e) return; e.textContent = msg || ''; e.hidden = !msg; }
+function entLireLogo(f){
+  entLogoErr('');
+  if (!f) return;
+  if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(f.type)) { entLogoErr('Ce fichier n’est pas accepté.'); return; }
+  if (f.size > 1024 * 1024) { entLogoErr('Cette image pèse plus de 1 Mo : choisis-en une plus légère.'); return; }
+  const lire = () => { const r = new FileReader(); r.onload = () => { ENT_LOGO = String(r.result); entLogoApercu(); }; r.onerror = () => entLogoErr('Ce fichier n’est pas accepté.'); r.readAsDataURL(f); };
+  if (f.type !== 'image/svg+xml') return lire();
+  const t = new FileReader(); t.onload = () => { const x = String(t.result); if (/<script|\son[a-z]+\s*=|javascript:|<foreignObject|<iframe/i.test(x)) entLogoErr('Ce fichier n’est pas accepté.'); else lire(); }; t.onerror = () => entLogoErr('Ce fichier n’est pas accepté.'); t.readAsText(f);
+}
+document.addEventListener('change', ev => { const i = ev.target.closest && ev.target.closest('#en-logo'); if (i) entLireLogo(i.files && i.files[0]); });
+
+/* carte 4 : ta banque et ton comptable */
+const entIbanOk = v => { const s = v.replace(/\s/g, '').toUpperCase(); if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(s) || s.length < 14 || s.length > 34) return false; const r = s.slice(4) + s.slice(0, 4); let m = 0; for (const c of r) m = (m * (/[A-Z]/.test(c) ? 100 : 10) + (/[A-Z]/.test(c) ? c.charCodeAt(0) - 55 : +c)) % 97; return m === 1; };
+function entPanBanque(){
+  const E = ENTREPRISE;
+  entPanneau(`<span class="surtitre">Mon entreprise</span><h2>Ta banque et ton comptable</h2><span class="gris">Ton IBAN, pour que tes clients te paient, et le cabinet qui reçoit tes bilans et ta paie.</span>
+    <div class="groupe">Ton compte</div>
+    ${entChamp('en-iban', 'IBAN', E.iban, { autocomplete:'off', placeholder:'ex. FR76 3000 6000 0112 3456 7890 189' })}
+    ${entChamp('en-bic', 'BIC', E.bic, { autocomplete:'off', placeholder:'8 ou 11 signes', aide:'Il s’écrit à côté de l’IBAN sur tes factures.' })}
+    <div class="groupe">Ton expert-comptable</div>
+    ${entChamp('en-cab', 'Cabinet', CP_EXPERT.cab, {})}
+    ${entChamp('en-expqui', 'Son nom', CP_EXPERT.qui, {})}
+    ${entChamp('en-expmail', 'Son e-mail', CP_EXPERT.mail, { type:'email', aide:'Les bilans et la paie lui sont envoyés d’ici.' })}
+    <div class="actions"><button type="button" class="btn" data-ent="banqueok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function entEnregistrerBanque(){
+  const V = entVerifier([
+    ['en-iban', v => !v ? '' : ENT_INTERDIT.test(v) || !entIbanOk(v) ? 'Cet IBAN ne semble pas juste. Vérifie-le : il commence par FR et compte 27 caractères.' : ''],
+    ['en-bic', v => !v ? '' : /^[A-Za-z]{6}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/.test(v) ? '' : 'Un BIC a huit ou onze signes.'],
+    ['en-cab', entTexte(60)], ['en-expqui', entTexte(60)],
+    ['en-expmail', v => entMailOk(v) ? '' : 'Cette adresse e-mail ne semble pas juste.']
+  ]);
+  if (!V) return;
+  const iban = V['en-iban'].replace(/\s/g, '').toUpperCase();
+  Object.assign(ENTREPRISE, { iban:iban.replace(/(.{4})/g, '$1 ').trim(), bic:V['en-bic'].toUpperCase() });
+  Object.assign(CP_EXPERT, { cab:V['en-cab'], qui:V['en-expqui'], mail:V['en-expmail'] });
+  entApresEnregistrement('Ta banque et ton comptable sont enregistrés.');
+}
+
+/* carte 5 : tes horaires et tes tarifs */
+const entHM = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const entMin = v => { const m = /^(\d{1,2}):(\d{2})$/.exec(v || ''); return m ? +m[1] * 60 + +m[2] : NaN; };
+const entVirgule = n => String(n).replace('.', ',');
+function entPanHoraires(){
+  entPanneau(`<span class="surtitre">Mon entreprise</span><h2>Tes horaires et tes tarifs</h2><span class="gris">Ta journée de travail, ton tarif et tes déplacements : le planning, les devis et les factures au temps les reprennent.</span>
+    <div class="groupe">Ta journée de travail</div>
+    <div class="deux-champs">${entChamp('en-debut', 'De', entHM(PARAMS.debut), { type:'time', step:'900' })}${entChamp('en-fin', 'À', entHM(PARAMS.fin), { type:'time', step:'900' })}</div>
+    <div class="groupe">Tes tarifs</div>
+    ${entChamp('en-horaire', 'Tarif horaire (€ HT de l’heure)', entVirgule(TARIFS.horaire), { inputmode:'decimal' })}
+    ${entChamp('en-minimum', 'Durée minimale facturée (en heures)', entVirgule(TARIFS.minimum / 60), { inputmode:'decimal', aide:'Une demi-heure à quatre heures, par demi-heure.' })}
+    <div class="groupe">Tes déplacements (€ HT)</div>
+    <div class="ent-zones">${[1, 2, 3].map(z => entChamp('en-z' + z, 'Zone ' + z, entVirgule(TARIFS.zone[z]), { inputmode:'decimal' })).join('')}</div>
+    <span class="gris petit">La zone d’un client dépend de sa commune : la zone 1 est la plus proche, la zone 3 la plus éloignée.</span>
+    <div class="actions"><button type="button" class="btn" data-ent="horairesok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+}
+function entEnregistrerHoraires(){
+  const zone = v => { const x = entNb(v); return x >= 0 && x <= 500 ? '' : 'Un déplacement coûte entre 0 et 500 €.'; };
+  const V = entVerifier([
+    ['en-debut', v => isNaN(entMin(v)) ? 'La journée doit durer au moins quatre heures.' : ''],
+    ['en-fin', (v, T) => isNaN(entMin(v)) || isNaN(entMin(T['en-debut'])) || entMin(v) - entMin(T['en-debut']) < 240 ? 'La journée doit durer au moins quatre heures.' : ''],
+    ['en-horaire', v => { const x = entNb(v); return x >= 1 && x <= 500 ? '' : 'Le tarif de l’heure doit être compris entre 1 et 500 €.'; }],
+    ['en-minimum', v => { const x = entNb(v); return x >= 0.5 && x <= 4 && Math.abs(x * 2 - Math.round(x * 2)) < 1e-9 ? '' : 'Choisis une durée entre une demi-heure et quatre heures.'; }],
+    ['en-z1', zone], ['en-z2', zone], ['en-z3', zone]
+  ]);
+  if (!V) return;
+  PARAMS.debut = entMin(V['en-debut']); PARAMS.fin = entMin(V['en-fin']);
+  TARIFS.horaire = entNb(V['en-horaire']); TARIFS.minimum = Math.round(entNb(V['en-minimum']) * 60);
+  [1, 2, 3].forEach(z => { TARIFS.zone[z] = entNb(V['en-z' + z]); });
+  entApresEnregistrement('Tes horaires et tes tarifs sont enregistrés.');
+}
+
+/* ── ouvrir une carte, compléter, et les six liens (chacun MÈNE à l'endroit où la case vit) ── */
+function entOuvrirCarte(k){ const f = { ident:entPanIdent, legal:cxFicheLegale, logo:entPanLogo, banque:entPanBanque, horaires:entPanHoraires }[k]; if (f) f(); }
+function entCompleter(M){
+  const premier = (M || entrepriseManque())[0], k = premier && premier.k === 'siret' ? 'legal' : 'ident';
+  if (route === 'entreprise') { fermerPanneau(); return entOuvrirCarte(k); }
+  aller('entreprise'); entApres(() => entOuvrirCarte(k));
+}
+function entDefiler(sel){ const e = document.querySelector(sel); if (e) { e.scrollIntoView({ block:'center' }); e.classList.add('ent-flash'); setTimeout(() => e.classList.remove('ent-flash'), 1800); } }
+function entPanMetiers(){
+  ouvrirPanneau(`<span class="surtitre">Mon entreprise</span><h2>Tes métiers</h2><div class="fo-bloc">${PACKS_ENT.map(k => `<div class="fo-r"><span class="fo-n"><b>${esc(PACKS[k].nom)}</b></span></div>`).join('') || '<div class="gris petit">Aucun.</div>'}</div>
+    <span class="gris petit">Réglé par TEAM OP à l’ouverture de ton compte.</span><div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
+}
+function entAllerLien(k){
+  if (k === 'rdv') { aller('planning'); return entApres(panneauReglagesRdv); }
+  if (k === 'auto') { cxAller('factures'); return entApres(() => entDefiler('[data-reglage="auto"]')); }
+  if (k === 'ndf') { acOnglet = 'notes'; aller('achats'); return entApres(() => entDefiler('.ax-regle')); }
+  if (k === 'stock') { aller('stock'); return entApres(() => { if (typeof msReglagesVue === 'function') msReglagesVue(); }); }
+  if (k === 'boites') { aller('boiteMail'); return entApres(() => { if (typeof mbxPanBoites === 'function') mbxPanBoites(); else { const b = document.querySelector('[data-ml="boites"]'); if (b) b.click(); } }); }
+  if (k === 'metiers') return entPanMetiers();
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-ent]'); if (!b) return;
+  const [a, x] = b.dataset.ent.split('|');
+  if (a === 'carte') return entOuvrirCarte(x);
+  if (a === 'completer') return entCompleter();
+  if (a === 'lien') return entAllerLien(x);
+  if (!entModifiable()) return toast('Ce geste n’est pas ouvert à ton compte : changer la fiche de l’entreprise. Demande à ' + esc(entPremierAdmin()) + '.');
+  if (a === 'identok') return entEnregistrerIdent();
+  if (a === 'banqueok') return entEnregistrerBanque();
+  if (a === 'horairesok') return entEnregistrerHoraires();
+  if (a === 'logoretirer') { ENT_LOGO = ''; entLogoErr(''); return entLogoApercu(); }
+  if (a === 'logook') { if (ENT_LOGO === undefined) return fermerPanneau(); ENTREPRISE.logo = ENT_LOGO; ENT_LOGO = undefined; return entApresEnregistrement(ENTREPRISE.logo ? 'Ton logo est enregistré.' : 'Ton logo est retiré : tes documents reprennent tes initiales.'); }
+});
+/* « Enregistrer » de la fiche légale passe par le gestionnaire de la Conformité : la même garde de lecture */
+(() => { const f0 = entEnregistrerLegal; entEnregistrerLegal = function () { if (!entModifiable()) return toast('Ce geste n’est pas ouvert à ton compte : changer la fiche de l’entreprise. Demande à ' + esc(entPremierAdmin()) + '.'); return f0.apply(this, arguments); }; })();
+
+/* ── la garde de la facture : ce que la personne lit ── */
+function entMessageManque(M, o){
+  o = o || {};
+  const peut = entModifiable(), liste = entListe(M.map(m => peut ? m.toi : m.le));
+  const tete = o.aucune ? 'Aucune facture n’est partie : il manque ' : 'Il manque ';
+  return peut ? `${tete}${esc(liste)} sur ta fiche : une facture doit ${M.length > 1 ? 'les' : 'le'} porter. Ça prend trente secondes.` : `${tete}${esc(liste)} sur la fiche de l’entreprise : demande à ${esc(entPremierAdmin())} de la compléter.`;
+}
+function entRefusFacture(M, o){ toast(entMessageManque(M, o), entModifiable() ? { lib:'Compléter', fn:() => entCompleter(M) } : undefined); }
+/* un client sans adresse e-mail retient l'envoi automatique (la facture attend « à valider ») */
+function entClientJoignable(id){ const c = CLIENTS[id]; return !!c && (typeof cfMailOk === 'function' ? cfMailOk(c.mail) : !!c.mail); }
+/* l'aperçu d'envoi dit le manque AVANT le bouton, et le remplace par « Compléter ma fiche » (ou par rien, pour qui ne peut pas la compléter) */
+(() => { const a0 = ACTIONS.apercuEnvoi; ACTIONS.apercuEnvoi = function (b) { const r = a0.apply(this, arguments), M = entrepriseManque(), P = document.querySelector('#calque .panneau'), env = P && P.querySelector('[data-action="envoyer"]');
+  if (M.length && env) env.outerHTML = `<div class="ent-ban manque" role="status"><span>${entMessageManque(M)}</span>${entModifiable() ? '<button type="button" class="btn" data-ent="completer">Compléter ma fiche</button>' : ''}</div>`;
+  return r; }; })();
+/* un devis et un contrat ne sont pas bloqués (le devis n'engage pas) : le même message, en passant, sans empêcher */
+(() => { const d0 = dvEnvoyer; dvEnvoyer = function (x) { const r = d0.apply(this, arguments), M = entrepriseManque(), P = document.querySelector('#calque .panneau');
+  if (M.length && P && !P.querySelector('.ent-ban')) { const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="ent-ban manque" role="status"><span>${entMessageManque(M).replace(/ Ça prend trente secondes\.$/, '')} Le devis peut partir quand même.</span>${entModifiable() ? '<button type="button" class="btn gris" data-ent="completer">Compléter</button>' : ''}</div>`); }
+  return r; }; })();
+(() => { const c0 = ACTIONS.creerContrat; ACTIONS.creerContrat = function () { const n = CONTRATS.length, r = c0.apply(this, arguments), M = entrepriseManque(), t = document.getElementById('toast');
+  if (CONTRATS.length > n && M.length && t) { t.insertAdjacentHTML('beforeend', `<span class="ent-toast-plus"> ${entMessageManque(M).replace(/ Ça prend trente secondes\.$/, '')}</span>`); if (entModifiable()) { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = 'Compléter'; bt.onclick = () => { t.classList.remove('on'); entCompleter(M); }; t.appendChild(bt); } }
+  return r; }; })();
+
+document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
+.ent-ban{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
+.ent-ban .btn{flex:none}
+.ent-ban.manque{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
+.bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
+.ent-c{min-width:0}
+.ent-c .bx-t{align-items:center}
+.ent-aide{line-height:1.4}
+.ent-c .bx-t .fo-n{flex:1 1 0;min-width:0}
+.ent-c .bx-t .st{margin-left:auto;flex:none}
+.ent-av svg{width:22px;height:22px}
+.ent-av.ent-av-logo{background:none;text-shadow:none;width:auto;height:auto;border-radius:12px}
+.ent-manque{color:var(--orange);font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.ent-res{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ent-ligne{font-size:14px;line-height:1.35;overflow-wrap:anywhere;min-width:0}
+.ent-ligne.gris{color:var(--doux)}
+.ent-liens .ligne-clic{margin-bottom:8px}
+.ent-liens .ligne-clic:last-child{margin-bottom:0}
+.ent-lien .m-t{flex:1 1 0;min-width:0}
+.ent-lien .m-t b,.ent-lien .m-t span{overflow-wrap:anywhere}
+.ent-champ > label{font-size:14px;color:var(--doux);font-weight:550}
+.erreur{color:var(--rouge);font-size:13.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.erreur[hidden]{display:none}
+.champ input[aria-invalid="true"],.champ select[aria-invalid="true"],.saisie[aria-invalid="true"]{border-color:var(--rouge)}
+.ent-zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.ent-zones{grid-template-columns:1fr}}
+.ent-logo-ap{display:flex;align-items:center;justify-content:center;min-height:120px;border-radius:16px;border:1px dashed var(--trait2);background:var(--surf2)}
+.ent-logo-ap .logo-ent{width:96px;height:96px;font-size:30px;border-radius:20px}
+.ent-fichier{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+.ent-logo-act{align-items:center}
+.ent-logo-act label.btn{cursor:pointer}
+img.logo-ent{background:#fff;object-fit:contain;overflow:hidden;padding:0;width:46px;height:46px;border-radius:12px;display:inline-block;flex:none}
+.bil-ent img.logo-ent{background:#fff}
+.ent-flash{outline:2px solid var(--lien);outline-offset:4px;border-radius:12px;transition:outline-color .4s}
+.ent-toast-plus{display:block;margin-top:4px;opacity:.92}
+.ach-compta{margin-bottom:2px}
+.ach-compta .ligne-clic{margin-bottom:8px}
+.ach-compta .ligne-clic .m-t{flex:1 1 0;min-width:0}
+.ach-compta .ligne-clic b{font-weight:600;overflow-wrap:anywhere}
+.kpis.ach-k2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ach-aide{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center}
+@media (max-width:760px){.tete .actions.ach-act{width:100%}.tete .actions.ach-act .btn{width:100%;min-height:46px;justify-content:center}}
+</style>`);
+
 
 /* ───────── la fiche d'intervention : les frais et achats qui la concernent ───────── */
 (() => { const f0 = vueFiche; vueFiche = function (id) { const h = f0.apply(this, arguments); if (typeof ROLE !== 'undefined' && ROLE === 'client') return h;
@@ -19370,7 +19746,7 @@ function rgDoc(k, per){
   const prods = P.flatMap(p => p.poses.map(([pid, lot, q]) => ({ p, x:D3_PROD[pid], lot, q })));
   const etatLe = id => { for (const p of P.slice().reverse()) if (p.etats[id] != null) return p.etats[id]; return 0; };
   const appl = [...new Set(P.map(p => p.tech))].map(nom => { const a = rgCleDe(nom); return esc(nom) + (a && rgCertif(a).ok ? ' · ' + esc(rgCertif(a).txt) : ''); });
-  return `<div class="pdf rg-doc"><div class="pdf-tete"><span class="logo-ent">CS</span><div><h4>Registre sanitaire</h4><span class="mini">${esc(ENTREPRISE.nom)} · ${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</span></div></div>
+  return `<div class="pdf rg-doc"><div class="pdf-tete">${logoEnt('span')}<div><h4>Registre sanitaire</h4><span class="mini">${esc(ENTREPRISE.nom)} · ${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</span></div></div>
     <div class="deux"><div><h6>Site suivi</h6><b>${esc(c.nom)}</b><br><span class="mini">${esc(c.adr)}<br>Contrat : ${esc(c.contrat)}</span></div><div><h6>Période</h6><b>du ${rgJA(deb)} au ${rgJA(fin)}</b><br><span class="mini">${rgPl(P.length, 'passage', 'passages')}${rgQ.trim() ? '<br>Produits filtrés : « ' + esc(rgQ.trim()) + ' »' : ''}</span></div></div>
     <h6>Passages</h6><div class="rg-scroll"><table><thead><tr><th>Date</th><th>Applicateur</th><th>Activité</th><th>Observations</th></tr></thead><tbody>${P.slice().reverse().map(p => `<tr><td>${jCourt(p.d)}</td><td>${esc(p.tech)}</td><td>${d3Activite(p)[0]}</td><td>${esc(p.obs)}${p.contact ? '<br><span class="mini">Présent sur place : ' + esc(p.contact) + (p.sig ? ' (signature recueillie)' : '') + '</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="4">Aucun passage sur la période.</td></tr>'}</tbody></table></div>
     <h6>Produits biocides posés</h6><div class="rg-scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Lot</th><th>Quantité</th></tr></thead><tbody>${prods.filter(o => { const q = rgN(rgQ).trim(); return !q || rgN([o.x.nom, o.x.tp, rgAmm(o.x), o.lot].join(' ')).includes(q); }).reverse().map(o => `<tr><td>${jCourt(o.p.d)}</td><td>${esc(o.x.nom)}<br><span class="mini">${o.x.tp} · AMM ${esc(rgAmm(o.x))}</span></td><td>${esc(o.lot)}</td><td>${rgQte(o.x, o.q)}</td></tr>`).join('') || '<tr><td colspan="4">Aucun produit posé.</td></tr>'}</tbody></table></div>
@@ -19722,7 +20098,7 @@ function cbPdf(){
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c];
   ouvrirPanneau(`<h2>Plan des box en PDF</h2><span class="gris">Aperçu : aucun fichier n’est fabriqué ici. Dans l’application, le plan A4 part au nom de l’entreprise, avec la légende, les numéros, la date du dernier relevé et la signature du technicien.</span>
     <div class="bil" role="document" data-nom="Plan des box ${esc(D.nom)}.pdf" data-objet="Plan des box — ${esc(D.nom)}">
-      <header class="bil-tete"><div class="bil-ent"><div class="logo-ent">CS</div><div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
+      <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
         <div class="bil-titre"><small>Plan des box</small><b>${esc(D.nom)}</b><span>${esc(D.adr)} · relevé du ${jCourt(der.d)}</span></div></header>
       <div class="cb-pp">${D3_ZONES[c].map(([n, x, y, w, h]) => `<span class="cb-ppz" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><i>${esc(n)}</i></span>`).join('')}${P.map(p => `<span class="cb-ppb" style="left:${p.x}%;top:${p.y}%">${p.id.slice(1)}</span>`).join('')}</div>
       <section><h5>Légende · ${P.length} box</h5><table><thead><tr><th>N°</th><th>Type</th><th>Zone</th><th>État au dernier relevé</th></tr></thead><tbody>${P.map(p => { const e = cbEtat(c, p.id); return `<tr><td>${p.id}</td><td>${esc(D3_TYPES[p.t][0])}</td><td>${esc(p.zone)}${p.repere ? ' · ' + esc(p.repere) : ''}</td><td>${e == null ? 'pas encore relevée' : esc(d3Lib(e))}</td></tr>`; }).join('')}</tbody></table></section>
@@ -21888,7 +22264,7 @@ setInterval(() => { if (IMMAVME.ph && immActif() && (GD_TOURS.imm.chap()[GD.e] |
 
 immChap('achats', 'achats', 'Achats et frais', 'Achats et frais : décider vite, tout se relie',
   'Les achats, c’est tout ce que ton équipe te demande de payer : du matériel, des pièces, et les notes de frais. Je te montre comment décider en quelques secondes, pendant que le logiciel prépare le reste.', [
-  { c:'#contenu .kpis', t:'Ce qui attend ta décision', p:'En haut, quatre chiffres : 3 demandes à décider, 896 euros de factures à payer, 4 achats qui n’ont pas encore de facture, et 3 notes de frais à valider. Les deux du milieu t’emmènent dans la Comptabilité.' },
+  { c:'#contenu .kpis', t:'Ce qui attend ta décision', p:'En haut, deux chiffres : 3 demandes de matériel à décider et 3 notes de frais à valider. Dessous, deux lignes t’emmènent dans la Comptabilité : 896 euros de factures à payer, et 4 achats qui n’ont pas encore de facture.' },
   { c:'[data-axid="da1"]', t:'Une demande de Tom', p:'Tom demande 10 kilos de fluide pour le 2 novembre, parce qu’il en a donné une bouteille à Karim. Il a écrit pourquoi, et le montant estimé, 380 euros, se corrige d’un geste avant de décider.' },
   { c:'[data-axid="da1"] .ve-e', t:'Le logiciel regarde ton stock d’abord', p:'Avant d’acheter, il regarde l’atelier : il en reste 6 kilos sur 10. Il propose de les transférer au camion de Tom, et de ne commander que les 4 qui manquent. Dessous, il rappelle ce que ce poste a déjà coûté en octobre.' },
   { c:'[data-axid="da1"] .actions', t:'Cinq réponses possibles', p:'Transférer et commander, tout commander, acheter en magasin, demander une précision, ou refuser. Je touche la première : transférer les 6 kilos, et commander les 4 qui manquent.',
@@ -22969,7 +23345,7 @@ const NV_PLACE = [
   ['Produits, Fournisseurs, Bons de commande, Commandes en cours', 'Fournisseurs, matériel & produits (un onglet chacun)', 'produits'],
   ['Mouvements de stock et Validation des mouvements', 'Stock › onglets « Mouvements » et « À valider »', 'stock'],
   ['Consommation produits et Produits donnés', 'Stock › « Sortie » (utilisé chez le client, donné à quelqu’un)', 'stock'],
-  ['Mes demandes et Brouillon', 'Achats et frais › « Demandes »', 'achats'],
+  ['Mes demandes et Brouillon', 'Achats et frais › « Demandes de matériel »', 'achats'],
   ['Conducteurs', 'Véhicules › la fiche du véhicule › Conducteur', 'vehicules'],
   ['Utilisateurs et Permissions', 'Équipe › la fiche de la personne et « Qui peut quoi »', 'equipe'],
   ['Boîtes mail (Paramètres)', 'Boîte mail › « Boîtes connectées »', 'boiteMail'],
