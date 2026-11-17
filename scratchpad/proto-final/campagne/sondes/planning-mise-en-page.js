@@ -10,6 +10,8 @@ const RAPPORT = {};
   const c = await L.ouvrir({ profil, nuit, qui: 'marc' }); const tag = profil + (nuit ? '-nuit' : '-jour');
   for (const v of VUES) {
     await c.p.evaluate(v => { if (location.hash !== '#planning') aller('planning'); plVue = v; plRef = AUJ; plMasques = new Set(); plJours = 6; rendre(); scrollTo(0, 0); }, v); await L.calme(c.p, 700);
+    // la carte : on laisse le fond réel arriver (ou le repli se poser) avant de mesurer, sinon on lit le voile de chargement
+    if (v === 'carte') { await L.attendre(c.p, () => crReelEtat === 'ok' || crReelEtat === 'ko', 25000); await L.calme(c.p, 1200); }
     const deb = await L.deborde(c); const o = { debordement: deb };
     L.v(`${tag} · ${v} : aucun glissement latéral de la page (largeur ${c.largeur})`, !deb.bouge, deb);
     if (c.doigt) { o.doigts = await L.doigts(c.p, '#contenu'); o.doigts.petitsRect = o.doigts.petits; o.doigts.petits = await O.doigtsReel(c.p, '#contenu');   // la zone qui répond, pas le rectangle

@@ -114,7 +114,8 @@ parcours('P3 · déplacer une intervention par glisser vers un autre technicien 
 
 parcours('P4 · changer la durée en tirant le bas d’une carte (jour), le total « de travail prévu » suit', async c => {
   await vue(c, 'jour'); const it = await c.p.evaluate(() => { const i = INTS.find(x => x.d === AUJ && x.tech && x.st !== 'fait' && x.st !== 'annulee'); return i ? { id: i.id, dur: i.dur, tech: i.tech } : null; }); L.v('P4 · une intervention modifiable aujourd’hui', !!it, it); if (!it) return;
-  const k0 = await kpis(c.p); const prise = await c.p.evaluate(id => { const e = document.querySelector('.pc[data-int="' + id + '"] .tire'); if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(), pph = +e.closest('.pl-col').dataset.pph; return { x: r.left + r.width / 2, y: r.top + r.height / 2, pph, l: r.width, h: r.height }; }, it.id);
+  const k0 = await kpis(c.p); const prise = await c.p.evaluate(id => { const e = document.querySelector('.pc[data-int="' + id + '"] .tire'); if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(), pph = +e.closest('.pl-col').dataset.pph; const cx = r.left + r.width / 2, cy = r.top + r.height / 2, ok = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && !!t.closest && t.closest('.tire') === e; }; let h = 0, b = 0; while (h < 60 && ok(cx, cy - h - 1)) h++; while (b < 60 && ok(cx, cy + b + 1)) b++;   // la zone qui RÉPOND, pseudo-élément compris, pas le rectangle
+    return { x: cx, y: cy, pph, l: r.width, h: h + b + 1, hRect: r.height }; }, it.id);
   L.v('P4 · la poignée de durée est là', !!prise, prise); if (!prise) return;
   L.v('P4 · la poignée se saisit au doigt : au moins 24 px de haut et 44 de large (planning-POIGNEE)', !c.doigt || (prise.h >= 24 && prise.l >= 44), prise);
   await glisser(c, { x: prise.x, y: prise.y }, { x: prise.x, y: prise.y + prise.pph / 2 }, { court: true });

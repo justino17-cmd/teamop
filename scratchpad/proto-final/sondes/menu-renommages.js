@@ -36,8 +36,8 @@ const ROUTES_RENDUES = {
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' });
     const noms = await c.p.evaluate(() => palEntrees().filter(e => e.g === 'Aller à').map(e => e.l));
     v('palette : les rubriques sont celles du menu, avec les nouveaux noms', ['Accueil', 'Absences et congés', 'Achats et frais', 'Dépôts et camions', 'Paiements'].every(n => noms.includes(n)) && !noms.includes('Paiements et encaissements') && !noms.includes('Tableau de bord'), noms);
-    const r = await c.p.evaluate(() => rcRubriques().map(x => x.l)); v('raccourcis ⌘ 1…9 : lus dans le même menu', r[0] === 'Accueil' && r[1] === 'Statistiques' && r.length === 19, r);
-    const ch = await c.p.evaluate(() => mbChoix().map(x => x[1])); v('barre personnalisable : les choix sont les lignes du menu du gérant (sans « Plus »)', ch.length === 19 && !ch.some(x => /Plus/.test(x)), ch);
+    const r = await c.p.evaluate(() => rcRubriques().map(x => x.l)); v('raccourcis ⌘ 1…9 : lus dans le même menu', r[0] === 'Accueil' && r[1] === 'Statistiques' && r.length === 20, r);
+    const ch = await c.p.evaluate(() => mbChoix().map(x => x[1])); v('barre personnalisable : les choix sont les lignes du menu du gérant (sans « Plus »)', ch.length === 20 && !ch.some(x => /Plus/.test(x)), ch);
     await L.fin(c); }
   // les droits (Équipe) portent les noms de la table
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' }); await L.aller(c.p, 'equipe'); await c.p.evaluate(() => eqFiche('julie')); await L.calme(c.p, 400);
