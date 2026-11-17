@@ -11,7 +11,7 @@ const PROFILS = [
   { n: 'ipad-paysage', w: 1180, h: 820, tactile: true }, { n: 'android-tablette', w: 800, h: 1280, tactile: true }, { n: 'iphone-paysage', w: 852, h: 393, tactile: true },
   { n: 'android-grand', w: 412, h: 915, tactile: true }, { n: 'portable', w: 1024, h: 700 }, { n: 'grand-ecran', w: 1920, h: 1080 },
 ];
-const ROUTES = ['accueil', 'messages', 'messages/equipe', 'messages/marc', 'messages/sophie', 'contacts', 'contacts/karim', 'appels', 'appels/a1', 'reunions', 'reunions/e1', 'reunions/e6', 'agenda', 'courrier', 'profil'];
+const ROUTES = ['accueil', 'activite', 'messages', 'messages/equipe', 'messages/marc', 'messages/sophie', 'contacts', 'contacts/karim', 'appels', 'appels/a1', 'reunions', 'reunions/e1', 'reunions/e6', 'agenda', 'courrier', 'profil'];
 (async () => {
   const seuls = process.env.PROFILS ? process.env.PROFILS.split(',') : null;
   const b = await chromium.launch(); let fautes = 0, vus = 0;
@@ -27,7 +27,7 @@ const ROUTES = ['accueil', 'messages', 'messages/equipe', 'messages/marc', 'mess
         const m = await page.evaluate(() => new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => { void document.body.offsetWidth; res({ sw: document.documentElement.scrollWidth,
           /* le Courrier est le VRAI module (arbre d'ombre) : on compte ses lignes, pas le texte de la scène */
           sc: location.hash === '#courrier' ? (() => { const h = document.querySelector('#zone-courrier [data-opcourrier]'); return h && h.shadowRoot ? h.shadowRoot.querySelectorAll('#rows .msg').length * 1000 : 0; })() : document.querySelector('#scene').textContent.trim().length,
-          hors: Array.from(document.querySelectorAll('#scene *, #onglets *, #cote *')).filter((e) => { const r = e.getBoundingClientRect(); if (!r.width || e.closest('.epingles,.puces,.an-outils,.an-sous')) return false; return r.right > innerWidth + 1 || r.left < -1; }).slice(0, 3).map((e) => e.className + '|' + e.textContent.trim().slice(0, 30)),
+          hors: Array.from(document.querySelectorAll('#scene *, #onglets *, #cote *, #haut *')).filter((e) => { const r = e.getBoundingClientRect(); if (!r.width || e.closest('.epingles,.puces,.an-outils,.an-sous,.filtres')) return false; return r.right > innerWidth + 1 || r.left < -1; }).slice(0, 3).map((e) => e.className + '|' + e.textContent.trim().slice(0, 30)),
           theme: document.documentElement.dataset.theme }); }))));
         vus++;
         if (m.sw > p.w + 1 || m.hors.length || m.sc < 120 || m.theme !== theme) { fautes++; console.log('✗', p.n, theme, r, JSON.stringify(m)); }

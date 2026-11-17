@@ -13,7 +13,25 @@ de ligne du tout.
 
 ---
 
-# 16 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES REFAIT DE A À Z, CÔTÉ PRO — ATTEND L'AVIS DE JUSTIN
+# 17 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES PRO : REFONTE TOTALE (troisième version) — ATTEND L'AVIS DE JUSTIN
+
+Justin, devant la version du 16 : « je vois pas vraiment de différence […] va sur internet, prends les meilleures applications pro pour les
+réunions, les appels, les messages, les mails, l'agenda, et fais-moi ça mieux. Je veux une refonte totale. J'aime pas du tout. »
+- **Ce qui a été regardé** (recherche du jour + `design/opmessages/VEILLE-CONCURRENCE.md`) : Teams (discussions et canaux dans UNE liste, favoris,
+  filtres), Slack (rail, recherche en haut, « Activité », bouton Créer), Spike / Superhuman (une file à vider), Zoom 6.7 (barre de réunion simplifiée).
+- **Ce qui change de FORME** (les deux versions d'avant se ressemblaient : même charpente, mêmes bulles) : un cadre bleu — rail d'icônes à gauche,
+  barre du haut avec la recherche (⌘K / Ctrl K), la cloche d'activité et soi — autour d'un espace de travail arrondi ; **Accueil** = ma journée à
+  gauche, « À traiter » à droite ; **Activité** = une seule file (non lus, mentions, appels manqués, invitations, courriels) avec « Traité » ;
+  **Messages** en LIGNES (auteur, heure, texte) avec leurs gestes au survol, liste en sections (Favoris, Canaux, Équipe, Clients) et filtres ;
+  **Agenda** en grille horaire ; cartes bordées, avatars carrés arrondis, 14 px au bureau. Au téléphone : barre bleue (recherche, cloche, soi),
+  quatre onglets et « Plus ». Le Courrier reste la vraie boîte mail ; appels, réunions et dessin sur le partage gardent leur logique.
+- **Parties** : `design/opmessages/prototype/` (assembler.sh), comme la veille. **Mesuré** : écrans 352 (11 profils, jour et nuit) 0 faute ; gestes
+  499 ✓ sur cinq appareils ; dessin 294 ✓ ; clics : voir le dernier passage. Toujours pas essayé : Safari, Firefox, Xcode.
+- ⚠️ Leçon : deux refontes de suite ont gardé la même charpente et les mêmes bulles — pour Justin, « pas de différence ». Une refonte se juge à la
+  première capture posée à côté de l'ancienne, avant d'écrire le reste.
+
+
+# (REMPLACÉ LE 17) 16 NOVEMBRE 2026 — PROTOTYPE D'OP MESSAGES REFAIT DE A À Z, CÔTÉ PRO — ATTEND L'AVIS DE JUSTIN
 
 Justin, 16 novembre : « j'aime pas ce que tu as fait sur OP MESSAGES, refais-moi un OP MESSAGES de A à Z en prototype ; regarde ce qui a été fait
 de base, inspire-toi de tout » ; « une application pour tout le monde, mais surtout pour les professionnels : concentre-toi sur le côté pro, on

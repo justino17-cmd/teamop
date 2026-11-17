@@ -96,7 +96,7 @@ const EVTS = [
   { id: 'e1', type: 'reunion', titre: 'Point d’équipe', j: 0, deb: '14:00', fin: '14:30', invites: [['karim', 'oui'], ['leo', 'oui'], ['sophie', 'oui'], ['ines', 'attente']], rappel: 15, repete: 'Chaque semaine', odj: ['Chantiers de la semaine', 'Stock et commandes', 'Questions diverses'] },
   { id: 'e2', type: 'rdv', titre: 'Entretien annuel · Hôtel des Remparts', j: 0, deb: '15:00', fin: '18:00', lieu: '12 rue des Remparts, La Rochelle', rappel: 60 },
   { id: 'e3', type: 'rdv', titre: 'Remplacement du compresseur', j: 1, deb: '05:00', fin: '07:00', lieu: 'Boulangerie Dubois, 4 rue des Halles', rappel: 60 },
-  { id: 'e4', type: 'reunion', titre: 'Bilan du trimestre', j: 2, deb: '09:30', fin: '10:30', invites: [['camille', 'oui'], ['sophie', 'attente']], rappel: 1440 },
+  { id: 'e4', type: 'reunion', titre: 'Bilan du trimestre', invitation: 'camille', j: 2, deb: '09:30', fin: '10:30', invites: [['camille', 'oui'], ['sophie', 'attente']], rappel: 1440 },
   { id: 'e5', type: 'evt', titre: 'Salon du froid · Nantes', j: 4, deb: '09:00', fin: '18:00', lieu: 'Parc des expositions, Nantes', rappel: 1440 },
   { id: 'e6', type: 'reunion', titre: 'Lancement du chantier Les Minimes', j: -2, deb: '11:00', fin: '11:45', invites: [['karim', 'oui'], ['leo', 'oui'], ['sophie', 'oui']], passe: 1,
     cr: { duree: '42 min', decisions: ['Début du chantier lundi 23', 'Karim référent sur place'], actions: [['Commander les trois unités murales', 'sophie'], ['Réserver la nacelle', 'leo']] } },
@@ -109,10 +109,10 @@ const RAPPELS = [
 ];
 
 /* ── l'état ── */
-const S = { vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
+const S = { vue: 'accueil', id: null, theme: 'auto', statut: 'ok', filtreAppels: 'tous', filtreConv: 'tout', filtreAct: 'tout', agVue: 'semaine', agSem: 0, agJour: 0, rech: '', rep: null, appel: null, salle: null,
   regl: { notif: true, heuresPro: true, pauseReunion: true, lecture: true, enligne: true, apercuNotif: true } };
 const STATUTS = { ok: ['Disponible', ''], occ: ['Occupée', 'occ'], npd: ['Ne pas déranger', 'npd'], abs: ['Absente', 'abs'] };
-const NAV = [['accueil', 'groupe', 'Tableau de bord', 'Accueil'], ['messages', 'bulle', 'Messages'], ['contacts', 'contacts', 'Contacts'], ['appels', 'tel', 'Appels'], ['reunions', 'video', 'Réunions'], ['agenda', 'agenda', 'Agenda'], ['courrier', 'mail', 'Courrier']];
+const NAV = [['accueil', 'groupe', 'Accueil'], ['messages', 'bulle', 'Messages'], ['appels', 'tel', 'Appels'], ['reunions', 'video', 'Réunions'], ['agenda', 'agenda', 'Agenda'], ['courrier', 'mail', 'Courrier'], ['contacts', 'contacts', 'Contacts']];
 const VUES = {};
 const nonLus = () => C.reduce((n, c) => n + (c.nl || 0), 0);
 const manques = () => APPELS.filter((a) => a.sens === 'manque' && !a.vu).length;
@@ -138,16 +138,36 @@ function lireAdresse() { const p = location.hash.slice(1).split('/'); S.vue = VU
 function aller(vue, id) { const h = '#' + vue + (id ? '/' + encodeURIComponent(id) : ''); if (location.hash === h) rendre(); else location.hash = h; }
 /* la touche Retour (Android, navigateur) ferme aussi la feuille ouverte */
 window.addEventListener('hashchange', () => { if ($('#calque').innerHTML) fermer(); fermerMenu(); lireAdresse(); rendre(); });
+/* le rail (bureau), la barre du haut (recherche, activité, soi), les cinq onglets (téléphone) */
 function menuHtml() {
-  return `<div class="marque"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>PRO</em></div><nav class="nav" aria-label="Rubriques">${NAV.map((n) => { const c = compte(n[0]);
-    return `<a href="#${n[0]}" ${S.vue === n[0] ? 'aria-current="page"' : ''} title="${n[2]}">${svg(n[1])}<b>${n[2]}</b>${c ? `<span class="n">${c}</span>` : ''}</a>`; }).join('')}</nav>
-    <a class="moi" href="#profil" ${S.vue === 'profil' ? 'aria-current="page"' : ''} aria-label="Mon profil et mes réglages">${av('moi', 'm')}<span><b class="coupe">${esc(P.moi.n)}</b><span class="statut ${STATUTS[S.statut][1]}"><i></i>${STATUTS[S.statut][0]}</span></span>${svg('chev')}</a>`;
+  return NAV.map((n) => { const c = compte(n[0]); return `<a href="#${n[0]}" ${S.vue === n[0] ? 'aria-current="page"' : ''} title="${n[2]}">${svg(n[1])}${n[2]}${c ? `<em>${c}</em>` : ''}</a>`; }).join('')
+    + `<button class="creer" data-action="creer" aria-label="Créer" title="Créer : message, appel, réunion, rendez-vous">${svg('plus')}</button>`;
 }
-function ongletsHtml() { return NAV.map((n) => { const c = compte(n[0]); return `<a href="#${n[0]}" ${S.vue === n[0] ? 'aria-current="page"' : ''} aria-label="${n[2]}">${svg(n[1])}<span>${n[3] || n[2]}</span>${c ? `<em>${c}</em>` : ''}</a>`; }).join(''); }
-function majMenu() { $('#cote').innerHTML = menuHtml(); $('#onglets').innerHTML = ongletsHtml(); }
-/* le grand titre du téléphone (avec l'avatar qui mène au Profil, comme l'App Store) et la barre du bureau : le même contenu, deux formes */
-function tete(titre, gestes, sous) {
-  return `<div class="barre"><h1>${titre}</h1>${gestes || ''}</div><div class="grand"><h2>${titre}</h2><a href="#profil" aria-label="Mon profil et mes réglages">${av('moi', 'm')}</a></div>${sous ? `<p class="gris" style="padding:0 20px 4px" data-sous>${sous}</p>` : ''}`; }
+function hautHtml() { const n = activite().length;
+  return `<a class="marque" href="#accueil" aria-label="OP MESSAGES, accueil"><i>OP<br>MSG</i><span>OP MESSAGES</span><em>PRO</em></a>
+    <button class="chercher" data-action="chercher">${svg('cherche')}<span>Rechercher une personne, un message, une réunion</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd></button>
+    <div class="h-droite"><a class="h-btn" href="#activite" ${S.vue === 'activite' ? 'aria-current="page"' : ''} aria-label="Activité${n ? ', ' + n + ' à traiter' : ''}" title="Activité">${svg('cloche')}${n ? `<em>${n}</em>` : ''}</a>
+      <a class="h-btn h-moi" href="#profil" ${S.vue === 'profil' ? 'aria-current="page"' : ''} aria-label="Mon profil et mes réglages" title="${esc(P.moi.n)} · ${STATUTS[S.statut][0]}">${av('moi', 'm', false).replace('</span>', `<u class="${STATUTS[S.statut][1] === 'npd' ? 'occ' : STATUTS[S.statut][1]}"></u></span>`)}</a></div>`;
+}
+const ONGLETS = ['accueil', 'messages', 'appels', 'agenda'];
+function ongletsHtml() { const plus = !ONGLETS.includes(S.vue) && S.vue !== 'activite' && S.vue !== 'profil';
+  return ONGLETS.map((k) => { const n = NAV.find((x) => x[0] === k), c = compte(k); return `<a href="#${k}" ${S.vue === k ? 'aria-current="page"' : ''}><i>${svg(n[1])}${c ? `<em>${c}</em>` : ''}</i>${n[2]}</a>`; }).join('')
+    + `<button data-action="plus" ${plus ? 'aria-current="page"' : ''}><i>${svg('points')}${COUR.nl ? `<em>${COUR.nl}</em>` : ''}</i>Plus</button>`; }
+function majMenu() { $('#cote').innerHTML = menuHtml(); $('#onglets').innerHTML = ongletsHtml(); $('#haut').innerHTML = hautHtml(); }
+const tete = (titre, gestes) => `<div class="barre"><h1 class="coupe">${titre}</h1>${gestes || ''}</div>`;
+
+/* ── l'Activité : tout ce qui attend une réponse, au même endroit (messages non lus, mentions, appels manqués, invitations, courriels) ── */
+const TRAITE = new Set();
+function activite() {
+  const l = [];
+  C.filter((c) => c.nl).forEach((c) => { const d = dernier(c); l.push({ id: 'm-' + c.id, g: c.canal ? 'mention' : 'message', ic: c.canal ? 'eclat' : 'bulle', c: '#2a4a9c', t: (c.canal ? 'Mention dans ' : '') + convNom(c), p: (c.canal ? prenom(d.de) + ' : ' : '') + apercu(d), h: quand(d), j: d.j, hh: d.h, go: 'messages/' + c.id, ges: [['Répondre', 'go']] }); });
+  APPELS.filter((a) => a.sens === 'manque' && !a.vu).forEach((a) => l.push({ id: 'a-' + a.id, g: 'appel', ic: 'tel', c: '#e5484d', t: 'Appel manqué · ' + P[a.qui].n, p: P[a.qui].r, h: a.j === 0 ? a.h : jourCourt(a.j), j: a.j, hh: a.h, go: 'appels/' + a.id, ges: [['Rappeler', 'appeler', a.qui]] }));
+  EVTS.filter((e) => e.invitation).forEach((e) => l.push({ id: 'i-' + e.id, g: 'invitation', ic: 'agenda', c: '#7d3c98', t: 'Invitation · ' + e.titre, p: jourLong(e.j) + ' · ' + e.deb + ' – ' + e.fin + ' · de ' + P[e.invitation].n, h: '', j: 0, hh: '07:00', go: 'reunions/' + e.id, ges: [['Accepter', 'inv', 'oui'], ['Refuser', 'inv', 'non']], e: e.id }));
+  if (COUR.nl) l.push({ id: 'c', g: 'courrier', ic: 'mail', c: '#0d8a6a', t: COUR.nl + ' courriel' + (COUR.nl > 1 ? 's' : '') + ' non lu' + (COUR.nl > 1 ? 's' : ''), p: 'Dans ta boîte professionnelle', h: '', j: 0, hh: '06:00', go: 'courrier', ges: [['Ouvrir', 'go']] });
+  return l.filter((x) => !TRAITE.has(x.id)).sort((a, b) => b.j - a.j || b.hh.localeCompare(a.hh));
+}
+const actHtml = (x) => `<div class="act"><span class="ic" style="--c:${x.c}">${svg(x.ic)}</span><div class="t"><b class="coupe">${esc(x.t)}</b><p>${esc(x.p)}</p><div class="ges">${x.ges.map((g, k) => g[1] === 'go' ? `<a class="btn" href="#${x.go}">${g[0]}</a>` : g[1] === 'appeler' ? `<button class="btn" data-appeler="${g[2]}">${svg('tel')}${g[0]}</button>` : `<button class="btn ${k ? 'gris' : ''}" data-inv="${x.e}" data-rep="${g[2]}">${g[0]}</button>`).join('')}<button class="btn gris" data-traite="${x.id}">${svg('coche')}Traité</button></div></div><time>${x.h}</time></div>`;
+
 function rendre() {
   const v = VUES[S.vue](), sc = $('#scene'), garde = sc.dataset.cle === S.vue + '/' + (S.id || '') ? $$('.defile,.fil', sc).map((e) => e.scrollTop) : null;
   sc.className = (v.deux ? 'deux ' : '') + (v.deux && S.id ? 'ouvert' : ''); sc.dataset.cle = S.vue + '/' + (S.id || ''); sc.innerHTML = v.html;
@@ -158,7 +178,7 @@ function rendre() {
 
 /* ── feuilles ── */
 let _declencheur = null;
-function ouvrir(html) { _declencheur = document.activeElement; $('#calque').innerHTML = `<div class="feuille" role="dialog" aria-modal="true"><span class="poignee"></span>${html}</div>`; const f = $('#calque [autofocus]'); if (f && !TEL()) f.focus(); }
+function ouvrir(html, cls) { _declencheur = document.activeElement; $('#calque').innerHTML = `<div class="feuille ${cls || ''}" role="dialog" aria-modal="true"><span class="poignee"></span>${html}</div>`; const f = $('#calque [autofocus]'); if (f && !TEL()) f.focus(); }
 function fermer() { $('#calque').innerHTML = ''; fermerMenu(); if (_declencheur && _declencheur.isConnected) _declencheur.focus({ preventScroll: true }); _declencheur = null; }
 const fTete = (titre, ok, okAttr) => `<div class="f-tete"><button class="lien" data-ferme>Annuler</button><h2>${titre}</h2>${ok ? `<button class="lien" ${okAttr}>${ok}</button>` : '<span class="lien"></span>'}</div>`;
 const fTeteOk = (titre) => `<div class="f-tete"><span class="lien"></span><h2>${titre}</h2><button class="lien" data-ferme>OK</button></div>`;
@@ -175,6 +195,6 @@ function notifier(titre, texte, go) {
 
 /* ── jour et nuit : en production, l'application suit l'appareil ; le réglage n'existe que dans ce prototype ── */
 function appliquerTheme() { const nuit = S.theme === 'dark' || (S.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.dataset.theme = nuit ? 'dark' : 'light';
-  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#0b1633' : '#f2f2f7'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
+  const m = $('meta[name="theme-color"]'); if (m) m.content = nuit ? '#050b1f' : '#1c357f'; if (COUR.inst && COUR.inst.rafraichir) COUR.inst.rafraichir({ donnees: false }); }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', appliquerTheme);
 const themeHote = () => (document.documentElement.dataset.theme === 'dark' ? 'nuit' : 'jour');

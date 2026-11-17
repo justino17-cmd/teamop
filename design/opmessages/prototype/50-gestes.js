@@ -32,7 +32,21 @@ function feuilleProgrammer(pre) {
     <div class="champ" id="pe-inv-z" ${type !== 'reunion' ? 'hidden' : ''}><span>Invités</span><div class="puces">${Object.values(P).filter((p) => p.id !== 'moi').map((p) => `<button class="puce" aria-pressed="${!!(pre.invites || []).some((i) => i[0] === p.id)}" data-pe-inv="${p.id}">${av(p.id)}${esc(prenom(p.id))}</button>`).join('')}</div></div>
     <label class="champ"><span>Rappel</span><select id="pe-rappel">${[[0, 'Aucun'], [5, '5 minutes avant'], [15, '15 minutes avant'], [60, '1 heure avant'], [1440, 'La veille']].map((r) => `<option value="${r[0]}" ${(pre.rappel != null ? pre.rappel : 15) === r[0] ? 'selected' : ''}>${r[1]}</option>`).join('')}</select></label>`);
 }
+/* la recherche du haut (⌘K / Ctrl K) : une personne, une conversation, un message, une réunion — ou une action, quand on n'a encore rien tapé */
+function palRes(q) {
+  q = q.trim().toLowerCase(); const r = (attr, ic, c, t, s) => `<button class="rang ic-g" ${attr}><span class="ic" style="--c:${c}">${svg(ic)}</span><span class="t"><b class="coupe">${t}</b>${s ? `<span class="coupe">${s}</span>` : ''}</span></button>`;
+  if (!q) return `<p class="section-l">Actions</p>${r('data-action="nouveau-message"', 'stylo', '#2a4a9c', 'Nouveau message')}${r('data-action="nouvel-appel"', 'tel', '#16a34a', 'Appeler quelqu’un')}${r('data-action="reunion-maintenant"', 'video', '#d97706', 'Réunion immédiate')}${r('data-action="programmer"', 'agenda', '#7d3c98', 'Ajouter à l’agenda')}
+    <p class="section-l">Aller à</p>${NAV.map((n) => r(`data-go="${n[0]}"`, n[1], '#5a6377', n[2])).join('')}`;
+  const gens = Object.values(P).filter((x) => x.id !== 'moi' && (x.n + ' ' + x.r).toLowerCase().includes(q)), cv = C.filter((c) => c.canal && c.n.toLowerCase().includes(q)), ms = [], ev = EVTS.filter((e) => e.titre.toLowerCase().includes(q));
+  C.forEach((c) => c.msgs.forEach((m) => { if ((m.t || '').toLowerCase().includes(q) && ms.length < 6) ms.push([c, m]); }));
+  const h = (gens.length ? `<p class="section-l">Personnes</p>${gens.map((x) => r(`data-go="contacts/${x.id}"`, 'personne', '#2a4a9c', esc(x.n), esc(x.r))).join('')}` : '') + (cv.length ? `<p class="section-l">Canaux</p>${cv.map((c) => r(`data-go="messages/${c.id}"`, 'bulle', '#2a4a9c', '# ' + esc(c.n))).join('')}` : '')
+    + (ms.length ? `<p class="section-l">Messages</p>${ms.map((x) => r(`data-go="messages/${x[0].id}"`, 'bulle', '#5a6377', esc(x[1].t), esc(convNom(x[0])) + ' · ' + quand(x[1]))).join('')}` : '') + (ev.length ? `<p class="section-l">Agenda</p>${ev.map((e) => r(`data-evt="${e.id}"`, 'agenda', TYPES_E[e.type][1], esc(e.titre), jourCourt(e.j) + ' à ' + e.deb)).join('')}` : '');
+  return h || `<p class="note" style="padding:22px;text-align:center">Aucun résultat pour « ${esc(q)} ».</p>`;
+}
 const ACTIONS = {
+  chercher: () => { ouvrir(`<label class="pal-champ">${svg('cherche')}<input id="pal" placeholder="Rechercher une personne, un message, une réunion" aria-label="Rechercher partout" autocomplete="off" autofocus></label><div class="pal-res defile" id="pal-res">${palRes('')}</div>`, 'palette'); const i = $('#pal'); if (i) i.focus(); },
+  plus: () => ouvrir(`${fTeteOk('Plus')}<div class="groupe">${[['reunions', 'video', 'Réunions', '#d97706'], ['courrier', 'mail', 'Courrier', '#0d8a6a'], ['contacts', 'contacts', 'Contacts', '#2a4a9c'], ['activite', 'cloche', 'Activité', '#e5484d'], ['profil', 'personne', 'Profil et réglages', '#5a6377']].map((x) => `<button class="rang ic-g" data-go="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span>${compte(x[0]) ? `<span class="pastille r">${compte(x[0])}</span>` : ''}${chev()}</button>`).join('')}</div>`),
+  creer: () => ouvrir(`${fTete('Créer')}<div class="groupe">${[['nouveau-message', 'stylo', 'Nouveau message', '#2a4a9c'], ['nouveau-groupe', 'contacts', 'Nouveau groupe', '#2a4a9c'], ['nouvel-appel', 'tel', 'Appel', '#16a34a'], ['reunion-maintenant', 'video', 'Réunion immédiate', '#d97706'], ['programmer', 'agenda', 'Réunion, rendez-vous ou événement', '#7d3c98'], ['rappel-ajouter', 'tache', 'Rappel', '#5a6377'], ['contact-ajouter', 'ajout', 'Contact', '#5a6377']].map((x) => `<button class="rang ic-g" data-action="${x[0]}"><span class="ic" style="--c:${x[3]}">${svg(x[1])}</span><span class="t"><b>${x[2]}</b></span></button>`).join('')}</div>`),
   'nouveau-message': () => ouvrir(`${fTete('Nouveau message')}<button class="btn gris large" data-action="nouveau-groupe">${svg('contacts')}Nouveau groupe</button><div class="groupe">${choixContacts('data-ecrire')}</div>`),
   'nouveau-groupe': () => ouvrir(`${fTete('Nouveau groupe', 'Créer', 'data-action="groupe-creer"')}<label class="champ"><span>Nom du groupe</span><input id="g-nom" placeholder="Chantier Les Minimes" autofocus></label>
     <div class="champ"><span>Membres</span><div class="puces">${Object.values(P).filter((p) => p.id !== 'moi').map((p) => `<button class="puce" aria-pressed="false" data-pe-inv="${p.id}">${av(p.id)}${esc(prenom(p.id))}</button>`).join('')}</div></div>`),
@@ -100,6 +114,16 @@ document.addEventListener('click', (e) => {
     else if (k === 'transferer') { S._transfert = m; ouvrir(`${fTete('Transférer à')}<div class="groupe">${choixContacts('data-transferer', [c.avec])}</div>`); }
     else if (k === 'supprimer') { c.msgs.splice(c.msgs.indexOf(m), 1); rendre(); toast('Message supprimé'); }
     return; }
+  /* les gestes d'un message, au survol (bureau) : réagir d'un pouce, répondre, ou ouvrir le menu */
+  if ((b = q('[data-outil]'))) { const c = conv(S.id), id = b.closest('.outils').dataset.pour, m = c.msgs.find((x) => x.id === id), k = b.dataset.outil;
+    if (k === 'pouce') { m.reac = m.reac || []; const i = m.reac.indexOf('👍'); if (i >= 0) m.reac.splice(i, 1); else m.reac.push('👍'); rendre(); }
+    else if (k === 'repondre') { S.rep = apercu(m).slice(0, 60); rendre(); const s = $('#saisie'); if (s) s.focus(); }
+    else { const r = b.getBoundingClientRect(); menuMessage($(`#fil [data-msg="${id}"]`), r.right - 230, r.bottom + 6); }
+    return; }
+  if ((b = q('[data-filtre-conv]'))) { S.filtreConv = b.dataset.filtreConv; rendre(); return; }
+  if ((b = q('[data-filtre-act]'))) { S.filtreAct = b.dataset.filtreAct; rendre(); return; }
+  if ((b = q('[data-traite]'))) { TRAITE.add(b.dataset.traite); rendre(); toast('Rangé : traité'); return; }
+  if ((b = q('[data-inv]'))) { const e = evt(b.dataset.inv), oui = b.dataset.rep === 'oui', org = e.invitation; fermer(); delete e.invitation; if (!oui) EVTS.splice(EVTS.indexOf(e), 1); if (!oui && S.id === e.id) aller(S.vue); else rendre(); toast(oui ? 'Accepté : ' + prenom(org) + ' est prévenue' : 'Refusé : ' + prenom(org) + ' est prévenue'); return; }
   if ((b = q('[data-ferme]'))) { fermer(); return; }
   if ((b = q('[data-action]')) && ACTIONS[b.dataset.action]) { ACTIONS[b.dataset.action](b); return; }
   if ((b = q('[data-go]'))) { fermer(); const p = b.dataset.go.split('/'); aller(p[0], p[1]); return; }
@@ -152,12 +176,15 @@ document.addEventListener('click', (e) => {
 /* — clavier, saisie, recherche — */
 document.addEventListener('input', (e) => {
   if (e.target.id === 'saisie') majEnvoi();
+  if (e.target.id === 'pal') { $('#pal-res').innerHTML = palRes(e.target.value); return; }
   if (e.target.id === 'rech') { S.rech = e.target.value; if (S.vue === 'messages') $('#liste-conv').innerHTML = listeConvHtml(); else { const p = e.target.selectionStart; rendre(); const n = $('#rech'); n.focus(); n.setSelectionRange(p, p); } }
 });
 document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (!$('#pal')) ACTIONS.chercher(); return; }
   if (e.key === 'Escape') { if ($('.menu-ctx')) fermerMenu(); else if ($('#calque').innerHTML) fermer(); return; }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'saisie' && !TEL()) { e.preventDefault(); ACTIONS.envoyer(); }
   if (e.key === 'Enter' && e.target.id === 'salle-msg') { e.preventDefault(); $('[data-salle="chat-envoyer"]').click(); }
+  if (e.key === 'Enter' && e.target.id === 'pal') { const r = $('#pal-res .rang'); if (r) r.click(); return; }
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.closest('.feuille')) { const ok = $('.feuille .f-tete .lien[data-action]'); if (ok) { e.preventDefault(); ok.click(); } }
 });
 /* le menu d'un message : clic droit à l'ordinateur, appui long au doigt */

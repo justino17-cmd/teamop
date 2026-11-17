@@ -21,9 +21,21 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     const va = async (h) => { await ev((x) => { location.hash = x; }, h); await page.waitForTimeout(120); };
     await page.goto(FICHIER); await page.waitForTimeout(300);
 
-    /* ── navigation : les sept rubriques et le Profil ── */
-    for (const r of ['messages', 'contacts', 'appels', 'reunions', 'agenda', 'courrier', 'accueil']) { await clic((tel ? '#onglets' : '#cote') + ` a[href="#${r}"]`); vrai('la rubrique ' + r + ' s’ouvre', await ev(() => S.vue) === r && await ev((x) => !!document.querySelector((innerWidth <= 760 ? '#onglets' : '#cote') + ` a[href="#${x}"][aria-current]`), r)); }
-    await clic(tel ? '.grand a[href="#profil"]' : '#cote a.moi'); vrai('le Profil s’ouvre par soi', await ev(() => S.vue) === 'profil');
+    /* ── navigation : le rail (bureau) ; au téléphone, quatre onglets et « Plus » ── */
+    for (const r of ['messages', 'contacts', 'appels', 'reunions', 'agenda', 'courrier', 'accueil']) { const direct = !tel || ['accueil', 'messages', 'appels', 'agenda'].includes(r);
+      if (direct) await clic((tel ? '#onglets' : '#cote') + ` a[href="#${r}"]`); else { await clic('#onglets [data-action="plus"]'); await clic(`#calque [data-go="${r}"]`); }
+      vrai('la rubrique ' + r + ' s’ouvre', await ev(() => S.vue) === r && await ev(([x, d]) => !!document.querySelector(innerWidth > 760 ? `#cote a[href="#${x}"][aria-current]` : d ? `#onglets a[href="#${x}"][aria-current]` : '#onglets [data-action="plus"][aria-current]'), [r, direct])); }
+    await clic('#haut a[href="#profil"]'); vrai('le Profil s’ouvre par soi (en haut à droite)', await ev(() => S.vue) === 'profil');
+    /* la recherche du haut */
+    await clic('#haut [data-action="chercher"]'); vrai('la recherche s’ouvre sur des actions', await ev(() => !!document.querySelector('#pal') && document.querySelectorAll('#pal-res .rang').length >= 8));
+    await page.fill('#pal', 'compresseur'); await page.waitForTimeout(80); vrai('elle trouve des messages et un rendez-vous', await ev(() => /Messages/.test(document.querySelector('#pal-res').textContent) && /Agenda/.test(document.querySelector('#pal-res').textContent)));
+    await page.fill('#pal', 'thomas'); await page.waitForTimeout(80); await clic('#pal-res .rang'); vrai('choisir une personne ouvre sa fiche', await ev(() => S.vue === 'contacts' && S.id === 'thomas' && !document.querySelector('#calque').innerHTML));
+    if (!p.tactile) { await page.keyboard.press('Control+k'); await page.waitForTimeout(80); vrai('Ctrl K ouvre la recherche', await ev(() => !!document.querySelector('#pal'))); await page.keyboard.press('Escape'); }
+    /* l'activité : une seule file à vider */
+    await va('activite'); { const n = await ev(() => activite().length); vrai('l’activité réunit messages, mentions, appels manqués, invitation et courriels', n >= 7 && await ev(() => document.querySelectorAll('.act').length) === n && await ev(() => +document.querySelector('#haut .h-btn em').textContent) === n, n);
+      await clic('[data-filtre-act="appel"]'); vrai('le filtre « Appels » ne garde que les appels manqués', await ev(() => document.querySelectorAll('.act').length === 2)); await clic('[data-filtre-act="tout"]');
+      await clic('[data-inv][data-rep="oui"]'); vrai('accepter une invitation la retire de la file', await ev((x) => activite().length === x - 1 && !evt('e4').invitation, n));
+      await clic('[data-traite="a-a5"]'); vrai('« Traité » range la ligne', await ev((x) => activite().length === x - 2 && !/Camille Roy/.test(document.querySelector('.carte').textContent), n)); }
     vrai('le Courrier est monté et compte ses non lus', await ev(() => COUR.nl > 0 && !!COUR.inst), await ev(() => COUR.nl));
 
     /* ── tableau de bord ── */
@@ -37,14 +49,15 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     vrai('ouvrir une conversation la marque lue', await ev(() => conv('marc').nl === 0));
     vrai('au téléphone la barre d’onglets se retire dans une conversation', !tel || await ev(() => getComputedStyle(document.querySelector('#onglets')).display === 'none'));
     await page.fill('#saisie', 'Le prix arrive dans l’heure.'); vrai('écrire transforme le micro en bouton d’envoi', await ev(() => document.querySelector('#btn-envoi').dataset.action === 'envoyer'));
-    await clic('#btn-envoi'); vrai('le message part et s’affiche', await ev(() => { const m = dernier(conv('marc')); return m.de === 'moi' && m.t === 'Le prix arrive dans l’heure.' && /Le prix arrive/.test(document.querySelector('#fil').textContent) && document.querySelector('#saisie').value === ''; }));
+    await clic('#btn-envoi'); vrai('le message part et s’affiche', await ev(() => { const m = dernier(conv('marc')); return m.de === 'moi' && m.t === 'Le prix arrive dans l’heure.' && /Le prix arrive/.test(document.querySelector('#fil').textContent) && /Toi/.test([...document.querySelectorAll('#fil .msg .ent b')].pop().textContent) && document.querySelector('#saisie').value === ''; }));
     await page.waitForFunction(() => conv('marc').ecrit, null, { timeout: 3000 }).catch(() => {}); vrai('le correspondant écrit (trois points)', await ev(() => !!document.querySelector('.ecrit')));
     await page.waitForFunction(() => dernier(conv('marc')).de === 'marc' && !conv('marc').ecrit, null, { timeout: 6000 }).catch(() => {}); vrai('puis il répond, et mon message passe à « Lu »', await ev(() => dernier(conv('marc')).de === 'marc' && conv('marc').msgs.slice(-2)[0].lu && !document.querySelector('.ecrit')));
     /* le menu d'un message : clic droit, ou appui long */
     const menu = async (k) => { const r = await ev((i) => { const e = [...document.querySelectorAll('#fil [data-msg]')].slice(i)[0]; e.scrollIntoView({ block: 'center' }); const q = e.getBoundingClientRect(); return { x: q.left + 20, y: q.top + q.height / 2 }; }, k);
       if (p.tactile) { const c = await ctx.newCDPSession(page); await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: r.x, y: r.y, id: 1 }] }); await page.waitForTimeout(620); await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await c.detach(); } else await page.mouse.click(r.x, r.y, { button: 'right' }); await page.waitForTimeout(150); };
     await menu(0); vrai(p.tactile ? 'l’appui long ouvre le menu du message' : 'le clic droit ouvre le menu du message', await ev(() => { const m = document.querySelector('.menu-ctx'); if (!m) return false; const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }));
-    await clic('.menu-ctx [data-reac="👍"]'); vrai('réagir pose la réaction sous la bulle', await ev(() => conv('marc').msgs[0].reac.includes('👍') && !!document.querySelector('.reacs') && !document.querySelector('.menu-ctx')));
+    await clic('.menu-ctx [data-reac="👍"]'); if (!p.tactile) { await page.hover('#fil .msg'); await page.waitForTimeout(60); vrai('au survol, les gestes du message paraissent', await ev(() => getComputedStyle(document.querySelector('#fil .msg .outils')).display === 'flex')); }
+    vrai('réagir pose la réaction sous le message', await ev(() => conv('marc').msgs[0].reac.includes('👍') && !!document.querySelector('.reacs') && !document.querySelector('.menu-ctx')));
     await menu(0); await clic('.menu-ctx [data-ctx="repondre"]'); vrai('Répondre cite le message au-dessus de la saisie', await ev(() => !!S.rep && !!document.querySelector('.compo .rep')));
     await page.fill('#saisie', 'Oui, c’est possible.'); await clic('#btn-envoi'); vrai('la réponse porte sa citation', await ev(() => { const m = conv('marc').msgs.filter((x) => x.de === 'moi').pop(); return !!m.rep && !S.rep && !!document.querySelector('.msg .cite'); }));
     await menu(-1); vrai('mon message propose « Supprimer »', await ev(() => !!document.querySelector('.menu-ctx [data-ctx="supprimer"]')));
@@ -56,7 +69,9 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await clic('[data-jouer]'); vrai('écouter un message vocal anime la forme d’onde', await ev(() => !!document.querySelector('.vocal.joue')));
     await clic('[data-action="infos-conv"]'); vrai('les infos du canal listent ses membres', await ev(() => document.querySelectorAll('#calque .rang.av-g').length === 5));
     await clic('[data-conv-regl="sourdine"]'); vrai('la sourdine se règle', await ev(() => conv('equipe').sourdine === 1 && document.querySelector('[data-conv-regl="sourdine"]').getAttribute('aria-checked') === 'true')); await clic('#calque [data-ferme]');
-    await va('messages'); await page.fill('#rech', 'compresseur'); await page.waitForTimeout(100); vrai('la recherche filtre les conversations', await ev(() => { const l = document.querySelectorAll('#liste-conv .ligne'); return l.length >= 2 && l.length < C.length && !document.querySelector('.epingles'); })); await page.fill('#rech', ''); 
+    await va('messages'); await clic('[data-filtre-conv="clients"]'); vrai('le filtre « Clients » ne garde que les clients et partenaires', await ev(() => { const l = [...document.querySelectorAll('#liste-conv a.ligne')]; return l.length === 4 && !l.some((x) => x.querySelector('.diese')); })); await clic('[data-filtre-conv="tout"]');
+    vrai('la liste est rangée en sections', await ev(() => [...document.querySelectorAll('#liste-conv .section-l')].map((x) => x.textContent).join('|')) === 'Favoris|Canaux|Équipe|Clients et partenaires' || await ev(() => document.querySelectorAll('#liste-conv .section-l').length >= 3));
+    await page.fill('#rech', 'compresseur'); await page.waitForTimeout(100); vrai('la recherche filtre les conversations', await ev(() => { const l = document.querySelectorAll('#liste-conv .ligne'); return l.length >= 2 && l.length < C.length && !document.querySelector('.epingles'); })); await page.fill('#rech', ''); 
     await clic('[data-action="nouveau-message"]'); await clic('[data-action="nouveau-groupe"]'); await page.fill('#g-nom', 'Chantier Minimes'); await clic('[data-pe-inv="karim"]'); await clic('[data-pe-inv="leo"]'); await clic('[data-action="groupe-creer"]');
     vrai('créer un groupe l’ouvre', await ev(() => { const c = conv(S.id); return S.vue === 'messages' && c && c.n === 'Chantier Minimes' && c.membres.length === 2; }));
 
@@ -69,7 +84,7 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await va('contacts'); await clic('[data-action="contact-ajouter"]'); await page.fill('#ct-nom', 'Paul Lefèvre'); await page.fill('#ct-soc', 'Garage Lefèvre'); await clic('[data-action="contact-ok"]'); vrai('ajouter un contact ouvre sa fiche', await ev(() => S.vue === 'contacts' && P[S.id] && P[S.id].n === 'Paul Lefèvre'));
 
     /* ── appels ── */
-    await va('appels'); await clic('[data-filtre-appels="manques"]'); vrai('« Manqués » ne garde que les manqués', await ev(() => document.querySelectorAll('.ligne').length === 2 && document.querySelectorAll('.ligne.manque').length === 2)); await clic('[data-filtre-appels="tous"]');
+    await va('appels'); await clic('[data-filtre-appels="manques"]'); vrai('« Manqués » ne garde que les manqués', await ev(() => document.querySelectorAll('a.ligne').length === 2 && document.querySelectorAll('a.ligne.manque').length === 2)); await clic('[data-filtre-appels="tous"]');
     await clic('a[href="#appels/a4"]'); vrai('la fiche d’un appel montre l’historique', await ev(() => S.id === 'a4' && /24 min/.test(document.querySelector('.fiche').textContent)));
     await clic('.fiche [data-appeler="james"]'); vrai('l’appel sonne', await ev(() => S.appel && S.appel.etat === 'sonne' && !!document.querySelector('.appel.sonne')));
     await page.waitForFunction(() => S.appel && S.appel.etat === 'cours', null, { timeout: 5000 }).catch(() => {}); vrai('puis il est en cours, avec sa durée', await ev(() => S.appel.etat === 'cours' && !!document.querySelector('[data-duree]')));
@@ -91,7 +106,7 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     await page.selectOption('#pe-jour', '1'); await page.fill('#pe-lieu', 'Résidence Les Minimes'); await clic('[data-action="evt-enregistrer"]');
     vrai('une bannière annonce l’ajout', await ev(() => /Ajouté à ton agenda/.test((document.querySelector('.banniere') || {}).textContent || '')));
     vrai('le rendez-vous se place au bon jour de l’agenda', await ev(() => { const e = EVTS[EVTS.length - 1]; return e.titre === 'Visite de chantier' && e.j === 1 && e.type === 'rdv' && S.agJour === 1 && /Visite de chantier/.test(document.querySelector('#scene').textContent) ; }));
-    await clic('.evt[data-evt]'); vrai('toucher un événement ouvre sa fiche', await ev(() => !!document.querySelector('#calque .feuille h2')));
+    await clic('#scene [data-evt]'); vrai('toucher un événement ouvre sa fiche', await ev(() => !!document.querySelector('#calque .feuille h2')));
     { const n = await ev(() => EVTS.length); await clic('#calque [data-action="evt-supprimer"]'); vrai('supprimer un événement', await ev((x) => EVTS.length === x - 1 && !document.querySelector('#calque').innerHTML, n)); }
 
     /* ── réunions ── */
@@ -115,8 +130,8 @@ const PROFILS = [{ n: 'mac', w: 1440, h: 900 }, { n: 'windows', w: 1280, h: 720 
     /* ── profil ── */
     await va('profil'); await clic('[data-action="statut"]'); await clic('[data-statut="npd"]'); vrai('changer de statut se voit', await ev(() => S.statut === 'npd' && /Ne pas déranger/.test(document.querySelector('#scene').textContent)));
     await clic('[data-regl="heuresPro"]'); vrai('un réglage bascule', await ev(() => S.regl.heuresPro === false && document.querySelector('[data-regl="heuresPro"]').getAttribute('aria-checked') === 'false'));
-    await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.body).backgroundColor === 'rgb(11, 22, 51)'));
-    await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.body).backgroundColor === 'rgb(242, 242, 247)'));
+    await clic('[data-theme-choix="dark"]'); vrai('le thème Nuit s’applique', await ev(() => document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(12, 21, 48)'));
+    await clic('[data-theme-choix="light"]'); vrai('le thème Jour s’applique', await ev(() => getComputedStyle(document.querySelector('#app')).backgroundColor === 'rgb(245, 246, 250)'));
     await clic('[data-action="profil-modifier"]'); await page.fill('#pf-role', 'Dirigeante'); await clic('[data-action="profil-ok"]'); vrai('modifier son profil', await ev(() => P.moi.r === 'Dirigeante' && /Dirigeante/.test(document.querySelector('#scene').textContent)));
     for (const a of ['espace', 'abonnement', 'a-propos']) { await clic(`[data-action="${a}"]`); vrai('la feuille « ' + a + ' » s’ouvre et se ferme', await ev(() => !!document.querySelector('#calque .feuille'))); await page.keyboard.press('Escape'); vrai('Échap ferme la feuille « ' + a + ' »', await ev(() => !document.querySelector('#calque').innerHTML)); }
     /* la touche Retour ferme la feuille ouverte */
