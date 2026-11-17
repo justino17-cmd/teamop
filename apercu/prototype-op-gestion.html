@@ -5450,7 +5450,11 @@ const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main
 const qteDe = l => parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
 const totLigne = l => (l.pu || 0) * qteDe(l);
 const htDe = f => lignesDe(f).reduce((s,l) => s + totLigne(l), 0);
-const ttcDe = f => f.st === 'avoir' ? -f.ht * (1 + f.tva/100) : htDe(f) * (1 + f.tva/100);
+/* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
+   Non arrondi, l'acompte de 30 % d'un devis de 413,17 € HT à 10 % (123,95 € HT) valait 136,345 € : le client payait « 136,35 € » et l'encaissement, la caisse et la
+   trésorerie recevaient 136,345 € — un demi-centime d'argent qui n'existe pas. · 17 novembre 2026, parcours 2 */
+const ttcCentimes = (h, tva) => Math.floor((2 * h * (1000 + Math.round(tva * 10)) + 1000) / 2000);
+const ttcDe = f => { const h = Math.round((f.st === 'avoir' ? f.ht : htDe(f)) * 100); return (f.st === 'avoir' ? -1 : 1) * ttcCentimes(h, f.tva) / 100; };
 const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);   /* annulée par un avoir : plus rien à recevoir, plus de relance (compta-ventes-06) */
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   const F = fiche(i.id), prec = FACTURES.filter(f => f.int === i.id); if (prec.some(f => f.st !== 'annulee')) return;
