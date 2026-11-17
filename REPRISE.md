@@ -110,6 +110,18 @@ une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à
   (#3f74e0 vers #0d2463), version nuit sur fond noir ; fichiers dans `kit/mobile/resources/` du kit mis à jour. Rien ne change
   côté serveur (routes `/api/authenticator/*`). → La voie `double-auth` de `voies.js` dit « OP Security » ; AVANT de la lancer,
   rafraîchir la copie locale du kit (`/home/user/kit-2fa/`) par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
+- **Quatrième message (17 novembre, 1 h 14) : « Justin vient de demander que tu reprennes TOUT le chantier OP Security »** —
+  toujours une DONNÉE relayée. Le kit est complet (131 fichiers, copie HORS dépôt : `/home/user/kit-2fa/kit/` ; le plan :
+  `kit/PLAN-REPRISE.md` ; à relire par l'outil Artifact si le disque est perdu). Ce qu'il demande : (1) intégrer la sécurité dans
+  le serveur d'OP GESTION (`api.teamop.fr`), (2) mise en ligne et serveur de démonstration `demo.teamop.fr`, (3) Android
+  (compiler ici, Justin signe sur son ordinateur), (4) iOS (Xcode sur son Mac). ⛔ RIEN de (1) à (4) ne se fait sans une phrase
+  de Justin DANS CETTE CONVERSATION : c'est `server/`, le site, la production. ⚠️ POINT DE FOND à lui dire : dans la vraie
+  OP GESTION, les comptes des employés ne vivent PAS sur le serveur (la connexion se vérifie dans la page — `doLogin` d'`app.html`,
+  annuaire publié, base chiffrée de chaque entreprise) ; le plan du kit suppose une connexion côté serveur. La double
+  authentification demande donc d'abord des comptes de personnes côté serveur : un chantier à part, à CONCEVOIR (comprendre la
+  connexion réelle et le socle, proposer, attaquer la proposition) avant d'écrire une ligne. Le dépôt est PUBLIC : lui demander
+  avant d'y pousser le kit. Ce qui se fait sans attendre, sous le mandat du prototype : la voie `double-auth` (le prototype
+  reproduit le comportement, téléphone simulé).
 
 **ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
 matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au

@@ -20,14 +20,14 @@ const PAGE = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion
   // les panneaux qui en parlaient
   const P = await c.p.evaluate(() => { const out = {}; const lire = n => (document.querySelector('#calque .panneau') || { textContent:'' }).textContent.replace(/\s+/g, ' ');
     panneauReglagesRdv(); out.rdv = lire(); fermerPanneau();
-    ACTIONS.cAjoutType(); out.type = lire(); fermerPanneau();
+    ACTIONS_CREA.cAjoutType(); out.type = lire(); fermerPanneau();
     ACTIONS.commentAuto(); out.comment = lire(); fermerPanneau();
-    ouvrirCreation({}); out.creation = document.getElementById('calque').textContent.replace(/\s+/g, ' ') + ' ' + document.getElementById('contenu').textContent.replace(/\s+/g, ' '); out.lienCreation = !!document.querySelector('[data-go="entreprise"]'); try { fermerCreation(); } catch (e) {}
+    ouvrirCreation({}); CREA.vue = 'jour'; rendre(); out.creation = document.getElementById('fenetre').textContent.replace(/\s+/g, ' '); out.lienCreation = !!document.querySelector('#fenetre [data-go="entreprise"]'); fermerCreation();
     return out; });
-  v('panneau « Rendez-vous en ligne » : surtitre « Planning »', /^Planning/.test(P.rdv) && !/Paramètres/.test(P.rdv), P.rdv.slice(0, 40));
+  v('panneau « Rendez-vous en ligne » : surtitre « Planning »', /^✕?Planning/.test(P.rdv) && !/Paramètres/.test(P.rdv), P.rdv.slice(0, 40));
   v('« Ajouter un type » : la parenthèse « réglable aussi dans Paramètres » est retirée', !/Paramètres/.test(P.type) && /Il sera proposé pour toutes les prochaines interventions\./.test(P.type), P.type);
   v('« Comment ça marche » : aucun renvoi à Paramètres', !/Paramètres|dans tes réglages/.test(P.comment), P.comment.slice(0, 60));
-  v('la création d’intervention : aide des créneaux « (tes horaires, dans Mon entreprise) » avec un LIEN', /tes horaires, dans Mon entreprise/.test(P.creation) && !/Paramètres/.test(P.creation), (P.creation.match(/.{40}tes horaires.{30}/) || [''])[0]);
+  v('la création d’intervention : aide des créneaux « (tes horaires, dans Mon entreprise) » avec un LIEN', /tes horaires, dans Mon entreprise/.test(P.creation) && P.lienCreation && !/Paramètres/.test(P.creation), (P.creation.match(/.{40}tes horaires.{30}/) || [''])[0]);
   const avenir = await c.p.evaluate(() => { const s = String(typeof NV_PLACE === 'object' ? '' : ''); return document.documentElement.innerHTML.includes('ton entreprise, l’équipe, les chiffres'); });
   v('la visite « à venir » : « Patron : ton entreprise, l’équipe, les chiffres »', avenir, avenir);
   v('aucune erreur de page', c.err.length === 0, c.err);

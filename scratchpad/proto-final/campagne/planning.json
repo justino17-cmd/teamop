@@ -49,9 +49,9 @@
  ],
  "couverture": {
   "ecrans": 9,
-  "gestesRecenses": 274,
-  "gestesTouches": 271,
-  "detailGestes": "ordinateur (mac, jour) : jour 31/31, semaine 46/46, mois 51/51, vue d’ensemble 45/45, sur mesure 46/46, carte 52/55 (les 3 manquants sont des marqueurs de la vraie carte, recréés à chaque tracé : la sonde les vise par un index qui disparaît ; rejoués à la main par planning-marqueurs.js, voir planning-07) ; 1 geste sans effet visible : « Recentrer sur la journée » à l’état initial (déjà centré, non un défaut)",
+  "gestesRecenses": 365,
+  "gestesTouches": 357,
+  "detailGestes": "ordinateur (mac, jour) : jour 31/31, semaine 46/46, mois 51/51, vue d’ensemble 45/45, sur mesure 46/46, carte 52/55 (les 3 manquants sont des marqueurs de la vraie carte, recréés à chaque tracé : la sonde les vise par un index qui disparaît ; rejoués à la main par planning-marqueurs.js, voir planning-07) ; 1 geste sans effet visible : « Recentrer sur la journée » à l’état initial (déjà centré, non un défaut) ; iPhone : jour 33/33, carte 53/58 (les 5 manquants : marqueurs de la vraie carte, voir planning-07, et « Agrandir ou réduire la liste » = planning-10)",
   "parcours": 12,
   "parcoursListe": [
    "P1 créer depuis le bouton",
@@ -68,26 +68,27 @@
    "P12 client créé à la main"
   ],
   "resultats": "mac : P1-P8 51 ✓ · 0 ✗ (après la correction du texte d’aide faite par un autre lot) ; P9-P12 : 41 ✓ + ✗ = défauts planning-01, -03, -04 ; iPhone : P1-P8 45 ✓ · 2 ✗ (planning-06 ; P6 au doigt non joué)",
-  "mep": "mise en page sur 6 profils : mac jour+nuit 19 ✓ · 0 ✗ ; iPhone jour+nuit, Android nuit, iPad, petit : 25 ✓ · 6 ✗ chacun, tous les ✗ = planning-05 (cibles)",
+  "mep": "mise en page sur 6 profils : mac jour+nuit 19 ✓ · 0 ✗ ; iPhone jour+nuit, Android nuit, iPad, petit : 25 ✓ · 6 ✗ chacun, tous les ✗ = planning-05 (cibles) ; windows jour 19 ✓ · 0 ✗",
   "profils": [
    "mac",
    "iphone",
    "ipad",
    "android",
-   "petit"
+   "petit",
+   "windows (mise en page seulement)"
   ],
   "profilsNonJoues": [
-   "windows",
-   "mac720 (gestes et parcours)"
+   "mac720 (gestes et parcours)",
+   "windows (gestes et parcours)"
   ]
  },
  "nonCouvert": [
-  "Windows et mac720 : aucune mesure de mise en page ni parcours (la carte de la machine était saturée) ; les règles testées sont les mêmes que mac mais à rejouer : planning-mise-en-page.js windows",
   "Parcours P1-P12 sur iPad, Android et petit téléphone : seuls mac et iPhone ont été joués de bout en bout ; la mise en page et les cibles de ces profils l’ont été",
   "P6 au doigt (poser chez une personne absente) : la colonne de l’absent est hors écran sur téléphone, la sonde ne la joue pas ; le défilement automatique au bord pendant un glisser est, lui, vérifié (scrollLeft 61 → 600 en 1,8 s)",
   "Gestes touchés un à un sur iPhone, iPad, Android : seul l’ordinateur a eu son balayage complet",
   "Fond de carte : la vraie carte (MapLibre via cdnjs/unpkg/openfreemap) se charge depuis la machine de test, mais dépend du réseau ; la bibliothèque injoignable est jouée par blocage de unpkg (planning-08)",
-  "Rôles autres que le gérant : la partie « droits des personnes sur le planning » n’est pas dans cette campagne"
+  "Rôles autres que le gérant : la partie « droits des personnes sur le planning » n’est pas dans cette campagne",
+  "Windows : mise en page jouée (19 ✓ · 0 ✗) ; mac720 et les parcours sur Windows non joués"
  ],
  "defauts": [
   {
@@ -208,7 +209,7 @@
   },
   {
    "n": "planning-08",
-   "gravite": "détail",
+   "gravite": "gênant",
    "ecran": "Carte des tournées · « Réessayer »",
    "role": "marc",
    "profils": [
@@ -216,7 +217,7 @@
    ],
    "etapes": "Bloquer unpkg.com (plugin de carte injoignable) › Carte › attendre le message « Carte réelle indisponible » › « Réessayer ».",
    "attendu": "Un nouveau message d’erreur, ou la carte réelle.",
-   "constate": "Le message et le bouton disparaissent, l’état reste « inconnu » à jamais (15 s plus tard identique), seule la légende « Leaflet » paraît ; erreur JS « L.maplibreGL is not a function » non rattrapée. Intermittent chez un vrai client dès que le plugin tarde (> 12 s).",
+   "constate": "Le message et le bouton disparaissent, l’état reste « inconnu » à jamais (15 s plus tard identique), seule la légende « Leaflet » paraît ; erreur JS « L.maplibreGL is not a function » non rattrapée. Intermittent chez un vrai client dès que le plugin tarde (> 12 s). Constaté aussi SANS blocage : les deux passages de planning-parcours2.js (P9-P12, mac) sortent avec cette erreur JavaScript quand la page est rechargée plusieurs fois, la carte réelle ayant échoué une fois (réseau lent).",
    "preuve": "planning-carte-reessayer.js ; capture dbg-plugin-reessayer.png",
    "ou": "crChargerLeaflet (`if (window.L && L.map) return Promise.resolve()` ne teste pas L.maplibreGL) et crReel (`.then(() => crMonter(el), …)` sans capter une exception de crMonter)",
    "correction": "Tester `L.maplibreGL` dans la garde ; entourer crMonter d’un try/catch qui appelle crRepli(e.message).",
@@ -238,6 +239,22 @@
    "ou": "vuePlanning (en-tête)",
    "correction": "Recommandation : sur téléphone, replier la carte des tâches et le paragraphe d’aide (bouton « Aide »), ramener les chiffres à une rangée défilante courte. À trancher par Justin (dessin validé).",
    "decision": "soumettre"
+  },
+  {
+   "n": "planning-10",
+   "gravite": "détail",
+   "ecran": "Carte des tournées · bouton de la liste (téléphone)",
+   "role": "marc",
+   "profils": [
+    "iphone"
+   ],
+   "etapes": "Carte, iPhone : toucher le bouton « Agrandir ou réduire la liste » (icône seule), puis le toucher une seconde fois.",
+   "attendu": "La liste grandit puis se réduit, comme son nom le dit.",
+   "constate": "Le premier toucher fait défiler la page jusqu’à la liste (scrollY 621 → 1014, liste calée en haut) ; le second ne fait rien. Il ne grandit ni ne réduit rien : le nom promet autre chose que le geste.",
+   "preuve": "planning-gestes.js iphone carte : « RIEN » pour data-crfeuille ; sonde /tmp probe-feuille : scrollY 1014 puis 1014 au second toucher",
+   "ou": "prototype-op-gestion.html ~4210 : `[data-crfeuille]` → `scrollIntoView({block:\"start\"})` ; libellé aria-label",
+   "correction": "Renommer « Aller à la liste des étapes » (et un second toucher qui remonte à la carte), ou faire réellement grandir / réduire la liste.",
+   "decision": "corriger"
   }
  ],
  "sondes": [

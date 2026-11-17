@@ -30,20 +30,25 @@ const lire = c => c.p.evaluate(() => ({ hash:location.hash, h2:(document.querySe
   v('on change les cases ailleurs : les six états suivent (Fermé, Activée, Désactivé, 1 boîte, règle de notes, un seul métier)', e1.rdv === 'Fermé' && e1.auto === 'Activée' && e1.stock === 'Désactivé' && e1.boites === '1 boîte connectée' && /Kilomètre à 0,70 € · sans ticket : refusées/.test(e1.ndf) && !/Climatisation|Chauffage/.test(e1.metiers), e1);
   await c.p.evaluate(() => { RDV_REGLES.jours[1].matin = false; RDV_REGLES.jours[1].aprem = false; RDV_REGLES.actif = true; rendre(); }); await L.calme(c.p, 200);
   const e2 = await etat(); v('un jour fermé de moins : « Ouvert 4 jours par semaine »', e2.rdv === 'Ouvert 4 jours par semaine', e2.rdv);
-  // une ligne dont la destination est refusée n'est pas dessinée
-  const faire = [['planning', 'rdv'], ['comptabilite', 'auto'], ['achats', 'ndf'], ['stock', 'stock'], ['boiteMail', 'boites']];
-  let n = 0;
-  for (const [route, lien] of faire) {
-    const ks = await c.p.evaluate(r => { const p0 = rlPermis; window.rlPermis = x => x === r ? false : p0(x); rendre(); const k = [...document.querySelectorAll('[data-ent^="lien|"]')].map(e => e.dataset.ent.split('|')[1]); window.rlPermis = p0; rendre(); return k; }, route);
-    n++; v(`destination « ${route} » refusée : la ligne « ${lien} » n’est pas dessinée, les autres restent`, !ks.includes(lien) && ks.length === 5, ks);
-  }
-  v('population : cinq destinations refusées jouées', n === 5, n);
+  // une ligne dont la destination est refusée n'est pas dessinée : on le joue avec la VRAIE mécanique de droits, par la personne du bureau (Julie) à qui l'écran est ouvert
+  await L.fin(c);
+  { const j = await ouvrirEnt({ profil:'mac', qui:'julie' }); let n = 0;
+    await j.p.evaluate(() => { ROLES.gestion.routes.push('entreprise'); }); await L.aller(j.p, 'entreprise');
+    const ks = async () => j.p.evaluate(() => [...document.querySelectorAll('[data-ent^="lien|"]')].map(e => e.dataset.ent.split('|')[1]));
+    const k1 = await ks(); n++;
+    v('le bureau (ni Planning, ni Stock, ni Boîte mail, et pas la règle des notes de frais) : seules « Facture envoyée toute seule » et « Tes métiers » sont dessinées', k1.join('|') === 'auto|metiers', k1);
+    await j.p.evaluate(() => { eqDe('julie').droits.cats.compta.v = 0; rendre(); }); await L.calme(j.p, 300); const k2 = await ks(); n++;
+    v('on ferme la Comptabilité à Julie (case « Voir ») : la ligne « Facture envoyée toute seule » disparaît à son tour', k2.join('|') === 'metiers', k2);
+    await j.p.evaluate(() => { eqDe('julie').droits.cats.compta.v = 1; rendre(); }); await L.calme(j.p, 300); const k3 = await ks(); n++;
+    v('on la rouvre : la ligne revient (rien n’est mémorisé de travers)', k3.join('|') === 'auto|metiers', k3);
+    v('population : trois états de droits joués', n === 3, n); await L.fin(j); }
+  const c2 = await ouvrirEnt({ profil:'mac' });
   // « Compléter ma fiche légale » de la Conformité ouvre le MÊME panneau
-  await c.p.evaluate(() => { rendre(); }); await L.aller(c.p, 'entreprise'); await L.toucher(c, '[data-ent="carte|legal"]');
-  const carte = await panneauOuvert(c.p); await L.ranger(c.p);
-  const conf = await c.p.evaluate(() => { const b = document.createElement('button'); b.type = 'button'; b.dataset.cx = 'fiche'; b.textContent = 'Compléter ma fiche légale'; document.body.appendChild(b); b.click(); b.remove(); return (document.querySelector('#calque .panneau h2') || {}).textContent; });
+  await L.aller(c2.p, 'entreprise'); await L.toucher(c2, '[data-ent="carte|legal"]');
+  const carte = await panneauOuvert(c2.p); await L.ranger(c2.p);
+  const conf = await c2.p.evaluate(() => { const b = document.createElement('button'); b.type = 'button'; b.dataset.cx = 'fiche'; b.textContent = 'Compléter ma fiche légale'; document.body.appendChild(b); b.click(); b.remove(); return (document.querySelector('#calque .panneau h2') || {}).textContent; });
   v('le bouton de la Conformité (data-cx="fiche") ouvre le MÊME panneau que la carte « Tes mentions légales »', !!carte && carte === conf, { carte, conf });
-  const src = await c.p.evaluate(() => (document.documentElement.innerHTML.match(/data-cx="fiche"/g) || []).length); v('population : la Conformité propose bien ce bouton quelque part dans la page', src >= 1, src);
-  v('aucune erreur de page', c.err.length === 0, c.err);
-  await L.fin(c); await fin();
+  const src = await c2.p.evaluate(() => (document.documentElement.innerHTML.match(/data-cx="fiche"/g) || []).length); v('population : la Conformité propose bien ce bouton quelque part dans la page', src >= 1, src);
+  v('aucune erreur de page', c2.err.length === 0, c2.err);
+  await L.fin(c2); await fin();
 })();
