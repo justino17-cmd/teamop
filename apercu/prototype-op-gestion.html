@@ -2851,6 +2851,8 @@ body.dp-ouvert{overflow:hidden}
 .bil-t{border:1px solid #e6e9f0;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;background:#f7f8fb}
 .bil-t span{font-size:11px;color:#5b6478;font-weight:600;text-transform:uppercase;letter-spacing:.05em}.bil-t b{font-size:19px;color:#15213a;font-variant-numeric:tabular-nums}.bil-t b i{font-style:normal;font-size:11px;color:#5b6478;font-weight:600}
 .bil-t small{font-size:11px;color:#6a7387}
+/* le montant et son unité ne se séparent jamais : à 320 px « 3 045 € » et « TTC » tombaient sur deux lignes dans la tuile Encaissé, pas dans Facturé (restes accueil, tour 3) */
+.bil-t b{white-space:nowrap}
 .bil-e{font-weight:700;color:#5b6478}.bil-e.up{color:#1c7a3a}.bil-e.down{color:#b0263c}
 .bil-2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
 .bil-graph{position:relative;display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:130px;align-items:end;padding:0 0 18px;border-bottom:1px solid #e6e9f0}
@@ -6593,7 +6595,7 @@ let JOURNAL = (() => {
   });
   /* l'argent reçu sur place par un technicien et pas encore repris par une facture émise : sa ligne, au nom du technicien (restes accueil) */
   INTS.filter(i => i.st === 'fait' && i.tech).forEach(i => { const P = PAIE_DEMO[i.id], mt = P ? parseFloat(String(P.montant).replace(',', '.')) || 0 : 0;
-    if (!P || P.etat === 'rien' || !(mt > 0) || (P.mode !== 'Espèces' && P.mode !== 'Chèque') || FACTURES.some(f => f.int === i.id && f.num !== '—')) return;
+    if (!P || P.etat === 'rien' || !(mt > 0) || FACTURES.some(f => f.int === i.id && f.num !== '—')) return;
     P.journale = true; aj(i.d, hm(hmin(i.h) + i.dur + 2), i.tech, 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(mt) + ' · ' + P.mode }); });
   FACTURES.filter(f => f.emise.endsWith('/10') && f.int).forEach(f => {
     aj(dIso(f.emise), '17:' + String(10 + (+f.num.slice(-2) % 40)).padStart(2, '0'), 'julie', 'facture', 'a validé et envoyé la facture', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(f.ht * (1 + f.tva / 100)) + ' TTC' });
@@ -8398,13 +8400,16 @@ const cpDedOct = a => cpDed(a) && (cpService(a) ? !!a.paye && cpOct(a.paye) : cp
 /* ce qu'un technicien a encaissé sur place et qu'aucune facture émise n'a encore repris : c'est un encaissement, daté du jour où il l'a
    reçu ; le taux est celui de la facture qui suivra (même règle que `factureDepuis`), à confirmer sur la facture */
 const cpTvaInt = i => (i.fact && i.fact.tva) || (CLIENTS[i.cli].type === 'part' ? 10 : 20);
+/* UNE règle (restes accueil, tour 3, décision du chef) : l'argent compte le JOUR où le technicien le reçoit (`P.recuLe`, posé à « Terminer »), pas le jour prévu de l'intervention — une
+   intervention prévue le 2 novembre et finie le 31 octobre avec 50 € compte 50 € en octobre — et le moyen de paiement ne change rien : espèces, chèque, carte ou virement noté sur place
+   sont tous « reçus sur place » tant que la facture n'est pas partie (une carte ou un virement attend en plus sa ligne de banque : la Comptabilité le dit déjà). */
 function cpPaieTerrain(){
-  return INTS.filter(i => i.st === 'fait' && i.tech && cpOct(cpDM(i.d))).map(i => ({ i, P:fiche(i.id).paiement }))
-    .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && (P.mode === 'Espèces' || P.mode === 'Chèque') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
-    .map(({ i, P }) => ({ d:cpDM(i.d), h:fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode,
+  return INTS.filter(i => i.st === 'fait' && i.tech).map(i => ({ i, P:fiche(i.id).paiement }))
+    .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
+    .map(({ i, P }) => ({ d:cpDM(P.recuLe || i.d), h:P.recuLe ? (P.recuH || hm(MAINT_MIN)) : fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode,
       /* « payé en totalité » sans montant retapé : c'est le TTC de la facture préparée (même règle que l'envoi de la facture) ; sans cela l'Historique disait 142,61 € quand l'Accueil comptait 0 */
       ttc:parseFloat(String(P.montant).replace(',', '.')) || (P.etat === 'total' ? (f => f ? ttcDe(f) : 0)(FACTURES.find(f => f.int === i.id && f.st !== 'annulee')) : 0), tva:cpTvaInt(i), virtuel:true, preuve:'Noté sur la fiche par ' + tech(i.tech).nom.split(' ')[0] }))
-    .filter(e => e.ttc > 0);
+    .filter(e => e.ttc > 0 && cpOct(e.d));
 }
 const cpEncOct = () => [...ENCAISSEMENTS.filter(e => cpOct(e.d)), ...cpPaieTerrain()];
 const cpTechDe = e => { const i = e.int && INTS.find(o => o.id === e.int); return i && i.tech; };
@@ -8890,7 +8895,9 @@ const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
     if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p class="mq-i">Avant de terminer, il manque :</p><ul class="mq-l">${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris mq-s">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
     F.etat = 'bureau'; F.envoye = true; i.st = 'fait';
+    if (F.paiement && F.paiement.etat !== 'rien' && !F.paiement.recuLe) { F.paiement.recuLe = AUJ; F.paiement.recuH = hm(MAINT_MIN); }   /* le jour où l'argent est reçu : aujourd'hui, quel que soit le jour prévu de l'intervention */
     journalAjout(rlQui(), 'inter', 'a terminé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'compte rendu envoyé au client' });
+    const dejaPartie = FACTURES.some(f => f.int === id && f.num !== '—' && f.st !== 'annulee');   /* avant l'envoi automatique, qui fait partir la facture préparée */
     factureDepuis(i);
     if (F.suite.entretien) INTS.push({ id:'n-ent-' + id, d:ouvres(1, ajoute(i.d, 364))[0], h:'09:00', dur:60, tech:'', cli:i.cli, titre:'Entretien annuel', type:'Entretien', st:'aplanifier' });
     if (F.suite.ventilo) INTS.push({ id:'n-ven-' + id, d:ajoute(i.d, 4), h:'13:30', dur:120, tech:'', cli:i.cli, titre:autrePassageTitre(i), type:'2ᵉ passage', st:'aplanifier' });
@@ -8898,7 +8905,7 @@ const ACTIONS = {
     if (reglages.auto && fa && lignesDe(fa).every(ligneOk) && entClientJoignable(fa.cli)) envoyerFacture(fa, true, true);   /* elle attend « à valider » si un prix manque, si le client n'a pas d'e-mail, ou si la fiche de l'entreprise est incomplète (refus silencieux : le technicien n'y peut rien) */
     { const P = F.paiement;   /* l'argent noté sur place : sa ligne vient APRÈS « a terminé », et une seule fois (un second appel ne double pas) ;
       elle dit ce que l'Accueil et la Comptabilité COMPTENT (argent reçu en Espèces/Chèque pas encore sur une facture, ou encaissement de la facture déjà partie) — jamais une autre règle */
-      const mt = fa && fa.num !== '—' ? ENCAISSEMENTS.filter(e => e.int === id && e.fac === fa.num).reduce((s, e) => s + e.ttc, 0) : cpPaieTerrain().filter(e => e.int === id).reduce((s, e) => s + e.ttc, 0);
+      const mt = fa && fa.num !== '—' ? (dejaPartie ? encaisserPaieTech(fa, P) : ENCAISSEMENTS.filter(e => e.int === id && e.fac === fa.num).reduce((s, e) => s + e.ttc, 0)) : cpPaieTerrain().filter(e => e.int === id).reduce((s, e) => s + e.ttc, 0);
       journalPaieTerrain(i, P.etat === 'rien' ? null : P, mt); }
     rendre(); scrollTo({ top:0 }); toast(fa ? (kcomp ? 'Terminée : le compte rendu part au client. La visite est comprise dans le contrat ' + kcomp.num + ' ; la facture ne porte que les pièces posées.' : 'Terminée : le compte rendu part au client, la facture est préparée.') : kcomp ? 'Terminée : le compte rendu part au client. Visite comprise dans le contrat ' + kcomp.num + ' : pas de facture à part.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
   pasFini(b){ feuillePasFini(b.dataset.id); },
@@ -9088,10 +9095,13 @@ function envoyerFacture(f, muet, auto){ if (!auto && !peut('ventes', 'm')) { if 
   if (!lignesDe(f).every(ligneOk)) { if (!muet) toast('Une ligne n’a pas de nom ou pas de prix : complète-la, ou retire-la.'); return false; }   /* une ligne sans nom ne part jamais chez un client */
   const M = entrepriseManque(); if (M.length) { if (!muet) entRefusFacture(M); return false; } envoyerFactureParti(f); return true; }
 function envoyerFactureParti(f){ if (f.num === '—') f.num = 'FAC-2026-0' + (numSuiv++); f.st = 'envoyee'; f.emise = '31/10'; f.ech = '30/11'; f.ht = htDe(f); f.vue = false;
-  const P = f.paieTech; if (!P || P.etat === 'rien') return;
-  const ttc = ttcDe(f), v = P.etat === 'total' ? ttc : Math.min(ttc, parseFloat(String(P.montant).replace(',','.')) || 0); if (!v) return;
-  f.recu = v; f.st = v >= ttc - .01 ? 'payee' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
-  ENCAISSEMENTS.unshift({ d:'31/10', h:P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); }
+  encaisserPaieTech(f, f.paieTech); }
+/* L'argent que le technicien a noté sur place devient l'encaissement de la facture : à l'envoi (facture neuve), ou à « Terminer » quand la facture était DÉJÀ partie (acompte, facture de devis) —
+   alors pour ce qui RESTE à payer et pas plus, et l'Historique ne dit que ce que le technicien a reçu, jamais le total de la facture (restes accueil, tour 3). Rend le montant inscrit. */
+function encaisserPaieTech(f, P){ if (!P || P.etat === 'rien' || P.encaisse) return 0;   /* une fois : « Terminer » rejoué après une reprise ne recompte pas */
+  const reste = restant(f), v = P.etat === 'total' ? reste : Math.min(reste, parseFloat(String(P.montant).replace(',','.')) || 0); if (!(v > .004)) return 0;
+  f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = P.mode; f.paye = '31/10'; }
+  ENCAISSEMENTS.unshift({ d:'31/10', h:P.recuH || P.h || '09:30', cli:f.cli, fac:f.num, int:f.int, mode:P.mode, ttc:v, tva:f.tva, preuve: P.ticket ? PREUVE[P.mode][0] + ' · photo du technicien' : undefined }); P.encaisse = f.num; return v; }
 function payer(f, m, o){
   /* PREMIÈRE instruction : noter un encaissement est « Devis, factures, contrats › Créer » (ou « Comptabilité › Modifier » dans la Comptabilité, ou la fiche de terrain du technicien) ; le client qui paie en ligne n'est pas une personne de l'entreprise */
   if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
@@ -26554,11 +26564,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="defile-cote">
 /* Le graphique des 12 mois défile (téléphone, iPad en portrait) et s'ouvre calé à droite : sa colonne de gauche tombait coupée net contre le bord de la carte (« éc » au lieu de « déc »),
    ce qui se lisait comme un défaut. Un fondu de 30 px à gauche dit « ça continue » (22 px laissaient encore lire « éc » sur iPad), et la même marge au bout du défilement laisse le premier mois entier (restes accueil, tour 1).
    Mais seulement s'il DÉFILE vraiment (restes accueil, tour 2) : entre 700 et 760 px les 12 mois tiennent sans défiler, et la marge, le fondu et « Glisse vers la droite » décalaient un graphique immobile.
-   Ce n'est pas la largeur de l'écran qui décide, c'est celle de la carte : 528 px de colonnes + 30 px de marge = 558 px, d'où la requête de conteneur sur l'enveloppe. */
+   Ce n'est pas la largeur de l'écran qui décide, c'est celle de la carte : les colonnes demandent 528 px, donc le graphique ne défile qu'en dessous (527 px) ; la marge de 30 px n'est utile QUE s'il défile — posée dès 557 px (528 + 30), elle le faisait défiler de 4 à 24 px pour rien entre 528 et 557 px (restes accueil, tour 3). D'où la requête de conteneur sur l'enveloppe. */
 .st-gcont{container-type:inline-size}
 .st-glisse{display:none!important}
-@media (max-width:760px){ @container (max-width:557px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
-@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ @container (max-width:557px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
+@media (max-width:760px){ @container (max-width:527px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
+@media (pointer:coarse) and (min-width:761px) and (max-width:900px){ @container (max-width:527px){ .st-graph{padding-left:30px!important;-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0,#000 30px)} .st-glisse{display:inline!important} } }
 </style>`);
 
 /* ── le logo au lancement : plus grand, et un mouvement plus marqué · 13 novembre 2026 ──
