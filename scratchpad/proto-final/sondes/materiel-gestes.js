@@ -43,5 +43,18 @@ const L = require('../lib.js');
   await p.fill('#mm-rech', 'raccord'); await L.calme(p, 250); await T('#calque [data-mat^="mpiece|"]'); await L.calme(p, 200); await T('#calque [data-mat="menvoyer"]'); await L.calme(p, 300);
   v('geste 10 · signaler une pièce manquante : 4 touchers (' + n + ') — Camion, « Il me manque », la pièce, « Prévenir le bureau » — UNE demande de plus', n === 4 && (await dem()) === d0 + 1, [n, d0, await dem()]);
   v('aucune erreur de page', c.err.length === 0, c.err);
-  await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
+  await L.fin(c);
+
+  // GESTE 8 (étape 3, Dépôts et camions) — remplir les camions : menu (1 sur ordinateur) puis « Remplir les camions · N » puis « Tout mettre dans les camions » = 3 ; UN seul bouton noir, le même chiffre partout
+  { const c2 = await L.ouvrir({ profil:'mac', qui:'marc' }), q = c2.p; let m = 0;
+    const T2 = async s => { m++; const ok = await L.toucher(c2, s); if (ok === false) throw new Error('cible non atteinte : ' + s); };
+    await T2('#menu a[href="#boxes"]'); await L.calme(q, 400);
+    const n0 = await q.evaluate(() => camionsARemplir().n), tot0 = await q.evaluate(() => PRODUITS.reduce((s, x) => s + stkAt(x, 'atelier'), 0));
+    v('population : la page Dépôts et camions dit ' + n0 + ' articles à remplir, avec UN seul bouton noir', n0 >= 5 && (await q.evaluate(() => document.querySelectorAll('#contenu .tete .btn:not(.gris)').length)) === 1);
+    await T2('[data-md="remplir"]'); await L.calme(q, 300); await T2('#md-rok'); await L.calme(q, 400);
+    const n1 = await q.evaluate(() => camionsARemplir().n), tot1 = await q.evaluate(() => PRODUITS.reduce((s, x) => s + stkAt(x, 'atelier'), 0));
+    v('geste 8 · remplir les camions : 3 touchers (' + m + ') depuis le menu — le menu, « Remplir les camions · ' + n0 + ' », « Tout mettre » — et ça ABOUTIT (' + n0 + ' → ' + n1 + ' à remplir, l\'atelier ' + tot0 + ' → ' + tot1 + ')', m === 3 && n1 < n0 && tot1 < tot0, [m, n0, n1]);
+    v('… et le message propose Annuler, qui rend le chiffre d\'avant', /Annuler/.test(await q.evaluate(() => (document.getElementById('toast') || {}).textContent || '')) && (await q.evaluate(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); return camionsARemplir().n; })) === n0);
+    v('aucune erreur de page (gérant)', c2.err.length === 0, c2.err); await L.fin(c2); }
+  await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

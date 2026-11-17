@@ -24,9 +24,9 @@ Ce fichier tranche. Ce qui contredirait une décision explicite de Justin N'EST 
 - (bloc du haut, sans titre) : **Accueil** · **Statistiques** · **Historique**
 - **Travail** : Planning · Interventions · Tâches · Absences et congés
 - **Clients et ventes** : Clients · Devis · Contrats · Boîte mail
-- **Argent** : Comptabilité (avec, en petit gris sous le nom : « Factures, paiements, paie ») · Achats et frais
+- **Argent** : Comptabilité (avec, en petit gris sous le nom : « Factures, paiements, paie ») · Achats et frais (en petit gris : « Demandes de l’équipe » — 17 novembre 2026, voie entreprise étape 4 : une ligne qui dit ce qu'on y trouve)
 - **Matériel** : Stock · Fournisseurs, matériel & produits · Dépôts et camions
-- **Personnel** : Équipe · Temps de travail · Véhicules
+- **Personnel** : Équipe · Temps de travail · Véhicules · Mon entreprise (17 novembre 2026, voie entreprise étape 4 : ce que le gérant règle UNE fois, ici ; le gérant seul pour l'instant, la case « L'entreprise et l'équipe » viendra à l'étape des droits)
 - **Hygiène anti-nuisibles (3D)** — seulement si le pack 3D est pris : Registre sanitaire · Carte des box · Devis xylophage
 - Pied : Jour / Nuit / Auto · Nouveautés · (téléphone) Personnaliser la barre du bas · Se déconnecter (mode application)
 
