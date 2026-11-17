@@ -362,6 +362,14 @@ l'atelier il n'y a PAS de serveur OP GESTION. À FAIRE EN PREMIER à la reprise 
 (`server/index.js`, `TEAMOP_CONFIG`/`TEAMOP_DATA` jetables, port 8080, un accès bêta créé pour Justin), puis vérifier l'entrée de
 bout en bout AU NAVIGATEUR avant de lui redire « c'est en ligne » — je l'ai annoncé sur la seule foi de `/health`, à tort. La
 porte de test des codes SMS est posée (`OPMSG_TEST_CODES`, drop-in `atelier-opmsg.service.d/codes.conf`).
+✅ **Justin ENTRE dans la bêta d'OP MESSAGES de l'atelier (17 novembre, vers 22 h 30)** : il manquait le serveur OP GESTION d'essai
+à côté — monté par la porte dans `/home/atelier/gestion-essai` (port 8080, `nohup`, PAS encore d'unité systemd : il ne redémarre
+pas seul), avec un accès bêta `justin` (mot de passe dans `acces-justin.txt`, jamais affiché ici). ⏳ **CE QU'IL DEMANDE ENSUITE** :
+(1) « récupérer mon compte que j'avais d'origine » = TRANSFÉRER les données de l'ancienne bêta (`msg-beta.teamop.fr`, sur le
+serveur des clients : données, configuration ET clé maître de l'instance) vers l'atelier — un déménagement de données chiffrées,
+à préparer et à répéter, gestes de Justin sur son Mac, la clé ne passant jamais par la conversation ; (2) la version de TEST
+d'OP GESTION (la page bêta et son serveur) sur l'atelier aussi : « ça va être le nouveau serveur pour les tests, et on va quitter
+Firebase et GitHub ». ⚠️ Il s'est agacé deux fois ce soir : dire en UNE phrase ce qu'on fait et pour quoi, avant de le faire.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
