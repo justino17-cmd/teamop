@@ -1,0 +1,120 @@
+{
+ "partie": "technicien",
+ "date": "2026-11-17",
+ "recontroleur": "recontroler-technicien (étape 3/3)",
+ "regles": [
+  1,
+  3,
+  4,
+  7,
+  8
+ ],
+ "pasRegles": [
+  {
+   "n": 2,
+   "constat": "Toujours là, comme annoncé (« à soumettre à Justin ») : la première intervention de Ma journée commence à y = 832 (iPhone 844), 861 (Android 740), 886 (petit 568), 824 (Windows 768, Karim) ; technicien-mise-en-page.js : 6 ✗ sur ce contrôle. Sur les téléphones, il faut défiler pour voir ce pour quoi l'écran existe."
+  },
+  {
+   "n": 5,
+   "constat": "Non touché, choix de produit à trancher (rappel du matin sur Ma journée ET Mes frais)."
+  },
+  {
+   "n": 6,
+   "constat": "Reporté (Mon camion refait par le chantier Véhicules) : technicien-parcours-prevenir-bureau K1c tombe toujours ; ses S1 et S3 tombent aussi, mais la sonde est périmée : « Un souci avec le camion » n'est plus sur Ma journée, il est dans le bloc « Le camion » de Mon camion (vhCamionBloc, data-vx=souci)."
+  },
+  {
+   "n": 9,
+   "constat": "Mesuré à nouveau : 38×66 px pour la case d'un jour de la semaine, à 320 px (technicien-mise-en-page : 2 ✗ petit jour/nuit, absences). C'est la décision écrite (sept colonnes dans 284 px), pas une casse."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une demande de congé REFUSÉE (ou « d'autres dates ») porte le liseré VERT de la réussite",
+   "gravite": "gênant",
+   "etapes": "Karim demande un congé, Marc le refuse avec un motif (ou propose d'autres dates), Karim ouvre Mes congés (iPhone nuit, petit jour ; même carte côté gérant).",
+   "constat": "La carte « Marc a refusé ta demande » a une pastille rouge ✕ mais un liseré gauche vert, identique à celui de « Marc a validé ta demande ». Cause : .a-avis{box-shadow:inset 3px 0 0 var(--vert)} sans condition (apercu/prototype-op-gestion.html ligne ~2673), alors que aAvisHtml distingue déjà non/info/ok. Correction : liseré selon l'icône (:has(.a-dec-i.non) rouge, .info bleu). Captures : p1-refus-iphone-nuit.png, p1-refus-petit-jour.png. Préexistant : non causé par les corrections.",
+   "zone": "congés"
+  },
+  {
+   "titre": "iPad : Jour / Nuit / Auto et Nouveautés du pied du menu sous 44 px",
+   "gravite": "gênant",
+   "etapes": "iPad 820×1180, doigt, n'importe quelle rubrique du technicien (jour et nuit) : pied de la colonne de menu.",
+   "constat": "Jour, Nuit, Auto : 75×36 px ; Nouveautés : 81×40 px. technicien-mise-en-page.js ipad : 12 ✗. Les mêmes boutons existent pour tous les rôles (coque), donc à régler une fois pour tous. Le téléphone et l'ordinateur ne sont pas touchés.",
+   "zone": "coque"
+  },
+  {
+   "titre": "« C'est quoi ? » est pré-rempli à « Carburant »",
+   "gravite": "détail",
+   "etapes": "Mes frais › Nouvelle note de frais ; écrire « Gants et chiffons » ou « Péage A10 » dans « Précise », sans toucher à la liste ; envoyer.",
+   "constat": "La note part titrée « Carburant · Gants et chiffons · AB-123-CD » (plaque du véhicule ajoutée) et le message du bureau dit « Ta note « Carburant · Péage A10… » ». Un débutant ne voit pas que la liste doit être changée. Piste : « Choisis… » obligatoire, ou plaque seulement pour le carburant. Préexistant ; à trancher par Justin.",
+   "zone": ""
+  },
+  {
+   "titre": "Fenêtre « Il manque encore des choses » : grands vides autour de la liste",
+   "gravite": "détail",
+   "etapes": "Fiche d'une intervention (Karim, i3) › Terminer sans rien avoir fait ; iPhone nuit.",
+   "constat": "Environ 50 px de vide entre « Avant de terminer, il manque : » et la liste, et autant avant la phrase « Si tu ne peux pas tout faire… » (p3-manque-iphone-nuit.png). Lisible, mais détaché. Même rendu probable de jour."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "technicien-corrections.js",
+   "resultat": "13 ✓ · 0 ✗ (iphone jour)"
+  },
+  {
+   "fichier": "technicien-parcours-heures.js",
+   "resultat": "8 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-parcours-intervention.js",
+   "resultat": "15 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-parcours-frais.js",
+   "resultat": "27 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-parcours-taches-conges.js",
+   "resultat": "30 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-parcours-menu-droits.js",
+   "resultat": "83 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-parcours-prevenir-bureau.js",
+   "resultat": "22 ✓ · 3 ✗ (K1c = défaut 06 reporté ; S1 et S3 = sonde périmée, le souci est dans Mon camion)"
+  },
+  {
+   "fichier": "technicien-mise-en-page.js (iphone, android, petit ; jour et nuit)",
+   "resultat": "190 ✓ · 8 ✗ (défaut 02 ×6, défaut 09 ×2 : tous annoncés)"
+  },
+  {
+   "fichier": "technicien-mise-en-page.js ipad,windows (Karim, jour et nuit)",
+   "resultat": "94 ✓ · 14 ✗ (12 = pied du menu iPad sous 44 px, 2 = défaut 02 sur Windows)"
+  },
+  {
+   "fichier": "technicien-recontrole-droits.js (neuf, adverse)",
+   "resultat": "10 ✓ · 0 ✗ sur iphone jour (Sophie), android nuit (Karim), petit jour (Sophie) : 25 écrans du bureau fermés à l'adresse tapée, intervention d'un autre technicien fermée, fiches client/devis/facture/contrat fermées, aucune marge ni tarif ; contre-épreuve : Julie lit toujours la note de pied ; Retour d'une fiche par lien ramène à la liste pour Julie et Marc"
+  },
+  {
+   "fichier": "technicien-recontrole-liens.js (neuf)",
+   "resultat": "10 ✓ · 0 ✗ iphone jour (Sophie) : 11 liens relevés, 6 vers la fiche client (fermée) ouvrent un aperçu par-dessus avec Retour, sans prix ni facture"
+  },
+  {
+   "fichier": "technicien-recontrole-parcours.js P1 congé, P2 frais, P3 journée (neuf, Karim, le gérant décide)",
+   "resultat": "21 ✓ · 0 ✗ sur iphone nuit et petit jour ; 9 ✓ · 0 ✗ P3 mac jour ; P1+P2 android nuit : 12 ✓ · 1 ✗ corrigé dans la sonde (rang des notes), rejoué 7 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "technicien-recontrole-balayage.js (neuf, geste par geste, page neuve, comparé à l'avant)",
+   "resultat": "iphone jour (journée, tâches, frais) 13 ✓ · 0 ✗ ; iphone nuit (heures, camion, congés) 13 ✓ · 0 ✗ ; mac nuit et mac jour, six écrans : 25 ✓ · 0 ✗ chacun ; fiche et journée de Karim iphone nuit : 8 ✓ · 1 ✗ (champs d'heure natifs 26×46 cachés derrière leurs boutons, déjà connus 47/49). Aucune casse par rapport au balayage d'avant ; les « RIEN » restants sont des champs de saisie, Y aller/Appeler, Jour/Nuit/Auto et Nouveautés (vérifiés à part : le mode change, le guide s'ouvre)"
+  }
+ ],
+ "doutes": [
+  "Ma journée au téléphone : l'intervention du jour n'est visible qu'après défilement (défaut 02 toujours ouvert) : veux-tu qu'on replie les messages du bureau et qu'on remonte les interventions ?",
+  "Mes frais : faut-il retirer la catégorie « Carburant » pré-sélectionnée (et la plaque ajoutée) pour qu'un péage ou des gants ne soient pas titrés « Carburant » ?",
+  "La fiche client ouverte depuis le nom du client montre les passages de ses collègues (titre, statut, résumé) : voulu pour un technicien ? Les interventions elles-mêmes restent fermées (« tu ne vois que les tiennes »).",
+  "Karim (chef d'équipe) n'a toujours que les six écrans de Sophie : conforme au menu final, mais à confirmer.",
+  "Non vérifié : clavier seul, lecteur d'écran, formulaires « Noter un plein » et « Relever le compteur » (envoi), Windows au doigt, mode nuit des parcours sur iPad/Windows."
+ ]
+}

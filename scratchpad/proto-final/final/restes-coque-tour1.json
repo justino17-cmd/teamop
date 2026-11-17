@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "coque-casse-1 : un guide ouvert (et le document en grand, et la pièce jointe du client) laisse N, C, D, A, ? et Ctrl+K ouvrir des fenêtres DERRIÈRE lui, le focus part dans la fenêtre cachée",
+  "defaut": "reproduit (mutation) : 6 ✗ sans le correctif",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : une seule fonction rcDevant() (#nv ouvert, #docplein, #cx-vis) lue par le gestionnaire de clavier (rien ne se déclenche derrière), par opgRaccourci et par palOuvrir ; ouvrir le guide ferme la recherche restée ouverte. Échap et la fermeture restent à leurs propres gestionnaires.",
+  "preuve": "coque-recontrole.js SECTION=c : 15 ✓ · 0 ✗ (guide, document en grand, pièce jointe : 6 touches chacun, population comptée, « départ propre » prouvé, Échap rend les raccourcis). Mutation rcDevant = () => false : 9 ✓ · 6 ✗ (guide ×3, document en grand ×2, pièce jointe), page restaurée par git checkout. Garde de la sonde elle-même corrigée : elle supprimait la fenêtre du DOM, ce qui laissait l'état de création et faisait redessiner la fenêtre par aller() ; elle ferme maintenant par Échap. Commits 3477841 puis suivants."
+ },
+ {
+  "nom": "coque-casse-2 : douze mots courants du gérant ne mènent nulle part dans la recherche (voiture, essence, carburant, calendrier, rapport, photo, imprimer, export, relance, impayé, téléphone, coordonnées)",
+  "defaut": "reproduit par la sonde du recontrôleur (12 sur 54)",
+  "etat": "corrigé",
+  "changement": "PAL_MOTS : mots cachés (jamais affichés) pour Véhicules, Planning, Comptabilité, Interventions, Clients.",
+  "preuve": "coque-recontrole.js SECTION=f : marc 0/54 mots sans réponse (seuil : 12). Exemples lus : voiture/essence/carburant → Véhicules, calendrier → Planning, rapport/photo → Interventions, imprimer/export/relance/impayé → Comptabilité, téléphone/coordonnées → Clients."
+ },
+ {
+  "nom": "coque-casse-3 : « auto » ouvre le client « Garage Rochefort Auto » avant « Mode automatique »",
+  "defaut": "reproduit à la lecture du classement (palFiltre : début de libellé d'abord, puis l'ordre des groupes)",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision de présentation : classer les réglages d'affichage avant les clients quand le mot est court, ou ne rien changer (taper « automatique » marche, un client qui s'appelle Auto est aussi une attente légitime). Une ligne dans palFiltre quand il tranche."
+ },
+ {
+  "nom": "coque-07 (pasRegles n°7) : le guide des nouveautés dit faux sur le matériel (Mouvements, À valider, Sortie, Bons de commande, Commandes en cours)",
+  "defaut": "ne se reproduit plus côté guide : le texte a déjà été refait (NV_PLACE : « Ce qui a bougé », « Envois à accepter », onglets Commandes, Articles et Fournisseurs). C'était la liste PROMESSES de la sonde coque-guide.js, écrite à la main, qui avait vieilli.",
+  "etat": "corrigé",
+  "changement": "scratchpad/proto-final/campagne/sondes/coque-guide.js : PROMESSES à jour, et garde DÉRIVÉE du guide lui-même : chaque mot entre « » d'une ligne NV_PLACE doit se lire sur sa rubrique (la liste écrite à la main ne peut plus vieillir sans le dire).",
+  "preuve": "coque-guide.js mac : 70 ✓ · 0 ✗ (avant : 60 ✓ · 5 ✗, tous coque-07). iPhone : 70 ✓ · 0 ✗."
+ },
+ {
+  "nom": "coque-03 (pasRegles) : vocabulaire d'un débutant sans réponse pour le gérant",
+  "defaut": "même défaut que coque-casse-2",
+  "etat": "corrigé",
+  "changement": "voir coque-casse-2",
+  "preuve": "SECTION=f : 0/54 pour marc. julie et sm : leurs « sans réponse » sont les rubriques fermées à leur rôle (décision du menu), non touchées."
+ },
+ {
+  "nom": "doutes du recontrôleur : message « Rien ne correspond » qui ne dit pas qu'une rubrique est fermée au compte ; champ Identifiant « Ton prénom » pour un homonyme ; « Rester connecté » absent ; pastille 📱 de démonstration sur les fenêtres",
+  "defaut": "non corrigés, constats de présentation",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "(1) « fermé à ton compte » serait plus clair pour une secrétaire qui tape « planning » ; (2) l'homonyme ne sait pas qu'il faut « prénom.nom » ; (3) « Rester connecté » n'existe plus voulu par OP Security : à dire si sa liste en parlait ; (4) la pastille 📱 n'existera pas en vrai."
+ },
+ {
+  "nom": "vu par le chef (coque, menu, matériel) : l'entrée CHOISIE « Fournisseurs, matériel & produits » passe sur trois lignes et est coupée par le pied du menu",
+  "defaut": "reproduit sur capture (Mac 1440 × 900 et 1280 × 720, gérant) : la boîte de la ligne restait à 44 px (la colonne du menu défile, et un élément flex à min-height explicite s'y laisse écraser sous son contenu) pendant que trois lignes de texte en sortaient. Mon premier relevé disait « 38 / 38 px, entière » : il mesurait la boîte, pas son texte — la sonde regarde maintenant le texte DANS la ligne.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : .menu .m-liste > *{flex:none} (les lignes ne rétrécissent plus : la colonne défile) ; un fantôme invisible en gras (.m-n[data-t]::before) fixe la hauteur de la ligne choisie ou non (le gras ne change plus le retour à la ligne) ; rlLien écrit data-t. Le nom reste sur trois lignes : « Fournisseurs, matériel & produits » est le nom du 6 novembre et le menu fait 256 px, la ligne grandit de 44 à 65 px au lieu de déborder.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/coque-menu-choisie.js : mac marc,julie,sm 41 ✓ · 0 ✗ ; mac720 marc 22 ✓ · 0 ✗ (avant le correctif : le texte sortait de sa ligne). Mutations : flex:none retiré → 21 ✓ · 1 ✗ (texte hors de sa ligne, entrée à 474/8 px du bas) ; fantôme retiré → 21 ✓ · 1 ✗ (65,3 contre 44 px). Captures relues (Mac jour 1440 × 900, Mac 1280 × 720 nuit) : l'entrée choisie est entière, badge 6 compris, la ligne d'au-dessus se fond sous le masque du haut de la liste."
+ }
+]
