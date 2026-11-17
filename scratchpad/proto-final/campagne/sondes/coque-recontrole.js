@@ -241,7 +241,13 @@ const ESPACE = { ok: 0 };
         const n = await p.evaluate(() => [...document.querySelectorAll('#pal .pal-i b')].map(e => e.textContent)); reps[m] = n.slice(0, 3).join(' | '); if (!n.length) vides.push(m); await p.evaluate(() => { const q = document.getElementById('pal-q'); q.value = ''; }); }
       console.log(`  · ${qui} : ${vides.length}/${MOTS.length} mots sans réponse : ${vides.join(', ')}`);
       console.log('  · ' + qui + ' réponses : ' + JSON.stringify(reps).slice(0, 1800));
-      v(`F ${qui} : au plus 12 mots courants sur ${MOTS.length} ne mènent nulle part`, vides.length <= 12, vides);
+      // un mot sans réponse n'est un défaut que si la rubrique qu'il vise est OUVERTE au rôle : le gérant n'en admet aucun ; la secrétaire et la technicienne
+      // n'ont pas tout le menu (décision de rôle, restes coque tour 2) — leurs mots d'un métier qui n'est pas le leur peuvent rester sans réponse, et eux seuls.
+      // Ceux qui visent SES rubriques (Mes heures, Mon camion, Mes frais, Ma journée) sont gardés un par un par coque-mots-roles.js.
+      const FERME = { marc: [], julie: ['heures', 'pointage', 'congé', 'congés', 'vacances', 'planning', 'calendrier', 'rdv', 'courrier', 'message', 'équipe', 'technicien', 'logo', 'siret', 'dépôt', 'absence'],
+        sm: ['facture', 'devis', 'client', 'fournisseur', 'matériel', 'produit', 'mail', 'courrier', 'message', 'banque', 'équipe', 'technicien', 'logo', 'siret', 'tva', 'contrat', 'imprimer', 'export', 'dépôt', 'relance', 'impayé', 'paiement', 'adresse', 'coordonnées'] };
+      const horsRole = vides.filter(m => !FERME[qui].includes(m));
+      v(`F ${qui} : aucun mot courant d'une rubrique OUVERTE à son rôle ne reste sans réponse (${vides.length} sans réponse, toutes fermées au rôle : ${vides.length - horsRole.length})`, horsRole.length === 0, horsRole);
       await L.fin(c);
     }
   }

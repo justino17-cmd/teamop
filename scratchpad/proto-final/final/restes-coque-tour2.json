@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "coque-03 (suite) / nouveaux[1] : la recherche (Ctrl+K) de la technicienne ignore 17 mots courants (pointer, véhicule, voiture, carburant, essence, planning, calendrier, rdv, agenda, intervention, rapport, photo, chantier, passage…) alors que Mes heures, Mon camion, Mes frais et Ma journée sont à son menu",
+  "defaut": "reproduit : coque-mots-roles.js rend 22 ✓ · 14 ✗ avant correction (les 14 mots de sm sans réponse, listes vides lues)",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html, PAL_MOTS : mots cachés (jamais affichés) pour les clés de SES rubriques — majournee (planning calendrier rdv agenda intervention rapport photo chantier passage), moncamion (véhicule voiture essence carburant plein entretien), mesheures (+ pointer), techfrais (+ carburant essence), absences (+ absence). Aucun mot d'une rubrique fermée au rôle n'est ajouté (décision de rôle).",
+  "preuve": "coque-mots-roles.js : 39 ✓ · 0 ✗ (sm 26 mots essayés, julie 7, population du menu lue sur la page : 6 et 10 rubriques ; un mot dont la rubrique n'est pas au menu du rôle est écarté et nommé). Mutation (majournee:'') : 28 ✓ · 9 ✗. Capture relue (sm, « voiture » → Mon camion, Ctrl 5, mac jour ET nuit) : une ligne, lisible, bien alignée. coque-recontrole SECTION=f : 6 ✓ · 0 ✗ (marc 0/54 ; julie 16/54 et sm 24/54, toutes fermées au rôle) ; commit 7e28702a puis suivant."
+ },
+ {
+  "nom": "nouveaux[1] (suite) : la sonde F de coque-recontrole.js restait rouge « pour un bon résultat et un mauvais motif » pour julie et sm (seuil de 12 mots sans réponse, sans distinguer un rôle fermé)",
+  "defaut": "reproduit : F julie 16/54 et sm 25/54 > 12 (✗ 2)",
+  "etat": "corrigé",
+  "changement": "scratchpad/proto-final/campagne/sondes/coque-recontrole.js : la section F compare les mots sans réponse à la liste des mots de rubriques FERMÉES au rôle (déclarée par rôle, nommée) ; tout mot d'une rubrique ouverte qui reste muet fait tomber la sonde.",
+  "preuve": "SECTION=f : 6 ✓ · 0 ✗ ; les mots de la technicienne sont gardés un par un par coque-mots-roles.js"
+ },
+ {
+  "nom": "casses[0] : la visite parlée (« Découvrir l'application ») laisse Ctrl+K et ? ouvrir la recherche et l'aide par-dessus son cadre lumineux, la bulle restant au-dessus",
+  "defaut": "reproduit par mutation : sans le correctif, 17 ✗ (Ctrl+K ouvre la recherche, les touches suivantes s'y écrivent)",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : #gd-bulle ajouté à rcDevant() (la même fonction que pour le guide, le document en grand et la pièce jointe), lue par le gestionnaire de clavier, opgRaccourci et palOuvrir. La croix de la visite et Retour la ferment comme avant.",
+  "preuve": "coque-visite-raccourcis.js : 14 ✓ · 0 ✗ (contre-épreuve : sans visite, Ctrl+K ouvre la recherche et ? l'aide ; visite lancée comptée ; Ctrl+K, Maj+?, ?, N, D, C, A, / : ni recherche, ni aide, ni fenêtre ; la croix ferme la visite ; Ctrl+K rouvre la recherche ; aucune erreur de console). Mutation (#gd-bulle retiré de rcDevant) : 17 ✗, page restaurée par git checkout (git status vide). Capture relue (mac) : la visite seule, aucune recherche ni aide par-dessus. Garde coque-recontrole SECTION=c 15 ✓ · 0 ✗ et coque-clavier 128 ✓ · 0 ✗ rejouées."
+ },
+ {
+  "nom": "Échap ne ferme pas la visite parlée (aucun gestionnaire d'Échap ne la connaît ; seuls la croix ✕ et Retour la ferment)",
+  "defaut": "constaté en écrivant la sonde ; ne vient pas du correctif (la visite n'a jamais réagi à Échap)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien",
+  "preuve": "lecture de la page : les gestionnaires d'Échap (guide, document, pièce jointe, atelier, Comptabilité…) ne citent pas #gd-bulle ; la sonde coque-visite-raccourcis ferme par la croix. Une ligne si Justin le veut (Échap → gdQuitter quand rien d'autre n'est ouvert)."
+ },
+ {
+  "nom": "coque-casse-3 : « auto » ouvre le client Garage Rochefort Auto avant « Mode automatique »",
+  "defaut": "lu sur la liste (ordre client puis réglage d'affichage)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien (décision d'ordre dans la recherche)",
+  "preuve": "doute du recontrôle 1, inchangé"
+ },
+ {
+  "nom": "« Rien ne correspond à … » ne dit pas qu'une rubrique est fermée au compte (secrétaire : planning, heures, absence, courrier…)",
+  "defaut": "lu : 16 mots sur 54 sans réponse pour julie, tous des rubriques réellement fermées à son rôle",
+  "etat": "à soumettre à Justin",
+  "changement": "rien (décision de rôle : la phrase « n'est pas ouvert à ton compte » demande de dire à une secrétaire qu'une rubrique existe sans qu'elle la voie)",
+  "preuve": "coque-recontrole SECTION=f, liste FERME de julie"
+ },
+ {
+  "nom": "Doutes du recontrôle 1 : champ Identifiant « Ton prénom » pour un homonyme, absence de « Rester connecté » (voulue par OP Security), pastille 📱 de la démonstration",
+  "defaut": "inchangés",
+  "etat": "à soumettre à Justin",
+  "changement": "rien",
+  "preuve": "recontrôle 1, doutes"
+ },
+ {
+  "nom": "vus-par-le-chef.md : lignes non cochées qui touchent la coque",
+  "defaut": "aucune : les lignes ouvertes (Stock › Articles au téléphone, bandeaux « 2 envois à accepter » / « Avant les visites », bandeaux d'alerte teintés, bouton principal de nuit, décisions compositeur / compta / interventions) relèvent d'autres voies ; la ligne du menu de l'ordinateur est cochée depuis le tour 1",
+  "etat": "déjà décidé",
+  "changement": "rien",
+  "preuve": "lecture du fichier"
+ }
+]

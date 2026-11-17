@@ -31,7 +31,7 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   v('N3b note km : 51,00 €, sans ticket, tarif et CV gardés', nK.ttc === 51 && nK.km && nK.km.km === 85 && nK.km.tarif === 0.6 && nK.km.cv === 5, nK);
   v('N3c la liste du technicien montre « 85 km » et « Validée / En attente »', /85 km/.test(await txt(p)), (await txt(p)).slice(0, 300));
   // note pour un grand montant et double
-  await clic('[data-rl="ndf"]'); await p.fill('#rn-m', '12,50'); await clic('[data-rl="ndfok"]'); await L.calme(p, 300);
+  await clic('[data-rl="ndf"]'); await p.selectOption('#rn-o', 'Carburant'); await p.fill('#rn-m', '12,50'); await clic('[data-rl="ndfok"]'); await L.calme(p, 300);   // rien n'est choisi d'avance dans la liste : on choisit « Carburant »
   const dbl = await E(() => { const z = document.getElementById('rn-dbl'); return z && !z.hidden ? z.textContent.replace(/\s+/g, ' ').trim() : ''; });
   v('N4a même montant, même jour : « une note de 12,50 € existe déjà, c’est la même ? »', /existe déjà/.test(dbl), dbl);
   await clic('[data-axa="dblnon"]'); await L.calme(p, 300); v('N4b « Oui, annuler l’envoi » : rien créé', (await nbNdf()) === n0 + 3 && !(await panneau(p)), await nbNdf());
