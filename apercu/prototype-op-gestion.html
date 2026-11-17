@@ -22380,7 +22380,7 @@ function opdLigne(x){
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
     <span class="dv-q petit ${opdVieux(x) ? 'dv-vieux' : 'gris'}">${opdQuand(x)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
-    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small></span>
+    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small>${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}</span>
     <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></${ouvre ? 'button' : 'div'}>`;
 }
 function opdCarte(type, etats){
