@@ -1,0 +1,37 @@
+{
+ "angle": "courrier",
+ "etat": "PROVISOIRE (étape 4 sur 8 en cours) : sondes écrites et rejouées, failles prouvées listées ci-dessous, texte final à venir",
+ "failles": [
+  {
+   "n": "courrier-01",
+   "titre": "Le titre d'une tâche née de l'OBJET d'un courriel reçu s'écrit brut dans « À faire maintenant » (Accueil)",
+   "gravite": "haute",
+   "portee": "les deux"
+  },
+  {
+   "n": "courrier-02",
+   "titre": "« a répondu à <nom d'expéditeur> » s'écrit brut dans l'Historique",
+   "gravite": "haute",
+   "portee": "les deux"
+  },
+  {
+   "n": "courrier-03",
+   "titre": "Un inconnu qui cite un numéro de devis ou de facture se voit proposer « Noter l'accord » / « Noter le paiement » et le geste s'exécute",
+   "gravite": "moyenne",
+   "portee": "les deux"
+  },
+  {
+   "n": "courrier-05",
+   "titre": "Exports (FEC, CSV Véhicules) sans neutralisation des formules ; le nom d'un client peut venir d'un courriel",
+   "gravite": "moyenne",
+   "portee": "les deux"
+  },
+  {
+   "n": "courrier-06",
+   "titre": "Import de catalogue : prix absurde et désignation de 100 000 caractères acceptés",
+   "gravite": "faible",
+   "portee": "prototype"
+  }
+ ],
+ "reglesPourLaVraieApplication": []
+}
