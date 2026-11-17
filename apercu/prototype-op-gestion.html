@@ -1139,7 +1139,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 @media (pointer:coarse){.mch-b{min-height:44px}}
 /* [4] la demande d'achat visée depuis le tableau de bord */
 .ax-d.a-placer{animation:aPlacer 1s ease-in-out 4;outline:2px solid var(--orange);outline-offset:2px}
-@media (max-width:760px),(pointer:coarse){.pl-mj .plus{display:flex;align-items:center;min-height:40px;padding:2px 6px}.pl-mj .pl-mp{min-height:40px;align-content:center}}
+@media (max-width:760px),(pointer:coarse){.pl-mj .plus{display:flex;align-items:center;min-height:44px;padding:2px 6px}.pl-mj .pl-mp{min-height:44px;align-content:center}}
 /* [10] espace client au téléphone : les cinq onglets passent à la ligne au lieu de sortir de l'écran */
 @media (max-width:760px){ .ec-seg{flex-wrap:wrap;overflow-x:visible} .ec-seg button{padding:0 12px} }
 
@@ -1195,6 +1195,9 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
+/* Au doigt, chaque commande de la barre du planning répond sur 44 px au moins (onglets de vue, flèches de date, puces de personnes) :
+   40 et 38 px mesurés sur iPhone, iPad, Android et petit téléphone, jour et nuit (planning-05). Sur ordinateur, la hauteur dessinée reste. */
+@media (pointer:coarse){.pl-barre .seg button,.pl-nav button,.pl-equipe button{min-height:44px}.pl-nav button{min-width:44px}}
 .pl-aide{font-size:14px;color:var(--doux)}
 .pl-aide b{color:var(--encre)}
 .pl-boite{background:var(--surf);border:1px solid var(--trait);border-radius:var(--r);box-shadow:var(--ombre);overflow:hidden}
@@ -1994,7 +1997,10 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .pc .tire{position:absolute;left:0;right:0;bottom:0;height:12px;cursor:ns-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
 .pc .tire::after{content:"";width:28px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--encre) 30%,transparent);opacity:0;transition:opacity .15s}
 .pc:hover .tire::after,.pc:focus-visible .tire::after{opacity:1}
-@media (pointer:coarse){.pc .tire{height:18px}.pc .tire::after{opacity:.8}}
+@media (pointer:coarse){.pc .tire{height:18px}.pc .tire::after{opacity:.8}
+  /* la poignée de durée répondait sur 18 px : facile à rater au doigt (planning-06). Une zone invisible de 10 px de plus, vers le HAUT (le bas
+     de la carte est rogné par sa bordure), la porte à 28 px sans déplacer la barre dessinée ; une carte courte garde de quoi être saisie ailleurs. */
+  .pc .tire::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0}}
 .fantome{position:fixed!important;margin:0;z-index:70;pointer-events:none;box-shadow:0 20px 44px rgba(0,0,0,.35)!important;transform:none!important;rotate:-1.2deg;opacity:.97}
 /* les deux barres qui suivent l'heure : début et fin, l'heure écrite à gauche ET à droite */
 .regle{position:fixed;z-index:65;height:0;border-top:2px solid var(--rc);pointer-events:none}
@@ -2012,6 +2018,7 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pl-mj.hors{opacity:.45}
 .pl-mj .pc{position:relative;left:0;right:0;min-height:0;padding:3px 7px 3px 9px;border-radius:8px}
 .pl-mj .pc .h{font-size:12.5px}.pl-mj .pc .t{font-size:12.5px;-webkit-line-clamp:1}
+@media (pointer:coarse){.pl-mj .pc{min-height:44px;display:flex;flex-direction:column;justify-content:center}}   /* une intervention du mois se touche sur 44 px : 43 mesurés */
 .pl-mj .plus{font-size:12.5px;color:var(--lien);font-weight:600;background:none;border:0;text-align:left;padding:2px 4px}
 @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
 .pg-g .pl-jh{position:sticky;top:0}
@@ -2893,7 +2900,7 @@ body.dp-ouvert{overflow:hidden}
 .cr-mk.estompe:not(.on){opacity:.3}
 .cr-mk.dep{border-radius:9px;background:var(--fill);color:var(--on-fill);font-size:14px}
 .cr-mk .cr-mk-r{position:absolute;right:-5px;top:-5px;width:11px;height:11px;border-radius:50%;background:var(--rouge);border:2px solid #fff}
-.cr-mk.urg::before{content:'';position:absolute;inset:-6px;border-radius:inherit;background:var(--rouge);opacity:.35;animation:crPouls 1.6s ease-out infinite;z-index:-1}
+.cr-mk.urg::before{content:'';position:absolute;inset:-6px;pointer-events:none;border-radius:inherit;background:var(--rouge);opacity:.35;animation:crPouls 1.6s ease-out infinite;z-index:-1}
 @media (prefers-reduced-motion:reduce){.cr-mk.urg::before{animation:none}}
 .cr-lbl-tr{display:inline-block;white-space:nowrap;padding:3px 8px;border-radius:11px;background:var(--feuille);border:1px solid var(--trait2);color:var(--encre);font-size:11.5px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .cr-lbl-tr.r{background:var(--rouge);color:var(--on-etat);border-color:transparent}
@@ -2938,12 +2945,16 @@ body.dp-ouvert{overflow:hidden}
 .cr-etq rect{fill:var(--feuille);stroke:var(--trait2)}
 .cr-etq text{fill:var(--encre);font-size:11.5px;font-weight:700;text-anchor:middle;dominant-baseline:central}
 .cr-etq.retard rect{fill:var(--rouge);stroke:none}.cr-etq.retard text{fill:#fff}
-.cr-urg{animation:crPouls 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.cr-urg{pointer-events:none;animation:crPouls 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes crPouls{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.9);opacity:0}}
 @media (prefers-reduced-motion:reduce){.cr-urg{animation:none;opacity:.35}}
 .cr-outils{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
 .cr-outils button{width:40px;height:40px;border-radius:12px;border:1px solid var(--trait2);background:color-mix(in srgb,var(--feuille) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--encre);font:inherit;font-size:19px;font-weight:700;cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .cr-outils button:hover{background:var(--feuille)}
+/* Au doigt, un repère de carte et les boutons de zoom répondent sur 44 px (30 et 38-40 px mesurés, planning-05) : la zone est invisible, elle
+   n'agrandit pas le dessin. Sur ordinateur rien ne change. */
+.cr-zone{fill:transparent;stroke:none;pointer-events:none}
+@media (pointer:coarse){.cr-zone{pointer-events:all}.cr-mk[data-crpin]::after{content:'';position:absolute;inset:-9.5px;border-radius:50%}.cr-outils button{width:44px;height:44px}}
 .cr-echelle{position:absolute;left:12px;bottom:12px;z-index:2;font-size:11.5px;font-weight:700;color:var(--cr-txt-fort);display:flex;flex-direction:column;gap:3px;pointer-events:none}
 .cr-echelle i{display:block;height:5px;border:2px solid var(--cr-txt-fort);border-top:0}
 .cr-chips{position:absolute;left:12px;top:12px;right:64px;z-index:2;display:flex;gap:6px;flex-wrap:wrap}
@@ -3128,7 +3139,7 @@ body.ac-glisse .ac-x{pointer-events:none}
 .fo-ac .lien,.cmd-mc .lien,.cmd-franco .lien,.cx-fil .lien,.cx-doc .lien,.adr-rep .lien,.t-ctx .lien{min-height:44px}
 .mini-btn,.btn.petit,.seg button,.ml-filtres button,.cr-chip,.ms-fta .btn{min-height:44px}
 .pm-btn,.pm-boite{height:auto;min-height:78px;padding-block:8px}
-.pm-mini{height:44px}.pm-mini button,.pm-mini b{line-height:38px!important}.pm-pas2 .pm-mini button{width:44px}
+.pm-mini{height:48px}.pm-mini button,.pm-mini b{line-height:44px!important;min-height:44px}.pm-pas2 .pm-mini button{width:44px}.pm-pas.pm-boite button{width:44px;height:44px}
 }
 /* ══ AUDIT SUR NEUF APPAREILS (10 novembre 2026) — ordinateur, tablette, téléphones ; jour et nuit ; les quatre rôles ══ */
 
@@ -3944,7 +3955,7 @@ function vueCarte(){
       <div class="cr-conf">${p && p.ok && dansTournee ? `<span class="cr-pr"><b>À lui confier ?</b> ${p.km < .3 ? aMaj(p.ou) : crKmTxt(p.km) + ' ' + p.ou} · libre à ${crH(i.h)}</span>` : p && p.ok ? `<span class="cr-pr">Le plus proche : <b>${p.t.nom}</b>, ${p.km < .3 ? p.ou : crKmTxt(p.km) + ' ' + p.ou}, libre à ${crH(i.h)}</span>` : '<span class="cr-pr">Personne n’est libre à cette heure : change l’heure ou choisis quand même.</span>'}
         <div class="cr-g">${p && p.ok ? `<button type="button" class="btn" data-crconf="${i.id}|${p.t.id}">Confier à ${p.t.nom.split(' ')[0]}</button>` : ''}<button type="button" class="btn gris" data-crchoix="${i.id}">Choisir quelqu’un…</button></div></div>`; };
   const confier = i => `<div class="carte cr-t" style="--tc:${i.urgent ? 'var(--rouge)' : 'var(--orange)'}">${confierCorps(i)}</div>`;
-  const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Agrandir ou réduire la liste"></button>
+  const liste = `<div class="cr-l ${crSel && crDansPanneau() ? 'cr-l-det' : ''}" id="cr-l"><button type="button" class="cr-poignee" data-crfeuille="1" aria-label="Voir toute la liste des étapes" title="Voir toute la liste des étapes"></button>
       <div class="cr-det" id="cr-det"></div><div class="cr-lc" id="cr-lc">
       ${F ? (() => { const np = F.S.filter(s => !s.bureau).length, nr = F.S.filter(s => s.retard).length;
         const ch = F.ab ? [] : [[np, np > 1 ? 'passages' : 'passage'], ...(Cv.length ? [[Cv.length, 'à lui confier', 'o']] : []), ...(nr ? [[nr, nr > 1 ? 'retards' : 'retard', 'r']] : []), ...(np ? [[crKmTxt(F.km) + ' · ' + crMinTxt(F.min), 'de route'], [crHTxt(F.finJour), 'retour au dépôt']] : [])];
@@ -4017,6 +4028,7 @@ function crDessiner(){
     if (p.dep) { o += `<g class="cr-pin" aria-label="Dépôt"><rect x="${f(p.X - 13)}" y="${f(p.Y - 13)}" width="26" height="26" rx="8" fill="var(--fill)" stroke="var(--feuille)" stroke-width="2.5"/><text x="${X}" y="${Y}" style="fill:var(--on-fill)">⌂</text></g>`; return; }
     const on = p.id === crSel, r = on ? 17 : 13.5;
     o += `<g class="cr-pin ${on ? 'on' : ''} ${p.loin && !on ? 'estompe' : ''} ${p.conf ? 'conf' : ''}" data-crpin="${p.id}" role="button" tabindex="0">
+      <circle class="cr-zone" cx="${X}" cy="${Y}" r="22"/>
       ${p.urgent ? `<circle class="cr-urg" cx="${X}" cy="${Y}" r="16" fill="var(--rouge)"/>` : ''}
       <circle class="halo" cx="${X}" cy="${Y}" r="${r + 7}" fill="${p.c}" opacity=".25"/>
       ${p.conf ? `<rect x="${f(p.X - r)}" y="${f(p.Y - r)}" width="${f(2 * r)}" height="${f(2 * r)}" rx="${f(r * .45)}" transform="rotate(45 ${X} ${Y})" fill="${p.c}" stroke="var(--feuille)" stroke-width="2.5"/>` : `<circle cx="${X}" cy="${Y}" r="${r}" fill="${p.c}" stroke="var(--feuille)" stroke-width="2.5"/>`}
@@ -4032,14 +4044,18 @@ function crFiche(){
   if (l) l.classList.toggle('cr-l-det', !!i && crDansPanneau());
   if (!i) return;
   const T = crTournees(i.d), s = T.flatMap(x => x.S).find(x => x.i === i), c = CLIENTS[i.cli], t = tech(i.tech);
-  const ll = CR_GEO[i.cli] || CR_DEPOT, dst = ll[0].toFixed(5) + ',' + ll[1].toFixed(5);
-  const gps = [['waze', 'Waze', `https://waze.com/ul?ll=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]];
+  /* Sans point connu pour ce client (adresse pas encore reconnue), on n'envoie JAMAIS le technicien au dépôt : les liens visent
+     l'adresse écrite, et la fiche le dit (planning-01). */
+  const geo = CR_GEO[i.cli], ll = geo || CR_DEPOT, dst = geo ? ll[0].toFixed(5) + ',' + ll[1].toFixed(5) : encodeURIComponent(c.adr || ''), sansPos = !geo && !!c.adr;
+  const gps = geo ? [['waze', 'Waze', `https://waze.com/ul?ll=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]]
+    : [['waze', 'Waze', `https://waze.com/ul?q=${dst}&navigate=yes`], ['gmaps', 'Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${dst}`], ['apple', 'Apple Plans', `https://maps.apple.com/?daddr=${dst}`]];
   if (crApple()) gps.unshift(gps.pop());   // sur iPhone et iPad, Apple Plans d'abord
   const aller = `<div class="cr-aller"><b class="petit">Y aller avec</b><div class="cr-aller-l">${gps.map(([k, l, u]) => `<a class="${k}" href="${u}" target="_blank" rel="noopener" data-craller="${k}">${l}</a>`).join('')}</div></div>`;
   const html = `<div class="cr-fiche" role="${crDansPanneau() ? 'region' : 'dialog'}" aria-label="${esc(c.nom)}"><button type="button" class="x" data-crsel="" aria-label="Fermer">✕</button>
     <span class="gris petit">${i.h} – ${fin(i.h, i.dur)} · ${i.tech ? (s && s.n ? 'passage n° ' + s.n + ' de ' + t.nom : t.nom) : '<b style="color:var(--orange)">personne pour l’instant</b>'}</span>
     <h4>${esc(c.nom)}</h4><span class="petit">${esc(i.titre)} · <span class="gris">${esc(c.adr)}</span></span>
     ${s && s.retard ? `<span class="petit" style="color:var(--rouge);font-weight:700">Arrivée estimée ${crHTxt(s.arrivee)} : ${s.retard} min après le rendez-vous</span>` : s && s.tr.km ? `<span class="petit gris">${crMinTxt(s.tr.min)} · ${crKmTxt(s.tr.km)} depuis le passage d’avant</span>` : ''}
+    ${sansPos ? '<span class="petit" style="color:var(--orange);font-weight:700">Position inconnue : la carte la place au dépôt. Les liens ci-dessous visent l’adresse écrite.</span>' : ''}
     ${aller}
     <div class="cr-g"><button type="button" class="btn" data-crchoix="${i.id}">${i.tech ? 'Confier à quelqu’un d’autre' : 'Confier…'}</button><button type="button" class="btn gris" data-crplan="${i.id}">Voir au planning</button><button type="button" class="btn gris" data-go="inter-x-${i.id}">Fiche</button></div></div>`;
   if (crDansPanneau() && zp) { zp.innerHTML = '<button type="button" class="cr-ret" data-crsel="">‹ Retour à la liste</button>' + html; if (l) l.scrollTop = 0; }
@@ -4161,7 +4177,7 @@ function crStyle(){ const sat = crFondType === 'sat', P = CR_PAL[sat ? 'sat' : c
 function crStyleAppliquer(){ if (!crLf || !crLf.gl) return; const g = crLf.gl.getMaplibreMap(); if (g) g.setStyle(crStyle());
   const a = crLf.map.attributionControl; if (a) { ['Photo aérienne © Esri, Maxar · noms © OpenStreetMap', '© OpenStreetMap · OpenFreeMap'].forEach(t => a.removeAttribution(t)); a.addAttribution(crCredit()); } }
 function crChargerLeaflet(){
-  if (window.L && L.map) return Promise.resolve();
+  if (window.L && L.map && L.maplibreGL) return Promise.resolve();   // le dernier morceau, pas Leaflet seul : sans le plugin, « Réessayer » repartait pour rien
   if (crLeaflet) return crLeaflet;
   crLeaflet = new Promise((ok, ko) => {
     const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
@@ -4175,7 +4191,9 @@ function crChargerLeaflet(){
 }
 function crRepli(raison){ if (crReelEtat === 'ok') return; crReelEtat = 'ko'; crReelRaison = raison || ''; if (route === 'planning' && plVue === 'carte') rendre(); }
 function crReel(){ if (crReelEtat === 'ko') return; const el = document.getElementById('cr-lf'); if (!el) return;
-  crChargerLeaflet().then(() => crMonter(el), e => crRepli(e && e.message)); }
+  /* un échec DANS le montage (plugin absent, appareil sans WebGL…) se dit aussi : sans ce rattrapage l'erreur restait muette et la carte
+     ne montrait ni message ni bouton « Réessayer » (planning-08) */
+  crChargerLeaflet().then(() => { try { crMonter(el); } catch (e) { try { if (el._m) el._m.remove(); } catch (x) {} el._m = null; crLf = null; crRepli(e && e.message || 'la carte n’a pas pu s’afficher'); } }, e => crRepli(e && e.message)); }
 function crMonter(el){
   if (!el.isConnected || el._m) return;
   if (crLf && crLf.map) { try { crLf.map.remove(); } catch (e) {} }
@@ -4199,7 +4217,7 @@ function crMonter(el){
   crTracerReel();
 }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 60] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4216,10 +4234,23 @@ function crTracerReel(){
   const pins = [{ dep:1, ll:CR_DEPOT }];
   T.forEach(({ t, S }) => S.forEach(x => { if (!x.bureau) pins.push({ id:x.i.id, ll:crPos(x), c:t.c, n:x.n, loin:crFocus && crFocus !== t.id, retard:x.retard, nom:CLIENTS[x.i.cli].nom, h:x.i.h, qui:t.nom }); }));
   C.forEach(i => pins.push({ id:i.id, ll:CR_GEO[i.cli] || CR_DEPOT, c:i.urgent ? 'var(--rouge)' : 'var(--orange)', n:'!', urgent:i.urgent, conf:1, loin:!!crFocus, nom:CLIENTS[i.cli].nom, h:i.h, qui:'à confier' }));
-  const vus = {};
-  pins.forEach(p => { const k = p.ll.join(','), n = vus[k] = (vus[k] || 0) + 1, dx = (n - 1) * 17;   // deux passages chez le même client : côte à côte
+  /* Deux repères trop proches ne se recouvrent plus (planning-07) : l'ancien décalage de 17 px ne valait que pour des
+     coordonnées IDENTIQUES, or à un cran de zoom éloigné deux clients voisins se superposent aussi — quatre repères sur neuf
+     ne s'ouvraient pas au clic. On mesure en pixels sur la carte telle qu'elle est (le tracé est refait à chaque zoom), on
+     écarte en spirale comme le dessin de secours, et un fil relie chaque repère déplacé à sa vraie place. */
+  const places = [], sz = map.getSize(), ecart = matchMedia('(pointer:coarse)').matches ? 45 : 31;   // au doigt, deux zones de 44 px ne se touchent pas
+  pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
+    /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
+       sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
+    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
+    if (k) { const v = map.containerPointToLatLng([X, Y]);
+      L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
+      L.circleMarker(p.ll, { radius:2.5, color:'#1d1d1f', weight:0, fillColor:'#1d1d1f', fillOpacity:.8, interactive:false }).addTo(g); } });
+  pins.forEach(p => { const dx = p.dx, dy = p.dy;
     const html = p.dep ? '<div class="cr-mk dep">⌂</div>' : `<div class="cr-mk ${p.conf ? 'conf' : ''} ${p.urgent ? 'urg' : ''} ${p.id === crSel ? 'on' : ''} ${p.loin ? 'estompe' : ''}" style="--c:${p.c}" data-crpin="${p.id}"><i>${p.n}</i>${p.retard ? '<b class="cr-mk-r"></b>' : ''}</div>`;
-    const m = L.marker(p.ll, { icon:L.divIcon({ className:'', html, iconSize:[30, 30], iconAnchor:[15 - dx, 15] }), keyboard:!p.dep, title:p.dep ? 'Dépôt' : `${p.h} · ${p.nom} · ${p.qui}`, zIndexOffset:p.id === crSel ? 1000 : p.dep ? -100 : 0, riseOnHover:true }).addTo(g);
+    const m = L.marker(p.ll, { icon:L.divIcon({ className:'', html, iconSize:[30, 30], iconAnchor:[15 - dx, 15 - dy] }), keyboard:!p.dep, title:p.dep ? 'Dépôt' : `${p.h} · ${p.nom} · ${p.qui}`, zIndexOffset:p.id === crSel ? 1000 : p.dep ? -100 : 0, riseOnHover:true }).addTo(g);
     if (!p.dep) m.on('click', () => crChoisir(p.id, true)); });
 }
 document.addEventListener('click', ev => {
@@ -4240,7 +4271,11 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-crchoix]'))) { crChoix(b.dataset.crchoix); return; }
   if ((b = q('[data-crconf]'))) { if (b.disabled) return; const [id, tid] = b.dataset.crconf.split('|'); crConfier(id, tid); return; }
   if ((b = q('[data-crplan]'))) { const i = INTS.find(x => x.id === b.dataset.crplan); if (i) { plVue = 'jour'; plRef = i.d; rendre(); flash(i.id); requestAnimationFrame(() => document.querySelector(`.pc[data-int="${i.id}"]`)?.scrollIntoView({ block:'center', behavior:'smooth' })); } return; }
-  if ((b = q('[data-crfeuille]'))) { const l = document.getElementById('cr-l'); if (l) l.scrollIntoView({ block:'start', behavior:'smooth' }); return; }
+  if ((b = q('[data-crfeuille]'))) { const l = document.getElementById('cr-l'), k = document.getElementById('cr-carte');
+    /* la poignée fait ce que son nom dit, dans les deux sens : un premier toucher amène la liste en haut de l'écran, le second ramène la carte
+       (avant, le second ne faisait rien et le nom promettait « agrandir ou réduire » — planning-10) */
+    if (l) { const haut = l.getBoundingClientRect().top < innerHeight * .3 && k; const cible = haut ? k : l; cible.scrollIntoView({ block:'start', behavior:'smooth' });
+      const n = haut ? 'Voir toute la liste des étapes' : 'Revenir à la carte'; b.setAttribute('aria-label', n); b.title = n; } return; }
 });
 document.addEventListener('panneau-ferme', () => {});
 // glisser une intervention de la liste sur la tournée de quelqu'un d'autre (ordinateur)
@@ -4472,7 +4507,10 @@ document.addEventListener('contextmenu', ev => {
 document.addEventListener('dblclick', ev => { if (ev.target.closest('.pc')) return; const col = ev.target.closest('.pl-col'), cel = ev.target.closest('.pl-cel'), mj = ev.target.closest('.pl-mj'); if (ev.target.closest('.fen')) return; if (col) ouvrirCreation({ tid:col.dataset.tech, d:col.dataset.d, h:heureSous(col, ev.clientY) }); else if (cel) ouvrirCreation({ tid:cel.dataset.tech, d:cel.dataset.d, h:9*60 }); else if (mj && !ev.target.closest('button')) ouvrirCreation({ tid:'', d:mj.dataset.mj, h:9*60 }); });
 document.addEventListener('mousedown', ev => { cacherApercu(); const mc = document.querySelector('.ctx'); if (mc && ev.isTrusted && planTouchFin && Date.now() - planTouchFin < 700 && +mc.dataset.ouvertA >= planTouchDebut) return; if (!ev.target.closest('.ctx')) fermerMenu(); }, true);
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { fermerMenu(); fermerPanneau(); }
+  if (ev.key === 'Escape') { fermerMenu(); fermerPanneau();
+    /* Les fenêtres « Quels jours ? », « Personnes » et « Mes vues » se refermaient seulement au clic dehors : Échap les laisse
+       maintenant, comme toute fenêtre de l'application, et rend le focus au bouton qui l'avait ouverte (planning-03). */
+    if (multiPop && route === 'planning' && !document.querySelector('.fen,.voile,#dtpop')) { const k = multiPop; multiPop = null; rendre(); const b = document.querySelector('[data-mpop="' + k + '"]'); if (b) b.focus({ preventScroll:true }); } }
   if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z' && !ev.target.closest('input,textarea,select')) { ev.preventDefault(); annuler(); }
   const c = ev.target.closest && ev.target.closest('.pc[data-int]');
   if (c && !c.closest('.fen') && (ev.key === 'ContextMenu' || (ev.shiftKey && ev.key === 'F10'))) { ev.preventDefault(); const r = c.getBoundingClientRect(); menuCarte(c.dataset.int, r.left + 20, r.bottom); }
@@ -12629,6 +12667,12 @@ const SECT_TECH = { sm:['La Rochelle','Nord'], kb:['La Rochelle','Sud'], lr:['No
 const SECT_CLI = { vp:'La Rochelle', hp:'Sud', md:'Nord', mi:'La Rochelle', cm:'La Rochelle', cp:'Sud', mr:'Sud' };
 const COMMUNES = [['la rochelle','La Rochelle',1,0,'La Rochelle'],['lagord','Lagord',1,4,'Nord'],['puilboreau','Puilboreau',1,6,'Nord'],['nieul sur mer','Nieul-sur-Mer',2,9,'Nord'],['perigny','Périgny',1,6,'Sud'],['aytre','Aytré',1,6,'Sud'],
   ['angoulins','Angoulins',2,10,'Sud'],['chatelaillon','Châtelaillon-Plage',2,14,'Sud'],['salles sur mer','Salles-sur-Mer',2,17,'Sud'],['rochefort','Rochefort',3,38,'Sud'],['marans','Marans',3,24,'Nord']];
+/* Le point d'une commune sert à poser sur la carte un client créé à la main (planning-01, campagne du 17 novembre 2026) :
+   le formulaire « Repérée : Rochefort · 38 km » le savait déjà, mais la carte et les liens « Y aller avec » ne l'apprenaient
+   jamais — l'étape tombait au dépôt (0 km) et le technicien partait au mauvais endroit. Centres de commune, à quelques centaines de mètres. */
+const COMMUNES_GEO = { 'la rochelle':[46.1603,-1.1511], 'lagord':[46.1853,-1.1507], 'puilboreau':[46.1795,-1.1133], 'nieul sur mer':[46.1736,-1.1853], 'perigny':[46.1456,-1.1066],
+  'aytre':[46.1331,-1.1228], 'angoulins':[46.0967,-1.0953], 'chatelaillon':[46.0712,-1.0912], 'salles sur mer':[46.0836,-1.0402], 'rochefort':[45.9378,-0.9617], 'marans':[46.3114,-0.9970] };
+function geoDeAdresse(adr){ const a = sansAccent(adr || ''), c = COMMUNES.find(x => a.includes(x[0])); return c && COMMUNES_GEO[c[0]] ? COMMUNES_GEO[c[0]].slice() : null; }
 const ADRESSES = ['10 Rue de la Gravière, 17220 Salles-sur-Mer','2 Rue de la Gare, 17220 Salles-sur-Mer','15 Avenue Jean Jaurès, 17000 La Rochelle','8 Rue des Lilas, 17140 Lagord','21 Boulevard Joffre, 17000 La Rochelle','4 Rue du Port, 17000 La Rochelle',
   '3 Avenue de la Plage, 17340 Châtelaillon-Plage','14 Rue Gambetta, 17440 Aytré','6 Rue des Marais, 17180 Périgny','12 Rue de la République, 17300 Rochefort'];
 const sansAccent = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[-']/g,' ');
@@ -12823,7 +12867,7 @@ const ACTIONS_CREA = {
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
-    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); }
+    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = { ...cliCrea() }; SECT_CLI[k] = secteurCrea(); const g = geoDeAdresse(CLIENTS[k].adr); if (g) CR_GEO[k] = g; }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
     Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', motif: CREA.motif.trim() || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => ({ nom, q })),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
