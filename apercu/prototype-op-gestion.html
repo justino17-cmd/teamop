@@ -3518,6 +3518,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:379px){#contenu .tete.vh-tete{grid-template-columns:minmax(0,1fr)}.vh-tete .vh-b-nouveau{grid-column:1;grid-row:5;width:100%;margin-top:8px}.vh-tete h1{grid-row:2}}
 @media (max-width:480px){.vh-ht{display:none}}
 /* la fiche */
+.vh-fh{display:flex;align-items:flex-end;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding-right:52px}.vh-fh>div{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 200px}.vh-fh h2{margin:0;overflow-wrap:anywhere}.vh-fh .btn{min-height:44px}
 .vh-alerte{display:flex;flex-direction:column;gap:6px;align-items:flex-start}.vh-al-g{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
 .vh-phrase{margin:4px 0 2px;font-size:17px;line-height:1.45;font-weight:650}.vh-phrase.gris{font-weight:500}
 .vh-gestes{display:flex;flex-wrap:wrap;gap:8px}.vh-gestes .btn{min-height:44px;white-space:nowrap;flex:0 1 auto}
@@ -3525,9 +3526,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .vh-onglets,.vh-per{display:flex;width:100%}.vh-onglets button,.vh-per button{flex:1 1 0;padding:0 6px}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
 .vh-bloc{display:flex;flex-direction:column;gap:6px;margin-top:8px}.vh-bloc>.tt-h3{margin:10px 0 0}
-.vh-ech{align-items:flex-start;flex-wrap:wrap;padding:12px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 200px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
-@container vhf (max-width:480px){.vh-ech .btn{flex:0 0 auto;margin-left:22px}}
-@container vhf (max-width:330px){.vh-ech .btn{margin-left:0}}
+.vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
 .vh-h{min-height:48px}.vh-det{border-bottom:1px solid var(--trait);padding:2px 0}.vh-det>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--lien);font-weight:600}
 .vh-ass{font-size:15.5px;line-height:1.45}.vh-doc,.vh-inc{flex-wrap:wrap}.vh-doc .lien,.vh-inc .btn{min-height:44px}
 .vh-fr{min-height:56px}.vh-mt{white-space:nowrap;font-variant-numeric:tabular-nums}.vh-vides{display:block}
@@ -16740,8 +16739,8 @@ const vxMsgConcernees = (v, retour) => { const n = vxIntsConcernees(v, retour).l
 /* ─── gestes communs ─── */
 const vxG = id => document.getElementById(id);
 /* revenir à la fiche (si on en venait) ou fermer */
-const vxRetour = (from, vid) => from === 'fiche' ? `<button type="button" class="btn gris" data-ve="fiche|${vid}">Retour</button>` : '<button type="button" class="btn gris" data-ferme="1">Annuler</button>';
-const vxApres = (from, vid) => { rendre(); if (from === 'fiche') vehFiche(vid); };
+const vxRetour = (from, vid) => from === 'fiche' ? `<button type="button" class="btn gris" data-vh="retour|${vid}">Retour</button>` : '<button type="button" class="btn gris" data-ferme="1">Annuler</button>';
+const vxApres = (from, vid) => { rendre(); if (from === 'fiche') vxFiche(vid); };
 /* un message d'alerte DANS le panneau (le toast serait recouvert par lui) ; renvoie vrai pour dire « on s'arrête là » */
 function vxAlerte(html){ const a = vxG('vx-al'); if (a) { a.innerHTML = `<div class="alerte vx-alerte" role="alert">${html}</div>`; a.scrollIntoView({ block:'nearest' }); } return true; }
 /* un compteur qui recule, ou qui saute de plus de 3 000 km d'un coup, se confirme avant d'être cru */
@@ -16808,7 +16807,7 @@ function vxFaitOk(vid, k, from, force){
   fermerPanneau(); vxApres(from, v.id);
   const closes = TACHES.filter(x => x.fait && x.fait.auto && ouvAvant.includes(x));
   const msg = k === 'ct' ? `Contrôle technique enregistré pour ${esc(v.plaque)} : prochain le ${dFr(nd)}.` : ass ? `Assurance renouvelée pour ${esc(v.plaque)} : jusqu’au ${dFr(nd)}.` : `Révision enregistrée pour ${esc(v.plaque)} : prochaine à ${nk.toLocaleString('fr-FR')} km ou le ${dFr(nd)}.`;
-  toast(msg + (closes.length ? ' La tâche liée est terminée.' : ''), { lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); vxJRetirer(j); vxRouvrir(closes); rendre(); if (VX.fiche === v.id && vxG('calque').innerHTML) vehFiche(v.id); toast('Annulé : l’échéance est revenue comme avant.'); } });
+  toast(msg + (closes.length ? ' La tâche liée est terminée.' : ''), { lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); vxJRetirer(j); vxRouvrir(closes); rendre(); if (VX.fiche === v.id && vxG('calque').innerHTML) vxFiche(v.id); toast('Annulé : l’échéance est revenue comme avant.'); } });
 }
 /* le renouvellement de toute la flotte d'un coup */
 function vxFaitGroupe(fin, cie){
@@ -16836,14 +16835,14 @@ function vxFaitGroupeOk(fin, cie){
 /* ─── le matériel : tout cocher d'un coup, dater le contrôle seulement quand on le dit ─── */
 function vxMatFait(v, from, av0){
   const av = av0 || vxPhoto(v), j = vxJ('a contrôlé le matériel de sécurité', v, { det:v.materiel.ok.length + ' sur ' + VEH_MATERIEL.length + ' présents' }), ouvAvant = vxOuvertes();
-  v.materiel.fait = AUJ; rendre(); if (from === 'fiche' || VX.fiche === v.id && vxG('calque').innerHTML) vehFiche(v.id);
+  v.materiel.fait = AUJ; rendre(); if (from === 'fiche' || VX.fiche === v.id && vxG('calque').innerHTML) vxFiche(v.id);
   const closes = TACHES.filter(x => x.fait && x.fait.auto && ouvAvant.includes(x));
-  toast(`Contrôle du matériel noté pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); vxRouvrir(closes); rendre(); if (vxG('calque').innerHTML) vehFiche(v.id); } });
+  toast(`Contrôle du matériel noté pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); vxRouvrir(closes); rendre(); if (vxG('calque').innerHTML) vxFiche(v.id); } });
 }
 function vxMatTout(v){
   const av = vxPhoto(v), n = VEH_MATERIEL.length - v.materiel.ok.length; v.materiel.ok = VEH_MATERIEL.slice();
-  foGarder(() => vehFiche(v.id));
-  toast(n ? `${vxN(n, 'article coché', 'articles cochés')} : le matériel est complet. Note aussi le contrôle pour le dater.` : 'Le matériel était déjà complet.', [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); foGarder(() => vehFiche(v.id)); } }, ...(n ? [{ lib:'Contrôle fait aujourd’hui', fn:() => vxMatFait(v, 'fiche') }] : [])]);
+  foGarder(() => vxFiche(v.id));
+  toast(n ? `${vxN(n, 'article coché', 'articles cochés')} : le matériel est complet. Note aussi le contrôle pour le dater.` : 'Le matériel était déjà complet.', [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); foGarder(() => vxFiche(v.id)); } }, ...(n ? [{ lib:'Contrôle fait aujourd’hui', fn:() => vxMatFait(v, 'fiche') }] : [])]);
 }
 function vxCommander(vid){
   const v = vehDe(vid); if (!v) return; const M = VEH_MATERIEL.filter(x => !v.materiel.ok.includes(x)); if (!M.length) return;
@@ -16901,7 +16900,7 @@ function vxPleinOk(force){
   const j = vxJ(poche ? 'a noté un plein payé de sa poche' : 'a noté un plein', v, { det:`${t} · ${eur(ttc)} TTC${litres > 0 ? ' · ' + litres.toLocaleString('fr-FR') + (t === 'Recharge électrique' ? ' kWh' : ' L') : ''}${ouvKm ? ' · ' + vxKm(kmL.n) : ''}` });
   fermerPanneau(); rendre();
   toast(`${t} enregistré pour ${esc(v.plaque)} : ${eur(ttc)} TTC${litres > 0 ? ` (${eur(ttc / litres)} le ${t === 'Recharge électrique' ? 'kWh' : 'litre'})` : ''}${poche ? ', en note de frais à valider.' : ph ? ', rangé dans les achats.' : ', rangé dans les achats sans ticket.'}`,
-    [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); if (note) NDF.splice(NDF.indexOf(note), 1); vxJRetirer(j); VX.dernier = prevDernier; rendre(); toast('Annulé : le plein est retiré.'); } }, { lib:'Voir le véhicule', fn:() => vehFiche(v.id) }]);
+    [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); if (note) NDF.splice(NDF.indexOf(note), 1); vxJRetirer(j); VX.dernier = prevDernier; rendre(); toast('Annulé : le plein est retiré.'); } }, { lib:'Voir le véhicule', fn:() => vxFiche(v.id) }]);
 }
 
 /* ─── le compteur ─── */
@@ -16918,7 +16917,7 @@ function vxKmOk(vid, from, force){
   if (!force) { const c = vxKmCtl(v, L.n); if (c) return vxAlerteKm(c, v, `kmok|${v.id}|${from || ''}|force`); }
   const av = vxPhoto(v), j = vxJ('a relevé le compteur', v, { avant:vxKm(v.km), apres:vxKm(L.n) });
   vxRelever(v, L.n, rlQui(), 'releve'); fermerPanneau(); vxApres(from, v.id);
-  toast(`Compteur à ${L.n.toLocaleString('fr-FR')} km : l’entretien est recalculé.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); rendre(); if (from === 'fiche') vehFiche(v.id); } });
+  toast(`Compteur à ${L.n.toLocaleString('fr-FR')} km : l’entretien est recalculé.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); rendre(); if (from === 'fiche') vxFiche(v.id); } });
 }
 
 /* ─── 5. le garage : motif, date de retour, remplacement — et le Planning est prévenu ─── */
@@ -16934,7 +16933,7 @@ function vxGaragePanel(vid){
     <label class="champ">Rendu prévu le<input type="date" id="vx-gr" value="${retour}" min="${AUJ}"></label>
     <label class="champ">Véhicule de remplacement<select id="vx-gv"><option value="">Aucun</option><option>Voiture de location</option>${VEHICULES.filter(o => o !== v && o.statut === 'service').map(o => `<option value="${o.id}">${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>
     <div class="info vx-immo" id="vx-gc">${vxApercuGarage(v, retour)}</div>
-    <div class="actions"><button type="button" class="btn" data-vx="garageok|${v.id}">Mettre au garage</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="garageok|${v.id}">Mettre au garage</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxApercuGarage(v, retour){
   const L = vxIntsConcernees(v, retour);
@@ -16948,8 +16947,8 @@ function vxGarageOk(vid){
   const n = vxIntsConcernees(v, retour).length, nb = NOTIFS.length;
   notifier(v.conducteur, `Ton camion ${v.plaque} est au garage jusqu’à ${vxQuand(retour).replace(/\.$/, '')}.${rem ? ' Tu prends : ' + rem + '.' : ''}`);
   const j = vxJ('a mis le véhicule au garage', v, { det:`${vxTxtGarage(v)}${rem ? ' · remplacement : ' + rem : ''}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast(`${esc(v.plaque)} est au garage jusqu’à ${esc(vxQuand(retour)).replace(/\.$/, '')}. ${esc(vxMsgConcernees(v, retour))}.`, [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); rendre(); vehFiche(v.id); } }, ...(n ? [{ lib:'Voir au Planning', fn:() => vxPlanningVoir(v.id) }] : [])]);
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(`${esc(v.plaque)} est au garage jusqu’à ${esc(vxQuand(retour)).replace(/\.$/, '')}. ${esc(vxMsgConcernees(v, retour))}.`, [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); rendre(); vxFiche(v.id); } }, ...(n ? [{ lib:'Voir au Planning', fn:() => vxPlanningVoir(v.id) }] : [])]);
 }
 function vxRetourPanel(vid){
   const v = vehDe(vid); if (!v || v.statut === 'service') return; const I = v.immo || { motif:'Entretien', garage:'' };
@@ -16957,7 +16956,7 @@ function vxRetourPanel(vid){
     <div class="deux-champs"><label class="champ">Rendu le<input type="date" id="vx-rd" value="${AUJ}" max="${AUJ}"></label><label class="champ">Km au retour<input id="vx-rk" inputmode="numeric" value="${v.km}"></label></div>
     <label class="champ">Montant de la facture TTC (€, facultatif)<input id="vx-rm" inputmode="decimal" placeholder="ex. 312,00"></label>
     <span class="gris petit">Le montant rejoint les achats (compte 6155), à payer au garage.</span><div id="vx-al"></div>
-    <div class="actions"><button type="button" class="btn" data-vx="retourok|${v.id}">Remettre en service</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="retourok|${v.id}">Remettre en service</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxRetourOk(vid, force){
   const v = vehDe(vid); if (!v || v.statut === 'service') return;
@@ -16970,9 +16969,9 @@ function vxRetourOk(vid, force){
   v.statut = 'service'; delete v.garage; delete v.immo;
   let achat = null; if (ttc) { const dm = vxDm(d); achat = { id:vxId('a'), d:dm, fid:'veh', four:I.garage || 'Garage', objet:`${I.motif === 'Contrôle technique' ? 'Contrôle technique' : 'Garage, entretien'} · ${v.plaque}`, ht:Math.round(ttc / 1.2 * 100) / 100, tva:20, compte:'6155', mode:null, paye:null, piece:null, ref:`GAR-${v.plaque}-${dm.replace('/', '')}-${ACHATS.length + 1}`, just:'', veh:v.id }; ACHATS.push(achat); }
   const j = vxJ('a remis le véhicule en service', v, { det:`Au garage ${vxN(jours, 'jour')} · ${I.motif}${ttc ? ' · ' + eur(ttc) : ''}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
+  fermerPanneau(); rendre(); vxFiche(v.id);
   const ke = I.motif === 'Contrôle technique' ? 'ct' : I.motif === 'Entretien' ? 'entretien' : null;
-  toast(`${esc(v.plaque)} est de nouveau en service (${vxN(jours, 'jour')} au garage).`, [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); vxJRetirer(j); rendre(); vehFiche(v.id); } }, ...(ke ? [{ lib:ke === 'ct' ? 'Contrôle passé ?' : 'Révision faite ?', fn:() => vxFaitPanel(v.id, ke, 'fiche') }] : [])]);
+  toast(`${esc(v.plaque)} est de nouveau en service (${vxN(jours, 'jour')} au garage).`, [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); if (achat) ACHATS.splice(ACHATS.indexOf(achat), 1); vxJRetirer(j); rendre(); vxFiche(v.id); } }, ...(ke ? [{ lib:ke === 'ct' ? 'Contrôle passé ?' : 'Révision faite ?', fn:() => vxFaitPanel(v.id, ke, 'fiche') }] : [])]);
 }
 
 /* ─── 6. un rendez-vous au garage : une seule tâche, la même clé que la suggestion ─── */
@@ -16997,14 +16996,14 @@ function vxCondPanel(vid){
   const v = vehDe(vid); if (!v) return;
   ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Changer de conducteur</h2><span class="gris">Aujourd’hui : ${v.conducteur ? esc(H_NOM(v.conducteur)) : 'sans conducteur'}. L’ancien conducteur est gardé dans « Anciens conducteurs », le stock du camion suit.</span>
     <div class="deux-champs"><label class="champ">Nouveau conducteur<select id="vx-cc">${vxListeConducteurs(v.conducteur, true)}</select></label><label class="champ">À partir du<input type="date" id="vx-cd" value="${AUJ}" max="${AUJ}"></label></div>
-    <div class="actions"><button type="button" class="btn" data-vx="condok|${v.id}">Valider</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="condok|${v.id}">Valider</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxCondOk(vid){
   const v = vehDe(vid); if (!v) return; const c = vxG('vx-cc').value, d = vxG('vx-cd').value || AUJ;
   if (c === v.conducteur) return toast(c ? `${vxPren(c)} conduit déjà ce véhicule.` : 'Ce véhicule est sans conducteur : choisis la personne qui le conduit.'); if (d > AUJ) return toast('Cette date n’est pas encore passée.');
   const av = vxPhoto(v), nb = NOTIFS.length, j = vxApplicConducteur(v, c, d);
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast(`${esc(vxPren(c))} conduit maintenant ${esc(v.plaque)}. Le stock du camion est « ${esc(lieu(v.lieu).nom)} ».`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); rendre(); vehFiche(v.id); } });
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(`${esc(vxPren(c))} conduit maintenant ${esc(v.plaque)}. Le stock du camion est « ${esc(lieu(v.lieu).nom)} ».`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); rendre(); vxFiche(v.id); } });
 }
 function vxModifPanel(vid){
   const v = vehDe(vid); if (!v) return;
@@ -17020,7 +17019,7 @@ function vxModifPanel(vid){
     <label class="champ">Prochain contrôle technique<input type="date" id="vx-ct" value="${v.ct || ''}"></label>
     <div class="deux-champs"><label class="champ">Révision tous les (km)<input id="vx-ik" inputmode="numeric" value="${v.interv.km}"></label><label class="champ">ou tous les (mois)<input id="vx-im" inputmode="numeric" value="${v.interv.mois}"></label></div>
     <span class="gris petit">Les documents (carte grise, attestation, procès-verbal) s’ajoutent depuis la fiche.</span>
-    <div class="actions"><button type="button" class="btn" data-vx="modifok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="modifok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxModifOk(vid){
   const v = vehDe(vid); if (!v) return;
@@ -17031,18 +17030,18 @@ function vxModifOk(vid){
   Object.assign(v, { marque:mq, modele:md, annee:an || null, energie:vxG('vx-en').value, ct:vxG('vx-ct').value || null, interv:{ km:ik, mois:im } });
   v.assur = { ...v.assur, cie:vxG('vx-ac').value.trim(), contrat:vxG('vx-ak').value.trim() || '—', fin:vxG('vx-af').value || null, prime:prime || null };
   const jc = vxApplicConducteur(v, c, d), j = vxJ('a modifié la fiche du véhicule', v, { det:`${v.marque} ${v.modele} · ${v.energie}${v.annee ? ' · ' + v.annee : ''}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast(`Fiche de ${esc(v.plaque)} enregistrée${jc ? ` : ${esc(vxPren(c))} est le nouveau conducteur` : ''}.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); if (jc) vxJRetirer(jc); rendre(); vehFiche(v.id); } });
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(`Fiche de ${esc(v.plaque)} enregistrée${jc ? ` : ${esc(vxPren(c))} est le nouveau conducteur` : ''}.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); if (jc) vxJRetirer(jc); rendre(); vxFiche(v.id); } });
 }
 /* un document (carte grise, attestation, procès-verbal) : une photo, une miniature */
 function vxDocAjouter(vid, k, f){
   const v = vehDe(vid); if (!v || !f) return; const N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le procès-verbal de contrôle' }, av = v.docs[k] || null;
   v.docs[k] = { nom:f.name, type:f.type, url:URL.createObjectURL(f), d:AUJ }; const j = vxJ('a ajouté ' + N[k], v, { det:f.name });
-  foGarder(() => vehFiche(v.id)); toast(`${N[k][0].toUpperCase() + N[k].slice(1)} ajoutée pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { if (av) v.docs[k] = av; else delete v.docs[k]; vxJRetirer(j); foGarder(() => vehFiche(v.id)); } });
+  foGarder(() => vxFiche(v.id)); toast(`${N[k][0].toUpperCase() + N[k].slice(1)} ajoutée pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { if (av) v.docs[k] = av; else delete v.docs[k]; vxJRetirer(j); foGarder(() => vxFiche(v.id)); } });
 }
 function vxDocRetirer(vid, k){
-  const v = vehDe(vid); if (!v || !v.docs[k]) return; const d = v.docs[k], j = vxJ('a retiré un document', v, { det:d.nom }); delete v.docs[k]; foGarder(() => vehFiche(v.id));
-  toast('Document retiré.', { lib:'Annuler', fn:() => { v.docs[k] = d; vxJRetirer(j); foGarder(() => vehFiche(v.id)); } });
+  const v = vehDe(vid); if (!v || !v.docs[k]) return; const d = v.docs[k], j = vxJ('a retiré un document', v, { det:d.nom }); delete v.docs[k]; foGarder(() => vxFiche(v.id));
+  toast('Document retiré.', { lib:'Annuler', fn:() => { v.docs[k] = d; vxJRetirer(j); foGarder(() => vxFiche(v.id)); } });
 }
 
 /* ─── les frais : modifier, supprimer, retrouver l'achat ─── */
@@ -17058,7 +17057,7 @@ function vxFraisPanel(vid, cle){
     <label class="champ">Ce que c’est<input id="vx-xl" value="${esc(c.lib)}"></label>
     <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-xd" value="${c.d}" min="2026-01-01" max="${AUJ}"></label><label class="champ">Montant HT (€)<input id="vx-xm" inputmode="decimal" value="${String(c.ht).replace('.', ',')}"></label></div>
     ${c.a ? '<span class="gris petit">Le changement est repris dans les achats et la comptabilité.</span>' : ''}
-    <div class="actions"><button type="button" class="btn" data-vx="frmodok|${v.id}|${cle}">Enregistrer</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>
+    <div class="actions"><button type="button" class="btn" data-vx="frmodok|${v.id}|${cle}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>
     <button type="button" class="btn rouge" data-vx="frdel|${v.id}|${cle}">Supprimer cette dépense</button>`);
 }
 function vxFraisOk(vid, cle){
@@ -17066,16 +17065,16 @@ function vxFraisOk(vid, cle){
   if (!lib) { vxG('vx-xl').focus(); return toast('Dis ce que c’est.'); } if (!(ht > 0)) { vxG('vx-xm').focus(); return toast('Donne un montant positif.'); } if (d > AUJ) return toast('Cette date n’est pas encore passée.'); if (vxMoisClos(d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
   const av = c.l ? [...c.l] : { ...c.a }, j = vxJ('a modifié un frais', v, { avant:`${c.lib} · ${eur(c.ht)}`, apres:`${lib} · ${eur(ht)}` });
   if (c.l) v.frais[c.i] = [d, lib, Math.round(ht * 100) / 100]; else { const dm = vxDm(d), memePaye = c.a.paye === c.a.d; Object.assign(c.a, { d:dm, ht:Math.round(ht * 100) / 100, objet:lib + ' · ' + v.plaque }); if (memePaye) c.a.paye = dm; }
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast('Frais modifié' + (c.a ? ' : les achats suivent.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais[c.i] = av; else Object.assign(c.a, av); vxJRetirer(j); rendre(); vehFiche(v.id); } });
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast('Frais modifié' + (c.a ? ' : les achats suivent.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais[c.i] = av; else Object.assign(c.a, av); vxJRetirer(j); rendre(); vxFiche(v.id); } });
 }
 function vxFraisSuppr(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return;
   if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
   const j = vxJ('a supprimé un frais', v, { det:`${c.lib} · ${eur(c.ht)}` }), pl = v.pleins.filter(p => c.a && p.id === c.a.id); let ia = -1;
   if (c.l) v.frais.splice(c.i, 1); else { ia = ACHATS.indexOf(c.a); ACHATS.splice(ia, 1); v.pleins = v.pleins.filter(p => p.id !== c.a.id); }
-  rendre(); vehFiche(v.id);
-  toast('Frais supprimé' + (c.a ? ' : il part aussi des achats.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais.splice(c.i, 0, c.l); else { ACHATS.splice(ia, 0, c.a); v.pleins.push(...pl); } vxJRetirer(j); rendre(); vehFiche(v.id); } });
+  rendre(); vxFiche(v.id);
+  toast('Frais supprimé' + (c.a ? ' : il part aussi des achats.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais.splice(c.i, 0, c.l); else { ACHATS.splice(ia, 0, c.a); v.pleins.push(...pl); } vxJRetirer(j); rendre(); vxFiche(v.id); } });
 }
 function vxCsv(vid){
   const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
@@ -17116,8 +17115,8 @@ function vxSouciOk(vid){
 }
 function vxSouciRegle(vid){
   const v = vehDe(vid); if (!v || !v.souci) return; const av = vxPhoto(v), s = v.souci, t = TACHES.find(o => o.id === s.tache), ouvert = t && !t.fait, j = vxJ('a réglé le souci du camion', v, { det:s.type });
-  delete v.souci; if (ouvert) tFaire(t, 'souci réglé'); rendre(); vehFiche(v.id);
-  toast(`Souci réglé : ${esc(v.plaque)} n’a plus de signalement.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); if (ouvert) t.fait = null; vxJRetirer(j); rendre(); vehFiche(v.id); } });
+  delete v.souci; if (ouvert) tFaire(t, 'souci réglé'); rendre(); vxFiche(v.id);
+  toast(`Souci réglé : ${esc(v.plaque)} n’a plus de signalement.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); if (ouvert) t.fait = null; vxJRetirer(j); rendre(); vxFiche(v.id); } });
 }
 
 /* ─── 11. amendes et sinistres (la version simple : on garde la trace, on prépare la désignation, on crée la tâche) ─── */
@@ -17130,15 +17129,15 @@ function vxAmendePanel(vid){
     <label class="champ">Qui conduisait ? <span class="faible">(proposé d’après les conducteurs datés du véhicule : à valider)</span><select id="vx-aq">${vxListeConducteurs(vxConducteurLe(v, ajoute(AUJ, -8)))}</select></label>
     <label class="champ">Désigner le conducteur avant le<input type="date" id="vx-al2" value="${lim}"></label>
     <span class="gris petit">Proposé 45 jours après la réception : vérifie la date écrite sur l’avis. Une tâche te le rappelle. L’amende est suivie à part, hors du coût du véhicule (à vérifier avec ton expert-comptable).</span>
-    <div class="actions"><button type="button" class="btn" data-vx="amendeok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="amendeok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxAmendeOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-ad').value, m = foNum(vxG('vx-am').value), q = vxG('vx-aq').value, lim = vxG('vx-al2').value;
   if (!d || d > AUJ) return toast('Donne le jour de l’infraction (pas dans le futur).'); if (!(m > 0)) { vxG('vx-am').focus(); return toast('Donne le montant de l’amende.'); } if (!lim) return toast('Donne la date limite de désignation.');
   const x = { id:vxId('i'), k:'amende', d, montant:m, qui:q, limite:lim }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Désigner le conducteur avant le ${dFr(lim)} · amende ${v.plaque}`, d:lim, qui:'marc', urgent:tJours(lim) <= 7, note:`Infraction du ${dFr(d)} · ${eur(m)} · conducteur : ${H_NOM(q)}`, creePar:rlQui(), creeLe:'31/10', cle:'vamende-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
   x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); const j = vxJ('a noté une amende', v, { det:`${dFr(d)} · ${eur(m)} · conducteur : ${H_NOM(q)}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast(`Amende notée pour ${esc(v.plaque)} : tâche « désigner le conducteur » avant le ${dFr(lim)}.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); vxJRetirer(j); rendre(); vehFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(`Amende notée pour ${esc(v.plaque)} : tâche « désigner le conducteur » avant le ${dFr(lim)}.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
 }
 function vxSinistrePanel(vid){
   const v = vehDe(vid); if (!v) return;
@@ -17147,7 +17146,7 @@ function vxSinistrePanel(vid){
     <label class="champ">Où<input id="vx-sl" placeholder="ex. parking du client, rue de la République"></label>
     <div class="deux-champs"><label class="champ">Tiers concerné <span class="faible">(facultatif)</span><input id="vx-st2" placeholder="nom, plaque"></label><label class="champ">Franchise (€, facultatif)<input id="vx-sf" inputmode="decimal"></label></div>
     <span class="gris petit">Une tâche « Déclarer le sinistre » est créée : vérifie le délai de déclaration dans ton contrat d’assurance. La franchise s’ajoute aux frais du véhicule.</span>
-    <div class="actions"><button type="button" class="btn" data-vx="sinistreok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-ve="fiche|${v.id}">Retour</button></div>`);
+    <div class="actions"><button type="button" class="btn" data-vx="sinistreok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
 }
 function vxSinistreOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-sd').value, q = vxG('vx-sq').value, lieuTxt = vxG('vx-sl').value.trim(), tiers = vxG('vx-st2').value.trim(), f = foNum(vxG('vx-sf').value) || 0;
@@ -17155,13 +17154,13 @@ function vxSinistreOk(vid){
   const x = { id:vxId('i'), k:'sinistre', d, qui:q, lieu:lieuTxt, tiers, franchise:f }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Déclarer le sinistre · ${v.plaque} (${dFr(d)})`, d:ajoute(AUJ, 2), qui:'marc', urgent:true, note:`${lieuTxt}${tiers ? ' · tiers : ' + tiers : ''} · vérifie le délai de déclaration dans le contrat`, creePar:rlQui(), creeLe:'31/10', cle:'vsinistre-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
   x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise du sinistre', f]);
   const j = vxJ('a noté un sinistre', v, { det:`${dFr(d)} · ${lieuTxt}${f ? ' · franchise ' + eur(f) : ''}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
-  toast(`Sinistre noté pour ${esc(v.plaque)} : tâche « déclarer le sinistre » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vehFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(`Sinistre noté pour ${esc(v.plaque)} : tâche « déclarer le sinistre » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
 }
 function vxIncClos(vid, id){
   const v = vehDe(vid), x = v && v.incidents.find(o => o.id === id); if (!x || x.clos) return; const t = TACHES.find(o => o.id === x.tache), ouvert = t && !t.fait;
   x.clos = true; if (ouvert) tFaire(t, x.k === 'amende' ? 'conducteur désigné' : 'dossier clos'); vxJ(x.k === 'amende' ? 'a désigné le conducteur de l’amende' : 'a clos un sinistre', v, { det:dFr(x.d) });
-  rendre(); vehFiche(v.id); toast(x.k === 'amende' ? 'Désignation notée.' : 'Dossier clos.', { lib:'Annuler', fn:() => { x.clos = false; if (ouvert) t.fait = null; rendre(); vehFiche(v.id); } });
+  rendre(); vxFiche(v.id); toast(x.k === 'amende' ? 'Désignation notée.' : 'Dossier clos.', { lib:'Annuler', fn:() => { x.clos = false; if (ouvert) t.fait = null; rendre(); vxFiche(v.id); } });
 }
 
 /* ─── 9. un nouveau véhicule : la fiche complète en un panneau, rien d'inventé en silence ─── */
@@ -17200,7 +17199,7 @@ function vxCreerOk(){
     entretien:{ km:nk, date:vxMois(base.d, im), lib:'Révision ' + nk.toLocaleString('fr-FR') + ' km' + (rd || !rk.vide ? '' : ' (estimée)') }, materiel:{ fait:null, ok:[] }, frais:[], interv:{ km:ik, mois:im }, hist:[], anc:[], docs:{}, immoHist:[], incidents:[], pleins:[], alertes:{}, releves:kmL.vide ? [] : [{ d:AUJ, km, qui:rlQui() }] };
   const deja = c ? VEHICULES.find(o => o.conducteur === c) : null;   /* un second camion pour la même personne se dit au lieu de passer en silence · 13 novembre 2026 */
   l.nom = vxNomLieu(v, c); LIEUX.push(l); VEHICULES.push(v); const j = vxJ('a ajouté un véhicule', v, { det:`${marque} ${modele}${c ? ' · ' + H_NOM(c) : ' · sans conducteur'}` });
-  fermerPanneau(); rendre(); vehFiche(v.id);
+  fermerPanneau(); rendre(); vxFiche(v.id);
   toast(`${esc(p)} ajouté : complète les documents. Son stock à bord (« ${esc(l.nom)} ») apparaît dans Dépôts et camions.${deja ? ' ' + esc(prenomDe(c)) + ' conduit déjà ' + esc(deja.plaque) + '.' : ''}`, { lib:'Annuler', fn:() => { VEHICULES.splice(VEHICULES.indexOf(v), 1); LIEUX.splice(LIEUX.indexOf(l), 1); vxJRetirer(j); fermerPanneau(); rendre(); toast('Ajout annulé.'); } });
 }
 
@@ -17238,7 +17237,7 @@ document.addEventListener('click', ev => {
     garage:() => vxGaragePanel(x), garageok:() => vxGarageOk(x), retourok:() => vxRetourOk(x, y === 'force'), plan:() => vxPlanningVoir(x), modif:() => vxModifPanel(x), modifok:() => vxModifOk(x), cond:() => vxCondPanel(x), condok:() => vxCondOk(x),
     soucis:() => vxSouciPanel(x), souci:() => vxSouciPanel(x), soucisok:() => vxSouciOk(x), soucireg:() => vxSouciRegle(x), mattout:() => vxMatTout(vehDe(x)), matfait:() => vxMatFait(vehDe(x), 'fiche'), commander:() => vxCommander(x),
     frmod:() => vxFraisPanel(x, y), frmodok:() => vxFraisOk(x, y), frdel:() => vxFraisSuppr(x, y), csv:() => vxCsv(x), docdel:() => vxDocRetirer(x, y), amende:() => vxAmendePanel(x), amendeok:() => vxAmendeOk(x), sinistre:() => vxSinistrePanel(x), sinistreok:() => vxSinistreOk(x), incclos:() => vxIncClos(x, y), creerok:() => vxCreerOk(),
-    per:() => { VX.periode = x; foGarder(() => vehFiche(y)); }, ouvrir:() => { fermerPanneau(); aller('vehicules'); setTimeout(() => vehFiche(x), 60); },
+    per:() => { VX.periode = x; foGarder(() => vehFiche(y, 'depenses')); }, ouvrir:() => { fermerPanneau(); aller('vehicules'); setTimeout(() => vehFiche(x), 60); },
     achat:() => { fermerPanneau(); cxFicheAchat(x); }, ndf:() => { fermerPanneau(); cxFicheNdf(x); } }[a];
   if (G) { ev.stopPropagation(); G(); }
 }, true);
@@ -17334,7 +17333,7 @@ function vhGeste(b, noir){ return b && vhPeut(b.act.split('|')[0]) ? `<button ty
 function vhRangee(v, E){
   const c = v.conducteur ? H_NOM(v.conducteur) : 'Sans conducteur', km = v.km || (v.releves && v.releves.length) ? v.km.toLocaleString('fr-FR') + ' km' : 'kilométrage inconnu', g = vhGeste(E.bouton);
   const lien = E.lien && vhPeut('plan') && !vhBureau() ? `<button type="button" class="lien vh-lien" data-vh="${esc(E.lien.act)}">${esc(E.lien.lib)}</button>` : '';
-  return `<div class="vh-l" data-vhtxt="${esc(vhSans(vhNom(v) + ' ' + v.plaque + ' ' + c))}"><button type="button" class="vh-m" data-vh="fiche|${v.id}" aria-label="${esc(vhNom(v))}, ${esc(v.plaque)}, ${esc(E.pastille[1])} : ouvrir la fiche">${vhAv(v)}
+  return `<div class="vh-l" data-vhtxt="${esc(vhSans(vhNom(v) + ' ' + v.plaque + ' ' + c))}"><button type="button" class="vh-m" data-vh="fiche|${v.id}" aria-label="${esc(vhNom(v))}, ${esc(v.plaque)}, ${esc(c)}. ${esc(E.pastille[1])} : ${esc(E.prec)}. Ouvrir la fiche">${vhAv(v)}
       <span class="vh-l1"><span class="vh-nom">${esc(vhNom(v))}</span> <span class="ve-plaque">${esc(v.plaque)}</span></span><span class="vh-qui gris petit">${esc(c)} · ${km}</span>
       <span class="vh-et"><span class="st ${E.pastille[0]}">${esc(E.pastille[1])}</span><span class="vh-prec ${E.couleur}">${esc(E.prec)}</span></span></button>
     ${g ? `<span class="vh-g">${g}${lien}</span>` : '<span class="vh-g vh-g-chev"><span class="fo-chev vh-chev" aria-hidden="true">›</span></span>'}</div>`;
@@ -17380,10 +17379,11 @@ function vhFiltrer(){
 }
 
 /* ── la fiche d'un véhicule : l'essentiel d'abord (une phrase, trois chiffres, quelques gestes), puis trois onglets ── */
+/* le retour à la fiche depuis une feuille ou après une écriture (amende, dépense, conducteur…) : sur l'onglet où l'on était */
+function vxFiche(id){ vehFiche(id, VH.fOnglet); }
 function vehFiche(id, onglet){
   const v = vehDe(id); if (!v) return;
-  const ouverte = VX.fiche === v.id && !!vxG('calque').innerHTML;   // la fiche (ou une feuille posée par-dessus) est déjà là : on garde son onglet
-  VH.fOnglet = onglet || (ouverte ? VH.fOnglet : 'afaire'); VX.fiche = v.id;
+  VH.fOnglet = onglet || 'afaire'; VX.fiche = v.id;   // une fiche s'ouvre sur « À faire » ; seul un retour (vxFiche, « Retour » d'une feuille) reprend l'onglet où l'on était
   const E = vhEtat(v, 'fiche'), EC = vehEcheances(v), dr = v.releves[v.releves.length - 1], A = lieuArticles(v.lieu), m = lieuManques(v.lieu), cout = vxCalcCout(v, '12m');
   const gestes = vhPeut('km') || vhPeut('plein') || vhPeut('statut');
   const nb = v.statut === 'atelier' ? vxIntsConcernees(v, v.immo && v.immo.retour).length : 0;
@@ -17403,8 +17403,8 @@ function vehFiche(id, onglet){
   const liens = `${lienCond}${vhBureau() ? '' : `<button type="button" class="lien" data-sk="lieu|${v.lieu}">Stock du camion ›</button>`}`;
   const onglets = [['afaire', 'À faire'], ['papiers', 'Papiers'], ['depenses', 'Dépenses']];
   const corps = VH.fOnglet === 'papiers' ? vhPapiers(v) : VH.fOnglet === 'depenses' ? vhDepenses(v) : vhAFaire(v, EC);
-  foOuvrir(`<span class="vh-fiche-id" data-vid="${v.id}" hidden></span><span class="surtitre">${esc(v.plaque)}${v.annee ? ' · ' + v.annee : ''} · ${esc(v.energie)}</span><h2>${esc(vhNom(v))}</h2>
-    ${vhPeut('modif') ? `<div class="actions"><button type="button" class="btn gris petit" data-vh="modif|${v.id}">Modifier la fiche</button></div>` : ''}
+  foOuvrir(`<span class="vh-fiche-id" data-vid="${v.id}" hidden></span><div class="vh-fh"><div><span class="surtitre">${esc(v.plaque)}${v.annee ? ' · ' + v.annee : ''} · ${esc(v.energie)}</span><h2>${esc(vhNom(v))}</h2></div>
+    ${vhPeut('modif') ? `<button type="button" class="btn gris petit" data-vh="modif|${v.id}">Modifier la fiche</button>` : ''}</div>
     ${alerte}${phrase}
     <div class="fo-stats vh-stats"><span><b>${v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' : '—'}</b>kilométrage${dr ? ' · relevé le ' + esc(vhJM(dr.d)) : ''}</span>
       <span><b>${cout.auKm == null ? '—' : vhEuro2(cout.auKm)}</b>${cout.auKm == null ? 'pas encore assez de relevés' : 'le kilomètre, sur 12 mois'}</span>
@@ -17417,7 +17417,8 @@ function vehFiche(id, onglet){
 /* onglet À faire : les échéances (UN bouton, au libellé unique, chacune) puis « Déjà fait » */
 function vhAFaire(v, EC){
   const sansDate = [!v.assur.fin && 'Assurance', !v.ct && 'Contrôle technique'].filter(Boolean);
-  const lignes = EC.map((e, i) => { const b = vhBoutonEch(v, e, 'fiche'), noir = i === 0 && e.urg !== 'v', rdv = vhRdvNote(v, e);
+  /* « Noter le rendez-vous » (D11) n'est proposé que sur la ligne la plus urgente, la même que celle de la liste : les autres vont droit à leur « Noter… » — UN libellé par ligne, jamais deux fois le même */
+  const lignes = EC.map((e, i) => { const b = i === 0 ? vhBoutonEch(v, e, 'fiche') : { act:'fait|' + v.id + '|' + e.k + '|fiche', lib:VH_FAIT[e.k] }, noir = i === 0 && e.urg !== 'v', rdv = vhRdvNote(v, e);
     return `<div class="fo-r vh-ech"><span class="ve-pt ve-${e.urg}" aria-hidden="true"></span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${esc(vhDL(e.d))}${e.k === 'assur' ? vxContrat(v) : ''} · <span class="${e.urg === 'r' ? 've-rt' : e.urg === 'o' ? 've-ot' : ''}">${esc(vhQuand(e, true))}${rdv ? ' · rendez-vous le ' + esc(jlong(rdv.d)) : ''}</span></span></span>${vhGeste(b, noir)}</div>`; }).join('');
   const manque = sansDate.map(x => `<div class="fo-r vh-ech"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(x)}</b><span class="gris petit">Pas encore renseigné</span></span>${vhPeut('modif') ? `<button type="button" class="btn petit gris" data-vh="modif|${v.id}">Renseigner</button>` : ''}</div>`).join('');
   return `<div class="vh-bloc"><h3 class="tt-h3">Les échéances</h3><div class="fo-bloc">${lignes}${manque}</div></div>${vhDejaFait(v)}`;
@@ -17520,7 +17521,7 @@ function vhAgir(a, x, y, z){
   if (!vhPeut(a)) return;   // la garde du bureau est ICI, avant toute écriture : un bouton caché ne protège rien
   const A = {
     fiche:() => vehFiche(x, y), onglet:() => { VH.onglet = x; rendre(); }, cout:() => vhCoutPanel(), plein:() => vxPleinPanel(x || ''), nouveau:() => vxNouveauPanel(),
-    fonglet:() => { VH.fOnglet = x; foGarder(() => vehFiche(VX.fiche)); }, per:() => { VX.periode = x; foGarder(() => vehFiche(y)); },
+    fonglet:() => { foGarder(() => vehFiche(VX.fiche, x)); }, per:() => { VX.periode = x; foGarder(() => vehFiche(y, 'depenses')); }, retour:() => vxFiche(x),
     rdv:() => vxRdv(x, y, z), rdvok:() => vxRdvOk(x, y, z), fait:() => y === 'mat' ? vhMatPanel(x, z) : vxFaitPanel(x, y, z === 'fiche' ? 'fiche' : 'liste'), groupe:() => vxFaitGroupe(x, y || ''),
     statut:() => vxGaragePanel(x), plan:() => vxPlanningVoir(x), soucireg:() => vxSouciRegle(x), km:() => vxKmPanel(x, 'fiche'), cond:() => vxCondPanel(x), modif:() => vxModifPanel(x),
     amende:() => vxAmendePanel(x), sinistre:() => vxSinistrePanel(x), incclos:() => vxIncClos(x, y), csv:() => vxCsv(x), csvflotte:() => vhCsvFlotte(),
@@ -22430,7 +22431,7 @@ immChap('achats', 'achats', 'Achats et frais', 'Achats et frais : décider vite,
   { c:'[data-cx="sec|factures|achats|sanspiece"]', t:'Tout se relie', p:'Un bouton Annuler défait la validation. Regarde cette tuile : la dépense est déjà dans la Comptabilité, les achats sans facture passent de 4 à 5. Les commandes se suivent dans Produits, et les notes validées partent avec la paie.' }]);
 
 immChap('vehicules', 'vehicules', 'Véhicules', 'Les véhicules : rien ne tombe sans prévenir',
-  'Les véhicules, c’est ta flotte : une ligne par véhicule, qui dit en une phrase s’il a besoin de toi. Je te montre comment ne rien laisser passer.', [
+  'Les véhicules de ton entreprise : une ligne par véhicule, qui dit en une phrase s’il a besoin de toi. Je te montre comment ne rien laisser passer.', [
   { c:'.vh-liste', t:'Un véhicule par ligne', p:'Chaque ligne dit en une phrase où en est le véhicule : le Kangoo est au garage, le contrôle technique de la Peugeot arrive dans 12 jours, et l’assurance des 4 véhicules tient en une seule ligne. Je touche Noter le rendez-vous, pour la Peugeot.',
     jouer:immAvmeJ('vehicules', () => immClic('[data-vh="rdv|veh2|ct|liste"]')) },
   { c:'#calque .panneau', t:'Le rendez-vous devient une tâche', p:'Je dis quel jour, et le garage si je le connais. Un jour est déjà proposé. Je valide : une tâche est créée, à cette date.',
