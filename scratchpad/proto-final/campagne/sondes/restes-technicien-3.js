@@ -64,6 +64,10 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
       return { ph: i.placeholder, texte: Math.round(cv.measureText(i.placeholder).width), place: Math.round(i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) }; });
     v(`[${J}] H · population : un champ de recherche est visible sur ${hash}`, !!H, H);
     if (H) v(`[${J}] H · l'invite « ${H.ph} » tient en entier (${H.texte} px pour ${H.place})`, H.texte <= H.place, H);
+    // F · technicien-12, les autres listes : un nombre et son unité (« 8 L », « (2 m) ») ne se séparent pas, dans Stock comme dans Articles
+    const U = await p2.evaluate(() => { const w = document.createTreeWalker(document.querySelector('#contenu'), NodeFilter.SHOW_TEXT), tous = []; let n; while ((n = w.nextNode())) { const m = n.nodeValue.match(/\d[ \u00a0](?:L|kg|m)\b/g); if (m && n.parentElement.closest('.fo-n, .ms-l, .mc-l, b')) tous.push(...m); }
+      return { n: tous.length, ordinaires: tous.filter(x => x.indexOf('\u00a0') < 0).length, ex: tous.slice(0, 3) }; });
+    if (U.n) v(`[${J}] F · ${hash} : aucun nombre séparé de son unité par une espace ordinaire (${U.n} vus)`, U.ordinaires === 0, U);
     await L.fin(c2);
   }
   // ── C · un montant écrit comme on le dit (« 12 € », « 12, ») est LU dans Mes frais et dans l'achat en magasin ──
