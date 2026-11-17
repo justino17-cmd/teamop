@@ -335,6 +335,15 @@ décidé en connaissance de cause (porte d'exécution sur ce serveur, Allemagne,
 TRANCHER à la reprise, sans le redire une troisième fois : s'il confirme, c'est sa décision.
 ✅ TRANCHÉ par Justin le soir même : « non, que la version bêta ». Donc : la BÊTA d'OP MESSAGES sur l'atelier (données
 d'essai) ; la vraie version reste sur un serveur de production, à choisir sur la mesure.
+**FIREBASE — Justin, 17 novembre au soir : « OP GESTION n'est plus sur Firebase » (« je l'avais déjà fait auparavant, rappelle-toi,
+on rencontrait beaucoup trop de problèmes »), puis « OP MESSAGES, tu le transfères sur le nouveau serveur de test et on
+supprime ».** VÉRIFIÉ dans le code le 17 : `app.html` (v804) et `beta.html` ne chargent plus le SDK ni Firestore ; `server-msg/`
+n'a aucune trace de Firebase ; RESTENT 1 ligne `identitytoolkit` dans `app.html`, 6 lignes Google dans `server/index.js`, et
+l'ancienne `messages.html` (v664, fermée) qui charge encore le SDK. ⚠️ La ligne « Firebase : NE PAS le supprimer, la version
+publique en dépend encore » plus bas dans ce fichier est PÉRIMÉE. À FAIRE À LA REPRISE, dans cet ordre : (1) dire ce que font
+ces 7 lignes (restes ou usage vivant) et les retirer si ce sont des restes ; (2) installer la BÊTA d'OP MESSAGES (`server-msg/`)
+sur l'atelier, données d'essai ; (3) décider du sort de l'ancienne `messages.html` ; (4) une dernière sauvegarde de ce que le
+projet Firebase contient ; (5) PUIS les gestes de Justin pour supprimer le projet (définitif : sa phrase pour CE geste).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
