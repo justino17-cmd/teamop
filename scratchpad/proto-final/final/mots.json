@@ -120,34 +120,6 @@
    "fichier": "apercu/prototype-op-gestion.html"
   },
   {
-   "ecran": "Achats et frais › kilomètres",
-   "avant": "(exemple de démonstration, à vérifier avec ton expert-comptable)",
-   "apres": "(à vérifier avec ton expert-comptable)",
-   "raison": "« démonstration » dans l’écran d’un vrai utilisateur",
-   "fichier": "apercu/prototype-op-gestion.html"
-  },
-  {
-   "ecran": "Achats et frais › Tarif au kilomètre",
-   "avant": "Le chiffre affiché est un exemple de démonstration : à vérifier avec ton expert-comptable.",
-   "apres": "Le chiffre affiché est une proposition : vérifie-le avec ton expert-comptable.",
-   "raison": "« démonstration »",
-   "fichier": "apercu/prototype-op-gestion.html"
-  },
-  {
-   "ecran": "Achats et frais › règle des notes",
-   "avant": "'C’est le patron qui décide de ce réglage.'",
-   "apres": "'C’est le gérant qui décide de ce réglage.'",
-   "raison": "un seul nom pour la personne qui dirige : gérant (menu, Équipe)",
-   "fichier": "apercu/prototype-op-gestion.html"
-  },
-  {
-   "ecran": "Achats et frais › note de frais",
-   "avant": "' C’est le patron qui décide de ce réglage.'",
-   "apres": "' C’est le gérant qui décide de ce réglage.'",
-   "raison": "idem",
-   "fichier": "apercu/prototype-op-gestion.html"
-  },
-  {
    "ecran": "Comptabilité › Comment ça marche",
    "avant": "(réservé au patron)",
    "apres": "(réservé au gérant)",
@@ -165,6 +137,13 @@
    "ecran": "Achats et frais › notes de frais",
    "avant": "Le tarif au kilomètre est celui réglé par le patron.",
    "apres": "Le tarif au kilomètre est celui réglé par le gérant.",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats et frais › notes de frais",
+   "avant": "toast('Le patron demande un ticket pour chaque note de frais.')",
+   "apres": "toast('Le gérant demande un ticket pour chaque note de frais.')",
    "raison": "idem",
    "fichier": "apercu/prototype-op-gestion.html"
   },
@@ -195,6 +174,13 @@
    "apres": "Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape.",
    "raison": "« Ici, tu le déclenches à la main pour voir » est une consigne de démonstration",
    "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Achats et frais › règle des notes",
+   "avant": "C’est le patron qui décide de ce réglage.",
+   "apres": "C’est le gérant qui décide de ce réglage.",
+   "raison": "un seul nom pour la personne qui dirige : gérant (menu, Équipe)",
+   "fichier": "apercu/prototype-op-gestion.html"
   }
  ]
 }

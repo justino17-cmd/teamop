@@ -31,17 +31,15 @@ c('page', 'Stock › Sortir du stock', "de ${d(G.de)}${pour}.`; }", "${de(G.de)}
 c('page', 'Stock › Déplacer', "déplacé${G.lignes.length > 1 ? 's' : ''} de ${d(G.de)} vers ${d(G.vers)}.`;", "déplacé${G.lignes.length > 1 ? 's' : ''} ${de(G.de)} vers ${d(G.vers)}.`;", "« déplacé de le camion de Léa » : du camion de Léa", 1)
 c('page', 'Stock › phrase de contrôle', "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve';\n  if (G.mode === 'sortir')", "'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve', de = id => id === 'atelier' ? 'de l’atelier' : lieu(id).type === 'vehicule' ? 'du camion de ' + prenomDe(lieu(id).tech) : 'de la réserve';\n  if (G.mode === 'sortir')", "la forme « de + lieu » s'écrit à part : de l’atelier, du camion de Léa, de la réserve", 1)
 c('page', 'Véhicules › échéance d’entretien', ": /^révision/i.test(e.lib) ? 'La révision' : e.lib;", ": /^révision/i.test(e.lib) ? 'La révision' : 'L’entretien « ' + e.lib + ' »';", "« Courroie de distribution est dans 20 jours » : une phrase sans article", 1)
-c('page', 'Achats et frais › kilomètres', "(exemple de démonstration, à vérifier avec ton expert-comptable)", "(à vérifier avec ton expert-comptable)", "« démonstration » dans l’écran d’un vrai utilisateur", 1)
-c('page', 'Achats et frais › Tarif au kilomètre', "Le chiffre affiché est un exemple de démonstration : à vérifier avec ton expert-comptable.", "Le chiffre affiché est une proposition : vérifie-le avec ton expert-comptable.", "« démonstration »", 1)
-c('page', 'Achats et frais › règle des notes', "'C’est le patron qui décide de ce réglage.'", "'C’est le gérant qui décide de ce réglage.'", "un seul nom pour la personne qui dirige : gérant (menu, Équipe)", 1)
-c('page', 'Achats et frais › note de frais', "' C’est le patron qui décide de ce réglage.'", "' C’est le gérant qui décide de ce réglage.'", "idem", 1)
 c('page', 'Comptabilité › Comment ça marche', "(réservé au patron)", "(réservé au gérant)", "idem", 1)
 c('page', 'Interventions › à planifier', "Le planning est tenu par le patron", "Le planning est tenu par le gérant", "idem (la fenêtre et son message)", 2)
 c('page', 'Achats et frais › notes de frais', "Le tarif au kilomètre est celui réglé par le patron.", "Le tarif au kilomètre est celui réglé par le gérant.", "idem", 1)
+c('page', 'Achats et frais › notes de frais', "toast('Le patron demande un ticket pour chaque note de frais.')", "toast('Le gérant demande un ticket pour chaque note de frais.')", "idem", 1)
 c('page', 'Achats et frais › notes de frais', "kilomètres × le tarif au kilomètre réglé par le patron", "kilomètres × le tarif au kilomètre réglé par le gérant", "idem", 1)
 c('page', 'Carte des box › secrétariat', "La gestion voit la carte en lecture seule : le technicien et le patron posent les box.", "Le secrétariat voit la carte en lecture seule : le technicien et le gérant posent les box.", "« la gestion » est un nom de revue, la personne s’appelle Secrétariat dans Équipe ; et gérant", 1)
 c('page', 'Mes heures › fiches de paie', "Toi seul les vois, avec ton patron.", "Toi seul les vois, avec le gérant.", "un seul nom pour la personne qui dirige : gérant", 1)
 c('compta', 'Comptabilité › Pilotage', "Avec le pilote, tout cela se traite sans toi. Ici, tu le déclenches à la main pour voir chaque étape.", "Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape.", "« Ici, tu le déclenches à la main pour voir » est une consigne de démonstration", 1)
+c('page', 'Achats et frais › règle des notes', "C’est le patron qui décide de ce réglage.", "C’est le gérant qui décide de ce réglage.", "un seul nom pour la personne qui dirige : gérant (menu, Équipe)", 2)
 
 def appliquer():
     lus = {}; res = []; manques = []
