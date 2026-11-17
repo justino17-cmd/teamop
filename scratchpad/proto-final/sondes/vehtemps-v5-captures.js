@@ -11,10 +11,11 @@ const CAP = (process.env.CAP || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5
     for (const ecran of ECRANS) {
       const qui = ecran === 'accueil' || ecran === 'equipe' ? 'marc' : 'sm', c = await L.ouvrir({ profil, qui, calme:true, nuit });
       const route = { camion:'moncamion', journee:'majournee', accueil:'accueil', equipe:'equipe' }[ecran];
-      await L.aller(c.p, route); if (ecran === 'equipe') { await c.p.evaluate(() => eqFiche('sm')); await L.calme(c.p, 500); }
+      await L.aller(c.p, route); if (ecran === 'accueil') { await c.p.evaluate(() => { const b = document.querySelector('[data-vhacc]'); if (b) b.scrollIntoView({ block:'center' }); }); await L.calme(c.p, 500); }   // la carte « À faire maintenant » est sous le pli : on la regarde
+      if (ecran === 'equipe') { await c.p.evaluate(() => eqFiche('sm')); await L.calme(c.p, 500); }
       await L.capture(c, CAP + ecran + '-' + nom + '.png');
       const d = await L.deborde(c), t = c.doigt ? await L.doigts(c.p, ecran === 'equipe' ? '#calque .panneau' : '#contenu') : { petits:[], ecrases:[] };
-      const pop = await c.p.evaluate(e => ({ camion:!!document.querySelector('#mc-vehicule .vh-cam'), ligne:!!document.querySelector('.vh-ligne-cam'), acc:document.querySelectorAll('#contenu [data-vhacc]').length, fiche:!!document.querySelector('#calque .panneau .eq-tete') }[e]), ecran);
+      const pop = await c.p.evaluate(e => ({ camion:!!document.querySelector('#mc-vehicule .vh-cam'), journee:!!document.querySelector('.vh-ligne-cam'), accueil:document.querySelectorAll('#contenu [data-vhacc]').length === 2, equipe:!!document.querySelector('#calque .panneau .eq-tete') }[e]), ecran);
       v(nom + ' · ' + ecran + ' : l\'écran attendu est affiché (population)', !!pop, pop);
       v(nom + ' · ' + ecran + ' : aucun débordement latéral (largeur ' + d.largeur + ')', d.bouge === 0 && d.seconde <= d.largeur, d);
       if (c.doigt) v(nom + ' · ' + ecran + ' : aucune cible sous 44 px au doigt, aucun texte écrasé', t.petits.length === 0 && t.ecrases.length === 0, t);
