@@ -11,7 +11,8 @@ const att = p => p.evaluate(() => { const z = document.getElementById('opdz'); i
     await L.fin(k); const k2 = await L.ouvrir({ profil: 'mac', app: false, qui: null, page: 'prototype-documents.html', requete: '?app=1&mode=rouge', attente: 500 });
     v('seul avec ?app=1&mode=rouge : un mode inconnu est ignoré (aucun data-theme)', (await k2.p.evaluate(() => document.documentElement.getAttribute('data-theme'))) === null); await L.fin(k2); }
   // ═════ 1. L'ATELIER ABSENT ═════
-  let c = await L.ouvrir({ profil: 'mac', qui: 'marc' }), p = c.p; L.absents.add(PAGE);
+  L.absents.add(PAGE);   // la page manque AVANT l'ouverture de l'application : le cadre de l'atelier est créé au premier rendu (bouton Retour, 17 novembre), il la demanderait déjà
+  let c = await L.ouvrir({ profil: 'mac', qui: 'marc' }), p = c.p;
   await L.aller(p, 'devis'); await L.toucher(c, '[data-opd="devis"]'); await p.waitForTimeout(600);
   let a = await att(p); v('absent : « Ouverture de l\'atelier… » avec « Fermer » ; le focus est sur « Fermer »', a && a.ouvert && a.att && /Ouverture/.test(a.titre) && a.focus === 'fermer', a);
   await p.evaluate(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }); await p.keyboard.press('d'); await p.keyboard.press('n'); await p.keyboard.press('/'); await p.waitForTimeout(200);      // focus sur la page (hors de la fenêtre) : c'est là que les raccourcis partiraient
@@ -34,6 +35,7 @@ const att = p => p.evaluate(() => { const z = document.getElementById('opdz'); i
   await L.fin(c);
   // ═════ 2. L'ATELIER LENT (9,5 s) ═════
   c = await L.ouvrir({ profil: 'mac', qui: 'marc' }); p = c.p; await p.route(/prototype-documents\.html/, async r => { await new Promise(x => setTimeout(x, 9500)); await r.continue(); });
+  await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(900);   // le cadre de l'atelier est créé au premier rendu : on recharge pour que SA demande subisse le délai
   await L.aller(p, 'devis'); await L.toucher(c, '[data-opd="devis"]'); await p.waitForTimeout(8600); a = await att(p);
   v('lent : à 8 s le message d\'échec et « Réessayer » sont là', a && /ne s’ouvre pas/.test(a.titre) && a.re, a);
   const f2 = await A.attendreAtelier(c, 6000);

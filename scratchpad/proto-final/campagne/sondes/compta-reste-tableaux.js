@@ -5,7 +5,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   const profil = process.argv[2] || 'ipad', c = await L.ouvrir({ profil, qui: 'marc' }), p = c.p;
   for (const o of ['ecritures', 'balance', 'grandlivre', 'resultat', 'fiches', 'salaries', 'fachats']) {
     await X.compta(c, o); await L.calme(p, 600);
-    const r = await p.evaluate(() => { const cont = [...document.querySelectorAll('#contenu .carte, #contenu .defile, #contenu .cx-liste, #contenu .cx-ecr')].filter(e => e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 100);
+    const r = await p.evaluate(() => { const cont = [...document.querySelectorAll('#contenu .carte, #contenu .defile, #contenu .cx-liste, #contenu .cx-ecr, #contenu .tableau')].filter(e => e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 100);
       return cont.slice(0, 3).map(e => { const cs = getComputedStyle(e), avant = e.scrollLeft; e.scrollLeft = 9999; const apres = e.scrollLeft; e.scrollLeft = avant; return { cls: String(e.className).slice(0, 30), sw: e.scrollWidth, cw: e.clientWidth, ox: cs.overflowX, glisse: apres > avant, perdu: Math.round(e.scrollWidth - e.clientWidth) }; }); });
     console.log(`${profil} ${o.padEnd(11)} conteneurs qui dépassent :`, JSON.stringify(r));
     const coupe = r.filter(x => !x.glisse); v(`TB ${profil} ${o} : ce qui dépasse de la carte peut être atteint (glisser le tableau)`, coupe.length === 0, coupe);
