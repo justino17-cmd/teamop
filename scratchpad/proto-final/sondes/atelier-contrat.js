@@ -29,7 +29,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   await f.locator('[data-act="retour"]:visible').first().click(); await p.waitForTimeout(900);
   const R = () => p.evaluate(() => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
   let rows = await R(); const k1 = await kp();
-  v('Contrats : « Composés dans l\'atelier » : 1 ligne', rows.length === 1, rows);
+  v('Contrats : « Contrats composés » : 1 ligne', rows.length === 1, rows);
   v('la ligne dit numéro, client, titre, date, prix par an, état', /CTR-2026-\d{3}/.test(rows[0] || '') && /Copropriété Les Mimosas/.test(rows[0]) && /Entretien annuel/.test(rows[0]) && !/ — Copropriété/.test(rows[0]) && /31\/10/.test(rows[0]) && /par an/.test(rows[0]) && /Brouillon/.test(rows[0]), rows[0]);
   v('le prix par an de la ligne est 280,00 € au centime', L.cents(await p.locator('#contenu .opd-l .dv-m b').first().textContent()) === 28000);
   v('chiffres : un brouillon ne change ni « signés », ni « rapporte », ni « en attente »', k1.map(x => x.b).join('|') === k0.map(x => x.b).join('|'), [k0.map(x => x.b), k1.map(x => x.b)]);
