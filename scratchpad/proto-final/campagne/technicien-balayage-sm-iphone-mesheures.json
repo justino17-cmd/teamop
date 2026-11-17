@@ -1,0 +1,463 @@
+{
+ "profil": "iphone",
+ "qui": "sm",
+ "route": "mesheures",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Menu",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "Ce mois-ci",
+   "data": "data-tt=mhonglet|mois",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 148,
+   "h": 44
+  },
+  {
+   "i": 3,
+   "lib": "Mes fiches de paie",
+   "data": "data-tt=mhonglet|fiches",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 200,
+   "h": 44
+  },
+  {
+   "i": 4,
+   "lib": "Je confirme mes heures",
+   "data": "data-tt=mhconf|sm",
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "Ce geste n’est pas ouvert à ton compte : payer, valider, relancer, régler la fiche légale. Demande à",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 326,
+   "h": 56
+  },
+  {
+   "i": 5,
+   "lib": "Il y a une erreur",
+   "data": "data-tt=erreur|sm",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Il y a une erreur",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 120,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "Je commence ma journée",
+   "data": "data-ptx=debut|sm",
+   "touche": true,
+   "change": [
+    "toast",
+    "long"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "Bonne journée ! Commencée à 10:40.",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 328,
+   "h": 44
+  },
+  {
+   "i": 7,
+   "lib": "lun. 2607:37–16:428h05›",
+   "data": "data-tt=mhjour|sm|2026-10-26",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Lundi 26 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 8,
+   "lib": "mar. 2707:38–16:438h05›",
+   "data": "data-tt=mhjour|sm|2026-10-27",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Mardi 27 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 9,
+   "lib": "mer. 2807:39–16:448h05›",
+   "data": "data-tt=mhjour|sm|2026-10-28",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Mercredi 28 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 10,
+   "lib": "jeu. 2907:40–16:458h05›",
+   "data": "data-tt=mhjour|sm|2026-10-29",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Jeudi 29 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 11,
+   "lib": "ven. 3007:37–17:078h30›",
+   "data": "data-tt=mhjour|sm|2026-10-30",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Vendredi 30 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 12,
+   "lib": "lun. 1907:34–16:548h20›",
+   "data": "data-tt=mhjour|sm|2026-10-19",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Lundi 19 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 13,
+   "lib": "mar. 2007:30–16:36corrigée par le bureau8h06›",
+   "data": "data-tt=mhjour|sm|2026-10-20",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Mardi 20 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 59
+  },
+  {
+   "i": 14,
+   "lib": "mer. 2107:32–16:378h05›",
+   "data": "data-tt=mhjour|sm|2026-10-21",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Mercredi 21 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 15,
+   "lib": "jeu. 2207:33–16:388h05›",
+   "data": "data-tt=mhjour|sm|2026-10-22",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Jeudi 22 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 16,
+   "lib": "ven. 2307:34–16:398h05›",
+   "data": "data-tt=mhjour|sm|2026-10-23",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Mes heures",
+   "panneau": "Vendredi 23 octobre",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 48
+  },
+  {
+   "i": 17,
+   "lib": "Voir tout le mois",
+   "data": "data-tt=mhtout",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 44
+  },
+  {
+   "i": 18,
+   "lib": "Ma journée",
+   "data": "data-tab=majournee",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Sophie",
+   "panneau": "",
+   "hash": "#majournee",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 19,
+   "lib": "Mes frais",
+   "data": "data-tab=techfrais",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes frais",
+   "panneau": "",
+   "hash": "#techfrais",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 20,
+   "lib": "Mes heures · 1",
+   "data": "data-tab=mesheures",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Mes heures",
+   "panneau": "",
+   "hash": "#mesheures",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 21,
+   "lib": "Mes tâches",
+   "data": "data-tab=taches",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mes tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  },
+  {
+   "i": 22,
+   "lib": "Mon camion",
+   "data": "data-tab=moncamion",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mon camion",
+   "panneau": "",
+   "hash": "#moncamion",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 48
+  }
+ ],
+ "err": []
+}

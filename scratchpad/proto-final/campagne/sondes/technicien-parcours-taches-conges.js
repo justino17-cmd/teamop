@@ -2,6 +2,7 @@
 // Usage : node technicien-parcours-taches-conges.js [profil] [nuit=0|1]
 const L = require('../../lib.js'), v = L.v;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-technicien/';
+const devenir = async (p, k, h) => { await p.evaluate(([k, h]) => { if (SESSION) sessionFermer('deconnexion'); sessionOuvrir(k); aller(h); }, [k, h]); await L.calme(p, 800); };   // changer de personne comme le fait l'application : se déconnecter, puis ouvrir la session de l'autre (les données restent en mémoire)
 const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#contenu'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }, s);
 (async () => {
   const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === '1', J = nuit ? 'nuit' : 'jour';
@@ -25,21 +26,33 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   const d1 = await L.deborde(c); v('T3a nom de tâche de 135 signes : pas de glissement latéral', d1.bouge === 0, d1);
   await p.evaluate(() => { const b = document.querySelector('[data-tonglet="auj"]'); b && b.click(); }); await L.calme(p, 300);
   await L.capture(c, CAP + `taches-long-${profil}-${J}.png`);
-  // T4 : terminer la tâche du jour, « Annuler »
+  // T4 : terminer la tâche du jour : le rond « Choisir » puis « Fait » dans la barre (le rond de Mes tâches ne termine pas d’un seul geste)
+  await L.toucher(c, '[data-tonglet="auj"]');
   const avantAuj = await p.evaluate(() => (document.querySelector('[data-tonglet="auj"]') || {}).textContent);
-  await L.toucher(c, '[data-tfait]'); await L.calme(p, 300);
-  v('T4a terminer une tâche : message « Tâche faite » avec « Annuler »', /Tâche faite/.test(await toast()) && /Annuler/.test(await toast()), await toast());
+  await L.toucher(c, '[data-tsel="t11"]'); await L.calme(p, 300);
+  v('T4a toucher le rond d’une tâche fait apparaître la barre « ✓ Fait · Annuler »', await p.evaluate(() => !!document.querySelector('[data-tsfait]')), await txt(p, 'body').then(t => t.slice(-120)));
+  await L.capture(c, CAP + `taches-barre-choix-${profil}-${J}.png`);
+  await L.toucher(c, '[data-tsfait]'); await L.calme(p, 400);
+  v('T4b « Fait » : le message « Tâche faite » propose « Annuler »', /faite/i.test(await toast()), await toast());
   const apres = await p.evaluate(() => (document.querySelector('[data-tonglet="auj"]') || {}).textContent);
-  v('T4b le compteur « Aujourd’hui » baisse', apres !== avantAuj, { avantAuj, apres });
+  v('T4c le compteur « Aujourd’hui » baisse', apres !== avantAuj, { avantAuj, apres });
   await p.evaluate(() => { const b = document.querySelector('[data-tonglet="faites"]'); b && b.click(); }); await L.calme(p, 300);
-  v('T4c la tâche terminée se retrouve dans « Faites »', /Durand|Prévenir/.test(await txt(p)), (await txt(p)).slice(0, 200));
+  v('T4d la tâche terminée se retrouve dans « Faites »', /Prévenir M. Durand/.test(await txt(p)), (await txt(p)).slice(0, 200));
+  await L.capture(c, CAP + `taches-faites-${profil}-${J}.png`);
+  await p.evaluate(() => { const b = document.querySelector('[data-tonglet="auj"]'); b && b.click(); }); await L.calme(p, 300);
   // T5 : Ma journée relit la même liste
   await L.aller(p, 'majournee');
   v('T5 « Ma journée » : la carte « Mes tâches » n’affiche plus la tâche faite (cohérence entre écrans)', !/Prévenir M. Durand 30 min/.test(await txt(p, '#contenu .carte:has([data-tkxajout])') || await txt(p)) , (await txt(p)).slice(0, 100));
   // T6 : ce que le technicien NE voit PAS dans ses tâches
-  await L.aller(p, 'taches');
+  await L.aller(p, 'taches'); await L.toucher(c, '[data-tonglet="auj"]');
   const cats = await p.evaluate(() => TACHES.filter(t => t.qui === rlQui()).map(t => (t.lien && t.lien.t) || 'libre'));
   const txtT = await txt(p); v('T6 aucune tâche de facture, de devis ou de contrat chez le technicien', !/FAC-|Relancer .* facture|devis|Devis/.test(txtT.replace(/Détails/g, '')), txtT.slice(0, 300));
+  // T6b : la fiche d'une tâche du technicien : pas de facture à payer, pas de montant
+  await L.toucher(c, '[data-tmodif]'); await L.calme(p, 400);
+  const fiche = await p.evaluate(() => { const e = document.querySelector('#calque .panneau'); if (!e) return ''; e.scrollTop = 99999; return e.textContent.replace(/\s+/g, ' ').trim(); });
+  v('T6b fiche d’une tâche : ni facture à payer, ni numéro de facture, ni montant', fiche.length > 40 && !/FAC-\d|À payer|€/.test(fiche), fiche.slice(0, 400));
+  await L.capture(c, CAP + `taches-fiche-${profil}-${J}.png`);
+  await L.ranger(p);
   // T7 : « Détails » = fiche de création
   await L.toucher(c, '[data-tnouv]'); await L.calme(p, 400);
   const pan = await txt(p, '#calque .panneau'); v('T7a « Détails » ouvre « Nouvelle tâche »', /Nouvelle tâche/.test(pan), pan.slice(0, 150));
@@ -79,12 +92,12 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   await L.capture(c, CAP + `conges-apres-${profil}-${J}.png`);
   v('C3d aucun glissement latéral', (await L.deborde(c)).bouge === 0);
   // C6 : le gérant la voit-il, la valide ?
-  await p.evaluate(() => rlChanger('patron', { h: 'absences', muet: true })); await L.calme(p, 800);
+  await devenir(p, 'marc', 'absences');
   let pgm = await txt(p);
   v('C4a le gérant voit une demande de Sophie à valider', /Sophie/.test(pgm) && /(16|18)/.test(pgm) && /valider|Valider|demande/.test(pgm), pgm.slice(0, 400));
   await L.capture(c, CAP + `conges-gerant-${profil}-${J}.png`);
   // C7 : le technicien retire sa demande
-  await p.evaluate(() => rlChanger('tech', { h: 'absences', muet: true })); await L.calme(p, 800);
+  await devenir(p, 'sm', 'absences');
   const btnR = await p.$('[data-atretire]'); v('C5a « Retirer ma demande » est proposé', !!btnR);
   if (btnR) { const n1 = await p.evaluate(() => DEMANDES_ABS.filter(d => d.tech === 'sm').length); await L.toucher(c, '[data-atretire]'); await L.calme(p, 400);
     const conf = await txt(p, '#calque .panneau'); console.log('   après « Retirer » :', conf.slice(0, 200), '| toast:', await toast());
