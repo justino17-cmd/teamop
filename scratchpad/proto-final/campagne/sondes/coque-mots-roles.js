@@ -10,7 +10,7 @@ const PROFIL = process.env.PROFIL || 'mac';
 const ATTENDU = {
   sm: { pointage:'Mes heures', pointer:'Mes heures', heures:'Mes heures', 'fiche de paie':'Mes heures', véhicule:'Mon camion', voiture:'Mon camion', camion:'Mon camion', carburant:'Mon camion|Mes frais', essence:'Mon camion|Mes frais',
         planning:'Ma journée', calendrier:'Ma journée', rdv:'Ma journée', agenda:'Ma journée', intervention:'Ma journée', rapport:'Ma journée', photo:'Ma journée', chantier:'Ma journée', passage:'Ma journée',
-        'note de frais':'Mes frais', remboursement:'Mes frais', frais:'Mes frais', congé:'Mes congés', tâche:'Mes tâches', journée:'Ma journée' },
+        'note de frais':'Mes frais', remboursement:'Mes frais', frais:'Mes frais', congé:'Mes congés', absence:'Mes congés', vacances:'Mes congés', tâche:'Mes tâches', journée:'Ma journée' },
   julie: { facture:'Comptabilité', banque:'Comptabilité', paie:'Comptabilité', tva:'Comptabilité', client:'Clients', téléphone:'Clients', fournisseur:'Fournisseurs, matériel & produits' }
 };
 (async () => {
