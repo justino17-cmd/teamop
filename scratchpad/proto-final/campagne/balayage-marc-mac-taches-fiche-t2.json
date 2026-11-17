@@ -1,0 +1,189 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "taches",
+ "etiq": "fiche-t2",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Fermer",
+   "data": "data-ferme=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 44,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "✉ Commander au fournisseur",
+   "data": "data-tcmd=t2",
+   "touche": true,
+   "change": [
+    "panneau",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Nouvelle commande",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 267,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "Dépannage — fuite d’eau · Camping Les Pins ›",
+   "data": "data-tvoir=inter|i9",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "panneau",
+    "calque",
+    "long",
+    "longCalque",
+    "url"
+   ],
+   "h1": "Dépannage — fuite d’eau",
+   "panneau": "",
+   "hash": "#inter-x-i9",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 23
+  },
+  {
+   "i": 3,
+   "lib": "Me rappeler",
+   "data": "data-tkxrappel=t2",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "Commander 2 condensateurs 5 µF",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 475,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "Demain",
+   "data": "data-trep=t2|2026-11-01",
+   "touche": true,
+   "change": [
+    "panneau",
+    "toast",
+    "calque",
+    "long",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "Reportée à dimanche 1er novembreAnnuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 83,
+   "h": 42
+  },
+  {
+   "i": 5,
+   "lib": "Lundi",
+   "data": "data-trep=t2|2026-11-02",
+   "touche": true,
+   "change": [
+    "panneau",
+    "toast",
+    "calque",
+    "long",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "Reportée à lundi 2 novembreAnnuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 69,
+   "h": 42
+  },
+  {
+   "i": 6,
+   "lib": "+1 semaine",
+   "data": "data-trep=t2|2026-11-07",
+   "touche": true,
+   "change": [
+    "panneau",
+    "toast",
+    "calque",
+    "long",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "",
+   "hash": "#taches",
+   "toast": "Reportée à samedi 7 novembreAnnuler",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 109,
+   "h": 42
+  },
+  {
+   "i": 7,
+   "lib": "Confier à",
+   "data": "data-tconfier=t2",
+   "touche": true,
+   "change": [],
+   "h1": "Tâches",
+   "panneau": "Commander 2 condensateurs 5 µF",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 164,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "Modifier",
+   "data": "data-tedit=t2",
+   "touche": true,
+   "change": [
+    "panneau",
+    "longCalque"
+   ],
+   "h1": "Tâches",
+   "panneau": "Modifier la tâche",
+   "hash": "#taches",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 65,
+   "h": 44
+  }
+ ],
+ "err": []
+}

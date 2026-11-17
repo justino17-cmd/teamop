@@ -1,0 +1,620 @@
+{
+ "profil": "iphone",
+ "qui": "marc",
+ "route": "absences",
+ "etiq": "soldes",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu, 7 à traiter",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Menu",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Marc",
+   "panneau": "",
+   "hash": "#accueil",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 38
+  },
+  {
+   "i": 2,
+   "lib": "Exporter en PDF",
+   "data": "data-aexport=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Exporter les absences",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 164,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "＋ Nouvelle absence",
+   "data": "data-anouv=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Nouvelle absence",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 195,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "À valider 3",
+   "data": "data-aonglet=valider",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 132,
+   "h": 44
+  },
+  {
+   "i": 5,
+   "lib": "Calendrier",
+   "data": "data-aonglet=calendrier",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 119,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "Soldes",
+   "data": "data-aonglet=soldes",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 96,
+   "h": 44
+  },
+  {
+   "i": 7,
+   "lib": "Sophie Martin",
+   "data": "data-asva=sm",
+   "touche": true,
+   "change": [],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 44,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "Karim Benali",
+   "data": "data-asva=kb",
+   "touche": true,
+   "change": [],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 44,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "Léa Roux",
+   "data": "data-asva=lr",
+   "touche": true,
+   "change": [],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 44,
+   "h": 44
+  },
+  {
+   "i": 10,
+   "lib": "Tom Leroy",
+   "data": "data-asva=tl",
+   "touche": true,
+   "change": [],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 44,
+   "h": 44
+  },
+  {
+   "i": 11,
+   "lib": "Calendrier ›",
+   "data": "data-aqui-v=sm data-acal=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 104,
+   "h": 44
+  },
+  {
+   "i": 12,
+   "lib": "Mars : 2 jours d’absence",
+   "data": "data-asmois=sm|3",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "SMSophie Martin",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 74
+  },
+  {
+   "i": 13,
+   "lib": "Juillet : 14 jours d’absence",
+   "data": "data-asmois=sm|7",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "SMSophie Martin",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 14,
+   "lib": "Octobre : 1 jour d’absence",
+   "data": "data-asmois=sm|10",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "SMSophie Martin",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 15,
+   "lib": "Décembre : 8 jours d’absence",
+   "data": "data-asmois=sm|12",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "SMSophie Martin",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 16,
+   "lib": "Calendrier ›",
+   "data": "data-aqui-v=kb data-acal=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 104,
+   "h": 44
+  },
+  {
+   "i": 17,
+   "lib": "Mai : 1 jour d’absence",
+   "data": "data-asmois=kb|5",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "KBKarim Benali",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 74
+  },
+  {
+   "i": 18,
+   "lib": "Août : 15 jours d’absence",
+   "data": "data-asmois=kb|8",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "KBKarim Benali",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 19,
+   "lib": "Novembre : 2 jours d’absence",
+   "data": "data-asmois=kb|11",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "KBKarim Benali",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 20,
+   "lib": "Calendrier ›",
+   "data": "data-aqui-v=lr data-acal=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 104,
+   "h": 44
+  },
+  {
+   "i": 21,
+   "lib": "Février : 5 jours d’absence",
+   "data": "data-asmois=lr|2",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 74
+  },
+  {
+   "i": 22,
+   "lib": "Juillet : 10 jours d’absence",
+   "data": "data-asmois=lr|7",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 23,
+   "lib": "Août : 5 jours d’absence",
+   "data": "data-asmois=lr|8",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 24,
+   "lib": "Septembre : 1 jour d’absence",
+   "data": "data-asmois=lr|9",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 25,
+   "lib": "Octobre : 1 jour d’absence",
+   "data": "data-asmois=lr|10",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 26,
+   "lib": "Novembre : 2 jours d’absence",
+   "data": "data-asmois=lr|11",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 27,
+   "lib": "Calendrier ›",
+   "data": "data-aqui-v=tl data-acal=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 104,
+   "h": 44
+  },
+  {
+   "i": 28,
+   "lib": "Avril : 4 jours d’absence",
+   "data": "data-asmois=tl|4",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "TLTom Leroy",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 74
+  },
+  {
+   "i": 29,
+   "lib": "Juin : 1 jour d’absence",
+   "data": "data-asmois=tl|6",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "TLTom Leroy",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 74
+  },
+  {
+   "i": 30,
+   "lib": "Août : 15 jours d’absence",
+   "data": "data-asmois=tl|8",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "TLTom Leroy",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  },
+  {
+   "i": 31,
+   "lib": "Octobre : 2 jours d’absence",
+   "data": "data-asmois=tl|10",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "TLTom Leroy",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 51,
+   "h": 85
+  }
+ ],
+ "err": []
+}
