@@ -217,6 +217,45 @@
    "ou": "fxTete (tablette)",
    "correction": "Photographier en bouton carré (icône) comme sur téléphone, « Plus » à côté du noir.",
    "n": "bureau-16"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock › Articles (recherche)",
+   "role": "marc, julie",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Articles : taper « condens » dans la recherche ; lire le pied de liste.",
+   "attendu": "Le pied dit ce que la liste montre : « 1 article ».",
+   "constate": "« 1 article · 2 306,50 € de matériel (prix d’achat HT) » : le nombre est celui du filtre, le montant celui des 29 articles — on lit que le Condensateur (0 en stock) vaut 2 306,50 €.",
+   "preuve": "Reproduit (sonde in-5 : « condens » rend « 1 article · 2 306,50 € ») et prouvé dans le code : msArticles calcule val = tous.reduce(… x.q …) sur tous les articles, pas sur L.",
+   "ou": "msArticles (const val, pied .ms-pied)",
+   "correction": "Recalculer val sur la liste affichée (L), ou n’afficher le montant que sans filtre (« 29 articles · 2 306,50 € »).",
+   "n": "bureau-17"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock › Plus › Registre des fluides",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Plus ▾ › Registre des fluides : regarder les deux lignes.",
+   "attendu": "Chaque ligne client est un lien vers l’intervention (spec § 5.5).",
+   "constate": "« Hôtel de la Plage · Mitsubishi PUHZ · bouteille R410-1180 » et « Restaurant Le Vieux Port … » sont du texte noir ; rien ne s’ouvre.",
+   "preuve": "Capture m-registre-mac-jour.png ; clic essayé : rien ne s’ouvre.",
+   "ou": "sxRegistre",
+   "correction": "Rendre le nom du client en <button class=\"lien\" data-tvoir=\"inter|…\">.",
+   "n": "bureau-18"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Fournisseurs › Articles › Ajouter un article",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Fournisseurs, matériel & produits › Articles › ＋ Ajouter un article.",
+   "attendu": "Les quatre champs d’abord, sans vide entre eux.",
+   "constate": "Un blanc d’environ 60 px entre « Nom » et « Rangé dans : Climatisation › … » (la place d’une suggestion vide).",
+   "preuve": "Capture m-ajouter-article-mac-jour.png (champ Nom à 134-180 px, ligne Rangé dans à 244 px).",
+   "ou": "prFormulaire / msFormApres (#pr-sugg vide gardé dans la page)",
+   "correction": "Masquer #pr-sugg tant qu’il est vide.",
+   "n": "bureau-19"
   }
  ]
 }
