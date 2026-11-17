@@ -1316,8 +1316,10 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .pl-nav button{min-width:40px;min-height:40px;border:0;border-radius:10px;background:none;color:var(--encre);font-size:20px}
 .pl-nav button:hover{background:var(--survol)}
 .pl-nav b{padding:0 8px;font-size:15px;white-space:nowrap;min-width:190px;text-align:center}
+/* à 320–380 px « Aujourd’hui · samedi 31 octobre » (205 px) ne tient pas entre les deux flèches : il passait SOUS la flèche de droite (recontrôle du planning, tour 2). Il passe à la ligne. */
+@media (max-width:380px){.pl-nav b{white-space:normal;min-width:0;padding:0 4px;font-size:14px;line-height:1.2}}
 .pl-equipe{display:flex;gap:6px;flex-wrap:wrap}
-.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux)}.pl-kpis-note .lien{padding:0 6px}
+.pl-kpis-note{margin:8px 0 0;font-size:13px;line-height:1.4;color:var(--doux);display:flex;flex-wrap:wrap;align-items:center;gap:0 12px}.pl-kpis-note span{flex:1 1 260px;min-width:0}.pl-kpis-note .lien{flex:none}
 .pl-equipe button{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 12px 0 6px;border-radius:999px;border:1px solid var(--trait);background:var(--surf2);color:var(--encre);font-size:14px;font-weight:550}
 .pl-equipe button[aria-pressed="false"]{opacity:.45}
 .pl-equipe .av{width:26px;height:26px;font-size:10.5px}
@@ -4101,7 +4103,7 @@ function kpiPopulation(){
 }
 function chiffresPlanning(){
   const { J, DANS: L, ABS } = kpiPopulation(), mn = L.reduce((s,i)=>s+i.dur,0), filtre = kpiFiltre();
-  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status">Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe. <button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
+  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status"><span>Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe.</span><button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
   return `<div class="kpis kpis-rang ${plVue === 'carte' ? 'kpis-serre' : ''}">
     <button type="button" class="kpi" data-kpi="int"><b>${L.length}</b><span>${L.length > 1 ? 'interventions' : 'intervention'}${plVue === 'carte' ? '' : ' sur la période'}</span></button>
     <button type="button" class="kpi" data-kpi="plan"><b style="color:var(--orange)">${INTS.filter(i=>i.st==='aplanifier').length}</b><span>à planifier</span></button>

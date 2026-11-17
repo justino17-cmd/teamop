@@ -11,6 +11,7 @@ MUT = {
  'M2': ('les chiffres ne suivent plus les personnes masquées', "const kpiDe = (tech, d) => plVue === 'carte' || (!plMasques.has(tech || '')", "const kpiDe = (tech, d) => plVue === 'carte' || (true", ['mac', 'S2']),
  'M3': ('la note qui dit le filtre disparaît', "const note = !filtre ? '' : `", "const note = true ? '' : `", ['mac', 'S2']),
  'M4': ('le panneau « interventions » reprend toute l\'équipe', "const { J, DANS: DANS0, ABS } = kpiPopulation(), filtre = kpiFiltre(),", "const { J, DANS: DANS0, ABS } = kpiPopulation(), filtre = false,", ['mac', 'S2']),
+ 'M6': ('le titre de la période repasse sous la flèche à 320 px', '@media (max-width:380px){.pl-nav b{white-space:normal', '@media (max-width:1px){.pl-nav b{white-space:normal', ['petit', 'S2']),
  'M5': ('la carte ne retrace plus les repères à l\'arrivée du fond', "try { crTracerReel(); } catch (e) {} };", "};", ['ipad', 'S3']),
 }
 veut = [a for a in sys.argv[1:] if a in MUT] or list(MUT)
