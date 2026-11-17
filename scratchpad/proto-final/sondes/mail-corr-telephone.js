@@ -19,7 +19,7 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
     const t11 = await S(c, () => ({ sh:document.documentElement.scrollHeight, ih:innerHeight }));
     v('telephone-11 ' + etiq + ' : aucune marge de défilement inutile (page ' + t11.sh + ' px pour ' + t11.ih + ')', t11.sh <= t11.ih + 1, t11);
     if (pr === 'iphone' && !nuit) await cap(c, 'corr-tel-liste-iphone');
-    // ── telephone-01 : le texte du courriel commence dans l'écran, pour TOUS les messages de la boîte ──
+    // ── telephone-01 : le texte de l’e-mail commence dans l'écran, pour TOUS les messages de la boîte ──
     const n = await S(c, () => R().querySelectorAll('#rows .msg').length); const bas = [];
     for (let i = 0; i < n; i++) {
       await S(c, k => R().querySelectorAll('#rows .msg')[k].click(), i); await p.waitForTimeout(450);
@@ -120,7 +120,7 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
   await S(c, () => courrierOuvrir('m1')); await p.waitForTimeout(900);
   await S(c, () => [...R().querySelectorAll('[data-hote]')].find(b => /Confier/.test(b.textContent)).click()); await p.waitForTimeout(700);
   const cf = await S(c, () => { const t = (document.querySelector('#calque .panneau') || {}).textContent || ''; return { fois:(t.match(/en lecture/g) || []).length, longueur:t.length, lignes:document.querySelectorAll('#calque .ve-u').length }; });
-  v('telephone-09 iphone : la règle « ce courriel seul, en lecture » n\'est écrite qu\'UNE fois (' + cf.lignes + ' personnes)', cf.fois === 1 && cf.lignes >= 4 && cf.longueur < 900, cf);
+  v('telephone-09 iphone : la règle « cet e-mail seul, en lecture » n\'est écrite qu\'UNE fois (' + cf.lignes + ' personnes)', cf.fois === 1 && cf.lignes >= 4 && cf.longueur < 900, cf);
   await cap(c, 'corr-tel-confier-iphone');
   await fin(c);
 

@@ -81,7 +81,7 @@ const MESURE = (txt, font) => { const c = document.createElement('canvas').getCo
     const arch = p.locator('#courrier-hote #selBar button', { hasText:/Archiver/ }).first();
     if (await arch.count()) { await arch.click(); await p.waitForTimeout(900); }
     const nApres = await S(c, () => R().querySelectorAll('#rows .msg').length);
-    v('ordinateur-14 (collatéral) « Archiver » sur deux courriels sélectionnés les retire de la boîte (' + nAvant + ' → ' + nApres + ')', nApres === nAvant - 2, { nAvant, nApres });
+    v('ordinateur-14 (collatéral) « Archiver » sur deux e-mails sélectionnés les retire de la boîte (' + nAvant + ' → ' + nApres + ')', nApres === nAvant - 2, { nAvant, nApres });
     v('aucune erreur JavaScript (mac, suite)', c.err.length === 0, c.err.slice(0, 3));
     await fin(c);
   });

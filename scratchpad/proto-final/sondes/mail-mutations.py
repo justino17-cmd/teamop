@@ -30,7 +30,7 @@ M = [
  ('A7 : « Annuler » ne retire pas la tâche confiée', PAGE, "const i = TACHES.indexOf(t); if (i >= 0) TACHES.splice(i, 1); m.confie = null; rendre(); } });", "m.confie = null; rendre(); } });", 'mail-gestes.js'),
  ('A9 : la pièce jointe n\'est pas rangée dans la fiche', PAGE, "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).push({ nom:pj[0]", "(CLIENTS[cli].docsMail = CLIENTS[cli].docsMail || []).concat({ nom:pj[0]", 'mail-gestes.js'),
  ('A6 : la relance envoyée n\'est pas comptée', PAGE, "if (mo === 'relance') m.relances = (m.relances || 0) + 1; }", " }", 'mail-gestes.js'),
- ('A8 : « En faire une tâche » crée un doublon à chaque clic', PAGE, "if (TACHES.some(o => !o.fait && o.t === 'Répondre : ' + m.objet && o.origine === 'depuis le courriel de ' + m.de.nom)) return toast(", "if (false) return toast(", 'mail-gestes.js'),
+ ('A8 : « En faire une tâche » crée un doublon à chaque clic', PAGE, "if (TACHES.some(o => !o.fait && o.t === 'Répondre : ' + m.objet && o.origine === 'depuis l’e-mail de ' + m.de.nom)) return toast(", "if (false) return toast(", 'mail-gestes.js'),
  ('D16 : la colonne de liste redevient trop étroite sur Windows', COURRIER, 'clamp(304px,27cqw,392px)', 'clamp(280px,27cqw,392px)', 'mail-defauts.js'),
  ('téléphone : tous les gestes du bandeau redeviennent de gros boutons (le texte repoussé sous le pli)', COURRIER, 'var plus=isPhone()&&bts.length>3,', 'var plus=false,', 'mail-telephone.js'),
 ]
@@ -41,7 +41,7 @@ M += [
  ('ordinateur-07 : le clavier du module repasse par les raccourcis du prototype (ni composedPath ni garde de l\'hôte)', PAGE, RACC, '  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(ev.target)) return;', 'mail-corr-clavier.js'),
  ('ordinateur-04 : le bandeau « reconnu » repasse AVANT le texte (ordinateur)', COURRIER, '.opc .hband{order:6;display:flex', '.opc .hband{order:2;display:flex', 'mail-corr-lecture.js'),
  ('telephone-01 : le bandeau « reconnu » repasse AVANT le texte (téléphone)', COURRIER, '.opc:where([data-fmt="phone"]) .hband{order:6;', '.opc:where([data-fmt="phone"]) .hband{order:2;', 'mail-corr-telephone.js:4'),
- ('ordinateur-08 : un brouillon écrit ici est pris pour un courriel du prototype', COURRIER, 'boite:m.acct,\n      local:!m.src};', 'boite:m.acct,\n      local:false};', 'mail-corr-clavier.js'),
+ ('ordinateur-08 : un brouillon écrit ici est pris pour un e-mail du prototype', COURRIER, 'boite:m.acct,\n      local:!m.src};', 'boite:m.acct,\n      local:false};', 'mail-corr-clavier.js'),
  ('ordinateur-09 : « Voir tous » ne cherche que dans la boîte de réception', PAGE, 'c.rechercher(t, { partout:true })', 'c.rechercher(t)', 'mail-corr-clavier.js'),
  ('ordinateur-12 : « Prévenir le client » après une panne parle d\'accord et d\'installation', PAGE, "else if (I && R.sujet !== 'accord') conf =", "else if (false) conf =", 'mail-corr-lecture.js'),
  ('ordinateur-15 : l\'en-tête de la page ne suit pas le suivi', PAGE, "courrierEnteteMaj(); return Promise.resolve(courrierSuivi(m)", "return Promise.resolve(courrierSuivi(m)", 'mail-corr-lecture.js'),
