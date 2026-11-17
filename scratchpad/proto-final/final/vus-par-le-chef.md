@@ -18,7 +18,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [x] (compositeur, restes tour 1 : référence avancée à ec8aafd, 56 ✓ · 0 ✗) **Sonde `atelier-seule.js`** — elle compare la page seule « au pixel près » à la Version 11 : les corrections du
       compositeur (prix à deux décimales, aides raccourcies, prestations au catalogue) déplacent des boîtes. À re-baser sur
       l'état corrigé, en gardant la vérification « rien d'autre n'a bougé ».
-- [ ] **Menu de l'ordinateur (coque, menu, materiel)** — gérant, Mac 1440 × 900, capture du 17/11 à 8 h 15 : l'entrée CHOISIE
+- [x] (restes coque, tour 1 : commit du lot (5/n), sonde coque-menu-choisie.js, 41 ✓ · 0 ✗ ; la ligne restait à 44 px pendant que le texte en sortait — colonne flex qui défile) **Menu de l'ordinateur (coque, menu, materiel)** — gérant, Mac 1440 × 900, capture du 17/11 à 8 h 15 : l'entrée CHOISIE
       « Fournisseurs, matériel & produits » passe sur TROIS lignes (elle est en gras, donc plus large : non choisie elle tient sur
       deux), et sa troisième ligne (« produits ») est coupée par le pied du menu (Jour · Nuit · Auto) : le menu n'a pas défilé
       assez pour montrer l'entrée entière. Attendu : la même hauteur choisie ou non (le gras ne doit pas changer le retour à la
