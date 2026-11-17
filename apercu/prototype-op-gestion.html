@@ -2425,6 +2425,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 .st-nav button:hover:not(:disabled){background:var(--survol)}.st-nav button:disabled{opacity:.3}
 .st-nav b{min-width:150px;text-align:center;font-size:15px;padding:0 6px;white-space:nowrap}
 .st-kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+/* iPad en portrait : cinq tuiles sur deux colonnes laissaient la dernière seule, à moitié de la largeur (accueil-09). Au-delà de 899 px la grille passe à trois colonnes : la règle n'y est plus */
+@media (min-width:761px) and (max-width:899px){.st-kpis .st-kpi:last-child:nth-child(odd){grid-column:1/-1}}
 .st-kpi{cursor:pointer;gap:3px}.st-kpi:hover{border-color:var(--trait2)}
 .st-kpi .st-kpi-l{font-size:13.5px;color:var(--doux);font-weight:550}
 .st-kpi small{font-size:12.5px;color:var(--faible)}
@@ -2524,6 +2526,18 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .h-fiche{display:flex;flex-direction:column}.h-avap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 .h-avap>div{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:12px;background:var(--surf-in)}.h-avap small{font-size:12px;color:var(--faible);font-weight:650;text-transform:uppercase}.h-avap s{color:var(--doux)}.h-avap b{color:var(--vert)}
 @media (max-width:760px){.h-puces{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}.h-puces::-webkit-scrollbar{display:none}.h-puces .puce-c{flex:none}.h-sel{grid-template-columns:1fr 1fr;gap:8px}.h-jqui{display:none}.h-l{grid-template-columns:40px auto minmax(0,1fr);gap:10px}.h-l .h-type{grid-column:3}.h-avap{grid-template-columns:1fr}}
+/* Historique et Statistiques au doigt et sur petit écran (campagne accueil : accueil-05 et accueil-06) :
+   · les puces de sujet, la flèche « période précédente » et les mois du graphique se touchent du doigt, 44 px (un gant, un chantier) ;
+   · sous 400 px chaque liste prend sa ligne (« Tout le mo… » ne nomme rien) ;
+   · sur iPad en portrait le graphique des 12 mois défile comme au téléphone au lieu d'écraser ses mois à 35 px. */
+@media (pointer:coarse){.h-puces .puce-c{min-height:44px}.st-nav button{width:44px;height:44px}}
+@media (max-width:400px){.h-sel{grid-template-columns:minmax(0,1fr)}}
+@media (pointer:coarse) and (min-width:761px) and (max-width:900px){
+  .st-graph{overflow-x:auto;direction:rtl;-webkit-overflow-scrolling:touch}
+  .st-glisse{display:inline}
+  .st-graph .st-cols{direction:ltr;min-width:528px}
+  .st-graph .st-bulle{display:none}
+}
 /* un document en grand : la feuille entière */
 #docplein{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;background:rgba(10,14,24,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:pop .16s ease both}
 .dp-barre{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));padding-top:max(10px,env(safe-area-inset-top));color:#fff;flex-wrap:wrap}
@@ -5566,9 +5580,9 @@ function vueAccueil(){
     ...CONTRATS.filter(k => k.st === 'envoye').map(k => ({ c:'var(--bleu)', t:'Contrat en attente de signature', s:CLIENTS[k.cli].nom, go:'contrat-x-' + k.id }))
   ].filter(Boolean);
   return `<div class="tete tete-p"><div><span class="surtitre" style="color:var(--lien)">Samedi 31 octobre</span><h1>Bonjour ${esc(prenomDe(acteur()))}</h1><span class="gris">${ENTREPRISE.nom}</span></div><div class="actions"><button type="button" class="btn btn-planning" data-go="planning">${svg('planning')}Planning de l’équipe</button><button type="button" class="btn gris" data-creer="1">＋ Nouvelle intervention</button></div></div>
-  <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0))}</b><span>encaissé en octobre${(T => T.length ? ` <i class="cp-k">+ ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>de contrats par an</span></button></div>
-  <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
-    <div class="carte"><h3>À faire maintenant</h3>${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${a.t}</b><br><span class="gris petit">${a.s}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
+  <div class="kpis"><button type="button" class="kpi" data-kdash="jour"><b>${auj.length}</b><span>interventions aujourd’hui</span></button><button type="button" class="kpi" data-kdash="rec"><b style="color:var(--orange)">${eur(FACTURES.filter(f=>['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0))}</b><span>à recevoir</span></button><button type="button" class="kpi" data-kdash="enc"><b style="color:var(--vert)">${eur(ENCAISSEMENTS.reduce((s,e)=>s+e.ttc,0) + cpPaieTerrain().reduce((s,e)=>s+e.ttc,0))}</b><span>reçu en octobre${(T => T.length ? ` <i class="cp-k">dont ${eur(T.reduce((s, e) => s + e.ttc, 0))} reçus sur place, pas encore sur une facture</i>` : '')(cpPaieTerrain())}</span></button><button type="button" class="kpi" data-go="contrats"><b>${eur(CONTRATS.filter(k=>k.st==='signe').reduce((s,k)=>s+k.prix,0))}</b><span>HT de contrats par an</span></button></div>
+  <div class="grille2"><div class="carte"><h3>Aujourd’hui, toute l’équipe</h3>${auj.length ? '' : `<p class="gris" style="margin:6px 0 12px">Rien de prévu aujourd’hui. Quand une intervention est posée sur un jour, elle s’affiche ici.</p><button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button>`}${auj.map(i=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" data-go="inter-x-${i.id}"><span class="jl"><span class="jl-g"><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span><b class="jl-h">${i.h}</b></span>${avatar(tech(i.tech),'p')}<span style="min-width:0;flex:1"><b>${esc(i.titre)}</b><br><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}</span>${i.st==='fait'?'<br>'+paiementPastille(fiche(i.id).paiement):''}</span></span><span>›</span></button>`).join('')}</div>
+    <div class="carte"><h3>À faire maintenant</h3>${afaire.length ? '' : `<p class="gris" style="margin:6px 0 0">Tout est à jour : rien n’attend ta décision pour le moment.</p>`}${afaire.map(a=>`<button type="button" class="ligne-clic" style="margin-bottom:8px" ${a.devisLien ? `data-devislien="${a.devisLien}"` : a.kd ? `data-kdash="${a.kd}"` : a.voirRdv ? `data-voirrdv="${a.voirRdv}"` : a.tache ? `data-tache="${a.tache}"` : a.dem ? `data-dem="${a.dem}"` : `data-go="${a.go}"`} ${a.ff?`data-ff2="${a.ff}"`:''}><span class="af-l" style="display:flex;gap:12px;align-items:center">${(([lib, cl]) => `<span class="st ${cl} etiq-af">${lib}</span>`)(a.c.includes('rouge') ? ['En retard','st-r'] : a.c.includes('orange') ? ['À faire','st-o'] : ['À traiter','st-b'])}<span><b>${a.t}</b><br><span class="gris petit">${a.s}</span></span></span><span>›</span></button>`).join('')}</div></div>`;
 }
 
 /* ══ L'APERÇU PAR-DESSUS : ouvrir une facture, un contrat, une intervention ou un client sans quitter sa catégorie ══ */
@@ -5946,7 +5960,12 @@ function stEcart(a, b, inverse){
   if (p === 0) return '<span class="st-ecart">= stable</span>';
   return `<span class="st-ecart ${bon ? 'mieux' : 'moins'}">${p > 0 ? '▲ +' : '▼ '}${p} %</span>`;
 }
-const stLibPrec = () => stPer === 'mois' ? 'vs ' + stLib(stPrec()) : stPer === 'trimestre' ? 'vs les 3 mois d’avant' : 'vs les 12 mois d’avant';
+/* Des parts qui font toujours 100 % (campagne accueil, accueil-08 : 47 + 23 + 28 + 3 = 101) : on arrondit à l'entier inférieur puis on rend les points
+   restants aux plus gros restes — la règle du plus fort reste, jamais « la dernière part = le reste » qui ferait mentir la plus petite. */
+function stParts(vals){ const t = vals.reduce((s, x) => s + x, 0) || 1, b = vals.map(x => x / t * 100), bas = b.map(Math.floor); let r = 100 - bas.reduce((s, x) => s + x, 0);
+  if (!vals.some(x => x > 0)) return vals.map(() => 0);
+  b.map((x, i) => [x - bas[i], i]).sort((p, q) => q[0] - p[0] || p[1] - q[1]).forEach(([, i]) => { if (r > 0) { bas[i]++; r--; } }); return bas; }
+const stLibPrec = () => stPer === 'mois' ? 'par rapport à ' + stLib(stPrec()) : stPer === 'trimestre' ? 'par rapport aux 3 mois d’avant' : 'par rapport aux 12 mois d’avant';
 
 function stLigneContrat(c, etat, lib, af){
   const t = af.split('|')[0];
@@ -5995,7 +6014,7 @@ function vueStatistiques(){
   <div class="kpis st-kpis">
     ${kpi('fac', eur0(S.fac), 'Facturé HT', stEcart(S.fac, P.fac) + `<small>${stLibPrec()}</small>`)}
     ${kpi('enc', eur0(S.enc), 'Encaissé TTC', stEcart(S.enc, P.enc) + `<small>${stLibPrec()}</small>` + (stK === ST_FIN && cpPaieTerrain().length ? `<small>hors ${eur0(cpPaieTerrain().reduce((s, e) => s + e.ttc, 0))} reçus sur place, sans facture</small>` : ''), 'var(--vert)')}
-    ${kpi('ints', S.ints, 'Interventions faites', stEcart(S.ints, P.ints) + `<small>panier moyen ${eur0(S.panier)} HT</small>` + (n => n ? '<small>dont ' + n + ' facture' + (n > 1 ? 's' : '') + ' sans fiche d’intervention</small>' : '')(toutes.filter(x => x.fid).length))}
+    ${kpi('ints', S.ints, 'Interventions faites', stEcart(S.ints, P.ints) + `<small>prix moyen d’une intervention : ${eur0(S.panier)} HT</small>` + (n => n ? '<small>dont ' + n + (n > 1 ? ' facturées' : ' facturée') + ' sans intervention enregistrée</small>' : '')(toutes.filter(x => x.fid).length))}
     ${kpi('devis', S.taux + ' %', 'Devis acceptés', stEcart(S.taux, P.taux) + `<small>${S.acc} sur ${S.emis} envoyés</small>`)}
     ${kpi('paie', S.dP + ' j', 'Délai moyen de paiement', stEcart(S.dP, P.dP, true) + `<small>entre facture et règlement</small>`, S.dP > 30 ? 'var(--orange)' : '')}
   </div>
@@ -6009,13 +6028,13 @@ function vueStatistiques(){
       <div class="ligne"><span>En attente d’une réponse</span><b>${eur0(S.montAtt)} HT</b></div></div>
     <div class="carte"><div class="st-titre"><h3>Paiements</h3><button type="button" class="lien" data-stdet="paie">Détail ›</button></div>
       <div class="st-pile-moy" aria-hidden="true">${moy.map(([m, v]) => `<i style="flex:${v || .0001};background:${couleurMoy[m]}"></i>`).join('')}</div>
-      ${moy.map(([m, v]) => `<div class="ligne"><span><i class="st-pastille" style="background:${couleurMoy[m]}"></i>${m}</span><span class="st-val"><b>${eur0(v)}</b><small>${Math.round(v / totMoy * 100)} %</small></span></div>`).join('')}
+      ${(pc => moy.map(([m, v], i) => `<div class="ligne"><span><i class="st-pastille" style="background:${couleurMoy[m]}"></i>${m}</span><span class="st-val"><b>${eur0(v)}</b><small>${pc[i]} %</small></span></div>`).join(''))(stParts(moy.map(x => x[1])))}
       <div class="ligne"><span>Factures en retard</span><b style="color:${retards.length ? 'var(--rouge)' : 'inherit'}">${retards.length} facture${retards.length > 1 ? 's' : ''} · ${eur0(mRetard)} TTC</b></div></div>
   </div>
   <div class="carte"><div class="st-titre"><h3>Par technicien</h3><span class="gris petit">${stLibPer(stPer, stK)}</span></div>
     <div class="st-table">
       <div class="st-tr st-th"><span>Technicien</span><span>Interventions</span><span>Heures</span><span>Facturé HT</span></div>
-      ${techs.map(x => `<button type="button" class="st-tr" data-stdet="tech-${x.t.id}"><span class="st-qui">${avatar(x.t, 'p')}<b>${x.t.nom}</b></span><span data-l="Interventions">${x.ints}${x.sans ? `<small class="gris" style="display:block">dont ${x.sans} sans fiche</small>` : ''}</span><span data-l="Heures">${x.h} h</span><span data-l="Facturé HT"><b>${eur0(x.ca)}</b></span></button>`).join('')}
+      ${techs.map(x => `<button type="button" class="st-tr" data-stdet="tech-${x.t.id}"><span class="st-qui">${avatar(x.t, 'p')}<b>${x.t.nom}</b></span><span data-l="Interventions">${x.ints}${x.sans ? `<small class="gris" style="display:block">dont ${x.sans} sans intervention enregistrée</small>` : ''}</span><span data-l="Heures">${x.h} h</span><span data-l="Facturé HT"><b>${eur0(x.ca)}</b></span></button>`).join('')}
     </div></div>
   <div class="grille2 st-grille">
     <div class="carte"><div class="st-titre"><h3>Par type d’intervention</h3></div>
@@ -6076,7 +6095,7 @@ function stListeInts(I, id, plusieursMois, avecTech){
     + stSeg(id, [['tout', 'Toutes · ' + I.length], ['payees', 'Payées · ' + payees.length], ['dues', 'À payer · ' + dues.length]])
     + `<div class="st-ints">${V.length ? V.map(x => { const mo = x.d.slice(0, 7), tete = plusieursMois && mo !== mc ? `<div class="st-ints-mois">${stLib(mo, true)}</div>` : ''; mc = mo;
       return tete + `<div class="st-int"><div class="st-int-q"><b>${jcourt(x.d)}</b><small>${duree(x.dur)}</small></div>
-        <div class="st-int-c"><b>${esc(x.titre)}</b><span class="gris petit">${avecTech ? tech(x.tech).nom + ' · ' : ''}${esc(CLIENTS[x.cli].nom)} · ${x.type}${x.num !== '—' ? ' · ' + x.num : ''}</span>${x.iid ? `<button type="button" class="lien" style="align-self:flex-start" data-stou="inter|${x.iid}">Ouvrir l’intervention ›</button>` : x.fid ? `<span class="gris petit">Facture saisie sans fiche d’intervention</span><button type="button" class="lien" style="align-self:flex-start" data-stou="facture|${x.fid}">Ouvrir la facture ›</button>` : ''}</div>
+        <div class="st-int-c"><b>${esc(x.titre)}</b><span class="gris petit">${avecTech ? tech(x.tech).nom + ' · ' : ''}${esc(CLIENTS[x.cli].nom)} · ${x.type}${x.num !== '—' ? ' · ' + x.num : ''}</span>${x.iid ? `<button type="button" class="lien" style="align-self:flex-start" data-stou="inter|${x.iid}">Ouvrir l’intervention ›</button>` : x.fid ? `<span class="gris petit">Facture saisie sans intervention enregistrée</span><button type="button" class="lien" style="align-self:flex-start" data-stou="facture|${x.fid}">Ouvrir la facture ›</button>` : ''}</div>
         <div class="st-int-m"><b>${eur(x.ht)} HT</b><small class="gris">${eur(stTTC(x))} TTC</small></div>
         <div class="st-int-p">${stEtat(x)}</div></div>`; }).join('') : '<div class="gris" style="padding:16px 0">Rien ici sur cette période.</div>'}</div>
     ${I.some(x => !x.vraie) ? '<div class="faible mini">Prototype : en dehors des interventions d’octobre, la liste est un exemple qui retombe sur les chiffres.</div>' : ''}`;
@@ -6193,7 +6212,7 @@ function stBilan(){
     const T = techsDe([k]), M = moyensDe(k), tm = M.reduce((s, x) => s + x[1], 0) || 1, du2 = I.filter(x => x.st !== 'payee' && x.st !== 'avalider');
     return `<section class="bil-page">
       <div class="bil-bande"><span>${per === stLib(k, true).replace(/^./, c => c.toUpperCase()) ? 'Détail du mois' : 'Bilan ' + per}</span><b>${stLib(k, true).replace(/^./, c => c.toUpperCase())}</b><span>du 1er au ${nbj} ${ST_MOIS_L[m - 1]} ${y}</span></div>
-      <div class="bil-tuiles">${tile('Facturé', eur0(h.fac) + ' <i>HT</i>', ecart(h.fac, hp && hp.fac), 'vs ' + (hp ? stLib(stDecale(k, -1)) : '—'))}${tile('Encaissé', eur0(h.enc) + ' <i>TTC</i>', ecart(h.enc, hp && hp.enc), '')}${tile('Interventions', I.length, ecart(I.length, hp && hp.ints), '')}${tile('Devis acceptés', h.acc + ' / ' + h.emis, '', Math.round(h.acc / h.emis * 100) + ' %')}</div>
+      <div class="bil-tuiles">${tile('Facturé', eur0(h.fac) + ' <i>HT</i>', ecart(h.fac, hp && hp.fac), 'par rapport à ' + (hp ? stLib(stDecale(k, -1)) : '—'))}${tile('Encaissé', eur0(h.enc) + ' <i>TTC</i>', ecart(h.enc, hp && hp.enc), '')}${tile('Interventions', I.length, ecart(I.length, hp && hp.ints), '')}${tile('Devis acceptés', h.acc + ' / ' + h.emis, '', Math.round(h.acc / h.emis * 100) + ' %')}</div>
       <div class="bil-2">
         <div><h5>Par technicien</h5><table><thead><tr><th>Technicien</th><th class="n">Interventions</th><th class="n">Heures</th><th class="n">Facturé HT</th></tr></thead><tbody>${T.map(x => `<tr><td>${x.t.nom}</td><td class="n">${x.ints}</td><td class="n">${x.h} h</td><td class="n">${eur(x.ca)}</td></tr>`).join('')}</tbody></table></div>
         <div><h5>Encaissements par moyen</h5><table><thead><tr><th>Moyen</th><th class="n">Règl.</th><th class="n">Montant TTC</th></tr></thead><tbody>${M.map(([mo, v, n]) => `<tr><td>${mo}</td><td class="n">${n}</td><td class="n">${eur(v)}</td></tr>`).join('')}<tr class="fort"><td>Total</td><td class="n">${M.reduce((s, x) => s + x[2], 0)}</td><td class="n">${eur(tm)}</td></tr></tbody></table></div>
@@ -6212,9 +6231,9 @@ function stBilan(){
       <div class="bil-titre"><small>Bilan d’activité</small><b>${per}</b><span>${du}</span><span>Édité le 31 octobre 2026</span></div>
     </header>
     <section class="bil-tuiles">
-      ${tile('Facturé', eur0(S.fac) + ' <i>HT</i>', ecart(S.fac, P.fac), plus ? 'vs période d’avant' : 'vs ' + stLib(stPrec()))}
+      ${tile('Facturé', eur0(S.fac) + ' <i>HT</i>', ecart(S.fac, P.fac), plus ? 'par rapport à la période d’avant' : 'par rapport à ' + stLib(stPrec()))}
       ${tile('Encaissé', eur0(S.enc) + ' <i>TTC</i>', ecart(S.enc, P.enc), '')}
-      ${tile('Interventions', toutes.length, ecart(toutes.length, P.ints), 'panier ' + eur0(S.fac / Math.max(1, toutes.length)) + ' HT')}
+      ${tile('Interventions', toutes.length, ecart(toutes.length, P.ints), 'prix moyen ' + eur0(S.fac / Math.max(1, toutes.length)) + ' HT')}
       ${tile('Devis acceptés', S.taux + ' %', ecart(S.taux, P.taux), S.acc + ' sur ' + S.emis)}
     </section>
     ${plus ? `<section class="bil-somm"><h5>Sommaire</h5><p>Page 1 · synthèse de la période. Puis une page par mois : ${L.map(k => `<b>${stLib(k, true)}</b>`).join(', ')}.</p></section>` : ''}
@@ -6233,7 +6252,7 @@ function stBilan(){
       </div></section>
     <section class="bil-2">
       <div><h5>Encaissements par moyen</h5><table><thead><tr><th>Moyen</th><th class="n">Règl.</th><th class="n">Montant</th><th class="n">Part</th></tr></thead><tbody>
-        ${moy.map(([m, v, n]) => `<tr><td>${m}</td><td class="n">${n}</td><td class="n">${eur(v)}</td><td class="n">${Math.round(v / totMoy * 100)} %</td></tr>`).join('')}
+        ${(pc => moy.map(([m, v, n], i) => `<tr><td>${m}</td><td class="n">${n}</td><td class="n">${eur(v)}</td><td class="n">${pc[i]} %</td></tr>`).join(''))(stParts(moy.map(x => x[1])))}
         <tr class="fort"><td>Total</td><td class="n">${moy.reduce((s, x) => s + x[2], 0)}</td><td class="n">${eur(totMoy)}</td><td class="n">100 %</td></tr></tbody></table></div>
       <div><h5>Devis</h5><table><tbody>
         <tr><td>Envoyés</td><td class="n">${S.emis} · ${eur0(S.montDevis)} HT</td></tr><tr><td>Acceptés</td><td class="n">${S.acc} (${S.taux} %)</td></tr>
@@ -6316,6 +6335,9 @@ let JOURNAL = (() => {
 let hQui = 'tous', hType = 'tous', hCli = 'tous', hCherche = '', hVoirComme = 'marc', hMax = 14;   // hMax : nombre de JOURS montrés
 /* ce que fait le prototype s'inscrit aussi : un geste, une ligne */
 function journalAjout(qui, type, action, el, extra){ if (qui === 'marc') qui = acteur(); hOuverts.add(AUJ);   /* « qui a fait quoi » : les 90 appels écrivaient 'marc' en dur, donc le journal disait « Marc » pour ce que Julie venait de faire (étape des droits, 17 novembre 2026) */ JOURNAL.push({ id:'j' + JOURNAL.length, d:AUJ, h:hm(MAINT_MIN), qui, type:type === 'equipe' && /tâche|les pièces|prévenu le client|suite d’une relance/.test(action) ? 'tache' : type, action, el, ...extra, neuf:true }); }
+/* Un paiement noté est la trace la plus utile en cas de litige, et c'était la seule qu'on ne retrouvait pas dans « Qui a fait quoi » (campagne accueil, accueil-03) :
+   TOUS les chemins qui écrivent un encaissement passent par cette ligne, jamais par un journalAjout recopié */
+function journalPaiement(f, v, mode, o){ o = o || {}; journalAjout(o.qui || 'marc', 'facture', o.action || 'a enregistré un paiement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:eur(v) + ' · ' + mode + (o.plus || '') }); }
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
   const a = { tech:i.tech, d:i.d, h:i.h, dur:i.dur }, r = avant.apply(this, arguments);
   if (a.tech !== i.tech || a.d !== i.d || a.h !== i.h || a.dur !== i.dur) journalAjout('marc', 'planning', a.dur !== i.dur && a.d === i.d && a.h === i.h ? 'a changé la durée' : !a.tech && i.tech ? 'a planifié l’intervention' : 'a déplacé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli },
@@ -6347,12 +6369,12 @@ function vueHistorique(){
   const gensVus = Object.keys(H_GENS).filter(k => JOURNAL.some(j => j.qui === k) && (hVoirComme === 'marc' || k === hVoirComme));
   const clis = Object.keys(CLIENTS).filter(k => JOURNAL.some(j => j.el && j.el.cli === k));
   const filtres = hQui !== 'tous' || hType !== 'tous' || hCli !== 'tous' || hJourSel !== 'tous' || hCherche, ouvert = d => filtres || hOuverts.has(d);
-  return `<div class="tete"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
+  return `<div class="tete tete-p"><div><span class="surtitre">Accueil</span><h1>Historique</h1><span class="gris">Qui a fait quoi, et quand. Rien ne s’y efface ni ne s’y modifie.</span></div>
     <button type="button" class="btn gris" data-hexport="1">Exporter en PDF</button></div>
   ${enApp() ? '' : `<div class="h-comme"><span class="gris petit">Pour l’essai, voir comme :</span><div class="seg" role="group" aria-label="Voir comme">${[['marc', 'Marc · gérant'], ['sm', 'Sophie · technicienne']].map(([k, l]) => `<button type="button" data-hcomme="${k}" aria-pressed="${hVoirComme === k}">${l}</button>`).join('')}</div>
     ${hVoirComme !== 'marc' ? '<span class="h-note">Sans le droit « Tout voir », Sophie ne voit que ses propres actions.</span>' : ''}</div>`}
   <div class="carte h-filtres">
-    <input class="saisie" type="search" placeholder="Chercher un client, une facture…" value="${esc(hCherche)}" data-hcherche="1" aria-label="Chercher dans l’historique">
+    <input class="saisie" type="search" placeholder="Un client, une facture…" value="${esc(hCherche)}" data-hcherche="1" aria-label="Chercher dans l’historique">
     <div class="h-puces" role="group" aria-label="Sujet">${[['tous', 'Tout'], ...Object.entries(H_TYPES).filter(([k]) => k !== 'registre' || PACKS_ENT.includes('3d')).map(([k, v]) => [k, v[0]])].map(([k, l]) => `<button type="button" class="puce-c" data-htype="${k}" aria-pressed="${hType === k}">${l}</button>`).join('')}</div>
     <div class="h-sel">
       ${hVoirComme === 'marc' ? `<label class="champ">Personne<select data-hqui="1"><option value="tous">Tout le monde</option>${gensVus.map(k => `<option value="${k}" ${hQui === k ? 'selected' : ''}>${H_GENS[k].nom} · ${H_GENS[k].role}</option>`).join('')}</select></label>` : ''}
@@ -6438,7 +6460,7 @@ let TACHES = [
   { id:'t12', t:'Relancer M. Durand pour le devis de la pompe de relevage', qui:'julie', d:AUJ, h:null, lien:{ t:'devis', id:'D-2026-031', lib:'D-2026-031', cli:'md' }, cle:'dev-D-2026-031', creePar:'julie', creeLe:'28/10' },
   { id:'t13', t:'Relancer le paiement de la facture FAC-2026-0128', qui:'marc', d:AUJ, h:null, urgent:true, cle:'fac-f128', lien:{ t:'facture', id:'f128', lib:'FAC-2026-0128', cli:'md' }, note:'Déjà relancée deux fois.', creePar:'julie', creeLe:'27/10' },
   { id:'t14', t:'Planifier le dépannage climatisation de Mme Roux', qui:'marc', d:AUJ, h:null, lien:{ t:'inter', id:'i10', lib:'Dépannage climatisation', cli:'mr' }, creePar:'marc', creeLe:'30/10' },
-  { id:'t11', t:'Prévenir M. Durand 30 min avant la mise en service de sa PAC', qui:'sm', d:AUJ, h:'13:30', lien:{ t:'inter', id:'i2', lib:'Mise en service pompe à chaleur', cli:'md' } }
+  { id:'t11', t:'Prévenir M. Durand 30 min avant la mise en service de sa pompe à chaleur', qui:'sm', d:AUJ, h:'13:30', lien:{ t:'inter', id:'i2', lib:'Mise en service pompe à chaleur', cli:'md' } }
 ];
 let tVue = 'equipe', tQui = 'tous', tCherche = '', tFaitesOuvert = false, tIgnorees = new Set();
 const tNom = k => (H_GENS[k] || {}).nom || k;
@@ -8254,6 +8276,7 @@ document.addEventListener('click', ev => {
   if (a === 'paiement') { const r = CP_RELEVE.find(o => o.id === x), f = FACTURES.find(o => o.id === y); if (!r || !f) return;
     f.recu = cpR((f.recu || 0) + r.m); f.st = restant(f) <= .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = 'Virement'; f.paye = r.d; }
     ENCAISSEMENTS.unshift({ d:r.d, h:'—', cli:f.cli, fac:f.num, mode:'Virement', ttc:r.m, tva:f.tva, preuve:'Relevé de banque · ' + r.lib });
+    journalPaiement(f, r.m, 'Virement', { plus:' · vu sur le relevé de banque' });
     rendre(); return toast(`${eur(r.m)} reçus sur ${f.num} : ${f.st === 'payee' ? 'facture payée' : 'reste ' + eur(restant(f)) + ' à payer'}. La facture et le paiement sont à jour partout dans la Comptabilité.`); }
   if (a === 'remis') { x.split(',').forEach(int => CP.remis[int] = '31/10'); rendre(); return toast('Remis au bureau : l’argent passe de la caisse des techniciens à celle du bureau.'); }
   if (a === 'depot') { const c = cpCaisse(); if (!c.solde) return; CP.depots.push({ d:'31/10', m:c.solde, cles:c.enCaisse.map(cpCle) }); rendre(); return toast(`${eur(c.solde)} déposés : ils apparaîtront sur le prochain relevé`); }
@@ -8575,7 +8598,7 @@ const ACTIONS = {
     if (!(v0 >= .01)) { toast('Indique le montant reçu.'); return; }   /* 0,001 € « payait en partie » une facture de 121 € : le plus petit paiement est un centime · 13 novembre 2026 */
     if (v0 > restant(f) + .005) { toast(`Ce montant dépasse ce qu’il reste à payer (${eur(restant(f))}). Corrige-le pour enregistrer.`); return; }
     const av0 = { recu:f.recu, st:f.st, mode:f.mode, paye:f.paye }, v = Math.min(v0, restant(f));   // pas plus que le reste dû : sinon la facture est « payée » avec un trop-perçu
-    f.recu = (f.recu || 0) + v; f.st = restant(f) <= .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = '31/10'; } ENCAISSEMENTS.unshift({ d:'31/10', h:hNow(), cli:f.cli, fac:f.num, mode:m, ttc:v, tva:f.tva }); fermerPanneau(); rendre(); encaisseAnnulable(f, av0, ENCAISSEMENTS[0], `${eur(v)} encaissés, rangés dans les paiements d’octobre.`); },
+    f.recu = (f.recu || 0) + v; f.st = restant(f) <= .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = '31/10'; } ENCAISSEMENTS.unshift({ d:'31/10', h:hNow(), cli:f.cli, fac:f.num, mode:m, ttc:v, tva:f.tva }); journalPaiement(f, v, m); fermerPanneau(); rendre(); encaisseAnnulable(f, av0, ENCAISSEMENTS[0], `${eur(v)} encaissés, rangés dans les paiements d’octobre.`); },
   lienPaiement(b){ const f = FACTURES.find(x => x.id === b.dataset.id); toast(`Lien de paiement par carte envoyé à ${esc(CLIENTS[f.cli].mail)}.`); },
   relance(b){ const f = FACTURES.find(x => x.id === b.dataset.id), c = CLIENTS[f.cli];
     ouvrirPanneau(`<h2>Relancer</h2><div class="carte" style="font-size:15px"><b>À :</b> ${esc(c.mail)}<br><b>Objet :</b> Rappel — facture ${f.num}<br><br>Bonjour,<br><br>Sauf erreur de notre part, la facture ${f.num} de ${eur(restant(f))}${f.st === 'retard' ? ', arrivée à échéance le ' + f.ech + ', n’est pas encore réglée' : ' est à régler avant le ' + f.ech}. Vous pouvez la payer par carte en un clic avec le lien ci-dessous, ou par virement.<br><br>Si le paiement est déjà parti, merci de ne pas tenir compte de ce message.<br><br>Bien à vous,<br>${ENTREPRISE.nom}</div><button type="button" class="btn large" data-action="relanceOk" data-id="${f.id}">Envoyer la relance</button>`); },
@@ -8678,6 +8701,7 @@ function payer(f, m, o){
   if (ROLE !== 'client' && !(peut('ventes', 'c') || peut('compta', 'm') || peut('inter', 'm'))) { droitsRefus('ventes', 'c', 'payer'); return; }
   o = o || {}; const v = Math.min(restant(f), o.montant || restant(f)); f.recu = (f.recu || 0) + v; f.st = f.recu >= ttcDe(f) - .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = m; f.paye = o.d || '31/10'; }
   ENCAISSEMENTS.unshift({ d:o.d || '31/10', h:o.h || hm(MAINT_MIN), cli:f.cli, fac:f.num, mode:m, ttc:v, tva:f.tva, photo:o.photo, preuve:o.photo ? undefined : undefined });
+  journalPaiement(f, v, m, ROLE === 'client' ? { qui:'client', action:'a payé en ligne' } : {});
   toast(`${eur(v)} encaissés par ${m.toLowerCase()} le ${o.d || '31/10'} à ${ENCAISSEMENTS[0].h}${f.st !== 'payee' && f.recu ? ' · reste ' + eur(restant(f)) : ''}.`); }
 
 document.addEventListener('click', ev => {
@@ -13651,7 +13675,7 @@ function oublierEcran(h){ OUBLI.push(h); }
 /* [12][13] un encaissement d'un clic se défait : le message propose « Annuler » (facture et ligne de paiement reviennent comme avant) */
 function encaisseAnnulable(f, av, e0, msg){
   const T = document.getElementById('toast'); if (msg == null) msg = T && T.firstElementChild ? T.firstElementChild.innerHTML : ''; if (!msg) return;
-  toast(msg, { lib:'Annuler', fn:() => { const k = ENCAISSEMENTS.indexOf(e0); if (k >= 0) ENCAISSEMENTS.splice(k, 1); f.recu = av.recu; f.st = av.st; f.mode = av.mode; f.paye = av.paye; rendre(); toast('Encaissement annulé.'); } });
+  toast(msg, { lib:'Annuler', fn:() => { const k = ENCAISSEMENTS.indexOf(e0); if (k >= 0) ENCAISSEMENTS.splice(k, 1); f.recu = av.recu; f.st = av.st; f.mode = av.mode; f.paye = av.paye; journalPaiement(f, e0.ttc, e0.mode, { action:'a annulé le paiement noté' }); rendre(); toast('Encaissement annulé.'); } });
 }
 /* Un double clic sur un bouton de panneau ou de fenêtre ne tombe pas sur ce que le premier clic vient de découvrir : « Valider et envoyer »
    ferme le panneau, et le 2ᵉ clic partait sur « Carte » de la fiche dessous, qui marquait la facture payée sans que personne ait payé
@@ -22193,6 +22217,7 @@ function opLiaPaiement(q){
   const d = /^\d{4}-\d{2}-\d{2}$/.test(q.date || '') ? q.date.slice(8) + '/' + q.date.slice(5, 7) : '31/10';
   f.recu = cpR((f.recu || 0) + v); f.st = restant(f) <= .01 ? 'payee' : f.st === 'retard' ? 'retard' : 'partielle'; if (f.st === 'payee') { f.mode = mode; f.paye = d; }
   ENCAISSEMENTS.unshift({ d, h:'—', cli:f.cli, fac:f.num, mode, ttc:cpR(v), tva:f.tva, preuve:'Enregistré par la Comptabilité · ' + mode.toLowerCase() });
+  journalPaiement(f, cpR(v), mode);
   try { rendre(); } catch (e) {} }
 /* « Voir dans la Comptabilité » : sur la fiche d'une facture, d'un client, d'une intervention, et un chemin vers la fenêtre depuis le quotidien */
 const CMPT_RUBRIQUES = { tva:['tva'], resultat:['resultat'], envoi:['clotures'], cloture:['clotures'], ecritures:['journaux', 1], balance:['balance', 1], grandlivre:['grand-livre', 1], normes:['controles', 1], archives:['fec', 1] };
