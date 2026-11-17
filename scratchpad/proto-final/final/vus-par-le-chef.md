@@ -75,11 +75,24 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       · Doutes du recontrôle, tranchés : une pièce hors contrat posée sur une visite comprise se facture SEULE (casse 2) ;
         le reste d'arrondi du prix d'une visite (1 000 € ÷ 6) est porté par la DERNIÈRE visite, pour que la somme fasse le prix
         du contrat au centime (casse 1) ; les casses 3, 4, 5 du recontrôle se corrigent.
-- [ ] **De nuit, le bouton principal ressort à peine (dessin, À SOUMETTRE À JUSTIN — ne rien changer sans lui)** — toute
-      l'application, captures du 17/11 (Véhicules, Fournisseurs, Dépôts) : de jour le bouton principal est noir et le secondaire
-      blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles (`--fill:#2c3d63` contre `--surf2` + filet).
-      Recommandation : de nuit, le principal en clair (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour — une
-      ligne de jetons, à essayer sur tous les écrans avant d'adopter (`--fill` sert aussi ailleurs : le recenser).
+- [ ] **De nuit, le bouton principal ressort à peine — DÉCIDÉ par le chef le 17/11 à 12 h 30, à APPLIQUER (nuit)** — ce n'est plus
+      « à soumettre » (mandat de Justin : « à toi de jouer » ; ce sera dit dans la liste finale, et c'est une ligne de jetons à défaire s'il
+      préfère l'ancien). Constat, captures du chef de 12 h 25 (Accueil, Véhicules, Mon entreprise, Dépôts et camions, de nuit) : de jour le
+      bouton principal est presque noir et le secondaire blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles
+      (`--fill:#2c3d63` contre `--surf2` + filet) : « Noter un plein » et « ＋ Nouveau véhicule » ne se distinguent plus, on ne trouve pas le
+      geste principal du premier regard. LA RÈGLE : le bouton principal porte la couleur de l'ENCRE du thème — presque noir le jour, presque
+      blanc la nuit (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour. MODE D'EMPLOI : (1) recenser TOUS les emplois de `--fill`
+      et `--on-fill` dans les quatre pages (30 dans le prototype, 2 dans la comptabilité ; la page des documents par `atelier/page.source`) et
+      des classes qui les lisent : ce qui n'est PAS un bouton d'action principal (pastille, onglet choisi, bulle, avatar, barre de progression,
+      compteur) garde sa couleur de nuit d'aujourd'hui, au besoin par un jeton à part (`--fill-doux`) ; seul le bouton principal et ses états
+      changent (survol, enfoncé ; le désactivé reste éteint ; le bouton rouge de danger ne change pas). (2) Le même bouton principal dans les
+      quatre pages et dans les fenêtres (feuilles, confirmations, connexion, OP Security, guide). (3) Captures de NUIT de toutes les rubriques
+      des quatre rôles sur mac, iphone et android (`cd scratchpad/proto-final/sondes && NUIT=1 QUI=marc,julie,sm PROFILS=mac,iphone,android
+      CAP=<dossier> node fumee-routes.js`, puis `QUI=client,kb`), plus les fenêtres principales (nouvelle intervention, devis rapide, fiche
+      client, feuille Menu, compositeur de devis, comptabilité), REGARDÉES une à une : aucun texte illisible, un seul bouton principal par
+      écran qui ressort, aucun secondaire devenu plus fort que lui, barre du bas et menu inchangés. (4) Contraste mesuré : texte du bouton
+      ≥ 4,5 ; bouton contre le fond de sa carte ≥ 3. (5) Le JOUR ne bouge pas d'un pixel : dix captures de jour comparées avant et après.
+      Si le résultat est moins beau que l'actuel sur une famille d'écrans, le dire avec les deux captures plutôt que de forcer.
 - [x] (artefact, restes tour 1 : commits efb2eed et 1e42f89 ; sonde artefact-voir-app.js 125 ✓ · 0 ✗, 17 mutations sur 17 ; les deux casses du recontrôle corrigées aussi ; voir `final/restes-artefact-tour1.json`) **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
       9 h 15. L'artefact s'ouvre en mode REVUE (la bande « Tester en tant que ») : c'est voulu, Justin y passe d'un rôle à
       l'autre d'un toucher. Mais tout ce qui n'existe qu'en mode APPLICATION (écran de connexion, OP Security, guide à la
