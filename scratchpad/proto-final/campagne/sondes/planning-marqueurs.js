@@ -19,4 +19,6 @@ const profil=process.argv[2]||'mac';
    const sel = await c.p.evaluate(()=>crSel); const ok = sel===id; if (ok) bons++; rapport.push({id, ok, sel, couvertPar:r.couvertPar, w:r.w});
    console.log((ok?'✓':'✗'), id, 'couvert par', r.couvertPar, '-> sélection', sel); }
  console.log(bons+'/'+ids.length, 'marqueurs ouvrent leur fiche au clic');
- await L.fermer(); })();
+ const pe = await c.p.evaluate(()=>{ const u=document.querySelector('.cr-mk.urg'); return u ? getComputedStyle(u,'::before').pointerEvents : 'aucun repère urgent'; });
+ console.log((pe==='none'?'✓':'✗')+' l’onde de l’urgence ne reçoit pas le toucher (pointer-events: '+pe+')');
+ await L.fermer(); process.exit(bons===ids.length && pe==='none' ? 0 : 1); })();

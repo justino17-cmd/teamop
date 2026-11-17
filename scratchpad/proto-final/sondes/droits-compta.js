@@ -3,13 +3,15 @@
 const { L, v, ouvrirComme, fin } = require('./droits-commun.js');
 const CATS = ['planif', 'inter', 'crm', 'ventes', 'compta', 'stock', 'temps', 'com', 'achats', 'admin'];
 const ECRIT = ['rappro-ok', 'rappro-pointer', 'tout-traiter', 'piece-ok', 'paie-valider', 'tva-declarer', 'ecr-supprimer', 'ecr-modifier', 'cloturer-envoyer', 'valider-tout', 'saisie-ok'];
-const LIRE = ['aller', 'expliquer', 'fermer', 'menu', 'film', 'piece', 'fec-dl'];
+const LIRE = ['aller', 'expliquer', 'fermer', 'menu', 'film', 'consigne-x', 'fec-dl'];   /* pas « piece » : sans identifiant, ouvrirPiece(undefined) jette dans la page, une erreur que seule la sonde fabrique */
 async function essai(c) {
-  await L.aller(c.p, 'comptabilite'); await L.calme(c.p, 1500);
-  const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) return null;
+  /* par la porte que prennent le menu et la recherche (cpSysAllerRubrique) : un simple aller() est une navigation programmée, qui ouvre la Comptabilité native et non sa fenêtre */
+  await c.p.evaluate(() => { fermerPanneau(); cpSysAllerRubrique('comptabilite'); }); await L.calme(c.p, 1500);
+  /* le cadre se crée après le rendu de la vue : sur une machine chargée il tarde (rejouer sur un délai, jamais conclure) */
+  let f = null; for (let i = 0; i < 40 && !f; i++) { f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) await c.p.waitForTimeout(500); } if (!f) return null;
   for (let i = 0; i < 20; i++) { const ok = await f.evaluate(() => !!window.CMPT_DROITS || window.CMPT_DROITS === null && document.readyState === 'complete'); if (ok) break; await c.p.waitForTimeout(300); }
   await c.p.waitForTimeout(600);
-  return f.evaluate(([E, R]) => { const toucher = a => { const b = document.createElement('button'); b.type = 'button'; b.dataset.a = a; document.body.appendChild(b); const n0 = window.CMPT_REFUS; let fire = 0; const w = () => { fire++; }; b.addEventListener('click', w); b.click(); b.remove(); return { fire, refus:window.CMPT_REFUS - n0 }; };
+  return f.evaluate(([E, R]) => { const toucher = a => { const b = document.createElement('button'); b.type = 'button'; b.dataset.a = a; document.body.appendChild(b); const n0 = window.CMPT_REFUS; let fire = 0; const w = ev => { fire++; ev.stopPropagation(); };   /* le témoin coupe la suite : sans identifiant, les vrais gestes (pointer, ouvrir une pièce) jetteraient dans la page, une erreur que seule la sonde fabrique */ b.addEventListener('click', w); b.click(); b.remove(); return { fire, refus:window.CMPT_REFUS - n0 }; };
     return { droits:window.CMPT_DROITS, ecrit:E.map(a => [a, toucher(a)]), lecture:R.map(a => [a, toucher(a)]), toast:(document.getElementById('toast') || {}).textContent || '' }; }, [ECRIT, LIRE]);
 }
 (async () => {
@@ -23,6 +25,6 @@ async function essai(c) {
   await L.fin(julie);
   const marc = await ouvrirComme('marc'); const m = await essai(marc);
   v('le gérant : rien n\'est refusé', !!m && m.ecrit.every(([, t]) => t.fire === 1 && t.refus === 0), m && m.ecrit.filter(([, t]) => t.refus));
-  v('aucune erreur de page', lect.err.length === 0 && julie.err.length === 0 && marc.err.length === 0, [lect.err.slice(0, 2)]);
+  v('aucune erreur de page', lect.err.length === 0 && julie.err.length === 0 && marc.err.length === 0, [lect.err.slice(0, 2), julie.err.slice(0, 2), marc.err.slice(0, 2)].map(l => l.map(e => String(e).slice(0, 160))));
   await L.fin(marc); await fin();
 })().catch(e => { console.error(e); process.exit(1); });

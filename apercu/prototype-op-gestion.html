@@ -4376,8 +4376,10 @@ function crMonter(el){
   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix(false);
   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; });
-  map.on('zoomend', () => crTracerReel());
+  /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
+     recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
+     sur leur voisin (planning-07, rejoué sur iPhone) */
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4387,8 +4389,11 @@ function crMonter(el){
   }
   crTracerReel();
 }
+/* la place prise en haut de la carte par la rangée de personnes (elle passe sur deux lignes sur un petit écran) : un repère ne doit pas s'y cacher,
+   sinon le toucher tombe sur la puce « Karim » (planning-07) */
+function crHautLibre(){ const ch = document.querySelector('#cr-carte .cr-chips'), z = document.getElementById('cr-lf'); if (!ch || !z) return 84; return Math.max(84, Math.round(ch.getBoundingClientRect().bottom - z.getBoundingClientRect().top + 26)); }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, crHautLibre()] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4413,8 +4418,10 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
-    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
+       que de laisser le repère sur son voisin */
+    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
@@ -11381,8 +11388,17 @@ Object.entries(GESTES).forEach(([f, E]) => { GESTES_TJ[f] = { c:gesteListe(E, 'c
 /* la catégorie de l'écran ouvert (une famille inconnue la prend) */
 const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[droitForme(eqDe(acteur()))] || T.equipe || T.terrain); return f && f[0] ? f[0].split('.')[0] : null; };
 /* la portée suit la FORME : sur l'écran d'un terrain, noter un paiement sur place ou envoyer le compte rendu est un geste de SA fiche d'intervention (inter › Modifier), pas celui d'un devis ou d'une facture du bureau */
-const gesteForme = g => g && g.cat === 'ventes' && droitForme(eqDe(acteur())) === 'terrain' ? { ...g, cat:'inter', x:'m' } : g;
-const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe));
+/* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
+const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
+/* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
+const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+const gesteForme = (g, fam, verbe) => {
+  if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
+  const B = TERRAIN_BUREAU[fam];
+  if (B && (B === '*' || B.has(verbe))) return { ...g, x:'b' };   /* réservé au bureau : aucune case ne l'ouvre à un terrain */
+  return g.cat === 'ventes' && TERRAIN_VENTES.has(fam + '|' + verbe) ? { ...g, cat:'inter', x:'m' } : g;
+};
+const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe), fam, verbe);
 function gesteBrut(fam, verbe){
   const E = GESTES[fam], T = GESTES_TJ[fam];
   if (E) {
@@ -11413,7 +11429,7 @@ let droitsRefusVu = 0;
 function droitsRefus(cat, x, fam, verbe){
   DROITS_REFUS.push({ cat, x, fam, verbe });
   const t = Date.now(); if (t - droitsRefusVu < 900) return; droitsRefusVu = t;
-  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
+  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'b' ? 'ce geste est réservé au bureau, il n’est pas sur l’écran d’un terrain' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
   return false;
 }
@@ -11460,7 +11476,7 @@ function droitsCss(p){
   p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
   const R = [];
   Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
-    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }, fam, v); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
     if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
   Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
   /* un bouton, un lien, une ligne : on ne le dessine pas. Un champ de saisie ou une case : on le FIGE (sa valeur reste lisible, rien ne s'écrit : la garde rend la valeur d'avant) */
@@ -24049,12 +24065,12 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-pastille{display:none}
 @media (max-width:1099px){
   #opsec .ops-rond{display:none}
-  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:rgba(5,8,14,.96);align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
+  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:#05080f;/* OPAQUE : à 96 % le texte de l'écran de connexion et sa pastille transparaissaient sous le téléphone (mesuré sur iPad en portrait) */align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
   #opsec .ops-tete{width:min(340px,100%);flex:none}#opsec .ops-qui{color:#cfd9ea}#opsec .ops-cacher{display:none}
   #opsec .ops-revenir{display:block;min-height:48px;flex:1 1 100%;background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-qui select{background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-cadre{width:320px;max-width:100%;height:min(640px,calc(100dvh - 170px));min-height:440px}
-  #opsec .sec-demo{width:min(340px,100%);flex:none}
+  #opsec .sec-demo{width:min(340px,100%);flex:none;--surf:#0f1b30;--encre:#eef3fb;--doux:#aebcd4;--trait:#24365a;--trait2:#3a4f78;--lien:#7aa2ff;--vert:#8fe0ad;--rouge:#ff8f95;background:#0f1b30;color:#eef3fb}   /* le bloc « Démonstration » est posé sur le fond sombre du téléphone : ses couleurs le sont aussi, de jour comme de nuit */
   .ops-pastille{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:14px;border:1px solid #3a4f78;background:#0b1422;color:#eef3fb;font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:0 16px}
   .ops-pastille::before{content:"📱"}
 }
@@ -24062,7 +24078,9 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
   #opsec .ops-cadre{width:100%;max-width:none;border:0;border-radius:0;height:auto;min-height:calc(100dvh - 190px)}
   #opsec .ops-encoche{display:none}
   #opsec .ops-ecran{min-height:calc(100dvh - 190px)}
-  #opsec .ops-tete{width:100%}#opsec .sec-demo{width:100%}
+  /* vue plein écran : l'écran du téléphone remplit la fenêtre de bord à bord, sur un fond OPAQUE (à 96 % le logo de l'écran de connexion transparaissait en filigrane sous la barre du haut) */
+  #opsec[data-ouvert] .ops-fenetre{padding-left:0;padding-right:0}
+  #opsec .ops-tete{width:100%;padding:0 14px;box-sizing:border-box}#opsec .sec-demo{width:calc(100% - 28px)}
 }
 /* le bloc « Démonstration » : le seul endroit où paraissent un mot de passe provisoire, les cases « autre ordinateur » et les boutons de simulation */
 .sec-demo{border-radius:16px;border:1px dashed var(--trait2);background:var(--surf,#fff);color:var(--encre);font-size:14px}
@@ -24095,6 +24113,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
 .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
 .cn-col .ops-pastille{max-width:420px}
+#cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
 @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
 </style>`);
 /* ══ OP SECURITY · LA DOUBLE AUTHENTIFICATION, ÉTAPE 2 · 17 novembre 2026 ══
@@ -24173,7 +24192,7 @@ const secuHHMM = t => { const d = new Date(t); return String(d.getHours()).padSt
 const secuJJMM = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
 function secuQuand(t){ const n = secuMaint(), a = new Date(n), j = new Date(t), m = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime(), j0 = new Date(j.getFullYear(), j.getMonth(), j.getDate()).getTime();
   return (j0 === m ? 'aujourd’hui' : j0 === m - 86400000 ? 'hier' : 'le ' + secuJJMM(t)) + ' à ' + secuHHMM(t); }
-const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
+const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + '\u00a0min\u00a0' + String(s % 60).padStart(2, '0') + '\u00a0s' : s + '\u00a0s'; };   /* insécables : « 59 » seul sur une ligne, puis « s » seul, à 320 px */
 /* un nom saisi par une personne passe par esc() à l'écran et refuse < > " à la saisie ; il est borné */
 const secuNomPropre = (t, max) => String(t || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, max || 60);
 const secuNomAppareil = k => SECU_DEPART.appareils[k] || ('Téléphone de ' + ((eqDe(k) || {}).prenom || 'toi'));
@@ -24447,7 +24466,14 @@ function secuTicDemarrer(){ if (SECU_TIC) return; SECU_TIC = setInterval(secuTic
 function opsSig(k){ const c = secuCompte(k), u = secuUi(k), now = secuMaint();
   return [u.ecran, u.pin.length, u.err, u.info, u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? u.retour.txt : '', u.blocage, u.supprimer, SECU.horsLigne, !!c.tel, c.tel && c.tel.efface, c.histo.length,
     SECU.pc.ecran === 'activer' && SECU.pc.k === k, SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)).map(d => d.id).join(',')].join('|'); }
-function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante);
+/* le bouton rond (52 px) ne recouvre JAMAIS une cible de l'écran : s'il en recouvrirait une, il monte ou se range à gauche d'un cran (jamais la page : aucun rembourrage). Il garde sa place tant qu'elle est libre. */
+const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76], [76, 136], [136, 16], [136, 76]];
+function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
+  const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
+  const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
+  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
+  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
   document.querySelectorAll('[data-sec="expire"][data-fin]').forEach(e => { const r = parseInt(e.dataset.fin, 10) - now; if (r > 0) e.textContent = e.dataset.pre + secuDuree(r); });
