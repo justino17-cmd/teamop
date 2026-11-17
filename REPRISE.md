@@ -210,6 +210,10 @@ plan d'une page et l'installeur éprouvé sur un jumeau ; le transfert réel dé
 ses gestes (il lance l'installeur, il règle les adresses) ; (6) ⛔ aucun geste sur ses serveurs ni en production sans sa phrase
 pour CE geste — inchangé. Ensuite seulement : chantier A (prototype : tout retester, « tout ce que je t'ai demandé par rapport à
 l'application ») et chantier B (sécurité, OP Security, clés d'accès), joués sur NOS machines.
+**Vu sur sa capture de 17 h 20 (page « Trouvez votre produit » d'IONOS, rubrique « Serveurs et Cloud »)** : trois familles — « vServer
+(VPS) » (annoncé : 1 Gbit/s de bande passante, trafic illimité, disponibilité 99,99 %), « Serveur Dédié », « Backup Cloud ». Dit à
+Justin : ouvrir « VPS Linux », envoyer la capture de la LISTE des offres (cœurs, mémoire, disque, prix après la promotion, durée
+d'engagement), ne rien commander avant qu'on lui dise la ligne ; pas de serveur dédié ni de Backup Cloud pour l'instant.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
