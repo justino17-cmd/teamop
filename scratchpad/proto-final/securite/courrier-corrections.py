@@ -7,6 +7,7 @@ import os, sys, shutil, subprocess
 ICI = os.path.dirname(os.path.abspath(__file__))
 DEPOT = os.path.abspath(os.path.join(ICI, '..', '..', '..'))
 COPIE = os.environ.get('OPG_COPIE', '/tmp/opg-courrier-copie')
+SANS = [x for x in os.environ.get('OPG_SANS', '').split(',') if x]   # contre-épreuve : « sans courrier-01 » → la copie garde CE défaut, la sonde correspondante doit retomber (le .diff n'est alors pas écrit)
 APERCU = os.path.join(DEPOT, 'apercu')
 
 # (page, libellé, ancien, nouveau, nombre d'occurrences attendu)
@@ -41,10 +42,19 @@ CORRECTIFS = [
   "m(l.cr), '', '', CP.envoye ? dt(CP.envoye) : '', '', ''].map(net).join('\\t')", "m(l.cr), '', '', CP.envoye ? dt(CP.envoye) : '', '', ''].map((v, i) => [5, 7, 8, 10].includes(i) ? net(v).replace(/^[=+\\-@]/, \"'$&\") : net(v)).join('\\t')", 1),
  ('prototype-comptabilite.html', 'courrier-05c : le FEC de la Comptabilité neutralise les mêmes colonnes',
   "l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map(net)));", "l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map((v, i) => [5, 7, 8, 10].includes(i) ? net(v).replace(/^[=+\\-@]/, \"'$&\") : net(v))));", 1),
+ # courrier-07 : un lien dont l'adresse est en lettres non latines s'écrit sous sa forme réelle (xn--…), pas sous son aspect
+ ('prototype-courrier.js', 'courrier-07 : corpsLu écrit l\'adresse réelle d\'un lien en lettres non latines (punycode)',
+  "return '<a class=\"rlien\" href=\"'+u+'\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">'+u+'</a>'+fin; });",
+  "return '<a class=\"rlien\" href=\"'+u+'\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">'+adresseVue(u)+'</a>'+fin; });", 1),
+ ('prototype-courrier.js', 'courrier-07c : un lien qui porte des identifiants dans son adresse (https://impots.gouv.fr@evil.example/) n\'est pas rendu cliquable',
+  "if(!/^https?:\\/\\/./.test(u)) return u+fin;", "if(!/^https?:\\/\\/./.test(u)||/^https?:\\/\\/[^\\/?#]*@/i.test(u)) return u+fin;", 1),
+ ('prototype-courrier.js', 'courrier-07b : adresseVue()',
+  "function corpsLu(s,liens){",
+  "/* un lien se lit tel qu'il s'ouvre : « аррӏе.com » en lettres cyrilliques ressemble à « apple.com », on écrit donc sa forme réelle (xn--…) quand l'adresse n'est pas en lettres latines */\n  function adresseVue(u){ var m=/^(https?:\\/\\/)([^\\/?#]*)/i.exec(u); if(!m||!/[^\\x00-\\x7f]/.test(m[2])) return u; try{ return m[1]+new URL(m[1]+m[2]).host+u.slice(m[0].length); }catch(e){ return u; } }\n  function corpsLu(s,liens){", 1),
  # courrier-06 : l'import de catalogue borne ce qu'il accepte
- ('prototype-op-gestion.html', 'courrier-06a : la désignation, la référence et l\'unité d\'une ligne de fichier sont bornées et sans formule',
+ ('prototype-op-gestion.html', 'courrier-06a : la désignation, la référence, le code-barres et l\'unité d\'une ligne de fichier sont bornés, sans balise ni formule ; l\'unité est une LISTE de ce qui est permis',
   "rows.forEach((r, i) => { const nom = m.nom != null ? String(r[m.nom] || '').trim() : ''; if (!nom) return;\n    const ref = m.ref != null ? String(r[m.ref] || '').trim() : '', ean = m.ean != null ? String(r[m.ean] || '').trim() : '', u = m.u != null ? String(r[m.u] || '').trim() : '';",
-  "const propre = (t, n) => String(t || '').replace(/[\\u0000-\\u001f\\u007f\\u202a-\\u202e\\u2066-\\u2069]/g, ' ').trim().replace(/^[=+\\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans formule de tableur en tête */\n  rows.forEach((r, i) => { const nom = m.nom != null ? propre(r[m.nom], 200) : ''; if (!nom) return;\n    const ref = m.ref != null ? propre(r[m.ref], 40) : '', ean = m.ean != null ? propre(r[m.ean], 20) : '', u = m.u != null ? propre(r[m.u], 12) : '';", 1),
+  "const propre = (t, n) => String(t || '').replace(/[<>\\u0000-\\u001f\\u007f\\u202a-\\u202e\\u2066-\\u2069]/g, ' ').trim().replace(/^[=+\\-@]+/, '').slice(0, n);   /* un fichier venu d'un tiers : bornée, sans balise, sans formule de tableur en tête */\n  const unite = t => { const x = String(t || '').trim(); return /^[\\p{L}\\p{N}\\/².³°µ%. -]{1,12}$/u.test(x) ? x : ''; };   /* l'unité : une liste de ce qui est permis, jamais de ce qui est interdit */\n  rows.forEach((r, i) => { const nom = m.nom != null ? propre(r[m.nom], 200) : ''; if (!nom) return;\n    const ref = m.ref != null ? propre(r[m.ref], 40) : '', ean = m.ean != null ? propre(r[m.ean], 20) : '', u = m.u != null ? unite(r[m.u]) : '';", 1),
  ('prototype-op-gestion.html', 'courrier-06b : un prix absurde (> 1 000 000 €) est refusé',
   "if (pa == null || pa <= 0) return;\n    const vivants", "if (pa == null || pa <= 0 || pa > 1e6) return;\n    const vivants", 1),
 ]
@@ -61,11 +71,13 @@ def main():
         os.symlink(os.path.join(APERCU, e), os.path.join(COPIE, 'apercu', e))
     textes = {p: lire(os.path.join(APERCU, p)) for p in pages}
     for page, lib, ancien, nouveau, n in CORRECTIFS:
+        if any(lib.startswith(x) for x in SANS): print('— laissé tel quel :', lib); continue
         k = textes[page].count(ancien)
         if k != n:
             print('✗ %s : « %s » trouvé %d fois, attendu %d' % (lib, ancien[:70], k, n)); sys.exit(1)
         textes[page] = textes[page].replace(ancien, nouveau); print('✓', lib, '(%d)' % k)
     for p, t in textes.items(): open(os.path.join(COPIE, 'apercu', p), 'w', encoding='utf8').write(t)
+    if SANS: print('copie avec défauts remis :', COPIE); return
     # le diff (git apply le rejoue depuis la racine du dépôt)
     sortie = []
     for p in pages:
