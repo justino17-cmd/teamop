@@ -151,3 +151,27 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         « Rembourser 500,00 € à <client> » (une ligne à l'Historique) ; une facture payée puis annulée se lit « Payée · avoir
         AV-… » dans la fenêtre ; une facture faite à la main prend la TVA par la MÊME fonction que le devis (un particulier
         n'est jamais étiqueté « client professionnel ») ; « Plus bas » et le menu de la fenêtre à 44 px au doigt, iPad compris.
+- [x] (chef de chantier, 17/11 à 10 h 30, corrigé par lui-même) **Les treize polices du compositeur avaient disparu (securite, compositeur)**
+      — la correction S18 de l'audit de sécurité avait retiré la feuille de polices Google de `atelier/page.source` : les treize
+      polices proposées retombaient sur deux polices de l'appareil, donc choisir une police ne changeait plus rien, sur un écran
+      validé par Justin. DÉCISION : dans le prototype la feuille RESTE (remise dans `page.source`, page refabriquée), et la
+      politique de contenu de CETTE page admet ses deux hôtes (`fabriquer.sh` : fonts.googleapis.com pour la feuille,
+      fonts.gstatic.com pour les fichiers). La règle de S18 vaut pour la VRAIE application : les polices s'y serviront depuis
+      notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
+      (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
+      ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
+- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+      · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
+        (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
+        ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
+      · **Garantie** : avant comme après « Terminer », la fiche (technicienne et bureau) dit « Garantie : rien à encaisser,
+        aucune facture » à la place du bloc « Paiement sur place » ; plus de « Payé en totalité », d'« Acompte versé » ni de
+        « la facture lui sera envoyée ».
+      · **05** : la note « ton compte ne peut pas créer, demande à Marc » ne s'écrit sur AUCUN écran de terrain du technicien
+        (Ma journée, sa fiche d'intervention) ; la campagne Technicien l'a retirée de quatre écrans : vérifier la fiche.
+      · **iPad** : le filtre « Toutes » de la liste se voit sans défiler (libellés plus courts ou retour à la ligne, comme au
+        téléphone) ; règle du dépôt : ce qu'on ne voit pas n'existe pas.
+      · Détails du recontrôle : « Voir dans Tâches › » et la case « Seulement les techniciens du secteur » à 44 px au doigt ;
+        au téléphone « Date à fixer » en gras à la place du tiret ; un relevé n'accepte qu'un nombre (avec virgule) ; un
+        téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
+        forfait de création.

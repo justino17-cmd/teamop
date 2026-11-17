@@ -28,7 +28,7 @@ const ATTENDU = [
   if (c.doigt) v('champs : aucun sous 16 px', (await L.doigts(c.p)).champs.length === 0, (await L.doigts(c.p)).champs);
   for (const x of g) {
     bilan.recenses++; const s = E.sel(x); if (!s) { bilan.intouchables.push(x.lib + ' (sans data)'); continue; }
-    await L.aller(c.p, 'equipe'); await c.p.evaluate(() => { eqFiltre = 'tous'; rendre(); }); await E.ranger(c);
+    await L.aller(c.p, 'equipe'); await c.p.evaluate(() => { eqFiltre = 'tous'; rendre(); }); await E.ranger(c); await c.p.evaluate(() => window.scrollTo(0, 0)); await L.calme(c.p, 150);
     const a = await E.obs(c.p); const actif = /^data-eq=filtre\|tous/.test(x.data); const ok = await L.toucher(c, s, { delai:3500 });
     if (!ok) { bilan.intouchables.push(x.data + ' (non atteint au ' + (c.doigt ? 'doigt' : 'clic') + ')'); v(`« ${x.lib.slice(0, 30)} » (${x.data.split(' ')[0]}) : atteint`, false, 'cible non touchée'); continue; }
     bilan.touches++; const b = await E.obs(c.p); const ch = L.change(a, b);
