@@ -58,7 +58,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   const rangee = () => p.evaluate(() => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
   await L.toucher(c, '.seg [data-dvf="tous"]');
   let R = await rangee();
-  v('Tous : le devis composé est dans « Composés dans l\'atelier » (1 ligne de plus)', R.length === avant.liste + 1, R);
+  v('Tous : le devis composé est dans « Devis composés » (1 ligne de plus)', R.length === avant.liste + 1, R);
   const ligne = R.find(t => /D-2026-0\d\d/.test(t)) || '';
   v('la ligne dit numéro, client, objet (sans le client répété), date, TTC et état', /D-2026-042/.test(ligne) && /Hôtel de la Plage/.test(ligne) && /Remplacement de deux anodes/.test(ligne) && !/ — Hôtel/.test(ligne) && /préparé le 31\/10/.test(ligne) && L.cents(await p.locator('#contenu .opd-l .dv-m b').first().textContent()) === attendu && /À envoyer/.test(ligne), ligne);   // mêmes mots que les autres devis (tout-11)
   const k1 = await p.evaluate(() => [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => ({ b: k.querySelector('b').textContent, s: k.querySelector('span').textContent })));
