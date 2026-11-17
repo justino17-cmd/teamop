@@ -1,1 +1,82 @@
-{ "partie": "achats", "etat": "en cours (1/n) : sondes rejouées, rapport complété au fil de l'eau", "ecrans": [], "couverture": {}, "nonCouvert": [], "defauts": [] }
+{
+ "partie": "achats",
+ "etat": "campagne en cours (17 novembre 2026) : sondes rejouées, rapport complété au fil de l'eau",
+ "ecrans": [
+  {
+   "nom": "Achats et frais (gérant, secrétariat en lecture seule)",
+   "fonction": "vueAchats (page.html ~19749)",
+   "acces": "menu Argent › Achats et frais ; #achats ; cloche et « À faire maintenant » de l'accueil ; Tâches › propositions"
+  },
+  {
+   "nom": "Achats et frais › Demandes de matériel",
+   "fonction": "acDemandes, axDemCarte, axAcheterLigne, axDemDecidee",
+   "acces": "onglet « Demandes de matériel » ou tuile « demandes à décider »"
+  },
+  {
+   "nom": "Achats et frais › Notes de frais",
+   "fonction": "acNotes, axNoteLigne",
+   "acces": "onglet « Notes de frais » ou tuile « notes à valider »"
+  },
+  {
+   "nom": "Mes frais (technicien, chef d'équipe)",
+   "fonction": "vueTechFrais",
+   "acces": "menu « Mes frais » ; barre du bas « Frais » ; carte « Il me faut du matériel » de Ma journée"
+  },
+  {
+   "nom": "Fenêtres",
+   "fonction": "axDemForm (Il me faut… / Noter une demande reçue), axPrecForm, refus de demande (data-ac refuser), axBudget, axTickForm (ticket d'achat en magasin), axNdfForm (note de frais), fiche note (axa fiche), axRefusNote, valider sans ticket (ndfsans), axToutValiderPanneau, tarif km (kmtarif), Comment ça marche (achatsAide), commande brouillon après transfert",
+   "acces": "boutons des écrans ci-dessus"
+  },
+  {
+   "nom": "Liaisons",
+   "fonction": "Stock/Dépôts (transfert), Fournisseurs › commandes (brouillon), Comptabilité › Factures & dépenses et Notes de frais, Temps de travail › Mois (paie), Tâches, Accueil, Historique",
+   "acces": "liens et messages des écrans ci-dessus"
+  }
+ ],
+ "couverture": {
+  "ecrans": 6,
+  "gestesRecenses": {
+   "gerant_mac_demandes": 26,
+   "gerant_mac_notes": 28,
+   "gerant_iphone_demandes": 28,
+   "gerant_iphone_notes": 30,
+   "technicien_mac": 5,
+   "technicien_iphone": 7
+  },
+  "gestesTouches": "tous (26/26, 28/28, 28/28, 30/30, 5/5, 7/7) : chacun fait quelque chose, toute fenêtre s'ferme par Échap",
+  "parcours": [
+   "P1 le technicien demande (formulaire, refus de quantité, double toucher, valeurs longues)",
+   "P2 le gérant voit arriver la demande (compteurs, cloche)",
+   "P3 transférer depuis l'atelier + commande du reste",
+   "P4 achat en magasin puis ticket du technicien (HT au centime, immobilisation > 500 €)",
+   "P5 refus motivé",
+   "P6 demander une précision",
+   "P7 annuler / Annuler",
+   "N1-N4 note de frais avec ticket, sans ticket, kilomètres, doublon",
+   "N5-N6 le gérant valide : écriture 625, HT, TVA, Annuler",
+   "N7 valider sans ticket (trace)",
+   "N8 refuser, le technicien corrige",
+   "N9 Tout valider / Annuler",
+   "N10 refacturer au client",
+   "N11 remboursement avec la paie",
+   "rôles (gérant, secrétariat, chef d'équipe, technicienne)",
+   "liaisons : Tâches, accueil, menu, Stock, commande, Comptabilité, paie, Historique"
+  ],
+  "profils": [
+   "mac (jour)",
+   "iphone (jour)",
+   "petit 320 (nuit)",
+   "ipad (jour)",
+   "android (nuit)",
+   "windows (nuit)",
+   "mac (nuit)"
+  ]
+ },
+ "nonCouvert": [
+  "L'envoi réel de la paie au cabinet (étapes verrouiller / envoyer de « La paie d'octobre ») : le passage des notes à « remboursée » n'a été lu que dans le code (paieEnvoyer) ; zone refonte (Temps de travail).",
+  "Les droits d'Équipe (cases Achats et frais pour un rôle) : en cours de refonte par un autre agent ; seul l'état actuel (gérant, secrétariat en lecture seule, techniciens sans la rubrique) est mesuré.",
+  "Le client (espace client) : aucune relation avec Achats et frais.",
+  "Windows et Android en jour, iPad en nuit : seuls les croisements jour/nuit × profil listés ci-dessus sont joués."
+ ],
+ "defauts": []
+}
