@@ -26183,7 +26183,7 @@ function nvOuvrir(){ if (!SESSION || !nvRole()) return false; fermerPanneau(); f
   NV = { pages:nvPages(), i:0 };
   document.body.insertAdjacentHTML('beforeend', `<div id="nv" role="dialog" aria-modal="true" aria-label="Nouveautés de cette version"><div class="nv-feuille"></div></div>`);
   const z = document.getElementById('nv'); z.querySelector('.nv-feuille').innerHTML = nvHtml();
-  z.querySelector('.nv-defile').addEventListener('scroll', () => { cancelAnimationFrame(NV.raf); NV.raf = requestAnimationFrame(nvSync); }, { passive:true });
+  z.querySelector('.nv-defile').addEventListener('scroll', () => { if (!NV) return; cancelAnimationFrame(NV.raf); NV.raf = requestAnimationFrame(nvSync); }, { passive:true });   /* NV vaut null pendant le fondu de fermeture : un défilement tardif ne doit rien jeter */
   nvSync(); nvMarquer(); const b = z.querySelector('.nv-carte .nv-voir'); if (b && !nvEtroit()) b.focus({ preventScroll:true }); return true; }
 function nvFermer(vite){ const z = document.getElementById('nv'); if (!z) return; nvMarquer(); NV = null; if (vite) { z.remove(); return; } z.classList.add('part'); setTimeout(() => z.remove(), 220); }
 const nvVu = () => { if (NV_MEM.has(SESSION)) return true; try { return localStorage.getItem(NV_CLE + SESSION) === NV_VERSION; } catch (e) { return false; } };
@@ -26280,6 +26280,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
 if (MODE_APP) {
   /* la proposer : dès que la session est ouverte par l'écran de connexion (pas pour une fenêtre de plus, pas pour les sondes en ?auto=) */
   { const s1 = sessionOuvrir; sessionOuvrir = function(){ const v = s1.apply(this, arguments); if (v && !sessionOuvrir.muet && (!/[?&]auto=/.test(location.search) || /[?&]guide=1\b/.test(location.search))) setTimeout(nvProposer, 900); return v; }; }   /* « &guide=1 » : une sonde qui entre par ?auto= veut voir le guide paraître comme à une vraie première connexion (lib.ouvrir({ guide:true })) */
+  if (/[?&]guide=1\b/.test(location.search) && SESSION) setTimeout(nvProposer, 900);   /* la session ?auto= est ouverte AVANT que ce crochet existe : on la propose ici */
   if (/[?&]nv=1\b/.test(location.search)) setTimeout(() => { try { localStorage.removeItem(NV_CLE + SESSION); } catch (e) {} NV_MEM.delete(SESSION); nvOuvrir(); }, 700);
 }
 /* ── l'application sur iPhone : la barre et les gestes · 12 novembre 2026 ──
