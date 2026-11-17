@@ -75,7 +75,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       · Doutes du recontrôle, tranchés : une pièce hors contrat posée sur une visite comprise se facture SEULE (casse 2) ;
         le reste d'arrondi du prix d'une visite (1 000 € ÷ 6) est porté par la DERNIÈRE visite, pour que la somme fasse le prix
         du contrat au centime (casse 1) ; les casses 3, 4, 5 du recontrôle se corrigent.
-- [ ] **De nuit, le bouton principal ressort à peine — DÉCIDÉ par le chef le 17/11 à 12 h 30, à APPLIQUER (nuit)** — ce n'est plus
+- [x] (nuit, 17/11 : fait, voir `final/restes-nuit-tour1.json` ; sondes nuit-bouton-principal 438 ✓, nuit-fenetres 63 ✓, jour intact 22 captures, 5 mutations sur 5 ; le doute des pages paiement et documents, qui gardent leur bleu, est noté dans le rapport) **De nuit, le bouton principal ressort à peine — DÉCIDÉ par le chef le 17/11 à 12 h 30, à APPLIQUER (nuit)** — ce n'est plus
       « à soumettre » (mandat de Justin : « à toi de jouer » ; ce sera dit dans la liste finale, et c'est une ligne de jetons à défaire s'il
       préfère l'ancien). Constat, captures du chef de 12 h 25 (Accueil, Véhicules, Mon entreprise, Dépôts et camions, de nuit) : de jour le
       bouton principal est presque noir et le secondaire blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles
@@ -111,7 +111,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un cadre voisin sans pont retombe sur le LIEN de téléchargement avec la phrase honnête (« téléchargement demandé ; s'il
         ne démarre pas, ton navigateur le bloque »), comme la page du haut — le texte à copier reste le dernier recours ; et
         chaque `history.replaceState` nu prend son `try` (sept lignes citées).
-- [ ] **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
+- [x] (artefact, restes tour 2 : `donneesPourPont` dans la page principale, `blobPourPont` dans l'atelier, le FEC reste une chaîne ; sondes `restes-artefact-tour2.js` 32 ✓ · 0 ✗, bac `strict`, voir `final/restes-artefact-tour2.json`) **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
       (`downloads.d.ts` 0.2.96 : `data: string | Blob | ArrayBuffer | ArrayBufferView`). Un Blob ou un ArrayBuffer né dans le
       cadre de l'atelier ou de la Comptabilité n'est PAS un « instanceof Blob / ArrayBuffer » de la page du haut, là où vit
       `window.claude` : si le pont teste le type, il répond `bad_request` et rien ne s'enregistre (le doute du recontrôle).

@@ -20,6 +20,7 @@ exports.REGLES = [
   { id: 'jargon', pourquoi: 'un mot de développeur ou de l’anglais que l’artisan ne dit pas', re: new RegExp(mot + '(synchro\\w*|token|dashboard|workflow|ID|login|logout|reset|payload|callback|timeout|debug|offline|online|backup|upload|download|template|checklist|feedback|plugin|widget|popup|pop-up|OK|KO|module|statut|statuts|serveur)' + fin, 'u') },
   { id: 'abreviation', pourquoi: 'une abréviation que personne ne dit', re: new RegExp(mot + '(int\\.|[Rr]ègl\\.|Nb|nbre)' + fin, 'u') },
   { id: 'deux-mots-courriel', pourquoi: 'un seul mot pour un message électronique : « e-mail »', re: new RegExp(mot + '(courriels?|emails?)' + fin, 'iu') },
+  { id: 'effacer', pourquoi: 'un seul mot pour faire disparaître une donnée : supprimer (« effacer une signature » reste : on gomme un dessin)', re: new RegExp(mot + 'effa(c|ç)\\w*(?![^.]*signature)', 'iu') },
   { id: 'apostrophe-droite', pourquoi: 'typographie française : l’apostrophe est courbe (’)', re: /\p{L}'\p{L}/u },
   { id: 'guillemets-droits', pourquoi: 'typographie française : « guillemets »', re: /"/ },
   { id: 'trois-points', pourquoi: 'typographie : le caractère « … », pas trois points', re: /\.\.\./ },
