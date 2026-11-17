@@ -101,5 +101,27 @@ const RVB = t => { const m = String(t).match(/[\d.]+/g); if (!m) return null; co
     await L.fin(c); }
 
   }
+  // 7. PLANNING, Mois au téléphone : le bilan « Le mois d'octobre 2026 · qui a travaillé » vit dans la rangée qui défile de côté (calée sur
+  //    aujourd'hui) ; il partait à −467 px avec la grille et ne laissait qu'un bloc blanc. Il doit rester dans l'écran.
+  if (sec('7')) { for (const profil of ['iphone', 'android', 'petit']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await L.aller(c.p, 'planning'); await c.p.evaluate(() => document.querySelector('[data-plvue=mois]').click()); await L.calme(c.p, 900);
+    const r = await c.p.evaluate(() => { const d = document.querySelector('.pl-defile'), b = d && d.querySelector('.pl-mrec'); if (!d || !b) return null; const x = b.getBoundingClientRect(); return { gauche: Math.round(x.left), droite: Math.round(x.right), defile: Math.round(d.scrollLeft), largeur: innerWidth }; });
+    v(`planning mois ${profil} : le bilan du mois est trouvé, et la grille a bien défilé (population : défilement > 0)`, !!r && r.defile > 0, r);
+    if (r) v(`planning mois ${profil} : le bilan du mois reste dans l'écran`, r.gauche >= 0 && r.droite <= r.largeur, r);
+    await L.fin(c); } }
+  // 8. FICHE D'INTERVENTION, nom de client LONG : le lien du nom passait sur deux lignes CENTRÉES (un bouton centre son texte) au milieu d'une page alignée à gauche.
+  if (sec('8')) { const c = await L.ouvrir({ profil: 'iphone', qui: 'marc' });
+    await c.p.evaluate(() => { Object.values(CLIENTS).forEach(x => { x.nom = 'Résidence Les Terrasses de la Grande Plage et du Vieux Port'; }); }); await L.aller(c.p, 'inter-x-i1');
+    const r = await c.p.evaluate(() => { const b = document.querySelector('#contenu .tete .lien'); if (!b) return null; const lh = parseFloat(getComputedStyle(b).lineHeight) || 20; return { align: getComputedStyle(b).textAlign, lignes: Math.round(b.getBoundingClientRect().height / lh) }; });
+    v('fiche : le nom du client est trouvé et passe sur plusieurs lignes (population)', !!r && r.lignes >= 2, r);
+    if (r) v('fiche : ses lignes sont alignées à gauche, comme le reste de la page', r.align === 'left' || r.align === 'start', r);
+    await L.fin(c); }
+  // 9. TÂCHES, le menu « Équipe » (381–760 px) : 2 px de marge à droite, le mot touchait la flèche. Il garde de quoi loger la flèche (≥ 16 px) et le mot tient.
+  if (sec('9')) { const c = await L.ouvrir({ profil: 'iphone', qui: 'marc' }); await L.aller(c.p, 'taches');
+    const r = await c.p.evaluate(() => { const s = document.querySelector('#contenu select.t-pour'); if (!s || !s.offsetParent) return null; const cs = getComputedStyle(s), cv = document.createElement('canvas').getContext('2d'); cv.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      return { mot: s.options[s.selectedIndex].text, texte: Math.round(cv.measureText(s.options[s.selectedIndex].text).width), dispo: Math.round(s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)), droite: parseFloat(cs.paddingRight) }; });
+    v('tâches iphone : le menu « Équipe » est trouvé (population)', !!r, r);
+    if (r) { v('tâches iphone : le mot tient à côté de la flèche native (≈ 14 px dans la boîte) avec 4 px d\'air', r.texte + 18 <= r.dispo, r); }
+    await L.fin(c); }
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
