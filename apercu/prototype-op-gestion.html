@@ -964,7 +964,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 /* ── registre ── */
 .rg-fl{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--trait);flex-wrap:wrap}
 .rg-fl>.fo-n{flex:1 1 240px}
-.rg-tab{display:flex;flex-direction:column}
+.rg-tab{display:flex;flex-direction:column;container:rgtab / inline-size}
 .rg-tr{display:grid;grid-template-columns:minmax(0,1.6fr) 110px 100px minmax(0,1.2fr) minmax(0,1.1fr) minmax(0,1fr);gap:10px;padding:10px 6px;border:0;border-top:1px solid var(--trait);font-size:14.5px;align-items:center;text-align:left;width:100%;background:none;color:var(--encre);font-family:inherit}
 .rg-tr.st{padding:3px 10px}
 .rg-th{border-top:0;font-size:12px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.03em}
@@ -1019,6 +1019,15 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   .rg-ligne>.ve-rt{color:var(--rouge)}.rg-ligne>.ve-vt{color:var(--vert)}.rg-ligne>.ve-ot{color:var(--orange)}
   .rg-qr{width:min(184px,100%)}
   .rg-filtre .saisie{flex-basis:100%}
+}
+/* « Tous les sites » : c'est la largeur de la LISTE qui décide, pas celle de l'écran — sur iPad portrait (820) le menu latéral en prend 272, la colonne n'en garde que 500 et le tableau à six colonnes sortait de 38 px (en-têtes coupés, page qui glisse de côté). Sous 760 px de liste il devient une liste de cartes, comme au téléphone. */
+@container rgtab (max-width:760px){
+  .rg-th{display:none}
+  .rg-tr{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}
+  .rg-ligne>span:nth-child(2),.rg-ligne>span:nth-child(4),.rg-ligne>span:nth-child(5),.rg-ligne>span:nth-child(6){grid-column:1/-1;font-size:13.5px;color:var(--doux)}
+  .rg-ligne>span:nth-child(2)::before,.rg-ligne>span:nth-child(4)::before,.rg-ligne>span:nth-child(5)::before,.rg-ligne>span:nth-child(6)::before{content:attr(data-l)}
+  .rg-ligne>span:nth-child(3){grid-column:2;grid-row:1}
+  .rg-ligne>.ve-rt{color:var(--rouge)}.rg-ligne>.ve-vt{color:var(--vert)}.rg-ligne>.ve-ot{color:var(--orange)}
 }
 /* ── carteBox ── */
 .d3-box.d3-n{background:var(--surf2);color:var(--doux);border:2px dashed var(--doux)}
@@ -1129,7 +1138,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .dx-zone .champ input,.dx-zone .champ select{background:var(--surf)}
 .dx-x{width:44px;height:46px;border-radius:12px;border:1px solid var(--trait2);background:none;color:var(--doux);font-size:16px;display:flex;align-items:center;justify-content:center}
 .dx-tech{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.dx-tech .seg{flex:none}
+.dx-tech .seg{flex:none}.dx-tech .seg button{min-width:44px}   /* au doigt, les boutons « 1 » et « 2 » faisaient 38 et 41 px */
 .dx-ok{color:var(--vert);font-weight:650;font-size:14px}
 .dx-q{display:flex;flex-direction:column;gap:10px}
 .dx-q .actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -1290,6 +1299,9 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 @media (max-width:760px){
   #contenu .tete.cb-tete{flex-wrap:wrap;align-items:stretch}
   #contenu .tete.cb-tete>div:first-child,#contenu .tete.cb-tete>.actions{flex:1 1 100%;min-width:0}
+  /* Registre sanitaire, même défaut et même parade : le bouton prenait la droite et la colonne du titre tombait à 150 px (390), 120 (360), 80 (320) — « Regis / tre / sanit / aire ». Titre sur sa ligne, gestes dessous. */
+  #contenu .tete.rg-tete{flex-wrap:wrap;align-items:stretch}
+  #contenu .tete.rg-tete>div:first-child,#contenu .tete.rg-tete>.actions{flex:1 1 100%;min-width:0}
 }
 /* [16] « Difficile (+30 %) » ne se coupe plus au bureau */
 @media (min-width:761px){ .dx-zone{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,1.3fr) 44px} }
@@ -1630,7 +1642,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .d3-saisie{display:flex;flex-direction:column}.d3-sl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--trait)}.d3-sl select{max-width:52%;min-height:40px}
 .xy-g{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr);gap:16px;align-items:start}.xy-f{display:flex;flex-direction:column;gap:12px}.xy-f .seg{flex-wrap:wrap;align-self:flex-start}
 .xy-u{display:flex;align-items:center;gap:8px}.xy-u input{flex:1;min-width:0}.xy-u i{font-style:normal;color:var(--doux);font-size:13.5px;white-space:nowrap}
-.xy-reg summary{cursor:pointer;font-weight:600;min-height:40px;display:flex;align-items:center}.xy-reg[open]{display:flex;flex-direction:column;gap:10px}
+.xy-reg summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}.xy-reg[open]{display:flex;flex-direction:column;gap:10px}
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
 @media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:1fr}.xy-r{position:static}}
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
@@ -6797,7 +6809,7 @@ function tPanneau(x){
   x = x || { t:'', qui:(tQui !== 'tous' ? tQui : 'marc'), d:AUJ, h:null, urgent:false, rep:null, lien:null, note:'' };
   const raccourcis = [['Demain', 1], ['Lundi', ((8 - new Date(AUJ + 'T12:00:00').getDay()) % 7) || 7], ['Dans une semaine', 7]];
   ouvrirPanneau(`<h2>${neuf ? 'Nouvelle tâche' : 'Modifier la tâche'}</h2>
-    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="Ex. rappeler M. Durand pour la PAC"></label>
+    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="Ex. rappeler M. Durand pour son devis"></label>
     <div class="deux-champs"><label class="champ">Pour qui<select id="tk-qui">${T_GENS.map(k => `<option value="${k}" ${x.qui === k ? 'selected' : ''}>${tNom(k)}</option>`).join('')}</select></label>
       <label class="champ">Répéter<select id="tk-rep"><option value="">Jamais</option><option value="semaine" ${x.rep === 'semaine' ? 'selected' : ''}>Chaque semaine</option><option value="mois" ${x.rep === 'mois' ? 'selected' : ''}>Chaque mois</option></select></label></div>
     <div class="deux-champs"><label class="champ">Pour quand<input id="tk-d" type="date" value="${x.d || ''}"></label><label class="champ">Heure (facultatif)<input id="tk-h" type="time" step="300" value="${x.h || ''}"></label></div>
@@ -10677,6 +10689,8 @@ let D3_PASSAGES = [
 ];
 D3_PASSAGES.find(p => p.cli === 't1' && p.d === jour(-59)).recos[0][2] = jour(-40);   // le bas de porte a été posé par le client
 let d3Cli = 't1', d3Sel = null, d3Mode = null, d3Ouvert = null;
+/* Le mot « exemple » ne s'écrit que dans l'essai : dans son application, la personne est chez elle, avec ses clients (comme le menu, qui ne parle d'exemple qu'hors mode application). */
+const bandeauExemple = h => enApp() ? '' : h;
 const D3_BANDEAU = `<div class="info d3-info">Exemple pour une entreprise du <b>métier 3D</b>, avec ses propres clients fictifs : ces écrans n’apparaissent que si le métier 3D est coché pour l’entreprise.</div>`;
 const d3Pass = c => D3_PASSAGES.filter(p => p.cli === c).sort((a, b) => a.d.localeCompare(b.d));
 const d3Dernier = c => d3Pass(c).at(-1);
@@ -10689,9 +10703,9 @@ const d3Choix = (rt) => `<div class="seg d3-cli" role="group" aria-label="Client
 function vueRegistre(){
   const c = D3_CLI[d3Cli], P = d3Pass(d3Cli), der = P.at(-1), pro = ajoute(der.d, c.freq), act = d3Activite(der), R = d3Recos(d3Cli), ouv = R.filter(r => !r.faite);
   const prods = P.flatMap(p => p.poses.map(([pid, lot, q]) => ({ p, x:D3_PROD[pid], lot, q }))).reverse();
-  return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Registre sanitaire</h1><span class="gris">Ce que le client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.</span></div>
+  return `<div class="tete rg-tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Registre sanitaire</h1><span class="gris">Ce que le client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.</span></div>
       <div class="actions"><button type="button" class="btn" data-d3="passage">＋ Saisir un passage</button><button type="button" class="btn gris" data-d3="pdf">Registre en PDF</button></div></div>
-    ${D3_BANDEAU}${d3Choix()}
+    ${bandeauExemple(D3_BANDEAU)}${d3Choix()}
     <div class="kpis"><div class="kpi"><b>${jCourt(der.d)}</b><span>dernier passage · ${esc(der.tech)}</span></div><div class="kpi"><b class="ve-${act[1]}t">${act[0]}</b><span>activité au dernier passage</span></div>
       <div class="kpi"><b style="color:${tJours(pro) < 0 ? 'var(--rouge)' : 'inherit'}">${jCourt(pro)}</b><span>prochain passage · ${esc(c.contrat)}</span></div><div class="kpi"><b style="color:${ouv.length ? 'var(--orange)' : 'inherit'}">${ouv.length}</b><span>recommandation${ouv.length > 1 ? 's' : ''} en attente</span></div></div>
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 10px">Activité, passage après passage</h2><div class="d3-histo">${P.map(p => { const a = d3Activite(p), v = Object.values(p.etats), n = v.filter(e => e === 'c' || (typeof e === 'number' && e >= 25)).length; return `<div class="d3-h"><span class="d3-hb"><i class="d3-${a[1]}" style="height:${Math.max(6, Math.round(n / v.length * 100))}%"></i></span><b>${n}/${v.length}</b><span class="gris petit">${jCourt(p.d)}</span></div>`; }).join('')}</div>
@@ -10709,7 +10723,7 @@ function vueCarteBoxAvant(){
   const P = D3_POSTES[d3Cli].filter(p => p.actif), der = d3Dernier(d3Cli), att = P.filter(p => ['r', 'o', 'g'].includes(d3Classe(d3Etat(d3Cli, p.id)))), sel = d3Sel && P.find(p => p.id === d3Sel);
   return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe au dernier passage. Touche une box pour son historique ; ajoute-en une en touchant le plan.</span></div>
       <div class="actions"><button type="button" class="btn${d3Mode === 'ajout' ? '' : ' gris'}" data-d3="ajout">${d3Mode === 'ajout' ? 'Touche le plan pour poser la box…' : '＋ Ajouter une box'}</button></div></div>
-    ${D3_BANDEAU}${d3Choix()}
+    ${bandeauExemple(D3_BANDEAU)}${d3Choix()}
     ${d3Mode === 'ajout' ? d3TypeChoix() : ''}<div class="d3-carte-g"><div class="carte d3-plan-c"><div class="d3-plan${d3Mode ? ' pose' : ''}" data-d3plan="1" role="group" aria-label="Plan du site de ${esc(D3_CLI[d3Cli].nom)}">
         ${D3_ZONES[d3Cli].map(([n, x, y, w, h]) => `<span class="d3-z" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><i>${esc(n)}</i></span>`).join('')}
         ${P.map(p => { const e = d3Etat(d3Cli, p.id); return `<button type="button" class="d3-box d3-${d3Classe(e)}${d3Sel === p.id ? ' on' : ''}" style="left:${p.x}%;top:${p.y}%" data-d3="box|${p.id}" aria-label="${p.id}, ${esc(D3_TYPES[p.t][0])}, ${d3Lib(e)}"><span aria-hidden="true">${p.id.slice(1)}</span></button>`; }).join('')}</div>
@@ -10777,7 +10791,7 @@ function xyLignes(){
 function vueDevisXylo(){ if (window.dxVue) return dxVue();
   const R = xyLignes(), ttc = R.ht * (1 + XY.tva / 100), champ = (k, l, u) => `<label class="champ">${l}<span class="xy-u"><input inputmode="decimal" data-xy="${k}" value="${String(XY[k]).replace('.', ',')}">${u ? `<i>${u}</i>` : ''}</span></label>`;
   return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Devis xylophage</h1><span class="gris">Le traitement du bois calculé à partir de ce qu’on a mesuré sur place ; le devis se crée en un geste et se signe en ligne.</span></div></div>
-    ${D3_BANDEAU}
+    ${bandeauExemple(D3_BANDEAU)}
     <div class="xy-g"><div class="carte xy-f">
       <div class="deux-champs"><label class="champ">Client<select data-xy="cli"><option value="">Nouveau client…</option>${Object.entries(CLIENTS).map(([k, c]) => `<option value="${k}" ${XY.cli === k ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>${XY.cli ? '<span></span>' : `<label class="champ">Nom du nouveau client<input data-xy="nouveau" value="${esc(XY.nouveau)}" placeholder="ex. M. et Mme Garnier"></label>`}</div>
       <div class="groupe">Ce qui a été constaté</div>
@@ -12043,7 +12057,8 @@ const GESTES = {
   dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
   dx:{ k:'ventes', d:'m' }, dxb:{ k:'ventes', c:'creer nvtype zadd', m:'garder attok reprendre att', s:'annulerMaj', l:'detail rel insecte mode techs tva revenir attpdf suivi puce mesures version relever client' },
-  dxr:{ k:'ventes', m:'photo note', l:'cli zm' }, dxrb:{ k:'ventes', c:'nouveau', m:'envoyer', l:'insecte mode' },
+  /* Le relevé du technicien est un travail d'intervention (comme le registre, la carte et le passage), pas un geste de devis : classé sous « ventes », il était refusé à tout technicien sans droit « Devis », et « Envoyer au bureau » ne partait jamais. Le devis chiffré du gérant (dx, dxb) reste sous « ventes ». « Faire un autre relevé » ne crée rien (il vide le formulaire) : c'est un geste de lecture, sinon le technicien ne le voyait pas à la fin de son envoi. */
+  dxr:{ k:'inter', m:'photo note', l:'cli zm' }, dxrb:{ k:'inter', m:'envoyer', l:'insecte mode nouveau' },
   b:{ k:'ventes', m:'debut modele cli lieu freq prix fact' }, opdz:{ k:'ventes', d:'l' },   /* « opd » (composer, rouvrir) a sa ligne plus haut, avec ses verbes : une seconde ligne de même nom l'effaçait en silence, c'est pourquoi « Composer un devis » restait dessiné sans « Créer » (« tout-09 ») */ reglage:{ k:'ventes', d:'m' }, tvoir:{ d:'l' },
   xy:{ k:'ventes', c:'nouveau', l:'cli tva' }, xyb:{ k:'ventes', c:'creer', l:'insecte mode' }, brouillon:{ k:'ventes', d:'l' }, ecctr:{ k:'ventes', d:'l' }, cforfait:{ k:'ventes', d:'m' }, ctype:{ k:'ventes', d:'l' },
   /* l'espace du client : ses gestes sont les siens, pas ceux d'une personne de l'entreprise */
@@ -21222,7 +21237,7 @@ function rgUrgences(){   // retard > activité forte > recommandation ouverte de
 }
 const rgSitesTech = () => Object.keys(D3_CLI).filter(k => INTS.some(i => i.rg === k && i.tech === rlQui() && i.st !== 'annulee' && i.d >= AUJ));
 const rgChoix = (ks, tous) => `<div class="seg d3-cli" role="group" aria-label="Client">${tous ? `<button type="button" data-rg="tous" aria-pressed="${rgTous}">Tous les sites</button>` : ''}${ks.map(k => `<button type="button" data-rg="cli|${k}" aria-pressed="${!rgTous && d3Cli === k}">${esc(D3_CLI[k].nom)}</button>`).join('')}</div>`;
-const rgTete = act => `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Registre sanitaire</h1><span class="gris">Ce que le client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.</span></div><div class="actions">${act}</div></div>`;
+const rgTete = act => `<div class="tete rg-tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Registre sanitaire</h1><span class="gris">Ce que le client montre au contrôle sanitaire : chaque passage, l’activité relevée, les produits posés avec leur lot, et les recommandations suivies.</span></div><div class="actions">${act}</div></div>`;
 const rgActCl = act => act[1] === 'r' ? 'st-r' : act[1] === 'o' ? 'st-o' : 'st-v';
 
 /* ── l'écran : « Tous les sites » à l'ouverture, puis le registre d'un site ── */
@@ -21239,7 +21254,7 @@ function rgVue(){
 vueRegistre = rgVue;
 function rgVueTous(ks){
   const U = rgUrgences(), n = ks.reduce((s, k) => s + rgAnnee(k), 0), nr = ks.reduce((s, k) => s + d3Recos(k).filter(r => !r.faite).length, 0);
-  return rgTete(`<button type="button" class="btn" data-rg="passage">＋ Saisir un passage</button>`) + RG_BANDEAU + rgChoix(ks, true) + `
+  return rgTete(`<button type="button" class="btn" data-rg="passage">＋ Saisir un passage</button>`) + bandeauExemple(RG_BANDEAU) + rgChoix(ks, true) + `
     <div class="kpis"><div class="kpi"><b>${ks.length}</b><span>sites suivis</span></div><div class="kpi"><b style="color:${U.length ? 'var(--orange)' : 'inherit'}">${U.length}</b><span>${U.length > 1 ? 'sites demandent' : 'site demande'} une action</span></div>
       <div class="kpi"><b>${n}</b><span>passages cette année</span></div><div class="kpi"><b style="color:${nr ? 'var(--orange)' : 'inherit'}">${nr}</b><span>recommandation${nr > 1 ? 's' : ''} en attente</span></div></div>
     <div class="carte rg-faire"><h2 class="cmd-titre" style="margin:0 0 4px">À faire maintenant</h2>${U.map(o => `<div class="rg-fl"><span class="st ${rgActCl(o.act)}">${o.retard ? 'En retard' : o.forte ? 'Activité forte' : 'À suivre'}</span><span class="fo-n"><b>${esc(D3_CLI[o.k].nom)}</b><span class="gris petit">${o.dits.join(' · ')}</span></span>
@@ -21288,7 +21303,7 @@ function rgLienBloc(k){
 function rgVueSite(ks, tech){
   const k = d3Cli, c = D3_CLI[k], P = d3Pass(k), der = P.at(-1), pro = rgProchain(k), act = d3Activite(der), R = d3Recos(k), ouv = R.filter(r => !r.faite);
   const retard = !pro.plan && tJours(pro.d) < 0, n = rgAnnee(k), f = rgFreqAn(k), ko = rgRythmeKo(k), acts = tech ? '' : `<button type="button" class="btn gris" data-rg="pdf|${k}">Registre en PDF</button>`;
-  return rgTete(`<button type="button" class="btn" data-rg="passage">＋ Saisir un passage</button>${acts}`) + RG_BANDEAU + rgChoix(ks, !tech) + `
+  return rgTete(`<button type="button" class="btn" data-rg="passage">＋ Saisir un passage</button>${acts}`) + bandeauExemple(RG_BANDEAU) + rgChoix(ks, !tech) + `
     <div class="kpis"><div class="kpi"><b>${jCourt(der.d)}</b><span>dernier passage · ${esc(der.tech)}</span></div><div class="kpi"><b class="ve-${act[1]}t">${act[0]}</b><span>activité au dernier passage</span></div>
       <div class="kpi"><b class="${retard ? 've-rt' : pro.plan ? 've-vt' : ''}">${jCourt(pro.d)}</b><span>${pro.plan ? 'passage planifié · ' + esc(rgPrenom(pro.plan.tech)) : 'prochain passage'}</span><span class="${ko ? 've-rt' : ''}" style="font-size:13px">${n} passage${n > 1 ? 's' : ''} sur ${f} cette année${ko ? ' · rythme non tenu' : ''}</span>
         ${pro.plan ? `<button type="button" class="lien" data-rg="int|${pro.plan.id}">Voir l’intervention ›</button>` : tech ? '' : `<button type="button" class="btn petit" data-rg="planifier|${k}" style="margin-top:6px">Planifier</button>`}</div>
@@ -21732,7 +21747,7 @@ function vueCarteBox(){
     ${d3Mode === 'ajout' ? cbTypeChoix() : ''}
     <div class="d3-carte-g${R ? ' cb-rel-on' : ''}"><div class="carte d3-plan-c cb-planc">${R ? '' : cbFiltresHtml(c, P)}${cbPlanHtml(c, P)}${cbLegende(c, P, der)}${att.length && !R && !sel ? `<button type="button" class="lien cb-vers" data-cbx="vers">Voir les ${cbPlur(att.length, 'box', 'box')} à regarder ↓</button>` : ''}${nbVu < P.length ? `<span class="gris petit">${cbPlur(nbVu, 'box affichée', 'box affichées')} sur ${P.length}. <button type="button" class="lien" data-cbx="filtre|tout">Tout afficher</button></span>` : ''}</div>
       <div class="d3-cote">${cote}</div></div>
-    <details class="cb-apropos"><summary class="gris petit">À propos de cet exemple</summary><div class="info d3-info">Exemple pour une entreprise du <b>métier 3D</b>, avec ses propres clients fictifs (Restaurant La Marée, Boulangerie Lemoine, Entrepôt Atlantique). Cet écran sert aux entreprises de ce métier.</div></details>`;
+    ${enApp() ? '' : `<details class="cb-apropos"><summary class="gris petit">À propos de cet exemple</summary><div class="info d3-info">Exemple pour une entreprise du <b>métier 3D</b>, avec ses propres clients fictifs (Restaurant La Marée, Boulangerie Lemoine, Entrepôt Atlantique). Cet écran sert aux entreprises de ce métier.</div></details>`}`;
 }
 function d3FicheBox(p){ return cbFiche(p); }
 function d3TypeChoix(){ return cbTypeChoix(); }
@@ -22152,7 +22167,7 @@ function dxVue(){
   const champ = (k, l, u, v) => `<label class="champ">${l}<span class="xy-u"><input inputmode="decimal" data-dx="${k}" value="${String(v).replace('.', ',')}">${u ? `<i>${u}</i>` : ''}</span></label>`;
   const x0 = DX.maj ? dxDev(DX.maj) : null, rel0 = DX.rel ? DX_REL.find(r => r.id === DX.rel) : null;
   return `<div class="dx-v"><div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Devis xylophage</h1><span class="gris">Le traitement du bois calculé à partir de ce qu’on a mesuré sur place ; le devis se crée en un geste et se signe en ligne.</span></div></div>
-    ${dxBandeau}
+    ${bandeauExemple(dxBandeau)}
     ${rels.length ? `<div class="carte dx-rels"><h3>${dxPl(rels.length, 'relevé', 'relevés')} à chiffrer</h3>${rels.map(r => { const tot = r.zones.reduce((s, z) => s + z.m, 0); return `<div class="ligne"><span><b>${esc(CLIENTS[r.cli].nom)}</b><br><span class="gris petit">${esc(H_NOM(r.qui))} · ${jcourt(r.d)} · ${esc(dxIns(r.insecte))} · ${dxPl(r.zones.length, 'zone', 'zones')} · ${(() => { const sb = r.zones.filter(z => z.kind !== 'mur').reduce((s, z) => s + z.m, 0), mm = tot - sb; return (sb ? dxFr(sb) + ' m²' : '') + (sb && mm ? ' + ' : '') + (mm ? dxFr(mm) + ' m de murs' : ''); })()} · ${dxPl(r.photos, 'photo', 'photos')}</span></span><button type="button" class="btn petit" data-dxb="rel|${r.id}">Chiffrer</button></div>`; }).join('')}</div>` : ''}
     ${x0 ? `<div class="info petit">Tu modifies les mesures du devis <b>${esc(x0.num || 'en préparation')}</b>.<button type="button" class="lien" data-dxb="annulerMaj" style="margin-left:10px">Annuler la modification</button></div>` : ''}
     ${rel0 ? `<div class="info petit">Relevé de <b>${esc(H_NOM(rel0.qui))}</b> du ${jcourt(rel0.d)}${rel0.note ? ' : « ' + esc(rel0.note) + ' »' : ''} · ${dxPl(rel0.photos, 'photo', 'photos')}.</div>` : ''}
@@ -23125,7 +23140,9 @@ const MET_JEUX = (() => {
 /* des phrases d'exemple écrites pour la climatisation : un autre métier lit un exemple de son métier */
 const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique, la porte d’entrée', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
   'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches, référence à préciser',
-  'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. L’installation ne fonctionne plus depuis ce matin.', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer l’appareil par un modèle plus puissant ; pose à prévoir.' };
+  'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. L’installation ne fonctionne plus depuis ce matin.', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer l’appareil par un modèle plus puissant ; pose à prévoir.',
+  /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
+  'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…' };
 function metiersTextes(racine){
   if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
@@ -23260,11 +23277,14 @@ document.addEventListener('click', ev => {
 /* [4] les exemples de saisie : la climatisation seule ne lit plus « la chaudière », le chauffage et la plomberie ne lisent plus « la clim » */
 const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
 const MET_EX_FAM = {
-  chauf:{ 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
+  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
     'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.' },
-  plomb:{ 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
+  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.' }
 };
+/* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…' };
 function metiersEx(){
   const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM;
   const T = Object.assign({}, MET_EXEMPLES), O = MET_EX_FAM[f] || {};
