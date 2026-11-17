@@ -1,7 +1,9 @@
 {
  "voie": "restes",
  "etape": "corriger-restes-2",
- "noms": ["mail"],
+ "noms": [
+  "mail"
+ ],
  "date": "2026-11-17",
  "lu": "final/restes-mail-tour1-recontrole.json (le plus récent : 1 pasRegles, 4 casses, 4 nouveaux) ; vus-par-le-chef.md (une seule ligne mail, la décision « la secrétaire voit-elle la Boîte mail », laissée non cochée exprès) ; aucun autre recontrôle ne portait d'entrée mail ouverte.",
  "entrees": [
@@ -63,11 +65,30 @@
   }
  ],
  "sondes": [
-  { "fichier": "sondes/restes-mail-tour1-recontrole.js (PARTIES 1, 2, 3, 5, 6)", "resultat": "20 ✓ · 0 ✗ ; 20 ✓ · 0 ✗ ; 18 ✓ · 0 ✗ ; 14 ✓ · 0 ✗ ; 8 ✓ · 0 ✗" },
-  { "fichier": "sondes/restes-mail-tour2.js (NOUVELLE)", "resultat": "24 ✓ · 0 ✗" },
-  { "fichier": "sondes/restes-mail-tour1.js", "resultat": "67 ✓ · 0 ✗" },
-  { "fichier": "sondes/mail-recontrole-tel.js", "resultat": "65 ✓ · 0 ✗" },
-  { "fichier": "sondes/restes-mail-mutations-tour2.py", "resultat": "6 mutations jouées sur copie, 6 mordent, 0 muette (T5, le grand titre rendu, retirée : neutralisée par le pli, pas une garde manquante) ; dépôt propre après" }
+  {
+   "fichier": "sondes/restes-mail-tour1-recontrole.js (PARTIES 1, 2, 3, 5, 6)",
+   "resultat": "20 ✓ · 0 ✗ ; 20 ✓ · 0 ✗ ; 18 ✓ · 0 ✗ ; 14 ✓ · 0 ✗ ; 8 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/restes-mail-tour2.js (NOUVELLE)",
+   "resultat": "24 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/restes-mail-tour1.js",
+   "resultat": "67 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/mail-recontrole-tel.js",
+   "resultat": "65 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/mail-recontrole-reste, mail-telephone, mail-corr-telephone, mail-reconnaissance, mail-recontrole-ordi, mail-recontrole-parcours, mail-roles (rejouées après les corrections)",
+   "resultat": "40, 40, 69, 70, 88, 24, 15 ✓ · 0 ✗ partout"
+  },
+  {
+   "fichier": "sondes/restes-mail-mutations-tour2.py",
+   "resultat": "6 mutations jouées sur copie, 6 mordent, 0 muette (T5, le grand titre rendu, retirée : neutralisée par le pli, pas une garde manquante) ; dépôt propre après"
+  }
  ],
  "doutes": [
   "Safari, Windows et Android réels, clavier virtuel, polices du système : non vérifiables ici (profils émulés dans Chromium)",
