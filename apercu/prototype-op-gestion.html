@@ -5281,9 +5281,11 @@ const htDe = f => lignesDe(f).reduce((s,l) => s + (l.pu || 0) * (parseFloat(Stri
 const ttcDe = f => f.st === 'avoir' ? -f.ht * (1 + f.tva/100) : htDe(f) * (1 + f.tva/100);
 const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);   /* annulée par un avoir : plus rien à recevoir, plus de relance (compta-ventes-06) */
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
-  const F = fiche(i.id); if (FACTURES.find(f => f.int === i.id)) return;
+  const F = fiche(i.id), prec = FACTURES.filter(f => f.int === i.id); if (prec.some(f => f.st !== 'annulee')) return;
   if (i.fact && i.fact.mode === 'garantie') return;
   if (ctrCompris(i)) return;   // visite d'un contrat facturé à l'année ou au mois : rien à préparer
+  /* une facture ANNULÉE par un avoir se refait : la nouvelle reprend l'identifiant, l'ancienne garde sa place dans les documents sous un autre (« Préparer la facture » ne tombe pas dans le vide) */
+  prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
     if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });

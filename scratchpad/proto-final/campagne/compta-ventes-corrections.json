@@ -1,28 +1,149 @@
 {
-  "partie": "compta-ventes",
-  "date": "2026-11-17",
-  "etat_du_fichier": "en cours : corrections 01, 02, 05, 06, 07, 08, 09, 10, 12, 12b, 13, 14, 18, 21 faites ; à vérifier au téléphone, mutations et regard jour/nuit ensuite",
-  "corrections": [
-    { "n": "compta-ventes-01", "etat": "corrigé", "changement": "Nouvelle facture : une quantité négative, nulle ou illisible est refusée (« Indique une quantité supérieure à zéro »), au lieu de devenir 1 en silence. Même règle sur la quantité d'une ligne de facture à valider (la valeur d'avant revient).", "preuve": "compta-ventes-parcours-a.js : « -3 », « 0 », « abc », « 1,5,5 » refusés ; quantité de ligne « -2 » refusée, l'ancienne valeur revient" },
-    { "n": "compta-ventes-02", "etat": "corrigé", "changement": "Une facture à valider se modifie comme un devis : chaque ligne a son champ Désignation, sa Quantité, son Prix HT et une croix « Retirer la ligne » de 44 px (annulable). « ＋ Ajouter une ligne » ouvre une ligne vide dont le nom est déjà actif. Une ligne sans nom, comme une ligne sans prix, grise « Aperçu et envoi » et le dit ; plus de « Ligne libre » qui part chez le client. 30 lignes au plus, une ligne au moins.", "preuve": "compta-ventes-parcours-a.js (33 ✓ · 0 ✗) ; capture a-mac-ligne-libre.png regardée" },
-    { "n": "compta-ventes-05", "etat": "corrigé", "changement": "La relance montre son lien : « Payer 1 240,00 € par carte » (souligné) sous la phrase qui le promet.", "preuve": "compta-ventes-parcours-c.js" },
-    { "n": "compta-ventes-06", "etat": "corrigé", "changement": "« Annuler cette facture par un avoir » est offert dès l'envoi (envoyée ou en retard). L'avoir la fait passer « Annulée par un avoir » (nouvel état) : plus rien à recevoir, plus de relance, plus d'encaissement, elle reste dans les documents. La fenêtre le dit avant. La Comptabilité plein écran lettre la facture avec son avoir : elle n'y est plus « à encaisser » ni « payée ». « Payée en partie » : voir soumis à Justin (remboursement partiel).", "preuve": "compta-ventes-parcours-c.js (23 ✓) ; compta-ventes-annulee-cadre.js ; captures c-mac-fiche-annulee.png, c-mac-avoir-envoyee.png regardées" },
-    { "n": "compta-ventes-07", "etat": "corrigé", "changement": "Le bandeau « 1 ligne sans prix · 1 ligne sans nom » a sa propre classe (.bandeau-info) : l'échafaudage ne le cache plus en mode application.", "preuve": "compta-ventes-parcours-a.js (07 ✓)" },
-    { "n": "compta-ventes-08", "etat": "corrigé", "changement": "« Paiement en partie » et « Paiement reçu » lisent le montant comme l'application l'écrit (1 240,01 = 1240,01, espaces compris) ; un texte illisible est refusé (« Ce montant n'est pas lisible »), plus jamais 1 € enregistré.", "preuve": "compta-ventes-parcours-b.js (28 ✓ · 0 ✗) : 08 et 08b" },
-    { "n": "compta-ventes-09", "etat": "corrigé", "changement": "Plus de promesse de « vraie version » dans la fenêtre Nouvelle facture (consigne utile : demander conseil au comptable) ni dans le refus d'une dépense après l'envoi d'octobre.", "preuve": "capture a-mac-formulaire.png regardée" },
-    { "n": "compta-ventes-10", "etat": "corrigé", "changement": "Le champ Client propose « Choisir le client… » ; la création est refusée sans client (« Choisis le client »).", "preuve": "compta-ventes-parcours-a.js (10 ✓ ×2)" },
-    { "n": "compta-ventes-12", "etat": "corrigé", "changement": "La visite d'un contrat signé dans l'application se facture au prix du contrat (600 / 2 = 300,00 € HT), avec la mention du contrat ; même chemin que les contrats d'avant.", "preuve": "compta-ventes-parcours-g.js (8 ✓)" },
-    { "n": "compta-ventes-12b", "etat": "corrigé", "changement": "Contrat facturé à l'an (ou au mois) : la visite ne fait plus naître de facture au tarif par défaut (« couverte par le contrat »). Le contrat « au mois » n'a aucune facturation mensuelle écrite dans le prototype : à confirmer par Justin.", "preuve": "compta-ventes-parcours-g.js" },
-    { "n": "compta-ventes-13", "etat": "corrigé", "changement": "« Voir le PDF » du cadre Comptabilité demande le document à OP GESTION (le même que celui de la facture) : plus de document d'une ligne ni de phrase « Aperçu de démonstration » (conservée seulement quand la comptabilité est ouverte seule).", "preuve": "compta-ventes-parcours-d.js (26 ✓)" },
-    { "n": "compta-ventes-14", "etat": "corrigé", "changement": ".cx-chip passe à 44 px de haut sous (pointer:coarse).", "preuve": "à mesurer au téléphone (voir la suite)" },
-    { "n": "compta-ventes-18", "etat": "corrigé", "changement": "L'acompte HT se calcule une seule fois (dvAcompteHT, gardé sur le devis) et la facture du solde déduit exactement ce montant ; le HT est choisi pour tenir les deux promesses (acompte = part du TTC du devis, acompte + solde = TTC du devis) à un centime près. Mesuré sur 1,7 million de cas : l'ancien calcul était faux de 27 %, le nouveau ne dépasse jamais un centime.", "preuve": "compta-ventes-parcours-i.js (600 devis, 6 ✓ · 0 ✗)" },
-    { "n": "compta-ventes-21", "etat": "corrigé", "changement": "Cadre Comptabilité : « Revenir au tableau de bord », « Fermer la fenêtre » et les filtres de Ventes passent à 44 px au doigt.", "preuve": "à mesurer à l'iPhone (voir la suite)" },
-    { "n": "compta-ventes-11", "etat": "à soumettre à Justin", "changement": "", "preuve": "décision de présentation du document client (colonne « Prix HT » unitaire)" },
-    { "n": "compta-ventes-15", "etat": "à soumettre à Justin", "changement": "", "preuve": "les onglets d'espace de la Comptabilité au téléphone (rangée qui défile)" },
-    { "n": "compta-ventes-16", "etat": "à soumettre à Justin", "changement": "", "preuve": "tête de la Comptabilité du quotidien au téléphone" },
-    { "n": "compta-ventes-17", "etat": "à soumettre à Justin", "changement": "", "preuve": "tête de la fiche facture au téléphone" },
-    { "n": "compta-ventes-19", "etat": "à soumettre à Justin", "changement": "", "preuve": "la porte « Comptabilité » du menu ouvre le cadre OP COMPTABLE" },
-    { "n": "compta-ventes-20", "etat": "à soumettre à Justin", "changement": "", "preuve": "le module Paiement en ligne a ses propres factures de test" },
-    { "n": "compta-ventes-22", "etat": "à soumettre à Justin", "changement": "", "preuve": "deux barres du haut sur le cadre au téléphone" }
-  ]
+ "partie": "compta-ventes",
+ "date": "2026-11-17",
+ "etat_du_fichier": "final pour l'étape 2 : 14 défauts corrigés (dont 4 aussi corrigés en parallèle par les campagnes interventions et contrats, fusionnés), 7 à soumettre à Justin, aucun « ne se reproduit pas » (tous reproduits avant correction)",
+ "corrections": [
+  {
+   "n": "compta-ventes-01",
+   "etat": "corrigé",
+   "changement": "Nouvelle facture : une quantité négative, nulle ou illisible est refusée (« Indique une quantité supérieure à zéro »), au lieu de devenir 1 en silence. Même règle sur la quantité d'une ligne de facture à valider (la valeur d'avant revient).",
+   "preuve": "compta-ventes-parcours-a.js : « -3 », « 0 », « abc », « 1,5,5 » refusés ; quantité de ligne « -2 » refusée, l'ancienne valeur revient"
+  },
+  {
+   "n": "compta-ventes-02",
+   "etat": "corrigé",
+   "changement": "Une facture à valider se modifie comme un devis : chaque ligne a son champ Désignation, sa Quantité, son Prix HT et une croix « Retirer la ligne » de 44 px (annulable). « ＋ Ajouter une ligne » ouvre une ligne vide dont le nom est déjà actif. Une ligne sans nom, comme une ligne sans prix, grise « Aperçu et envoi » et le dit ; plus de « Ligne libre » qui part chez le client. 30 lignes au plus, une ligne au moins. (Une version plus légère, limitée à « Ligne libre », avait été posée en parallèle par la campagne interventions : remplacée par celle-ci, qui couvre toutes les lignes ; sonde interventions-parcours-facture relue sur le nouveau balisage.)",
+   "preuve": "compta-ventes-parcours-a.js (33 ✓ · 0 ✗) ; capture a-mac-ligne-libre.png regardée"
+  },
+  {
+   "n": "compta-ventes-05",
+   "etat": "corrigé",
+   "changement": "La relance montre son lien : « Payer 1 240,00 € par carte » (souligné) sous la phrase qui le promet.",
+   "preuve": "compta-ventes-parcours-c.js"
+  },
+  {
+   "n": "compta-ventes-06",
+   "etat": "corrigé",
+   "changement": "« Annuler cette facture par un avoir » est offert dès l'envoi (envoyée ou en retard). L'avoir la fait passer « Annulée par un avoir » (nouvel état) : plus rien à recevoir, plus de relance, plus d'encaissement, elle reste dans les documents. La fenêtre le dit avant. La Comptabilité plein écran lettre la facture avec son avoir : elle n'y est plus « à encaisser » ni « payée ». « Payée en partie » : voir soumis à Justin (remboursement partiel). « Préparer la facture » depuis l'intervention refait une facture à valider (l'annulée garde sa place sous un autre identifiant).",
+   "preuve": "compta-ventes-parcours-c.js (23 ✓) ; compta-ventes-annulee-cadre.js ; captures c-mac-fiche-annulee.png, c-mac-avoir-envoyee.png regardées"
+  },
+  {
+   "n": "compta-ventes-07",
+   "etat": "corrigé",
+   "changement": "Le bandeau « 1 ligne sans prix · 1 ligne sans nom » a sa propre classe (.bandeau-info) : l'échafaudage ne le cache plus en mode application.",
+   "preuve": "compta-ventes-parcours-a.js (07 ✓)"
+  },
+  {
+   "n": "compta-ventes-08",
+   "etat": "corrigé",
+   "changement": "« Paiement en partie » et « Paiement reçu » lisent le montant comme l'application l'écrit (1 240,01 = 1240,01, espaces compris) ; un texte illisible est refusé (« Ce montant n'est pas lisible »), plus jamais 1 € enregistré.",
+   "preuve": "compta-ventes-parcours-b.js (28 ✓ · 0 ✗) : 08 et 08b"
+  },
+  {
+   "n": "compta-ventes-09",
+   "etat": "corrigé",
+   "changement": "Plus de promesse de « vraie version » dans la fenêtre Nouvelle facture (consigne utile : demander conseil au comptable) ni dans le refus d'une dépense après l'envoi d'octobre.",
+   "preuve": "capture a-mac-formulaire.png regardée"
+  },
+  {
+   "n": "compta-ventes-10",
+   "etat": "corrigé",
+   "changement": "Le champ Client propose « Choisir le client… » ; la création est refusée sans client (« Choisis le client »).",
+   "preuve": "compta-ventes-parcours-a.js (10 ✓ ×2)"
+  },
+  {
+   "n": "compta-ventes-12",
+   "etat": "corrigé",
+   "changement": "Corrigé en parallèle par la campagne contrats (ctrCompris, ctrDeVisite) : leur version est gardée. La visite d'un contrat signé dans l'application se facture au prix du contrat (600 / 2 = 300,00 € HT), avec la mention du contrat ; même chemin que les contrats d'avant.",
+   "preuve": "compta-ventes-parcours-g.js (8 ✓)"
+  },
+  {
+   "n": "compta-ventes-12b",
+   "etat": "corrigé",
+   "changement": "Corrigé en parallèle par la campagne contrats (ctrCompris, ctrDeVisite) : leur version est gardée. Contrat facturé à l'an (ou au mois) : la visite ne fait plus naître de facture au tarif par défaut (« couverte par le contrat »). Le contrat « au mois » n'a aucune facturation mensuelle écrite dans le prototype : à confirmer par Justin.",
+   "preuve": "compta-ventes-parcours-g.js"
+  },
+  {
+   "n": "compta-ventes-13",
+   "etat": "corrigé",
+   "changement": "« Voir le PDF » du cadre Comptabilité demande le document à OP GESTION (le même que celui de la facture) : plus de document d'une ligne ni de phrase « Aperçu de démonstration » (conservée seulement quand la comptabilité est ouverte seule).",
+   "preuve": "compta-ventes-parcours-d.js (26 ✓)"
+  },
+  {
+   "n": "compta-ventes-14",
+   "etat": "corrigé",
+   "changement": ".cx-chip passe à 44 px de haut sous (pointer:coarse).",
+   "preuve": "compta-ventes-corrections-mep.js : pastilles ≥ 44 px, iPhone / 320 px, jour et nuit"
+  },
+  {
+   "n": "compta-ventes-18",
+   "etat": "corrigé",
+   "changement": "L'acompte HT se calcule une seule fois (dvAcompteHT, gardé sur le devis) et la facture du solde déduit exactement ce montant ; le HT est choisi pour tenir les deux promesses (acompte = part du TTC du devis, acompte + solde = TTC du devis) à un centime près. Mesuré sur 1,7 million de cas : l'ancien calcul était faux de 27 %, le nouveau ne dépasse jamais un centime.",
+   "preuve": "compta-ventes-parcours-i.js (600 devis, 6 ✓ · 0 ✗)"
+  },
+  {
+   "n": "compta-ventes-21",
+   "etat": "corrigé",
+   "changement": "Cadre Comptabilité : « Revenir au tableau de bord », « Fermer la fenêtre » et les filtres de Ventes passent à 44 px au doigt. Même plancher pour « Plus bas » du menu du cadre (relevé par la même sonde).",
+   "preuve": "compta-ventes-corrections-mep.js (iPhone, 320 px)"
+  },
+  {
+   "n": "compta-ventes-11",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Fiche facture, aperçu et PDF d'une facture",
+   "constat": "La colonne s'appelle « Prix HT » et montre le prix unitaire (12 345,67) pour la ligne ×2 : le client additionne 12 345,67 + 50 = 12 395,67 et lit un Total HT de 24 741,34. Pour une ligne dont la quantité est un texte (« 1 h 30 »), le même « Prix HT » est le total de la ligne : la colonne change de sens d'une ligne à l'autre.",
+   "recommandation": "Passer à trois colonnes « Prix unitaire HT · Qté · Total HT » sur la fiche et sur le PDF, avec le total de ligne calculé par la même fonction que htDe. À soumettre : cela change le dessin d'un document client que Justin a vu."
+  },
+  {
+   "n": "compta-ventes-15",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Comptabilité du quotidien : onglets d'un espace (téléphone)",
+   "constat": "La rangée défile de côté, sans fondu ni indice : « Comptes clients » et « Contrats » sont coupés (« Com… ») ; dans Trésorerie « Paiement en ligne » devient « Pa… ». Une personne qui n'a jamais fait glisser cette rangée ne sait pas que ces écrans existent.",
+   "recommandation": "Au téléphone, passer les onglets d'un espace sur deux lignes (grille 2 × 2) au lieu d'une rangée qui défile, comme les six tuiles d'espaces juste au-dessus. À soumettre : cela change le dessin de l'écran."
+  },
+  {
+   "n": "compta-ventes-16",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Tête de la Comptabilité du quotidien (téléphone)",
+   "constat": "Le titre, la phrase d'explication de trois lignes, « Comment ça marche ? », « ＋ Ajouter » et SEPT tuiles d'espaces (trois rangées) occupent tout le premier écran : sur 320 × 568 aucune donnée n'est visible sans défiler ; sur 390 × 844 la première ligne de contenu commence à 560 px, derrière la barre du bas.",
+   "recommandation": "Au téléphone : une seule ligne défilante de 6 pastilles pour les espaces (ou un menu déroulant « Ventes ▾ »), phrase d'explication repliée sur une ligne, « Comment ça marche ? » rangé à côté de « ＋ Ajouter ». À soumettre : change le dessin d'un écran validé."
+  },
+  {
+   "n": "compta-ventes-17",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Fiche d'une facture (téléphone)",
+   "constat": "Avant le titre « FAC-2026-0128 » (à 570 px sur 844) s'empilent : la pastille « ‹ Retour · Comptabilité › … », le fil d'Ariane « Comptabilité › Ventes · Factures clients › FAC-… », « 📊 Voir dans la Comptabilité » et l'encadré « Il manque sur cette facture : la forme juridique… ». Trois chemins de retour pour une page, et le titre sous la ligne de flottaison.",
+   "recommandation": "Au téléphone : retirer le fil d'Ariane (la pastille Retour suffit), replier l'encadré « il manque » sur une ligne avec son lien, et ranger « Voir dans la Comptabilité » dans la rangée d'actions. À soumettre."
+  },
+  {
+   "n": "compta-ventes-19",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Porte « Comptabilité » du menu → cadre « OP COMPTABLE »",
+   "constat": "On arrive dans une fenêtre plein écran « OP COMPTABLE » (« Bienvenue dans OP COMPTABLE… Pilote automatique / Je valide moi-même », menu de comptable : À vérifier, Ce qui s'est fait tout seul, Fin de mois…). La liste des factures n'est qu'au second geste, par le petit bouton « Factures et paiements » en haut à droite de la fenêtre, ou par « Ventes et encaissements » dans son menu. Un artisan qui ch",
+   "recommandation": "À soumettre à Justin (il a dit « Comptabilité, ça c'est bon ») : ouvrir d'abord « Factures et paiements » pour le gérant et le bureau, et mettre « Ouvrir la comptabilité complète » dans cet écran (ce que fait déjà la carte « Ouvrir dans la Comptabilité » du Pilotage) ; sinon, au minimum, donner à la fenêtre le même nom que le menu et mettre « Factures et paiements » en bouton principal."
+  },
+  {
+   "n": "compta-ventes-20",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Trésorerie › Paiement en ligne",
+   "constat": "Un module de test intégré tel quel : bandeau « PROTOTYPE · OP GESTION », « Tests 0 / 25 », « + 1 jour · + 1 semaine · Jusqu'au prochain événement », « Recommencer », « ＋ Nouvelle facture de test », et la phrase « Pour l'instant, il a ses propres factures d'exemple ; dans la vraie version, ce sont celles de ta Comptabilité. ». Ses factures (FAC-2026-0147 « Restaurant Le Vieux Port, Remplacement du ",
+   "recommandation": "À soumettre (travail de fond) : donner à prototype-paiement.html, en mode application, les factures d'OP GESTION par le même message que la Comptabilité (`opc_ventes`), renvoyer les paiements par `opc_paiement` (déjà géré côté OP GESTION), cacher le harnais de test (« PROTOTYPE », « Tests », « + 1 jour », « Recommencer », « Nouvelle facture de test ») sous `html[data-app]`, et retirer la phrase « dans la vraie version »."
+  },
+  {
+   "n": "compta-ventes-22",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun : décision de Justin",
+   "preuve": "Cadre « OP COMPTABLE » (téléphone)",
+   "constat": "Deux barres du haut s'empilent : celle d'OP GESTION (« ‹ OP GESTION · ≡ Menu · Factures ») et celle du cadre (« ≡ · OP COMPTABLE · ● 05:55 »), puis, en bas, la barre propre du cadre (Accueil · À vérifier · Journée · Banque · Plus). Deux boutons de menu ouvrent deux menus différents (celui d'OP GESTION et celui de la comptabilité) : on ne sait pas lequel est lequel. L'heure « 05:55 » est celle de l",
+   "recommandation": "À soumettre : le bouton « Menu » d'OP GESTION est voulu (MENU-FINAL, ligne 54) ; recommandation : retirer le ≡ du cadre (la barre du bas « Plus » porte déjà son menu) et libeller l'heure (« Lu à 05:55 »)."
+  }
+ ],
+ "mutations": "15 remises du défaut dans une COPIE des pages (compta-ventes-corrections-mutations.py) : 15 sur 15 mordent ; deux premières versions de sonde ne mordaient pas (M4 ligne « Ligne libre », M11 acompte au plus près) : contrôles ajoutés",
+ "sondes": "parcours-a 36 ✓, parcours-b 28 ✓, parcours-c 24 ✓, parcours-d 27 ✓ (le contrôle du PDF était vide : il relisait le panneau d'avant), parcours-g 8 ✓, parcours-i 7 ✓ (600 devis), annulee-cadre 9 ✓, interventions-parcours-facture 20 ✓, mep iPhone/petit jour+nuit"
 }
