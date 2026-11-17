@@ -11380,8 +11380,17 @@ Object.entries(GESTES).forEach(([f, E]) => { GESTES_TJ[f] = { c:gesteListe(E, 'c
 /* la catégorie de l'écran ouvert (une famille inconnue la prend) */
 const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[droitForme(eqDe(acteur()))] || T.equipe || T.terrain); return f && f[0] ? f[0].split('.')[0] : null; };
 /* la portée suit la FORME : sur l'écran d'un terrain, noter un paiement sur place ou envoyer le compte rendu est un geste de SA fiche d'intervention (inter › Modifier), pas celui d'un devis ou d'une facture du bureau */
-const gesteForme = g => g && g.cat === 'ventes' && droitForme(eqDe(acteur())) === 'terrain' ? { ...g, cat:'inter', x:'m' } : g;
-const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe));
+/* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
+const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
+/* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
+const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+const gesteForme = (g, fam, verbe) => {
+  if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
+  const B = TERRAIN_BUREAU[fam];
+  if (B && (B === '*' || B.has(verbe))) return { ...g, x:'b' };   /* réservé au bureau : aucune case ne l'ouvre à un terrain */
+  return g.cat === 'ventes' && TERRAIN_VENTES.has(fam + '|' + verbe) ? { ...g, cat:'inter', x:'m' } : g;
+};
+const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe), fam, verbe);
 function gesteBrut(fam, verbe){
   const E = GESTES[fam], T = GESTES_TJ[fam];
   if (E) {
@@ -11412,7 +11421,7 @@ let droitsRefusVu = 0;
 function droitsRefus(cat, x, fam, verbe){
   DROITS_REFUS.push({ cat, x, fam, verbe });
   const t = Date.now(); if (t - droitsRefusVu < 900) return; droitsRefusVu = t;
-  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
+  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'b' ? 'ce geste est réservé au bureau, il n’est pas sur l’écran d’un terrain' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
   return false;
 }
@@ -11459,7 +11468,7 @@ function droitsCss(p){
   p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
   const R = [];
   Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
-    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }, fam, v); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
     if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
   Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
   /* un bouton, un lien, une ligne : on ne le dessine pas. Un champ de saisie ou une case : on le FIGE (sa valeur reste lisible, rien ne s'écrit : la garde rend la valeur d'avant) */
