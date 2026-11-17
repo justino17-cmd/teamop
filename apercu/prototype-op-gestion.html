@@ -25244,7 +25244,10 @@ function secuVoirComme(k){ const p = eqDe(k); if (!p || !p.actif || !secuPeut())
 function secuBande(){ let z = document.querySelector('.sec-bande'); const k = SESSION;
   if (!SECU.vraie || !k || k === SECU.vraie) { if (z) z.remove(); document.documentElement.classList.remove('sec-voir'); return; }
   const p = eqDe(k), h = `<span class="sec-bande-t">Tu vois l’application comme <b>${esc(p.prenom)}</b>.</span><button type="button" class="sec-bande-b" data-sec2="revenir">Revenir à mon compte</button>`;
-  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); }
+  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); z = document.querySelector('.sec-bande'); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); secuBandeMesure(); }
+/* la bande peut tenir sur deux lignes (téléphone, encoche) : la page part SOUS elle, de sa hauteur réelle */
+function secuBandeMesure(){ const z = document.querySelector('.sec-bande'); if (z) document.documentElement.style.setProperty('--sec-bande-h', Math.ceil(z.getBoundingClientRect().height) + 'px'); }
+addEventListener('resize', () => secuBandeMesure());
 function secuRevenir(){ const v = SECU.vraie; SECU.vraie = null; const s = v && SECU.sessions[v]; secuBande();
   if (s && secuSessionVive(s)) { sessionOuvrir(v); aller('equipe'); } else sessionFermer('inactif'); }
 const secuSessionVive = s => secuMaint() - s.derniereActivite < SECU_REGLES.inactiviteMs;
@@ -25446,10 +25449,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-conf-c{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--feuille,var(--surf));color:var(--encre);border:1px solid var(--trait);border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
 .sec-conf-c h2{margin:0}.sec-conf-c p{margin:0}.sec-conf-act{display:flex;gap:8px;flex-wrap:wrap}.sec-conf-act .btn{min-height:48px}
 @media (max-width:760px){#sec-conf{place-items:end center;padding:0}.sec-conf-c{width:100%;border-radius:26px 26px 0 0;padding-bottom:max(20px,env(safe-area-inset-bottom))}}
-.sec-bande{position:fixed;top:0;left:0;right:0;height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:10px 14px;padding:0 12px;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px;overflow:hidden}
-.sec-bande-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec-bande{position:fixed;top:0;left:0;right:0;min-height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:4px 12px;padding:env(safe-area-inset-top,0) 12px 0;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px}   /* la phrase se lit en entier : elle passe à la ligne, la bande grandit (la page descend d'autant : --sec-bande-h) */
+.sec-bande-t{min-width:0;white-space:normal;line-height:1.25;padding:6px 0}
 .sec-bande-b{flex:none;min-height:44px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
-html.sec-voir body{padding-top:44px}
+html.sec-voir body{padding-top:var(--sec-bande-h,44px)}
+@media (max-width:420px){.sec-provmdp{font-size:19px;padding:12px}}
 .cn-compte,.cn-tel,.cn-quit{min-height:44px}.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}.sec-adr{overflow-wrap:anywhere}.sec-tab td.sec-adr{min-width:9.5em}
 @media (min-width:1100px){.cn-tel{display:none}}
 </style>`);
