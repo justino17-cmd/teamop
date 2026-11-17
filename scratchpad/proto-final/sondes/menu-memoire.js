@@ -39,14 +39,14 @@ const { L, lireMenu } = require('./menu-commun.js'), v = L.v;
     v(`${qui} : #rien-du-tout → ${ouverture} avec « Cette page n'existe pas. »`, e.hash === ouverture && /Cette page n[’']existe pas\./.test(e.toast) && !e.refaire, e); await L.fin(c); }
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' }); await L.aller(c.p, 'page-fantome'); await L.calme(c.p, 500);
     const e = await c.p.evaluate(() => ({ hash:location.hash, refaire:/À refaire/.test(document.body.innerText) })); v('marc : aller() sur une route fantôme revient à l\'accueil, sans écran « À refaire »', e.hash === '#accueil' && !e.refaire, e); await L.fin(c); }
-  // 5. la session et le mode retenus : on rouvre sans ?auto, la session gardée ouvre le même compte ; le mode choisi reste
+  // 5. le mode est retenu, la SESSION ne l'est plus (double authentification, décision 6 : plus de « Rester connecté », aucune clé de session) :
+  //    on rouvre sans ?auto, le mode choisi reste, mais l'écran de connexion revient : une session ne survit pas à un rechargement.
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' });
     await c.p.evaluate(() => { ESPACE = ESPACE_SLUG; cnxGarder(); });   // l'appareil est relié à l'entreprise (ce que fait le lien de connexion)
-    const k = await c.p.evaluate(() => ({ s:localStorage.getItem('opg_proto_session') })); v('la session est rangée', k.s === 'marc', k);
+    const k = await c.p.evaluate(() => ({ s:localStorage.getItem('opg_proto_session'), toutes:Object.keys(localStorage).filter(x => /session|mdp/i.test(x)) })); v('la session n\'est PAS rangée (aucune clé de session ni de mot de passe)', k.s === null && k.toutes.length === 0, k);
     await L.toucher(c, '#menu [data-modetheme="nuit"]'); const m1 = await c.p.evaluate(() => localStorage.getItem('opg_proto_mode')); v('choisir Nuit le range', m1 === 'nuit', m1);
-    await c.p.goto(c.p.url().replace(/&auto=\w+/, ''), { waitUntil:'load' }); await L.attendre(c.p, () => !!SESSION, 9000); await c.p.waitForTimeout(600);
-    const e = await c.p.evaluate(() => ({ mode:document.documentElement.dataset.mode, pressed:(document.querySelector('#menu [data-modetheme][aria-pressed="true"]') || {}).textContent, qui:SESSION })); v('rouvert : Nuit retenu, session retenue', e.mode === 'nuit' && e.pressed === 'Nuit' && e.qui === 'marc', e);
-    await c.p.evaluate(() => { document.querySelector('[data-modetheme="auto"]').click(); }); const m2 = await c.p.evaluate(() => localStorage.getItem('opg_proto_mode')); v('choisir Auto le range aussi', m2 === 'auto', m2);
-    v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 2)); await L.fin(c); }
+    await c.p.goto(c.p.url().replace(/&auto=\w+/, ''), { waitUntil:'load' }); await L.attendre(c.p, () => !!document.getElementById('cn-id'), 20000); await c.p.waitForTimeout(600);
+    const e = await c.p.evaluate(() => ({ mode:document.documentElement.dataset.mode, qui:SESSION, cnx:!!document.getElementById('cn-id') })); v('rouvert : Nuit retenu, mais la session n\'est pas retenue (écran de connexion)', e.mode === 'nuit' && e.qui === null && e.cnx, e);
+     v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 2)); await L.fin(c); }
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })();
