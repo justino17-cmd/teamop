@@ -22,7 +22,7 @@ const texte = (c, sel) => c.p.evaluate(s => { const e = document.querySelector(s
     const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'clients');
     const r = await c.p.evaluate(() => [...document.querySelectorAll('.client-carte .client-chiffres small')].map(e => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight || 16))));
     v(`clients (${profil}) : population des étiquettes de chiffres`, r.length >= 9, r.length);
-    v(`clients (${profil}) : aucune étiquette de chiffre sur plus de deux lignes`, r.every(n => n <= 2), r.join(','));
+    v(`clients (${profil}) : chaque étiquette de chiffre tient sur UNE ligne (« prochain passage » ne passe plus sur deux)`, r.every(n => n <= 1), r.join(','));
     await L.fin(c);
   }
   // 3. Devis : les cinq filtres restent TOUS visibles (« Tous » ne se perd plus derrière le bord de l’écran)
@@ -68,5 +68,10 @@ const texte = (c, sel) => c.p.evaluate(s => { const e = document.querySelector(s
       v(`achats (${profil}${nuit ? ' nuit' : ''}) onglet ${onglet} : deux onglets, un seul choisi`, r.n === 2 && r.choisis === 1, r);
       v(`achats (${profil}${nuit ? ' nuit' : ''}) onglet ${onglet} : l’onglet choisi se voit (style différent des autres)`, r.choisiDiffere, r); }
     await L.fin(c); }
+  // 8. Un lien qui passe à la ligne reste aligné à gauche (le nom d’un client de 60 signes était centré sous un titre aligné à gauche)
+  { const c = await L.ouvrir({ profil: 'iphone', qui: 'marc' });
+    await c.p.evaluate(() => { dvInit(); CLIENTS.vp.nom = 'Société Générale de Climatisation, de Chauffage et de Plomberie Atlantique SARL'; }); await aller(c, 'devis-x-D-2026-041');
+    const r = await c.p.evaluate(() => { const l = [...document.querySelectorAll('#contenu .lien')].find(e => /Société Générale/.test(e.textContent)); if (!l) return null; const x = l.getBoundingClientRect(); return { align: getComputedStyle(l).textAlign, lignes: Math.round(x.height / parseFloat(getComputedStyle(l).lineHeight || 24)) }; });
+    v('devis (iphone) : le lien du client est trouvé', !!r, r); v('devis (iphone) : le lien du client sur plusieurs lignes est aligné à gauche', !!r && r.align === 'left', r); await L.fin(c); }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })();
