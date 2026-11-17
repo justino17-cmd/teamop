@@ -35,7 +35,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 10 | session_01PfEEAJBAE18M1gy4Csbx7E | `{voie:"campagne", cles:["metier-3d"], depuis:1}` (corriger, recontrôler) | 11 h 39 | |
 | 11 | session_01PfEEAGgTY1ef9915HaRiut | `{voie:"restes", noms:["technicien"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 40 | |
 | 12 | session_01PfEEAGeqoAKF68uYCmdAAC | `{voie:"restes", noms:["accueil"], depuis:1}` | 11 h 40 | |
-| 13 | session_01PfEEAGxPVYiib7J7pBKqd8 | `{voie:"restes", noms:["compositeur"], depuis:3}` (recontrôle du tour 2) | 11 h 40 | |
+| 13 | session_01PfEEAGxPVYiib7J7pBKqd8 | `{voie:"restes", noms:["compositeur"], depuis:3}` (recontrôle du tour 2) | 11 h 40 | RENDUE à 12 h 12 (31 min) : restes du compositeur, tour 2 recontrôlé — tout tient, 43 ✓, 5 mutations sur 5, rien de bloquant ni de gênant ; trois doutes pour Justin (`final/restes-compositeur-tour2-recontrole.json`). VOIE SUIVANTE envoyée à 12 h 24 : `{voie:"final-rejeu", familles:["metier","hote"], jusqua:0}` |
 | 14 | session_01PfEEAH6EH5oLXx7AdRLqBb | `{voie:"final-parcours"}` (une semaine de l'entreprise, d'un rôle à l'autre) | 11 h 41 | |
 | 15 | session_01PfEEAJPeoZsFLqAkxREWRW | `{voie:"final-mots"}` | 11 h 41 | |
 | 16 | session_01PfEEAGPpBDD97WG3Y3r7PB | `{voie:"final-regard", role:"gerant", rubriques:["Accueil","Statistiques","Historique","Planning","Interventions","Tâches","Absences et congés"], suffixe:"a"}` | 11 h 42 | |
