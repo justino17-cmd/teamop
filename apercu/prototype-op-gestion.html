@@ -5330,7 +5330,7 @@ function vueFacture(id){
   ${!complet ? `<div class="bandeau-info"><b>${[sansPrix ? sansPrix + ' ligne' + (sansPrix > 1 ? 's' : '') + ' sans prix' : '', sansNom ? sansNom + ' ligne' + (sansNom > 1 ? 's' : '') + ' sans nom' : ''].filter(Boolean).join(' · ')}</b> · ${sansPrix ? 'chiffre-' + (sansPrix > 1 ? 'les' : 'la') + ' ci-dessous' : ''}${sansPrix && sansNom ? ', et ' : ''}${sansNom ? 'écris ce que ' + (sansNom > 1 ? 'tu factures sur chacune' : 'tu factures sur cette ligne') : ''} pour pouvoir envoyer.${sansPrix ? ' Le prix sera retenu pour la prochaine fois.' : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}" placeholder="prix HT" aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(htDe({ lignes:[l] }))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l"><thead><tr><th>Désignation</th><th class="l-qc">Qté</th><th class="n">Prix HT</th></tr></thead><tbody>
+      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}"${l.pu == null ? ' placeholder="prix HT"' : ''} aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(htDe({ lignes:[l] }))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l"><thead><tr><th>Désignation</th><th class="l-qc">Qté</th><th class="n">Prix HT</th></tr></thead><tbody>
         ${L.map((l,k)=>`<tr><td>${esc(l.d)}<span class="l-q">\u00a0×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="l-qc">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="2">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="2" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?'particulier, logement de plus de 2 ans, attestation signée':f.tva===5.5?'travaux d’économie d’énergie':'client professionnel'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
@@ -7299,7 +7299,10 @@ function aApercuModif(d){
   const el = document.getElementById('am-apercu'); if (!el) return;
   const p = { tech:d.tech, du:document.getElementById('am-du').value, au:document.getElementById('am-au').value, demi:document.getElementById('am-demi').value || null };
   if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(p), avant = aJours(d), apres = aJours(p);
+  const c = aConflits(p), avant = aJours(d), apres = aJours(p), btn = document.querySelector('[data-amodifok]');
+  // même règle que les autres formulaires de dates : une proposition qui ne tombe que sur un week-end poserait une absence de 0 jour à l'acceptation
+  if (btn) btn.disabled = !apres;
+  if (!apres) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y aurait rien à poser. Propose d’autres dates.</small></div>'; return; }
   el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(p))}</b><span>${aDuree(p)}${apres !== avant ? ` · ${apres > avant ? '+' : ''}${aNb(apres - avant)} j par rapport à sa demande` : ''}</span></div>` + (c.ints.length ? `<div class="a-alerte"><b>⚠ Encore ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} sur ces dates</b>${c.ints.map(i => `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)}</span>`).join('')}</div>` : '<div class="a-ok">✓ Aucune intervention sur ces dates</div>');
 }
 const aLe = () => '31/10 · ' + hm(MAINT_MIN);
@@ -7325,6 +7328,7 @@ document.addEventListener('click', ev => {
     if (!p.du || !p.au || p.au < p.du) return toast('La date de fin est avant la date de début');
     if (p.du === d.du && p.au === d.au && (p.demi || null) === (d.demi || null)) return toast('Ce sont les mêmes dates que sa demande');
     if (p.demi && p.du !== p.au) p.demi = null;
+    if (!aJours({ tech:d.tech, du:p.du, au:p.au, demi:p.demi })) return toast('Ces jours ne sont pas travaillés : propose d’autres dates');
     d.prop = p; d.etat = 'proposee'; d.choix = {}; (d.fil = d.fil || []).push({ qui:acteur(), quoi:`a proposé ${aPeriode(p)} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')}${p.msg ? ' : « ' + p.msg + ' »' : ''}`, le:aLe() });
     journalAjout('marc', 'equipe', 'a proposé d’autres dates', { lib:tech(d.tech).nom }, { avant:aPeriode(d), apres:aPeriode(p) });
     aAvis(d.tech, { ic:'info', titre:'Marc te propose d’autres dates', det:`${aMaj(aPeriode(p))} ${('au lieu de ' + aPeriode(d)).replace(/de (le|du) /, 'du ')} · réponds sous « Mes demandes »`, msg:p.msg }); fermerPanneau(); rendre();
@@ -7391,6 +7395,12 @@ document.addEventListener('click', ev => {
     return aMontrerPlanning(x, mv, `Absence de ${aPrenom(x.tech)} · ${aTypeBas(x.type)}${mv.length ? ' · ' + mv.length + ' intervention' + (mv.length > 1 ? 's' : '') + ' ' + (mv.every(m => m.vers) ? 'confiée' + (mv.length > 1 ? 's' : '') : 'à reprendre') : ''}`); }
   if (b.dataset.aplan) { const [d] = b.dataset.aplan.split('|'); fermerPanneau(); plRef = d; plVue = 'jour'; plMasques = new Set(); return allerAvecRetour('planning', 'Absences et congés', () => {}); }
 });
+/* « Au » suit « Du » tant qu'on n'a pas touché « Au » : même règle que la demande du technicien (ad-), pour les trois formulaires du gérant
+   (Nouvelle absence an-, Proposer d'autres dates am-, Modifier les dates ax-). Écouteur en CAPTURE : il passe avant ceux qui calculent l'aperçu. */
+document.addEventListener('change', ev => { const m = /^(an|am|ax)-(du|au)$/.exec(ev.target.id || ''); if (!m) return;
+  if (m[2] === 'au') { ev.target.dataset.touche = '1'; return; }
+  const au = document.getElementById(m[1] + '-au');
+  if (au && !au.dataset.touche && ev.target.value && au.value < ev.target.value) { au.value = ev.target.value; if (typeof dtPeindre === 'function') dtPeindre(au); } }, true);
 document.addEventListener('change', ev => {
   if (['an-t', 'an-ty', 'an-du', 'an-au', 'an-demi'].includes(ev.target.id)) aApercu();
   if (['am-du', 'am-au', 'am-demi'].includes(ev.target.id)) { const b = document.querySelector('[data-amodifok]'); if (b) aApercuModif(DEMANDES_ABS.find(x => x.id === b.dataset.amodifok)); }
@@ -7428,6 +7438,10 @@ function aAppliquer(a, du, au, demi){
   if (!du || !au || au < du) { toast('La date de fin est avant la date de début'); return false; }
   const autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= au && du <= x.au);
   if (autre) { aDepl = null; aRendreGarde(); toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)} : rien n’a bougé.`); return false; }
+  // le geste forcé à la main, ou le glisser sur le calendrier, passent par ici : les règles de l'aperçu y sont aussi (un week-end seul, une demande en attente)
+  if (!aJours({ tech:a.tech, du, au, demi:du === au ? demi || null : null })) { aDepl = null; aRendreGarde(); toast('Ces jours ne sont pas travaillés : rien n’a bougé.'); return false; }
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= au && du <= x.au);
+  if (attente) { aDepl = null; aRendreGarde(); toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)} : accorde-la ou refuse-la d’abord, dans « À valider ». Rien n’a bougé.`); return false; }
   const av = { du:a.du, au:a.au, demi:a.demi || null }, dm = du === au ? demi || null : null;
   if (av.du === du && av.au === au && av.demi === dm) { aDepl = null; aRendreGarde(); return false; }
   Object.assign(a, { du, au, demi:dm });
@@ -7449,8 +7463,13 @@ function aPanneauDates(a){
 function aApercuDates(a){ const el = document.getElementById('ax-apercu'); if (!el) return;
   const p = { tech:a.tech, du:document.getElementById('ax-du').value, au:document.getElementById('ax-au').value, demi:document.getElementById('ax-demi').value || null };
   if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(p), autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= p.au && p.du <= x.au);
+  const c = aConflits(p), autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= p.au && p.du <= x.au), btn = document.querySelector('[data-axok]');
+  // mêmes règles que « Nouvelle absence » (aApercu) : rien un week-end, et une demande en attente sur ces jours se traite d'abord (sinon l'accorder doublerait l'absence)
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= p.au && p.du <= x.au);
+  if (btn) btn.disabled = !!(autre || attente || !aJours(p));
+  if (!aJours(p)) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y a rien à poser. Choisis d’autres dates.</small></div>'; return; }
   el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(p))}</b><span>${aDuree(p)}</span></div>`
+    + (attente && !autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)}</b><small>Une demande attend ta réponse sur ces jours : accorde-la ou refuse-la d’abord, dans « À valider ».</small></div>` : '')
     + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '')
     + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} sur ces dates</b>${c.ints.map(i => `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)}</span>`).join('')}<small>Après l’enregistrement, « Régler » propose qui les reprend.</small></div>` : '<div class="a-ok">✓ Aucune intervention sur ces dates</div>');
 }
@@ -23983,7 +24002,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-ma
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
   document.addEventListener('touchend', relache, { passive:true });
-  document.addEventListener('touchcancel', fin, { passive:true });
+  document.addEventListener('touchcancel', () => { fin(); tenu = false; }, { passive:true });   // le système a repris le doigt : il ne produit AUCUN clic, donc rien à avaler au toucher suivant
   document.addEventListener('mousedown', ev => { if (ev.button === 0 && ev.target.closest('.opg-barre')) debut(ev.clientX, ev.clientY); });
   document.addEventListener('mousemove', ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fin(); });
   document.addEventListener('mouseup', relache);
