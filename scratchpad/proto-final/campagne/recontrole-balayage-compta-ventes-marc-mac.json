@@ -1,0 +1,4039 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-ensemble": {
+   "recenses": 35,
+   "touches": 35,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Vue d’ensemble",
+     "data": "data-cx=sec|ensemble",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 146,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Clôture du mois",
+     "data": "data-cx=sec|cloture",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 142,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|accueil|",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "2 071,44 €facturé en octobre (HT) · 7 factures",
+     "data": "data-cx=sec|fventes|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 13,
+     "lib": "3 045,00 €encaissé en octobre (TTC) + 40,00 € reçus sur plac",
+     "data": "data-cx=sec|paiements",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 14,
+     "lib": "2 106,30 €dépenses d’octobre (TVA récupérable exclue), payée",
+     "data": "data-cx=sec|fachats|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 15,
+     "lib": "−34,86 €résultat provisoire d’octobre : facturé moins dépens",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 16,
+     "lib": "10 252,95 €trésorerie · banque 9 792,95 € + en main 460,00 €",
+     "data": "data-cx=sec|banque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 17,
+     "lib": "0 / 13points de conformité vérifiés en règle · 6 à régler",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 368,
+     "h": 110
+    },
+    {
+     "i": 18,
+     "lib": "Relancer",
+     "data": "data-cx=sec|fventes|ventes|retard data-cxaf=relancer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Relancer M. et Mme Durand",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 88,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Régler",
+     "data": "data-cx=sec|normes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 72,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Facturer",
+     "data": "data-cx=dosf|afacturer data-cxaf=facturer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Facturer 2 interventions terminées",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Expliquer",
+     "data": "data-cx=sec|banque data-cxaf=expliquer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Expliquer 3 lignes de la banque",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 93,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Payer",
+     "data": "data-cx=sec|fachats|achats|retard data-cxaf=payer",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Quelle facture as-tu payée ?",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 67,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Ajouter",
+     "data": "data-cx=sec|fachats|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 81,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Voir la caisse",
+     "data": "data-cx=sec|caisse",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 121,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Valider",
+     "data": "data-cx=sec|ndf data-cxaf=valider",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Valider 3 notes de frais",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 78,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Voir la TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 105,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "Clôturer",
+     "data": "data-cx=sec|cloture data-cxaf=cloturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "Factures et avoirs ›",
+     "data": "data-cx=sec|fventes|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 148,
+     "h": 44
+    },
+    {
+     "i": 29,
+     "lib": "Tous les achats ›",
+     "data": "data-cx=sec|fachats|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 131,
+     "h": 44
+    },
+    {
+     "i": 30,
+     "lib": "🧾Factures clients8 pièces · 2 548,00 € TTC 3 à traiter · 1 ",
+     "data": "data-cx=cat|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 31,
+     "lib": "📦Matériel & produits7 pièces · 2 197,36 € TTC 3 à traiter ·",
+     "data": "data-cx=cat|materiel",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 32,
+     "lib": "🚐Véhicules & carburant1 pièce · 95,00 € TTC À jour›",
+     "data": "data-cx=cat|vehicules",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 33,
+     "lib": "🏢Frais généraux2 pièces · 133,99 € TTC À jour›",
+     "data": "data-cx=cat|frais",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 264,
+     "h": 125
+    },
+    {
+     "i": 34,
+     "lib": "🧑‍🔧Notes de frais3 pièces · 30,70 € TTC 3 à traiter›",
+     "data": "data-cx=cat|ndf",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 264,
+     "h": 102
+    }
+   ]
+  },
+  "marc-mac-dossiers": {
+   "recenses": 49,
+   "touches": 49,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 172,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 180,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 145,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 91,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "2interventions terminées à facturer",
+     "data": "data-cx=dosf|afacturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 110
+    },
+    {
+     "i": 14,
+     "lib": "1 475,00 €à encaisser sur 3 interventions",
+     "data": "data-cx=dosf|aencaisser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 110
+    },
+    {
+     "i": 15,
+     "lib": "1 240,00 €en retard · 1",
+     "data": "data-cx=dosf|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 110
+    },
+    {
+     "i": 16,
+     "lib": "944,17 €marge des interventions d’octobre (HT, pièces et ach",
+     "data": "data-cx=dosf|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 110
+    },
+    {
+     "i": 17,
+     "lib": "Toutes",
+     "data": "data-cx=dosf|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "À facturer",
+     "data": "data-cx=dosf|afacturer",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 104,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "À encaisser",
+     "data": "data-cx=dosf|aencaisser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 116,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "En retard",
+     "data": "data-cx=dosf|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 97,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Réglées",
+     "data": "data-cx=dosf|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 89,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "À venir",
+     "data": "data-cx=dosf|arealiser",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Chercher une intervention",
+     "data": "data-cxdq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 530,
+     "h": 46
+    },
+    {
+     "i": 24,
+     "lib": "31 oct. Mme RouxContrôle d’étanchéité · Tom 💶 reçu sur plac",
+     "data": "data-cx=dossier|i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Contrôle d’étanchéité",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 25,
+     "lib": "16 oct. Hôtel de la PlageEntretien climatisation · Karim — —",
+     "data": "data-cx=dossier|i50",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 26,
+     "lib": "12 oct. M. et Mme DurandInstallation pompe à chaleur · 12/10",
+     "data": "data-cx=dossier|f:f128",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Installation pompe à chaleur · 12/10",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 27,
+     "lib": "29 oct. M. et Mme DurandRéglage pompe à chaleur · Sophie 🧾 ",
+     "data": "data-cx=dossier|i24",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Réglage pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 72
+    },
+    {
+     "i": 28,
+     "lib": "28 oct. Cabinet dentaire MartinContrôle chauffe-eau · Léa 🧾",
+     "data": "data-cx=dossier|i23",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Contrôle chauffe-eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 72
+    },
+    {
+     "i": 29,
+     "lib": "30 oct. Hôtel de la PlageEntretien climatisation — 6 cassett",
+     "data": "data-cx=dossier|i25",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation — 6 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 72
+    },
+    {
+     "i": 30,
+     "lib": "27 oct. Copropriété Les MimosasContrat — visite 2 sur 4 · To",
+     "data": "data-cx=dossier|i22",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Contrat — visite 2 sur 4",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 73
+    },
+    {
+     "i": 31,
+     "lib": "26 oct. Hôtel de la PlageEntretien climatisation — 6 cassett",
+     "data": "data-cx=dossier|i20",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation — 6 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 72
+    },
+    {
+     "i": 32,
+     "lib": "26 oct. Camping Les PinsDépannage — fuite d’eau · Karim 🧾 F",
+     "data": "data-cx=dossier|i21",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Dépannage — fuite d’eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 72
+    },
+    {
+     "i": 33,
+     "lib": "31 oct. Mme RouxUrgent — plus de chauffage — — — À réaliser",
+     "data": "data-cx=dossier|i17",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Urgent — plus de chauffage",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 34,
+     "lib": "31 oct. Garage Rochefort AutoDépannage pompe à chaleur ateli",
+     "data": "data-cx=dossier|i16",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Garage Rochefort Auto · Dépannage pompe à chaleur atelier",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 35,
+     "lib": "31 oct. Camping Les PinsRemplacement condensateur · Tom — — ",
+     "data": "data-cx=dossier|i7",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Remplacement condensateur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 36,
+     "lib": "31 oct. Hôtel de la PlageEntretien chaudière granulés — — — ",
+     "data": "data-cx=dossier|i5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien chaudière granulés",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 37,
+     "lib": "31 oct. Cabinet dentaire MartinEntretien chauffe-eau thermod",
+     "data": "data-cx=dossier|i4",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien chauffe-eau thermodynamique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 38,
+     "lib": "31 oct. Copropriété Les MimosasRécupération du fluide d’un a",
+     "data": "data-cx=dossier|i3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Récupération du fluide d’un ancien split",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 39,
+     "lib": "31 oct. M. et Mme DurandMise en service pompe à chaleur · So",
+     "data": "data-cx=dossier|i2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Mise en service pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 40,
+     "lib": "31 oct. Restaurant Le Vieux PortDépannage climatisation · So",
+     "data": "data-cx=dossier|i1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port · Dépannage climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 41,
+     "lib": "2 nov. Mme RouxDépannage climatisation — — — À réaliser",
+     "data": "data-cx=dossier|i10",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Dépannage climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 42,
+     "lib": "2 nov. Camping Les PinsDépannage — fuite d’eau · Sophie — — ",
+     "data": "data-cx=dossier|i9",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins · Dépannage — fuite d’eau",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 43,
+     "lib": "2 nov. Mme RouxInstallation d’un split mural · Karim 💰 D-20",
+     "data": "data-cx=dossier|i8",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux · Installation d’un split mural",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 44,
+     "lib": "3 nov. Cabinet dentaire MartinEntretien climatisation · Soph",
+     "data": "data-cx=dossier|i12",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien climatisation",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 45,
+     "lib": "3 nov. Copropriété Les MimosasContrat — visite 3 sur 4 · Tom",
+     "data": "data-cx=dossier|i11",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Contrat — visite 3 sur 4",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 46,
+     "lib": "4 nov. Restaurant Le Vieux PortRemplacer le ventilateur exté",
+     "data": "data-cx=dossier|i13",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port · Remplacer le ventilateur extérieur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 47,
+     "lib": "5 nov. Hôtel de la PlageContrat — visite 2 sur 2 · Léa 📑 CT",
+     "data": "data-cx=dossier|i14",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Contrat — visite 2 sur 2",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 48,
+     "lib": "6 nov. M. et Mme DurandVisite de contrôle pompe à chaleur · ",
+     "data": "data-cx=dossier|i15",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand · Visite de contrôle pompe à chaleur",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    }
+   ]
+  },
+  "marc-mac-fventes": {
+   "recenses": 30,
+   "touches": 30,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 181,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 145,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 91,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Factures et avoirs 8",
+     "data": "data-cx=cat|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 166,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "🧾 Factures clients 8",
+     "data": "data-cx=cat|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 177,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Toutes",
+     "data": "data-cx=st|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "À traiter",
+     "data": "data-cx=st|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 89,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "En retard",
+     "data": "data-cx=st|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 97,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Payées",
+     "data": "data-cx=st|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Chercher une facture",
+     "data": "data-cxq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 752,
+     "h": 46
+    },
+    {
+     "i": 20,
+     "lib": "30 oct. Hôtel de la PlageFAC-2026-0145 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 21,
+     "lib": "29 oct. M. et Mme DurandFAC-2026-0144 · Réglage pompe à chal",
+     "data": "data-cx=doc|fac|f144",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0144",
+     "panneau": "",
+     "hash": "#facture-x-f144",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 22,
+     "lib": "28 oct. Cabinet dentaire MartinFAC-2026-0143 · Contrôle chau",
+     "data": "data-cx=doc|fac|f143",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0143",
+     "panneau": "",
+     "hash": "#facture-x-f143",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 23,
+     "lib": "27 oct. Copropriété Les MimosasFAC-2026-0142 · Contrat · vis",
+     "data": "data-cx=doc|fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 24,
+     "lib": "26 oct. Camping Les PinsFAC-2026-0141 · Dépannage fuite d’ea",
+     "data": "data-cx=doc|fac|f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 25,
+     "lib": "26 oct. Hôtel de la PlageFAC-2026-0140 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 26,
+     "lib": "12 oct. M. et Mme DurandFAC-2026-0128 · Installation pompe à",
+     "data": "data-cx=doc|fac|f128",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0128",
+     "panneau": "",
+     "hash": "#facture-x-f128",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 27,
+     "lib": "12 mai Restaurant Le Vieux PortFAC-2026-0121 · Entretien ann",
+     "data": "data-cx=doc|fac|f121",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0121",
+     "panneau": "",
+     "hash": "#facture-x-f121",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 68
+    },
+    {
+     "i": 28,
+     "lib": "on",
+     "data": "data-reglage=auto",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Activé",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 29,
+     "lib": "on",
+     "data": "data-reglage=relance",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Désactivé",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    }
+   ]
+  },
+  "marc-mac-fventes-clients": {
+   "recenses": 30,
+   "touches": 30,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 181,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 145,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 91,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Factures et avoirs 8",
+     "data": "data-cx=cat|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 166,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "🧾 Factures clients 8",
+     "data": "data-cx=cat|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 177,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Toutes",
+     "data": "data-cx=st|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "À traiter",
+     "data": "data-cx=st|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 89,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "En retard",
+     "data": "data-cx=st|retard",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 97,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Payées",
+     "data": "data-cx=st|payee",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Chercher une facture",
+     "data": "data-cxq=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 752,
+     "h": 46
+    },
+    {
+     "i": 20,
+     "lib": "30 oct. Hôtel de la PlageFAC-2026-0145 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 21,
+     "lib": "29 oct. M. et Mme DurandFAC-2026-0144 · Réglage pompe à chal",
+     "data": "data-cx=doc|fac|f144",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0144",
+     "panneau": "",
+     "hash": "#facture-x-f144",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 22,
+     "lib": "28 oct. Cabinet dentaire MartinFAC-2026-0143 · Contrôle chau",
+     "data": "data-cx=doc|fac|f143",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0143",
+     "panneau": "",
+     "hash": "#facture-x-f143",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 23,
+     "lib": "27 oct. Copropriété Les MimosasFAC-2026-0142 · Contrat · vis",
+     "data": "data-cx=doc|fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 24,
+     "lib": "26 oct. Camping Les PinsFAC-2026-0141 · Dépannage fuite d’ea",
+     "data": "data-cx=doc|fac|f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 25,
+     "lib": "26 oct. Hôtel de la PlageFAC-2026-0140 · Entretien climatisa",
+     "data": "data-cx=doc|fac|f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 26,
+     "lib": "12 oct. M. et Mme DurandFAC-2026-0128 · Installation pompe à",
+     "data": "data-cx=doc|fac|f128",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0128",
+     "panneau": "",
+     "hash": "#facture-x-f128",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 69
+    },
+    {
+     "i": 27,
+     "lib": "12 mai Restaurant Le Vieux PortFAC-2026-0121 · Entretien ann",
+     "data": "data-cx=doc|fac|f121",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0121",
+     "panneau": "",
+     "hash": "#facture-x-f121",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 68
+    },
+    {
+     "i": 28,
+     "lib": "on",
+     "data": "data-reglage=auto",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Activé",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    },
+    {
+     "i": 29,
+     "lib": "on",
+     "data": "data-reglage=relance",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Désactivé",
+     "sansNom": false,
+     "l": 24,
+     "h": 24
+    }
+   ]
+  },
+  "marc-mac-clients": {
+   "recenses": 21,
+   "touches": 21,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 180,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 147,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 91,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "M. et Mme Durand3 interventions · particulier 1 361,00 €242,",
+     "data": "data-cx=releve|md",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "M. et Mme Durand",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 14,
+     "lib": "Cabinet dentaire Martin3 interventions · professionnel 114,0",
+     "data": "data-cx=releve|cm",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 15,
+     "lib": "Copropriété Les Mimosas3 interventions · contrat · professio",
+     "data": "data-cx=releve|mi",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 16,
+     "lib": "Hôtel de la Plage5 interventions · contrat · professionnel 3",
+     "data": "data-cx=releve|hp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 17,
+     "lib": "Camping Les Pins3 interventions · professionnel 95,00 €175,0",
+     "data": "data-cx=releve|cp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Camping Les Pins",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 18,
+     "lib": "Restaurant Le Vieux Port2 interventions · professionnel —240",
+     "data": "data-cx=releve|vp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Restaurant Le Vieux Port",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 19,
+     "lib": "Mme Roux4 interventions · particulier —132,00 €— 1 à facture",
+     "data": "data-cx=releve|mr",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Mme Roux",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 20,
+     "lib": "Garage Rochefort Auto1 intervention · professionnel ——— à jo",
+     "data": "data-cx=releve|rf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Garage Rochefort Auto",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    }
+   ]
+  },
+  "marc-mac-contrats": {
+   "recenses": 16,
+   "touches": 16,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Par intervention3",
+     "data": "data-cx=sec|dossiers",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Factures & avoirs3",
+     "data": "data-cx=sec|fventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 180,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Comptes clients",
+     "data": "data-cx=sec|clients",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 145,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Contrats",
+     "data": "data-cx=sec|contrats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 92,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Copropriété Les MimosasCTR-2026-004 · Entretien climatisatio",
+     "data": "data-cx=ctr|c1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Copropriété Les Mimosas · Entretien climatisation · 12 appareils",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 14,
+     "lib": "Hôtel de la PlageCTR-2026-007 · Entretien climatisation · 12",
+     "data": "data-cx=ctr|c2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Hôtel de la Plage · Entretien climatisation · 12 cassettes",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    },
+    {
+     "i": 15,
+     "lib": "Cabinet dentaire MartinCTR-2026-011 · Entretien chauffe-eau ",
+     "data": "data-cx=ctr|c3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Cabinet dentaire Martin · Entretien chauffe-eau thermodynamique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 71
+    }
+   ]
+  },
+  "marc-mac-paiements": {
+   "recenses": 40,
+   "touches": 40,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Paiements",
+     "data": "data-cx=sec|paiements",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 105,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Banque3",
+     "data": "data-cx=sec|banque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 110,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Caisse & chèques",
+     "data": "data-cx=sec|caisse",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Paiement en ligne",
+     "data": "data-cx=sec|enligne",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "3 085,00 €reçu en octobre dont 40,00 € reçus sur place, pas ",
+     "data": "data-cx=psens|in",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 127
+    },
+    {
+     "i": 14,
+     "lib": "1 530,07 €payé en octobre",
+     "data": "data-cx=psens|out",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 127
+    },
+    {
+     "i": 15,
+     "lib": "1 475,00 €encore à recevoir des clients",
+     "data": "data-cx=sec|factures|clients|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 127
+    },
+    {
+     "i": 16,
+     "lib": "896,28 €encore à payer aux fournisseurs · 3",
+     "data": "data-cx=sec|factures|achats|traiter",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 273,
+     "h": 127
+    },
+    {
+     "i": 17,
+     "lib": "Tout",
+     "data": "data-cx=psens|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 65,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Reçus",
+     "data": "data-cx=psens|in",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 76,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Payés",
+     "data": "data-cx=psens|out",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 75,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Tous les moyens",
+     "data": "data-cx=pmode|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 145,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Carte",
+     "data": "data-cx=pmode|Carte",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 67,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Virement",
+     "data": "data-cx=pmode|Virement",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 92,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Chèque",
+     "data": "data-cx=pmode|Chèque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Espèces",
+     "data": "data-cx=pmode|Espèces",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Prélèvement",
+     "data": "data-cx=pmode|Prélèvement",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 116,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Bilan des encaissements (PDF)",
+     "data": "data-action=bilanPdf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Bilan d’octobre",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 241,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "＋ Paiement reçu",
+     "data": "data-action=ajoutEnc",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Paiement reçu",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 143,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "＋ Paiement fait",
+     "data": "data-cx=payerliste",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Quelle facture as-tu payée ?",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 137,
+     "h": 40
+    },
+    {
+     "i": 29,
+     "lib": "FAC-2026-0145",
+     "data": "data-cp=fac|f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "sansNom": false,
+     "l": 109,
+     "h": 20
+    },
+    {
+     "i": 30,
+     "lib": "FAC-2026-0142",
+     "data": "data-cp=fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 20
+    },
+    {
+     "i": 31,
+     "lib": "FAC-2026-0140",
+     "data": "data-cp=fac|f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "sansNom": false,
+     "l": 109,
+     "h": 20
+    },
+    {
+     "i": 32,
+     "lib": "FAC-2026-0141",
+     "data": "data-cp=fac|f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "sansNom": false,
+     "l": 105,
+     "h": 20
+    },
+    {
+     "i": 33,
+     "lib": "CB-LM-2610",
+     "data": "data-cx=doc|ach|a6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Leroy Merlin Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 20
+    },
+    {
+     "i": 34,
+     "lib": "ORANGE-2026-10",
+     "data": "data-cx=doc|ach|a5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Orange Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 123,
+     "h": 20
+    },
+    {
+     "i": 35,
+     "lib": "CB-FD17-1710",
+     "data": "data-cx=doc|ach|a4",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Frigo Distribution 17",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 94,
+     "h": 20
+    },
+    {
+     "i": 36,
+     "lib": "DKO-2026-10-0193",
+     "data": "data-cx=doc|ach|a2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Daikin Pro Ouest",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 133,
+     "h": 20
+    },
+    {
+     "i": 37,
+     "lib": "TICKET-TOTAL-1210",
+     "data": "data-cx=doc|ach|a3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "TotalEnergies",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 136,
+     "h": 20
+    },
+    {
+     "i": 38,
+     "lib": "FA-CPA-88412",
+     "data": "data-cx=doc|ach|a1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Clim Pièces Atlantique",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 99,
+     "h": 20
+    },
+    {
+     "i": 39,
+     "lib": "ECH-MAAF-2026-10",
+     "data": "data-cx=doc|ach|a0",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "MAAF Pro",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 141,
+     "h": 20
+    }
+   ]
+  },
+  "marc-mac-caisse": {
+   "recenses": 16,
+   "touches": 16,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 64
+    },
+    {
+     "i": 9,
+     "lib": "Paiements",
+     "data": "data-cx=sec|paiements",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 104,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Banque3",
+     "data": "data-cx=sec|banque",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 110,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Caisse & chèques",
+     "data": "data-cx=sec|caisse",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 158,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Paiement en ligne",
+     "data": "data-cx=sec|enligne",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 157,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Tom me l’a remis",
+     "data": "data-cp=remis|i6",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Remis au bureau : l’argent passe de la caisse des techniciens à celle du bureau.",
+     "sansNom": false,
+     "l": 134,
+     "h": 34
+    },
+    {
+     "i": 14,
+     "lib": "FAC-2026-0142",
+     "data": "data-cp=fac|f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 15,
+     "lib": "Remis en banque aujourd’hui",
+     "data": "data-cp=chq|30/10|FAC-2026-0142",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "Chèque remis : il apparaîtra sur le prochain relevé",
+     "sansNom": false,
+     "l": 217,
+     "h": 34
+    }
+   ]
+  }
+ },
+ "err": []
+}

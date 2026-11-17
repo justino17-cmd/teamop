@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
+<html lang="fr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="same-origin"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
 <title>Comptabilité OP GESTION</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1813,7 +1813,7 @@ VUES.resultat = () => {
 const FEC_COLS = ['JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate', 'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib', 'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit', 'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'];
 function fecLignes(){
   const d8 = d => d ? d.replace(/-/g, '') : '', m = x => x.toFixed(2).replace('.', ','), net = s => String(s || '').replace(/[|\r\n]/g, ' ');
-  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map(net)));
+  return E.filter(e => e.etat === 'valide' && !e.essai).sort((a, b) => (a.valideLe + a.num).localeCompare(b.valideLe + b.num)).flatMap(e => e.lignes.map(l => [e.j, JOURNAUX[e.j], e.num, d8(e.date), l.c, libCpt(l.c), l.aux || '', l.aux ? nomTiers(l.aux) : '', e.piece || e.num, d8(e.date), net(l.lib), m(l.d), m(l.cr), l.let || '', d8(l.dlet), d8(e.valideLe), '', ''].map((v, i) => [5, 7, 8, 10].includes(i) ? net(v).replace(/^[=+\-@]/, "'$&") : net(v))));
 }
 const fecNom = () => DOSSIER.siren + 'FEC' + EXO.fin.replace(/-/g, '') + '.txt';
 VUES.fec = () => {
@@ -1827,11 +1827,19 @@ VUES.fec = () => {
     <div class="defile"><table class="t" style="font-size:12px"><thead><tr>${FEC_COLS.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${L.slice(0, 40).map(x => `<tr>${x.map((v, i) => `<td class="${[11, 12].includes(i) ? 'n' : ''} ${[2, 4, 6].includes(i) ? 'mono' : ''}" style="white-space:nowrap">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="mute petit">Les 40 premières lignes sur ${L.length}.</p>`;
 };
+/* « dans un artefact » = la page principale (celle qui nous contient) est elle-même dans un cadre : window.top n'est ni nous ni notre parent */
+const dansArtefact = () => { try { return window.parent !== window && window.parent !== window.top; } catch (e) { return true; } };
 async function fecTelecharger(){
   const txt = [FEC_COLS.join('|'), ...fecLignes().map(x => x.join('|'))].join('\r\n'); UI.fecFait = true;
   /* window.claude n'est promis que dans la page du HAUT : la comptabilité vit dans un cadre, elle passe par celui du parent (même origine), sans jamais supposer qu'il existe */
   let dl = null; try { const cl = window.claude || (window.parent !== window ? window.parent.claude : null); dl = cl && cl.use ? await cl.use('downloads') : null; } catch (e) { dl = null; }
   const msg = $('#fec-msg');
+  /* Hors artefact (la page principale est la fenêtre du haut : la coque, un onglet), un lien de téléchargement marche ; dans un cadre verrouillé il ne ferait rien, et on ne l'annonce pas. 17 novembre 2026 */
+  if (!dl && !dansArtefact()) {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type:'text/plain' })); a.download = fecNom(); a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      if (msg) msg.innerHTML = `<div class="info">Téléchargement demandé : « ${esc(fecNom())} ». S’il ne démarre pas, ton navigateur le bloque ici.</div>`; }
+    catch (e) { if (msg) msg.innerHTML = `<div class="erreur">Le téléchargement n’a pas abouti ici.</div>`; }
+    parcoursVerifier(); return; }
   if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici : voici seulement le début du fichier (${fecLignes().length} lignes en tout).</div><pre class="fec-apercu mono" tabindex="0" role="region" aria-label="Début du fichier des écritures">${esc(txt.slice(0, 4000))}</pre>`; parcoursVerifier(); return; }
   try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }
   catch (e) { if (msg) msg.innerHTML = `<div class="${e && e.code === 'declined' ? 'info' : 'erreur'}">${e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n’a pas abouti ici.'}</div>`; }
@@ -3309,6 +3317,7 @@ const cmptParent = m => { try { if (parent !== window) { parent.postMessage(m, '
 const cmptPluriel = (n, s, p) => n + ' ' + (n > 1 ? (p || s + 's') : s);
 /* un message d'OP GESTION : qui regarde (le titre et « Ce qui t'attend »), ou « ouvre-moi cette rubrique avec ce filtre » */
 addEventListener('message', ev => {
+  if (window.parent === window || ev.source !== window.parent) return;   /* ouverte seule, la page n'accepte AUCUN message ; dans son cadre, seulement ceux de la page qui la contient : le rôle, la Paie et les liens ne se décident QUE par la page qui nous contient (OP GESTION) : une autre fenêtre, de n'importe quelle origine, ne peut pas se déclarer patron */
   const d = ev.data; if (!d || typeof d !== 'object') return;
   if (d.opc_role) { window.CMPT_DROITS = d.opc_role.droits && typeof d.opc_role.droits === 'object' ? d.opc_role.droits : null; const roleAvant = CMPT.role; const paieAvant = CMPT.paie; CMPT.role = d.opc_role.role === 'patron' ? 'patron' : 'gestion'; CMPT.paie = d.opc_role.paie === true;   /* le comptable du cabinet reste « gestion » pour tout le reste, mais garde la Paie : la règle « patron seul » la lui avait retirée, alors que le défaut était la gestion des factures (secrétariat) · 13 novembre 2026 */ if (d.opc_role.prenom) CMPT.prenom = String(d.opc_role.prenom).slice(0, 30); if (UI.route === 'accueil' || CMPT.role !== roleAvant || CMPT.paie !== paieAvant) rendre(); }
   if (d.opc_aller) cmptAller(d.opc_aller);

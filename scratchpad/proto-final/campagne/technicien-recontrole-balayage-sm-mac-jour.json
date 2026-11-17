@@ -1,0 +1,2631 @@
+{
+ "profil": "mac",
+ "qui": "sm",
+ "nuit": false,
+ "sortie": {
+  "majournee": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "Je commence ma journée",
+    "data": "data-ptx=debut|sm",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "Bonne journée ! Commencée à 10:40.",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 1086,
+    "h": 44
+   },
+   {
+    "i": 14,
+    "lib": "J’ai commencé plus tôt",
+    "data": "data-ptx=plustot|sm",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "J’ai commencé plus tôt",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 1086,
+    "h": 44
+   },
+   {
+    "i": 15,
+    "lib": "Mon camionTout est en règle3 articles à remettre à bord›",
+    "data": "data-go=moncamion",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 1128,
+    "h": 72
+   },
+   {
+    "i": 16,
+    "lib": "Mes habilitations : à jour ›",
+    "data": "data-eqx=mesfiche|sm",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "Sophie Martin",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 199,
+    "h": 44
+   },
+   {
+    "i": 17,
+    "lib": "Continuer",
+    "data": "data-rl=go|inter-x-i1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "toast",
+     "long",
+     "url"
+    ],
+    "h1": "Dépannage climatisation",
+    "panneau": "",
+    "toast": "Tu n’as pas commencé ta journée. Commencer à 10:40 ?Oui, commencerNon",
+    "hash": "#inter-x-i1",
+    "sansNom": false,
+    "l": 96,
+    "h": 40
+   },
+   {
+    "i": 18,
+    "lib": "Y aller",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 73,
+    "h": 40
+   },
+   {
+    "i": 19,
+    "lib": "Appeler",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 84,
+    "h": 40
+   },
+   {
+    "i": 20,
+    "lib": "Commencer",
+    "data": "data-rl=go|inter-x-i2",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "toast",
+     "long",
+     "url"
+    ],
+    "h1": "Mise en service pompe à chaleur",
+    "panneau": "",
+    "toast": "Tu n’as pas commencé ta journée. Commencer à 10:40 ?Oui, commencerNon",
+    "hash": "#inter-x-i2",
+    "sansNom": false,
+    "l": 112,
+    "h": 40
+   },
+   {
+    "i": 21,
+    "lib": "Commencer",
+    "data": "data-rl=go|inter-x-i16",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Dépannage pompe à chaleur atelier",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i16",
+    "sansNom": false,
+    "l": 112,
+    "h": 40
+   },
+   {
+    "i": 22,
+    "lib": "Terminer : Prévenir M. Durand 30 min avant la mise en servic",
+    "data": "data-tfait=t11",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "Tâche faiteAnnuler",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 44,
+    "h": 44
+   },
+   {
+    "i": 23,
+    "lib": "Prévenir M. Durand 30 min avant la mise en service de sa pom",
+    "data": "data-tmodif=t11",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "Prévenir M. Durand 30 min avant la mise en service de sa pompe à chaleur",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 1034,
+    "h": 47
+   },
+   {
+    "i": 24,
+    "lib": "＋ Nouvelle tâche · ex. Racheter des cosses demain",
+    "data": "data-tkxajout=1",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 928,
+    "h": 45
+   },
+   {
+    "i": 25,
+    "lib": "Toutes mes tâches",
+    "data": "data-go=taches",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 150,
+    "h": 34
+   },
+   {
+    "i": 26,
+    "lib": "＋ Nouvelle note de frais",
+    "data": "data-rl=ndf",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "Ce que tu as payé de ta poche",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 226,
+    "h": 46
+   },
+   {
+    "i": 27,
+    "lib": "Voir mes frais",
+    "data": "data-go=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 146,
+    "h": 46
+   },
+   {
+    "i": 28,
+    "lib": "＋ Demande d’achat",
+    "data": "data-axa=dem",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "Il me faut…",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 192,
+    "h": 46
+   },
+   {
+    "i": 29,
+    "lib": "Mes demandes",
+    "data": "data-go=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   }
+  ],
+  "taches": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "Exporter en PDF",
+    "data": "data-texport=1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "Exporter les tâches",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 164,
+    "h": 46
+   },
+   {
+    "i": 14,
+    "lib": "Aujourd’hui 1",
+    "data": "data-tonglet=auj",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 141,
+    "h": 40
+   },
+   {
+    "i": 15,
+    "lib": "À venir",
+    "data": "data-tonglet=avenir",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 82,
+    "h": 40
+   },
+   {
+    "i": 16,
+    "lib": "Faites",
+    "data": "data-tonglet=faites",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 75,
+    "h": 40
+   },
+   {
+    "i": 17,
+    "lib": "Chercher une tâche, un client, un numéro",
+    "data": "data-tkxcherche=1",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 741,
+    "h": 45
+   },
+   {
+    "i": 18,
+    "lib": "En retard 0",
+    "data": "data-tkxfiltre=retard",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 119,
+    "h": 44
+   },
+   {
+    "i": 19,
+    "lib": "Urgentes 0",
+    "data": "data-tkxfiltre=urgent",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 120,
+    "h": 44
+   },
+   {
+    "i": 20,
+    "lib": "Sans date 0",
+    "data": "data-tkxfiltre=sansdate",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 125,
+    "h": 44
+   },
+   {
+    "i": 21,
+    "lib": "Ajouter une tâche",
+    "data": "data-tajout=1",
+    "touche": true,
+    "change": [],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 1001,
+    "h": 44
+   },
+   {
+    "i": 22,
+    "lib": "Détails",
+    "data": "data-tnouv=1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "Nouvelle tâche",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 53,
+    "h": 44
+   },
+   {
+    "i": 23,
+    "lib": "Choisir : Prévenir M. Durand 30 min avant la mise en service",
+    "data": "data-tsel=t11",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 24,
+    "lib": "Prévenir M. Durand 30 min avant la mise en service de sa pom",
+    "data": "data-tmodif=t11",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "Prévenir M. Durand 30 min avant la mise en service de sa pompe à chaleur",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 1022,
+    "h": 70
+   }
+  ],
+  "techfrais": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes frais",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "＋ Nouvelle note de frais",
+    "data": "data-rl=ndf",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes frais",
+    "panneau": "Ce que tu as payé de ta poche",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 226,
+    "h": 46
+   },
+   {
+    "i": 14,
+    "lib": "＋ Demande d’achat",
+    "data": "data-axa=dem",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes frais",
+    "panneau": "Il me faut…",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 194,
+    "h": 46
+   },
+   {
+    "i": 15,
+    "lib": "Modifier",
+    "data": "data-axa=demmod|da3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes frais",
+    "panneau": "Modifier la demande",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 88,
+    "h": 40
+   },
+   {
+    "i": 16,
+    "lib": "Annuler la demande",
+    "data": "data-axa=demannul|da3",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "Demande annulée.Annuler",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 155,
+    "h": 44
+   },
+   {
+    "i": 17,
+    "lib": "📷 Ajouter le ticket",
+    "data": "data-rl=ndfmod|n3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes frais",
+    "panneau": "Modifier ma note",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 157,
+    "h": 40
+   }
+  ],
+  "mesheures": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "Ce mois-ci",
+    "data": "data-tt=mhonglet|mois",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 111,
+    "h": 40
+   },
+   {
+    "i": 14,
+    "lib": "Mes fiches de paie",
+    "data": "data-tt=mhonglet|fiches",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 167,
+    "h": 40
+   },
+   {
+    "i": 15,
+    "lib": "Je confirme mes heures",
+    "data": "data-tt=mhconf|sm",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "Merci : tes heures sont confirmées, le bureau le voit.",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 320,
+    "h": 56
+   },
+   {
+    "i": 16,
+    "lib": "Il y a une erreur",
+    "data": "data-tt=erreur|sm",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Il y a une erreur",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 120,
+    "h": 44
+   },
+   {
+    "i": 17,
+    "lib": "Je commence ma journée",
+    "data": "data-ptx=debut|sm",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "Bonne journée ! Commencée à 10:40.",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 204,
+    "h": 44
+   },
+   {
+    "i": 18,
+    "lib": "lun. 2607:37–16:428h05›",
+    "data": "data-tt=mhjour|sm|2026-10-26",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Lundi 26 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 19,
+    "lib": "mar. 2707:38–16:438h05›",
+    "data": "data-tt=mhjour|sm|2026-10-27",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Mardi 27 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 20,
+    "lib": "mer. 2807:39–16:448h05›",
+    "data": "data-tt=mhjour|sm|2026-10-28",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Mercredi 28 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 21,
+    "lib": "jeu. 2907:40–16:458h05›",
+    "data": "data-tt=mhjour|sm|2026-10-29",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Jeudi 29 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 22,
+    "lib": "ven. 3007:37–17:078h30›",
+    "data": "data-tt=mhjour|sm|2026-10-30",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Vendredi 30 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 23,
+    "lib": "lun. 1907:34–16:548h20›",
+    "data": "data-tt=mhjour|sm|2026-10-19",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Lundi 19 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 24,
+    "lib": "mar. 2007:30–16:36corrigée par le bureau8h06›",
+    "data": "data-tt=mhjour|sm|2026-10-20",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Mardi 20 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 59
+   },
+   {
+    "i": 25,
+    "lib": "mer. 2107:32–16:378h05›",
+    "data": "data-tt=mhjour|sm|2026-10-21",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Mercredi 21 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 26,
+    "lib": "jeu. 2207:33–16:388h05›",
+    "data": "data-tt=mhjour|sm|2026-10-22",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Jeudi 22 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 27,
+    "lib": "ven. 2307:34–16:398h05›",
+    "data": "data-tt=mhjour|sm|2026-10-23",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes heures",
+    "panneau": "Vendredi 23 octobre",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 48
+   },
+   {
+    "i": 28,
+    "lib": "Voir tout le mois",
+    "data": "data-tt=mhtout",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 1086,
+    "h": 44
+   }
+  ],
+  "moncamion": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "1 message du bureau ›",
+    "data": "data-mat=messages",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Message du bureau",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 191,
+    "h": 44
+   },
+   {
+    "i": 14,
+    "lib": "Chercher une pièce : où elle est, combien",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 720,
+    "h": 46
+   },
+   {
+    "i": 15,
+    "lib": "J’ai utilisé chez un client",
+    "data": "data-vis=camion-utilise data-mat=usage",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "J’ai utilisé chez un client",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 720,
+    "h": 56
+   },
+   {
+    "i": 16,
+    "lib": "J’ai pris à l’atelier",
+    "data": "data-mat=prise",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "J’ai pris à l’atelier",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 355,
+    "h": 56
+   },
+   {
+    "i": 17,
+    "lib": "Il me manque une pièce",
+    "data": "data-mat=manque",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Il me manque une pièce",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 355,
+    "h": 56
+   },
+   {
+    "i": 18,
+    "lib": "Noter un plein",
+    "data": "data-vx=plein|veh1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Noter un plein",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 222,
+    "h": 44
+   },
+   {
+    "i": 19,
+    "lib": "Relever le compteur",
+    "data": "data-vx=km|veh1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Relever le compteur",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 222,
+    "h": 44
+   },
+   {
+    "i": 20,
+    "lib": "Un souci avec le camion",
+    "data": "data-vx=souci|veh1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mon camion",
+    "panneau": "Un souci avec le camion",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 222,
+    "h": 44
+   },
+   {
+    "i": 21,
+    "lib": "J’ai tout pris : 3 articles",
+    "data": "data-mat=toutpris",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "Envoyé au bureau : Filtre à charbon et 2 autres.Annuler",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 134,
+    "h": 40
+   },
+   {
+    "i": 22,
+    "lib": "Je l’ai pris à l’atelier : Filtre à charbon",
+    "data": "data-mat=pris|p1",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "Envoyé au bureau : Filtre à charbon × 1.Annuler",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 99,
+    "h": 44
+   },
+   {
+    "i": 23,
+    "lib": "Je l’ai pris à l’atelier : Fluide R32 (le kg)",
+    "data": "data-mat=pris|p4",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "Envoyé au bureau : Fluide R32 (le kg) × 0,5.Annuler",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 99,
+    "h": 44
+   },
+   {
+    "i": 24,
+    "lib": "Je l’ai pris à l’atelier : Nettoyant échangeur (0,5 L)",
+    "data": "data-mat=pris|p5",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "Envoyé au bureau : Nettoyant échangeur (0,5 L) × 1.Annuler",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 99,
+    "h": 44
+   },
+   {
+    "i": 25,
+    "lib": "À bord · 6 articles›",
+    "data": "data-mat=bord",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 720,
+    "h": 56
+   },
+   {
+    "i": 26,
+    "lib": "Retirer l’envoi de Fluide R32 (le kg)",
+    "data": "data-mat=retire|a2",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "Retiré : rien n’est envoyé au bureau.Annuler",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 51,
+    "h": 44
+   }
+  ],
+  "absences": [
+   {
+    "i": 0,
+    "lib": "OP GESTION, Clim Services 17 : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 59
+   },
+   {
+    "i": 1,
+    "lib": "Ma journée",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Sophie",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Mes tâches",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Mes frais",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mes heures1",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 5,
+    "lib": "Mon camion",
+    "data": "",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Mes congés",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Jour",
+    "data": "data-modetheme=jour",
+    "touche": true,
+    "change": [],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 8,
+    "lib": "Nuit",
+    "data": "data-modetheme=nuit",
+    "touche": true,
+    "change": [],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 9,
+    "lib": "Auto",
+    "data": "data-modetheme=auto",
+    "touche": true,
+    "change": [],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 74,
+    "h": 36
+   },
+   {
+    "i": 10,
+    "lib": "Nouveautés",
+    "data": "data-nv=ouvrir",
+    "touche": true,
+    "change": [],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 40
+   },
+   {
+    "i": 11,
+    "lib": "Mon compte, Sophie Martin",
+    "data": "data-cnx=moncompte",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes congés",
+    "panneau": "Mon compte",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "Se déconnecter du compte de Sophie Martin",
+    "data": "data-cnx=sortir",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "",
+    "panneau": "",
+    "toast": "",
+    "hash": "#accueil",
+    "sansNom": false,
+    "l": 231,
+    "h": 44
+   },
+   {
+    "i": 13,
+    "lib": "＋ Demande de congé",
+    "data": "data-atdem=1",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes congés",
+    "panneau": "Demande de congé",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 206,
+    "h": 46
+   },
+   {
+    "i": 14,
+    "lib": "Retirer ma demande",
+    "data": "data-atretire=d3",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "Demande retiréeAnnuler",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 158,
+    "h": 34
+   },
+   {
+    "i": 15,
+    "lib": "2 semaines",
+    "data": "data-aper=0.5",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 115,
+    "h": 40
+   },
+   {
+    "i": 16,
+    "lib": "1 mois",
+    "data": "data-aper=1",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 76,
+    "h": 40
+   },
+   {
+    "i": 17,
+    "lib": "2 mois",
+    "data": "data-aper=2",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 79,
+    "h": 40
+   },
+   {
+    "i": 18,
+    "lib": "3 mois",
+    "data": "data-aper=3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 80,
+    "h": 40
+   },
+   {
+    "i": 19,
+    "lib": "6 mois",
+    "data": "data-aper=6",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 80,
+    "h": 40
+   },
+   {
+    "i": 20,
+    "lib": "Période précédente",
+    "data": "data-amois=-1",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 40,
+    "h": 40
+   },
+   {
+    "i": 21,
+    "lib": "Période suivante",
+    "data": "data-amois=1",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Mes congés",
+    "panneau": "",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 40,
+    "h": 40
+   },
+   {
+    "i": 22,
+    "lib": "Sophie Martin · Autre · le vendredi 6 novembre 2026 matin · ",
+    "data": "data-atvoir=d|d3 data-abs=d|d3 data-abulle=Sophie Martin\nAutre\nLe vendredi 6 novemb",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes congés",
+    "panneau": "Le vendredi 6 novembre 2026 matin",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 153,
+    "h": 48
+   },
+   {
+    "i": 23,
+    "lib": "📌 Autre Le vendredi 6 novembre 2026 matinune demi-journéeEn",
+    "data": "data-atvoir=d|d3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Mes congés",
+    "panneau": "Le vendredi 6 novembre 2026 matin",
+    "toast": "",
+    "hash": "#absences",
+    "sansNom": false,
+    "l": 1106,
+    "h": 45
+   }
+  ]
+ },
+ "err": []
+}
