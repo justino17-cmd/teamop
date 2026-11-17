@@ -91,7 +91,7 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   await p.evaluate(() => sessionFermer());
   v('« Se déconnecter » : retour à l’écran de connexion (pas celui du lien)', await att(p, () => !!document.getElementById('cn-form') && !document.getElementById('cn-form-lien'), 8000));
   v('[coque-01] après déconnexion : rien de la personne précédente ne reste dans la page derrière la connexion', await p.evaluate(() => { const c = document.getElementById('contenu'); return !c || !/Julie/.test(c.textContent) ; }), 'le texte de l’écran de Julie reste dans la page derrière la connexion');
-  const nombre = await S.jour({ p, err:c.err }, 'julie', 'Cheval-agrafe-Julie-2026');
+  const nombre = await S.jour({ p, err:c.err }, 'julie', 'Cheval-agrafe-Julie-2026', '135792');   // le PIN choisi par S.activer
   v('reconnexion avec le mot de passe choisi, par le NOMBRE tapé sur le téléphone', await att(p, () => !document.getElementById('cnx') && !!SESSION, 12000) && /^[1-9][0-9]$/.test(nombre), nombre);
   await p.waitForTimeout(3000);
   v('le guide ne se rouvre pas à la deuxième connexion', !(await sur(p, '#nv')));
