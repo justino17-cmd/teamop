@@ -24,14 +24,15 @@ const MESURE = () => {
     const cs = getComputedStyle(e), bg = num(cs.backgroundColor), fg = num(cs.color); if (!bg || bg.a < .9) continue;
     const lib = (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40), cl = e.className && e.className.baseVal === undefined ? String(e.className).slice(0, 40) : '';
     const hex = [bg.r, bg.g, bg.b].join(',');
-    if (hex === '233,238,248') { const f = fondDe(e); out.principaux.push({ lib, cl, texte: +ratio(fg, bg).toFixed(2), contraste: +ratio(bg, f).toFixed(2) }); }
+    if (hex === '233,238,248') { const f = fondDe(e); out.principaux.push({ lib, cl, choisi: e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-selected') === 'true', texte: +ratio(fg, bg).toFixed(2), contraste: +ratio(bg, f).toFixed(2) }); }
     else if (hex === '44,61,99') out.anciens.push({ lib, cl, pressed: e.getAttribute('aria-pressed') || e.getAttribute('aria-selected') || '', etape: /^\d+$/.test(lib) || lib.length <= 2 });
     else if (/gris/.test(cl)) out.gris.push({ lib, cl, lum: +lum(bg).toFixed(3) });
   }
   out.lumPrincipal = lum({ r: 233, g: 238, b: 248 });
   return out; };
-(async () => {
-  let total = 0, aplats = 0; const cles = new Set();
+module.exports = { MESURE };
+if (require.main === module) (async () => {
+  let total = 0, aplats = 0, doux = 0; const cles = new Set();
   for (const qui of QUI) for (const profil of PROFILS) {
     const client = qui === 'client', c = await L.ouvrir({ profil, qui: client ? 'marc' : qui, nuit: true }), tag = `${qui} ${profil} nuit`;
     if (client) { await c.p.evaluate(() => rlChanger('client', { cli: 'vp', ec: 'accueil', muet: true })); await L.calme(c.p, 500); }
@@ -46,9 +47,10 @@ const MESURE = () => {
         const m = await z.f.evaluate(MESURE).catch(() => null); if (!m) continue; total++; aplats += m.principaux.length;
         for (const b of m.principaux) { const k = tag + '|' + b.lib; if (cles.has(k)) continue; cles.add(k);
           v(`${tag} · ${z.nom} · « ${b.lib} » : texte ≥ 4,5:1 (${b.texte})`, b.texte >= 4.5, b);
+          v(`${tag} · ${z.nom} · « ${b.lib} » : ce n'est pas une puce choisie (elle garde son bleu nuit)`, !b.choisi, b);
           v(`${tag} · ${z.nom} · « ${b.lib} » : aplat contre le fond de sa carte ≥ 3:1 (${b.contraste})`, b.contraste >= 3, b); }
         for (const g of m.gris) v(`${tag} · ${z.nom} · « ${g.lib} » (secondaire) n'est pas plus clair que le bouton principal`, g.lum < m.lumPrincipal, g);
-        for (const a of m.anciens) { const ok = a.pressed === 'true' || a.pressed === '' && (a.etape || /pastille|chip|puce|av|rl-|cx-|dt-|pm-|cb-|cr-/.test(a.cl)) || /true/.test(a.pressed);
+        doux += m.anciens.length; for (const a of m.anciens) { const ok = a.pressed === 'true' || a.pressed === '' && (a.etape || /pastille|chip|puce|av|rl-|cx-|dt-|pm-|cb-|cr-/.test(a.cl)) || /true/.test(a.pressed);
           v(`${tag} · ${z.nom} · « ${a.lib} » garde le bleu nuit : c'est une puce choisie, un repère ou un avatar, pas un bouton d'action`, ok, a); }
       }
       if (CAP) { await c.p.waitForTimeout(700); await L.capture(c, path.join(CAP, `${qui}-${profil}-nuit-${li.k}.png`)); }
@@ -57,6 +59,6 @@ const MESURE = () => {
     v(`${tag} : aucune erreur JavaScript`, !c.err.length, c.err.slice(0, 2));
     await L.fin(c);
   }
-  v(`population : ${total} écrans lus, ${aplats} aplats principaux trouvés (un zéro ne prouverait rien)`, total >= 10 && aplats >= 10, { total, aplats });
+  v(`population : ${total} écrans lus, ${aplats} aplats principaux, ${doux} éléments restés au bleu nuit (un zéro ne prouverait rien)`, total >= 10 && aplats >= 10 && doux >= 3, { total, aplats, doux });
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(async e => { console.log('✗ la sonde a jeté :', e.message); await L.fermer(); process.exit(1); });
