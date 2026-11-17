@@ -364,7 +364,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   #contenu .tkx-resume{padding:6px 10px;font-size:14px}#contenu .tkx-resume .tkx-retard-p{padding:0 12px}.tkx-pills{flex:1 1 100%}.tkx-pill{padding:0 10px;font-size:14px;flex:1 1 auto;justify-content:center}
   .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}
   /* 320 et 360 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a ; 390 px tient déjà) */
-  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
+  @media (max-width:370px){.tkx-pills{flex-wrap:nowrap;gap:4px}.tkx-pill{flex:1 1 0;min-width:0;padding:0 3px;font-size:13px;gap:3px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
   .tkx-s{grid-template-columns:auto minmax(0,1fr)}.tkx-s-g{flex:1 1 100%}.tkx-s-g .btn{flex:1}
   .tkx-s-ch label{flex:1 1 100%;justify-content:space-between}.tkx-s-ch .saisie{flex:1 1 auto}
   .tkx-s-haut .btn{flex:1 1 100%}
@@ -788,8 +788,12 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .ptx-carte.mj-pt>.actions{flex:0 0 auto}.ptx-carte.mj-pt>.lien{flex:1 1 100%;justify-content:flex-start}
 .ptx-carte.mj-pt>.ptx-oubli,.ptx-carte.mj-pt>.ptx-prop,.ptx-carte.mj-pt>.ok-bloc{flex:1 1 100%}
 .mj-puce{margin:0 0 10px}#mj-messages{scroll-margin-top:72px}
+/* un message du bureau qui porte une adresse sans espace ne fait pas glisser la page de côté (restes technicien 2 : 1 218 px pour 820 sur iPad) : le texte est un enfant de rangée flex, il ne rétrécit pas sous son contenu s'il ne le doit pas */
+#mj-messages .ligne>span,#mj-autres .ligne>span{min-width:0;overflow-wrap:anywhere}
 /* 320 à 380 px : la phrase d'état tient sur UNE ligne et le titre de la carte (que la phrase dit déjà) ne garde que sa place pour un lecteur d'écran — sans ça, sur 320 × 568, le haut de la 1re intervention tombait sous la barre du bas (498 px pour une barre à 488). */
 @media (max-width:380px){.ptx-carte.mj-pt>h3{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.ptx-carte.mj-pt .ptx-etat b{font-size:16px}}
+/* écran de 320 × 568 (restes technicien 2) : avec un message du bureau, la 1re intervention ne montrait que 40 px au-dessus de la barre. La phrase « Il est 10:40 · ta première intervention est à 08:30 » dit ce que la carte de l'intervention, juste dessous, dit mieux : on la retire sur cet écran court seulement (elle reste partout ailleurs et, une fois la journée commencée, le détail du chrono). */
+@media (max-width:340px) and (max-height:600px){.ptx-carte.mj-pt .ptx-hnow{display:none}}
 .ptx-etat{display:flex;flex-direction:column;gap:2px}.ptx-etat b{font-size:18px;font-variant-numeric:tabular-nums}
 /* fiche d'un jour et semaine d'une personne */
 .kpis.ptx-k3{grid-template-columns:repeat(3,minmax(0,1fr))}.ptx-k3 .kpi{padding:12px 10px}.ptx-k3 .kpi b{font-size:22px}
@@ -1019,6 +1023,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .rg-sig{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .rg-sig canvas{width:100%;height:140px;border:1px dashed var(--trait2);border-radius:12px;background:#fff;touch-action:none}
 .rg-scroll{overflow-x:auto}
+.rg-doc th,.rg-doc td{overflow-wrap:normal}.rg-doc th,.rg-doc td:not(:last-child){white-space:nowrap}.rg-doc td:has(.mini){white-space:normal}   /* .pdf coupe n'importe où (anywhere) : sur téléphone « Dat/e », « Benal/i », « Fort/e ». Le tableau défile plutôt que de casser les mots (regard gérant F) */
 .rg-doc .d3-plan{aspect-ratio:4/3;background:#f3f5f9;border-color:#d5dbe7;margin-top:4px}
 .rg-doc .d3-z{background:#fff;border-color:#cbd3e2}.rg-doc .d3-z i{color:#4a5672}
 .rg-doc .d3-box{cursor:default}
@@ -1066,6 +1071,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .cb-plus>summary::after{content:'▾';margin-left:8px;font-size:12px}
 .cb-plus-l{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;gap:6px;min-width:240px;padding:8px;background:var(--feuille);border:1px solid var(--trait2);border-radius:16px;box-shadow:var(--ombre-haute)}
 .cb-prog{display:flex;flex-direction:column;gap:8px}
+.cb-prog-a .btn{white-space:normal;text-align:center;line-height:1.2;max-width:100%}   /* « Tout est intact : relever le reste en un geste » ne se coupait pas et élargissait la carte (regard gérant F) */
 .cb-prog-t{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .cb-zone .gris{padding-left:2px}
 .cb-prog-b{height:10px;border-radius:6px;background:var(--surf-in);overflow:hidden}
@@ -1124,15 +1130,18 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 @media (max-width:1080px){ #contenu .cb-vers{display:inline-flex} }
 @media (max-width:760px){
   #contenu .cb-tete span.gris{display:none}
-  #contenu .cb-tete .actions{display:flex;flex-wrap:nowrap;gap:6px;width:100%}
-  #contenu .cb-tete .actions>.btn{flex:1 1 auto;padding:0 8px;font-size:14px;min-width:0;white-space:normal;line-height:1.15}
-  #contenu .cb-tete .actions>.cb-plus{width:auto;flex:0 0 auto}
-  .cb-plus>summary{padding:0 12px}
+  /* les trois commandes passent à la ligne au lieu de s'écraser : à 320 px « Relever les box » devenait un rond de 3 lignes, et « Touche le plan pour poser la box… » un pavé noir de 4 lignes (regard gérant F) */
+  #contenu .cb-tete .actions{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+  #contenu .cb-tete .actions>.btn{flex:1 1 auto;padding:0 14px;font-size:15px;min-width:0;white-space:nowrap;line-height:1.15}
+  #contenu .cb-tete .actions>.btn[data-d3="ajout"]:not(.gris){flex:1 1 100%;white-space:normal;text-align:center;padding-top:8px;padding-bottom:8px}
+  #contenu .cb-tete .actions>.cb-plus{width:auto;flex:1 1 auto}
+  .cb-plus>summary{padding:0 12px;width:100%;justify-content:center}
   .cb-plus-l{position:absolute;right:0;top:calc(100% + 6px);width:min(260px,calc(100vw - 32px));z-index:30}
-  #contenu .cb-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-  #contenu .cb-kpis .kpi{padding:8px 6px;min-height:0;flex:none}
-  #contenu .cb-kpis .kpi b{font-size:17px;white-space:normal}
-  #contenu .cb-kpis .kpi span{font-size:11.5px;line-height:1.2}
+  /* quatre tuiles de front à 11,5 px : « 17 oct. » se coupait en « 17 / oct. » à 320 px. Deux par ligne, comme les autres écrans, au corps de texte du reste de l'application (regard gérant F) */
+  #contenu .cb-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #contenu .cb-kpis .kpi{padding:9px 12px;min-height:0;flex:none}
+  #contenu .cb-kpis .kpi b{font-size:19px;white-space:normal}
+  #contenu .cb-kpis .kpi span{font-size:13px;line-height:1.25}
   .cb-rel-on .d3-plan{aspect-ratio:1/1}
   .cb-rel-on .d3-leg{display:none}
   .cb-types{flex-direction:column}.cb-types button{flex:none;width:100%}
@@ -1637,13 +1646,15 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ach-na{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
 .d3-info{font-size:14px}.d3-cli{flex-wrap:wrap;align-self:flex-start}
+.d3-cli button{flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}   /* un nom de site de 60 signes sortait de la pastille et se coupait à droite à 320 px (regard gérant F) */
 .d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}
 .d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:34px;height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
+.ve-u[data-d3^="voir|"]>.st{flex:none;min-width:88px;justify-content:center}   /* « Forte » (60 px) et « Moyenne » (80 px) décalaient le titre de chaque passage (regard gérant F) */
 .d3-v{background:var(--vert)}.d3-o{background:var(--orange)}.d3-r{background:var(--rouge)}.d3-g{background:var(--doux)}
 .d3-reco{align-items:flex-start;padding:8px 0;border-top:1px solid var(--trait)}.d3-reco:first-of-type{border-top:0}.d3-reco input{margin-top:2px;flex:none}
 .d3-det{padding:4px 2px 12px 2px;display:flex;flex-direction:column;gap:6px}.d3-det p{margin:0;font-size:14.5px}
 .d3-tab{display:flex;flex-direction:column}.d3-tr{display:grid;grid-template-columns:70px minmax(0,1.6fr) 54px minmax(0,1.3fr) 70px 80px;gap:10px;padding:9px 0;border-top:1px solid var(--trait);font-size:14px;align-items:center}.d3-th{border-top:0;font-size:12px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.03em}
-.d3-lien{display:flex;gap:12px;align-items:center}
+.d3-lien{display:flex;gap:12px;align-items:center}.d3-lien>.fo-n{flex:1 1 240px;min-width:0}   /* sans base, le texte du lien de contrôle tombait à 30 px sur téléphone : « Lie / n / de / co… » une lettre par ligne (regard gérant F) */
 .d3-carte-g{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px;align-items:start}
 .d3-plan{position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;background:var(--surf2);border:1px solid var(--trait);overflow:hidden}.d3-plan.pose{cursor:crosshair;outline:2px dashed var(--bleu);outline-offset:3px}
 .d3-z{position:absolute;border:1.5px solid var(--trait2);border-radius:10px;background:var(--surf);pointer-events:none}.d3-z i{position:absolute;left:8px;top:6px;font-style:normal;font-size:12px;font-weight:700;color:var(--doux);text-transform:uppercase;letter-spacing:.03em}
@@ -1655,9 +1666,10 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .d3-saisie{display:flex;flex-direction:column}.d3-sl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--trait)}.d3-sl select{max-width:52%;min-height:40px}
 .xy-g{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,1fr);gap:16px;align-items:start}.xy-f{display:flex;flex-direction:column;gap:12px}.xy-f .seg{flex-wrap:wrap;align-self:flex-start}
 .xy-u{display:flex;align-items:center;gap:8px}.xy-u input{flex:1;min-width:0}.xy-u i{font-style:normal;color:var(--doux);font-size:13.5px;white-space:nowrap}
-.xy-reg summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}.xy-reg[open]{display:flex;flex-direction:column;gap:10px}
+.xy-reg summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center;justify-content:space-between;list-style:none}.xy-reg-c{display:flex;flex-direction:column;gap:16px}
+.xy-reg summary::-webkit-details-marker{display:none}.xy-reg summary::after{content:'›';color:var(--doux);font-size:20px;transition:transform .2s}.xy-reg[open] summary::after{transform:rotate(90deg)}   /* « display:flex » retire le triangle du navigateur : « Réglages du calcul » ressemblait à un titre, rien ne disait qu'on pouvait l'ouvrir ; et l'écart de rangée posé sur le <details> lui-même n'a jamais joué (le contenu d'un details vit dans un emplacement, pas dans sa boîte flex) : le libellé de chaque rangée collait au champ du dessus. L'écart vit sur un div à l'intérieur (regard gérant F) */
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
-@media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:1fr}.xy-r{position:static}}
+@media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:minmax(0,1fr)}.xy-r{position:static}}   /* « 1fr » = minmax(auto,1fr) : le relevé en cours, dont un bouton ne se coupait pas, poussait toute la carte 13 px hors d'un écran de 360 (regard gérant F) */
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
   .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
 .t-ctx [data-taller]{font-weight:650}
@@ -2769,7 +2781,7 @@ body.dp-ouvert{overflow:hidden}
    sinon deux couleurs pour un seul avis) ; la tâche confiée (.tkx-avis) garde son rendu. */
 .a-avis:has(.a-dec-i.non){box-shadow:inset 3px 0 0 var(--rouge)}
 .a-avis:not(.tkx-avis):has(.a-dec-i.info){box-shadow:inset 3px 0 0 var(--ambre)}.a-avis:not(.tkx-avis) .a-dec-i.info{background:var(--ambre)}
-.a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
+.a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf);padding:0;border:0}   /* la classe .info de la feuille (encadré d'information : 13 15 de marge, filet, rayon 16) s'appliquait aussi à la pastille : ovale de 32 × 28 et titre décalé de 6 px (restes technicien 2) */
 .a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
@@ -3817,6 +3829,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:520px) and (max-height:780px){html .mc-page{gap:10px}html .mc-duo .btn{min-height:48px}html .mc-page .vh-cam>.gris{display:none}html .mc-page .vh-cam{padding:8px 10px}}
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
+/* écran de 320 × 568 (restes technicien 2, technicien-13) : la carte « Le camion » (100 px) pousse « Il manque à bord » sous la barre d'onglets — aucune pièce visible sans défiler. Sur un écran COURT et étroit, la liste de ce qui manque passe d'abord, la carte du véhicule juste dessous (un toucher de défilement de plus pour noter un plein) ; 360 × 740 et plus gardent l'ordre d'avant, qui y tient. Les frères qui suivent la carte gardent leur place derrière elle. */
+@media (max-width:340px) and (max-height:600px){html .mc-page>#mc-vehicule{order:1}html .mc-page>#mc-vehicule ~ *{order:2}html .mc-page>#mc-vehicule + *{order:0}html .mc-tete-c{flex-wrap:nowrap;padding-top:2px}html .mc-tete-c h3{font-size:15px;min-width:0}html .mc-tete-c .btn{padding-left:10px;padding-right:10px;font-size:13px;white-space:nowrap;flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l{flex-wrap:nowrap;padding-top:8px;padding-bottom:8px;min-height:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.btn{flex:0 0 auto}html .mc-page{gap:6px}}
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
 .vh-bloc{display:flex;flex-direction:column;gap:6px;margin-top:8px}.vh-bloc>.tt-h3{margin:10px 0 0}
 .vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
@@ -3963,6 +3977,8 @@ let M = { metier:'clim', coches:{ 'Alimentation électrique':true, 'Ventilateur 
   absent:false, signature:null, signeNom:'Marc Durand', paiement:{ etat:'rien', mode:'Carte', montant:'', ticket:false }, suite:{ ventilo:true, entretien:false }, etat:'encours', motif:null, debut:'08:34', fin:'09:21' };
 /* ══ OUTILS ══ */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+/* le nom d'un article À L'ÉCRAN : un nombre ne se sépare pas de son unité en fin de ligne (« Nettoyant échangeur (0,5 » puis « L) » tout seul : restes technicien 2, technicien-12). Pour l'affichage seulement : la donnée garde son espace ordinaire, la recherche ne change pas. */
+const escN = s => esc(s).replace(/(\d) (?=(?:L|kg|g|mL|cl|m|cm|mm|µF|u)\b)/g, '$1\u00a0');
 /* UN assistant pour les liens tel: et mailto: : ce qu'une personne a saisi (un e-mail avec un guillemet) ne sort jamais de l'attribut */
 const TEL_MSG = 'Le numéro de téléphone est à vérifier : des chiffres, avec éventuellement des espaces, un + ou « poste 12 » (20 chiffres au plus).';
 const TEL_POSTE = /\s*[,;(]?\s*(poste|post|p\.?|ext\.?|extension)\s*:?\s*\d{1,5}\s*\)?\s*$/i;   // « 05 46 12 12 12 poste 12 » : le poste ne compte pas parmi les chiffres du numéro
@@ -7421,7 +7437,7 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
         : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
       const bandes = [...A.map(a => [a, false]), ...D.map(a => [a, true])].map(([a, att]) => { const ds = S.filter(d => dans.has(d) && d >= a.du && d <= a.au); if (!ds.length) return '';
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
-        return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]), ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
+        return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, (T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]).map(([px, pad, cl]) => [px, Math.max(pad, demi ? 18 : 0), cl]))   /* une demi-journée garde 9 px de marge de chaque côté : à 4 ou 8 px comptés, « ½ j Autre » était mesuré 47 px pour 29 de place */, ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
       return `<div class="acm-sem">${cells}${bandes}</div>`; }).join('');
     return `<div class="carte acm${etroit ? ' acm-etroit' : ''}"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }
@@ -9858,7 +9874,7 @@ function cmdEdResultats(q){
   const art = PRODUITS.filter(x => !x.retire && !dans.has(x.id) && prNorm(x.nom + ' ' + x.ref).includes(n)).sort((a, b) => (b.four === E.four) - (a.four === E.four)).slice(0, 6);
   const f = foDe(E.four), C = f ? foCats(f) : {}, typ = [];
   Object.entries(C).forEach(([k, L]) => L.forEach(cn => { const c = PACKS[k].cats.find(o => o.n === cn); if (c) c.ex.forEach(([nom, u], j) => { if (typ.length < 4 && prNorm(nom).includes(n) && !PRODUITS.some(x => prNorm(x.nom) === prNorm(nom))) typ.push({ k, ci:PACKS[k].cats.indexOf(c), j, nom, u, cn }); }); }));
-  z.innerHTML = [...art.map(x => `<button type="button" class="ced-r" data-ce="add|a|${x.id}"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${esc(x.four)}${prixChez(x, E.four) ? ' · ' + eur(prixChez(x, E.four)) + ' HT' : ''} · en stock ${prNum(x.q)}</span></button>`),
+  z.innerHTML = [...art.map(x => `<button type="button" class="ced-r" data-ce="add|a|${x.id}"><b>${escN(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${esc(x.four)}${prixChez(x, E.four) ? ' · ' + eur(prixChez(x, E.four)) + ' HT' : ''} · en stock ${prNum(x.q)}</span></button>`),
     ...typ.map(t => `<button type="button" class="ced-r" data-ce="add|t|${t.k}:${t.ci}:${t.j}"><b>${esc(t.nom)}</b><span class="gris petit">nouvel article · ${PACKS[t.k].ic} ${esc(t.cn.replace(/ \(.*\)$/, ''))} · prix selon tarif</span></button>`),
     `<button type="button" class="ced-r" data-ce="add|l|"><b>＋ Ligne libre : « ${esc(q.trim())} »</b><span class="gris petit">pour un article que tu n’as pas encore dans ta liste</span></button>`].join('');
 }
@@ -10116,7 +10132,7 @@ function stkFormVue(){
         : `<label class="champ">Pour qui ?<select data-skf="pourQui">${Object.entries(H_GENS).filter(([k]) => k !== 'client' && k !== 'auto').map(([k, g]) => `<option value="${k}" ${F.pourQui === k ? 'selected' : ''}>${esc(g.nom)}${k === 'marc' ? ' (moi)' : ''}</option>`).join('')}</select></label>`}</div>
     <label class="champ">Pourquoi<select data-skf="motif">${motifs.map(o => `<option ${F.motif === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>
     ${!t && F.motif === 'Utilisé chez le client' ? `<label class="champ">Sur quelle intervention<select data-skf="inter"><option value="">Choisir…</option>${INTS.filter(i => i.d <= jour(1) && i.d >= jour(-7) && CLIENTS[i.cli] && i.st !== 'annulee').map(i => `<option value="${i.id}" ${F.inter === i.id ? 'selected' : ''}>${esc(interLib(i))}</option>`).join('')}</select></label>` : ''}
-    <div class="fo-bloc">${F.lignes.map((l, j) => { const x = PRODUITS.find(p => p.id === l.pid), a = stkAt(x, F.de); return `<div class="fo-r"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">disponible : ${prNum(a)} ${esc(prU(a, x.u))}</span></span><label class="fo-q"><span class="gris petit">Qté</span><input inputmode="decimal" data-skl="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"></label><button type="button" class="cmd-x" data-sk="lx|${j}" aria-label="Retirer ${esc(x.nom)}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:8px 2px">Choisis les articles ci-dessous.</div>'}</div>
+    <div class="fo-bloc">${F.lignes.map((l, j) => { const x = PRODUITS.find(p => p.id === l.pid), a = stkAt(x, F.de); return `<div class="fo-r"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">disponible : ${prNum(a)} ${esc(prU(a, x.u))}</span></span><label class="fo-q"><span class="gris petit">Qté</span><input inputmode="decimal" data-skl="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"></label><button type="button" class="cmd-x" data-sk="lx|${j}" aria-label="Retirer ${esc(x.nom)}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:8px 2px">Choisis les articles ci-dessous.</div>'}</div>
     <label class="champ">Ajouter un article<select data-skadd="1"><option value="">${dispo.length} article${dispo.length > 1 ? 's' : ''} dans ${esc(lieuNom(F.de))}…</option>${dispo.map(x => `<option value="${x.id}">${esc(x.nom)} · ${prNum(stkAt(x, F.de))} ${esc(prU(stkAt(x, F.de), x.u))}</option>`).join('')}</select></label>
     ${!t && F.pourQui !== 'marc' ? `<div class="gris petit">Un bon de remise est créé au nom de ${esc(H_NOM(F.pourQui))} : il dit qui a reçu quoi.</div>` : ''}
     <div class="fo-pied"><button type="button" class="btn" data-sk="fok" ${F.lignes.length ? '' : 'disabled'}>${t ? 'Transférer' : 'Sortir'}${F.lignes.length ? ' · ' + F.lignes.length + ' article' + (F.lignes.length > 1 ? 's' : '') : ''}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
@@ -10132,7 +10148,7 @@ function stkBon(mid){
   const m = MVTS.find(o => o.id === mid), L = MVTS.filter(o => o.br === m.br);
   ouvrirPanneau(`<span class="surtitre">Bon de remise</span><h2>${esc(m.br)}</h2><div class="bc-doc"><div class="bc-tete"><div class="bc-ent"><b>${esc(ENTREPRISE.nom)}</b><span>${esc(ENTREPRISE.adr)}</span></div><div class="bc-titre"><b>BON DE REMISE</b><span>N° ${esc(m.br)}</span><span>Du ${dFr(m.d)} à ${m.h}</span></div></div>
     <div class="bc-blocs"><div><small>Remis par</small><b>${esc(H_NOM(m.qui))}</b><span>depuis ${esc(lieuNom(m.de))}</span></div><div><small>Remis à</small><b>${esc(H_NOM(m.pourQui))}</b><span>${esc(m.motif)}</span></div></div>
-    <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th></tr></thead><tbody>${L.map(o => { const x = PRODUITS.find(p => p.id === o.pid); return `<tr><td><b>${esc(x.nom)}</b><span>Réf. ${esc(x.ref)}</span></td><td>${prNum(o.q)} ${esc(prU(o.q, x.u))}</td></tr>`; }).join('')}</tbody></table>
+    <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th></tr></thead><tbody>${L.map(o => { const x = PRODUITS.find(p => p.id === o.pid); return `<tr><td><b>${escN(x.nom)}</b><span>Réf. ${esc(x.ref)}</span></td><td>${prNum(o.q)} ${esc(prU(o.q, x.u))}</td></tr>`; }).join('')}</tbody></table>
     <div class="bc-pied"><span>Ce bon dit qui a reçu quoi : il reste dans les mouvements du stock.</span></div></div>`, true);
 }
 
@@ -10813,9 +10829,9 @@ function vueRegistre(){
     ${R.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Recommandations au client</h2>${R.slice().reverse().map(r => `<label class="fo-garder d3-reco"><input type="checkbox" data-d3reco="${r.id}" ${r.faite ? 'checked' : ''}><span><b>${esc(r.txt)}</b><span class="gris petit"> · demandée le ${jCourt(r.p.d)}${r.faite ? ', faite le ' + jCourt(r.faite) : ''}</span></span></label>`).join('')}</div>` : ''}
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Passages</h2>${P.slice().reverse().map(p => { const a = d3Activite(p), cons = Object.entries(p.etats).filter(([, e]) => e !== 0);
       return `<button type="button" class="ve-u" data-d3="voir|${p.id}" aria-expanded="${d3Ouvert === p.id}"><span class="st st-${a[1]}">${a[0]}</span><span class="fo-n"><b>${esc(jlong(p.d))}</b><span class="gris petit">${esc(p.tech)} · ${cons.length ? cons.map(([id, e]) => id + ' ' + d3Lib(e)).join(', ') : 'toutes les box intactes'}</span></span><span class="fo-chev" aria-hidden="true">${d3Ouvert === p.id ? '⌄' : '›'}</span></button>
-        ${d3Ouvert === p.id ? `<div class="d3-det"><p>${esc(p.obs)}</p>${p.poses.length ? `<div class="gris petit">Posé : ${p.poses.map(([pid, lot, q]) => `${esc(D3_PROD[pid].nom)} ${q} ${D3_PROD[pid].u} (lot ${lot})`).join(' · ')}</div>` : ''}<button type="button" class="lien" data-d3="carte">Voir sur la carte des box ›</button></div>` : ''}`; }).join('')}</div>
+        ${d3Ouvert === p.id ? `<div class="d3-det"><p>${esc(p.obs)}</p>${p.poses.length ? `<div class="gris petit">Posé : ${p.poses.map(([pid, lot, q]) => `${esc(D3_PROD[pid].nom)} ${q} ${D3_PROD[pid].u} (lot ${lot})`).join(' · ')}</div>` : ''}<button type="button" class="lien" data-d3="carte">Voir sur la carte des box&nbsp;›</button></div>` : ''}`; }).join('')}</div>
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Produits biocides posés · traçabilité</h2><div class="d3-tab"><div class="d3-tr d3-th" aria-hidden="true"><span>Date</span><span>Produit</span><span>Type</span><span>N° d’AMM</span><span>Lot</span><span>Quantité</span></div>
-      ${prods.map(o => `<div class="d3-tr"><span>${jCourt(o.p.d)}</span><b>${esc(o.x.nom)}</b><span>${o.x.tp}</span><span>${esc(o.x.amm)}</span><span>${esc(o.lot)}</span><span>${o.q} ${o.x.u}</span></div>`).join('')}</div>
+      ${prods.map(o => `<div class="d3-tr"><span>${jCourt(o.p.d)}</span><b>${escN(o.x.nom)}</b><span>${o.x.tp}</span><span>${esc(o.x.amm)}</span><span>${esc(o.lot)}</span><span>${o.q} ${o.x.u}</span></div>`).join('')}</div>
       <span class="gris petit">Posés par un applicateur certifié (Certibiocide). Le lot vient du stock : un rappel de lot se retrouve en une recherche.</span></div>
     <div class="carte d3-lien"><span class="fo-n"><b>Lien permanent pour le contrôle sanitaire</b><span class="gris petit">Le client l’ouvre sur son téléphone devant l’inspecteur : registre à jour, sans compte à créer.</span></span><button type="button" class="btn gris petit" data-d3="lien">Copier le lien</button></div>`;
 }
@@ -10877,6 +10893,7 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t.matches(
 /* ── DEVIS XYLOPHAGE : un traitement du bois calculé, qui devient un vrai devis ── */
 let XY = { cli:'', nouveau:'', insecte:'capricorne', mode:'curatif', bois:42, planchers:0, murs:0, esp:0.3, dose:0.3, prixL:14, mh:12, taux:52, depl:45, tva:10 };
 const XY_INS = { termites:'Termites', capricorne:'Capricorne des maisons', vrillettes:'Vrillettes', merule:'Mérule (champignon)' };
+const XY_INS_COURT = { termites:'Termites', capricorne:'Capricorne', vrillettes:'Vrillettes', merule:'Mérule' };   /* sur les boutons : quatre noms qui tiennent sur une ligne ; le nom entier reste dans le titre du devis (regard gérant F) */
 function xyLignes(){
   const surf = XY.bois + XY.planchers, litres = Math.ceil(surf * XY.dose * 10) / 10, inj = XY.murs ? Math.ceil(XY.murs / XY.esp) : 0, h = Math.ceil((surf / XY.mh + inj * 0.08) * 2) / 2;
   const L = [], m = n => prNum(Math.round(n * 100) / 100);
@@ -13810,7 +13827,7 @@ function rendreCreation_(){
       <label class="champ" style="margin-top:10px;position:relative">Adresse de l’intervention<input data-cnv="adr" value="${esc(CREA.nv.adr)}" placeholder="Commence à taper : 10 rue de la gravière…" autocomplete="off">
         ${sugs.length ? `<div class="adr-sug" role="listbox">${sugs.map(a => `<button type="button" role="option" data-adrsug="${esc(a)}">📍 ${esc(a)}</button>`).join('')}</div>` : ''}</label>
       ${CREA.nv.adr ? (rep ? `<div class="adr-rep"><b>📍 Repérée : ${rep.commune}</b><span>${rep.km} km du dépôt · environ ${rep.min} min · zone ${rep.zone} · secteur ${rep.secteur}</span><a class="lien" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CREA.nv.adr)}">Voir sur la carte ›</a></div>` : `<div class="bandeau-info petit">Adresse pas encore reconnue : choisis-la dans la liste, ou vérifie la commune.</div>`) : ''}`
-    : `<input class="saisie" placeholder="Chercher un client…" data-cherchecli="1" value="${esc(CREA.cherche || '')}" aria-label="Chercher un client"><div class="liste-cli">${Object.entries(CLIENTS).filter(([kk,x]) => kk !== '__nv' && (!CREA.cherche || sansAccent(x.nom).includes(sansAccent(CREA.cherche)))).map(([kk,x]) => `<button type="button" class="cli-l" data-ccli="${kk}" aria-pressed="${CREA.cli===kk}"><span><b>${esc(x.nom)}</b><br><span class="gris petit">${esc(x.adr)} · ${SECT_CLI[kk] ? 'secteur ' + SECT_CLI[kk] : 'hors secteur'}</span></span><span>${CONTRATS.find(y=>y.cli===kk&&y.st==='signe')?'<span class="st st-v">contrat</span> ':''}${devisOk(kk)?'<span class="st st-b">devis accepté</span>':''}</span></button>`).join('')}</div>`}</section>`;
+    : `<input class="saisie" placeholder="Chercher un client…" data-cherchecli="1" value="${esc(CREA.cherche || '')}" aria-label="Chercher un client"><div class="liste-cli">${Object.entries(CLIENTS).filter(([kk,x]) => kk !== '__nv' && (!CREA.cherche || sansAccent(x.nom).includes(sansAccent(CREA.cherche)))).map(([kk,x]) => `<button type="button" class="cli-l" data-ccli="${kk}" aria-pressed="${CREA.cli===kk}"><span><b>${escN(x.nom)}</b><br><span class="gris petit">${esc(x.adr)} · ${SECT_CLI[kk] ? 'secteur ' + SECT_CLI[kk] : 'hors secteur'}</span></span><span>${CONTRATS.find(y=>y.cli===kk&&y.st==='signe')?'<span class="st st-v">contrat</span> ':''}${devisOk(kk)?'<span class="st st-b">devis accepté</span>':''}</span></button>`).join('')}</div>`}</section>`;
   const etape2 = `<section class="carte"><div class="ni-etape"><b>2</b><h2>L’intervention</h2></div>
     <div class="groupe" style="padding-top:0">Type</div><div class="puces">${TYPES.map(t => `<button type="button" class="puce-c" data-ctype="${esc(t)}" aria-pressed="${CREA.type===t}">${esc(t)}</button>`).join('')}<button type="button" class="puce-c ajout" data-action="cAjoutType">＋ Ajouter un type</button></div>
     <label class="champ" style="margin-top:12px">Titre (ce que le technicien lit en premier)<input data-cchamp="titre" value="${esc(CREA.titre)}"></label>
@@ -15597,7 +15614,7 @@ function matResultats(q, L){
   if (!T.length) return `<div class="mc-vide"><b>Rien trouvé pour « ${esc(q)} ».</b><span class="gris petit">Ce n’est pas dans le catalogue, ou le nom est écrit autrement.</span><button type="button" class="btn gris petit" data-mat="manque|-|${esc(q)}">Il me manque une pièce</button></div>`;
   return T.map(x => { const ou = [['atelier', stkAt(x, 'atelier')], ...Object.entries(x.loc || {})].filter(([, v]) => v > 0).map(([k, v]) => ({ k, v })).sort((a, b) => (b.k === L.id) - (a.k === L.id));
     const dit = ou.map(o => (o.k === L.id ? 'mon camion' : o.k === 'atelier' ? 'atelier' : lieu(o.k).type === 'vehicule' ? 'camion de ' + prenomDe(lieu(o.k).tech) : 'réserve') + ' ' + prNum(o.v)).join(' · '), at = stkAt(x, 'atelier');
-    return `<div class="mc-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${ou.length ? esc(dit) : '<b class="mc-o">Plus en stock nulle part</b>'}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(x.nom)}">Je l’ai pris</button>` : ou.length ? '' : `<button type="button" class="btn gris petit" data-mat="manque|${x.id}">Il me manque</button>`}</div>`; }).join('');
+    return `<div class="mc-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${ou.length ? esc(dit) : '<b class="mc-o">Plus en stock nulle part</b>'}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(x.nom)}">Je l’ai pris</button>` : ou.length ? '' : `<button type="button" class="btn gris petit" data-mat="manque|${x.id}">Il me manque</button>`}</div>`; }).join('');
 }
 
 /* une unité entre parenthèses ne se détache pas de son nombre : « Nettoyant échangeur (0,5 / L) » se coupait sur deux lignes (regard technicien b) */
@@ -15621,7 +15638,7 @@ function vueMonCamion(){
       <div class="mc-duo"><button type="button" class="btn gris" data-mat="prise">J’ai pris à l’atelier</button><button type="button" class="btn gris" data-mat="manque">Il me manque une pièce</button></div></div>
     ${bas.length ? `<div class="mc-alerte"><span class="st st-o">Bouteille presque vide</span><span class="petit">${bas.map(b => esc(b.id) + ' (' + prNum(b.reste) + ' kg)').join(', ')} · <button type="button" class="lien" data-mat="manque|${bas[0].pid}">Il me manque du fluide</button></span></div>` : ''}
     <div id="mc-vehicule" data-vis="camion-vehicule">${V ? vhCamionBloc(V) : ''}</div>
-    ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
+    ${g ? '' : M.length ? `<div class="carte mc-liste"${matVis('camion-manque')}><div class="mc-tete-c"><h3>Il manque à bord · ${M.length}</h3>${prenables.length ? `<button type="button" class="btn gris petit" data-mat="toutpris" aria-label="J’ai tout pris : ${prenables.length} articles">J’ai tout pris · ${prenables.length}</button>` : ''}</div>
       ${M.map(o => { const at = stkAt(o.x, 'atelier'), e = att(o.x.id), sous = `à bord ${prNum(o.a)} sur ${prNum(o.cible)} · ${at > 0 ? 'à l’atelier ' + prNum(at) : 'plus à l’atelier'}`;
         return e ? `<div class="mc-l envoye"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mc-dr"><span class="st st-b">Envoyé au bureau · en attente</span><button type="button" class="lien" data-mat="retire|${e.id}" aria-label="Annuler l’envoi de ${esc(o.x.nom)}">Annuler</button></span></div>`
           : `<div class="mc-l"><span class="fo-n"><b>${mcNom(o.x.nom)}</b><span class="gris petit">${sous}</span></span>${at > 0 ? `<button type="button" class="btn gris petit" data-mat="pris|${o.x.id}" aria-label="Je l’ai pris à l’atelier : ${esc(o.x.nom)}">Je l’ai pris</button>` : `<button type="button" class="btn gris petit" data-mat="manque|${o.x.id}">Il me manque</button>`}</div>`; }).join('')}</div>`
@@ -15668,12 +15685,12 @@ function matResultatsFeuille(F){
   const tete = q ? '' : `<div class="groupe">${usage ? 'Dans ton camion' : 'À l’atelier'}</div>`;
   if (!pool.length) return q ? `<div class="gris petit mat-rien">Rien trouvé pour « ${esc(q)} ». ${usage ? 'Tu peux le demander au bureau : « Il me manque une pièce ».' : ''}</div>` : '';
   return tete + pool.map(x => { const bord = stkAt(x, F.camion), at = stkAt(x, 'atelier'), sous = usage ? (bord > 0 ? `à bord ${prNum(bord)}` : `<b class="mc-o">Pas dans ton camion</b> : l’atelier en a ${prNum(at)}`) : `à l’atelier ${prNum(at)}`;
-    return `<button type="button" class="ligne-clic mat-res" data-mat="ajoute|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`; }).join('');
+    return `<button type="button" class="ligne-clic mat-res" data-mat="ajoute|${x.id}"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`; }).join('');
 }
 function matLigneHtml(F, l, j){
   const x = PRODUITS.find(p => p.id === l.pid); if (!x) return ''; const dispo = stkAt(x, l.src), fl = F.mode === 'usage' && sxEstFluide(x);
   const sous = F.mode === 'prise' ? `à l’atelier ${prNum(dispo)}` : l.src === F.camion ? `à bord ${prNum(dispo)}` : `<b class="mc-o">Pas dans ton camion</b> : l’atelier en a ${prNum(dispo)}`;
-  return `<div class="mat-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${fl ? 'kilos chargés · ' : ''}${sous}</span></span>
+  return `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${fl ? 'kilos chargés · ' : ''}${sous}</span></span>
     <span class="mat-pas"><button type="button" data-mat="moins|${j}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-matq="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"><button type="button" data-mat="plus|${j}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>
     <button type="button" class="lien mat-ret" data-mat="ret|${j}" aria-label="Retirer ${esc(x.nom)}">Retirer</button>
     ${fl ? `<label class="mat-fl">Kilos récupérés, si tu en as repris<input class="saisie" inputmode="decimal" data-matr="${j}" value="${l.rec ? prNum(l.rec) : ''}" placeholder="ex. 1,8" aria-label="Kilos récupérés"></label>` : ''}</div>`;
@@ -15719,9 +15736,13 @@ function matRecupere(interId, q, qui){
 }
 /* « J’ai pris » en un toucher (une ligne, ou « J’ai tout pris ») : une seule demande par ligne, jamais deux */
 function matPrendre(pids){
-  const moi = sxMoi(), L = sxMonLieu(), snap = sxPhoto(), fait = [], n = { attente:0, applique:0, rien:0, doublon:0 };
+  const moi = sxMoi(), L = sxMonLieu(), snap = sxPhoto(), fait = [], n = { attente:0, applique:0, rien:0, doublon:0 }, hors = navigator.onLine === false; let enFile = 0;
   pids.forEach(pid => { const x = PRODUITS.find(p => p.id === pid && !p.retire); if (!x) return; const man = (lieuManques(L.id).find(o => o.x.id === pid) || {}).manque, q = Math.min(man || sxPas(x), stkAt(x, 'atelier')); if (!(q > 0)) return;
+    /* sans réseau, la prise attend dans la file comme celle de la feuille « J'ai pris à l'atelier » : le toast ne dit « Envoyé au bureau » que d'un envoi PARTI (restes technicien 2, technicien-11) */
+    if (hors) { if (MAT.file.some(o => o.qui === moi && o.m.type === 'transfert' && o.m.pid === pid)) { n.doublon++; return; } MAT.file.push({ m:sxMvt({ type:'transfert', pid, q, de:'atelier', vers:L.id, qui:moi, motif:'Pris pour mon camion' }), qui:moi }); enFile++; return; }
     const m = sxMvt({ type:'transfert', pid, q, de:'atelier', vers:L.id, qui:moi, motif:'Pris pour mon camion' }), r = sxDepose(m); n[r]++; if (r === 'attente' || r === 'applique') fait.push(m); });
+  if (enFile) { rendre(); return toast('Pas de réseau : ton envoi partira dès que ça revient.'); }
+  if (hors && n.doublon) { rendre(); return toast('Déjà noté : ça partira dès que le réseau revient.'); }
   if (!fait.length) { rendre(); return toast(n.doublon ? 'Déjà envoyé : ça attend l’accord du bureau.' : 'Il n’y en a plus à l’atelier : touche « Il me manque ».'); }
   sxJournal('a pris à l’atelier pour son camion', sxMvResume(fait), n.attente ? 'envoyé au bureau, en attente d’accord' : 'appliqué au stock', null, moi);
   rendre();
@@ -15747,7 +15768,7 @@ function matManqueVue(){
   foOuvrir(`<span class="surtitre">Mon camion</span><h2>Il me manque une pièce</h2>
     <span class="gris">Le bureau reçoit ta demande tout de suite. Poser une pièce ne change pas le stock : c’est le bureau qui commande.</span>
     <h3 class="mat-h">Quelle pièce ?</h3>
-    ${x ? `<div class="mat-inter"><span class="fo-n"><b>${esc(x.nom)}</b></span><button type="button" class="lien" data-mat="mchange">Changer</button></div>`
+    ${x ? `<div class="mat-inter"><span class="fo-n"><b>${escN(x.nom)}</b></span><button type="button" class="lien" data-mat="mchange">Changer</button></div>`
       : M.libre ? `<input class="saisie" id="mm-texte" data-mm="texte" autocomplete="off" placeholder="ex. Échelle 3 plans" aria-label="Quelle pièce ?" value="${esc(M.texte)}"><button type="button" class="lien" data-mat="mliste" style="align-self:flex-start">Chercher dans la liste</button>`
       : `<input class="saisie" id="mm-rech" data-mm="rech" type="text" enterkeyhint="search" autocomplete="off" placeholder="Chercher une pièce" aria-label="Chercher une pièce" value="${esc(M.rech)}"><div id="mm-res">${trouves.map(p => `<button type="button" class="ligne-clic mat-res" data-mat="mpiece|${p.id}"><span class="fo-n"><b>${esc(p.nom)}</b></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('')}</div><button type="button" class="lien" data-mat="mlibre" style="align-self:flex-start">Autre chose</button>`}
     <h3 class="mat-h">Combien ?</h3>
@@ -15790,7 +15811,7 @@ document.addEventListener('click', ev => {
   if (a === 'messages') return matMessages(sxMoi());
   if (a === 'bord') { MAT.bord = !MAT.bord; return rendre(); }
   if (a === 'pris') return matPrendre([x]);
-  if (a === 'toutpris') { const L = sxMonLieu(), moi = sxMoi(); return matPrendre(lieuManques(L.id).filter(o => stkAt(o.x, 'atelier') > 0 && !MVTS_ATT.some(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === o.x.id)).map(o => o.x.id)); }
+  if (a === 'toutpris') { const L = sxMonLieu(), moi = sxMoi(); return matPrendre(lieuManques(L.id).filter(o => stkAt(o.x, 'atelier') > 0 && !MVTS_ATT.some(m => m.qui === moi && m.type === 'transfert' && m.vers === L.id && m.pid === o.x.id) && !MAT.file.some(m => m.qui === moi && m.m.type === 'transfert' && m.m.pid === o.x.id)).map(o => o.x.id)); }
   if (a === 'retire') return matRetirer(x);
   if (a === 'oublie') { const k = SX.refus.findIndex(o => o.id === x); if (k >= 0) SX.refus.splice(k, 1); return rendre(); }
   if (a === 'envoyer') return matEnvoyer();
@@ -16013,7 +16034,7 @@ function matLigneArticle(x, lf){
   const sous = l ? (stkAt(x, lf) > 0 ? `Il y en a aussi ${L.filter(([k]) => k !== lf).slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') || 'nulle part ailleurs'}` : (L.length ? `Pas ici · ${L.slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ')}` : 'Il n’y en a nulle part'))
     : L.slice(0, innerWidth <= 380 ? 2 : 3).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') + (L.length > (innerWidth <= 380 ? 2 : 3) ? ` · +${L.length - (innerWidth <= 380 ? 2 : 3)} lieu${L.length - (innerWidth <= 380 ? 2 : 3) > 1 ? 'x' : ''}` : '') || 'Nulle part pour l’instant';
   const q = l ? (cible ? `${prNum(stkAt(x, lf))} sur ${prNum(cible)}` : sxQte(stkAt(x, lf), x)) : sxQte(x.q, x);
-  return `<button type="button" class="sk-l ms-l" data-pr="fiche|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="fo-dr"><b>${q}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</span></button>`;
+  return `<button type="button" class="sk-l ms-l" data-pr="fiche|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="fo-dr"><b>${q}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</span></button>`;
 }
 function msArticles(){
   const tous = PRODUITS.filter(x => !x.retire), lf = SX.lieuF, l = lf !== 'tous' ? lieu(lf) : null, q = stkQ.trim();
@@ -16026,7 +16047,7 @@ function msArticles(){
     ${q && msGerant() ? `<span class="ms-vb"><button type="button" class="btn gris" data-ms="ajouteq">＋ Ajouter « ${esc(q)} »</button></span>` : ''}</div>` : '';
   const grp = (t, A) => A.length ? `<div class="groupe">${t}</div>${A.map(x => matLigneArticle(x, lf)).join('')}` : '';
   const parCat = reste.length > 40 ? [...new Set(reste.map(x => x.cat))].map(c => `<details class="ms-cat" ${q ? 'open' : ''}><summary class="groupe">${esc(c)}</summary>${reste.filter(x => x.cat === c).map(x => matLigneArticle(x, lf)).join('')}</details>`).join('') : null;
-  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article…' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
+  return `<div class="ms-cherche"${matVis('stock-recherche')}><input class="saisie" id="ms-q" type="search" data-skq="1" value="${esc(stkQ)}" placeholder="${tel() ? 'Chercher un article' : 'Chercher un article, une référence…'}" aria-label="Chercher un article" autocomplete="off" enterkeyhint="search"><button type="button" class="btn gris" data-ms="ou"${matVis('stock-lieu')} aria-haspopup="menu" aria-label="Où : ${esc(l ? sxLieuCourt(l) : 'partout')}">${esc(l ? sxLieuCourt(l) : 'Partout')} ▾</button></div>
     ${vide || rien || `<div class="carte dv-liste ms-liste"${matVis('stock-liste')}>${grp('À surveiller', surv)}${parCat ? `<div class="groupe">Tout le reste</div>${parCat}` : grp(surv.length ? 'Tout le reste' : 'Tous les articles', reste)}</div>`}
     ${tous.length && !rien ? `<div class="gris petit ms-pied">${L.length} article${L.length > 1 ? 's' : ''}${l ? ' ici' : ''}${!l && !q ? ` · ${eur(val)} de matériel (prix d’achat HT)` : ''}</div>` : ''}`;   // le montant est celui de TOUT le stock : une recherche ne le recopie pas sous un seul article
 }
@@ -16173,11 +16194,11 @@ function msgResultats(G){
   if (G.lignes.length && !G.q.trim()) return '';   // une ligne est choisie : la liste ne repousse pas la suite, elle revient quand on tape
   const pool = msgPool(G), ranger = G.mode === 'ranger', ou = id => id === 'atelier' ? 'à l’atelier' : id.startsWith('v') ? 'dans le camion de ' + prenomDe(lieu(id).tech) : 'dans la réserve';
   if (!pool.length) return G.q.trim() ? `<div class="gris petit mat-rien">Rien trouvé pour « ${esc(G.q)} »${ranger ? '' : ' ' + ou(G.de)}.</div>` : '';
-  return pool.map(x => `<button type="button" class="ligne-clic mat-res" data-ms="gajoute|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${ranger ? `en tout ${sxQte(x.q, x)}` : `${ou(G.de)} ${prNum(stkAt(x, G.de))}`}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('');
+  return pool.map(x => `<button type="button" class="ligne-clic mat-res" data-ms="gajoute|${x.id}"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${ranger ? `en tout ${sxQte(x.q, x)}` : `${ou(G.de)} ${prNum(stkAt(x, G.de))}`}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('');
 }
 function msgLigne(G, l, j){
   const x = PRODUITS.find(p => p.id === l.pid); if (!x) return ''; const dispo = G.mode === 'ranger' ? null : stkAt(x, G.de);
-  return `<div class="mat-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${dispo == null ? 'en tout ' + sxQte(x.q, x) : (G.de === 'atelier' ? 'à l’atelier ' : 'ici ') + prNum(dispo)}</span></span>
+  return `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${dispo == null ? 'en tout ' + sxQte(x.q, x) : (G.de === 'atelier' ? 'à l’atelier ' : 'ici ') + prNum(dispo)}</span></span>
     <span class="mat-pas"><button type="button" data-ms="gmoins|${j}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-msgq="${j}" value="${prNum(l.q)}" aria-label="Quantité de ${esc(x.nom)}"><button type="button" data-ms="gplus|${j}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>
     <button type="button" class="lien mat-ret" data-ms="gret|${j}" aria-label="Retirer ${esc(x.nom)}">Retirer</button></div>`;
 }
@@ -16263,7 +16284,7 @@ function matCVue(){
   const C = MAT.C; if (!C) return; const L = lieu(C.lieu), A = msCLignes(C.lieu), j = sxJoursInv(C.lieu), nom = L.type === 'atelier' ? 'l’atelier' : L.type === 'vehicule' ? 'le camion de ' + prenomDe(L.tech) : L.nom;
   const ecart = x => C.v[x.id] != null ? stkR(C.v[x.id] - stkAt(x, C.lieu)) : 0, phraseE = e => e < 0 ? `${prNum(-e)} de moins que prévu` : `${prNum(e)} de plus que prévu`, E = A.filter(x => ecart(x)), val = E.reduce((s, x) => s + ecart(x) * (x.pa || 0), 0);
   const ligne = x => { const a = stkAt(x, C.lieu), c = C.v[x.id] != null ? C.v[x.id] : a, e = ecart(x);
-    return `<div class="mat-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="${e ? 'mc-o' : 'gris'} petit">${e ? phraseE(e) : 'Prévu ' + prNum(a)}</span></span><span class="mat-pas"><button type="button" data-ms="cmoins|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mscq="${x.id}" value="${prNum(c)}" aria-label="Compté : ${esc(x.nom)}"><button type="button" data-ms="cplus|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>${e && x.pa ? `<span class="gris petit ms-ev€">${eur(e * x.pa)}</span>` : ''}</div>`; };
+    return `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="${e ? 'mc-o' : 'gris'} petit">${e ? phraseE(e) : 'Prévu ' + prNum(a)}</span></span><span class="mat-pas"><button type="button" data-ms="cmoins|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mscq="${x.id}" value="${prNum(c)}" aria-label="Compté : ${esc(x.nom)}"><button type="button" data-ms="cplus|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>${e && x.pa ? `<span class="gris petit ms-ev€">${eur(e * x.pa)}</span>` : ''}</div>`; };
   const corps = C.grp ? [...new Set(A.map(x => x.cat))].map(c => `<details class="ms-cat" open><summary class="groupe">${esc(c)}</summary>${A.filter(x => x.cat === c).map(ligne).join('')}</details>`).join('') : A.map(ligne).join('');
   foOuvrir(`<span class="surtitre">Stock</span><h2>Compter ${esc(nom)}</h2><span class="gris">Dernier comptage : ${msQuand(j).replace('compté ', '')}.</span>
     <div class="ms-cbar"><button type="button" class="btn gris" data-ms="ctout">Tout est juste</button><button type="button" class="btn gris" data-ms="cgrp" aria-pressed="${C.grp}">${C.grp ? 'Tout afficher à plat' : 'Compter par catégorie'}</button></div>
@@ -16673,9 +16694,9 @@ function mdDotation(id, copie){
   const autres = l.type === 'vehicule' ? LIEUX.filter(o => o.type === 'vehicule' && o.id !== id && bxDot(o.id) && Object.keys(bxDot(o.id)).length) : [];
   const dep = l.type === 'depot', dv = copie === 'copie' || T.copie;
   foOuvrir(`<div data-md-p="dot"></div><span class="surtitre">${esc(l.nom)}</span><h2>Ce qu’il doit y avoir ${dep ? 'sur place' : 'à bord'}</h2><span class="gris">${dep ? 'Quand il en manque, on te le dit avant la prochaine visite.' : 'Quand il en manque, l’article apparaît dans « Remplir les camions ».'}</span>
-    <div class="carte ms-cliste md-dot">${A.map(x => `<div class="mat-l"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">doit toujours en avoir ${prNum(T.v[x.id])} · il y en a ${prNum(stkAt(x, id))}</span></span><span class="mat-pas"><button type="button" data-md="dm|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mdq="${x.id}" value="${prNum(T.v[x.id])}" aria-label="Doit toujours en avoir : ${esc(x.nom)}"><button type="button" data-md="dp|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span><button type="button" class="lien mat-ret" data-md="dx|${x.id}" aria-label="Retirer ${esc(x.nom)}">Retirer</button></div>`).join('') || '<div class="gris" style="padding:14px 4px">Aucun article pour l’instant : ajoutes-en un.</div>'}</div>
+    <div class="carte ms-cliste md-dot">${A.map(x => `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">doit toujours en avoir ${prNum(T.v[x.id])} · il y en a ${prNum(stkAt(x, id))}</span></span><span class="mat-pas"><button type="button" data-md="dm|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mdq="${x.id}" value="${prNum(T.v[x.id])}" aria-label="Doit toujours en avoir : ${esc(x.nom)}"><button type="button" data-md="dp|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span><button type="button" class="lien mat-ret" data-md="dx|${x.id}" aria-label="Retirer ${esc(x.nom)}">Retirer</button></div>`).join('') || '<div class="gris" style="padding:14px 4px">Aucun article pour l’instant : ajoutes-en un.</div>'}</div>
     <h3 class="mat-h">＋ Ajouter un article</h3><input class="saisie" id="md-da" type="search" data-md-da="1" value="${esc(T.q)}" placeholder="Chercher un article" aria-label="Chercher un article à ajouter" autocomplete="off">
-    ${pool.length ? `<div class="mat-resl">${pool.map(x => `<button type="button" class="ligne-clic mat-res" data-md="dadd|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('')}</div>` : q ? `<div class="gris petit mat-rien">Rien trouvé pour « ${esc(q)} ».</div>` : ''}
+    ${pool.length ? `<div class="mat-resl">${pool.map(x => `<button type="button" class="ligne-clic mat-res" data-md="dadd|${x.id}"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${esc(x.ref)}</span></span><span class="mat-plus" aria-hidden="true">＋</span></button>`).join('')}</div>` : q ? `<div class="gris petit mat-rien">Rien trouvé pour « ${esc(q)} ».</div>` : ''}
     ${autres.length ? `<h3 class="mat-h">Copier la liste d’un autre camion</h3><div class="puces ms-puces" role="group" aria-label="Copier la liste d’un autre camion">${autres.map(o => `<button type="button" class="puce-c" data-md="dcop|${o.id}">${esc(o.nom)}</button>`).join('')}</div>` : ''}
     <div class="fo-pied"><button type="button" class="btn" data-md="dok">Enregistrer</button><button type="button" class="btn gris" data-md="dnon|${id}">Annuler</button></div>`, true);
   if (dv && autres.length && !T.copie) { T.copie = 1; setTimeout(() => { const e = document.querySelector('#calque .ms-puces'); if (e) e.scrollIntoView({ block:'center' }); }, 60); }
@@ -17093,7 +17114,7 @@ const fxOk = (x, f) => f === 'tout' || (f === 'vend' && prVend(x)) || (f === 'ma
 function fxLigneArt(x){
   const m = prMarge(x), ref = x.ref && x.ref !== '—' ? `Réf. ${x.ref} · ` : '';
   const droite = x.ac && !prVend(x) ? '<span class="st st-o">Prix à compléter</span>' : prVend(x) ? `<b>${eur(x.pv)}</b>${m != null ? `<span class="gris petit">marge ${m} %</span>` : ''}` : '<b class="fx-nf">Non facturé</b>';
-  return `<button type="button" class="sk-l ms-l fx-a" data-${x.ac && !prVend(x) ? 'fx="prixac' : 'pr="fiche'}|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(ref + (x.four && x.four !== '—' ? x.four : 'sans fournisseur'))}</span></span>${x.pa ? `<span class="fx-pa gris">achat ${eur(x.pa)}</span>` : ''}<span class="fo-dr">${droite}</span></button>`;
+  return `<button type="button" class="sk-l ms-l fx-a" data-${x.ac && !prVend(x) ? 'fx="prixac' : 'pr="fiche'}|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${esc(ref + (x.four && x.four !== '—' ? x.four : 'sans fournisseur'))}</span></span>${x.pa ? `<span class="fx-pa gris">achat ${eur(x.pa)}</span>` : ''}<span class="fo-dr">${droite}</span></button>`;
 }
 function fxArticles(){
   const tous = PRODUITS.filter(x => !x.retire), f = fxFiltre(), q = prQ.trim(), nAC = tous.filter(x => x.ac).length;
@@ -17110,7 +17131,7 @@ function fxArticles(){
   const vide = !tous.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>Aucun article.</b><span class="gris">Choisis ceux de ton métier, ils se rangent tout seuls.</span><span class="ms-vb"><button type="button" class="btn" data-fx="habituels">Choisir parmi les articles habituels de mon métier</button><button type="button" class="btn gris" data-pr="nouveau|${PACKS_ENT[0]}|">＋ Ajouter un article</button></span></div>`
     : !L.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>${q ? `Rien trouvé pour « ${esc(q)} ».` : 'Aucun article ici.'}</b><span class="gris">${q ? 'Vérifie l’orthographe, ou ajoute-le.' : 'Change le filtre pour voir les autres.'}</span><span class="ms-vb">${q ? `<button type="button" class="btn gris" data-fx="ajouteq">＋ Ajouter « ${esc(q)} »</button>` : ''}<button type="button" class="btn gris" data-fx="toutvoir">Tout afficher</button></span></div>` : '';
   const nv = tous.filter(prVend).length;
-  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="Chercher un article, une référence, un fournisseur" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
+  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="${tel() ? 'Article, référence, fournisseur' : 'Chercher un article, une référence, un fournisseur'}" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
       <button type="button" class="btn gris fx-filtre" data-fx="filtre" aria-haspopup="menu">${esc(fxFiltreNom[f])} ▾</button>${plusMetiers}</div>
     ${bandeau}${vide || `<div class="carte dv-liste ms-liste fx-arts">${groupes}</div>`}
     ${tous.length ? `<div class="gris petit ms-pied">${pdxPl(L.length, 'article')}${L.length !== tous.length ? ' sur ' + tous.length : ''} · ${nv} que je vends · ${tous.filter(x => !prVend(x)).length} de matériel (non facturé)</div>` : ''}
@@ -17171,7 +17192,7 @@ function fournFiche(id){
       ${lg('Ma remise', `<span class="fx-jours"><input class="saisie fx-n" inputmode="decimal" data-fochamp="${f.id}|remise" value="${f.remise == null ? '' : prNum(f.remise)}" placeholder="0"><span>%</span></span>`)}
       ${lg('Paiement', `<select class="saisie" data-pdxfo="${f.id}|paie">${PDX_PAIE.map(([k, l]) => `<option value="${k}" ${(f.paie || '') === k ? 'selected' : ''}>${k === '' ? 'Pas précisé' : l}</option>`).join('')}</select>`)}
       <label class="fo-garder fx-case"><input type="checkbox" data-pdxfo="${f.id}|relAuto" ${f.relAuto ? 'checked' : ''}><span>Le relancer tout seul si pas de réponse<span class="gris petit">Un jour ouvré après le retard. Désactivé tant que tu ne le coches pas.</span></span></label></div>
-    <details class="ms-acc"><summary>Ses articles · ${A.length}</summary><div class="fo-bloc">${A.slice(0, 8).map(x => `<button type="button" class="fo-l" data-pr="fiche|${x.id}"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${prNum(x.q)} ${esc(prU(x.q, x.u))} en stock</span></span><span class="fo-dr">${x.ac ? '<span class="st st-o">Prix à compléter</span>' : x.pa ? `<b>${eur(x.pa)}</b><span class="gris petit">achat HT</span>` : ''}</span></button>`).join('') || '<div class="gris" style="padding:10px 4px">Aucun article pour l’instant.</div>'}${A.length > 8 ? `<div class="gris petit" style="padding:8px 4px">et ${A.length - 8} autres</div>` : ''}</div></details>
+    <details class="ms-acc"><summary>Ses articles · ${A.length}</summary><div class="fo-bloc">${A.slice(0, 8).map(x => `<button type="button" class="fo-l" data-pr="fiche|${x.id}"><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${esc(x.ref)} · ${prNum(x.q)} ${esc(prU(x.q, x.u))} en stock</span></span><span class="fo-dr">${x.ac ? '<span class="st st-o">Prix à compléter</span>' : x.pa ? `<b>${eur(x.pa)}</b><span class="gris petit">achat HT</span>` : ''}</span></button>`).join('') || '<div class="gris" style="padding:10px 4px">Aucun article pour l’instant.</div>'}${A.length > 8 ? `<div class="gris petit" style="padding:8px 4px">et ${A.length - 8} autres</div>` : ''}</div></details>
     <details class="ms-acc"><summary>Ses commandes · ${cmds.length}</summary>${cmds.length ? `<div class="fo-bloc">${cmds.map(c => { const e = fxPastille(c); return `<button type="button" class="fo-l" data-cm="voir|${c.id}"><span class="fo-n"><b>Commande ${esc(matNumAff(c.num))}</b><span class="gris petit">${esc(jCourt(c.env || c.cree || AUJ))} · ${pdxPl(c.lignes.length, 'ligne')}</span></span><span class="fo-dr"><b>${eur(cmdHT(c))}</b><span class="st ${e[1]}">${esc(e[0])}</span></span></button>`; }).join('')}</div>` : '<div class="gris petit">Aucune commande pour l’instant.</div>'}<button type="button" class="lien" data-pdx="cmdchez|${f.id}">＋ Nouvelle commande chez ${esc(f.nom.split(' ')[0])}</button></details>`, true);
 }
 function fxMenuFournisseur(b, id){
@@ -17461,7 +17482,7 @@ function ptxCarteSalarie(k){
   let c = '';
   if (ouvH) { const f = ptxFinPropose(ouvH).h;
     c += `<div class="info petit fo-alerte ptx-oubli"><b>Ta journée du ${esc(jlong(ouvH.date))} est restée ouverte</b> (depuis ${ouvH.debut}). À quelle heure as-tu fini ?<div class="actions" style="margin-top:8px"><button type="button" class="btn petit" data-ptx="finhier|${ouvH.id}|${f}">${f}</button><button type="button" class="btn gris petit" data-ptx="finhierautre|${ouvH.id}">Une autre heure</button></div></div>`; }
-  if (!P) c += `<div class="ptx-etat"><b>Tu n’as pas encore commencé.</b><span class="gris petit">Il est ${hNow()}${premier ? ' · ta première intervention est à ' + premier : ''}.</span></div><button type="button" class="btn large" data-ptx="debut|${k}">Je commence ma journée</button><button type="button" class="lien" data-ptx="plustot|${k}">J’ai commencé plus tôt</button>`;
+  if (!P) c += `<div class="ptx-etat"><b>Tu n’as pas encore commencé.</b><span class="gris petit ptx-hnow">Il est ${hNow()}${premier ? ' · ta première intervention est à ' + premier : ''}.</span></div><button type="button" class="btn large" data-ptx="debut|${k}">Je commence ma journée</button><button type="button" class="lien" data-ptx="plustot|${k}">J’ai commencé plus tôt</button>`;
   else if (ouv) { const en = PTX.pause[ouv.id], fait = mesInts.length && mesInts.every(i => i.st === 'fait'), fin = PTX.finInt[k + AUJ];
     c += `<div class="ptx-etat"><b>Commencée à ${ouv.debut} · ${ptH(Math.max(0, MAINT_MIN - ptMin(ouv.debut)))}</b><span class="gris petit">${en ? 'En pause depuis ' + en.h + '.' : 'Ta journée est en cours : le bureau le voit.'}${ouv.pause ? ' Pause déjà prise : ' + ouv.pause + ' min.' : ''}</span></div>
       <div class="actions">${en ? `<button type="button" class="btn" data-ptx="reprendre|${k}">Je reprends</button>` : `<button type="button" class="btn gris" data-ptx="pause|${k}">Pause</button><button type="button" class="btn" data-ptx="termine|${k}">Je termine</button>`}</div>
@@ -18980,7 +19001,7 @@ function vehFiche(id, onglet){
     ${alerte}${phrase}
     <div class="fo-stats vh-stats"><span><b>${v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' : '—'}</b>kilométrage${dr ? ' · relevé le ' + esc(vhJM(dr.d)) : ''}</span>
       <span><b>${cout.auKm == null ? '—' : vhEuro2(cout.auKm)}</b>${cout.auKm == null ? 'pas encore assez de relevés' : 'le kilomètre, sur 12 mois'}</span>
-      <span><b>${m.length || A.length}</b>${m.length ? 'à remettre à bord' : vhPl(A.length, 'article').split(' ').slice(1).join(' ') + ' à bord'}</span></div>
+      <span><b>${m.length || A.length}</b>${m.length ? (m.length > 1 ? 'manquent à bord' : 'manque à bord') : vhPl(A.length, 'article').split(' ').slice(1).join(' ') + ' à bord'}</span></div>
     ${gestes ? `<div class="vh-gestes">${vhPeut('plein') ? `<button type="button" class="btn gris petit" data-vh="plein|${v.id}">Noter un plein</button>` : ''}${vhPeut('km') ? `<button type="button" class="btn gris petit" data-vh="km|${v.id}">Relever le compteur</button>` : ''}${vhPeut('statut') && v.statut !== 'hs' && !(v.statut === 'atelier' && !v.souci) ? `<button type="button" class="btn gris petit" data-vh="statut|${v.id}|fiche">${v.statut === 'service' ? 'Mettre au garage' : 'Le remettre en service'}</button>` : ''}</div>` : ''}
     <div class="cmd-liens vh-liens">${liens}</div>
     <div class="seg vh-onglets" role="tablist" aria-label="Fiche du véhicule">${onglets.map(([k, l]) => `<button type="button" role="tab" data-vh="fonglet|${k}" aria-pressed="${VH.fOnglet === k}" aria-selected="${VH.fOnglet === k}">${l}</button>`).join('')}</div>
@@ -19160,10 +19181,10 @@ function vhLigneCamion(){
     else if (E.e) { etat = vhLib(E.e).toLowerCase() + ' ' + vhQuand(E.e); cl = E.e.urg === 'r' ? 'st-r' : 'st-o'; }
     else if (E.k === 'afaire') { etat = 'papiers à compléter par le bureau'; cl = 'st-o'; }
     else etat = VH_EN_REGLE.toLowerCase(); }
-  const stock = r ? `${sxPl(r, 'envoi refusé', 'envois refusés')} : le bureau t’explique pourquoi` : n ? `${sxPl(n, 'article')} à remettre à bord` : a ? `${sxPl(a, 'envoi')} en attente du bureau` : '';
+  const stock = r ? `${sxPl(r, 'envoi refusé', 'envois refusés')} : le bureau t’explique pourquoi` : n ? `${sxPl(n, 'article')} ${n > 1 ? 'manquent' : 'manque'} à bord` : a ? `${sxPl(a, 'envoi')} en attente du bureau` : '';
   if (stock && cl === 'st-v') cl = r ? 'st-r' : 'st-o';
   if (!etat) { etat = stock; }
-  /* des pièces à remettre : on commence par elles, les papiers en règle passent dessous (« 3 articles à remettre à bord · papiers en règle ») */
+  /* des pièces qui manquent : on commence par elles, les papiers en règle passent dessous (« 3 articles manquent à bord · papiers en règle ») */
   let haut = etat, bas = stock && stock !== etat ? stock : '';
   if (etat === VH_EN_REGLE.toLowerCase() && stock) { haut = stock; bas = VH_EN_REGLE; }
   return `<button type="button" class="ligne-clic sx-raccourci vh-ligne-cam" data-go="moncamion"><span class="af-l" style="display:flex;gap:12px;align-items:center"><span class="st ${cl} etiq-af">Mon camion</span><span><b>${esc(haut.charAt(0).toUpperCase() + haut.slice(1))}</b>${bas ? `<br><span class="gris petit">${esc(bas)}</span>` : ''}</span></span><span>›</span></button>`;
@@ -19838,7 +19859,9 @@ const AX_EQUIPE = ['sm', 'kb', 'lr', 'tl'];
 const AX_UNITES = ['u', 'kg', 'lot', 'L', 'm', 'boîte', 'paire', 'rouleau', 'aérosol', 'flacon'];
 const AX_MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const axR2 = v => Math.round(v * 100) / 100;
-const axNum = v => cxNum(v);   /* la même lecture d'un nombre que la Comptabilité : « 1.234,56 » se lisait 1,23 (compta-reste-03) */
+const axNum = v => cxNum(v);
+/* ce que la personne a tapé dans un champ de montant, sans l'habillage qu'elle y met naturellement : « 12 € », « 12 euros », « 12, » se lisent 12 (restes technicien 2 : « 12 € » était refusé avec « Indique le montant payé. » devant un champ rempli) */
+const axMontantTxt = t => String(t == null ? '' : t).replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, '');   /* la même lecture d'un nombre que la Comptabilité : « 1.234,56 » se lisait 1,23 (compta-reste-03) */
 /* une quantité ou une distance s'écrit comme les montants de l'écran : « 1 523,5 kg », pas « 1523,5 kg » (achats-12) ; l'espace est insécable pour ne pas se couper en fin de ligne */
 const axN = n => Number(n).toLocaleString('fr-FR', { maximumFractionDigits:3 }).replace(/\u202f/g, '\u00a0');
 const axPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
@@ -19995,7 +20018,9 @@ function axTicketEnvoyer(id) {
     d.reel.recu = true; axNotif('marc', `${par} a ajouté le ticket de « ${d.quoi} ».`); axJ(qui, 'a ajouté le ticket de', d.quoi);
     fermerPanneau(); rendre(); return toast('Ticket ajouté : le bureau le voit dans la dépense.');
   }
-  const ttc = axNum(g('ax-m').value), tva = +g('ax-t').value; if (!(ttc > 0)) return toast('Indique le montant payé.');
+  const mTxtA = axMontantTxt(g('ax-m').value), ttc = axNum(mTxtA), tva = +g('ax-t').value;
+  if (mTxtA.trim() && !(ttc > 0)) { const r = cxMontantRefus(mTxtA); const z = g('ax-m'); if (z) z.focus(); return toast(r && r !== 'Indique le montant.' ? r : 'Écris le montant payé en chiffres, par exemple 12,50.'); }
+  if (!(ttc > 0)) return toast('Indique le montant payé.');
   const ht = axR2(ttc / (1 + tva / 100)), plus = d.est && ht > d.est * 1.2;
   ACHATS.push({ id:'a' + d.id, d:j, four:'Achat en magasin', objet:d.quoi + ' (' + H_NOM(d.qui) + ')', ht, tva, compte:ht > 500 && !d.pid ? '2154' : axCompte({ pid:d.pid, est:ht }), mode:'Carte', paye:j, piece:f ? 'ticket' : null, just:f ? 'photo du ' + j : null, photo:f ? URL.createObjectURL(f) : null, photoType:f ? f.type : null, ref:f ? 'TICKET-' + j.replace('/', '') : 'à justifier' });
   Object.assign(d, { etat:'achetee', reel:{ ttc, tva, ht, recu:!!f, le:AUJ }, suite:'acheté en magasin le ' + jCourt(AUJ) });
@@ -21439,6 +21464,8 @@ const rgActCl = act => act[1] === 'r' ? 'st-r' : act[1] === 'o' ? 'st-o' : 'st-v
 function rgVue(){
   const tech = ROLE === 'tech';
   let ks = Object.keys(D3_CLI);
+  /* aucun site suivi (l'entreprise vient de prendre le métier) : un tableau vide sous « Rien d'urgent : tous les sites sont à jour » disait faux, et « Saisir un passage » n'avait aucun site où écrire (regard gérant F) */
+  if (!tech && !ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations.</div>`;
   if (tech) {
     ks = rgSitesTech();
     if (!ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre sur ta journée. Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</div>`;
@@ -21483,7 +21510,7 @@ function rgProdZone(k){
       ${ROLE === 'tech' ? '' : `<button type="button" class="btn petit" data-rg="prevenir|${esc(lots[0].lot)}">Prévenir ces clients</button>`}</div>`;
   }
   return resume + `<div class="d3-tab"><div class="d3-tr d3-th" aria-hidden="true"><span>Date</span><span>Produit</span><span>Type</span><span>N° d’AMM</span><span>Lot</span><span>Quantité</span></div>
-    ${R.map(o => `<div class="d3-tr"><span>${jCourt(o.p.d)}</span><b>${esc(o.x.nom)}</b><span>${o.x.tp}</span><span>${esc(rgAmm(o.x))}</span><span>${esc(o.lot)}</span><span>${rgQte(o.x, o.q)}</span></div>`).join('') || `<div class="d3-tr"><span class="gris" style="grid-column:1/-1">${rgQ.trim() ? 'Aucun produit ne correspond à « ' + esc(rgQ.trim()) + ' ».' : 'Aucun produit posé sur cette période.'}</span></div>`}</div>`;
+    ${R.map(o => `<div class="d3-tr"><span>${jCourt(o.p.d)}</span><b>${escN(o.x.nom)}</b><span>${o.x.tp}</span><span>${esc(rgAmm(o.x))}</span><span>${esc(o.lot)}</span><span>${rgQte(o.x, o.q)}</span></div>`).join('') || `<div class="d3-tr"><span class="gris" style="grid-column:1/-1">${rgQ.trim() ? 'Aucun produit ne correspond à « ' + esc(rgQ.trim()) + ' ».' : 'Aucun produit posé sur cette période.'}</span></div>`}</div>`;
 }
 function rgLienBloc(k){
   const L = RG_LIEN[k], u = 'teamop.fr/registre/' + k + '-demo';
@@ -21501,7 +21528,7 @@ function rgVueSite(ks, tech){
   return rgTete(`<button type="button" class="btn" data-rg="passage">＋ Saisir un passage</button>${acts}`) + bandeauExemple(RG_BANDEAU) + rgChoix(ks, !tech) + `
     <div class="kpis"><div class="kpi"><b>${jCourt(der.d)}</b><span>dernier passage · ${esc(der.tech)}</span></div><div class="kpi"><b class="ve-${act[1]}t">${act[0]}</b><span>activité au dernier passage</span></div>
       <div class="kpi"><b class="${retard ? 've-rt' : pro.plan ? 've-vt' : ''}">${jCourt(pro.d)}</b><span>${pro.plan ? 'passage planifié · ' + esc(rgPrenom(pro.plan.tech)) : 'prochain passage'}</span><span class="${ko ? 've-rt' : ''}" style="font-size:13px">${n} passage${n > 1 ? 's' : ''} sur ${f} cette année${ko ? ' · rythme non tenu' : ''}</span>
-        ${pro.plan ? `<button type="button" class="lien" data-rg="int|${pro.plan.id}">Voir l’intervention ›</button>` : tech ? '' : `<button type="button" class="btn petit" data-rg="planifier|${k}" style="margin-top:6px">Planifier</button>`}</div>
+        ${pro.plan ? `<button type="button" class="lien" data-rg="int|${pro.plan.id}">Voir l’intervention&nbsp;›</button>` : tech ? '' : `<button type="button" class="btn petit" data-rg="planifier|${k}" style="margin-top:6px">Planifier</button>`}</div>
       <div class="kpi"><b style="color:${ouv.length ? 'var(--orange)' : 'inherit'}">${ouv.length}</b><span>recommandation${ouv.length > 1 ? 's' : ''} en attente</span></div></div>
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 10px">Activité, passage après passage</h2><div class="d3-histo">${P.map(p => { const a = d3Activite(p), v = Object.values(p.etats), m = v.filter(e => e === 'c' || (typeof e === 'number' && e >= 25)).length; return `<div class="d3-h"><span class="d3-hb"><i class="d3-${a[1]}" style="height:${Math.max(6, Math.round(m / v.length * 100))}%"></i></span><b>${m}/${v.length}</b><span class="gris petit">${jCourt(p.d)}</span></div>`; }).join('')}</div>
       <span class="gris petit">Nombre de box avec consommation ou capture, sur les box relevées.</span></div>
@@ -21510,7 +21537,7 @@ function rgVueSite(ks, tech){
       return `<button type="button" class="ve-u" data-d3="voir|${p.id}" aria-expanded="${d3Ouvert === p.id}"><span class="st st-${a[1]}">${a[0]}</span><span class="fo-n"><b>${esc(jlong(p.d))}</b><span class="gris petit">${esc(p.tech)} · ${cons.length ? cons.map(([id, e]) => id + ' ' + d3Lib(e)).join(', ') : 'toutes les box intactes'}</span></span><span class="fo-chev" aria-hidden="true">${d3Ouvert === p.id ? '⌄' : '›'}</span></button>
         ${d3Ouvert === p.id ? `<div class="d3-det"><p>${esc(p.obs)}</p>${p.poses.length ? `<div class="gris petit">Posé : ${p.poses.map(([pid, lot, q]) => `${esc(D3_PROD[pid].nom)} ${rgQte(D3_PROD[pid], q)} (lot ${esc(lot)})`).join(' · ')}</div>` : '<div class="gris petit">Simple contrôle : rien n’a été posé.</div>'}
           <div class="gris petit">Applicateur : ${esc(p.tech)}${rgCleDe(p.tech) && rgCertif(rgCleDe(p.tech)).ok ? ' · ' + esc(rgCertif(rgCleDe(p.tech)).txt) : ''}${p.contact ? ' · présent sur place : ' + esc(p.contact) + (p.sig ? ' (a signé)' : '') : ''}</div>
-          ${I ? `<button type="button" class="lien" data-rg="int|${I.id}">Intervention du ${jCourt(I.d)} ›</button>` : ''}${tech ? '' : '<button type="button" class="lien" data-d3="carte">Voir sur la carte des box ›</button>'}</div>` : ''}`; }).join('')}</div>
+          ${I ? `<button type="button" class="lien" data-rg="int|${I.id}">Intervention du ${jCourt(I.d)}&nbsp;›</button>` : ''}${tech ? '' : '<button type="button" class="lien" data-d3="carte">Voir sur la carte des box&nbsp;›</button>'}</div>` : ''}`; }).join('')}</div>
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Produits biocides posés · traçabilité</h2>
       <div class="rg-filtre"><input id="rg-q" class="saisie" type="search" value="${esc(rgQ)}" placeholder="Rechercher un lot, un produit ou une AMM" aria-label="Rechercher un lot, un produit ou une AMM" autocomplete="off"><span class="rg-per" role="group" aria-label="Période">${[['12', '12 derniers mois'], ['tout', 'Tout']].map(([v, l]) => `<button type="button" class="puce-c" data-rg="per|${v}" aria-pressed="${rgPer === v}">${l}</button>`).join('')}</span></div>
       <div id="rg-prod-zone">${rgProdZone(k)}</div>
@@ -21927,6 +21954,8 @@ function cbTypeChoix(){
 
 /* ─ la vue ─ */
 function vueCarteBox(){
+  /* aucun site : la carte n'a rien à montrer (elle jetait une erreur sur le nom du site) */
+  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici.</div>`;
   if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; histRemplacer('#carteBox'); }
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c], pro = rgProchain(c).d, act = d3Activite(der), sel = d3Sel && P.find(p => p.id === d3Sel), R = cbReleve && cbReleve.cli === c ? cbReleve : null, ro = cbRO();
   const att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))), neuves = P.filter(p => cbEtat(c, p.id) == null).length;
@@ -22375,7 +22404,7 @@ function dxVue(){
         <label class="champ">Adresse du client<input data-dx="nv_adr" value="${esc(DX.adr)}" placeholder="n°, rue, code postal, ville" autocomplete="off"></label>` : ''}
       <label class="champ">Adresse du chantier<input data-dx="chantier" value="${esc(dxAdr())}" placeholder="n°, rue, code postal, ville" autocomplete="off"></label><span class="gris petit" id="dx-chhint">${dxChHint()}</span>
       <div class="groupe">Ce qui a été constaté</div>
-      <div class="seg" role="group" aria-label="Insecte">${Object.entries(XY_INS).map(([k, l]) => `<button type="button" data-dxb="insecte|${k}" aria-pressed="${DX.insecte === k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Insecte">${Object.entries(XY_INS_COURT).map(([k, l]) => `<button type="button" data-dxb="insecte|${k}" aria-pressed="${DX.insecte === k}">${l}</button>`).join('')}</div>
       <div class="gris petit">Chaque insecte règle le calcul à sa façon (bûchage, doses, postes de suivi) ; tout reste modifiable dans les réglages.</div>
       ${DX.insecte === 'merule' ? '' : `<div class="seg" role="group" aria-label="Traitement">${[['curatif', 'Curatif (bois attaqués)'], ['preventif', 'Préventif']].map(([k, l]) => `<button type="button" data-dxb="mode|${k}" aria-pressed="${DX.mode === k}">${l}</button>`).join('')}</div>`}
       ${DX.insecte === 'merule' ? '<div class="ve-e">La mérule est un champignon : le traitement passe d’abord par la cause (l’humidité). Sa présence se déclare en mairie (c’est à l’occupant ou au propriétaire de le faire), et certaines communes sont en zone délimitée par arrêté préfectoral. Ce calcul ne la couvre pas : il prépare un devis de visite et d’expertise, le traitement sera chiffré ensuite.</div>' : ''}
@@ -22385,7 +22414,7 @@ function dxVue(){
       ${dxSuggHtml('dx')}
       <div class="dx-tech"><span class="gris petit">Techniciens sur place :</span><div class="seg" role="group" aria-label="Techniciens sur place">${[1, 2].map(n => `<button type="button" data-dxb="techs|${n}" aria-pressed="${DX.techs === n}">${n}</button>`).join('')}</div></div>
       <div class="gris petit" id="dx-duree">${dxDureeTxt(R)}</div>`}
-      <details class="xy-reg"${window.xyRegOuvert || DX.tvaAsk ? ' open' : ''}><summary>Réglages du calcul</summary>
+      <details class="xy-reg"${window.xyRegOuvert || DX.tvaAsk ? ' open' : ''}><summary>Réglages du calcul</summary><div class="xy-reg-c">
         <div class="deux-champs">${champ('dose', 'Dose par passe', 'L/m²', DX.dose)}${champ('passes', 'Passes', DX.mode === 'curatif' ? 'curatif : 2' : 'préventif : 1', DX.passes)}</div>
         <div class="deux-champs">${champ('prixL', 'Prix du produit', '€/L', DX.prixL)}${champ('mh', 'Rendement', 'm²/h', DX.mh)}</div>
         ${P.postes ? `<div class="deux-champs">${champ('postes', 'Postes de suivi', 'postes', DX.postes)}${champ('prixPoste', 'Prix d’un poste', '€ HT', DX.prixPoste)}</div>` : ''}
@@ -22397,7 +22426,7 @@ function dxVue(){
         ${DX.tvaAsk && c && c.type === 'pro' && tva === 10 && !DX.tvaOk ? '<div class="alerte dx-q" role="alert"><span>Un client professionnel n’a normalement pas droit au taux réduit. Garder 10 % ? <span class="gris petit">(à vérifier avec ton expert-comptable)</span></span><div class="actions"><button type="button" class="btn" data-dxb="tva|20">Passer à 20 %</button><button type="button" class="btn gris" data-dxb="tva|10">Garder 10 %</button></div></div>' : ''}
         <span class="gris petit">La dose vient de la fiche technique du produit utilisé. Le taux horaire et le déplacement sont ceux de l’entreprise (le déplacement suit l’adresse du chantier).</span>
         <div class="actions" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button type="button" class="btn gris petit" data-dxb="garder">Garder ces réglages pour tous les devis</button><button type="button" class="lien" data-dxb="revenir">Revenir aux tarifs de l’entreprise</button>${DX.sauve ? '<span class="dx-ok" role="status">✓ Réglages enregistrés</span>' : ''}</div>
-      </details></div>
+      </div></details></div>
     <div class="carte xy-r" id="dx-res">${dxResIn(R)}</div></div>
     <div class="dx-barre" id="dx-barre">${dxBarreIn(R)}</div></div>`;
 }
@@ -22530,7 +22559,7 @@ function dxReleveVue(){
     <div class="xy-g"><div class="carte xy-f">
       <label class="champ">Client<select data-dxr="cli"><option value="">Choisir le client…</option>${Object.entries(CLIENTS).filter(([k]) => k !== '__nv').map(([k, o]) => `<option value="${k}" ${DXR.cli === k ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
       <div class="groupe">Ce qui a été constaté</div>
-      <div class="seg" role="group" aria-label="Insecte">${Object.entries(XY_INS).map(([k, l]) => `<button type="button" data-dxrb="insecte|${k}" aria-pressed="${DXR.insecte === k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Insecte">${Object.entries(XY_INS_COURT).map(([k, l]) => `<button type="button" data-dxrb="insecte|${k}" aria-pressed="${DXR.insecte === k}">${l}</button>`).join('')}</div>
       ${DXR.insecte === 'merule' ? '' : `<div class="seg" role="group" aria-label="Traitement">${[['curatif', 'Curatif (bois attaqués)'], ['preventif', 'Préventif']].map(([k, l]) => `<button type="button" data-dxrb="mode|${k}" aria-pressed="${DXR.mode === k}">${l}</button>`).join('')}</div>`}
       <div class="groupe">Mesures par zone</div>
       ${DXR.zones.length ? dxZonesHtml(DXR.zones, 'dxr') : '<div class="gris petit">Aucune zone : ajoute celle où tu as mesuré.</div>'}
