@@ -24,9 +24,9 @@ const O = require('./taches-absences-outils.js'), L = O.L, v = L.v;
   await set('ax-du', pop.we[0]); await set('ax-au', pop.we[1]);
   const x1 = await p.evaluate(() => ({ ap:document.getElementById('ax-apercu').innerText, ok:!document.querySelector('[data-axok]').disabled }));
   v('Modifier les dates : un week-end seul dit « Ces jours ne sont pas travaillés » et grise « Enregistrer »', /pas travaill/.test(x1.ap) && !x1.ok, x1);
-  await p.evaluate(() => document.querySelector('[data-axok]').click()); await L.calme(p, 400);
-  const x2 = await p.evaluate(id => { const a = ABSENCES.find(x => x.id === id); return { du:a.du, au:a.au, jours:aJours(a) }; }, ab);
-  v('Modifier les dates : forcer le geste ne laisse pas une absence de 0 jour ouvré', x2.jours > 0, x2);
+  await p.evaluate(() => { const b = document.querySelector('[data-axok]'); b.disabled = false; b.click(); }); await L.calme(p, 400);   // bouton DÉGRISÉ à la main : la règle doit tenir derrière l'écran
+  const x2 = await p.evaluate(([id, w]) => { const a = ABSENCES.find(x => x.id === id); const av = a.du + a.au; const r = aAppliquer(a, w[0], w[1], null); return { du:a.du, au:a.au, jours:aJours(a), direct:r, bouge:a.du + a.au !== av }; }, [ab, pop.we]);
+  v('Modifier les dates : forcer le geste (bouton dégrisé, puis appel direct comme le glisser) ne laisse pas une absence de 0 jour ouvré', x2.jours > 0 && x2.direct === false && !x2.bouge, x2);
   await ferme();
   const dm = await p.evaluate(() => { const d = DEMANDES_ABS.find(x => x.etat === 'attente') || DEMANDES_ABS[0]; const a = ABSENCES.find(x => x.tech === d.tech); return { demande:d.id, tech:d.tech, abs:a && a.id, du:d.du, au:d.au }; });
   v('population : une demande en attente et une absence validée de la MÊME personne existent', !!dm.abs, dm);
@@ -34,8 +34,9 @@ const O = require('./taches-absences-outils.js'), L = O.L, v = L.v;
     await p.evaluate(id => aPanneauDates(ABSENCES.find(x => x.id === id)), dm.abs); await L.calme(p, 300);
     await set('ax-du', dm.du); await set('ax-au', dm.au);
     const y1 = await p.evaluate(() => ({ ap:document.getElementById('ax-apercu').innerText, ok:!document.querySelector('[data-axok]').disabled }));
-    await p.evaluate(() => document.querySelector('[data-axok]').click()); await L.calme(p, 400);
-    const y2 = await p.evaluate(([id, did]) => { const a = ABSENCES.find(x => x.id === id), d = DEMANDES_ABS.find(x => x.id === did); return { absDu:a.du, absAu:a.au, demandeToujours:!!d }; }, [dm.abs, dm.demande]);
+    await p.evaluate(() => { const b = document.querySelector('[data-axok]'); b.disabled = false; b.click(); }); await L.calme(p, 400);
+    const y2 = await p.evaluate(([id, did, du, au]) => { const a = ABSENCES.find(x => x.id === id), d = DEMANDES_ABS.find(x => x.id === did); const r = aAppliquer(a, du, au, null); return { absDu:a.du, absAu:a.au, demandeToujours:!!d, direct:r }; }, [dm.abs, dm.demande, dm.du, dm.au]);
+    v('Modifier les dates : l\'appel direct du geste (le glisser) refuse aussi les jours d\'une demande en attente', y2.direct === false, y2);
     v('Modifier les dates : déplacer une absence sur les jours d\'une demande en attente de la même personne est refusé (sinon accorder la demande double l\'absence)', !(y2.absDu === dm.du && y2.absAu === dm.au && y2.demandeToujours), { y1, y2 });
     await ferme(); }
   // 3 — « Proposer d'autres dates » : un week-end seul, « Au » qui suit « Du »
@@ -46,7 +47,7 @@ const O = require('./taches-absences-outils.js'), L = O.L, v = L.v;
     await set('am-du', pop.we[0]); await set('am-au', pop.we[1]);
     const z1 = await p.evaluate(() => ({ ap:document.getElementById('am-apercu').innerText }));
     v('Proposer d\'autres dates : un week-end seul est signalé (« pas travaillés »)', /pas travaill/.test(z1.ap), z1);
-    await p.evaluate(() => document.querySelector('[data-amodifok]').click()); await L.calme(p, 400);
+    await p.evaluate(() => { const b = document.querySelector('[data-amodifok]'); b.disabled = false; b.click(); }); await L.calme(p, 400);   // bouton dégrisé à la main
     const z2 = await p.evaluate(id => { const d = DEMANDES_ABS.find(x => x.id === id); return { etat:d.etat, prop:d.prop && aJours({ tech:d.tech, ...d.prop }) }; }, dd);
     v('Proposer d\'autres dates : forcer le geste ne propose pas 0 jour ouvré', !(z2.etat === 'proposee' && z2.prop === 0), z2);
     await ferme();
