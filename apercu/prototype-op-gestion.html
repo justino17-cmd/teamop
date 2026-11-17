@@ -21364,7 +21364,7 @@ document.addEventListener('click', ev => {   // une ligne réglée dans la liste
 let CMPT_PRET = false, CMPT_FILE = [];
 const cmptCadre = () => { const z = document.getElementById('cpsys'); return z && z.querySelector('iframe'); };
 function cmptEnvoyer(m){ const f = cmptCadre(); if (f && CMPT_PRET) { try { f.contentWindow.postMessage(m, '*'); return; } catch (e) {} } if (!m.opc_role) CMPT_FILE.push(m); }   /* le rôle courant est envoyé de toute façon quand la fenêtre dit qu'elle est prête */
-const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { droits:droitsDe('compta'), role:ROLE === 'patron' ? 'patron' : 'gestion', paie:ROLE === 'patron' || ROLE === 'compta'   /* la Paie de la fenêtre : le patron, et le comptable du cabinet qui fait les fiches — pas la gestion des factures · 13 novembre 2026 */, prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
+const cmptRole = () => { const q = ROLE !== 'patron' && ROLES[ROLE] && typeof eqDe === 'function' && eqDe(ROLES[ROLE].qui); return { droits:{ ...droitsDe('compta'), qui:droitPremierAdmin() }, role:ROLE === 'patron' ? 'patron' : 'gestion', paie:ROLE === 'patron' || ROLE === 'compta'   /* la Paie de la fenêtre : le patron, et le comptable du cabinet qui fait les fiches — pas la gestion des factures · 13 novembre 2026 */, prenom:ROLE === 'patron' ? 'Marc' : q ? q.prenom : 'Julie' }; };
 const cmptNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 function cmptVersFenetre(o){
   cpSysDe = route + (param ? '-x-' + param : ''); cpSysteme = true; cmptEnvoyer({ opc_aller:o });
