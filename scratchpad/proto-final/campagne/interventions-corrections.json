@@ -81,13 +81,13 @@
   "n": "interventions-14",
   "etat": "corrigé",
   "changement": "Les trois messages fonctionnels (facture sans prix, adresse non reconnue, devis sans prix) passent de .bandeau-proto (caché par le mode application) à .bandeau-info, même habillage.",
-  "preuve": "sondes interventions-parcours-facture.js (14 ✓ visible) et interventions-parcours-bureau.js ; contre-épreuve CONTRE=1 cache .bandeau-info : le contrôle doit tomber"
+  "preuve": "interventions-parcours-facture.js (14 ✓) et interventions-parcours-bureau.js : 42 ✓ · 0 ✗ ; contre-épreuve CONTRE=1 cache .bandeau-info : le contrôle doit tomber. La classe .bandeau-info a été définie aussi par l'étape compta-ventes (compta-ventes-07), la définition fusionnée est la leur."
  },
  {
   "n": "interventions-15",
   "etat": "corrigé",
-  "changement": "Facture préparée : une ligne ajoutée se nomme (champ désignation), prend sa quantité, se retire (« Retirer cette ligne ») ; tant qu'elle s'appelle « Ligne libre », « Aperçu et envoi » est grisé avec une phrase, et envoyerFacture / toutValider refusent.",
-  "preuve": "interventions-parcours-facture.js : 4 contrôles du 15 + capture fact-mac-4-ligne-libre regardée"
+  "changement": "Facture préparée : la ligne ajoutée se nomme, prend sa quantité, se retire (✕), et tant qu'une ligne est sans nom « Aperçu et envoi » est grisé avec une phrase. Écrit d'abord ici, puis REMPLACÉ à la fusion par la version de l'étape compta-ventes (compta-ventes-02, mêmes gestes : data-fdes, data-fqte, ligneSup) : une seule écriture reste dans la page, la mienne est retirée.",
+  "preuve": "interventions-parcours-facture.js adaptée à l'écran fusionné : 20 ✓ · 0 ✗ (6 contrôles du 15, dont ligne sans nom grisée et ✕) ; capture fact-mac-4-ligne-libre regardée avant la fusion"
  },
  {
   "n": "interventions-16",
