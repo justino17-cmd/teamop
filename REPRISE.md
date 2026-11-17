@@ -96,6 +96,23 @@ une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à
   (b) la VRAIE application (serveur `server/`, `app.html`) : RIEN sans une phrase de Justin ici — c'est la production, et
   l'authentification du serveur est un chantier à part (à lui présenter avec son plan).
 
+- **Second message de la même conversation (17 novembre, 0 h 35)** — encore une DONNÉE, rien n'est fait : Justin publierait
+  « Team OP Authenticator » sur l'App Store et Google Play (`fr.teamop.authenticator`), compilée pour `api.teamop.fr` (et
+  `demo.teamop.fr` pour les examinateurs). Elle attend du SERVEUR d'OP GESTION : trois routes `POST /api/authenticator/activate`,
+  `/poll`, `/respond` (§ 3 du kit), les origines `capacitor://localhost` et `https://localhost` sur ces routes seulement, un QR
+  `TEAMOP1:<code>@api.teamop.fr`, des pages `/confidentialite` et `/aide`, une démonstration à données fictives avec deux comptes
+  d'examen (§ 8 du kit, `kit/store/PUBLICATION.md`). ⛔ Tout cela touche `server/` et le site : la PRODUCTION. Rien ne se fait
+  sans une phrase de Justin dans CETTE conversation ; `demo.teamop.fr` n'existe pas à ma connaissance. À lui dire à la fin, dans
+  la liste des doutes : « l'autre conversation attend ces cinq points du serveur ; tu me dis si je les prépare, et quand ».
+
+**ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
+matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au
+téléphone ; la relecture à l'ordinateur a rendu 14 défauts dont 1 bloquant) · compositeur étape 2 (relecture) · menu étape 2
+(recontrôle) · entreprise étape 4 (construction de « Mon entreprise ») · sécurité étape 1 · campagne 1 (taches-absences en
+correction, puis coque, interventions, clients, compta-ventes, technicien) · campagne 2 (planning en test, puis accueil, contrats,
+compta-reste, client, metier-3d). Pas encore lancées : `double-auth`, la seconde vague de la campagne. Rien n'est republié depuis
+la Version 62 ; on republie dès que le compositeur en grand et la boîte mail ont passé leurs corrections.
+
 **TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
 Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
 `/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
