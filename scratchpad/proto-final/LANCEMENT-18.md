@@ -61,6 +61,24 @@ Vague 1 = les chemins les plus longs et ce qui débloque les autres. Vagues 2 et
 | 4 | 6 | `{"voie":"final-rejeu","familles":["coque","planning","restes","recontrole","relire"],"jusqua":0}` | pas de fiche : tout depuis le début ; APRÈS 18 |
 | 4 | 13 | `{"voie":"final-rejeu","familles":["metier","hote"],"jusqua":0}` | finir metier-tout.sh, script « hote » |
 
+| 1 | S1 | (pas de voie : consigne écrite ci-dessous) | OP GESTION serveur : les notifications d'une entreprise exigent la preuve de clé |
+| 1 | S2 | (pas de voie) | OP GESTION serveur : la Tour a une vraie déconnexion (jeton révoqué côté serveur) |
+| 1 | S3 | (pas de voie) | OP GESTION serveur : les mots de passe de la Tour rangés en scrypt, migration au premier login |
+
+### Les trois fenêtres « serveur » (S1, S2, S3) — leur consigne
+
+Exception à SESSION-SOEUR.md : elles touchent `server/` (et `espace.html`/`messages.html`/`beta.html` pour S1), sur la branche de
+travail SEULEMENT (un push sur `main` déploie : interdit). Chacune : lire le code concerné, écrire le banc d'abord (le vrai serveur sur
+127.0.0.1, la vraie fonction de la page quand une page appelle la route), corriger, `bash scripts/bancs-ci.sh` sur les suites
+serveur, muter pour voir le banc tomber, pousser, rendre compte. Rien en production : la mise en ligne attend la phrase de Justin.
+- **S1** : `/api/subscribe` et `/api/notify` passent de « observées » à « exigées » (même réglage que la Réception, rouvrable), refusent
+  un identifiant hors annuaire. ⛔ L'ORDRE : les appareils d'abord (`espace.html`, `messages.html` et l'application envoient la
+  preuve), la porte ensuite — la fermeture côté serveur reste DÉSACTIVÉE par défaut tant que Justin n'a pas publié les pages.
+- **S2** : route de déconnexion de la Tour qui tue le jeton côté serveur ; le jeton long (« rester connecté ») se raccourcit ;
+  le bouton « Se déconnecter » de `tour.html` l'appelle et dit l'échec.
+- **S3** : hachage scrypt salé (module `crypto`, aucune dépendance), ancien hachage accepté UNE fois puis réécrit, script de
+  création du premier compte aligné ; aucun mot de passe ni empreinte dans les journaux.
+
 Rien à relancer : **20** (coque finie, 0 reste). À décider par le chef : **17** (regard gérant b fini ; ses restes à corriger —
 n°7 et n°8 à 320 px, « Tous » sur iPad portrait, 10 nouveaux — n'ont pas de voie : les donner à une fenêtre « restes » ou les
 corriger soi-même ; 3 points à soumettre à Justin, dans `final/regard-gerant-b.json`).
