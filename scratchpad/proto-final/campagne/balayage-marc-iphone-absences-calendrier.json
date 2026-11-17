@@ -1,0 +1,526 @@
+{
+ "profil": "iphone",
+ "qui": "marc",
+ "route": "absences",
+ "etiq": "calendrier",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu, 7 à traiter",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Menu",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Marc",
+   "panneau": "",
+   "hash": "#accueil",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 38
+  },
+  {
+   "i": 2,
+   "lib": "Exporter en PDF",
+   "data": "data-aexport=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Exporter les absences",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 164,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "＋ Nouvelle absence",
+   "data": "data-anouv=1",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "Nouvelle absence",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 195,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "À valider 3",
+   "data": "data-aonglet=valider",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 131,
+   "h": 44
+  },
+  {
+   "i": 5,
+   "lib": "Calendrier",
+   "data": "data-aonglet=calendrier",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 121,
+   "h": 44
+  },
+  {
+   "i": 6,
+   "lib": "Soldes",
+   "data": "data-aonglet=soldes",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 94,
+   "h": 44
+  },
+  {
+   "i": 7,
+   "lib": "2 semaines",
+   "data": "data-aper=0.5",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 94,
+   "h": 44
+  },
+  {
+   "i": 8,
+   "lib": "1 mois",
+   "data": "data-aper=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 60,
+   "h": 44
+  },
+  {
+   "i": 9,
+   "lib": "2 mois",
+   "data": "data-aper=2",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 10,
+   "lib": "3 mois",
+   "data": "data-aper=3",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 62,
+   "h": 44
+  },
+  {
+   "i": 11,
+   "lib": "6 mois",
+   "data": "data-aper=6",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 63,
+   "h": 44
+  },
+  {
+   "i": 12,
+   "lib": "Période précédente",
+   "data": "data-amois=-1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 40
+  },
+  {
+   "i": 13,
+   "lib": "Période suivante",
+   "data": "data-amois=1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 40
+  },
+  {
+   "i": 14,
+   "lib": "Toute l’équipe",
+   "data": "data-acqui=",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 123,
+   "h": 40
+  },
+  {
+   "i": 15,
+   "lib": "Sophie",
+   "data": "data-acqui=sm",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 97,
+   "h": 40
+  },
+  {
+   "i": 16,
+   "lib": "Karim",
+   "data": "data-acqui=kb",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 90,
+   "h": 40
+  },
+  {
+   "i": 17,
+   "lib": "Léa",
+   "data": "data-acqui=lr",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 75,
+   "h": 40
+  },
+  {
+   "i": 18,
+   "lib": "Tom",
+   "data": "data-acqui=tl",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 80,
+   "h": 40
+  },
+  {
+   "i": 19,
+   "lib": "SMSophie Martinprésente · 1 en attente›",
+   "data": "data-aqui-v=sm",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 128,
+   "h": 79
+  },
+  {
+   "i": 20,
+   "lib": "Sophie Martin · Autre · le vendredi 6 novembre 2026 matin · ",
+   "data": "data-adem=d3 data-abs=d|d3 data-abulle=Sophie Martin\nAutre\nLe vendredi 6 novemb",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 40
+  },
+  {
+   "i": 21,
+   "lib": "KBKarim Benali2 j · 1 en attente›",
+   "data": "data-aqui-v=kb",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 128,
+   "h": 79
+  },
+  {
+   "i": 22,
+   "lib": "Karim Benali · Formation · du jeudi 12 novembre 2026 au vend",
+   "data": "data-avoir=a1 data-abs=a|a1 data-abulle=Karim Benali\nFormation\nDu jeudi 12 novem",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "KBKarim Benali",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 80,
+   "h": 79
+  },
+  {
+   "i": 23,
+   "lib": "Karim Benali · Congé payé · du lundi 23 novembre 2026 au ven",
+   "data": "data-adem=d1 data-abs=d|d1 data-abulle=Karim Benali\nCongé payé\nDu lundi 23 nove",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 200,
+   "h": 79
+  },
+  {
+   "i": 24,
+   "lib": "LRLéa Roux3 j d’absence›",
+   "data": "data-aqui-v=lr",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 128,
+   "h": 79
+  },
+  {
+   "i": 25,
+   "lib": "Léa Roux · Congé payé · du vendredi 30 octobre 2026 au mardi",
+   "data": "data-avoir=a0 data-abs=a|a0 data-abulle=Léa Roux\nCongé payé\nDu vendredi 30 octob",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "LRLéa Roux",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 200,
+   "h": 79
+  },
+  {
+   "i": 26,
+   "lib": "TLTom Leroyprésent · 1 en attente›",
+   "data": "data-aqui-v=tl",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 128,
+   "h": 79
+  },
+  {
+   "i": 27,
+   "lib": "Tom Leroy · RTT · le mardi 3 novembre 2026 · demande en atte",
+   "data": "data-adem=d2 data-abs=d|d2 data-abulle=Tom Leroy\nRTT\nLe mardi 3 novembre 2026\n1",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Absences et congés",
+   "panneau": "",
+   "hash": "#absences",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 40,
+   "h": 79
+  }
+ ],
+ "err": []
+}

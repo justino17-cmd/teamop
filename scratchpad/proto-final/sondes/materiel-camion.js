@@ -75,6 +75,12 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   await T('#toast button'); const s2 = await PH();
   v('… et Annuler le remet au centime', s2.stock === s0.stock && s2.mv === s0.mv);
   await R(() => { STK_VALID = true; rendre(); });
+  // ── 3 bis. l'atelier n'en a pas assez : on ne note que ce qu'il y a (sinon « Annuler » ou l'accord du gérant ferait tomber un stock sous zéro) ──
+  const LIM = await R(() => { const b = [...document.querySelectorAll('[data-vis="camion-manque"] [data-mat^="pris|"]')].pop(); if (!b) return null; const pid = b.dataset.mat.split('|')[1], x = PRODUITS.find(o => o.id === pid), man = lieuManques(sxMonLieu().id).find(o => o.x.id === pid).manque, q0 = x.q;
+    x.q = stkR(Object.values(x.loc || {}).reduce((s, n) => s + n, 0) + 0.5); rendre(); const at = stkAt(x, 'atelier'); document.querySelector('[data-vis="camion-manque"] [data-mat="pris|' + pid + '"]').click();
+    const m = MVTS_ATT[0], r = { pid, man, at, q:m && m.q, pid2:m && m.pid }; MVTS_ATT.shift(); x.q = q0; rendre(); return r; });
+  v('l\'atelier n\'en a que 0,5 pour 1 qui manque : la demande dit 0,5, pas 1 (population : manque ' + (LIM && LIM.man) + ')', !!LIM && LIM.man >= 1 && LIM.at === 0.5 && LIM.q === 0.5 && LIM.pid2 === LIM.pid, LIM);
+  await L.calme(p, 200);
   // ── 4. double appui : jamais deux demandes ──
   const d0 = await PH();
   const dbl = await R(() => { const b = document.querySelector('[data-vis="camion-manque"] [data-mat^="pris|"]'); const n0 = MVTS_ATT.length; b.click(); b.click(); return { n0, n1:MVTS_ATT.length }; });
@@ -101,6 +107,21 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   v('envoi : une sortie du camion de Sophie, sur son intervention, 2 m, « Utilisé chez le client »', env.type === 'sortie' && env.de === 'v1' && env.qui === 'sm' && env.inter === 'i1' && env.q === 2 && /Utilisé chez le client/.test(env.motif) && e1.att.split(',').length === 3, env);
   v('la feuille se ferme, le message dit « Envoyé au bureau » avec Annuler', !env.panneau && /Envoyé au bureau/.test(env.toast || '') && /Annuler/.test(env.toast || ''), env.toast);
   await T('#toast button'); v('Annuler : retour exact', (await PH()).att === e0.att && (await PH()).stock === e0.stock);
+  // ── 5 bis. un fluide frigorigène : « kilos récupérés » dans la même feuille, la trace du registre, et Annuler défait aussi cela ──
+  // (le même envoi attend déjà dans les données de départ : « Déjà envoyé » le refuserait, c'est la règle de la double demande ; on l'écarte le temps de l'essai)
+  const A2 = await R(() => { const k = MVTS_ATT.findIndex(m => m.id === 'a2'); const m = k >= 0 ? MVTS_ATT.splice(k, 1)[0] : null; rendre(); return { k, m }; });
+  v('population : l\'envoi de départ « a2 » existait (rangé le temps de l\'essai du fluide)', A2.k >= 0 && !!A2.m, A2.k);
+  await T('[data-mat="usage"]'); await p.fill('#mat-q', 'fluide'); await L.calme(p, 200); await T('#calque [data-mat^="ajoute|"]');
+  const FL0 = await R(() => ({ reg:SX.reg.length, bout:JSON.stringify(SX.bout.map(b => [b.id, b.reste])), champ:!!document.querySelector('#calque [data-matr="0"]'), lib:(document.querySelector('#calque .mat-fl') || {}).textContent }));
+  v('fluide : le champ « Kilos récupérés » paraît dans la feuille (population : ' + FL0.reg + ' lignes de registre)', FL0.champ && /Kilos récupérés/.test(FL0.lib || '') && FL0.reg >= 1, FL0);
+  await p.fill('#calque [data-matr="0"]', '1,8'); await p.keyboard.press('Tab'); await L.calme(p, 200);
+  await T('#calque [data-mat="envoyer"]');
+  const FL1 = await R(() => ({ reg:SX.reg.length, d:SX.reg[0], bout:JSON.stringify(SX.bout.map(b => [b.id, b.reste])) }));
+  v('fluide envoyé : une ligne de registre « à retraiter » avec 1,8 kg récupérés, la bouteille de récupération monte', FL1.reg === FL0.reg + 1 && FL1.d.recup === 1.8 && FL1.d.inter === 'i1' && FL1.bout !== FL0.bout, FL1);
+  await T('#toast button');
+  const FL2 = await R(() => ({ reg:SX.reg.length, bout:JSON.stringify(SX.bout.map(b => [b.id, b.reste])) }));
+  v('Annuler : le registre et la bouteille reviennent au centime', FL2.reg === FL0.reg && FL2.bout === FL0.bout, FL2);
+  await R(a => { MVTS_ATT.splice(Math.min(a.k, MVTS_ATT.length), 0, a.m); rendre(); }, A2);
   // ── 6. les TROIS portes mènent à la MÊME feuille ──
   // porte 2 : la clôture
   await R(() => { const F = fiche('i1'); F.pieces = [{ nom:'Condensateur 5 µF', q:'1' }, { nom:'Filtre à charbon', q:'2' }]; sxIntProposer('i1'); }); await L.calme(p, 300);
@@ -170,9 +191,20 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   v('la pastille s’affiche dans la barre du bas', P1.bar === '1', P1.bar);
   await T('.mc-l [data-mat^="oublie|"]');
   v('« Retirer » un refus : la ligne et la pastille s’en vont', (await R(() => rlPastille('moncamion'))) === 0);
+  // ── 9 bis. camion au garage : une phrase, ni carte « Il manque », ni « J'ai tout pris » (un camion au garage n'est pas à remplir) ──
+  await R(() => { VEHICULES.find(o => o.lieu === sxMonLieu().id).statut = 'atelier'; rendre(); }); await L.calme(p, 300);
+  const GA = await R(() => ({ phrase:(document.querySelector('.mc-garage') || {}).textContent, tout:!!document.querySelector('[data-mat="toutpris"]'), pastille:rlPastille('moncamion'), trois:document.querySelectorAll('.mc-gros button').length }));
+  v('camion au garage : la phrase « Ton camion est au garage. », aucun « J’ai tout pris », les trois gros boutons restent', GA.phrase === 'Ton camion est au garage.' && !GA.tout && GA.trois === 3, GA);
+  await R(() => { VEHICULES.find(o => o.lieu === sxMonLieu().id).statut = 'service'; rendre(); }); await L.calme(p, 300);
+  v('… et de retour en service : la phrase disparaît', (await R(() => !document.querySelector('.mc-garage'))));
+  // ── 9 ter. l'emplacement réservé à la partie Véhicule (chantier voisin) : un conteneur vide, à l'identifiant stable, dernier de la page ──
+  const VH = await R(() => { const e = document.getElementById('mc-vehicule'), page = document.querySelector('.mc-page'); return { existe:!!e, vide:e && e.children.length === 0 && !e.textContent.trim(), vis:e && e.getAttribute('data-vis'), dernier:!!e && !!page && page.lastElementChild === e }; });
+  v('« mc-vehicule » : conteneur vide, data-vis « camion-vehicule », dernier élément de la page (le chantier Véhicules s’y branche)', VH.existe && VH.vide && VH.vis === 'camion-vehicule' && VH.dernier, VH);
   // ── 10. un technicien n'a ni prix ni valeur dans Mon camion ──
+  await T('[data-mat="bord"]');   // la liste « À bord » dépliée : elle aussi est lue (elle écrit « plus que la liste », jamais un prix)
   const EU = await R(() => (document.getElementById('contenu').textContent.match(/\d[\d\s  ]*(?:,\d+)?\s?€/g) || []).length);
-  v('aucun montant en euros dans Mon camion', EU === 0, EU);
+  const NB = await R(() => document.querySelectorAll('.mc-bord[aria-expanded="true"] ~ .mc-liste .mc-l').length);
+  v('aucun montant en euros dans Mon camion (liste « À bord » dépliée : population ' + NB + ' lignes)', EU === 0 && NB >= 4, [EU, NB]);
   v('aucune erreur de page', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

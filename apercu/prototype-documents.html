@@ -1412,6 +1412,92 @@ html[data-app] #vue-accueil{display:none!important}
   html[data-app] .barre-bas{gap:2px;padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
   html[data-app] .barre-bas .bt{min-width:0;padding:0 1px;font-size:10.5px}
 }
+/* ── 14. LE COMPOSITEUR EN GRAND — dans OP GESTION seulement (la classe .plein n'existe qu'avec ?app=1 ; la page seule garde sa fenêtre) ──
+   Justin, 16 novembre 2026 : « composer un devis, c'est trop petit ». Mesuré avant : une fenêtre de 1 100 px posée sur un voile gris, et une page d'aperçu de 333 px
+   (texte rendu à 5 px). Maintenant le compositeur occupe TOUT l'écran : à gauche les étapes (qui défilent), à droite la PAGE du document sur un fond de bureau (qui défile,
+   avec son réglage de taille). Ce qui défile est la colonne des étapes, jamais la fenêtre. Trois formes, décidées sur la largeur de l'écran :
+   · ≥ 1 032 px : deux colonnes (étapes 40 %, de 480 à 620 px ; la page garde au moins 480 px) et « Créer » remonte dans la barre du haut, à côté du total ;
+   · moins : une seule colonne, une barre « Total · Aperçu » au-dessus des étapes, « Créer » en bas ; « Aperçu » ouvre la page en grand, réglable ;
+   · téléphone : pareil, champs et boutons au doigt (44 à 48 px). */
+@keyframes vvFondu{from{opacity:0}to{opacity:1}}
+.voile.plein{padding:0;align-items:stretch;justify-content:stretch;background:var(--surf)}
+.voile.plein .fenetre.vv-pl{width:100%;max-width:none;height:100%;max-height:none;border-radius:0;box-shadow:none;border:0;animation:vvFondu .16s ease both;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+@media (prefers-reduced-motion:reduce){.voile.plein .fenetre.vv-pl{animation:none}}
+.vv-pl .fen-tete.vv-hd{gap:6px;min-height:64px;padding:8px max(14px,env(safe-area-inset-right,0px)) 8px max(6px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--surf)}
+.vv-pl .fen-tete.vv-hd::before{display:none}
+.vv-pl .vv-hd h3{margin:0;font-size:19px;font-weight:650;text-wrap:balance;overflow-wrap:anywhere}
+.vv-pl .vv-retour{flex:none;min-height:48px;padding:0 14px 0 6px;font-size:16px;font-weight:600;color:var(--accent)}
+.vv-pl .vv-retour .ic{width:22px;height:22px}
+.vv-pl .fen-pied{flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:12px;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--trait);background:var(--surf)}
+.vv-pl .fen-pied .bt.primaire{flex:1 1 auto;min-height:52px;font-size:17px}
+.vv-pl .vv-pied-tot{display:none}
+.vv-pl .fen-corps{display:flex;flex-direction:column;min-height:0;padding:0;overflow:hidden}
+.vv-pl .vv{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:0}      /* « align-items:start » de la fenêtre d'avant laissait la colonne des étapes à sa largeur naturelle : 441 px dans un écran de 390 */
+.vv-pl .vv-form{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px max(18px,calc((100% - 720px)/2)) 40px}
+.vv-pl .vv-ap{position:static;z-index:auto;flex:none;margin:0;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--surf);border-bottom:1px solid var(--trait);align-self:auto}
+.vv-pl .vv-ap-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px}
+.vv-pl .vv-ap-bar .bt{min-height:48px;font-size:16px}
+.vv-pl .vv-ap-t{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.vv-pl .vv-ap-t span{font-size:12.5px}.vv-pl .vv-ap-t b{font-size:20px}
+.vv-pl .vv-ap-tools,.vv-pl .vv-ap-sc{display:none}
+.vv-pl .vv-intro{display:block;font-size:15px}
+/* la page : elle prend la taille que dit --vs (posé par vvEchelle sur la zone qui défile) ; les pages se suivent avec un intervalle, sur le fond de bureau */
+.vv-pl .vv-ap-cadre,.vv-grand-plein .vv-ap-cadre{display:block;width:max-content;max-width:none;margin:0 auto;border-radius:0;overflow:visible;background:none;box-shadow:none;line-height:normal}
+.vv-pl .vv-ap-cadre .gal-p,.vv-grand-plein .vv-ap-cadre .gal-p{--s:var(--vs,.6)}
+.vv-pl .gal-p .cadre,.vv-grand-plein .gal-p .cadre{margin:0 0 20px}
+.vv-pl .gal-p .feuille,.vv-grand-plein .gal-p .feuille{box-shadow:var(--ombre-feuille)}
+.vv-zoom{flex:none;max-width:100%}
+.vv-zoom button{min-height:40px;padding:0 10px;font-size:14px;white-space:nowrap}
+.vv-grand-plein .vv-grand-t{padding:10px 16px;min-height:60px}
+.vv-grand-plein .vv-grand-t .bt{min-height:48px}
+.vv-grand-plein .vv-grand-z{flex:none;display:flex;justify-content:center;padding:8px 16px;border-bottom:1px solid var(--trait);background:var(--surf)}
+.vv-grand-plein .vv-grand-z .vv-zoom{width:100%;max-width:420px}.vv-grand-plein .vv-grand-z .vv-zoom button{flex:1;min-height:44px}
+.vv-grand-plein .vv-grand-c{padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+/* champs et boutons à la taille des écrans d'OP GESTION : 48 px de haut, texte de 16 à 17 px, titres d'étape de 18 px */
+.vv-pl .champ{font-size:14px}
+.vv-pl .champ input,.vv-pl .champ select{min-height:48px;padding:0 12px;font-size:17px}
+.vv-pl .vv-ta,.vv-pl .champ textarea{font-size:17px;min-height:88px}
+.vv-pl .vv-rech input{min-height:48px;font-size:17px}
+.vv-pl .vv-eb{min-height:68px;padding:10px 16px}
+.vv-pl .vv-et b{font-size:18px}
+.vv-pl .vv-res{font-size:14px}
+.vv-pl .vv-num{width:32px;height:32px;font-size:15px}
+.vv-pl .vv-sub{font-size:13px}
+.vv-pl .vv-cl{min-height:56px}.vv-pl .vv-cl b{font-size:16.5px}.vv-pl .vv-cl span{font-size:14px}
+.vv-pl .vv-clients{max-height:none}
+.vv-pl .vv-cat{max-height:min(480px,55vh)}
+.vv-pl .vv-art-b{min-height:64px}.vv-pl .vv-art-t b{font-size:16.5px}.vv-pl .vv-art-t i{font-size:14px}.vv-pl .vv-art-p{font-size:16px}.vv-pl .vv-art-p small{font-size:12.5px}
+.vv-pl .vv-pm button{width:44px;height:44px}.vv-pl .vv-pm output{font-size:17px}
+/* un nom d'article ne se coupe pas au milieu d'un mot : « allumag / e » à 320 px. Le nom garde une base de 9,5 em ; s'il n'a plus la place à côté du compteur, le compteur passe dessous, à droite */
+.vv-pl .vv-art-b.ajoute{flex-wrap:wrap;row-gap:6px}
+.vv-pl .vv-art-t{flex:1 1 9.5em}
+.vv-pl .vv-art-t b,.vv-pl .vv-art-t i{overflow-wrap:break-word}
+.vv-pl .vv-art-b.ajoute .vv-pm{margin-left:auto}
+.vv-pl .vv-pas,.vv-pl .chip-i{min-height:44px;font-size:15px}
+.vv-pl .vv-act .bt,.vv-pl .vv-c>.bt,.vv-pl .vv-s>.bt{min-height:48px;font-size:16px}
+.vv-pl .seg button{min-height:44px;font-size:15px}
+.vv-pl .interr{min-height:48px}
+.vv-pl .vv-mini{font-size:13px}.vv-pl .vv-mini input{min-height:48px;font-size:17px}
+.vv-pl .vv-l-t{font-size:16.5px}.vv-pl .vv-l-m{font-size:16px}
+.vv-pl .vv-t{font-size:15px}.vv-pl .vv-t.g{font-size:17px}.vv-pl .vv-t.g b{font-size:20px}
+.vv-pl .vv-a-t{font-size:16px}
+.vv-pl .fen-note{font-size:14.5px}
+@media (min-width:1032px){
+  .voile.plein .fenetre.vv-pl{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr)}
+  .vv-pl .fen-tete.vv-hd{grid-column:1;grid-row:1}
+  .vv-pl .fen-pied{grid-column:2;grid-row:1;min-height:64px;padding:8px 24px 8px 12px;border-top:0;border-bottom:1px solid var(--trait)}
+  .vv-pl .fen-pied .bt.primaire{flex:none;min-height:48px;font-size:16px}
+  .vv-pl .vv-pied-tot{display:flex}
+  .vv-pl .vv-pied-tot small{font-size:12px}.vv-pl .vv-pied-tot b{font-size:20px}
+  .vv-pl .fen-corps{grid-column:1/3;grid-row:2}
+  .vv-pl .vv{display:grid;grid-template-columns:clamp(480px,40%,620px) minmax(0,1fr);grid-template-areas:"form ap";align-items:stretch}
+  .vv-pl .vv-form{grid-area:form;padding:20px 28px 48px;border-right:1px solid var(--trait)}
+  .vv-pl .vv-ap{grid-area:ap;display:flex;flex-direction:column;min-width:0;min-height:0;padding:0;background:var(--bureau);border-bottom:0}
+  .vv-pl .vv-ap-bar{display:none}
+  .vv-pl .vv-ap-tools{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px;background:var(--surf);border-bottom:1px solid var(--trait)}
+  .vv-pl .vv-ap-note{margin:0;min-width:0;font-size:14px;color:var(--doux);text-wrap:pretty}
+  .vv-pl .vv-ap-sc{flex:1;min-height:0;display:block;overflow:auto;overscroll-behavior:contain;padding:28px 32px 40px}
+}
 </style>
 
 <!-- Icônes : traits fins, même épaisseur partout (stroke 1.6), dessinées ici — aucune image externe -->
@@ -3114,7 +3200,7 @@ ACTIONS['annuler']=()=>annuler(); ACTIONS['retablir']=()=>retablir();
 ACTIONS['menu-zoom']=t=>{
   if(POP&&POP.ancre===t){fermerPop();return}
   const z=S.ui.zoom, ch=v=>()=>{ S.ui.zoom=v; appliquerZoom(); sauverStock() };
-  ouvrirMenu(t,[{lib:'Ajuster à la fenêtre',coche:z==='ajuster',fn:ch('ajuster')},{sep:1},...[.75,1,1.25,1.5].map(v=>({lib:Math.round(v*100)+' %',coche:+z===v,fn:ch(v)}))]);
+  ouvrirMenu(t,[{lib:APP?'Ajuster à la largeur':'Ajuster à la fenêtre',coche:z==='ajuster',fn:ch('ajuster')},{sep:1},...[.75,1,1.25,1.5].map(v=>({lib:Math.round(v*100)+' %',coche:+z===v,fn:ch(v)}))]);
 };
 ACTIONS['onglet']=t=>{ S.ui.onglet=t.dataset.v; majPanneau() };
 ACTIONS['bloc-dupliquer']=()=>S.sel&&dupliquerBloc(S.sel);
@@ -4910,7 +4996,7 @@ function viergeNeuf(type,clientId){
   const ct=type==='contrat';
   const V={type,identId:DEFAUT_ID,touche:false,logo:{show:true,align:null,taille:'m'},cases:{tel:true,mail:true,site:true,siret:true,tva:true},modele:'classique',clientId:'',objet:'',titre:'',validite:'30',q:'',scroll:0,
     ouv:ct?{client:1,infos:1,arts:1,pres:0}:{client:1,objet:1,matos:1,cond:1,pres:0},
-    lignes:[],rangee:false,cq:'',cc:'',libre:{ouvert:false,des:'',qte:'1',unite:'u',pu:'',tva:'2000',garder:false},
+    zoom:'ajuster',lignes:[],rangee:false,cq:'',cc:'',libre:{ouvert:false,des:'',qte:'1',unite:'u',pu:'',tva:'2000',garder:false},
     acK:'30',acV:'',delai:'',paiement:'',mot:'',condMsg:'',memMsg:'',
     vars:{},varsBrut:{},articles:[],bq:'',edite:'',ecrire:{ouvert:false,titre:'',texte:'',garder:false},erreurs:{}};
   let m=null; try{ m=JSON.parse(localStorage.getItem(cleVierge(type))||'null') }catch(e){}
@@ -5045,7 +5131,7 @@ function vvCorpsDevis(V){
     <div class="vv-clients" id="vv-clients" role="group" aria-label="Client du devis">${viergeClients(V)}</div>
     <button type="button" class="bt contour" data-vv="client-nouveau">${ic('plus')}Nouveau client…</button>`;
   const objet=`<label class="champ">Objet du devis<textarea id="vv-objet" class="vv-ta" rows="2" maxlength="200" placeholder="Ex. : pose d’une climatisation dans le salon" autocomplete="off">${esc(V.objet)}</textarea></label>`;
-  const matos=`<div class="vv-rech"><input id="vv-cq" type="search" value="${esc(V.cq)}" placeholder="Chercher dans mon catalogue : climatiseur, main-d’œuvre…" aria-label="Chercher dans mon catalogue" autocomplete="off" spellcheck="false" enterkeyhint="done"></div>
+  const matos=`<div class="vv-rech"><input id="vv-cq" type="search" value="${esc(V.cq)}" placeholder="Chercher : climatiseur, main-d’œuvre…" aria-label="Chercher dans mon catalogue" autocomplete="off" spellcheck="false" enterkeyhint="done"></div>
     <p class="fen-note vv-mem" id="vv-mem" role="status" hidden></p>
     <div class="vv-cats" id="vv-cats" role="group" aria-label="Catégories du catalogue"></div>
     <div class="vv-cat" id="vv-cat" role="list" aria-label="Catalogue"></div>
@@ -5111,13 +5197,18 @@ function vvCorpsContrat(V){
     </div>`;
   return vvEtape('client',1,'Client',client,V)+vvEtape('infos',2,'Titre et informations',infos,V)+vvEtape('arts',3,'Articles du contrat',arts,V)+vvEtape('pres',4,'Présentation',vvPresentation(V,'contrat'),V);
 }
+/* Le réglage de taille de la page : « Ajuster » (la largeur de la colonne, ou de l'écran) ou une taille fixe. Même mot dans la colonne de droite et dans l'aperçu plein écran. */
+const VV_ZOOMS=[['ajuster','Ajuster'],[.75,'75 %'],[1,'100 %'],[1.5,'150 %']];
+const vvZoomHtml=V=>`<div class="seg vv-zoom" role="group" aria-label="Taille de la page">${VV_ZOOMS.map(([z,l])=>`<button type="button" data-vv="zoom" data-v="${z}" aria-pressed="${String(V.zoom)===String(z)}"${z==='ajuster'?' aria-label="Ajuster la page à la largeur"':''}>${l}</button>`).join('')}</div>`;
 function viergeCorps(V){
   const ct=V.type==='contrat', mot=ct?'contrat':'devis';
+  const barre=`<div class="vv-ap-bar"><div class="vv-ap-t"><span>${ct?'Contrat':'Total TTC'}</span><b id="vv-ap-ttc"></b></div><button type="button" class="bt contour" data-vv="grand" aria-haspopup="dialog">${ic('eye')}Aperçu</button></div>`;
+  /* dans OP GESTION : la PAGE occupe une colonne à elle, qui défile, sur un fond de bureau (comme l'éditeur) ; sans OP GESTION, l'ancien petit aperçu */
+  const aside=APP
+    ?`<aside class="vv-ap" aria-label="Page du ${mot}">${barre}<div class="vv-ap-tools"><p class="vv-ap-note" id="vv-ap-note" role="status"></p>${vvZoomHtml(V)}</div><div class="vv-ap-sc" id="vv-ap-sc"><div class="vv-ap-cadre" id="vv-ap"></div></div></aside>`
+    :`<aside class="vv-ap" aria-label="Aperçu de la première page">${barre}<div class="vv-ap-cadre" id="vv-ap"></div><p class="vv-ap-note" id="vv-ap-note" role="status"></p></aside>`;
   return `<div class="vv">
-    <aside class="vv-ap" aria-label="Aperçu de la première page">
-      <div class="vv-ap-bar"><div class="vv-ap-t"><span>${ct?'Contrat':'Total TTC'}</span><b id="vv-ap-ttc"></b></div><button type="button" class="bt contour" data-vv="grand" aria-haspopup="dialog">${ic('eye')}Aperçu</button></div>
-      <div class="vv-ap-cadre" id="vv-ap"></div><p class="vv-ap-note" id="vv-ap-note" role="status"></p>
-    </aside>
+    ${aside}
     <div class="vv-form"><p class="fen-note vv-intro">Écris et choisis ce que tu veux : l’aperçu montre ton ${mot} qui se remplit. Rien n’est créé tant que tu ne touches pas « Créer le ${mot} ».</p>
       ${ct?vvCorpsContrat(V):vvCorpsDevis(V)}
       <p class="vv-mem vv-mem-g fen-note" id="vv-mem-g" role="status" hidden></p>
@@ -5232,8 +5323,14 @@ function vvEtat(f){
 }
 function vvAp(f){
   const V=VV; if(!V||FEN!==f) return; const ap=f.fen.querySelector('#vv-ap'); if(!ap) return;
-  ap.innerHTML=miniature(viergeDoc(V));
+  ap.innerHTML=miniature(viergeDoc(V),APP);
   const vide=V.type==='contrat'?!V.articles.length:!V.lignes.length, n=f.fen.querySelector('#vv-ap-note');
+  if(APP){
+    const np=ap.querySelectorAll('.feuille').length, mot=V.type==='contrat'?'contrat':'devis';
+    n.textContent=vide?(V.type==='contrat'?'Tes articles paraîtront ici, numérotés, dès que tu en choisis.':'Tes lignes paraîtront ici, dès que tu choisis du matériel.'):'Ton '+mot+', tel qu’il sera envoyé'+(np>1?' · '+np+' pages':'')+'.';
+    if(V.type==='contrat'){ const t=V.articles.length?vvPl(V.articles.length,'article'):'vide'; ['#vv-ap-ttc','#vv-pied-n'].forEach(k=>{ const b=f.fen.querySelector(k); if(b) b.textContent=t }) }
+    vvEchelle(f); return;
+  }
   n.textContent=vide?(V.type==='contrat'?'Tes articles paraîtront ici, numérotés, dès que tu en choisis.':'Tes lignes paraîtront ici, dès que tu choisis du matériel.'):(nb=>'Aperçu de la première page de ton '+(V.type==='contrat'?'contrat':'devis')+(nb>1?', qui en fera '+nb:'')+'.'+(V.type==='contrat'?'':' Le total est rappelé en bas de la fenêtre.'))((m=>m?+m[1]:1)(/ sur (\d+)/.exec(((ap.querySelector('.feuille')||ap).getAttribute('aria-label'))||'')));
   if(V.type==='contrat'){ const b=f.fen.querySelector('#vv-ap-ttc'); if(b) b.textContent=V.articles.length?vvPl(V.articles.length,'article'):'vide' }
 }
@@ -5268,9 +5365,23 @@ function viergeMaj(f,o){
   vvResumes(f); if(V.type==='devis') vvMajTot(f);
   clearTimeout(V.tAp); if(o.tard) V.tAp=setTimeout(()=>vvAp(f),170); else vvAp(f);
 }
+/* l'entête du compositeur en grand : « ‹ OP GESTION » (abandonner), puis le titre ; le total et « Créer » sont dans le pied, que l'ordinateur remonte à droite de cette barre */
+function vvEnteteHtml(V){ const ct=V.type==='contrat'; return `<div class="fen-tete vv-hd"><button type="button" class="bt vv-retour" data-fen-x aria-label="Retour à OP GESTION : abandonner ce ${ct?'contrat':'devis'}">${ic('chevron-left')}<span>OP GESTION</span></button><h3>${ct?'Nouveau contrat':'Nouveau devis'}</h3></div>` }
 function vvPiedHtml(V){
   const ct=V.type==='contrat';
+  if(APP) return `<span class="vv-pied-tot"><small>${ct?'Contrat':'Total TTC'}</small><b id="${ct?'vv-pied-n':'vv-pied-ttc'}"></b></span><button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
   return `<button type="button" class="bt contour" data-fen-x>Annuler</button>${ct?'':`<span class="vv-pied-tot"><small>Total TTC</small><b id="vv-pied-ttc"></b></span>`}<button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
+}
+/* la taille de la page : une seule variable (--vs), posée sur la zone qui défile (la colonne de droite, ou l'aperçu plein écran) ; « Ajuster » prend la largeur de la zone, plafonnée à 125 % */
+function vvEchelle(f){
+  const V=VV; if(!APP||!V||FEN!==f) return 0;
+  const g=f.fen.querySelector('.vv-grand-plein'), zone=g?g.querySelector('.vv-grand-c'):f.fen.querySelector('#vv-ap-sc');
+  if(!zone||!zone.clientWidth) return 0;
+  const cs=getComputedStyle(zone), w=zone.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const fit=Math.max(.3,Math.min(1.25,w/794)), s=V.zoom==='ajuster'?fit:+V.zoom;
+  zone.style.setProperty('--vs',s.toFixed(4));
+  f.fen.querySelectorAll('[data-vv="zoom"]').forEach(b=>{ b.setAttribute('aria-pressed',String(String(b.dataset.v)===String(V.zoom))); if(b.dataset.v==='ajuster') b.textContent='Ajuster · '+Math.round(fit*100)+' %' });
+  return s;
 }
 function vvGrand(f,ouvrir){
   const V=VV; let g=f.fen.querySelector('.vv-grand');
@@ -5279,6 +5390,11 @@ function vvGrand(f,ouvrir){
   vvAp(f);
   g=document.createElement('div'); g.className='vv-grand'; g.setAttribute('role','dialog'); g.setAttribute('aria-label','Aperçu de la première page');
   const w=Math.max(240,Math.min(f.fen.clientWidth-24,794)); g.style.setProperty('--vs',(w/794).toFixed(4));
+  if(APP){      // le document entier, à la largeur de l'écran, avec le réglage de taille : on lit le texte en passant à 100 % ou 150 %, et la page défile
+    g.className='vv-grand vv-grand-plein';
+    g.innerHTML=`<div class="vv-grand-t"><b>${V.type==='contrat'?'Ton contrat':'Ton devis'}, en grand</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-z">${vvZoomHtml(V)}</div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V),true)}</div></div>`;
+    f.fen.appendChild(g); vvEchelle(f); g.querySelector('[data-vv="grand-x"]').focus({preventScroll:true}); return;
+  }
   g.innerHTML=`<div class="vv-grand-t"><b>Aperçu de la première page</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V))}</div></div>`;
   f.fen.appendChild(g); g.querySelector('[data-vv="grand-x"]').focus({preventScroll:true});
 }
@@ -5290,11 +5406,14 @@ function ouvrirVierge(retour,type,opt){
     if(pre&&VV.clientId!==pre&&S.clients.some(c=>c.id===pre)){ VV=viergeNeuf(type,pre); VV.repris=false }      // une composition en cours pour un AUTRE client n'est pas reprise sur celui-ci
   }
   const V=VV, ct=V.type==='contrat';
-  const f=ouvrirFenetre({titre:ct?'Nouveau contrat':'Nouveau devis',large:true,classe:'vierge',sansFocus:true,corps:viergeCorps(V),pied:vvPiedHtml(V)});
+  const f=ouvrirFenetre({titre:ct?'Nouveau contrat':'Nouveau devis',large:true,classe:APP?'vierge vv-pl':'vierge',sansFocus:true,corps:viergeCorps(V),pied:vvPiedHtml(V),entete:APP?vvEnteteHtml(V):undefined});
+  /* dans OP GESTION, le compositeur prend TOUT l'écran (plus de voile ni de fenêtre posée) ; ce qui défile est la colonne des étapes, pas la fenêtre */
+  const defil=()=>(APP&&f.fen.querySelector('.vv-form'))||f.corps;
+  if(APP){ f.el.classList.add('plein'); const ro=new ResizeObserver(()=>vvEchelle(f)); ro.observe(f.fen); const fin=f.onFerme; f.onFerme=()=>{ ro.disconnect(); if(fin) fin() } }
   if(ct){ vvMajBib(f); vvMajArts(f) } else { vvMajCat(f); vvMajLig(f) }
-  vvMajMem(f); viergeMaj(f,{vig:true}); f.corps.scrollTop=V.scroll||0;
+  vvMajMem(f); viergeMaj(f,{vig:true}); defil().scrollTop=V.scroll||0;
   if(V.repris){ V.repris=false; setTimeout(()=>{ if(FEN===f) toast('Ton '+(ct?'contrat':'devis')+' en cours est repris.',{lib:'Recommencer',fn:()=>{ if(FEN!==f) return; clearTimeout(V.tBr); vvBrouillonOublier(V.type); VV=null; fermerFenetre(false); ouvrirVierge(false,V.type) }}) },60) }
-  const quitter=()=>{ V.scroll=f.corps.scrollTop };
+  const quitter=()=>{ V.scroll=defil().scrollTop };
   const revenir=fn=>{ quitter(); return res=>{ if(fn) fn(res); setTimeout(()=>ouvrirVierge(true),0) } };
   const err=(id,t)=>{ const e=f.fen.querySelector('#'+id); if(e){ e.hidden=!t; e.textContent=t||'' } };
   const sel=id=>f.fen.querySelector(id);
@@ -5371,6 +5490,7 @@ function ouvrirVierge(retour,type,opt){
     else if(a==='client-nouveau'){ quitter(); nouveauClient((c)=>{ V.clientId=c.id; fermerFenetre(false) },()=>setTimeout(()=>{ if(!FEN) ouvrirVierge(true) },0)) }
     else if(a==='grand') vvGrand(f,true);
     else if(a==='grand-x') vvGrand(f,false);
+    else if(a==='zoom'){ V.zoom=b.dataset.v==='ajuster'?'ajuster':(VV_ZOOMS.some(z=>String(z[0])===b.dataset.v)?+b.dataset.v:'ajuster'); vvEchelle(f) }
     /* — devis — */
     else if(a==='cat'){ V.cc=b.dataset.v; vvMajCat(f) }
     else if(a==='art-add') ajouterId(id);
@@ -5585,8 +5705,9 @@ function appliquerModeleNeuf(d,k){
   if(M.marges) g.marges=M.marges; if(M.tailleP) g.tailleP=M.tailleP; if(M.logoAl) g.logo.align=M.logoAl;
   chargerPolice(g.police); if(g.policeTitres||M.titres) chargerPolice(g.policeTitres||M.titres);
 }
-function miniature(d){
+function miniature(d,tout){
   const r=miseEnPage(d), w=document.createElement('div'); w.className='papier gal-p'; appliquerReglages(w,d);
+  if(tout){ w.innerHTML=htmlPages(d,r.calc,r.layout,'view',{total:r.layout.length}); return w.outerHTML }      // le compositeur en grand : le document ENTIER, qui défile (la garde, puis chaque page)
   w.innerHTML=htmlPages(d,r.calc,[r.layout[0]],'view',{total:r.layout.length,seule:d.garde?'garde':''}); return w.outerHTML;   // une miniature montre la 1re page : la garde quand il y en a une
 }
 function miniDe(cle,faire){ if(!_MINI[cle]){ if(Object.keys(_MINI).length>96) Object.keys(_MINI).forEach(k=>{ delete _MINI[k] }); _MINI[cle]=miniature(faire()) } return _MINI[cle] }   // mémoire bornée : la couleur libre en fabrique une série
