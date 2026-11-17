@@ -76,8 +76,8 @@ const S = {
   async D() { for (const profil of ['mac', 'iphone']) { const c = await ouvrir({ profil }), p = c.p; await L.aller(p, 'carteBox');
       const t = await txt(p); dit(`Carte des box (${profil}) : ` + t.slice(0, 300));
       v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/, '#contenu summary') && await p.locator('#contenu .cb-plus-l button').locator('visible=true').count() >= 3); await L.aller(p, 'carteBox');
-      for (const [re, att] of [[/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
-        await bouton(c, /Plus d.actions/, '#contenu summary'); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
+      for (const [re, att] of [[/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
+        await bouton(c, /Plus d.actions/, '#contenu summary'); await L.calme(p, 500); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
         await L.calme(p, 500); const apres = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; v(`D ${profil} : « ${re.source} » fait quelque chose`, f && apres !== avant, apres.slice(0, 160)); dit(`${profil} · ${re.source} → ` + (await pan(p) || await toast(p)).slice(0, 200)); await O.nettoyer(p); await L.aller(p, 'carteBox'); }
       // une box
       const b0 = await p.locator('#contenu [data-d3^="box|"]').first(); const lib = await b0.getAttribute('aria-label'); await L.toucher(c, b0); await L.calme(p, 500);
@@ -86,7 +86,7 @@ const S = {
       // les autres sites
       for (const nom of ['Boulangerie Lemoine', 'Entrepôt Logistique Atlantique']) { const ok2 = await bouton(c, new RegExp(nom)); await L.calme(p, 500); const t2 = await txt(p); v(`D ${profil} : le site « ${nom} » s'affiche`, ok2 && t2.includes(nom) && t2 !== t, t2.slice(0, 120)); }
       // les filtres de la carte : chacun doit changer ce qui est montré (nombre de pastilles), « Tout » les montre toutes
-      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu .cb-planc [data-d3^="box|"]').length); }
+      await L.aller(p, 'carteBox'); const comptes = {}; for (const f of ['tout', 'regarder', 'r', 'i', 'v']) { const b = p.locator(`#contenu [data-cbx="filtre|${f}"]`).first(); if (!(await b.count())) { comptes[f] = 'absent'; continue; } await L.toucher(c, b); await L.calme(p, 400); comptes[f] = await p.evaluate(() => document.querySelectorAll('#contenu .cb-planc [data-d3^="box|"]:not(.cb-off)').length); }
       dit(`${profil} · pastilles montrées par filtre : ` + JSON.stringify(comptes)); v(`${profil} : « Tout » montre toutes les box, chaque filtre en montre au plus autant`, comptes.tout > 0 && ['regarder', 'r', 'i', 'v'].every(f => comptes[f] === 'absent' || comptes[f] <= comptes.tout), JSON.stringify(comptes));
       v(`${profil} : les filtres Rongeurs, Insectes et UV ne montrent pas tous la même chose`, new Set([comptes.r, comptes.i, comptes.v]).size > 1, JSON.stringify(comptes));
       // relever les box
@@ -115,7 +115,7 @@ const S = {
       await L.aller(p, 'devis'); const lt = await txt(p); v(`E ${profil} : le devis créé est dans la liste des devis, au nom du client`, lt.includes(opt[1].slice(0, 12)), lt.slice(0, 200));
       v(`E ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
   async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), dxTexte: (document.querySelector('.dx-rel-carte') || {}).innerText, dxAff: document.querySelector('.dx-rel-carte') ? [getComputedStyle(document.querySelector('.dx-rel-carte')).display, document.querySelector('.dx-rel-carte').getBoundingClientRect().height, document.querySelector('.dx-rel-carte').offsetParent !== null] : null, dansContenu: !!document.querySelector('#contenu .dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
-    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/.test(t), t.slice(0, 200));
+    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/i.test(t), t.slice(0, 200));   // le titre de la carte est écrit en capitales par la feuille de style : texte lu sans casse
     const r = await bouton(c, /Relever les mesures|Faire un relevé|Relever/, '#contenu button'); await L.calme(p, 700); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 420)); v('F : le relevé s\'ouvre', r && /relev|mesure/i.test(t1), t1.slice(0, 120));
     v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async G() { const c = await ouvrir({ qui: 'julie' }), p = c.p;
