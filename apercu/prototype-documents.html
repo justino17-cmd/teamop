@@ -1951,7 +1951,8 @@ const VARS=[
   {k:'debut',n:'date de début',l:'Date de début',type:'date'},
   {k:'prix',n:'prix annuel',l:'Prix annuel (€ HT)',type:'montant',ex:'280'},
   {k:'paiement',n:'mode de paiement',l:'Mode de paiement',ex:'par prélèvement',sug:['par prélèvement','par virement','par carte bancaire','par chèque','après chaque visite, sur facture']}];
-const VARS_AUTO={entreprise:1,email:1,tel:1};          // toujours connues : l'entreprise
+const VARS_AUTO={entreprise:1,email:1,tel:1,prixttc:1,tva:1};          // toujours connues : l'entreprise, et le prix TTC / la TVA que le CLIENT paie (calculés du prix HT et du client : un contrat affiche HT ET TTC)
+const NOMS_AUTO={prixttc:'prix TTC',tva:'TVA'};
 const defVar=k=>VARS.find(v=>v.k===k)||null;
 const cap=s=>String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1);
 
@@ -1990,7 +1991,7 @@ const AMOD={
     visites:['Visites d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il nettoie les filtres, contrôle le fonctionnement et vérifie les raccordements. Il remet ensuite un compte rendu au client.','Le prestataire effectue {{frequence}} : nettoyage des filtres, contrôle de l’appareil et compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose les dates de visite au client, qui peut les décaler en le prévenant à l’avance.\nLe client donne accès aux appareils le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','Les dates sont fixées avec le client, qui donne accès aux appareils. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an (hors taxes : la TVA s’ajoute), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, TVA en plus. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant une visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.'],
     obligations:['Obligations du client','Le client utilise les appareils normalement et signale sans attendre un bruit, une fuite ou une panne.\nPendant la durée du contrat, il prévient le prestataire avant de faire intervenir une autre entreprise sur les appareils.','Le client utilise normalement les appareils, signale vite tout problème et prévient le prestataire avant de faire venir une autre entreprise.']},
   pro:{
@@ -1999,13 +2000,13 @@ const AMOD={
     depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par courriel à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
     acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an (hors taxes : la TVA s’ajoute).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, TVA en plus, payé {{paiement}}.']},
+    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC, payé {{paiement}}.']},
   pac:{
     objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient la pompe à chaleur de {{client}} (le client), installée à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient la pompe à chaleur de {{client}} installée à l’adresse suivante : {{adresse}}.'],
     visites:['Visite d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le circuit, les réglages et le bon fonctionnement de la pompe à chaleur, puis remet un compte rendu au client.','Le prestataire effectue {{frequence}} : contrôle du circuit et des réglages, puis compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose la date de la visite au client, qui peut la décaler en le prévenant à l’avance.\nLe client donne accès à la pompe à chaleur le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','La date est fixée avec le client, qui donne accès à l’appareil. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an (hors taxes : la TVA s’ajoute).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, TVA en plus. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant la visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.']}};
 const CONTRATS={
   part:{nom:'Contrat d’entretien de climatisation — particulier',modele:'classique',couleur:'#1b3a6b',
@@ -2258,6 +2259,8 @@ function valVar(d,k){
     case 'tel': return identDe(d).tel;
     case 'client': { const c=clientDe(d); return c?c.nom:'' }
     case 'prix': return typeof v==='number'&&v>0?fmtMontant(v):'';
+    case 'tva': { const t=tvaContrat(d); return t?String(t):'' }
+    case 'prixttc': { const t=ttcContrat(d); return t?fmtMontant(t):'' }
     case 'debut': return v?fmtDate(v):'';
     default: return String(v||'').trim();
   }
@@ -2267,7 +2270,7 @@ function varInfo(d,k){
   if(k.indexOf('art:')===0){ const n=numArticle(d,k.slice(4)); return n?{txt:String(n),manque:false}:{txt:'[?]',manque:true} }
   const def=defVar(k); if(!def&&!VARS_AUTO[k]) return null;
   const v=valVar(d,k); if(v) return {txt:v,manque:false};
-  return {txt:'['+(def?def.n:k)+']',manque:true};
+  return {txt:'['+(def?def.n:(NOMS_AUTO[k]||k))+']',manque:true};
 }
 function chipHtml(d,k,edit){
   const i=varInfo(d,k); if(!i) return null;
@@ -2608,10 +2611,13 @@ window.addEventListener('popstate',()=>{
 const pile=()=>$('#pile'), bureau=()=>$('#bureau');
 /* — accueil — */
 const clientDe=d=>{const b=d.blocs.find(x=>x.type==='client');return b&&b.client||null};
+/* la TVA d'un contrat d'entretien : 10 % chez un particulier, 20 % chez un professionnel — la règle des factures d'OP GESTION ; sans client, on ne la devine pas (0) */
+const tvaContrat=d=>{const c=clientDe(d);return c?(c.pro?20:10):0};
+const ttcContrat=d=>{const p=d.vars&&d.vars.prix, t=tvaContrat(d);return Number.isFinite(p)&&p>0&&t?Math.round(p*(1+t/100)):0};
 function rendreAccueil(){
   const L=S.docs.slice().sort((a,b)=>b.maj-a.maj);
   $('#recents').innerHTML=L.length?L.map(d=>{
-    const c=clientDe(d), montant=d.type==='devis'?fmtMontant(calculer(d).ttc):(d.vars&&typeof d.vars.prix==='number'&&d.vars.prix>0?fmtMontant(d.vars.prix)+' / an':'');
+    const c=clientDe(d), montant=d.type==='devis'?fmtMontant(calculer(d).ttc):(d.vars&&typeof d.vars.prix==='number'&&d.vars.prix>0?fmtMontant(d.vars.prix)+' HT'+(ttcContrat(d)?' · '+fmtMontant(ttcContrat(d))+' TTC':'')+' / an':'');
     return `<li class="recent"><button type="button" class="recent-ouvrir" data-act="ouvrir" data-id="${d.id}"><span class="vignette">${ic(d.type==='devis'?'devis':'contrat')}</span>
       <span><span class="nom">${esc(d.nom)}</span><span class="sous">${d.type==='devis'?'Devis':'Contrat'}${c?' · '+esc(c.nom):''}${d.meta.numero?' · '+esc(d.meta.numero):''}</span></span>
       <span class="montant">${montant}</span><span class="pill p-${d.etat}">${esc(ETATS[d.etat]||d.etat)}</span><span class="quand">${fmtMaj(d.maj)}</span></button>
@@ -3621,7 +3627,7 @@ function htClientVue(d,r){
     ${d.etat==='brouillon'?`<div class="cl-ruban">Aperçu : le client ne reçoit ce lien qu’après l’envoi.</div>`:''}
     ${signe?`<div class="cl-ok">${ic('check')} Signé${ps&&ps.date?' le '+esc(fmtDate(ps.date)):''}. Merci !</div>`:''}
     <div class="cl-carte"><h2>${contrat?'Contrat':'Devis'} ${esc(d.meta.numero)}</h2>${objet?`<p>${esc(objet)}</p>`:`<p>${esc(d.nom)}</p>`}
-      ${contrat?`<div class="ligne"><span>Pour</span><b>${esc(c?c.nom:'—')}</b></div>${valVar(d,'prix')?`<div class="ligne"><span>Prix annuel HT</span><b>${esc(valVar(d,'prix'))}</b></div>`:''}${valVar(d,'debut')?`<div class="ligne"><span>À partir du</span><b>${esc(valVar(d,'debut'))}</b></div>`:''}`:`<div class="ligne"><span>Total TTC</span><b class="gros">${fmtMontant(calc.ttc)}</b></div><div class="ligne"><span>Acompte à la commande</span><b>${fmtMontant(calc.acompte)}</b></div>${d.meta.validite>0?`<div class="ligne"><span>Valable jusqu’au</span><b>${esc(fmtDate(ajouterJours(d.meta.date,d.meta.validite)))}</b></div>`:''}`}</div>
+      ${contrat?`<div class="ligne"><span>Pour</span><b>${esc(c?c.nom:'—')}</b></div>${valVar(d,'prix')?`<div class="ligne"><span>Prix annuel HT</span><b>${esc(valVar(d,'prix'))}</b></div>${valVar(d,'prixttc')?`<div class="ligne"><span>Prix annuel TTC</span><b>${esc(valVar(d,'prixttc'))}</b></div>`:''}`:''}${valVar(d,'debut')?`<div class="ligne"><span>À partir du</span><b>${esc(valVar(d,'debut'))}</b></div>`:''}`:`<div class="ligne"><span>Total TTC</span><b class="gros">${fmtMontant(calc.ttc)}</b></div><div class="ligne"><span>Acompte à la commande</span><b>${fmtMontant(calc.acompte)}</b></div>${d.meta.validite>0?`<div class="ligne"><span>Valable jusqu’au</span><b>${esc(fmtDate(ajouterJours(d.meta.date,d.meta.validite)))}</b></div>`:''}`}</div>
     <div class="cl-loupe"><button type="button" data-act="ap-grand" aria-pressed="${AP.grand}">${ic('zoom')}${AP.grand?'Voir la page entière':'Lire en grand'}</button></div>
     <div class="pile papier cl-pile" id="cl-pile"></div></div>
     <div class="cl-actions">${signe?`<button type="button" class="cl-lien" data-act="ap-rejouer">Rejouer l’exemple : effacer la signature</button>`:contrat&&d.etat==='brouillon'?`<p class="cl-note">Le client ne peut signer qu’une fois le contrat envoyé : ferme l’aperçu, puis choisis « Envoyer à signer ».</p><button type="button" class="cl-btn" data-act="ap-signer" aria-disabled="true">Lire et signer</button>`:`<button type="button" class="cl-btn" data-act="ap-signer">${contrat?'Lire et signer':'Accepter et signer'}</button>`}<button type="button" class="cl-lien" data-act="pdf-telecharger" aria-label="Télécharger le PDF">${ic('download')}Télécharger le PDF</button></div></div>`;
@@ -7739,7 +7745,7 @@ function opdDocs(){
       etat:Object.prototype.hasOwnProperty.call(ETATS,d.etat)?d.etat:'brouillon',client:c&&c.nom?String(c.nom).slice(0,120):'',clientId:c&&typeof c.id==='string'&&RE_ID.test(c.id)?c.id:'',
       maj:Number.isFinite(d.maj)?d.maj:0,ttc:0,prix:0,nr:0};
     if(d.type==='devis'){ try{ const t=calculer(d).ttc; if(Number.isFinite(t)) r.ttc=Math.round(t) }catch(e){} }
-    else if(d.vars&&Number.isFinite(d.vars.prix)&&d.vars.prix>0) r.prix=Math.round(d.vars.prix);
+    else if(d.vars&&Number.isFinite(d.vars.prix)&&d.vars.prix>0){ r.prix=Math.round(d.vars.prix); r.ttc=ttcContrat(d) }
     if(S.stockage===false&&OPG.sauves[d.id]!==d.maj) r.nr=1;      // cet appareil n'a PAS pu ranger ce document : la liste du prototype le dit
     return r;
   });

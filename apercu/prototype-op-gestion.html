@@ -5524,7 +5524,7 @@ function ctrCompris(i){ const k = ctrDeVisite(i); return k && k.fact !== 'visite
    de visite fasse exactement le prix du contrat (1 000 € ÷ 6 : 5 × 166,67 + 166,65). Même règle pour les douze mois d'un contrat facturé chaque mois. */
 const ctrPart = (prix, n, rang) => { const p = Math.round(prix * 100), u = Math.round(p / n), r = rang >= n ? p - u * (n - 1) : u; return r / 100; };
 function visitesDe(k){ const fa = ctrFaites(k), faits = ctrFaitesSet(k), n = k.freq, deb = k.debut.split('/').reverse().join('-'); const finC = k.fin ? k.fin.split('/').reverse().join('-') : ajoute(deb, 364), aVenir = Math.max(3, Math.round((dObj(finC) - dObj(AUJ)) / 864e5));
-  return Array.from({length:n}, (_,j) => { const reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}`); const fait = faits.has(j + 1); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
+  return Array.from({length:n}, (_,j) => { const reel = INTS.find(o => o.cli === k.cli && o.st !== 'annulee' && o.titre === `Contrat — visite ${j+1} sur ${n}` && (!o.ctr || o.ctr === k.id));   /* une visite posée par un AUTRE contrat du même client (le renouvellement a le même titre) n'est pas la sienne */ const fait = faits.has(j + 1); let d = ajoute(deb, Math.round(j * 365 / n) + 14);
     if (reel) d = reel.d; else if (!fait && d < AUJ) d = ouvres(1, ajoute(AUJ, Math.max(3, Math.round((j - fa + 1) * aVenir / (n - fa + 1)))))[0]; else d = ouvres(1, d)[0];
     return { d, fait, num:j+1, plan:!!reel, i:reel }; }); }
 /* ── La vie d'un contrat (restes contrats, 17 novembre 2026) ──
@@ -5584,7 +5584,7 @@ function vueContratNouveau(){
 }
 function pdfContrat(B, k){
   const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = (Number(B.prix)||0) / (Number(B.freq)||1);
-  const sig = k && k.st === 'signe' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
+  const sig = k && k.st !== 'envoye' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
   return `<div class="pdf" ${k ? '' : 'data-brouillon="1" data-sans-mail="1"'}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
     <h6>Entre les soussignés</h6><div><b>${ENTREPRISE.nom}</b>, représentée par ${ENTREPRISE.patron}, ci-après « le prestataire », et <b>${esc(c.nom)}</b>, ${esc(c.adr)}, ci-après « le client ».</div>
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
@@ -5614,7 +5614,7 @@ function vueContrat(id){
       ${prochain ? `<div class="carte"><h3>Renouvelé</h3><div class="ligne"><span>Ce contrat continue sous le numéro</span><button type="button" class="lien" data-go="contrat-x-${prochain.id}">${prochain.num} ›</button></div><span class="faible mini">jusqu’au ${prochain.fin}, aux mêmes conditions.</span></div>` : ''}
       ${k.suiteDe && CONTRATS.find(x => x.id === k.suiteDe) ? `<div class="carte"><h3>Renouvellement</h3><div class="ligne"><span>Suite du contrat</span><button type="button" class="lien" data-go="contrat-x-${k.suiteDe}">${CONTRATS.find(x => x.id === k.suiteDe).num} ›</button></div></div>` : ''}
       <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
-        <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (k.freq > 1 ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
+        <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (Math.round(ctrPart(k.prix, k.freq, 1) * k.freq * 100) !== Math.round(k.prix * 100) ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
         ${k.fact === 'mois' && k.st !== 'envoye' ? ctrEcheancesHtml(k) : ''}</div></div></div>`;
 }
 /* la liste des douze échéances d'un contrat mensuel : la première « préparée » (avec son lien), les autres « le 1er de chaque mois » ; un contrat terminé n'en a plus à venir */
@@ -5633,7 +5633,7 @@ function vueSigner(id){
   <div class="client-web" style="max-width:620px"><div class="corps">
     <div style="display:flex;gap:12px;align-items:center">${logoEnt('span')}<div><b style="font-size:17px">${ENTREPRISE.nom}</b><div class="gris petit">vous propose un contrat d’entretien</div></div></div>
     <div class="bloc"><h5>${esc(k.titre)}</h5><div>${k.freq} visite${k.freq>1?'s':''} par an · ${eur(k.prix)} HT, soit ${eur(ctrTTC(k.prix, k))} TTC par an</div><button type="button" class="btnc clair" data-action="lireContrat" data-id="${id}">Lire le contrat en entier</button></div>
-    ${k.st === 'signe' ? `<div class="bloc"><h5>Ce contrat est déjà signé</h5><div>Signé le ${k.signe}. La copie signée a été envoyée par e-mail.</div>${chezClient ? '' : `<button type="button" class="btnc" data-go="contrat-x-${id}">Voir le contrat</button>`}</div>` : `<label class="bloc" style="flex-direction:row;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" id="lu" style="width:24px;height:24px">J’ai lu le contrat et je l’accepte</label>
+    ${k.st !== 'envoye' ? `<div class="bloc"><h5>${k.st === 'termine' ? 'Ce contrat est terminé' : 'Ce contrat est déjà signé'}</h5><div>${k.st === 'termine' ? 'Signé le ' + k.signe + ', il a pris fin le ' + k.termine + '.' : 'Signé le ' + k.signe + '. La copie signée a été envoyée par e-mail.'}</div>${chezClient ? '' : `<button type="button" class="btnc" data-go="contrat-x-${id}">Voir le contrat</button>`}</div>` : `<label class="bloc" style="flex-direction:row;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" id="lu" style="width:24px;height:24px">J’ai lu le contrat et je l’accepte</label>
     <div class="bloc"><h5>Votre signature</h5><canvas class="signe" id="signe-ctr" width="600" height="200" aria-label="Signer ici"></canvas><button type="button" class="lien" data-action="sigCtrEfface">Effacer</button></div>
     <button type="button" class="btnc" data-action="signerContrat" data-id="${id}">Signer le contrat</button>
     `}<div class="gris mini" style="text-align:center">Vous recevez la copie signée par e-mail.</div></div></div>`;
@@ -8828,7 +8828,7 @@ const ACTIONS = {
     fermerPanneau(); rendre(); toast(`${k.num} est terminé.` + (sorties.length ? ` ${sorties.length} visite${sorties.length > 1 ? 's' : ''} non faite${sorties.length > 1 ? 's' : ''} sorti${sorties.length > 1 ? 'es' : 'e'} du planning.` : '')); },
   sigCtrEfface(){ const cv = document.getElementById('signe-ctr'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height); delete cv.dataset.signe; },
   signerContrat(b){ const ks = CONTRATS.find(x => x.id === b.dataset.id), chezCli = RL_ACTIF && ROLE === 'client';   /* le client revient dans SON espace : la page du contrat est celle du bureau, la garde du rôle la refuse et son message écrasait la confirmation (client-03) */
-    if (ks && ks.st === 'signe') { if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'); } else aller('contrat-x-' + ks.id); return; }   // déjà signé (Retour du navigateur, double-clic) : pas de seconde visite ni de seconde facture
+    if (ks && ks.st !== 'envoye') { if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); toast('Ce contrat est déjà signé : la copie signée vous a été envoyée par e-mail.'); } else aller('contrat-x-' + ks.id); return; }   // déjà signé (Retour du navigateur, double-clic) : pas de seconde visite ni de seconde facture
     const cv = document.getElementById('signe-ctr'), lu = document.getElementById('lu');
     if (!lu.checked || !cv.dataset.signe) { toast(!lu.checked ? 'Cochez « J’ai lu le contrat et je l’accepte ».' : 'Signez dans le cadre avec le doigt ou la souris.'); return; }
     const k = CONTRATS.find(x => x.id === b.dataset.id); k.st = 'signe'; k.signe = '31/10/2026'; k.sigImg = cv.dataset.signe; if (!k.fin) k.fin = ctrFinDe(k.debut);
@@ -22435,7 +22435,7 @@ function opdLigne(x){
     <span class="dv-n">${x.numero ? `<span class="mono">${esc(x.numero)}</span>` : '<span class="dv-br">Brouillon</span>'}</span>
     <span class="dv-c"><b>${esc(x.client || 'Sans client')}</b><span class="gris petit">${esc(opdNom(x) || (x.type === 'devis' ? 'Devis' : 'Contrat'))}</span></span>
     <span class="dv-q petit ${opdVieux(x) ? 'dv-vieux' : 'gris'}">${opdQuand(x)}${x.nr ? ' · <b class="opd-nr">Non enregistré</b>' : ''}</span>
-    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small></span>
+    <span class="dv-m"><b>${opdMontant(x)}</b><small>${x.type === 'devis' ? 'TTC' : 'HT par an'}</small>${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}</span>
     <span class="dv-e"><span class="st ${e[1]}">${e[0]}</span></span></${ouvre ? 'button' : 'div'}>`;
 }
 function opdCarte(type, etats){
@@ -22494,11 +22494,10 @@ function opdCreer(){
   z.innerHTML = `<iframe title="Documents sur mesure : devis et contrats" src="${opdSrc()}"></iframe><div class="opdz-att" role="status"><div class="opdz-att-c"><b>Ouverture du document…</b><span class="gris petit opdz-sous"></span><div class="actions"><button type="button" class="btn gris" data-opdz="reessayer" hidden>Réessayer</button><button type="button" class="btn gris" data-opdz="fermer">Fermer</button></div></div></div>`;
   document.body.appendChild(z); return z;
 }
-/* le cadre de l'atelier est créé AU DÉMARRAGE (caché), pas à la première ouverture. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
+/* le cadre de l'atelier est créé au PREMIER RENDU de l'application d'une personne qui a le droit de s'en servir (caché), pas à la première ouverture ; sans droit, aucun cadre n'existe. Le navigateur range les entrées d'historique d'un cadre dans l'entrée où il a été créé ; si cette entrée est
    ensuite effacée (on ferme l'atelier, on change d'écran : les entrées d'après partent), le cadre devient orphelin et son premier Retour dans l'éditeur ne fait RIEN — un appui perdu, puis un second qui
    ferme tout (reproduit sur la page d'avant aussi : une fois l'atelier ouvert, fermé, puis rouvert après un changement d'écran). Créé à l'entrée de base, qui ne s'efface jamais, il reste rattaché. */
 function opdPrecharger(){ try { opdCreer(); } catch (e) { /* sans cadre au démarrage, l'ouverture le créera */ } }
-if (document.readyState === 'complete') opdPrecharger(); else addEventListener('load', opdPrecharger);
 function opdOuvrir(faire, o){
   o = o || {}; const doc = faire === 'doc' ? ATD.docs.find(x => x.id === o.id) : null, droit = faire === 'contrat' || (doc && doc.type === 'contrat') ? 'contrats' : 'devis';
   if (faire === 'doc' && !doc) return toast('Ce document n’est plus sur cet appareil.');
@@ -22561,7 +22560,7 @@ document.addEventListener('click', ev => {
   else if (a === 'reessayer') { const f = opdCadre(); if (!f) return; OPDZ.pret = false; opdAttente(false); clearTimeout(OPDZ.tAtt); OPDZ.tAtt = setTimeout(() => { if (opdOuvert() && !OPDZ.pret) opdAttente(true); }, 8000); f.src = opdSrc(); }
 });
 window.addEventListener('storage', ev => { if (ev.key !== OPD_CLE || !ev.newValue) return; try { opdDocsRecus(JSON.parse(ev.newValue)); } catch (e) {} });   // un autre onglet a rangé sa liste
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { opdSync(); } catch (e) {} return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); try { if (!document.getElementById('opdz') && (rlPermis('devis') || rlPermis('contrats'))) opdPrecharger(); opdSync(); } catch (e) {} return v; }; })();
 (() => { const c0 = rlChanger; rlChanger = function(){ const v = c0.apply(this, arguments); opdEnvoyer(opdRoleMsg()); if (opdOuvert() && !(rlPermis('devis') || rlPermis('contrats'))) opdFermer('role'); return v; }; })();
 (() => { const m0 = cxEnLigneMode; cxEnLigneMode = function(){ m0(); opdEnvoyer(opdModeMsg()); }; })();
 /* un paiement que la banque de la Comptabilité range sur une facture : la facture de l'application est payée, et le paiement paraît dans ses encaissements */
