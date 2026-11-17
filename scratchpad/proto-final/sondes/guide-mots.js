@@ -8,9 +8,10 @@ const MD = require('fs').readFileSync(require('path').join(__dirname, '..', 'ref
 const TECHNIQUES = /\b(onglets?|interface|module|fonctionnalit|param[eè]tr|synchro|serveur|authentification|API|CRM|DSN|SIRET|IBAN|PDF|workflow|dashboard|checkbox|toggle|widget|cache|session|compte administrateur|base de donn)/i;
 // ce que chaque carte PROMET, vérifié sur l'écran où « Voir » mène (un texte lu dans l'écran, un bouton qui existe, une zone qui répond)
 const txt = f => f.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' '));
+const txtTout = f => f.evaluate(() => (document.body.textContent || '').replace(/\s+/g, ' '));   /* le texte caché aussi (un menu replié au téléphone) */
 // la Comptabilité : son texte est dans la page (#contenu ou #cpsys plein écran) et/ou dans un cadre selon l'appareil et la personne — on lit les deux, une fois qu'il y en a assez
-const comptaTxt = async c => { for (let k = 0; k < 50; k++) { let t = ''; try { t = await c.p.evaluate(() => ['cpsys', 'contenu'].map(i => { const e = document.getElementById(i); return e ? e.innerText.replace(/\s+/g, ' ') : ''; }).join(' ')); } catch (e) {}
-    for (const f of c.p.frames()) if (f !== c.p.mainFrame() && /prototype-comptabilite\.html/.test(f.url())) { try { t += ' ' + await txt(f); } catch (e) {} }
+const comptaTxt = async c => { for (let k = 0; k < 50; k++) { let t = ''; try { t = await c.p.evaluate(() => ['cpsys', 'contenu'].map(i => { const e = document.getElementById(i); return e ? e.textContent.replace(/\s+/g, ' ') : ''; }).join(' ')); } catch (e) {}
+    for (const f of c.p.frames()) if (f !== c.p.mainFrame() && /prototype-comptabilite\.html/.test(f.url())) { try { t += ' ' + await txtTout(f); } catch (e) {} }
     if (t.length > 200 && /Trésorerie/.test(t)) return t; await c.p.waitForTimeout(400); } return ''; };   /* on attend le CONTENU de la Comptabilité (un onglet), pas seulement sa barre du haut */
 const PROMESSES = {
   compta:  [['Ventes, Achats, Trésorerie, TVA (et Paie pour le gérant) : tout est sur le même écran', async c => { const t = await comptaTxt(c); return /Ventes/.test(t) && /Achats/.test(t) && /Trésorerie/.test(t) && /TVA/.test(t) && (c.qui === 'julie' || /Paie/.test(t)); }],
@@ -78,7 +79,7 @@ const PROMESSES = {
         await L.aller(p, x.voir); await L.calme(p, 700);
         const cadre = L.cadre(p); let ok = false, err = '';
         try { ok = await fn(c, cadre || p); } catch (e) { err = e.message.slice(0, 160); }
-        if (!ok && !err && x.k === 'compta') err = (await comptaTxt(c)).slice(0, 260);   /* ce qu'on a lu, pour comprendre */
+        if (!ok && !err) err = x.k === 'compta' ? (await comptaTxt(c)).slice(0, 260) : await p.evaluate(() => 'route ' + route + ' · boutons : ' + [...document.querySelectorAll('#contenu button')].slice(0, 12).map(b => b.textContent.replace(/\s+/g, ' ').trim().slice(0, 24)).join(' | '));   /* ce qu'on a lu, pour comprendre */
         v(`${tag} : « ${x.t} » promet : ${nom}`, !!ok, err);
       }
     }
