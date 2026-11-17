@@ -3,8 +3,11 @@
  "angle": "bureau : profils mac, windows, ipad ; jour et nuit ; marc puis julie ; Stock, Dépôts et camions, Fournisseurs, matériel & produits",
  "couvert": [
   "marc, mac, jour : Stock (Articles, journal ouvert, bandeau, trois tuiles, pied de liste), chaque bouton de l’écran touché (parcours à deux niveaux : menus Plus et Partout, feuilles Mettre à jour, Envois, Filtrer, fiche d’article), 0 erreur JS sur 108 gestes",
-  "marc, mac, jour : nombres recalculés à la main depuis les données brutes — à commander 6 (6 lignes, 4 fournisseurs), camions à remplir 6 (Sophie 3 + Karim 3, Tom au garage exclu), valeur 2 306,50 € (atelier 1 724,30 + camions + réserve), 29 articles ; mêmes chiffres dans Stock, Commandes, Accueil, menu",
-  "marc, mac, jour : Tout accepter puis Annuler (stock, valeurs, journal rendus à l’identique), Sortir (client, collègue avec bon de remise, cassé), Ranger au comptoir (ticket rangé dans les achats, annulé), Déplacer, Compter (écart, Tout est juste, annuler), Remplir les camions (6 articles, 2 camions, notifications, annuler), J’ai reçu la livraison (stock +33 € juste, annuler), Comparer avec la facture, Préparer la commande, fiche d’article R32 et pompe, fiche d’un camion et de l’atelier"
+  "marc, mac, jour : nombres recalculés à la main depuis les données brutes — à commander 6 (6 lignes, 4 fournisseurs), camions à remplir 6 (Sophie 3 + Karim 3, Tom au garage exclu), valeur 2 306,50 € (atelier 1 724,30 + camions + réserve), 29 articles, marges de 29 articles (écart 0), journal (11 gestes, 23,30 € sortis) ; mêmes chiffres dans Stock, Commandes, Accueil, menu",
+  "marc, mac, jour : Tout accepter puis Annuler (stock, valeurs, journal rendus à l’identique), Sortir (client, collègue avec bon de remise, cassé), Ranger au comptoir (ticket rangé dans les achats, annulé), Déplacer, Compter (écart, Tout est juste, annuler), Remplir les camions (6 articles, 2 camions, notifications, annuler), J’ai reçu la livraison (stock +33 € juste, annuler), Comparer avec la facture (écart 1,20 € et marge 38 % recalculés), Préparer la commande, Achats › Transférer 6 kg et commander 4 kg, fiche d’article (R32, pompe), fiche d’un camion, du camion au garage, de l’atelier, Registre des fluides (totaux par fluide), Réglages, Filtrer, Importer les prix, Photographier une facture, Ajouter un fournisseur, Ajouter un article, fiche d’un fournisseur, dotation, nouvelle réserve",
+  "julie, mac, jour : menu (Stock et Fournisseurs oui, Dépôts non), droits (accepter, régler, prix de vente : non), Stock sans bandeau, Plus sans Réglages, fiche d’article sans « Retirer » et prix de vente grisé avec sa phrase, Fournisseurs sans « Ajouter un fournisseur », fiche fournisseur sans « Ce n’est plus mon fournisseur », sortir de stock appliqué tout de suite et annulé, commande préparée puis envoyée (« Commande envoyée à Sanitaire Pro 17 · 72,00 € HT »)",
+  "windows 1366×768 et ipad 820×1180, jour et nuit : Stock, journal, Dépôts et camions, Commandes, Articles, Fournisseurs (marc) et les mêmes sans Dépôts (julie) : largeur contre la largeur posée (0 débordement), cibles, champs, textes écrasés (0), première ligne et éléments touchables avant elle (≤ 11), captures regardées ; contraste des pastilles de nuit au pixel (6,02 ; 5,40 ; 5,45)",
+  "NON couvert : téléphones (hors de mon angle), mutations, Mon camion (technicien), visite guidée et visites parlées, Registre/Export réels (simulés), Photographier une facture jusqu’au bout, import d’un fichier de prix, nuit de Dépôts sur mac"
  ],
  "defauts": [
   {
@@ -110,6 +113,149 @@
    "ou": "msMenuPlus, mdMenuPlus",
    "correction": "Une icône de téléchargement (flèche vers le bas) ou celle du registre.",
    "n": "bureau-08"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock › Plus › Réglages du stock ; fiche d’un camion › Plus › Changer le nom ou le conducteur",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Plus ▾ › Réglages du stock : lire « Pour un lieu seul, ouvre sa fiche et choisis « Modifier ce lieu » ». Dépôts et camions › Camion de Sophie › Plus ▾ › Changer le nom ou le conducteur.",
+   "attendu": "Un champ « Compter tous les … mois » propre au lieu (S12 de la table avant → après : la durée d’un lieu seul se règle dans « Modifier ce lieu »).",
+   "constate": "« Modifier ce lieu » d’un camion ne porte que « Nom » (le conducteur se change dans Véhicules) ; aucun champ de fréquence de comptage nulle part : la phrase des Réglages promet un réglage qui n’existe pas, et la capacité de régler la fréquence lieu par lieu est perdue.",
+   "preuve": "Reproduit deux fois (texte de la feuille ; document.querySelector('[data-sxfreq]') = null). Code : le gestionnaire de change [data-sxfreq] existe (SX.freq[id] = …) mais aucun gabarit n’écrit cet attribut ; bxModVue n’a ni champ fréquence ni autre champ pour un véhicule.",
+   "ou": "bxModVue (prototype-op-gestion.html) et msReglagesVue ; gestionnaire orphelin « if (t.matches('[data-sxfreq]')) { SX.freq[…] »",
+   "correction": "Ajouter « Compter tous les [3] mois (sinon la durée du Stock) » à bxModVue (écrit SX.freq[id]) ; ou retirer la phrase des Réglages.",
+   "n": "bureau-09"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock, Dépôts et camions, Accueil, fiche d’article (bureau)",
+   "role": "marc, julie",
+   "profils": "mac (jour)",
+   "etapes": "Poser le reste d’une bouteille de R32 du camion de Sophie à 0,6 kg ; ouvrir Accueil, Stock, Dépôts et camions, la fiche du camion, la fiche de l’article « Fluide R32 ».",
+   "attendu": "Une bouteille presque vide (≤ 1 kg) se voit côté bureau (spec § 5.5 : « Les alertes de bouteille de fluide (reste ≤ 1 kg) restent une constante » ; S18 : alertes → états de carte, ligne de l’Accueil).",
+   "constate": "Nulle part : la fiche d’article dit « Entamée » pour 0,6 kg ; aucune pastille, ligne ou phrase côté gérant ou bureau (l’alerte « Bouteille presque vide » n’existe que dans Mon camion, écran du technicien).",
+   "preuve": "Reproduit (sonde in-4 : texte de 4 écrans + fiche camion + fiche article sans le mot « bouteille » hors fiche article, « Entamée » à 0,6 kg). Code : le seuil « reste <= 1 » n’apparaît que dans vueMonCamion ; sxBoutEtat ne rend « Vide, à rendre » qu’à 0.",
+   "ou": "sxBoutEtat (15197), msAFaire/matAFaire (Accueil), mdCarte",
+   "correction": "« Bouteille presque vide : R32-2231 (0,6 kg) » en ligne orange dans la fiche du camion et sur la carte, et une ligne de la carte « Matériel » de l’Accueil.",
+   "n": "bureau-10"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock (bureau) : tuile « manquent dans les camions »",
+   "role": "julie",
+   "profils": "mac, windows, ipad (jour/nuit)",
+   "etapes": "Se connecter en Julie (secrétariat) ; Stock ; toucher la tuile « 6 manquent dans les camions ».",
+   "attendu": "Ou bien la tuile n’est pas un bouton pour elle, ou bien elle mène quelque part.",
+   "constate": "La tuile est touchable et la ramène à Comptabilité avec « Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir (Équipe, tes droits) » : un bouton qui mène à un refus (idem l’adresse #boxes tapée à la main).",
+   "preuve": "Reproduit deux fois (tuile, puis aller('boxes')). Code : msTuiles pose data-ms=\"t|cam\" pour tout le monde ; le droit boxes exige Stock › Supprimer.",
+   "ou": "msTuiles (prototype-op-gestion.html ~15750) : tuile « cam »",
+   "correction": "Pour qui n’a pas la rubrique : tuile en <div> (même chiffre), ou la faire mener à Stock › Partout filtré sur les camions.",
+   "n": "bureau-11"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock › Ce qui a bougé (bureau)",
+   "role": "julie",
+   "profils": "mac (jour)",
+   "etapes": "Julie : Stock › Ce qui a bougé ; toucher la pastille « À accepter » d’un envoi de Tom ou de Sophie.",
+   "attendu": "Rien ne ressemble à un bouton si rien ne se passe (ou la pastille dit pourquoi).",
+   "constate": "Deux pastilles « À accepter » sont de vrais boutons (st-o) qui ne font rien : aucune fenêtre, aucun message (Julie n’a pas la case « Valider les gestes de stock des autres »).",
+   "preuve": "Reproduit deux fois (sonde Julie in-2). Code : msLigneJournal rend <button data-ms=\"envois\"> pour tous ; msEnvois() commence par « if (!msAccepte()) return; ».",
+   "ou": "msLigneJournal / msEnvois",
+   "correction": "Pour qui n’accepte pas : pastille en <span> (« En attente du gérant »).",
+   "n": "bureau-12"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock (Windows 1366×768, bureau avec bandeau)",
+   "role": "marc",
+   "profils": "windows (jour et nuit)",
+   "etapes": "Windows 1366×768 : Stock quand « 2 envois à accepter » est affiché ; compter les lignes d’article visibles sans défiler.",
+   "attendu": "Six lignes visibles sans défiler (spec § 5.1 : « à 1366×768 six lignes visibles sans défiler »), première ligne avant 0,5 écran.",
+   "constate": "Première ligne d’article à 494 px sur 768 (0,64 écran) : 3 lignes et demie visibles. Julie (sans bandeau) : 400 px, 5 lignes. Mac 1440×900 : 494 px (0,55).",
+   "preuve": "Mesuré deux fois (windows jour et nuit) : .ms-liste .ms-l top = 494, 11 touchables avant elle.",
+   "ou": "vueStock : bandeau + trois tuiles + onglets + recherche avant la liste",
+   "correction": "Tuiles à 64 px, bandeau à 56 px, ou masquer le bandeau d’intro des onglets ; ou admettre l’objectif « avec bandeau 0,6 ».",
+   "n": "bureau-13"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Menu latéral (iPad, groupe Matériel)",
+   "role": "marc",
+   "profils": "ipad (jour et nuit)",
+   "etapes": "iPad 820×1180 : ouvrir Stock ; regarder le menu à gauche.",
+   "attendu": "Les trois rubriques du groupe Matériel visibles (spec § 5.2 : dépendance au chantier menu).",
+   "constate": "« Fournisseurs, matériel & produits » et « Dépôts et camions » sont sous le pied Jour/Nuit/Auto : « Stock » est la dernière ligne visible, fondue par un dégradé ; il faut faire défiler le menu lui-même.",
+   "preuve": "Capture w-marc-ipad-nuit-stock.png (et jour).",
+   "ou": "menu latéral (chantier menu)",
+   "correction": "Menu : pied replié ou défilement du menu au-dessus du pied (déjà noté F14).",
+   "n": "bureau-14"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Fournisseurs › fiche d’un fournisseur « au comptoir »",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Fournisseurs › Frigo Distribution 17.",
+   "attendu": "Pour un fournisseur qu’on retire au comptoir : pas de « Livraison gratuite à partir de » ni de « frais de port » (spec § 7.4 : une saisie par notion) ; pas de délai en jours.",
+   "constate": "Case « Je le retire au comptoir » cochée, et pourtant « Livraison gratuite à partir de 0,00 € » et « Sinon, frais de port 0,00 € » restent saisissables, et « Il livre à l’heure 82 % du temps, en 0,6 jour en moyenne ».",
+   "preuve": "Reproduit deux fois (Frigo Distribution 17, Sanitaire Pro 17), capture m-fiche-four-mac-jour.png.",
+   "ou": "fournFiche",
+   "correction": "Masquer ces deux lignes et la phrase de délai quand le comptoir est coché.",
+   "n": "bureau-15"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Fournisseurs, matériel & produits (iPad, en-tête)",
+   "role": "marc",
+   "profils": "ipad (jour)",
+   "etapes": "iPad 820 : ouvrir Fournisseurs, matériel & produits.",
+   "attendu": "Le bouton noir et les deux gris sur une ligne ou deux boutons par ligne bien répartis.",
+   "constate": "Titre sur deux lignes, puis « ＋ Nouvelle commande » et « Photographier une facture » sur une ligne et « Plus ▾ » seul sur une troisième : l’en-tête prend 3 rangées avant les onglets.",
+   "preuve": "Capture w-marc-ipad-jour-commandes.png.",
+   "ou": "fxTete (tablette)",
+   "correction": "Photographier en bouton carré (icône) comme sur téléphone, « Plus » à côté du noir.",
+   "n": "bureau-16"
+  },
+  {
+   "gravite": "gênant",
+   "ecran": "Stock › Articles (recherche)",
+   "role": "marc, julie",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Articles : taper « condens » dans la recherche ; lire le pied de liste.",
+   "attendu": "Le pied dit ce que la liste montre : « 1 article ».",
+   "constate": "« 1 article · 2 306,50 € de matériel (prix d’achat HT) » : le nombre est celui du filtre, le montant celui des 29 articles — on lit que le Condensateur (0 en stock) vaut 2 306,50 €.",
+   "preuve": "Reproduit (sonde in-5 : « condens » rend « 1 article · 2 306,50 € ») et prouvé dans le code : msArticles calcule val = tous.reduce(… x.q …) sur tous les articles, pas sur L.",
+   "ou": "msArticles (const val, pied .ms-pied)",
+   "correction": "Recalculer val sur la liste affichée (L), ou n’afficher le montant que sans filtre (« 29 articles · 2 306,50 € »).",
+   "n": "bureau-17"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Stock › Plus › Registre des fluides",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Stock › Plus ▾ › Registre des fluides : regarder les deux lignes.",
+   "attendu": "Chaque ligne client est un lien vers l’intervention (spec § 5.5).",
+   "constate": "« Hôtel de la Plage · Mitsubishi PUHZ · bouteille R410-1180 » et « Restaurant Le Vieux Port … » sont du texte noir ; rien ne s’ouvre.",
+   "preuve": "Capture m-registre-mac-jour.png ; clic essayé : rien ne s’ouvre.",
+   "ou": "sxRegistre",
+   "correction": "Rendre le nom du client en <button class=\"lien\" data-tvoir=\"inter|…\">.",
+   "n": "bureau-18"
+  },
+  {
+   "gravite": "détail",
+   "ecran": "Fournisseurs › Articles › Ajouter un article",
+   "role": "marc",
+   "profils": "mac (jour)",
+   "etapes": "Fournisseurs, matériel & produits › Articles › ＋ Ajouter un article.",
+   "attendu": "Les quatre champs d’abord, sans vide entre eux.",
+   "constate": "Un blanc d’environ 60 px entre « Nom » et « Rangé dans : Climatisation › … » (la place d’une suggestion vide).",
+   "preuve": "Capture m-ajouter-article-mac-jour.png (champ Nom à 134-180 px, ligne Rangé dans à 244 px).",
+   "ou": "prFormulaire / msFormApres (#pr-sugg vide gardé dans la page)",
+   "correction": "Masquer #pr-sugg tant qu’il est vide.",
+   "n": "bureau-19"
   }
  ]
 }

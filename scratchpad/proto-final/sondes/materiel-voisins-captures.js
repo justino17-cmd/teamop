@@ -17,7 +17,7 @@ const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', DIR 
   await p.fill('#fenetre [data-cchamp="cpq"]', 'condens'); await R(() => { const e = document.querySelector('#fenetre [data-vis="crea-pieces"]'); if (e) e.scrollIntoView({ block:'center' }); }); await snap('3-creation-pieces');
   await R(() => fermerCreation()); await L.calme(p, 300);
   await R(() => { const b = document.querySelector('[data-nv="ouvrir"]'); if (b) b.click(); else nvOuvrir(); }); await L.calme(p, 500);
-  for (let k = 0; k < 6; k++) { if (await R(() => !!document.querySelector('#nv [data-vis="guide-materiel"]'))) break; await R(() => document.querySelector('#nv [data-nv="apres"]').click()); await L.calme(p, 250); }
+  await R(() => { const k = NV.pages.findIndex(x => x.k === 'stock' || x.k === 'produits' || x.k === 'camion'); nvAller(k < 0 ? 0 : k); }); await L.calme(p, 600);   // la carte du matériel de cette personne
   await snap('4-guide');
   await L.aller(p, 'planning'); await snap('5-planning');
   console.log('erreurs :', JSON.stringify(c.err)); await L.fin(c); await L.fermer();
