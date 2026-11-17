@@ -58,6 +58,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 33 | session_01PfEEAJaRT8KkR1fdFWStSb | `{voie:"restes", noms:["clients"], tours:1}` (campagne clients finie à 12 h 17 : 12 réglés, clients-18 incomplet, 10 casses ; les 5 points « à soumettre » tranchés par le chef, dans sa consigne) | 12 h 17 | |
 | 34 | session_01PfEEAFPpeU7baS6TDXPPpZ | `{voie:"restes", noms:["interventions"], tours:1, depuis:1}` (recontrôle du tour 1 : les corrections sont poussées, 14 entrées) | 12 h 18 | |
 | 35 | session_01PfEEAE6Dx8R8cDTAgEhREX | `{voie:"final-regard", role:"gerant", rubriques:["Registre sanitaire","Carte des box","Devis xylophage"], suffixe:"f"}` (les trois écrans 3D, et le Registre vu par la technicienne) | 12 h 22 | |
+| 36 | session_01PfEEAGt4nyu6bqwDCac1di | `{voie:"final-regard", role:"technicien", rubriques:["Mon camion"], suffixe:"b"}` (reste pour le technicien : Mes frais, Mes heures, après les sœurs 23 et 26) | 12 h 22 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
