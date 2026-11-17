@@ -19,7 +19,7 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   const mail = await p.evaluate(() => { const g = s => { const e = document.querySelector('#calque ' + s); return e ? (e.value !== undefined && e.tagName !== 'BUTTON' ? e.value : e.innerText) : ''; }; return { a: [...document.querySelectorAll('#calque input')].map(i => i.value).join(' | '), corps: [...document.querySelectorAll('#calque textarea')].map(t => t.value).join('\n'), pj: document.querySelector('#calque').innerText.match(/CTR-\S+\.pdf/) }; });
   console.log('  · courriel :', JSON.stringify(mail).slice(0, 700));
   v('E2 : le courriel dit « passés 2 fois sur les 4 visites » (chiffres du contrat)', /2 fois sur les 4 visites/.test(mail.corps), mail.corps.slice(0, 300));
-  v('E2 : le courriel cite le prix 1 400,00 € HT et 4 visites', /1.400,00 € HT par an, 4 visites/.test(mail.corps.replace(/[\s\u202f\u00a0]+/g, ' ')), mail.corps.slice(0, 400));
+  v('E2 : le courriel cite le prix 1 400,00 € HT, soit 1 680,00 € TTC, et 4 visites', /1.400,00 € HT, soit 1.680,00 € TTC par an, 4 visites/.test(mail.corps.replace(/[\s\u202f\u00a0]+/g, ' ')), mail.corps.slice(0, 400));
   await L.capture(c, O.CAP + `E2-courriel-renouvellement-${profil}.png`);
   const bts = await p.evaluate(() => [...document.querySelectorAll('#calque button')].map(b => b.innerText.trim()).filter(Boolean)); console.log('  · boutons du courriel :', JSON.stringify(bts));
   const env = bts.find(t => /^Envoyer/.test(t)); const av = await p.evaluate(() => ({ j: JOURNAL.length, relance: CONTRATS[0].relance || '' }));

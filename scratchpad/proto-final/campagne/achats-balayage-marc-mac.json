@@ -1,0 +1,952 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "nuit": false,
+ "onglets": {
+  "demandes": {
+   "recenses": 26,
+   "touches": 26,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "＋ Nouvelle demande d’achat",
+     "data": "data-axa=dem",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Noter une demande reçue",
+     "toast": "",
+     "hash": "#achats",
+     "l": 263,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "3demandes de matériel à décider",
+     "data": "data-ac=onglet|demandes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 558,
+     "h": 90
+    },
+    {
+     "i": 2,
+     "lib": "3notes de frais à valider",
+     "data": "data-ac=onglet|notes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 558,
+     "h": 90
+    },
+    {
+     "i": 3,
+     "lib": "896 € de factures fournisseurs à payer · 1 en retard›",
+     "data": "data-cx=sec|factures|achats|traiter",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Comptabilité",
+     "panneau": "",
+     "toast": "",
+     "hash": "#comptabilite",
+     "l": 1128,
+     "h": 58
+    },
+    {
+     "i": 4,
+     "lib": "4 achats sans facture›",
+     "data": "data-cx=sec|factures|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Comptabilité",
+     "panneau": "",
+     "toast": "",
+     "hash": "#comptabilite",
+     "l": 1128,
+     "h": 58
+    },
+    {
+     "i": 5,
+     "lib": "Demandes de matérielMatériel 3",
+     "data": "data-ac=onglet|demandes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 217,
+     "h": 40
+    },
+    {
+     "i": 6,
+     "lib": "Notes de fraisFrais 3",
+     "data": "data-ac=onglet|notes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 156,
+     "h": 40
+    },
+    {
+     "i": 7,
+     "lib": "Comment ça marche ?",
+     "data": "data-action=achatsAide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Comment ça marche ?",
+     "toast": "",
+     "hash": "#achats",
+     "l": 173,
+     "h": 44
+    },
+    {
+     "i": 8,
+     "lib": "Tout le monde",
+     "data": "data-axa=fd|tous",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 129,
+     "h": 44
+    },
+    {
+     "i": 9,
+     "lib": "TLTom",
+     "data": "data-axa=fd|tl",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 90,
+     "h": 44
+    },
+    {
+     "i": 10,
+     "lib": "KBKarim",
+     "data": "data-axa=fd|kb",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 101,
+     "h": 44
+    },
+    {
+     "i": 11,
+     "lib": "SMSophie",
+     "data": "data-axa=fd|sm",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 109,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "Fixer un budget",
+     "data": "data-axa=budget|607",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Achats de matériel et pièces",
+     "toast": "",
+     "hash": "#achats",
+     "l": 106,
+     "h": 44
+    },
+    {
+     "i": 13,
+     "lib": "Transférer 6 kg et commander 4 kg",
+     "data": "data-ac=transfert|da1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "toast",
+      "contenu",
+      "calque",
+      "focus"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "Modifier la commande",
+     "toast": "6 kg transférés vers le camion de Tom. Les 4 kg restants sont dans un nouveau brouillon de commande Frigo Distribution 17 : vérifie-le, puis envoie-le.",
+     "hash": "#achats",
+     "l": 267,
+     "h": 40
+    },
+    {
+     "i": 14,
+     "lib": "Tout commander",
+     "data": "data-ac=commande|da1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "contenu",
+      "calque",
+      "focus"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "Modifier la commande",
+     "toast": "",
+     "hash": "#achats",
+     "l": 146,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Achat en magasin",
+     "data": "data-ac=magasin|da1",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Accepté. Tom Leroy achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
+     "hash": "#achats",
+     "l": 152,
+     "h": 40
+    },
+    {
+     "i": 16,
+     "lib": "Demander une précision",
+     "data": "data-axa=prec|da1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Fluide R32",
+     "toast": "",
+     "hash": "#achats",
+     "l": 197,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "Refuser",
+     "data": "data-ac=refuser|da1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Fluide R32",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Changer le budget",
+     "data": "data-axa=budget|6063",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Petit outillage",
+     "toast": "",
+     "hash": "#achats",
+     "l": 125,
+     "h": 44
+    },
+    {
+     "i": 19,
+     "lib": "Achat en magasin",
+     "data": "data-ac=magasin|da3",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Accepté. Sophie Martin achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
+     "hash": "#achats",
+     "l": 150,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Demander une précision",
+     "data": "data-axa=prec|da3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Échelle 3 plans aluminium",
+     "toast": "",
+     "hash": "#achats",
+     "l": 197,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Refuser",
+     "data": "data-ac=refuser|da3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Échelle 3 plans aluminium",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Changer le budget",
+     "data": "data-axa=budget|6063",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Petit outillage",
+     "toast": "",
+     "hash": "#achats",
+     "l": 125,
+     "h": 44
+    },
+    {
+     "i": 23,
+     "lib": "Achat en magasin",
+     "data": "data-ac=magasin|da2",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Accepté. Karim Benali achète, puis ajoute le ticket et le montant payé : rien n’est écrit en comptabilité avant.Annuler",
+     "hash": "#achats",
+     "l": 150,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "Demander une précision",
+     "data": "data-axa=prec|da2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Perceuse-visseuse à percussion 18 V",
+     "toast": "",
+     "hash": "#achats",
+     "l": 197,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Refuser",
+     "data": "data-ac=refuser|da2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Perceuse-visseuse à percussion 18 V",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    }
+   ]
+  },
+  "notes": {
+   "recenses": 28,
+   "touches": 28,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "＋ Nouvelle demande d’achat",
+     "data": "data-axa=dem",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Noter une demande reçue",
+     "toast": "",
+     "hash": "#achats",
+     "l": 263,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "3demandes de matériel à décider",
+     "data": "data-ac=onglet|demandes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 558,
+     "h": 90
+    },
+    {
+     "i": 2,
+     "lib": "3notes de frais à valider",
+     "data": "data-ac=onglet|notes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 558,
+     "h": 90
+    },
+    {
+     "i": 3,
+     "lib": "896 € de factures fournisseurs à payer · 1 en retard›",
+     "data": "data-cx=sec|factures|achats|traiter",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Comptabilité",
+     "panneau": "",
+     "toast": "",
+     "hash": "#comptabilite",
+     "l": 1128,
+     "h": 58
+    },
+    {
+     "i": 4,
+     "lib": "4 achats sans facture›",
+     "data": "data-cx=sec|factures|achats|sanspiece",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Comptabilité",
+     "panneau": "",
+     "toast": "",
+     "hash": "#comptabilite",
+     "l": 1128,
+     "h": 58
+    },
+    {
+     "i": 5,
+     "lib": "Demandes de matérielMatériel 3",
+     "data": "data-ac=onglet|demandes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 217,
+     "h": 40
+    },
+    {
+     "i": 6,
+     "lib": "Notes de fraisFrais 3",
+     "data": "data-ac=onglet|notes",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 156,
+     "h": 40
+    },
+    {
+     "i": 7,
+     "lib": "Comment ça marche ?",
+     "data": "data-action=achatsAide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Comment ça marche ?",
+     "toast": "",
+     "hash": "#achats",
+     "l": 173,
+     "h": 44
+    },
+    {
+     "i": 8,
+     "lib": "Changer ›",
+     "data": "data-axa=regle",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Comptabilité",
+     "panneau": "",
+     "toast": "",
+     "hash": "#comptabilite",
+     "l": 67,
+     "h": 44
+    },
+    {
+     "i": 9,
+     "lib": "Changer ›",
+     "data": "data-axa=kmtarif",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Tarif au kilomètre",
+     "toast": "",
+     "hash": "#achats",
+     "l": 67,
+     "h": 44
+    },
+    {
+     "i": 10,
+     "lib": "Tout le monde",
+     "data": "data-axa=fn|tous",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 129,
+     "h": 44
+    },
+    {
+     "i": 11,
+     "lib": "TLTom",
+     "data": "data-axa=fn|tl",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 90,
+     "h": 44
+    },
+    {
+     "i": 12,
+     "lib": "KBKarim",
+     "data": "data-axa=fn|kb",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 101,
+     "h": 44
+    },
+    {
+     "i": 13,
+     "lib": "SMSophie",
+     "data": "data-axa=fn|sm",
+     "touche": true,
+     "change": [
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 109,
+     "h": 44
+    },
+    {
+     "i": 14,
+     "lib": "Valider les 2 notes avec ticket · 24,70 €",
+     "data": "data-axa=toutval",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Valider 2 notes avec ticket ?",
+     "toast": "",
+     "hash": "#achats",
+     "l": 295,
+     "h": 40
+    },
+    {
+     "i": 15,
+     "lib": "Voir le ticket en grand : Repas, chantier de Rochefort",
+     "data": "data-cx=justif|ndf|n1",
+     "touche": true,
+     "change": [
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 56,
+     "h": 56
+    },
+    {
+     "i": 16,
+     "lib": "Repas, chantier de Rochefort · 16,50 €",
+     "data": "data-axa=fiche|n1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Repas, chantier de Rochefort",
+     "toast": "",
+     "hash": "#achats",
+     "l": 792,
+     "h": 44
+    },
+    {
+     "i": 17,
+     "lib": "Valider",
+     "data": "data-ac=ndfok|n1",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Validée : 16,50 € remboursés à Tom avec la paie de novembre.Annuler",
+     "hash": "#achats",
+     "l": 76,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Refuser",
+     "data": "data-ac=ndfnon|n1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Repas, chantier de Rochefort",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Voir le ticket en grand : Péage A10, Saintes",
+     "data": "data-cx=justif|ndf|n2",
+     "touche": true,
+     "change": [
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "",
+     "hash": "#achats",
+     "l": 56,
+     "h": 56
+    },
+    {
+     "i": 20,
+     "lib": "Péage A10, Saintes · 8,20 €",
+     "data": "data-axa=fiche|n2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Péage A10, Saintes",
+     "toast": "",
+     "hash": "#achats",
+     "l": 792,
+     "h": 44
+    },
+    {
+     "i": 21,
+     "lib": "Valider",
+     "data": "data-ac=ndfok|n2",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Validée : 8,20 € remboursés à Karim avec la paie de novembre.Annuler",
+     "hash": "#achats",
+     "l": 76,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "Refuser",
+     "data": "data-ac=ndfnon|n2",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Péage A10, Saintes",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Parking, centre-ville de La Rochelle · 6,00 €",
+     "data": "data-axa=fiche|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Parking, centre-ville de La Rochelle",
+     "toast": "",
+     "hash": "#achats",
+     "l": 518,
+     "h": 44
+    },
+    {
+     "i": 24,
+     "lib": "Valider sans ticket…",
+     "data": "data-ac=ndfsans|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Valider sans justificatif ?",
+     "toast": "",
+     "hash": "#achats",
+     "l": 170,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "Redemander le ticket",
+     "data": "data-ac=ndfticket|n3",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Achats et frais",
+     "panneau": "",
+     "toast": "Sophie reçoit une notification.",
+     "hash": "#achats",
+     "l": 174,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "Refuser",
+     "data": "data-ac=ndfnon|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Achats et frais",
+     "panneau": "Parking, centre-ville de La Rochelle",
+     "toast": "",
+     "hash": "#achats",
+     "l": 84,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "Voir dans l’export de paie ›",
+     "data": "data-axa=paie",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Temps de travail",
+     "panneau": "",
+     "toast": "",
+     "hash": "#pointage",
+     "l": 180,
+     "h": 44
+    }
+   ]
+  }
+ }
+}

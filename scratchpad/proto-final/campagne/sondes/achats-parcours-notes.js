@@ -51,7 +51,10 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   v('N6a validée : état « validée »', nA2.etat === 'validee', nA2);
   v('N6b l’écriture comptable naît : compte 625, HT 10,42, TVA 20, mode « Note de frais »', aA && aA.compte === '625' && aA.ht === 10.42 && aA.tva === 20 && aA.mode === 'Note de frais', aA);
   v('N6c TTC recalculé de l’écriture = 12,50', aA && r2(aA.ht * 1.2) === 12.5, aA);
-  v('N6d une note justifiée n’ajoute pas de « sans justificatif »', (await E(() => axSansJustif())) === compta0);
+  const ligneCompta = async mot => { await E(() => { cxAller('factures', { cat: 'achats', st: 'tous' }); }); await L.calme(p, 500); return E(m => { const l = [...document.querySelectorAll('#cx-liste [data-cx], #cx-liste .ligne-clic, #cx-liste tr')].find(e => e.textContent.includes(m)); return l ? l.textContent.replace(/\s+/g, ' ').trim() : ''; }, mot); };
+  const lA = await ligneCompta('Carburant');
+  v('N6d la note justifiée par un ticket paraît dans la Comptabilité SANS l’étiquette « sans justificatif »', !!lA && !/sans justificatif/.test(lA), lA);
+  await E(() => { acOnglet = 'notes'; }); await L.aller(p, 'achats');
   v('N6e le technicien est prévenu (notification) et l’Historique a la ligne', await E(() => NOTIFS.some(n => /validée/.test(JSON.stringify(n)) && /Carburant/.test(JSON.stringify(n)))) && await E(() => JOURNAL.some(j => /Carburant/.test(JSON.stringify(j)))));
   console.log('   toast :', await toast(p));
   // « Annuler » du message défait TOUT (écriture, état, notification, journal)
@@ -67,7 +70,9 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   await clic('[data-ac^="ndfoksans"]'); await L.calme(p, 500);
   const aB = await achat('a' + idB), nB2 = await note(idB);
   v('N7c validée sans ticket : trace gardée (qui, quand), écriture sans pièce, HT 30,45', nB2.etat === 'validee' && nB2.sansJustif && aB && aB.sansJustif && aB.ht === 30.45 && !aB.piece, { nB2, aB });
-  v('N7d la Comptabilité compte UN « sans justificatif » de plus', (await E(() => axSansJustif())) === compta0 + 1, { avant: compta0, apres: await E(() => axSansJustif()) });
+  const lB = await ligneCompta('Repas sur un chantier');
+  v('N7d la note validée sans ticket paraît dans la Comptabilité AVEC « sans justificatif »', !!lB && /sans justificatif/.test(lB), lB);
+  await E(() => { acOnglet = 'notes'; }); await L.aller(p, 'achats');
   // ── N8 refuser une note : motif obligatoire, le technicien corrige et renvoie ────────────────────────────────
   await clic(`.ax-n[data-axid="n2"] [data-ac^="ndfnon"]`); await L.calme(p, 300);
   await clic('[data-axa^="nonok"]'); v('N8a refus sans motif : « Un refus s’explique »', /s’explique/.test(await toast(p)) && (await note('n2')).etat === 'attente', await toast(p));
@@ -91,8 +96,22 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   v('N9b toutes les notes avec ticket sont validées', (await E(() => NDF.filter(n => n.etat === 'attente' && (n.recu || n.km)).length)) === 0);
   const tm = await toast(p); v('N9c le message annonce le même total', tm.replace(/[  ]/g, ' ').includes(String(somme.toFixed(2)).replace('.', ',')), tm);
   await clic('#toast button'); await L.calme(p, 400); v('N9d « Annuler » défait toutes les validations d’un coup', (await E(() => NDF.filter(n => n.etat === 'attente' && (n.recu || n.km)).length)) === att.length, await E(() => NDF.map(n => n.id + ':' + n.etat)));
-  // ── N10 refacturer au client ─────────────────────────────────────────────────────────────────────────────────
-  const rf = await p.$(`input[data-axrf]`); v('N10a une note rattachée à une intervention propose « Refacturer au client »', !!rf, 'aucune case');
+  // ── N10 refacturer au client : une note neuve, ticket joint, rattachée à une intervention (la case n'existe que pour une note À VALIDER) ──
+  await devenir(p, 'sm', 'techfrais'); await clic('[data-rl="ndf"]'); await L.calme(p, 300);
+  await p.selectOption('#rn-o', 'Carburant'); await p.fill('#rn-pr', 'station Total, Périgny'); await p.fill('#rn-m', '24,00');
+  await p.setInputFiles('#rn-p', { name: 'ticket-2.png', mimeType: 'image/png', buffer: PNG }); await L.calme(p, 200);
+  const opts = await E(() => [...document.querySelectorAll('#rn-i option')].map(o => o.value).filter(Boolean));
+  const choix = await E(o => { const f = FACTURES.find(x => x.num === '—' && o.includes(x.int)); return { int: f ? f.int : o[0], fac: f ? f.id : null, n: f ? lignesDe(f).length : 0 }; }, opts);
+  await p.selectOption('#rn-i', choix.int); await clic('[data-rl="ndfok"]'); await L.calme(p, 400); const idR = await derniere();
+  await devenir(p, 'marc', 'achats'); await E(() => { acOnglet = 'notes'; AX.fn = 'tous'; rendre(); }); await L.calme(p, 400);
+  const rf = await p.$(`.ax-n[data-axid="${idR}"] input[data-axrf]`); v('N10a une note rattachée à une intervention propose « Refacturer au client »', !!rf, 'aucune case');
+  if (rf) { await rf.check(); await L.calme(p, 200); await clic(`.ax-n[data-axid="${idR}"] [data-ac^="ndfok"]`); await L.calme(p, 500);
+    const fa = choix.fac ? await E(i => { const f = FACTURES.find(x => x.id === i); return f ? lignesDe(f).filter(l => /Frais engagés/.test(l.d)).map(l => [l.d, l.pu]) : null; }, choix.fac) : null;
+    const tm2 = await toast(p);
+    if (choix.fac) v('N10b validée avec « Refacturer » : la facture préparée reçoit UNE ligne « Frais engagés » au prix HT (20,00)', fa && fa.length === 1 && fa[0][1] === 20, { choix, fa, tm2 });
+    else v('N10b validée avec « Refacturer », sans facture préparée : le message dit d’ajouter la ligne à la main', /à la main/.test(tm2), tm2);
+    await clic('#toast button'); await L.calme(p, 400);
+    if (choix.fac) { const fa2 = await E(i => lignesDe(FACTURES.find(x => x.id === i)).filter(l => /Frais engagés/.test(l.d)).length, choix.fac); v('N10c « Annuler » retire la ligne « Frais engagés » de la facture', fa2 === 0, fa2); } }
   // ── N11 remboursement avec la paie : par personne, au centime, et le lien mène à la paie ─────────────────────────
   await clic('[data-ac^="ndfok"] >> nth=0'); await L.calme(p, 300);
   const val = await E(() => { const par = {}; NDF.filter(n => n.etat === 'validee').forEach(n => { par[n.qui] = r2(((par[n.qui] || 0) + n.ttc)); }); function r2(x) { return Math.round(x * 100) / 100; } return par; });
