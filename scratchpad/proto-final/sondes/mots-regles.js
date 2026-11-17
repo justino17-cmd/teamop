@@ -49,7 +49,8 @@ exports.controler = (texte, opt) => {
     if (r.ou === 'texte' && attribut) continue;   // les attributs (lus à voix haute, infobulles) ne passent pas par la typographie de l’écran
     const m = corps.match(r.re) || (r.extra && corps.match(r.extra)); if (m) tombes.push({ regle: r.id, extrait: m[0], pourquoi: r.pourquoi });
   }
-  const long = corps.split(/\s+/).length; if (!attribut && long > exports.MOTS_MAX && !/[·→]\s.*[·→]/.test(corps) && !/^\d/.test(corps)) tombes.push({ regle: 'phrase-longue', extrait: long + ' mots', pourquoi: 'plus de ' + exports.MOTS_MAX + ' mots : à relire, à couper' });
+  // une PHRASE trop longue (pas un bloc de plusieurs phrases) : on coupe sur le point, ?, !, … suivi d'une majuscule ou d'une puce
+  if (!attribut && !/^\d/.test(corps) && !/[·→]\s.*[·→]/.test(corps)) { const plus = corps.split(/(?<=[.!?…])\s+(?=[A-ZÉÈÀ«•(])/).map(x => x.trim().split(/\s+/).length).reduce((a, b) => Math.max(a, b), 0); if (plus > exports.MOTS_MAX) tombes.push({ regle: 'phrase-longue', extrait: plus + ' mots', pourquoi: 'une phrase de plus de ' + exports.MOTS_MAX + ' mots : à relire, à couper' }); }
   if (opt.role === 'client' && TU.test(corps) && !exports.POUR_UN_AUTRE.test(corps)) tombes.push({ regle: 'tutoiement-client', extrait: (corps.match(TU) || [''])[0], pourquoi: 'le client est vouvoyé' });
   if (opt.role && opt.role !== 'client' && VOUS.test(corps) && !exports.POUR_UN_AUTRE.test(corps) && !exports.ou(opt.ou || '')) tombes.push({ regle: 'vouvoiement-equipe', extrait: (corps.match(VOUS) || [''])[0], pourquoi: 'on se tutoie dans l’application' });
   const laisses = exports.laisses(); return tombes.filter(x => !laisses.some(l => l.texte && corps.includes(l.texte) && (!l.regle || l.regle === x.regle)));
