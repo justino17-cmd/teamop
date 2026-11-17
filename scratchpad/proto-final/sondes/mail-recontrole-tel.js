@@ -92,7 +92,7 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
       await lib.aller(p, 'accueil'); await p.waitForTimeout(500);
       await S(c, () => courrierOuvrir('m2')); await p.waitForTimeout(1500);
       const lien = await S(c, () => ({ r:route, sujet:(R().querySelector('.rsubj') || {}).textContent || '' }));
-      v('telephone-02 (collatéral) : « courrierOuvrir » depuis l\'Accueil ouvre BIEN le courriel demandé dans la Boîte mail', lien.r === 'boiteMail' && lien.sujet.length > 3, lien);
+      v('telephone-02 (collatéral) : « courrierOuvrir » depuis l\'Accueil ouvre BIEN l’e-mail demandé dans la Boîte mail', lien.r === 'boiteMail' && lien.sujet.length > 3, lien);
       v('aucune erreur JavaScript (historique)', c.err.length === 0, c.err.slice(0, 3));
       await fin(c);
     });
