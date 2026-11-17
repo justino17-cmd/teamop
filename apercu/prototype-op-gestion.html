@@ -531,13 +531,22 @@ html .ms-pied-f{align-items:center;justify-content:space-between}html .ms-pied-f
   html .ms-tete{flex-wrap:wrap;align-items:flex-end;gap:8px}html .ms-tete>div:first-child{flex:0 0 auto}html .ms-tete>div:first-child>.gris{display:none}   /* le titre est court : le bouton tient à côté de lui */
   html .ms-tete .actions{display:contents}html .ms-tete .actions .btn:first-child{flex:1 1 150px}
   html .ms-tete .ms-plusb{flex:none;width:46px;padding:0;font-size:0}html .ms-tete .ms-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
-  html .ms-bd{width:100%}html .ms-bd .btn{flex:1}
+  html .ms-bd{width:100%}html .ms-bd .btn{flex:1}html .ms-bandeau{padding:10px 14px}html .ms-bandeau .dv-tache{gap:8px 10px}
+  html .ms-kpis{gap:8px}html .ms-kpis .kpi{min-height:0;padding:10px 10px}html .ms-kpis .kpi span{font-size:13px}
+  html .ms-seg{margin:0}
   html .ms-l{gap:12px;padding:10px 6px;min-height:64px}html .ms-l .fo-dr b{font-size:18px}html .ms-l .fo-dr{max-width:48%}
   html .ms-cherche .btn{padding:0 14px}
   html .ms-ev{align-items:flex-start}html .ms-evb{width:100%}html .ms-evb .btn{flex:1}
   html .ms-g{flex-wrap:wrap;gap:6px 12px;padding:10px 6px}html .ms-g>.fo-n{flex:1 1 0}html .ms-g .fo-dr{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px 10px;max-width:100%;padding-left:44px}
   html .ms-boutons .btn{flex:1 1 96px}
 }
+/* sous 380 px le bouton noir ne tient plus à côté du titre : deux rangées (titre et « ⋯ », puis le bouton en pleine largeur), comme Dépôts */
+@media (max-width:380px){
+  html .ms-tete{display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:end;gap:8px}html .ms-tete>div:first-child{grid-column:1;grid-row:1}
+  html .ms-tete .actions{display:contents}html .ms-tete .ms-plusb{grid-column:2;grid-row:1}html .ms-tete .actions .btn:first-child{grid-column:1/-1;grid-row:2;width:100%;min-height:48px}
+  html .ms-l .fo-dr{max-width:44%}
+}
+@media (max-width:340px){html .ms-ic{display:none}html .ms-l{gap:10px}}
 /* ── boxes ── */
 .bxl-c{gap:8px}
 .bxl-main{display:flex;flex-direction:column;gap:10px;text-align:left;background:none;border:0;padding:0;margin:0;color:var(--encre);font:inherit;cursor:pointer;width:100%;min-width:0;border-radius:12px}
@@ -8373,7 +8382,7 @@ function prFormulaire(x, pack, cat){
     <div class="deux-champs"><label class="champ">Référence<input id="pr-ref" value="${esc(x ? x.ref : '')}"></label><label class="champ">Fournisseur<input id="pr-four" list="fo-dl" value="${esc(x ? x.four : '')}" autocomplete="off"><datalist id="fo-dl">${MES_FOURN.map(f => `<option value="${esc(f.nom)}">`).join('')}</datalist></label></div>
     <div class="trois-champs"><label class="champ">En stock<input id="pr-q" inputmode="decimal" value="${x ? prNum(x.q) : '0'}" ${x ? 'readonly aria-readonly="true" style="opacity:.7"' : ''}></label><label class="champ">Unité<input id="pr-u" data-pru="1" value="${esc(x ? x.u : 'u')}"></label><label class="champ">Alerte à<input id="pr-seuil" inputmode="decimal" value="${x ? prNum(x.seuil) : '0'}"></label></div>
     <div class="trois-champs"><label class="champ">Achat HT (€)<input id="pr-pa" inputmode="decimal" value="${x && x.pa ? prNum(x.pa) : ''}"></label><label class="champ">Vente HT (€)<input id="pr-pv" inputmode="decimal" value="${x && prVend(x) ? prNum(x.pv) : ''}" placeholder="vide = matériel"></label><label class="champ">TVA<select id="pr-tva">${[20, 10, 5.5].map(t => `<option value="${t}" ${(x ? x.tva : 20) == t ? 'selected' : ''}>${prNum(t)} %</option>`).join('')}</select></label></div>
-    <span class="gris petit">Sans prix de vente, l’article est du matériel de l’équipe : suivi, jamais facturé.${x ? ' Le stock se change par une entrée, une sortie, un transfert ou un inventaire (menu Stock).' : ''}</span>
+    <span class="gris petit">Sans prix de vente, l’article est du matériel de l’équipe : suivi, jamais facturé.${x ? ' Pour changer le stock, touche « Mettre à jour le stock » dans la page Stock.' : ''}</span>
     <div class="actions"><button type="button" class="btn" data-pr="garder|${x ? x.id : ''}">${x ? 'Enregistrer' : 'Ajouter'}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
 const prLire = id => { const v = document.getElementById(id).value.trim().replace(',', '.'); return v === '' ? null : parseFloat(v); };
@@ -14010,7 +14019,7 @@ function pdxDoublon(){   // un article actif qui porte le même nom (ou la même
 function pdxDoublonVue(){
   const d = pdxDoublon(), z = pdxEl('pdx-dup'), b = document.querySelector('[data-pr^="garder|"]'); if (!z) return;
   if (!d) { z.innerHTML = ''; z.hidden = true; if (b) { b.disabled = false; b.removeAttribute('title'); } const n0 = pdxEl('pdx-dupn'); if (n0) n0.remove(); return; }
-  z.hidden = false; z.innerHTML = `<span class="pdx-dupt"><b>Existe déjà</b> : ${esc(d.nom)} (${esc(PACKS[d.p] ? PACKS[d.p].nom.split(' /')[0].toUpperCase().slice(0, 5) : '')}, ${prNum(d.q)} ${esc(prU(d.q, d.u))}). Une seule fiche par article garde le stock et les commandes ensemble.</span> <button type="button" class="lien" data-pdx="dupfiche|${d.id}">Ouvrir sa fiche</button>`;
+  z.hidden = false; z.innerHTML = `<span class="pdx-dupt">Il existe déjà « ${esc(d.nom)} » (il en reste ${prNum(d.q)} ${esc(prU(d.q, d.u))}). Une seule fiche par article garde le stock et les commandes ensemble.</span> <button type="button" class="lien" data-pdx="dupfiche|${d.id}">L’ouvrir</button>`;
   if (b) { b.disabled = true; b.title = 'Cet article existe déjà'; let n1 = pdxEl('pdx-dupn'); if (!n1) { n1 = document.createElement('span'); n1.id = 'pdx-dupn'; n1.className = 'gris petit'; n1.style.cssText = 'flex:1 1 100%'; b.insertAdjacentElement('beforebegin', n1); } n1.textContent = 'Cet article existe déjà : ouvre sa fiche plutôt que d’en créer une autre.'; }
 }
 /* le fournisseur le plus fréquent de la catégorie ; l'alerte que prennent les autres articles de la catégorie */
@@ -14049,7 +14058,7 @@ function pdxFormApres(x){
   if (ligneP) ligneP.insertAdjacentHTML('afterend', '<div id="pdx-prop" class="pdx-prop" hidden></div>');
   const note = [...p.querySelectorAll('.gris.petit')].find(e => /^Sans prix de vente/.test(e.textContent.trim()));
   if (note) { note.className = 'gris petit pdx-natnote'; note.textContent = ''; note.insertAdjacentHTML('afterend', '<span class="gris petit" id="pdx-hab"></span>'); }
-  if (note && x) note.insertAdjacentHTML('afterend', '<span class="gris petit">Le stock se change par une entrée, une sortie, un transfert ou un inventaire (menu Stock).</span>');
+  if (note && x) note.insertAdjacentHTML('afterend', '<span class="gris petit">Pour changer le stock, touche « Mettre à jour le stock » dans la page Stock.</span>');
   pdxNature(vend ? 'vente' : 'mat'); pdxDoublonVue(); pdxProposer();
 }
 (() => { const o = prFormulaire; prFormulaire = function(x, pack, cat){ const r = o.apply(this, arguments); pdxFormApres(x); return r; }; })();
@@ -14840,7 +14849,7 @@ mvLigne = function(m, att){
 function sxExport(){
   const tot = LIEUX.map(l => [l, lieuValeur(l.id)]), n = sxMvVisibles().length;
   ouvrirPanneau(`<span class="surtitre">Stock</span><h2>Exporter</h2><span class="gris">Pour ta comptable ou ton expert-comptable. Ici le fichier est simulé : rien n’est téléchargé.</span>
-    <div class="carte"><h3>Le journal affiché</h3><span class="gris petit">${sxPl(n, 'ligne')} avec la période et la personne choisies : date, article, quantité, lieu, personne, valeur.</span><div class="actions" style="margin-top:8px"><button type="button" class="btn" data-sx="expok|csv">Exporter en tableur (CSV)</button></div></div>
+    <div class="carte"><h3>Le journal affiché</h3><span class="gris petit">${sxPl(n, 'ligne')} avec la période et la personne choisies : date, article, quantité, lieu, personne, valeur.</span><div class="actions" style="margin-top:8px"><button type="button" class="btn" data-sx="expok|csv">Exporter en tableur (simulé)</button></div></div>
     <div class="carte"><h3>Le stock valorisé au ${dFr(AUJ)}</h3>${tot.map(([l, v]) => `<div class="ligne"><span>${esc(l.nom)}</span><b>${eur(v)}</b></div>`).join('')}<div class="ligne"><span><b>Total (prix d’achat HT)</b></span><b>${eur(tot.reduce((s, o) => s + o[1], 0))}</b></div>
       <div class="actions" style="margin-top:8px"><button type="button" class="btn gris" data-sx="expok|pdf">Exporter en PDF</button></div><span class="gris petit">La valeur du stock se retient avec ta comptabilité : à vérifier avec ton expert-comptable.</span></div>`);
 }
@@ -14865,12 +14874,6 @@ function sxDotOk(){
   const m = lieuManques(l.id); rendre();
   sxToast(`Dotation de ${esc(l.nom)} enregistrée${m.length ? ' : ' + sxPl(m.length, 'article') + ' à remettre à bord' : ''}.`, m.length ? { lib:'Réassort', fn:() => stkReassort(l.id) } : null, snap, 'la dotation de ' + l.nom);
 }
-const sxLieuFiche0 = lieuFiche;
-lieuFiche = function(id){
-  sxLieuFiche0.apply(this, arguments); const p = document.querySelector('#calque .panneau'), a = p && p.querySelector('.actions'), l = lieu(id); if (!a) return;
-  a.insertAdjacentHTML('beforeend', `<button type="button" class="btn gris" data-sx="entree|${id}">Entrée</button>${l.type === 'vehicule' ? `<button type="button" class="btn gris" data-sx="dot|${id}">Dotation</button>` : ''}`);
-  const j = sxJoursInv(id), dd = sxDernierInv(id); a.insertAdjacentHTML('afterend', `<div class="gris petit" style="margin-top:6px">${dd ? 'Dernier comptage : le ' + jCourt(dd) + ' (il y a ' + j + ' jour' + (j > 1 ? 's' : '') + ')' : 'Jamais compté.'}</div>`);
-};
 
 /* « Utilisé 0 intervention » ignorait les sorties « chez le client » : on les compte aussi, sans doubler une intervention déjà comptée par ses pièces */
 function sxIntsEnPlus(x, n){
@@ -14977,7 +14980,7 @@ const msLieuxDe = x => [['atelier', stkAt(x, 'atelier')], ...Object.entries(x.lo
 function matLigneArticle(x, lf){
   const L = msLieuxDe(x), e = matEtat(x), l = lf && lf !== 'tous' ? lieu(lf) : null, cible = l && l.dot && DOTATION[l.dot] ? DOTATION[l.dot][x.id] : 0;
   const sous = l ? (stkAt(x, lf) > 0 ? `Il y en a aussi ${L.filter(([k]) => k !== lf).slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') || 'nulle part ailleurs'}` : (L.length ? `Pas ici · ${L.slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ')}` : 'Il n’y en a nulle part'))
-    : L.slice(0, 3).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') + (L.length > 3 ? ` · +${L.length - 3} lieu${L.length > 4 ? 'x' : ''}` : '') || 'Nulle part pour l’instant';
+    : L.slice(0, innerWidth <= 380 ? 2 : 3).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') + (L.length > (innerWidth <= 380 ? 2 : 3) ? ` · +${L.length - (innerWidth <= 380 ? 2 : 3)} lieu${L.length - (innerWidth <= 380 ? 2 : 3) > 1 ? 'x' : ''}` : '') || 'Nulle part pour l’instant';
   const q = l ? (cible ? `${prNum(stkAt(x, lf))} sur ${prNum(cible)}` : sxQte(stkAt(x, lf), x)) : sxQte(x.q, x);
   return `<button type="button" class="sk-l ms-l" data-pr="fiche|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="fo-dr"><b>${q}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</span></button>`;
 }
@@ -15412,7 +15415,7 @@ document.addEventListener('click', ev => {
   if (a === 'tjuste') { const l = lieu(invLieu); PRODUITS.filter(p => !p.retire && (stkAt(p, l.id) > 0 || (l.dot && DOTATION[l.dot] && DOTATION[l.dot][p.id]))).forEach(p => { if (INV[p.id] == null) INV[p.id] = stkAt(p, l.id); }); return rendre(); }
   if (a === 'invgrp') { SX.invGrp = !SX.invGrp; return rendre(); }
   if (a === 'mvexp') return sxExport();
-  if (a === 'expok') { fermerPanneau(); return toast(x === 'csv' ? `Fichier préparé (simulé) : mouvements-stock.csv, ${sxPl(sxMvVisibles().length, 'ligne')}.` : x === 'reg' ? 'Registre des fluides préparé en PDF (simulé).' : `PDF préparé (simulé) : stock valorisé au ${dFr(AUJ)}, par lieu.`); }
+  if (a === 'expok') { fermerPanneau(); return toast(x === 'csv' ? `Tableur préparé (simulé) : historique-du-stock, ${sxPl(msMvVisibles().faits.length, 'ligne')}.` : x === 'reg' ? 'Registre des fluides préparé en PDF (simulé).' : `PDF préparé (simulé) : stock valorisé au ${dFr(AUJ)}, par lieu.`); }
   if (a === 'annuler') { const D = SX.dernier; return D ? sxAnnule(D.photo, D.lib, D.sig) : undefined; }
   if (a === 'dot') return sxDot(x);
   if (a === 'dx') { SX.D.lignes.splice(+x, 1); return foGarder(sxDotVue); }
@@ -21681,24 +21684,22 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
 
 immChap('stock', 'stock', 'Stock', 'Le stock : ce que tu as, et où',
   'Le stock, c’est ce que tu as, et où il se trouve : à l’atelier, dans chaque camion, dans les réserves chez les clients. Il te dit aussi ce qui manque, et c’est toi qui valides ce que les techniciens déclarent.', [
-  { c:'#contenu .sx-afaire', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, tu tombes sur « À faire maintenant » : deux gestes de techniciens à valider, et trois camions à compléter. Chaque ligne a son bouton. Les autres choses arrivent ensuite, quand celles-ci sont faites.' },
-  { c:'#contenu .sk-lieux', t:'Chaque lieu a sa carte', p:'Ici, chaque endroit où tu gardes du stock : l’atelier, les quatre camions et une réserve chez un client. Chaque carte dit combien d’articles, ce que ça vaut, et ce qui manque à bord.' },
-  { c:'#contenu .sk-liste', t:'Les alertes de seuil', p:'La liste range les articles par état : épuisé d’abord, puis à commander. Chaque article a un seuil d’alerte, et dès que le stock passe dessous, il change d’état. Chaque ligne dit aussi où se trouve l’article.' },
-  { c:'#contenu .tete .actions', t:'Quatre gestes en haut', p:'Quatre boutons en haut. Sortie, pour sortir un article. Transfert, pour le déplacer d’un lieu à un autre. Entrée, pour ranger un arrivage. Et Réassort, pour remplir les camions. Je commence par une sortie.',
-    jouer:() => { immStockRegler(); immClic('[data-sk="sortie|"]'); } },
-  { c:'#calque .panneau', t:'Une sortie dit qui prend quoi', p:'Je choisis le lieu, ici l’atelier, puis l’article, pour qui, et pourquoi. Par exemple un filtre à charbon, donné à Karim. Chaque sortie dit qui a pris quoi : c’est la trace du stock.',
-    jouer:() => { immEcrire('[data-skadd]', 'p1'); immStockPlus(() => { immEcrire('[data-skf="pourQui"]', 'kb'); immStockPlus(() => immEcrire('[data-skf="motif"]', 'Donné à un collègue'), 250); }, 250); } },
-  { c:'[data-sk="fok"]', t:'Je valide la sortie', p:'Je touche Sortir. Le stock baisse tout de suite, un bon de remise est fait pour Karim, et un bouton Annuler reste proposé quelques secondes si je me suis trompé.',
-    jouer:() => { immClic('[data-sk="fok"]'); immStockToast(); } },
-  { c:'[data-sk="reassort"]', t:'Remplir les camions', p:'Le réassort complète les camions : chacun doit toujours avoir à bord une dotation, et le logiciel calcule ce qui manque. Je touche Réassort des camions.',
-    jouer:() => immClic('[data-sk="reassort"]') },
-  { c:'#calque .panneau', t:'Tu coches, il transfère', p:'Voilà ce qui manque à chaque camion, pris à l’atelier, une case par ligne. Le camion de Tom est au garage : ses lignes sont décochées, on ne le remplit pas d’office. Je touche Transférer la sélection.',
-    jouer:() => { immClic('#bxl-rok'); immStockToast(); } },
-  { c:'#contenu .sx-afaire', t:'Les camions sont remplis', p:'Les camions de Sophie et de Karim ont quitté la liste : ils sont complets, et les techniciens sont prévenus. Celui de Tom, au garage, attend son retour. Il reste les gestes des techniciens : je touche Valider.',
-    jouer:() => immClic('[data-sk="onglet|valider"]') },
-  { c:'#contenu .sk-liste', t:'Ce que déclarent les techniciens', p:'Voilà ce que Tom et Sophie ont déclaré depuis leur écran Mon camion. Rien ne bouge avant ton accord : chaque ligne dit ce qui restera en stock, et tu peux Valider, ou Refuser avec un motif. Je touche Tout valider.',
-    jouer:() => { immClic('[data-sx="toutval"]'); immStockToast(); } },
-  { c:'#contenu .sk-liste', t:'Tout est à jour', p:'Plus rien n’attend. Les stocks ont bougé et les techniciens sont prévenus. Tu peux annuler un geste juste après. Le Stock est relié à Dépôts et camions, pour compter les lieux, et aux Produits, pour commander ce qui manque.',
+  { c:'[data-vis="stock-envois"]', t:'D’abord, ce qui t’attend', p:'En ouvrant le Stock, une seule ligne te dit ce qui attend ton accord : ici, deux envois de techniciens. Rien ne sort du stock tant que tu n’as pas accepté.' },
+  { c:'[data-vis="stock-tuiles"]', t:'Trois chiffres qui mènent quelque part', p:'Ce qu’il y a à commander, les livraisons attendues, et ce qui manque dans les camions. Chaque tuile se touche et t’emmène là où tu agis. Quand tout est en règle, le chiffre passe au vert.' },
+  { c:'[data-vis="stock-liste"]', t:'Ce qu’il faut surveiller', p:'La liste commence par ce qui demande ton attention : ce qui est déjà commandé, ce qui n’est plus en stock, ce qui est bientôt fini. Chaque ligne dit où est l’article et combien il y en a. Tape un nom dans la recherche pour le retrouver.' },
+  { c:'[data-vis="stock-maj"]', t:'Un seul bouton pour dire ce qui s’est passé', p:'Sortir, ranger, déplacer, compter : tout passe par « Mettre à jour le stock ». Je le touche.',
+    jouer:() => { immStockRegler(); immClic('[data-ms="maj"]'); } },
+  { c:'[data-vis="stock-maj-liste"]', t:'Quatre verbes, ceux de l’atelier', p:'Je choisis ce que je veux faire. Je commence par sortir quelque chose du stock.',
+    jouer:() => immClic('#calque [data-ms="q|sortir"]') },
+  { c:'#calque .panneau', t:'Une sortie dit qui prend quoi', p:'Je choisis l’article, par exemple un filtre à charbon, et pour qui : ici un collègue, Karim. Une phrase en bas redit ce que je note, et le bouton dit pourquoi il est grisé tant qu’il manque quelque chose.',
+    jouer:() => { immClic('[data-ms="gpour|collegue"]'); immStockPlus(() => { immEcrire('#calque [data-msg="collegue"]', 'kb'); immStockPlus(() => { const e = gdQ('#msg-q'); if (e) { e.value = 'filtre à charbon'; e.dispatchEvent(new Event('input', { bubbles:true })); } immStockPlus(() => immClic('#calque [data-ms^="gajoute|"]'), 250); }, 250); }, 250); } },
+  { c:'[data-ms="genvoyer"]', t:'Je note la sortie', p:'Je touche « Noter ». Le stock baisse tout de suite, un bon de remise est fait pour Karim, et « Annuler » reste proposé huit secondes si je me suis trompé.',
+    jouer:() => { immClic('[data-ms="genvoyer"]'); immStockToast(); } },
+  { c:'[data-vis="stock-envois"]', t:'Les envois des techniciens', p:'Voilà ce que Tom et Sophie ont noté depuis leur écran Mon camion. Je touche « Voir » pour lire chaque envoi en une phrase, avec ce qu’il restera en stock.',
+    jouer:() => immClic('[data-ms="envois"]') },
+  { c:'[data-vis="stock-envois-liste"]', t:'Accepter, ou refuser en disant pourquoi', p:'Chaque envoi se lit en une phrase. Tu acceptes, ou tu refuses avec une raison que le technicien lira. Je touche « Tout accepter ».',
+    jouer:() => { immClic('#calque [data-ms="toutacc"]'); immStockToast(); } },
+  { c:'[data-vis="stock-liste"]', t:'Tout est à jour', p:'Plus rien n’attend. Les stocks ont bougé et les techniciens sont prévenus. Tu peux défaire un geste juste après, ou lire tout ce qui s’est passé dans « Ce qui a bougé ». Les camions à remplir se voient dans Dépôts et camions, ce qu’il faut commander dans Fournisseurs, matériel & produits.',
     jouer:() => immStockFin() }], {});
 
 immChap('boxes', 'boxes', 'Dépôts et camions', 'Dépôts et camions : tes lieux de stock',

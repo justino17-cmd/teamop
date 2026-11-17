@@ -24,6 +24,17 @@ const M = [
   ['12 · la ligne grise « Envoyé au bureau » ne remplace plus le bouton', "return e ? `<div class=\"mc-l envoye\">", "return false ? `<div class=\"mc-l envoye\">", [['camion']]],
   ['13 · le technicien n\'a plus la phrase du garage', "${g ? '<div class=\"info petit mc-garage\">Ton camion est au garage.</div>' : ''}", "", [['camion']]],
   ['14 · le conteneur réservé à la partie Véhicule disparaît', "<div id=\"mc-vehicule\" data-vis=\"camion-vehicule\"></div>", "", [['camion']]],
+  // ── Lot 2 : Stock ──
+  ['18 · un comptage qui trouve un écart NÉGATIF ne s\'enregistre plus (« > 0 » au lieu de « !== 0 »)', "(stkAppliquer(m) !== 0 ? (MVTS.unshift(m), 'applique') : 'rien')", "(stkAppliquer(m) > 0 ? (MVTS.unshift(m), 'applique') : 'rien')", [['stock-gestes']]],
+  ['19 · le bureau perd la route Stock (l\'ancienne liste de ses routes)', "ROLES.gestion.routes.push('stock', 'produits');", "ROLES.gestion.routes.push();", [['stock-roles']]],
+  ['20 · le bureau peut accepter ce que les techniciens notent', "const msAccepte = () => rlPermis('stockAccepter'),", "const msAccepte = () => true,", [['stock-roles']]],
+  ['21 · le bandeau « envois à accepter » ne regarde plus qui peut accepter', "if (!STK_VALID || !MVTS_ATT.length || !msAccepte()) return '';", "if (!STK_VALID || !MVTS_ATT.length) return '';", [['stock-roles']]],
+  ['22 · la tuile « manquent dans les camions » compte des camions et non des articles', "cam = camionsARemplir().n;", "cam = camionsARemplir().camions.length;", [['stock-coherence']]],
+  ['23 · « Annuler » ne retire plus le ticket rangé dans les achats (la photo du stock oublie ACHATS)', "dem:DEM_ACHAT.slice(), ach:ACHATS.slice(), dot:", "dem:DEM_ACHAT.slice(), dot:", [['stock-gestes']]],
+  ['24 · le menu Plus reparle de « mouvements » (l\'ancien lexique)', "l:'Exporter l’historique'", "l:'Exporter les mouvements'", [['stock-mots']]],
+  ['25 · le message d\'une sortie pour un collègue montre le numéro du bon AVEC son préfixe BR-', "' · bon de remise ' + esc(matNumAff(br))", "' · bon de remise ' + esc(br)", [['stock-gestes']]],
+  ['26 · la fiche d\'article laisse le bureau changer le prix de VENTE (champ plus grisé)', "${msPrixVente() ? '' : 'disabled'}", "", [['stock-roles']]],
+  ['27 · les trois choix « Pour qui ? » ne passent plus à la ligne (ils sortent de la feuille à 320 px)', "html .ms-seg2 button{flex:1 1 0;min-width:0;white-space:normal;", "html .ms-seg2 button{flex:1 1 0;min-width:0;white-space:nowrap;", [['stock-appareils', 'petit']]],
   // ── Mise en page (sept profils) ──
   ['15 · le nom d\'un article long ne se coupe plus (la colonne de texte ne rétrécit pas)', "html .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-l>.fo-n>b{font-size:16px;overflow-wrap:anywhere}", "html .mc-l>.fo-n{flex:none}html .mc-l>.fo-n>b{font-size:16px;white-space:nowrap}", [['appareils', 'petit', 'iphone']]],
   ['16 · les boutons de ligne retombent sous le plancher du doigt', "html .mc-l .btn,html .mc-l .lien{min-height:44px;flex:none}", "html .mc-l .btn,html .mc-l .lien{min-height:28px;flex:none}", [['appareils', 'iphone']]],
