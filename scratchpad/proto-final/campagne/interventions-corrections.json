@@ -1,12 +1,98 @@
 [
- { "n":"interventions-01", "etat":"corrigé", "changement":"Ma journée : une intervention « À reprendre » n'offre plus « Commencer », « Y aller » ni « Appeler » ; un seul bouton gris « Voir » ouvre l'écran « À reprendre » (vueMaJournee).", "preuve":"à rejouer : interventions-parcours-suite.js (37 ✓ · 1 ✗, le seul ✗ est le 16 à soumettre)" },
- { "n":"interventions-02", "etat":"corrigé", "changement":"Intervention en garantie : la page du client dit « Aucune facture : cette intervention est prise en charge. » et le pied du PDF « Intervention prise en charge : aucune facture ne vous sera envoyée. »", "preuve":"interventions-parcours-suite.js" },
- { "n":"interventions-03", "etat":"corrigé", "changement":"« Nouveau client » de la fenêtre de création : même contrôle que la fiche client (téléphone et e-mail facultatifs mais justes), toast et curseur dans le champ fautif.", "preuve":"à rejouer : interventions-parcours-bureau.js" },
- { "n":"interventions-04", "etat":"corrigé", "changement":"Le haut du compte rendu PDF porte « Compte rendu d'intervention » ; le nom de la section (« Ce que nous avons fait »…) reste sur la section.", "preuve":"interventions-parcours-suite.js" },
- { "n":"interventions-05", "etat":"reporté", "changement":"Note « ton compte ne peut pas créer » sur Ma journée et la fiche de terrain : appartient à la refonte des droits d'Équipe (autre agent).", "preuve":"" },
- { "n":"interventions-06", "etat":"corrigé", "changement":"Liste des clients de la création : la pastille passe sous le nom quand la ligne est étroite, le texte garde au moins 200 px.", "preuve":"à rejouer : interventions-mise-en-page.js" },
- { "n":"interventions-07", "etat":"corrigé", "changement":"Mode application : plus de « Dans le prototype, côté bureau… » ni de « Recommencer » après la prise de rendez-vous du client ; reste « Voir au planning ».", "preuve":"interventions-parcours-suite.js" },
- { "n":"interventions-08", "etat":"corrigé", "changement":"« secteur — » devient « hors secteur » ; la création dit pourquoi le filtre par secteur n'est pas proposé.", "preuve":"à rejouer : interventions-parcours-bureau.js" },
- { "n":"interventions-09", "etat":"corrigé", "changement":"Pièces utilisées : la quantité ne se coupe plus (nowrap, bloc fixe), le nom passe à la ligne.", "preuve":"" },
- { "n":"interventions-10", "etat":"corrigé", "changement":"PDF en grand : boutons et croix à 44 px (croix qui ne s'écrase plus), bouton « Lire en grand » / « Voir la page entière » sur téléphone (feuille à 100 %, défilement) ; la feuille reste centrée, lisible depuis son bord gauche.", "preuve":"" }
+ {
+  "n": "interventions-01",
+  "etat": "corrigé",
+  "changement": "Ma journée : une intervention « À reprendre » n'offre plus « Commencer », « Y aller » ni « Appeler » ; un seul bouton gris « Voir » ouvre l'écran « À reprendre » (vueMaJournee).",
+  "preuve": "à rejouer : interventions-parcours-suite.js (37 ✓ · 1 ✗, le seul ✗ est le 16 à soumettre)"
+ },
+ {
+  "n": "interventions-02",
+  "etat": "corrigé",
+  "changement": "Intervention en garantie : la page du client dit « Aucune facture : cette intervention est prise en charge. » et le pied du PDF « Intervention prise en charge : aucune facture ne vous sera envoyée. »",
+  "preuve": "interventions-parcours-suite.js"
+ },
+ {
+  "n": "interventions-03",
+  "etat": "corrigé",
+  "changement": "« Nouveau client » de la fenêtre de création : même contrôle que la fiche client (téléphone et e-mail facultatifs mais justes), toast et curseur dans le champ fautif.",
+  "preuve": "interventions-parcours-bureau.js : contrôle 03 vert (41 ✓ · 1 ✗ avant la mise à jour de la sonde du 14)"
+ },
+ {
+  "n": "interventions-04",
+  "etat": "corrigé",
+  "changement": "Le haut du compte rendu PDF porte « Compte rendu d'intervention » ; le nom de la section (« Ce que nous avons fait »…) reste sur la section.",
+  "preuve": "interventions-parcours-suite.js"
+ },
+ {
+  "n": "interventions-05",
+  "etat": "reporté",
+  "changement": "Note « ton compte ne peut pas créer » sur Ma journée et la fiche de terrain : appartient à la refonte des droits d'Équipe (autre agent).",
+  "preuve": ""
+ },
+ {
+  "n": "interventions-06",
+  "etat": "corrigé",
+  "changement": "Liste des clients de la création : la pastille passe sous le nom quand la ligne est étroite, le texte garde au moins 200 px.",
+  "preuve": "interventions-mise-en-page.js petit jour : création, nouveau client, forfait, 61 ✓ · 0 ✗ (aucun texte écrasé, croix 44 px)"
+ },
+ {
+  "n": "interventions-07",
+  "etat": "corrigé",
+  "changement": "Mode application : plus de « Dans le prototype, côté bureau… » ni de « Recommencer » après la prise de rendez-vous du client ; reste « Voir au planning ».",
+  "preuve": "interventions-parcours-suite.js"
+ },
+ {
+  "n": "interventions-08",
+  "etat": "corrigé",
+  "changement": "« secteur — » devient « hors secteur » ; la création dit pourquoi le filtre par secteur n'est pas proposé.",
+  "preuve": "interventions-parcours-bureau.js : contrôle 08 vert"
+ },
+ {
+  "n": "interventions-09",
+  "etat": "corrigé",
+  "changement": "Pièces utilisées : la quantité ne se coupe plus (nowrap, bloc fixe), le nom passe à la ligne.",
+  "preuve": "interventions-mise-en-page.js petit jour : longues-fiche-tech et longues-fiche-bureau, quantité « 12 345,67 L » sur une ligne, aucun texte écrasé"
+ },
+ {
+  "n": "interventions-10",
+  "etat": "corrigé",
+  "changement": "PDF en grand : boutons et croix à 44 px (croix qui ne s'écrase plus), bouton « Lire en grand » / « Voir la page entière » sur téléphone (feuille à 100 %, défilement) ; la feuille reste centrée, lisible depuis son bord gauche.",
+  "preuve": "interventions-mise-en-page.js petit jour : client-voit-plein 0 ✗ ; capture regardée (croix en haut à droite, deux boutons pleine largeur, « Lire en grand »)"
+ },
+ {
+  "n": "interventions-11",
+  "etat": "corrigé",
+  "changement": "Pied de la page du client : le numéro d'entreprise reste d'un bloc et devient un lien « tel: » (zone de toucher agrandie sans bouger la ligne).",
+  "preuve": "interventions-mise-en-page.js : contrôle 11 vert sur client-voit-tel et client-voit-ordi"
+ },
+ {
+  "n": "interventions-12",
+  "etat": "corrigé",
+  "changement": "Une intervention « À planifier » dit « Date à fixer » dans la liste (tableau et cartes du téléphone), comme sa fiche.",
+  "preuve": "interventions-parcours-bureau.js : contrôle 12 vert"
+ },
+ {
+  "n": "interventions-13",
+  "etat": "corrigé",
+  "changement": "Croix de la fenêtre de création : flex-shrink:0, reste un rond de 44 × 44 px à 320 px.",
+  "preuve": "interventions-mise-en-page.js petit jour : création 0 ✗ (contrôle cibles ≥ 44 px)"
+ },
+ {
+  "n": "interventions-14",
+  "etat": "corrigé",
+  "changement": "Les trois messages fonctionnels (facture sans prix, adresse non reconnue, devis sans prix) passent de .bandeau-proto (caché par le mode application) à .bandeau-info, même habillage.",
+  "preuve": "sondes interventions-parcours-facture.js (14 ✓ visible) et interventions-parcours-bureau.js ; contre-épreuve CONTRE=1 cache .bandeau-info : le contrôle doit tomber"
+ },
+ {
+  "n": "interventions-15",
+  "etat": "corrigé",
+  "changement": "Facture préparée : une ligne ajoutée se nomme (champ désignation), prend sa quantité, se retire (« Retirer cette ligne ») ; tant qu'elle s'appelle « Ligne libre », « Aperçu et envoi » est grisé avec une phrase, et envoyerFacture / toutValider refusent.",
+  "preuve": "interventions-parcours-facture.js : 4 contrôles du 15 + capture fact-mac-4-ligne-libre regardée"
+ },
+ {
+  "n": "interventions-16",
+  "etat": "à soumettre à Justin",
+  "changement": "Décision de produit non prise : quelles suites un technicien peut déclencher (case générique « Autre passage » pour tout client, « Entretien annuel » jamais cochée d'office après un dépannage). Le contrôle reste rouge exprès.",
+  "preuve": "interventions-parcours-suite.js : interventions-16 ✗"
+ }
 ]
