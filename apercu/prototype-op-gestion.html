@@ -24773,9 +24773,17 @@ const cnxTete = () => `<span class="cn-logo" style="display:block;overflow:hidde
 function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEach(i => { const e = document.getElementById(i); if (e) e.innerHTML = ''; });
   const z = document.getElementById('cpsys'); if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } }   /* avant la connexion, ou après « Se déconnecter », rien de l'écran de la personne d'avant ne reste dans la page (« Bonjour Marc », montants) · coque-01 */
 (() => { const r0 = rendre; rendre = function(){ if (typeof MODE_APP !== 'undefined' && MODE_APP && !SESSION && document.getElementById('cnx')) { cnxVider(); return; } return r0.apply(this, arguments); }; })();   /* « Se déconnecter » change d'écran PAR une transition : le dessin de l'écran du gérant arrivait APRÈS le vidage, derrière la connexion — tant que personne n'est connecté, rien ne se dessine */
-/* « Revenir au mode test » : seulement quand on est entré par « Voir comme l'application » (jamais dans la coque, ni avec ?app=1) */
-const cnxTestLien = seul => APP_PAR_BOUTON ? (seul ? '<div class="cn-bas">' : '') + '<button type="button" class="cn-lien" data-cnx="test">Revenir au mode test</button>' + (seul ? '</div>' : '') : '';
-function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
+/* « Revenir au mode test » : seulement quand on est entré par « Voir comme l'application » (jamais dans la coque, ni avec ?app=1). Posé EN HAUT À GAUCHE, hors de la colonne :
+   en bas de l'écran il se trouvait à trois écrans de défilement sur un iPhone (carte, OP Security, démonstration), donc nulle part. Il suit tous les écrans de connexion
+   (les autres écrans de la suite le retirent et le reposent d'eux-mêmes : il n'est lié qu'à la présence de #cnx) et n'ajoute rien à la mise en page. */
+document.head.insertAdjacentHTML('beforeend', `<style id="cnx-test-css">
+#cnx-test{display:none;position:fixed;z-index:1001;top:calc(6px + env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));min-height:44px;padding:0 12px;border:0;border-radius:12px;background:none;color:var(--doux);font:inherit;font-size:14px;font-weight:600;align-items:center;gap:6px;cursor:pointer}
+body:has(#cnx) #cnx-test{display:inline-flex}
+#cnx-test:hover{color:var(--lien)}
+</style>`);
+function cnxTestPoser(){ document.getElementById('cnx-test')?.remove(); if (!APP_PAR_BOUTON) return;
+  document.body.insertAdjacentHTML('beforeend', '<button type="button" id="cnx-test" data-cnx="test"><span aria-hidden="true">‹</span> Revenir au mode test</button>'); }
+function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider(); cnxTestPoser();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
      sans le marquer « vu » : la personne le retrouvera à sa prochaine connexion · 14 novembre 2026 */
@@ -24788,7 +24796,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
       <p class="cn-err" id="cn-err" role="alert">${esc(err || '')}</p>
       <button type="submit" class="btn plein">Continuer</button>
     </form>
-    <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p>${cnxTestLien(true)}</div></div>`);
+    <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p></div></div>`);
     const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) { l.focus(); if (l.value) l.select(); } return; }   /* un lien refusé reste dans le champ, sélectionné : la personne le corrige au lieu de le recoller en entier */
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><div class="cn-col">${cnxTete()}
     <span class="cn-pastille"><span>✓ ${esc(ENTREPRISE.nom)} · lien vérifié</span></span>
@@ -24800,7 +24808,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
     </form>${cnxPastilleTel()}${cnxDemoCases()}
-    <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button><button type="button" class="cn-lien" data-cnx="quitter">Changer d’entreprise</button>${cnxTestLien()}</div></div></div>`);
+    <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button><button type="button" class="cn-lien" data-cnx="quitter">Changer d’entreprise</button></div></div></div>`);
   SECU.pc = { ecran:'connexion', k:null, demandeId:null }; opsMonter(); opsDessiner(true); cnxFauxMaj();
   const m = document.getElementById('cn-id'); if (m && !tel() && !window.Capacitor) (m.value ? document.getElementById('cn-mdp') : m).focus(); }
 const cnxDire = t => { const e = document.getElementById('cn-err'); if (!e) return; e.style.color = ''; e.textContent = ''; requestAnimationFrame(() => { e.textContent = t; }); };
