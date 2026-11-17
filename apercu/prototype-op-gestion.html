@@ -18648,7 +18648,7 @@ function entLiensLignes(){
 }
 function vueEntreprise(){
   const ro = !entModifiable(), M = entrepriseManque(), C = entEtatCartes(), liens = entLiensLignes(), L = cxMentionsManquantes();
-  const bandeau = M.length ? `<div class="ent-ban manque" role="status"><span>${ro ? 'Il manque ' + esc(entListe(M.map(m => m.le))) + ' sur la fiche de l’entreprise : une facture ne peut pas partir sans.' : 'Il manque ' + esc(entListe(M.map(m => m.toi))) + ' : une facture ne peut pas partir sans.'}</span>${ro ? '' : '<button type="button" class="btn" data-ent="completer">Compléter</button>'}</div>`
+  const bandeau = M.length ? `<div class="ent-ban attention" role="status"><span>${ro ? 'Il manque ' + esc(entListe(M.map(m => m.le))) + ' sur la fiche de l’entreprise : une facture ne peut pas partir sans.' : 'Il manque ' + esc(entListe(M.map(m => m.toi))) + ' : une facture ne peut pas partir sans.'}</span>${ro ? '' : '<button type="button" class="btn" data-ent="completer">Compléter</button>'}</div>`
     : `<div class="ok-bloc ent-ban" role="status"><span>${L.length ? 'Ta fiche est complète : tes factures peuvent partir. Il reste à compléter, dans tes mentions légales : ' + esc(entListe(L.map(x => x.replace(/ \(.*\)$/, '')))) + '.' : 'Ta fiche est complète : tes factures peuvent partir, et tes mentions légales sont en règle.'}</span></div>`;
   return `<div class="tete"><div><span class="surtitre">Personnel</span><h1>Mon entreprise</h1><span class="gris">Ce qui s’écrit sur tes factures, tes devis et tes courriels, et la façon dont tu travailles. Tu le règles une seule fois, ici.</span></div></div>
     ${bandeau}
@@ -18875,11 +18875,11 @@ function entRefusFacture(M, o){ toast(entMessageManque(M, o), entModifiable() ? 
 function entClientJoignable(id){ const c = CLIENTS[id]; return !!c && (typeof cfMailOk === 'function' ? cfMailOk(c.mail) : !!c.mail); }
 /* l'aperçu d'envoi dit le manque AVANT le bouton, et le remplace par « Compléter ma fiche » (ou par rien, pour qui ne peut pas la compléter) */
 (() => { const a0 = ACTIONS.apercuEnvoi; ACTIONS.apercuEnvoi = function (b) { const r = a0.apply(this, arguments), M = entrepriseManque(), P = document.querySelector('#calque .panneau'), env = P && P.querySelector('[data-action="envoyer"]');
-  if (M.length && env) env.outerHTML = `<div class="ent-ban manque" role="status"><span>${entMessageManque(M)}</span>${entModifiable() ? '<button type="button" class="btn" data-ent="completer">Compléter ma fiche</button>' : ''}</div>`;
+  if (M.length && env) env.outerHTML = `<div class="ent-ban attention" role="status"><span>${entMessageManque(M)}</span>${entModifiable() ? '<button type="button" class="btn" data-ent="completer">Compléter ma fiche</button>' : ''}</div>`;
   return r; }; })();
 /* un devis et un contrat ne sont pas bloqués (le devis n'engage pas) : le même message, en passant, sans empêcher */
 (() => { const d0 = dvEnvoyer; dvEnvoyer = function (x) { const r = d0.apply(this, arguments), M = entrepriseManque(), P = document.querySelector('#calque .panneau');
-  if (M.length && P && !P.querySelector('.ent-ban')) { const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="ent-ban manque" role="status"><span>${entMessageManque(M).replace(/ Ça prend trente secondes\.$/, '')} Le devis peut partir quand même.</span>${entModifiable() ? '<button type="button" class="btn gris" data-ent="completer">Compléter</button>' : ''}</div>`); }
+  if (M.length && P && !P.querySelector('.ent-ban')) { const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="ent-ban attention" role="status"><span>${entMessageManque(M).replace(/ Ça prend trente secondes\.$/, '')} Le devis peut partir quand même.</span>${entModifiable() ? '<button type="button" class="btn gris" data-ent="completer">Compléter</button>' : ''}</div>`); }
   return r; }; })();
 (() => { const c0 = ACTIONS.creerContrat; ACTIONS.creerContrat = function () { const n = CONTRATS.length, r = c0.apply(this, arguments), M = entrepriseManque(), t = document.getElementById('toast');
   if (CONTRATS.length > n && M.length && t) { t.insertAdjacentHTML('beforeend', `<span class="ent-toast-plus"> ${entMessageManque(M).replace(/ Ça prend trente secondes\.$/, '')}</span>`); if (entModifiable()) { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = 'Compléter'; bt.onclick = () => { t.classList.remove('on'); entCompleter(M); }; t.appendChild(bt); } }
@@ -18889,7 +18889,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-ban{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ent-ban > span{flex:1 1 240px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
 .ent-ban .btn{flex:none}
-.ent-ban.manque{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
+.ent-ban.attention{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 42%,transparent)}
 .bx-grille.ent-grille{grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))}
 .ent-c{min-width:0}
 .ent-c .bx-t{align-items:center}
