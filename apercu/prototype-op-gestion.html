@@ -4780,7 +4780,7 @@ function panneauReglagesRdv(){
     <div class="carte"><h3>Limites</h3>
       <label class="champ">Pas de demande avant<select data-rr="delai">${[0,1,2,3,5].map(n=>`<option value="${n}" ${R.delai===n?'selected':''}>${n ? n + ' jour' + (n>1?'s':'') : 'aujourd’hui'}</option>`).join('')}</select></label>
       <label class="champ">Jusqu’à<select data-rr="horizon">${[7,14,21,30].map(n=>`<option value="${n}" ${R.horizon===n?'selected':''}>${n} jours à l’avance</option>`).join('')}</select></label></div>
-    <div class="gris petit">Enregistré tout de suite. Pour les voir : « Ce que voit le client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
+    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention, touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
 }
 
 /* ══ FACTURES ══ */
