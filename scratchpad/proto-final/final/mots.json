@@ -181,6 +181,125 @@
    "apres": "C’est le gérant qui décide de ce réglage.",
    "raison": "un seul nom pour la personne qui dirige : gérant (menu, Équipe)",
    "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Planning › choisir une personne",
+   "avant": "`${L.length} int. · ${duree(mn)}`",
+   "apres": "`${L.length} ${L.length > 1 ? 'interventions' : 'intervention'} · ${duree(mn)}`",
+   "raison": "« int. » n’est pas un mot : une abréviation inventée",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Par type d’intervention",
+   "avant": "· ${x.n} int.${x.n ?",
+   "apres": "· ${x.n} ${x.n > 1 ? 'interventions' : 'intervention'}${x.n ?",
+   "raison": "« 5 int. » : une abréviation inventée",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Bilan PDF",
+   "avant": "<th>Moyen</th><th class=\"n\">Règl.</th>",
+   "apres": "<th>Moyen de paiement</th><th class=\"n\">Nombre</th>",
+   "raison": "« Règl. » est une abréviation de développeur ; « Moyen » seul ne dit pas de quoi",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › Bilan PDF",
+   "avant": "<th class=\"n\">Nb</th>",
+   "apres": "<th class=\"n\">Nombre</th>",
+   "raison": "« Nb » : une abréviation que l’artisan ne dit pas",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Tâches › en retard",
+   "avant": "` · ${-n} j de retard`",
+   "apres": "` · ${vxN(-n, 'jour')} de retard`",
+   "raison": "« 2 j de retard » : les jours s’écrivent en toutes lettres dans une phrase",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Contrats › échéance",
+   "avant": "'échu depuis ' + (-n) + ' j' : n === 0 ? 'aujourd’hui' : 'dans ' + n + ' j'",
+   "apres": "'échu depuis ' + vxN(-n, 'jour') : n === 0 ? 'aujourd’hui' : 'dans ' + vxN(n, 'jour')",
+   "raison": "« dans 61 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › à payer",
+   "avant": "échue depuis ' + -j + ' j'",
+   "apres": "échue depuis ' + vxN(-j, 'jour')",
+   "raison": "« échue depuis 2 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Comptabilité › à encaisser",
+   "avant": "échue depuis ${-j} j",
+   "apres": "échue depuis ${vxN(-j, 'jour')}",
+   "raison": "« échue depuis 2 j » : en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Typographie de tous les écrans",
+   "avant": "const typoTxt = s => s.replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0');",
+   "apres": "const typoTxt = s => s.replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0').replace(/(\\d) ([%€])/g, '$1\\u00a0$2');",
+   "raison": "« 10 % » et « 100 € » : l’espace avant % et € est insécable (le chiffre et son signe ne se séparent pas en fin de ligne)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Typographie du cadre Comptabilité",
+   "avant": "const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0');",
+   "apres": "const typoTxt = s => String(s).replace(/ ([:;?!»])/g, '\\u00a0$1').replace(/« /g, '«\\u00a0').replace(/(\\d) ([%€])/g, '$1\\u00a0$2');",
+   "raison": "idem, dans le cadre de la Comptabilité",
+   "fichier": "apercu/prototype-comptabilite.html"
+  },
+  {
+   "ecran": "Devis et contrats › fiche de l’interlocuteur",
+   "avant": "ch('mail','Courriel',",
+   "apres": "ch('mail','E-mail',",
+   "raison": "un seul mot pour un message électronique",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › parties",
+   "avant": "'Courriel : '+v(E.mail)",
+   "apres": "'E-mail : '+v(E.mail)",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › article de contact",
+   "avant": "ou par courriel à {{email}}",
+   "apres": "ou par e-mail à {{email}}",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Contrats › interlocuteur",
+   "avant": "Nom, fonction, téléphone et courriel",
+   "apres": "Nom, fonction, téléphone et e-mail",
+   "raison": "idem",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Tous les écrans (page) › courriel",
+   "avant": "« Voir le courriel », « Confier ce courriel », « Courriels · 3 »",
+   "apres": "« Voir l’e-mail », « Confier cet e-mail », « E-mails · 3 »",
+   "raison": "un seul mot pour un message électronique : « e-mail » (le menu dit « Boîte mail »)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Tous les écrans (courrier) › courriel",
+   "avant": "« Voir le courriel », « Confier ce courriel », « Courriels · 3 »",
+   "apres": "« Voir l’e-mail », « Confier cet e-mail », « E-mails · 3 »",
+   "raison": "un seul mot pour un message électronique : « e-mail » (le menu dit « Boîte mail »)",
+   "fichier": "apercu/prototype-courrier.js"
+  },
+  {
+   "ecran": "Absences et congés › soldes (phrases)",
+   "avant": "« 3 j aujourd’hui → 2 j après cette absence »",
+   "apres": "« 3 jours aujourd’hui → 2 jours après cette absence »",
+   "raison": "les jours en toutes lettres dans une phrase ; les tuiles et tableaux gardent « j »",
+   "fichier": "apercu/prototype-op-gestion.html"
   }
  ]
 }

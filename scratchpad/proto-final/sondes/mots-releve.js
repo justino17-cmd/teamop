@@ -35,7 +35,10 @@ const CLIQUER = ({ zone, s, i }) => { const R = document.querySelector(zone) || 
     e.scrollIntoView({ block: 'center' }); e.click(); return 'ok'; }
   return 'absent'; };
 // ── lecture du texte d'une zone : lignes visibles + attributs lisibles + options de listes + textes des feuilles du bas
-const LIRE = (zone) => { const R = document.querySelector(zone) || document.body; R.querySelectorAll('details').forEach(d => { d.open = true; });
+const LIRE = (zone) => { const R = document.querySelector(zone) || document.body;
+  /* un cadre caché (display:none) n'est pas rendu : son innerText rend alors TOUT le texte du document, scripts et feuilles de style compris — on ne le lit pas */
+  if (!R.getClientRects().length && R !== document.body) return { lignes: [], attrs: [] }; if (R === document.body && !document.documentElement.getClientRects().length) return { lignes: [], attrs: [] };
+  R.querySelectorAll('details').forEach(d => { d.open = true; });
   const lignes = (R.innerText || '').split('\n').map(x => x.replace(/[ \t\r\n\f\v]+/g, ' ').trim()).filter(Boolean), attrs = [];
   const vis = e => !!(e.offsetParent || getComputedStyle(e).position === 'fixed') && getComputedStyle(e).visibility !== 'hidden';
   for (const e of R.querySelectorAll('[aria-label],[title],[placeholder],[alt]')) { if (!vis(e)) continue; for (const a of ['aria-label', 'title', 'placeholder', 'alt']) { const v = (e.getAttribute(a) || '').replace(/[ \t\r\n\f\v]+/g, ' ').trim(); if (v) attrs.push(a + ' : ' + v); } }
