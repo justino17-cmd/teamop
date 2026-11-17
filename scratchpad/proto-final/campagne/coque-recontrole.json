@@ -1,0 +1,109 @@
+{
+ "partie": "coque",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  8,
+  9,
+  10,
+  11
+ ],
+ "pasRegles": [
+  {
+   "n": 7,
+   "constat": "Annoncé « reporté » (le guide sera refait) et toujours faux : coque-guide.js mac donne 106 ✓ · 10 ✗ (marc et julie : « Mouvements », « À valider », « Sortie » dans Stock ; « Bons de commande », « Commandes en cours » dans Fournisseurs, matériel et produits ne se lisent pas à l'écran), iphone marc,sm 60 ✓ · 5 ✗. Rien à corriger ici avant la refonte du guide ; à rejouer ensuite."
+  },
+  {
+   "n": 3,
+   "constat": "Réglé pour les 47 mots de la sonde, mais le vocabulaire d'un débutant en laisse 12 sans réponse pour le gérant (voir casses : voiture, essence, carburant, calendrier, rapport, photo, imprimer, export, relance, impayé, téléphone, coordonnées). Les huit clés ajoutées à PAL_MOTS sont justes ; la rubrique « vehicules » n'a pas ses mots cachés."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Un guide des nouveautés ouvert laisse N, C, D, A, ? et Ctrl+K ouvrir des fenêtres DERRIÈRE lui, et le focus part dans la fenêtre cachée",
+   "gravite": "gênant",
+   "etapes": "Mac, gérant. Ouvrir « Nouveautés » (menu) : le guide est devant (#nv, z-index 9500). Sans cliquer dans un champ, taper N. Mesuré (debug) : la fenêtre « Nouvelle intervention » (z-index 38) s'ouvre sous le guide, document.activeElement devient son champ (INPUT.saisie), et les touches suivantes (c, d, a, /) s'y écrivent sans que rien ne se voie ; en fermant le guide, une fenêtre jamais demandée apparaît. Ctrl+K : #pal (z-index 9200) s'ouvre sous le guide (elementFromPoint = #nv) et se pilote au clavier sans se voir (Échap la ferme bien).",
+   "constat": "Même famille que coque-10 (la recherche ouverte derrière le plein écran), corrigée seulement pour la Comptabilité : le gestionnaire de clavier (apercu/prototype-op-gestion.html ~24020) ne compte comme « ouvert » que '#calque .voile, .fen-voile, .ctx, #opdz:not([hidden]), #gd-bulle' ; #nv n'y est pas, ni #docplein (z-index 200, au-dessus de .fen-voile 38) ni #cx-vis (100000, au-dessus de #pal 9200), non rejoués faute d'avoir pu les ouvrir proprement. Correction proposée : ajouter #nv, #docplein, #cx-vis à la liste « ouvert » et refuser palOuvrir() quand l'un d'eux est ouvert. Sonde : coque-recontrole.js SECTION=c (3 ✗ avant correction).",
+   "decision": "à corriger"
+  },
+  {
+   "titre": "Recherche : douze mots courants du gérant ne mènent encore nulle part",
+   "gravite": "détail",
+   "etapes": "Mac, gérant, Ctrl+K puis taper : voiture, essence, carburant (Véhicules), calendrier (Planning), rapport, photo (Interventions), imprimer, export, relance, impayé (Comptabilité), téléphone, coordonnées (Clients).",
+   "constat": "« Rien ne correspond à … » sur 12 mots de 54 essayés (coque-recontrole.js SECTION=f). Ajouter à PAL_MOTS : vehicules:'véhicule voiture camion essence carburant plein', planning (+ calendrier), comptabilite (+ relance impayé), interventions (+ rapport photo), et les clients par téléphone/coordonnées si voulu.",
+   "decision": "à corriger"
+  },
+  {
+   "titre": "Recherche « auto » : un client (Garage Rochefort Auto) passe avant « Mode automatique »",
+   "gravite": "détail",
+   "etapes": "Ctrl+K, taper « auto », Entrée.",
+   "constat": "La première réponse est le client dont le nom contient « auto » ; Entrée ouvre sa fiche au lieu de rendre le mode automatique. Il suffit de taper « automatique » (vérifié). À classer : les réglages d'affichage avant les clients quand le mot est court, ou rien : à ta décision.",
+   "decision": "à soumettre"
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "coque-connexion.js (mac)",
+   "resultat": "40 ✓ · 0 ✗ (coque-01 et coque-02 passent ; elle ne meurt plus à secu-commun.js)"
+  },
+  {
+   "fichier": "coque-parcours.js (mac marc, iphone marc, android marc)",
+   "resultat": "34 ✓ · 0 ✗ ; 23 ✓ · 0 ✗ ; 23 ✓ · 0 ✗ (coque-08, 10, 11)"
+  },
+  {
+   "fichier": "coque-clavier.js (mac marc, windows julie)",
+   "resultat": "96 ✓ · 0 ✗ ; 76 ✓ · 0 ✗ (coque-03, 05, 06)"
+  },
+  {
+   "fichier": "coque-creation.js (mac marc, mac julie, iphone marc)",
+   "resultat": "15 ✓ ; 2 ✓ ; 15 ✓ — 0 ✗ (coque-09)"
+  },
+  {
+   "fichier": "coque-mode-adresse.js (mac marc, iphone sm)",
+   "resultat": "37 ✓ ; 29 ✓ — 0 ✗"
+  },
+  {
+   "fichier": "coque-menu.js (mac 4 rôles, iphone 4 rôles, ipad marc, android marc+sm nuit, windows marc+kb)",
+   "resultat": "23, 75/119, 30, 69, 43 ✓ — 0 ✗ partout"
+  },
+  {
+   "fichier": "coque-mise-en-page.js (iphone, petit nuit, android nuit, mac nuit, ipad, windows)",
+   "resultat": "49, 49, 49, 22, 36, 22 ✓ — 0 ✗"
+  },
+  {
+   "fichier": "coque-regard.js (petit, iphone nuit, windows)",
+   "resultat": "5, 5, 3 ✓ — 0 ✗"
+  },
+  {
+   "fichier": "coque-guide.js (mac 4 rôles ; iphone marc+sm)",
+   "resultat": "106 ✓ · 10 ✗ ; 60 ✓ · 5 ✗ — tous les ✗ sont coque-07 (guide, attendu)"
+  },
+  {
+   "fichier": "coque-client.js (mac, iphone)",
+   "resultat": "11 ✓ · 0 ✗ ; 13 ✓ · 1 ✗ (deux cibles de 40 px : « Apprendre » et « De A à Z », bande de revue du prototype nu, hors application, connu)"
+  },
+  {
+   "fichier": "coque-recontrole.js (nouvelle : sections a, b, d, e, f, g1, g2, g3)",
+   "resultat": "a 7 ✓ · b 18 ✓ · d 9 ✓ · e 9 ✓ (iphone et android) · g1 11 ✓ · g2 10 ✓ · g3 4 ✓ ; c : 4 ✓ · 3 ✗ (la casse ci-dessus) ; f : seuil de 12 mots tenu pour marc, les 30 et 42 mots « sans réponse » de julie et sm sont les rubriques qu'elles n'ont pas (rôle)."
+  }
+ ],
+ "parcours": [
+  "G1 iPhone gérant : feuille Menu, Comptabilité plein écran, « ‹ OP GESTION », onglet de la barre du bas, Nuit depuis la feuille, Nouveautés, ✕, Se déconnecter, reconnexion de la technicienne (sa barre du bas, mode nuit gardé) — 11 ✓",
+  "G2 ordinateur secrétariat : Ctrl+K « client » Entrée, N, ? (liste honnête), « nuit » puis « automatique » par la recherche, adresses #nimportequoi, #planning, #vehicules, Retour — 10 ✓",
+  "G3 iPad technicienne : une seule navigation, #comptabilite refusée avec sa phrase, déconnexion, reconnexion du gérant (menu complet) — 4 ✓"
+ ],
+ "doutes": [
+  "Le guide des nouveautés dit encore faux sur le matériel (Stock › Mouvements / À valider / Sortie, Bons de commande) : à refaire avec la refonte, la sonde coque-guide.js le dira quand ce sera juste.",
+  "Un guide ouvert devant l'application laisse le clavier agir derrière lui (voir casse 1) : correction à faire dans le gestionnaire de clavier ; je ne l'ai pas faite (recontrôle, aucune page modifiée).",
+  "« Rester connecté » n'existe plus sur l'écran de connexion (une session ne survit pas à un rechargement, voulu par OP Security) : à dire à Justin si sa liste en parlait encore.",
+  "Le champ Identifiant dit « Ton prénom » ; la règle est « prénom, ou prénom.nom si un homonyme existe » : un homonyme ne sait pas quoi taper.",
+  "Une secrétaire qui tape « heures » ou « planning » dans la recherche lit « Rien ne correspond » : c'est exact (ces rubriques sont fermées à son compte) mais le message ne le dit pas ; « fermé à ton compte » serait plus clair.",
+  "La pastille 📱 de la démonstration OP Security flotte sur ordinateur en bas à droite et recouvre le coin des fenêtres (vue sur capture du panneau des raccourcis) ; elle n'existera pas en vrai.",
+  "Non vérifié : Ctrl+K ou N devant la visionneuse de justificatif (#cx-vis) et le document en grand (#docplein) — je n'ai pas su les ouvrir par un geste fiable ; la lecture du code dit que le défaut est le même. Non vérifié aussi : trackpad Mac réel, clavier logiciel d'un vrai téléphone, vibration."
+ ]
+}

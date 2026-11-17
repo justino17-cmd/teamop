@@ -36,7 +36,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await L.toucher(c, '[data-paie="fiche|sm"]'); const doc = await p.evaluate(() => { const z = document.getElementById('docplein'); return z ? z.innerText.replace(/\s+/g, ' ').slice(0, 400) : ''; });
   v('F5 la fiche de Sophie s’ouvre en grand (« fiche de paie », son nom, le mois)', /Sophie Martin/.test(doc) && /octobre 2026/i.test(doc), doc.slice(0, 200)); await L.capture(c, X.CAP + `${profil}-paie-fiche-grand.png`);
   const lignes = await p.evaluate(() => { const z = document.getElementById('docplein'); return z ? z.innerText : ''; });
-  v('F5 la fiche ne parle pas de « Prototype » ni de « données fictives » à qui la reçoit', !/prototype|fictives|exemple/i.test(lignes), lignes.match(/[^\n]*(prototype|fictives|exemple)[^\n]*/i));
+  v('compta-reste-06 · F5 la fiche ne parle pas de « Prototype » ni de « données fictives » à qui la reçoit', !/prototype|fictives|exemple/i.test(lignes), lignes.match(/[^\n]*(prototype|fictives|exemple)[^\n]*/i));
   await p.evaluate(() => { try { docPleinFermer(); } catch (e) {} });
   // 6) valider, distribuer, écriture, DSN
   await L.toucher(c, '[data-paie="validerfiches"]'); v('F6 « Valider les 6 fiches » les fige', (await E()).valide);

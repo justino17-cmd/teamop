@@ -56,5 +56,35 @@ const L = require('../lib.js');
     v('geste 8 · remplir les camions : 3 touchers (' + m + ') depuis le menu — le menu, « Remplir les camions · ' + n0 + ' », « Tout mettre » — et ça ABOUTIT (' + n0 + ' → ' + n1 + ' à remplir, l\'atelier ' + tot0 + ' → ' + tot1 + ')', m === 3 && n1 < n0 && tot1 < tot0, [m, n0, n1]);
     v('… et le message propose Annuler, qui rend le chiffre d\'avant', /Annuler/.test(await q.evaluate(() => (document.getElementById('toast') || {}).textContent || '')) && (await q.evaluate(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); return camionsARemplir().n; })) === n0);
     v('aucune erreur de page (gérant)', c2.err.length === 0, c2.err); await L.fin(c2); }
+  // GESTES 4, 6, 7, 9 (étape 4, 5 et 6) — le gérant au bureau : accepter, commander, recevoir, lire une facture. Un geste = un toucher ; le menu compte 1 sur ordinateur. Chaque geste ABOUTIT (le chiffre relu change).
+  { const c3 = await L.ouvrir({ profil:'mac', qui:'marc' }), q = c3.p; let m = 0;
+    const T3 = async s => { m++; const ok = await L.toucher(c3, s); if (ok === false) throw new Error('cible non atteinte : ' + s); await L.calme(q, 250); }, R3 = (f, x) => q.evaluate(f, x), depart = async h => { await L.ranger(q); await L.aller(q, 'accueil'); await L.calme(q, 250); m = 0; };
+    // 4 — accepter ce que les techniciens ont pris : le menu, « Tout accepter » = 2
+    await depart(); const e0 = await R3(() => MVTS_ATT.length); await T3('#menu a[href="#stock"]'); await T3('.ms-bandeau [data-ms="toutacc"]');
+    v('geste 4 · accepter : 2 touchers (' + m + ') depuis le menu — le menu, « Tout accepter » — et les envois sont acceptés (' + e0 + ' → ' + (await R3(() => MVTS_ATT.length)) + ')', m === 2 && e0 >= 2 && (await R3(() => MVTS_ATT.length)) === 0, [m, e0]);
+    await R3(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); });
+    // 6 — commander ce qui manque : le menu, « Tout préparer · N », « Envoyer N commandes » = 3
+    await depart(); await R3(() => { prVue = 'commandes'; }); const n0 = await R3(() => cmdNbACommander()), c0 = await R3(() => COMMANDES.length); await T3('#menu a[href="#produits"]'); await T3('[data-pdx="toutprep"]'); await T3('[data-pdx="toutgo"]');
+    const n1 = await R3(() => cmdNbACommander()), c1 = await R3(() => COMMANDES.length);
+    v('geste 6 · commander : 3 touchers (' + m + ') — le menu, « Tout préparer », « Envoyer N commandes » — « à commander » ' + n0 + ' → ' + n1 + ', ' + (c1 - c0) + ' commandes envoyées', m === 3 && n1 < n0 && c1 > c0, [m, n0, n1, c0, c1]);
+    await R3(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); });
+    // 7 — recevoir une livraison : le menu, « J'ai reçu la livraison », « Ranger dans le stock » = 3
+    await depart(); await R3(() => { prVue = 'commandes'; }); const v0 = await R3(() => Math.round(PRODUITS.reduce((s, x) => s + (x.pa || 0) * Math.max(0, x.q), 0) * 100) / 100); await T3('#menu a[href="#produits"]');
+    await T3('#contenu [data-cm^="recep|"]'); await T3('#calque [data-cm^="recok|"]'); const v1 = await R3(() => Math.round(PRODUITS.reduce((s, x) => s + (x.pa || 0) * Math.max(0, x.q), 0) * 100) / 100);
+    v('geste 7 · recevoir : 3 touchers (' + m + ') — le menu, « J\'ai reçu la livraison », « Ranger dans le stock » — la valeur du stock monte (' + v0 + ' → ' + v1 + ' €)', m === 3 && v1 > v0, [m, v0, v1]);
+    await R3(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); });
+    // 9 — lire une facture fournisseur : le menu, l'appareil photo (visible dès l'ouverture), la photo, « Mettre à jour » = 4
+    await depart(); await R3(() => { prVue = 'commandes'; }); const f0 = await R3(() => JSON.stringify(PRODUITS.map(x => [x.id, x.q, x.pa]))); await T3('#menu a[href="#produits"]'); await T3('[data-vis="four-photo"]'); await T3('#calque [data-fo="facex"]'); await T3('#calque [data-fo="facok"]');
+    v('geste 9 · lire une facture : 4 touchers (' + m + ') — le menu, l\'appareil photo, la photo, « Mettre à jour » — et le stock et les prix changent', m === 4 && (await R3(() => JSON.stringify(PRODUITS.map(x => [x.id, x.q, x.pa])))) !== f0, [m]);
+    await R3(() => { const b = [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent)); if (b) b.click(); });
+    // « juste derrière » — ouvrir le registre des fluides : Stock (menu), Plus, Registre = 3
+    await depart(); await T3('#menu a[href="#stock"]'); await T3('[data-ms="plus"]'); await T3('.ctx button:has-text("Registre des fluides")');
+    v('registre des fluides : 3 touchers (' + m + ') — le menu, Plus, Registre', m === 3 && /bouteille|kg/i.test(await R3(() => (document.querySelector('#calque .panneau') || {}).innerText || '')), m);
+    await L.ranger(q);
+    // sortir pour un collègue : Stock (menu), Mettre à jour, Sortir du stock, « Un collègue », le nom, Noter = 6 (+ la recherche de l'article)
+    await depart(); await T3('#menu a[href="#stock"]'); await T3('[data-ms="maj"]'); await T3('#calque [data-ms="q|sortir"]'); await q.fill('#msg-q', 'filtre à charbon'); await L.calme(q, 250); await R3(() => document.querySelector('#calque [data-ms^="gajoute|"]').click()); await L.calme(q, 250);
+    await T3('#calque [data-ms="gpour|collegue"]'); await q.selectOption('#calque [data-msg="collegue"]', 'kb'); m++; await T3('#calque [data-ms="genvoyer"]');
+    v('sortir pour un collègue : 6 touchers comptés (' + m + ') — Stock, Mettre à jour, Sortir, « Un collègue », son nom, Noter — plus la frappe de l\'article (l\'ajout par une ligne de résultat est un toucher de plus, noté à part)', m === 6 && /bon de remise/.test(await R3(() => (document.getElementById('toast') || {}).innerText || '')), m);
+    v('aucune erreur de page (gérant, gestes 4 à 9)', c3.err.length === 0, c3.err.slice(0, 3)); await L.fin(c3); }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

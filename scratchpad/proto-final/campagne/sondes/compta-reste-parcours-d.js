@@ -30,7 +30,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   v('E1 TVA à payer = collectée − déductible, à 1 centime', Math.abs(T.tv.aPayer - (T.tv.col - T.tv.ded)) <= .011, T);
   const txt = await X.texte(p); v('E1 l’écran affiche ce même « à payer »', txt.replace(/[\s  ]/g, '').includes(String(T.tv.aPayer.toFixed(2)).replace('.', ',') + '€'), T.tv.aPayer);
   const lib = await p.evaluate(() => { const B = cxSoldes(cpEcritures()); return { c44571: B['44571'] ? B['44571'].cr : 0, c44574: B['44574'] ? B['44574'].cr : 0, ecart658: B['658'] ? B['658'].de : 0 }; });
-  v('E1b la TVA collectée de l’écran TVA = celle de la balance (compte 44571), au centime', Math.abs(T.tv.col - lib.c44571) < .005, { ecranTVA: T.tv.col, balance44571: lib.c44571, ecartArrondi658: lib.ecart658 });
+  v('compta-reste-12 · E1b la TVA collectée de l’écran TVA = celle de la balance (compte 44571), au centime', Math.abs(T.tv.col - lib.c44571) < .005, { ecranTVA: T.tv.col, balance44571: lib.c44571, ecartArrondi658: lib.ecart658 });
   // la balance : débits = crédits, par classe ; le résultat = produits − charges
   await X.compta(c, 'balance'); const bal = await p.evaluate(() => { const E = cpEcritures(), B = cxSoldes(E); const K = Object.keys(B); const d = K.reduce((s, k) => s + Math.round(B[k].de * 100), 0), cr = K.reduce((s, k) => s + Math.round(B[k].cr * 100), 0);
     const prod = K.filter(k => k[0] === '7').reduce((s, k) => s + Math.round((B[k].cr - B[k].de) * 100), 0), ch = K.filter(k => k[0] === '6').reduce((s, k) => s + Math.round((B[k].de - B[k].cr) * 100), 0); return { d, cr, prod, ch, n: K.length }; });
