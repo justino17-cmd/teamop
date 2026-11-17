@@ -1,0 +1,128 @@
+[
+ {
+  "nom": "taches-absences",
+  "defaut": "L'avis « Marc a validé / refusé ta demande » est illisible au téléphone (texte de 12 px de large à 320 px, un mot par ligne) — aussi relevé par le recontrôle du menu",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : .a-avis passe en flex-wrap, .a-avis-c garde au moins 180 px (flex:1 1 180px) ; « Voir au planning › » et « Vu » passent sous le texte quand ils ne tiennent pas à côté.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-avis.js 24 ✓ · 0 ✗ (petit, android, iphone, ipad, jour et nuit : texte 220/260/290/232 px, carte ≤ 164 px) ; mutation G (règle retirée) : 2 ✓ · 4 ✗ ; capture relue (petit nuit) : avis sur trois lignes, boutons dessous."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Le gérant peut poser une absence sur un samedi-dimanche seul : « 0 jour ouvré » enregistré sans un mot",
+  "etat": "corrigé",
+  "changement": "aApercu et le bouton « Enregistrer l'absence » : même règle que la demande du technicien (« Ces jours ne sont pas travaillés », bouton grisé, toast si on force).",
+  "preuve": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-saisie.js iphone 16 ✓ · 0 ✗ (parcours 2) ; mutation H : 15 ✓ · 1 ✗."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Une absence posée par le gérant sur les jours d'une demande en attente de la même personne double l'absence quand on accorde la demande",
+  "etat": "corrigé",
+  "changement": "Le formulaire du gérant dit « Tom a déjà une absence (RTT) … accorde-la ou refuse-la d'abord, dans « À valider » », grise le bouton et refuse par un message si on force.",
+  "preuve": "Même sonde (parcours 2) ; mutation I : 15 ✓ · 1 ✗."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Dans « Demande de congé », choisir « Du » après la fin par défaut laisse « Au » en arrière",
+  "etat": "corrigé",
+  "changement": "« Au » suit « Du » tant qu'on n'a pas touché « Au » (le bouton de date est repeint) ; touché à la main, il ne bouge plus et le message reste.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-1.js partie A 5 ✓ · 0 ✗ ; mutation A : 2 ✓ · 3 ✗."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Le message « Ajoutée pour demain à 14 h · Annuler » reste posé sur le bas de la fiche qu'on ouvre juste après (couvre « Reporter » et « Confier à »)",
+  "etat": "corrigé",
+  "changement": "ouvrirPanneau retire un message vieux de plus de 0,4 s quand il ouvre un panneau ; celui de la même action, et un panneau qu'on redessine, n'y touchent pas.",
+  "preuve": "restes-taches-absences-1.js partie C 2 ✓ · 0 ✗ ; mutation C : 1 ✓ · 1 ✗."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Calendrier au téléphone : « 2 semaines · 1 mois … 6 mois » coupé à droite à 320 px (on ne voit que « 6 »)",
+  "etat": "corrigé",
+  "changement": "Sous 400 px, les boutons de la période prennent 3 px de marge et 13 px de police : la rangée tient entière.",
+  "preuve": "restes-taches-absences-1.js partie B 16 ✓ · 0 ✗ (petit 301/304, android, iphone, ipad, jour et nuit : aucun bouton ne sort, rien de coupé) ; mutation B : 14 ✓ · 2 ✗ ; capture relue (petit jour)."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "TROUVÉ EN REJOUANT : la technicienne ne peut plus envoyer sa demande de congé (« Ce geste n'est pas ouvert à ton compte : déplacer, changer de technicien, décider d'une absence »)",
+  "etat": "corrigé",
+  "changement": "La table des gestes (lot Droits) classait atdem/atenvoi « planning » ; ce sont SES gestes (comme « Mes tâches ») : classés personnels (atdem, atenvoi, atrep, atrepondre, atrepok, atretire, atvoir, addemi). Décider d'une absence reste au planning. Défaut présent sur la tête de la branche avant ce lot.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-saisie.js iphone 12 ✓ · 4 ✗ avant, 16 ✓ · 0 ✗ après (parcours Sophie → Marc → Sophie, solde 9 → 7) ; menu-conges 22 ✓, menu-conges-bureau 30 ✓ ; mutation J : 12 ✓ · 4 ✗."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "« Cette tâche se termine toute seule quand le geste est fait dans l'application » (question « Qu'as-tu fait ? ») difficile pour un débutant",
+  "etat": "corrigé",
+  "changement": "Réécrit : « … se termine d'elle-même quand le travail est fait dans l'application (une relance envoyée, une intervention planifiée…). Tu l'as fait autrement, par téléphone ou sur place ? Dis ce qui s'est passé : elle est terminée et ça s'écrit dans l'Historique. » (singulier et pluriel).",
+  "preuve": "taches-absences-parcours-b.js 27 ✓ · 0 ✗ (la fenêtre s'ouvre, « Fait » en lot) ; à relire avec Justin pour le ton."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "« Mes heures » : « Absences : 1 jour (rtt) » (vu par le chef de chantier)",
+  "etat": "corrigé",
+  "changement": "paieAbsTxt passe par aTypeBas (le sigle RTT reste en majuscules, « congé payé » en minuscules) ; même chose pour le message de changement de type d'une absence.",
+  "preuve": "restes-taches-absences-1.js partie F 2 ✓ · 0 ✗ ; mutation F : 1 ✓ · 1 ✗ ; ligne cochée dans vus-par-le-chef.md."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Le « retour » du navigateur depuis une fiche de tâche quitte l'écran au lieu de fermer la fenêtre (défaut 12)",
+  "etat": "déjà décidé",
+  "changement": "Aucun : réglé pour tout le prototype par la voie « retour » (décision a).",
+  "preuve": "parcours-i I6 reste le seul ✗ de la sonde (10 ✓ · 1 ✗), attendu."
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Cibles sous 44 px : cases d'un jour du calendrier des absences, barres « mois par mois » des soldes (défaut 13)",
+  "etat": "déjà décidé",
+  "changement": "Aucun : cases d'information, douze par rangée (décision b).",
+  "preuve": "—"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "La pastille du menu « Tâches » affiche 1 quand l'écran dit « Aujourd'hui 7 · En retard 2 »",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : la pastille compte ce qui demande une action (retards de Marc seul + tâches nouvellement confiées), pas les tâches du jour ; le chiffre est juste mais jamais expliqué. Proposition : une infobulle ou « 1 à régler » ; à confirmer avant de toucher le menu.",
+  "preuve": "—"
+ },
+ {
+  "nom": "menu",
+  "defaut": "Avis « Marc a validé ta demande » écrasé sur téléphone dans « Mes congés »",
+  "etat": "corrigé",
+  "changement": "Voir le premier défaut (même carte .a-avis).",
+  "preuve": "taches-absences-recontrole-avis.js 24 ✓ · 0 ✗ ; menu-conges 22 ✓ · 0 ✗."
+ },
+ {
+  "nom": "menu",
+  "defaut": "Le bureau a un groupe « Matériel » que les sondes du menu refusaient (6 ✗)",
+  "etat": "déjà décidé",
+  "changement": "Décision d : MENU-FINAL.md le dit, et les sondes (ATTENDU.julie) étaient déjà à jour.",
+  "preuve": "menu-ordinateur 332 ✓ · 0 ✗ ; menu-nu 12 ✓ · 0 ✗ ; menu-telephone 445 ✓ · 0 ✗ (les sondes attendaient déjà le groupe)."
+ },
+ {
+  "nom": "menu",
+  "defaut": "Le texte du réglage « Rendez-vous en ligne » dit « ouvre une intervention » alors que « Voir le lien client » n'existe que sur une intervention terminée",
+  "etat": "corrigé",
+  "changement": "Le texte dit « ouvre une intervention TERMINÉE (le bouton n'existe que sur celles-là), puis touche « Voir le lien client » ». La sonde menu-recontrole vérifie maintenant que le bouton est sur les terminées, et elles seules.",
+  "preuve": "sondes/menu-recontrole.js (E rebasée) : 136 ✓ · 1 ✗ avant la mise à jour de la sonde, rejouée ensuite."
+ },
+ {
+  "nom": "menu",
+  "defaut": "Un appui long sur la barre du bas dont le relâcher ne produit AUCUN clic fait perdre le premier toucher suivant",
+  "etat": "corrigé",
+  "changement": "mbAvale n'est renouvelé qu'au relâcher du doigt de l'appui long (drapeau `tenu`), plus à chaque touchend/mouseup tant qu'il est posé.",
+  "preuve": "restes-taches-absences-1.js partie D 2 ✓ · 0 ✗ (événements tactiles rejoués, sans clic derrière) ; mutation D : 1 ✓ · 1 ✗. Non prouvé sur un appareil réel dont le relâcher ne produit pas de clic."
+ },
+ {
+  "nom": "menu",
+  "defaut": "Prototype nu : « Voir comme Marc » du message de demande de congé ne fait rien quand on teste en technicien",
+  "etat": "corrigé",
+  "changement": "En revue, avec le rôle technicien, le bouton change vraiment le rôle (rlChanger('patron'…) vers « Absences et congés »). Toujours absent en mode application.",
+  "preuve": "restes-taches-absences-1.js partie E 2 ✓ · 0 ✗ ; mutation E : 1 ✓ · 1 ✗ ; menu-conges-bureau 30 ✓ (le toast de la revue garde le bouton)."
+ },
+ {
+  "nom": "menu",
+  "defaut": "Le bureau sur téléphone ouvre sur la Comptabilité plein écran : le menu est à deux gestes",
+  "etat": "corrigé",
+  "changement": "La décision (e) n'était pas appliquée : le « Menu » de la page restait SOUS la Comptabilité plein écran (z-index 9000), recouvert par « ‹ OP GESTION ». La barre de la fenêtre porte maintenant son propre bouton « Menu » (trois traits et le mot, au téléphone seulement, hors OP COMPTABLE seul) : même `data-menu`, même feuille, ouverte AU-DESSUS de la fenêtre (un panneau ouvert pendant la Comptabilité passe à z-index 9100) ; les trois boutons de la barre passent à 44 px (ils étaient à 40) et tiennent à 320 px.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-1-bureau-tel.js 15 ✓ · 0 ✗ (iphone jour, petit nuit, android : boutons 44/44/44, rien ne recouvre « Menu », la feuille s'ouvre au-dessus et « Clients » ferme la Comptabilité) ; mutations K, L, M tombent ; captures relues (iphone jour, petit nuit)."
+ }
+]
