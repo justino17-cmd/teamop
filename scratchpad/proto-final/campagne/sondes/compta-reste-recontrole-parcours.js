@@ -5,10 +5,11 @@
 const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
 (async () => {
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', suf = profil + (nuit ? '-nuit' : '');
-  const c = await L.ouvrir({ profil, nuit, qui: 'sm' }), p = c.p;
+  const QUI = process.argv[4] || 'marc', c = await L.ouvrir({ profil, nuit, qui: QUI }), p = c.p;
   const mesure = () => p.evaluate(() => { const E = cpEcritures(), d = Math.round(E.reduce((s, e) => s + e.lignes.reduce((t, l) => t + (l.de || 0), 0), 0) * 100), cr = Math.round(E.reduce((s, e) => s + e.lignes.reduce((t, l) => t + (l.cr || 0), 0), 0) * 100), tv = cpTva();
     return { n: ACHATS.length, ens: E.length, d, cr, ded: Math.round((tv.ded || 0) * 100), manque: Math.round((tv.manque || 0) * 100), aPayer: Math.round(tv.aPayer * 100), apayerAchats: Math.round(ACHATS.filter(a => !a.paye).reduce((s, a) => s + cpTTC(a), 0) * 100), ndf: NDF.length }; });
-  // ── P2 d'abord (la technicienne, puis le gérant dans la MÊME page : l'état du prototype est en mémoire) ──
+  if (QUI === 'sm') {
+  // ── P2 : la technicienne envoie une note de frais par le formulaire réel ──
   await p.evaluate(() => aller('techfrais')); await L.calme(p, 500);
   const m0 = await mesure();
   v('P2.0 · la technicienne ouvre « Note de frais »', await L.toucher(c, '[data-rl="ndf"]') && await p.evaluate(() => !!document.getElementById('rn-m')));
@@ -16,18 +17,12 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await L.toucher(c, '#calque [data-rl="ndfok"]'); const t2 = await X.toasts(p); const m1 = await mesure();
   v('P2.1 · la note part au bureau : une note de plus, et la phrase le dit', m1.ndf === m0.ndf + 1 && /Note envoyée/.test(t2), t2);
   v('P2.1b · rien n’est encore une dépense (le bureau n’a pas validé)', m1.n === m0.n, { avant: m0.n, apres: m1.n });
-  await p.evaluate(() => rlChanger('patron', { muet: true })); await L.calme(p, 600); await X.compta(c, 'ndf', { cat: 'ndf' });
-  const id = await p.evaluate(() => NDF[0].id), qui = await p.evaluate(() => NDF[0].qui);
-  v('P2.2 · Marc voit la note de la technicienne en tête, à 62,40 €', qui === 'sm' && /62,40/.test(await X.texte(p)), { qui });
-  await L.toucher(c, `[data-cx="doc|ndf|${id}"]`); const fiche = await X.panneau(p); v('P2.3 · sa fiche dit le montant et la TVA, et propose de valider ou refuser', /62,40/.test(fiche) && /20 %/.test(fiche) && /Valider|Refuser/.test(fiche), fiche.slice(0, 220));
-  await L.capture(c, X.CAP + `rc-parcours-p2-fiche-${suf}.png`);
-  // pas de ticket : « Valider sans ticket » (si la règle du patron l'autorise) puis confirmation
-  const sans = await p.evaluate(() => !!document.querySelector('#calque [data-ac^="ndfsans|"]')), ok = await p.evaluate(() => !!document.querySelector('#calque [data-ac^="ndfok|"]'));
-  if (ok) await L.toucher(c, '#calque [data-ac^="ndfok|"]'); else if (sans) { await L.toucher(c, '#calque [data-ac^="ndfsans|"]'); await L.toucher(c, '#calque [data-ac^="ndfoksans|"]'); }
-  const m2 = await mesure(); v('P2.4 · validée : la note devient une dépense (une pièce de plus)', m2.n === m1.n + 1, { avant: m1.n, apres: m2.n, sans, ok });
-  v('P2.5 · sa TVA de 10,40 € (62,40 TTC à 20 %) est comptée, récupérable ou signalée, au centime', Math.abs((m2.ded - m1.ded) + (m2.manque - m1.manque) - 1040) <= 1, { ded: [m1.ded, m2.ded], manque: [m1.manque, m2.manque] });
-  v('P2.6 · « à payer » des achats ne bouge pas (la salariée a avancé l’argent : à lui rembourser, pas un fournisseur à payer)', m2.apayerAchats === m1.apayerAchats, { avant: m1.apayerAchats, apres: m2.apayerAchats });
-  v('P2.7 · le journal reste équilibré', m2.d === m2.cr, m2);
+  // la note apparaît dans « Mes frais » de la technicienne, en attente, au bon montant (la validation par le gérant est jouée par compta-reste-parcours-c.js : la session est liée à une personne, on ne change pas de rôle en route)
+  await p.evaluate(() => aller('techfrais')); await L.calme(p, 400); const mf = await X.texte(p); v('P2.2 · « Mes frais » montre la note à 62,40 €, en attente', /62,40/.test(mf) && /attente/i.test(mf), mf.slice(0, 200));
+  await L.capture(c, X.CAP + `rc-parcours-p2-mesfrais-${suf}.png`);
+  const m2 = await mesure(); v('P2.3 · la note envoyée n’a pas encore touché la comptabilité (journal, TVA, dépenses inchangés)', m2.n === m1.n && m2.ens === m1.ens && m2.ded === m1.ded, { m1, m2 });
+  await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
+  }
   // ── P1 : Marc saisit une dépense « 1.234,56 » HT ──
   await X.compta(c, 'fachats', { cat: 'achats' }); await p.evaluate(() => cxDepense()); await p.waitForTimeout(250);
   await p.fill('#dp-f', 'Fournisseur Parcours Un'); await p.fill('#dp-o', 'Compresseur pour une climatisation'); await p.fill('#dp-h', '1.234,56'); await p.dispatchEvent('#dp-h', 'input');

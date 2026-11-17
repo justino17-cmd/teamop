@@ -1,0 +1,138 @@
+{
+ "profil": "iphone",
+ "qui": "sm",
+ "nuit": false,
+ "onglets": {
+  "techfrais": {
+   "recenses": 7,
+   "touches": 7,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Menu",
+     "data": "data-menu=ouvrir",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Menu",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 99,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "OP GESTION : revenir à l’écran d’ouverture",
+     "data": "data-logo=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "contenu"
+     ],
+     "donnees": false,
+     "h1": "Bonjour Sophie",
+     "panneau": "",
+     "toast": "",
+     "hash": "#majournee",
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 2,
+     "lib": "＋ Nouvelle note de frais",
+     "data": "data-rl=ndf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Ce que tu as payé de ta poche",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 358,
+     "h": 46
+    },
+    {
+     "i": 3,
+     "lib": "＋ Demande d’achat",
+     "data": "data-axa=dem",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Il me faut…",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 358,
+     "h": 46
+    },
+    {
+     "i": 4,
+     "lib": "Modifier",
+     "data": "data-axa=demmod|da3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Modifier la demande",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 88,
+     "h": 44
+    },
+    {
+     "i": 5,
+     "lib": "Annuler la demande",
+     "data": "data-axa=demannul|da3",
+     "touche": true,
+     "change": [
+      "toast",
+      "contenu"
+     ],
+     "donnees": true,
+     "h1": "Mes frais",
+     "panneau": "",
+     "toast": "Demande annulée.Annuler",
+     "hash": "#techfrais",
+     "l": 155,
+     "h": 44
+    },
+    {
+     "i": 6,
+     "lib": "📷 Ajouter le ticket",
+     "data": "data-rl=ndfmod|n3",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "focus"
+     ],
+     "donnees": false,
+     "h1": "Mes frais",
+     "panneau": "Modifier ma note",
+     "toast": "",
+     "hash": "#techfrais",
+     "l": 157,
+     "h": 44
+    }
+   ]
+  }
+ }
+}

@@ -124,7 +124,7 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
 
   console.log('\n── 8. le cadre de la Comptabilité (iframe) : deux messages, source vérifiée ──');
   await avancer(c, 6); await c.p.evaluate(() => { fermerPanneau(); cpSysAllerRubrique('comptabilite'); }); await c.p.waitForTimeout(2500);
-  const f = L.cadre(c.p); v('population : le cadre de la Comptabilité est ouvert (iframe)', !!f);
+  const f = L.cadre(c.p, /prototype-comptabilite\.html/); v('population : le cadre de la Comptabilité est ouvert (iframe) — SON adresse, pas celle de l’atelier ni du paiement', !!f);
   if (f) {
     await f.evaluate(() => aller('banque')); await c.p.waitForTimeout(700);
     const att = await f.evaluate(() => ({ carte:!!document.querySelector('[data-opc="attente"]'), texte:(document.querySelector('[data-opc="attente"]') || {}).textContent || '' }));
