@@ -3781,7 +3781,7 @@ html #mc-vehicule:empty{display:none}
 .vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
 .vh-h{min-height:48px}.vh-det{border-bottom:1px solid var(--trait);padding:2px 0}.vh-det>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--lien);font-weight:600}
 .vh-ass{font-size:15.5px;line-height:1.45}.vh-doc,.vh-inc{flex-wrap:wrap}.vh-doc .lien,.vh-inc .btn{min-height:44px}
-.vh-fr{min-height:56px}.vh-mt{white-space:nowrap;font-variant-numeric:tabular-nums}.vh-vides{display:block}
+.vh-fr{min-height:56px}.vh-mt{white-space:nowrap;font-variant-numeric:tabular-nums}.vh-vides{display:block}.vh-ht{display:block;margin-top:8px}.vh-fr-liss{cursor:default}
 .vx-b-carb{background:var(--bleu)}.vx-b-ent{background:color-mix(in srgb,var(--bleu) 58%,transparent)}.vx-b-ass{background:color-mix(in srgb,var(--bleu) 28%,transparent)}   /* trois teintes d'UNE famille : la barre dit la part, pas une alerte */
 /* « Ce que coûtent les véhicules » : UNE couleur neutre pour les barres */
 .vh-rang{display:flex;flex-direction:column}
@@ -10289,7 +10289,7 @@ function eqFiche(k){
     <div class="groupe">Sa semaine</div>
     <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
     ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
-    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
+    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>` : ''}${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
     <div class="groupe">Habilitations</div>
     <div class="fo-bloc">${p.habil.map(([n, d], j) => `<div class="fo-r"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${d ? (tJours(d) < 0 ? 'expirée le ' : 'valable jusqu’au ') + dFr(d) : 'sans date de fin'}${habFormation(k, d) && habEtat(d) !== 'v' ? ' · formation prévue le ' + jCourt(habFormation(k, d).du) : ''}</span></span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouvelée</button>` : ''}</div>`).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
@@ -10318,7 +10318,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return eqFiche(x);
   if (a === 'inviter') return eqInviter();
   if (a === 'planning') { fermerPanneau(); if (x && TECHS.some(t => t.id === x)) { plMasques = new Set(TECHS.map(t => t.id).filter(id => id !== x && id !== '')); plRef = AUJ; aller('planning'); return toast(`Planning de ${esc(prenomDe(x))} seulement : touche un autre prénom pour le revoir.`); } return aller('planning'); }
-     if (a === 'heures') { fermerPanneau(); ptOnglet = 'mois'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ttMoisPers(x), 80); return; }   // [13] « Ses heures › » : Temps de travail › Mois, sur la personne (VEHICULES-TEMPS § 8)
+     if (a === 'heures') { if (!droitVoit('pointage')) return toast('Les heures d’une personne sont dans Temps de travail, que ton compte n’ouvre pas. Demande à ' + esc(droitPremierAdmin()) + '.'); fermerPanneau(); ptOnglet = 'mois'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ttMoisPers(x), 80); return; }   // [13] « Ses heures › » : Temps de travail › Mois, sur la personne (VEHICULES-TEMPS § 8)
   if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
   if (a === 'inviterok') { const pr = nomPersonneOk(document.getElementById('eq-p').value), no = nomPersonneOk(document.getElementById('eq-n').value), m = document.getElementById('eq-m').value.trim();
     if (!document.getElementById('eq-p').value.trim() || !document.getElementById('eq-n').value.trim()) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
@@ -12132,7 +12132,7 @@ const DROIT_CASES = (() => { const o = {}; const marque = (cat, x) => { if (cat)
 const droitCaseActive = (cat, x) => x === 'v' || !!(DROIT_CASES[cat] && DROIT_CASES[cat].has(x));
 /* les gestes qui demandent en plus un droit à part (« Créer des comptes », « Envoyer des commandes »…) : famille → verbe → droit */
 const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' },
-  ptx:{ corrige:'corrpt' }, pt:{ ajout:'corrpt', closok:'corrpt', clore:'corrpt' },   /* corriger un pointage DÉJÀ enregistré (les déclarations du salarié sur sa propre journée, « plus tôt » et « fin d'hier », restent les siennes) */
+  ptx:{ corrige:'corrpt' }, tt:{ terminer:'corrpt', fin:'corrpt', termineok:'corrpt', jourok:'corrpt', ajout:'corrpt', ajoutok:'corrpt', accepter:'corrpt' }, pt:{ ajout:'corrpt', closok:'corrpt', clore:'corrpt' },   /* corriger un pointage DÉJÀ enregistré (les déclarations du salarié sur sa propre journée, « plus tôt » et « fin d'hier », restent les siennes) */
   sx:{ toutval:'valstock', refok:'valstock', expok:'valstock', eok:'valstock', dotok:'valstock' }, ms:{ toutacc:'valstock', acc:'valstock', ref:'valstock' },
   ce:{ envoi:'commander', envoyer:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
 const DROIT_SP_PHRASE = { comptes:'créer des comptes, dans la limite des places', corrpt:'corriger un pointage', atelier:'se servir à l’atelier sans validation', valstock:'valider les gestes de stock des autres', commander:'envoyer une commande à un fournisseur', prix:'voir les prix d’achat et les marges' };
@@ -17308,6 +17308,7 @@ function ptxRappeler(){ const att = PT_GENS.filter(k => !ptJour(k, AUJ).length &
 /* ── les erreurs signalées par un salarié, côté bureau ── */
 const ptxReq = k => { const s = PAIE.signales[k]; return s ? (s.req || (s.apres ? { fin:s.apres } : null)) : null; };
 function ptxCorriger(k){
+  if (!ttCorrOk()) return;
   const s = PAIE.signales[k], d = paieJourSignale(k), r = ptxReq(k), p = ptJour(k, d)[0]; if (!s || !r || !p) return toast('Ouvre la journée pour la corriger à la main.');
   if (paieMoisVerrou(d)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : ${esc(prenomDe(k))} sera régularisé le mois suivant.`);
   const ch = [], av = { ...p }, avTr = PT_TRACE.length, avSig = s, avConf = PAIE.confirmes[k], avVal = { ...PT_VALIDE };
@@ -17337,6 +17338,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-pt
 
 /* ── le salarié pointe : la carte de « Ma journée » et de « Mes heures » ── */
 function ptxCommencer(k, h){
+  if (paieMoisVerrou(AUJ)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : parle au bureau.`);   /* une garde AVANT toute écriture, comme ptxFinHier : un mois fermé ne reçoit plus d'heure */
   if (ptJour(k, AUJ).some(p => !p.fin)) return; const deb = h || hNow(); if (ptMin(deb) > MAINT_MIN) return toast('Une heure dans le futur ne se pointe pas.');
   POINTAGES.push({ id:'p' + k + AUJ + '-s' + POINTAGES.length, qui:k, date:AUJ, debut:deb, fin:null, pause:0, origine:'salarié' }); ptDevalide(k, AUJ);
   journalAjout(k, 'equipe', 'a commencé sa journée de travail', { lib:H_NOM(k) }, { det:'à ' + deb }); rendre(); toast('Bonne journée ! Commencée à ' + deb + '.'); }
@@ -17360,7 +17362,7 @@ function ptxPanneauFin(k, fin, src){ const p = ptJour(k, AUJ).find(o => !o.fin);
     <label class="champ">Pause prise (minutes)<input inputmode="numeric" id="ptx-p" value="${pause}"></label>
     <span class="gris petit">${p.pause ? 'Ta pause chronométrée est reprise ici.' : 'Pause proposée : celle que tu prends d’habitude. Tu peux la changer.'}</span>
     <div class="actions"><button type="button" class="btn" data-ptx="termineok|${k}">Terminer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
-function ptxTerminer(k){ const p = ptJour(k, AUJ).find(o => !o.fin), f = (document.getElementById('ptx-f') || {}).value, pr = ((document.getElementById('ptx-p') || {}).value || '').trim(), pa = parseInt(pr, 10) || 0; if (!p) return;
+function ptxTerminer(k){ if (paieMoisVerrou(AUJ)) return toast(`${PAIE_MOIS_MAJ} est verrouillé : parle au bureau.`); const p = ptJour(k, AUJ).find(o => !o.fin), f = (document.getElementById('ptx-f') || {}).value, pr = ((document.getElementById('ptx-p') || {}).value || '').trim(), pa = parseInt(pr, 10) || 0; if (!p) return;
   if (pr && !/^\d+$/.test(pr)) return toast(/^-\d/.test(pr) ? 'La pause ne peut pas être négative : mets 0 si tu n’en as pas pris.' : 'Donne la pause en minutes, avec des chiffres (par exemple 45).');
   if (!f) return toast('Donne l’heure de fin.'); if (ptMin(f) > MAINT_MIN) return toast('Une heure dans le futur ne se pointe pas.'); if (ptMin(f) < ptMin(p.debut)) return toast('La fin ne peut pas être avant le début.');
   if (pa < 0 || pa > ptMin(f) - ptMin(p.debut)) return toast('La pause est plus longue que la journée.');
@@ -17653,6 +17655,7 @@ function ttOngletMois(){
       return `<button type="button" class="tt-p" data-tt="mois|${v.k}">${ttAv(v.k)}<span class="fo-n"><b>${esc(H_NOM(v.k))}</b><span class="gris petit">${ttHL(v.tot)}${pl ? ' dont ' + ptH(pl) + ' en plus' : ''}</span></span><span class="tt-pp tt-pp-d"><span class="st ${e[0]}">${e[1]}</span></span></button>`; }).join('')}</div></div>`;
 }
 function ttMoisPers(k){
+  if (!droitVoit('pointage')) return toast('Les heures d’une personne sont dans Temps de travail, que ton compte n’ouvre pas.');   /* une garde AVANT de lire : ce panneau montre un salaire (heures, majorations) */
   const v = paieVariables(k), pl = v.s25 + v.s50, mois = ttMois(), jrs = paieJoursMois().filter(d => d <= AUJ && ptJour(k, d).length).reverse();
   const etat = v.signale ? '<span class="st st-o">Erreur signalée</span>' : v.confirme ? `<span class="st st-v">Confirmé le ${esc(v.confirme.le.split(' ')[0])}</span>` : '<span class="st st-g">N’a pas encore confirmé</span>';
   ouvrirPanneau(`<span class="surtitre">${esc(ttMaj(mois))} ${PAIE_MOIS.slice(0, 4)}</span><h2>${esc(H_NOM(k))}</h2><div>${etat}</div>
@@ -17684,7 +17687,10 @@ function ttVue(){
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; return v; }; })();
 
 /* ── les feuilles ── */
+/* écrire une heure est une case à part (« Corriger les pointages ») : lue à la porte de CHAQUE fonction qui écrit, pas seulement par la garde des clics */
+function ttCorrOk(){ if (droitSp(eqDe(acteur()), 'corrpt')) return true; droitsRefus('corrpt', 'sp', 'tt', 'corriger'); return false; }
 function ttTerminer(id, h, pause, motif){
+  if (!ttCorrOk()) return;
   const p = POINTAGES.find(o => o.id === id); if (!p || p.fin) return;
   if (paieMoisVerrou(p.date)) return toast(ttFerme());
   if (!h) return toast('Donne l’heure de fin.');
@@ -17747,6 +17753,7 @@ function ttAjouterPanneau(k, d){
     <div class="actions"><button type="button" class="btn large" data-tt="ajoutok">Ajouter la journée</button></div>`);
 }
 function ttAjouterOk(){
+  if (!ttCorrOk()) return;
   const g = i => ((document.getElementById(i) || {}).value || '').trim(), k = g('tt-aq'), d = g('tt-aj'), deb = g('tt-ad'), fin = g('tt-af'), pr = g('tt-ap'), motif = g('tt-am');
   if (!k || !d) return toast('Choisis la personne et le jour.');
   if (d > AUJ) return toast('Cette journée n’est pas encore arrivée : on ne pointe pas à l’avance.');
@@ -17838,6 +17845,7 @@ function ttBrouillonMaj(){
 document.addEventListener('input', ev => { if (ev.target.matches && ev.target.matches('[data-ptc], #pt-motif')) ttBrouillonMaj(); });
 document.addEventListener('change', ev => { if (ev.target.matches && ev.target.matches('[data-ptc]')) ttBrouillonMaj(); });
 function ttJourEnregistrer(k, d){
+  if (!ttCorrOk()) return;
   const B = ttBrouillon(), err = document.getElementById('tt-err'); if (err) err.textContent = ''; if (!B || !B.ch.length) return;
   const dire = t => { if (err) err.textContent = t; };
   if (paieMoisVerrou(d)) return dire(ttFerme());
@@ -18075,7 +18083,7 @@ function vxCalcCout(v, per){
   const P = v.pleins.filter(p => p.litres > 0 && p.km != null && p.d >= debPer).sort((a, b) => a.km - b.km);
   let conso = null; if (P.length > 1 && P[P.length - 1].km > P[0].km) conso = P.slice(1).reduce((s, p) => s + p.litres, 0) / (P[P.length - 1].km - P[0].km) * 100;
   const dernier = v.pleins.filter(p => p.litres > 0).sort((a, b) => b.d.localeCompare(a.d))[0];
-  return { deb, nbMois, total, ass, parMois:total / nbMois, km, auKm:km > 0 ? total / km : null, conso, prixL:dernier ? dernier.ttc / dernier.litres : null };
+  return { deb, nbMois, total, ass, parMois:total / Math.max(1, Math.round((dObj(AUJ) - dObj(deb)) / 864e5) / 30.4),   /* les mois RÉELS : arrondis, 4,3 mois devenaient 4 et 45 jours devenaient 1 mois (chiffre doublé). Le jour est arrondi : le changement d'heure d'octobre fait un jour de 25 h */ km, auKm:km > 0 ? total / km : null, conso, prixL:dernier ? dernier.ttc / dernier.litres : null };
 }
 function vxHisto(v){
   const M = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); M.push({ cle:d.slice(0, 7), mois:MOIS_C[+d.slice(5, 7) - 1].replace('.', '') , carb:0, ent:0, ass:0 }); }
@@ -18483,7 +18491,7 @@ function vxFraisCible(v, cle){
 }
 function vxFraisPanel(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return;
-  if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
+  if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : cette dépense se corrige en novembre.');
   ouvrirPanneau(`${vhEnt(v)}<h2>Cette dépense</h2><span class="gris">Corrige ce qui est faux, puis enregistre.${c.a ? ' Le changement est repris dans les achats et la comptabilité.' : ''}</span>
     <label class="champ">Ce que c’est<input id="vx-xl" value="${esc(c.lib)}" autocomplete="off"></label>
     <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-xd" value="${c.d}" min="2026-01-01" max="${AUJ}"></label><label class="champ"><span>Montant <span class="faible">(hors taxes)</span></span><input id="vx-xm" inputmode="decimal" value="${String(c.ht).replace('.', ',')}" autocomplete="off"></label></div>
@@ -18493,19 +18501,19 @@ function vxFraisPanel(vid, cle){
 }
 function vxFraisOk(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return; const lib = vxG('vx-xl').value.trim(), d = vxG('vx-xd').value || c.d, ht = foNum(vxG('vx-xm').value);
-  if (!lib) { vxG('vx-xl').focus(); return toast('Dis ce que c’est.'); } if (!(ht > 0)) { vxG('vx-xm').focus(); return toast('Donne un montant positif.'); } if (d > AUJ) return toast('Cette date n’est pas encore passée.'); if (vxMoisClos(d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
+  if (!lib) { vxG('vx-xl').focus(); return toast('Dis ce que c’est.'); } if (!(ht > 0)) { vxG('vx-xm').focus(); return toast('Donne un montant positif.'); } if (d > AUJ) return toast('Cette date n’est pas encore passée.'); if (vxMoisClos(d)) return toast('Octobre est envoyé à l’expert-comptable : cette dépense se corrige en novembre.');
   const av = c.l ? [...c.l] : { ...c.a }, j = vxJ('a modifié un frais', v, { avant:`${c.lib} · ${eur(c.ht)}`, apres:`${lib} · ${eur(ht)}` });
   if (c.l) v.frais[c.i] = [d, lib, Math.round(ht * 100) / 100]; else { const dm = vxDm(d), memePaye = c.a.paye === c.a.d; Object.assign(c.a, { d:dm, ht:Math.round(ht * 100) / 100, objet:lib + ' · ' + v.plaque }); if (memePaye) c.a.paye = dm; }
   fermerPanneau(); rendre(); vxFiche(v.id);
-  toast('Frais modifié' + (c.a ? ' : les achats suivent.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais[c.i] = av; else Object.assign(c.a, av); vxJRetirer(j); rendre(); vxFiche(v.id); } });
+  toast('Dépense modifiée' + (c.a ? ' : les achats suivent.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais[c.i] = av; else Object.assign(c.a, av); vxJRetirer(j); rendre(); vxFiche(v.id); toast('Annulé : la dépense est revenue comme avant.'); } });
 }
 function vxFraisSuppr(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return;
-  if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
+  if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : cette dépense se corrige en novembre.');
   const j = vxJ('a supprimé un frais', v, { det:`${c.lib} · ${eur(c.ht)}` }), pl = v.pleins.filter(p => c.a && p.id === c.a.id); let ia = -1;
   if (c.l) v.frais.splice(c.i, 1); else { ia = ACHATS.indexOf(c.a); ACHATS.splice(ia, 1); v.pleins = v.pleins.filter(p => p.id !== c.a.id); }
   rendre(); vxFiche(v.id);
-  toast('Frais supprimé' + (c.a ? ' : il part aussi des achats.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais.splice(c.i, 0, c.l); else { ACHATS.splice(ia, 0, c.a); v.pleins.push(...pl); } vxJRetirer(j); rendre(); vxFiche(v.id); } });
+  toast('Dépense supprimée' + (c.a ? ' : elle part aussi des achats.' : '.'), { lib:'Annuler', fn:() => { if (c.l) v.frais.splice(c.i, 0, c.l); else { ACHATS.splice(ia, 0, c.a); v.pleins.push(...pl); } vxJRetirer(j); rendre(); vxFiche(v.id); toast('Annulé : la dépense est revenue.'); } });
 }
 function vxCsv(vid){
   const v = vehDe(vid); if (!v) return; const F = vehFrais(v).slice().reverse(), q = s => '"' + (/^[=+\-@\t\r]/.test(String(s)) ? "'" : '') + String(s).replace(/"/g, '""') + '"', n = x => String(x).replace('.', ',');
@@ -18731,6 +18739,7 @@ const vhRdvNote = (v, e) => (e.k === 'ct' || e.k === 'entretien') ? vxTacheOuver
 /* le bouton d'une échéance (D11) : le geste SUIVANT dans l'ordre des choses — pas de rendez-vous noté → « Noter le rendez-vous », puis « Noter le contrôle… » ;
    une échéance pas encore à prévoir va droit au « Noter… » (rien à prendre) */
 function vhBoutonEch(v, e, from){
+  if (v.statut === 'atelier' && (e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v') return null;   /* déjà chez le garagiste : il n'y a plus de rendez-vous à noter, et « Le remettre en service » est dans l'encadré du haut */
   if ((e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v' && !vhRdvNote(v, e)) return { act:'rdv|' + v.id + '|' + e.k + '|' + from, lib:'Noter le rendez-vous' };
   return { act:'fait|' + v.id + '|' + e.k + '|' + from, lib:VH_FAIT[e.k] };
 }
@@ -18752,7 +18761,8 @@ function vhEtat(v, from){
   if (e) { const retard = e.n < 0 || (e.km != null && e.km < 0), rdv = vhRdvNote(v, e);
     return { k:retard ? 'retard' : 'afaire', rang:retard ? 2 : 3, n:e.n, e, pastille:[e.urg === 'r' ? 'st-r' : 'st-o', retard ? 'En retard' : 'À faire'], couleur:e.urg === 'r' ? 've-rt' : 've-ot',
       prec:vhLib(e) + ' ' + vhQuand(e) + (rdv ? ' · Rendez-vous au garage le ' + jlong(rdv.d) : ''), bouton:vhBoutonEch(v, e, from) }; }
-  return { k:'regle', rang:4, n:prochaine ? prochaine.n : 9999, pastille:['st-v', 'En règle'], couleur:'', prec:prochaine ? 'La prochaine échéance est ' + vhComp(prochaine) + ', ' + vhQuand(prochaine) : 'Aucune échéance à venir', bouton:null };
+  const suite = E.filter(x => !(x.k === 'assur' && gr)).sort((a, b) => a.n - b.n)[0];   /* l'assurance d'un groupe est dite UNE fois, sur sa rangée : la rangée du véhicule annonce la suivante */
+  return { k:'regle', rang:4, n:prochaine ? prochaine.n : 9999, pastille:['st-v', 'En règle'], couleur:'', prec:suite ? 'La prochaine échéance est ' + vhComp(suite) + ', ' + vhQuand(suite) : 'Aucune autre échéance à venir', bouton:null };
 }
 /* ce que la liste montre : les lignes d'assurance de groupe, les véhicules rangés du plus grave au moins grave, et les décomptes qui en découlent */
 function vhLignes(){
@@ -18816,7 +18826,7 @@ function vehFiche(id, onglet){
   const v = vehDe(id); if (!v) return;
   VH.fOnglet = onglet || 'afaire'; VX.fiche = v.id;   // une fiche s'ouvre sur « À faire » ; seul un retour (vxFiche, « Retour » d'une feuille) reprend l'onglet où l'on était
   const E = vhEtat(v, 'fiche'), EC = vehEcheances(v), dr = v.releves[v.releves.length - 1], A = lieuArticles(v.lieu), m = lieuManques(v.lieu), cout = vxCalcCout(v, '12m');
-  const gestes = vhPeut('km') || vhPeut('plein') || vhPeut('statut');
+  const gestes = vhPeut('km') || vhPeut('plein') || (vhPeut('statut') && !(v.statut === 'atelier' && !v.souci));
   const nb = v.statut === 'atelier' ? vxIntsConcernees(v, v.immo && v.immo.retour).length : 0;
   /* l'alerte du haut : un souci signalé, ou le garage — avec SON bouton (le même que la rangée : il n'est pas répété plus bas) */
   let alerte = '', phrase = '';
@@ -18841,7 +18851,7 @@ function vehFiche(id, onglet){
     <div class="fo-stats vh-stats"><span><b>${v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' : '—'}</b>kilométrage${dr ? ' · relevé le ' + esc(vhJM(dr.d)) : ''}</span>
       <span><b>${cout.auKm == null ? '—' : vhEuro2(cout.auKm)}</b>${cout.auKm == null ? 'pas encore assez de relevés' : 'le kilomètre, sur 12 mois'}</span>
       <span><b>${m.length || A.length}</b>${m.length ? 'à remettre à bord' : vhPl(A.length, 'article').split(' ').slice(1).join(' ') + ' à bord'}</span></div>
-    ${gestes ? `<div class="vh-gestes">${vhPeut('plein') ? `<button type="button" class="btn gris petit" data-vh="plein|${v.id}">Noter un plein</button>` : ''}${vhPeut('km') ? `<button type="button" class="btn gris petit" data-vh="km|${v.id}">Relever le compteur</button>` : ''}${vhPeut('statut') && v.statut !== 'hs' ? `<button type="button" class="btn gris petit" data-vh="statut|${v.id}|fiche">${v.statut === 'service' ? 'Mettre au garage' : 'Le remettre en service'}</button>` : ''}</div>` : ''}
+    ${gestes ? `<div class="vh-gestes">${vhPeut('plein') ? `<button type="button" class="btn gris petit" data-vh="plein|${v.id}">Noter un plein</button>` : ''}${vhPeut('km') ? `<button type="button" class="btn gris petit" data-vh="km|${v.id}">Relever le compteur</button>` : ''}${vhPeut('statut') && v.statut !== 'hs' && !(v.statut === 'atelier' && !v.souci) ? `<button type="button" class="btn gris petit" data-vh="statut|${v.id}|fiche">${v.statut === 'service' ? 'Mettre au garage' : 'Le remettre en service'}</button>` : ''}</div>` : ''}
     <div class="cmd-liens vh-liens">${liens}</div>
     <div class="seg vh-onglets" role="tablist" aria-label="Fiche du véhicule">${onglets.map(([k, l]) => `<button type="button" role="tab" data-vh="fonglet|${k}" aria-pressed="${VH.fOnglet === k}" aria-selected="${VH.fOnglet === k}">${l}</button>`).join('')}</div>
     <div class="vh-fcorps">${corps}</div>`, true);
@@ -18851,7 +18861,9 @@ function vhAFaire(v, EC){
   const sansDate = [!v.assur.fin && 'Assurance', !v.ct && 'Contrôle technique'].filter(Boolean);
   /* « Noter le rendez-vous » (D11) n'est proposé que sur la ligne la plus urgente, la même que celle de la liste : les autres vont droit à leur « Noter… » — UN libellé par ligne, jamais deux fois le même */
   const lignes = EC.map((e, i) => { const b = i === 0 ? vhBoutonEch(v, e, 'fiche') : { act:'fait|' + v.id + '|' + e.k + '|fiche', lib:VH_FAIT[e.k] }, noir = i === 0 && e.urg !== 'v', rdv = vhRdvNote(v, e);
-    return `<div class="fo-r vh-ech"><span class="ve-pt ve-${e.urg}" aria-hidden="true"></span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${esc(vhDL(e.d))}${e.k === 'assur' ? vxContrat(v) : ''} · <span class="${e.urg === 'r' ? 've-rt' : e.urg === 'o' ? 've-ot' : ''}">${esc(vhQuand(e, true))}${rdv ? ' · rendez-vous le ' + esc(jlong(rdv.d)) : ''}</span></span></span>${vhGeste(b, noir)}</div>`; }).join('');
+    const gar = v.statut === 'atelier' && (e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v', im = v.immo || {};   /* au garage : la ligne dit où en est la révision, pas « en retard de 3 jours » */
+    const urg = gar ? 'o' : e.urg, quand = gar ? 'Au garage' + (im.retour ? ' jusqu’au ' + jlong(im.retour) : '') : vhQuand(e, true) + (rdv ? ' · rendez-vous le ' + jlong(rdv.d) : '');
+    return `<div class="fo-r vh-ech"><span class="ve-pt ve-${urg}" aria-hidden="true"></span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${esc(vhDL(e.d))}${e.k === 'assur' ? vxContrat(v) : ''} · <span class="${urg === 'r' ? 've-rt' : urg === 'o' ? 've-ot' : ''}">${esc(quand)}</span></span></span>${vhGeste(b, noir)}</div>`; }).join('');
   const manque = sansDate.map(x => `<div class="fo-r vh-ech"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(x)}</b><span class="gris petit">Pas encore renseigné</span></span>${vhPeut('modif') ? `<button type="button" class="btn petit gris" data-vh="modif|${v.id}">Renseigner</button>` : ''}</div>`).join('');
   return `<div class="vh-bloc"><h3 class="tt-h3">Les échéances</h3><div class="fo-bloc">${lignes}${manque}</div></div>${vhDejaFait(v)}`;
 }
@@ -18883,11 +18895,13 @@ function vhDepenses(v){
   const bits = []; if (c.auKm != null) bits.push(vhEuro2(c.auKm) + ' du kilomètre'); if (VX.periode !== 'mois' && c.parMois) bits.push(eur0(c.parMois) + ' par mois');
   const bilan = `${eur0(c.total)} dépensés ${sur}${bits.length ? ', soit ' + bits.join(' et ') : ''}.${c.conso != null ? ' ' + c.conso.toFixed(1).replace('.', ',') + (v.energie === 'Électrique' ? ' kWh' : ' litres') + ' aux 100 km.' : ''}`;
   const connu = vxDebut(v), vides = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); if (d.slice(0, 7) < connu.slice(0, 7)) vides.push(d); }
+  const liss = v.assur.prime && c.ass > 0 ? `<div class="fo-l vh-fr vh-fr-liss"><span class="fo-n"><b>Assurance</b><span class="gris petit">${esc(eur0(v.assur.prime))} par an, comptés ${esc(vxN(c.nbMois, 'mois'))} · déjà dans le total ci-dessus</span></span><b class="vh-mt">${eur(c.ass)}</b><span class="fo-chev" aria-hidden="true" style="visibility:hidden">›</span></div>` : '';
   const lignes = F.map(f => { const k = vhCleFrais(f), origine = f.achat && f.own !== 'a' ? ' · dans les achats' : f.ndf ? ' · note de frais, en attente' : '';
     return `<button type="button" class="fo-l vh-fr" ${k ? `data-vh="frais|${v.id}|${k}"` : ''}><span class="fo-n"><b>${esc(f.lib)}</b><span class="gris petit">${esc(vhJM(f.d))}${origine}</span></span><b class="vh-mt">${eur(f.ht)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('');
   return `<div class="vh-bloc"><div class="seg vx-seg vh-per" role="group" aria-label="Période">${per.map(([k, l]) => `<button type="button" data-vh="per|${k}|${v.id}" aria-pressed="${VX.periode === k}">${l}</button>`).join('')}</div>
     <p class="vh-phrase">${esc(bilan)}</p>${vxHisto(v)}${vides.length ? `<span class="gris petit vh-vides">Avant le ${esc(vhJM(connu))}, rien n’est compté : c’est la date du premier relevé du compteur.</span>` : ''}</div>
-    <div class="vh-bloc"><h3 class="tt-h3">Les dépenses · ${F.length}</h3><div class="fo-bloc">${lignes || '<div class="fo-r"><span class="fo-n gris">Aucune dépense sur cette période.</span></div>'}</div>
+    <div class="vh-bloc"><h3 class="tt-h3">Les dépenses · ${F.length}</h3><div class="fo-bloc">${lignes + liss || '<div class="fo-r"><span class="fo-n gris">Aucune dépense sur cette période.</span></div>'}</div>
+      <span class="gris petit vh-ht">Montants hors taxes : un ticket de 120 € toutes taxes comprises compte pour 100 €.</span>
       <div class="actions"><button type="button" class="btn gris petit" data-vh="csv|${v.id}">Exporter en tableau</button></div></div>`;
 }
 
@@ -18942,7 +18956,7 @@ function vhMatPanel(vid, from){
   ouvrirPanneau(`<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span><h2>Matériel de sécurité</h2>
     <span class="gris">${v.materiel.fait ? 'Dernier contrôle le ' + esc(vhJM(v.materiel.fait)) + '.' : 'Jamais contrôlé.'} Éteins ce qui manque à bord.</span>
     <div class="vh-mat">${VEH_MATERIEL.map(x => `<label class="fo-r vh-mat-l"><span class="fo-n"><b>${esc(x)}</b></span><input type="checkbox" class="vh-sw" data-vemat="${v.id}|${esc(x)}" ${v.materiel.ok.includes(x) ? 'checked' : ''}></label>`).join('')}</div>
-    ${manque.length ? `<div class="info fo-alerte"><b>Il manque : ${esc(manque.join(', '))}</b><button type="button" class="lien" data-vx="commander|${v.id}">${vxDemDeja(v) ? 'Demande déjà faite · voir' : 'Les commander'}</button></div>` : ''}
+    ${manque.length ? `<div class="info fo-alerte vh-alerte"><b>Il manque : ${esc(manque.join(', '))}</b><button type="button" class="lien" data-vx="commander|${v.id}">${vxDemDeja(v) ? 'Demande déjà faite · voir' : 'Les commander'}</button></div>` : ''}
     <div id="vx-al"></div>
     <div class="actions vh-pied"><button type="button" class="btn large" data-vh="mattout|${v.id}">Tout est là</button><button type="button" class="btn gris large" data-vh="matfait|${v.id}">Il manque quelque chose</button></div>
     ${VH_MAT_PAN.from === 'fiche' ? `<button type="button" class="lien" data-vh="fiche|${v.id}|afaire">‹ Retour à la fiche</button>` : ''}`);
@@ -20764,7 +20778,7 @@ eqFiche = function (k) {
     <div class="groupe">Sa semaine</div>
     <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
     ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
-    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}<button type="button" class="lien" data-eqx="histo|${k}">Voir l’historique de cette personne ›</button></div>
+    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>` : ''}${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}<button type="button" class="lien" data-eqx="histo|${k}">Voir l’historique de cette personne ›</button></div>
     <div class="groupe">Habilitations</div>
     <div class="fo-bloc">${p.habil.map(([n, d, m], j) => { const anc = (m && m.anciennes) || [];
       return `<div class="fo-r eqx-hr"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${eqxHabTexte(p, j)}</span>${anc.length ? `<details class="eqx-anc"><summary>Voir les anciennes (${anc.length})</summary>${anc.map(a => `<span class="gris petit">${a.fin ? 'jusqu’au ' + dFr(a.fin) : 'sans date de fin'}${a.passee ? ' · passée le ' + dFr(a.passee) : ''}${a.orga ? ' · ' + esc(a.orga) : ''}${a.piece ? ' · 📎 ' + esc(a.piece) : ''}</span>`).join('')}</details>` : ''}</span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouveler…</button>` : ''}</div>`; }).join('') || '<div class="gris petit">Aucune.</div>'}</div>
@@ -20825,7 +20839,7 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine pas encore validé</b><button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button></div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
 }
