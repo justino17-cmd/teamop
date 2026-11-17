@@ -224,6 +224,16 @@ données pour la commande : Ubuntu 24.04 sans application préinstallée, centre
 courte, aucune option, capture du récapitulatif AVANT de payer, et ⛔ le mot de passe du nouveau serveur ne se colle jamais ici.
 Dit aussi, sans promettre : les vérifications automatiques ne seront pas forcément plus rapides que sur GitHub, qui prête
 aujourd'hui plusieurs machines en parallèle parce que le dépôt est public (en privé : 2 000 minutes par mois) — à mesurer.
+**Le serveur ACTUEL, vu sur sa capture de 17 h 40 (« Contrats et abonnements » d'IONOS)** : un seul serveur, « IONOS VPS Linux M+ »
+(d'après la liste des offres : 2 cœurs, 4 Go, 120 Go), actif depuis le 06/07/2026, renouvelé le 05/07/2027 ; les deux autres
+contrats (outils de marketing) sont résiliés pour octobre 2027. Il n'y a donc PAS de second serveur (celui prévu en octobre pour
+la signature n'a jamais été commandé). Justin : « on peut garder le IONOS VPS Linux M+, pour tout ce qui est serveur test ou ce
+que tu as demandé là » — compris comme : le neuf pour les clients, l'ancien pour les essais. Répondu : on garde le M+, mais dans
+l'AUTRE sens — il reste le serveur des clients (rien à déménager, aucun risque pour eux, assez pour servir le site), et le XL+
+devient l'atelier (forge, vérifications, copie d'essai) : ce sont les essais qui demandent de la puissance, et sur 2 cœurs ils
+seraient plus lents qu'aujourd'hui. Si le serveur des clients manque un jour de marge, c'est lui qu'on agrandira, après avoir
+répété le déménagement sur l'atelier. Mesure lancée le 17 pour chiffrer : durée de toutes les suites sur la machine d'essai
+(`scripts/bancs-ci.sh`, l'une après l'autre) — résultat à lui donner en minutes pour 2 cœurs et pour 8.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
