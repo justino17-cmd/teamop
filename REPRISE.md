@@ -297,6 +297,27 @@ Limites à garder en tête : le compte n'a PAS de droits d'administrateur (insta
 un geste de Justin en root, ou une décision de lui d'en donner) ; une réponse dure au plus 900 s (travaux longs en fond, puis
 relecture) ; ⛔ jamais de secret dans une commande (journal) ; ⛔ jamais de donnée réelle de client sur ce serveur. Première
 tâche lancée par la porte : les 835 suites, l'une après l'autre, dépendances installées (`~/bancs.out` sur l'atelier).
+**Justin, 17 novembre au soir : « fais tout ce que tu peux faire aujourd'hui sur le serveur, il te reste 10 % ».** FAIT par la
+porte, état à 19 h 50 : (1) **NOTRE FORGE EXISTE** — Forgejo 17.0.1 (empreinte ET signature de l'éditeur vérifiées) dans
+`/home/atelier/forge`, en boucle locale (127.0.0.1:3000), inscriptions fermées, tout privé, pas de SSH ; comptes `justin`
+(administrateur, mot de passe provisoire à changer) et `claude` ; organisation `teamop`, dépôt `teamop/teamop` PRIVÉ ; (2) **LE
+CODE ENTIER Y EST, AVEC SON HISTORIQUE** : copie complète de GitHub dans `~/miroir/teamop.git` (312 branches, 7 238 commits, 4 964
+sur `main`), poussée dans la forge — 312 branches des deux côtés, `main` identique (`a415080`) ; (3) git par HTTPS avec un jeton
+marche (`Authorization: token …` comme `Bearer …`, 312 branches lues) ; sans jeton : refus (API 403) ; (4) la porte RELUE par
+`gardien` — sans la clé, aucun chemin trouvé ; dix points à corriger, dont SIX FAITS dans `porte.js` et `appel.sh` (clé vérifiée
+avant le compteur : personne ne ferme la porte à son propriétaire ; table des refus bornée ; journal écrit AVANT l'exécution,
+avec longueur et empreinte ; octet nul ; tuyaux ; fichiers au lieu d'arguments) — banc 33 ✓ — et QUATRE dans le script des
+gestes en root : `scripts/atelier/installer-forge-racine.sh` (à lancer par Justin depuis une copie qui appartient à ROOT, jamais
+depuis `/home/atelier` : un script que le compte atelier peut modifier et que root exécute, c'est lui donner root) — forge
+derrière Caddy sous `git.teamop.fr`, porte et forge tenues et durcies par systemd, interface d'administration de Caddy FERMÉE
+(`admin off` ; elle écoutait sans clé sur 127.0.0.1:2019), fail2ban, copie nocturne GitHub → forge (3 h 17), contrôles. Sa
+configuration Caddy a été validée sur l'atelier (`Valid configuration`, Caddy 2.11.9). ⚠️ La porte EN SERVICE est encore
+l'ancienne version tant que ce script n'a pas tourné. RESTENT OUVERTS de la relecture, à dire à Justin : un tenant de la clé
+(donc une session manipulée par un contenu piégé) peut prendre le port de la porte et lire la clé au passage — parade prévue :
+socket tenue par systemd ; changer la clé ne tue pas ce qui tourne déjà (la vraie révocation est de reconstruire l'atelier) ;
+la clé s'affiche une fois à l'installation. ⏳ ATTEND JUSTIN : l'enregistrement DNS `git` (A) chez OVH, le script en root, son
+mot de passe de forge, le jeton `claude` dans les secrets réseau (site `git.teamop.fr`, type Bearer). ENSUITE : premier clone
+et première poussée d'une session par `https://git.teamop.fr/teamop/teamop.git` = la condition (b) entièrement levée.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 

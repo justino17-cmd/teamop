@@ -184,5 +184,5 @@ echo
 echo "Reste à faire par toi, sans rien coller dans la conversation :"
 echo "  1. Ouvrir https://$FORGE , compte « justin », mot de passe provisoire :  grep -i password /home/atelier/forge/secrets/justin.creation"
 echo "     (il te sera demandé d'en choisir un nouveau)."
-echo "  2. Poser le jeton de Claude dans les secrets réseau de l'environnement (site $FORGE, en-tête Authorization, préfixe token) :"
+echo "  2. Poser le jeton de Claude dans les secrets réseau de l'environnement (type Bearer, site $FORGE) :"
 echo "     cat /home/atelier/forge/secrets/claude.jeton      puis :  clear"
