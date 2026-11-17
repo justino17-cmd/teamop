@@ -30,7 +30,7 @@
   --vert:#196e34; --orange:#994900; --rouge:#b0263c; --bleu:#0a5cbc; --violet:#7d3c98; --ambre:#8a5300; --sarcelle:#0a7c8a;
   --menu-fond:rgba(255,255,255,.4); --feuille:#f8f9fc; --voile:rgba(11,20,38,.32);
   --cel-auj:rgba(10,95,194,.05); --grille:rgba(11,20,38,.07); --grille-forte:rgba(11,20,38,.13);
-  --carte-fond:#ffffff; --mix-carte:#ffffff; --ink-sur-tech:#0b1426;
+  --carte-fond:#ffffff; --mix-carte:#ffffff; --ink-sur-tech:#0b1426; --alerte-fond:color-mix(in srgb,#f59e0b 13%,#ffffff);
   --page:radial-gradient(120% 90% at 0% 0%,#dfe9ff 0%,rgba(223,233,255,0) 55%),radial-gradient(110% 80% at 100% 100%,#d9e6fb 0%,rgba(217,230,251,0) 60%),linear-gradient(160deg,#eef3fb,#f0f3f8);
   --tab-fond:rgba(255,255,255,.62); --tab-lise:rgba(255,255,255,.9); --tab-cur:rgba(255,255,255,.92); --tab-cur-ink:#0b1426; --tab-ink:#4a556b;
 }
@@ -44,7 +44,7 @@
   --vert:#30d158; --orange:#ff9f0a; --rouge:#ff7d8e; --bleu:#6aabff; --violet:#cb90f5; --ambre:#ffd60a; --sarcelle:#5fd4de;
   --menu-fond:#15213A; --feuille:#15213A; --voile:rgba(2,5,12,.6);
   --cel-auj:rgba(100,168,255,.07); --grille:rgba(255,255,255,.06); --grille-forte:rgba(255,255,255,.12);
-  --carte-fond:#1E2A42; --mix-carte:#1E2A42; --ink-sur-tech:#f0f3f8;
+  --carte-fond:#1E2A42; --mix-carte:#1E2A42; --ink-sur-tech:#f0f3f8; --alerte-fond:color-mix(in srgb,var(--orange) 12%,transparent);
   --page:linear-gradient(112deg,rgba(255,255,255,0) 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1A2A4D 0%,rgba(26,42,77,0) 55%),radial-gradient(110% 80% at 100% 100%,#12234A 0%,rgba(18,35,74,0) 60%),linear-gradient(160deg,#0F1A30 0%,#070B16 100%);
   --tab-fond:rgba(52,59,74,.6); --tab-lise:rgba(255,255,255,.16); --tab-cur:rgba(34,59,110,.72); --tab-cur-ink:#f0f3f8; --tab-ink:#abb3c2;
 }
@@ -301,6 +301,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 /* ── taches ── */
 /* Lot « taches » : tout est préfixé tkx ; les deux ou trois règles qui touchent une classe existante portent #contenu pour passer devant la feuille (placée plus bas dans le fichier) */
 .tkx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tkx-intro{max-width:64ch}   /* sans plafond, la phrase tient sur UNE ligne de 1 060 px au bureau et pousse « Exporter en PDF » sous elle : les autres écrans l'ont en haut à droite */
 .tkx-hbtn{display:flex;gap:8px;align-items:center}.tkx-plus{display:none;min-width:44px;min-height:44px;font-size:20px;font-weight:800;padding:0 14px}
 .tkx-outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .tkx-cherche{flex:1 1 260px;min-width:0;margin:0}.tkx-cherche .saisie{width:100%;margin:0;min-height:44px}
@@ -308,7 +309,8 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 .tkx-pill{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);font:inherit;font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 .tkx-pill[aria-pressed="true"]{background:color-mix(in srgb,var(--lien) 14%,var(--surf));border-color:var(--lien);color:var(--lien)}
 .tkx-rang{display:flex;align-items:center;gap:8px;margin:0;order:3}.tkx-pills{order:2}.tkx-rang .saisie{margin:0;min-height:44px;width:auto}
-.tkx-resume{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r2);background:color-mix(in srgb,var(--orange) 10%,var(--surf));border:1px solid color-mix(in srgb,var(--orange) 28%,transparent);font-size:14.5px}
+.tkx-resume>span:last-child{flex:1 1 0;min-width:0}   /* sans ça le texte et ses pastilles passaient à la ligne ENTIER, et le ⚠️ restait seul sur la sienne (320 px) */
+.tkx-resume{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r2);background:var(--alerte-fond);border:1px solid color-mix(in srgb,var(--orange) 28%,transparent);font-size:14.5px}
 .tkx-retard-p{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--rouge) 40%,transparent);background:color-mix(in srgb,var(--rouge) 8%,var(--surf));color:var(--rouge);font:inherit;font-weight:700;cursor:pointer}
 .tkx-compris{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:-4px}.tkx-compris[hidden]{display:none}
 .tkx-chip{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--lien) 35%,transparent);background:color-mix(in srgb,var(--lien) 10%,var(--surf));color:var(--lien);font:inherit;font-size:14px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -2406,7 +2408,7 @@ details.mois .ligne-clic{margin-top:8px}
 /* une rangée de choix ne pousse jamais la page : elle défile dans sa colonne (iPad portrait, menu ouvert) */
 .seg{max-width:100%;overflow-x:auto;scrollbar-width:none;flex-shrink:0}.seg::-webkit-scrollbar{display:none}.seg button{flex:0 0 auto}
 @media (max-width:760px){.seg button{flex:1 0 auto}}
-@media (max-width:760px){.pl-barre>.seg[aria-label="Vue"]{flex-wrap:wrap;overflow:visible}.pl-barre>.seg[aria-label="Vue"] button{flex:1 1 30%}}
+@media (max-width:900px){.pl-barre>.seg[aria-label="Vue"]{flex-wrap:wrap;overflow:visible}.pl-barre>.seg[aria-label="Vue"] button{flex:1 1 30%}}
 /* sous 1000 px, la colonne de contenu est trop étroite pour le tableau : la liste du téléphone prend le relais */
 @media (max-width:1000px){.liste-bureau{display:none}.liste-tel{display:block;padding:8px}}
 td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
@@ -2641,7 +2643,7 @@ body.dp-ouvert{overflow:hidden}
 .a-dem-t{display:flex;gap:12px;align-items:center}.a-dem-t>span:nth-child(2){flex:1;display:flex;flex-direction:column}
 .a-quand{display:flex;flex-direction:column;gap:2px}.a-quand b{font-size:17px}.a-quand span{color:var(--doux);font-size:14px}
 .a-solde-l{font-size:14px;color:var(--doux)}
-.a-alerte{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--orange) 12%,transparent);border:1px solid color-mix(in srgb,var(--orange) 30%,transparent);font-size:14px}.a-alerte small{color:var(--doux)}
+.a-alerte{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:var(--alerte-fond);border:1px solid color-mix(in srgb,var(--orange) 30%,transparent);font-size:14px}.a-alerte small{color:var(--doux)}
 .a-ok{font-size:14px;color:var(--vert);font-weight:600}
 .a-dans{font-weight:650;color:var(--encre)}.a-dans.urg{color:var(--orange)}.a-al-t{font-weight:600}.a-aussi{padding-top:8px;border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}
 .ac-aide{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:var(--doux);margin:-2px 0 10px}.ac-aide b{color:var(--encre)}
@@ -4059,7 +4061,7 @@ function vueMois(){
 }
 document.addEventListener('toggle', ev => { if (ev.target.classList && ev.target.classList.contains('pl-mrec')) plRecap = ev.target.open; }, true);
 function vueGenerale(){
-  const J = Array.from({length:plJours},(_,k)=>ajoute(lundi(plRef),k)), cw = tel() ? 170 : 162, ce = tel() ? 150 : 172;
+  const J = Array.from({length:plJours},(_,k)=>ajoute(lundi(plRef),k)), cw = tel() ? 170 : 140, ce = tel() ? 150 : 172;   /* 140 : Lun → Sam tient sans défiler à 1 366 px (la colonne du samedi, celle d'aujourd'hui, sortait de 17 px sur un Mac) */
   let g = `<div class="pl-jh" style="text-align:left;padding-left:16px;cursor:default">Équipe</div>` + J.map(d => `<div class="pl-jh ${d===AUJ?'auj':''}" data-voirjour="${d}" title="Ouvrir le ${jlong(d)}">${jlib(d)}${d===AUJ?' · auj.':''}${NOTES[d]?`<small>📌 ${esc(NOTES[d])}</small>`:''}</div>`).join('');
   techsVus().forEach(t => { const mine = INTS.filter(i => i.tech === t.id && J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe).filter(i => i.tech === t.id)), mn = mine.reduce((s,i)=>s+i.dur,0);
     g += `<div class="pg-tec">${avatar(t)}<span><b>${t.nom}</b><small>${t.id ? (mine.length ? mine.length + ' · ' + duree(mn) : 'libre') : mine.length + ' à répartir'}</small></span></div>`;
@@ -14411,10 +14413,10 @@ vueTaches = function(){
     <div class="seg" role="tablist" aria-label="Tâches">${[['auj', 'Aujourd’hui'], ['avenir', 'À venir'], ['faites', 'Faites']].map(([k, l]) => `<button type="button" role="tab" data-tonglet="${k}" aria-pressed="${tOnglet === k}" aria-selected="${tOnglet === k}">${l}${k !== 'faites' && nb(k) ? ` <span class="t-nb ${k === 'auj' && V.some(tkxEnRetard) ? 'rouge' : ''}">${nb(k)}</span>` : ''}</button>`).join('')}</div>
     ${perso ? '' : `<select class="saisie t-pour" data-tqui="1" aria-label="Les tâches de qui">${[['tous', tel() ? 'Équipe' : 'Toute l’équipe'], ...T_GENS.map(k => [k, tel() ? tkxPrenom(k) : tNom(k)])].map(([k, l]) => `<option value="${k}" ${tQui === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`}
   </div>
-  <div class="tkx-outils"><label class="tkx-cherche"><span class="tkx-sr">Chercher une tâche</span><input type="search" class="saisie" data-tkxcherche="1" value="${esc(tCherche)}" placeholder="${tel() ? 'Chercher une tâche' : 'Chercher une tâche, un client, un numéro'}" autocomplete="off"></label>
+  <div class="tkx-outils"><label class="tkx-cherche"><span class="tkx-sr">Chercher une tâche</span><input type="search" class="saisie" data-tkxcherche="1" value="${esc(tCherche)}" placeholder="${innerWidth < 340 ? 'Chercher' : tel() ? 'Chercher une tâche' : 'Chercher une tâche, un client, un numéro'}" autocomplete="off"></label>
     ${perso ? '' : `<label class="tkx-rang"><span class="gris petit tkx-rang-l">Ranger par</span><select class="saisie" data-tkxrang="1" aria-label="Ranger par">${[['sujet', 'Sujet'], ['heure', 'Heure'], ['personne', 'Personne']].map(([k, l]) => `<option value="${k}" ${tkxRang === k ? 'selected' : ''}>${tel() ? 'Par ' + l.toLowerCase() : l}</option>`).join('')}</select></label>`}
     ${tOnglet !== 'faites' ? `<div class="tkx-pills" role="group" aria-label="Filtres rapides">${pastille('retard', 'En retard', nRet)}${pastille('urgent', 'Urgentes', nUrg)}${pastille('sansdate', 'Sans date', nSans)}</div>` : ''}</div>
-  ${tOnglet !== 'faites' ? `<div class="t-ajout"><span class="t-plus" aria-hidden="true">＋</span><input class="t-ajout-in" data-tajout="1" placeholder="${tOnglet === 'auj' ? 'Nouvelle tâche · ex. Appeler M. Martin demain 14h' : 'Nouvelle tâche pour demain'}" aria-label="Ajouter une tâche" autocomplete="off"><button type="button" class="lien" data-tnouv="1">Détails</button></div><div class="tkx-compris" data-tkxcompris="1" hidden></div>` : ''}
+  ${tOnglet !== 'faites' ? `<div class="t-ajout"><span class="t-plus" aria-hidden="true">＋</span><input class="t-ajout-in" data-tajout="1" placeholder="${tel() ? 'Nouvelle tâche' : tOnglet === 'auj' ? 'Nouvelle tâche · ex. Appeler M. Martin demain 14h' : 'Nouvelle tâche pour demain'}" aria-label="Ajouter une tâche" autocomplete="off"><button type="button" class="lien" data-tnouv="1">Détails</button></div><div class="tkx-compris" data-tkxcompris="1" hidden></div>` : ''}
   ${S.length && tOnglet !== 'faites' ? `<button type="button" class="t-bandeau" data-tsuggs="1"><span>💡</span><span><b>OP GESTION te propose ${S.length} tâche${S.length > 1 ? 's' : ''}${urg ? ` · ${urg} urgente${urg > 1 ? 's' : ''}` : ''}</b><small>${esc(S.slice().sort((a, b) => tkxUrgente(b) - tkxUrgente(a))[0].t)}${S.length > 1 ? '…' : ''}</small></span><span class="h-chev">›</span></button>` : ''}
   ${corps}${tkxBarre()}`;
 };
@@ -26484,6 +26486,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
   .cpsys-barre button{min-height:44px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
 }
+@media (max-width:400px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{padding:0 8px;font-size:13.5px} }   /* 360 px : « ＋ Nouvelle intervention » dépassait la pastille de 5 px, et son dernier « n » (blanc) se perdait sur le fond clair ; 390 px : le texte touchait les deux bords */
+@media (max-width:380px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{white-space:normal;line-height:1.15;text-align:center} }   /* 360 px : même à 13,5 px le texte (158 px) ne tient pas dans une demi-largeur (144 px) ; il passe sur deux lignes dans la pastille plutôt que de la déborder */
 @media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
 </style>`);
 
