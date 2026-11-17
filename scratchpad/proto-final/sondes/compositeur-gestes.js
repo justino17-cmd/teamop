@@ -52,7 +52,8 @@ const fermee = p => p.evaluate(() => { const z = document.getElementById('opdz')
     v(`${tag} · avant la frappe : aucun article « Modifié » (${pas})`, pas === 0, pas);
     v(`${tag} · une seule lettre tapée : la pastille « Modifié » paraît tout de suite, la zone de saisie garde le doigt`, ap.pastilles === 1 && ap.ouverte, ap);
     await ta.pressSequentially('?', { delay: 20 }); v(`${tag} · une seconde lettre ne double pas la pastille`, (await f.locator('#vv-lig .vv-opt-b').count()) === 1, null);
-    await p.keyboard.press('Escape'); await p.waitForTimeout(400); await p.keyboard.press('Escape'); await p.waitForTimeout(500);
+    // Échap ouvre la confirmation dès qu'il y a du contenu : on la cherche après CHAQUE Échap (un second Échap la referme, « Continuer ») plutôt que de supposer l'ordre
+    for (let k = 0; k < 3 && !(await f.locator('.dialogue').count()); k++) { await p.keyboard.press('Escape'); await p.waitForTimeout(700); }
     if (await f.locator('.dialogue').count()) { await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(900); }
   }
   // ── tout-12 : un client qui existe déjà se propose ─────────────────────────────────────────────────────────────────────────────────────

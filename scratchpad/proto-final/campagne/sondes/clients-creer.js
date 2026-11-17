@@ -31,7 +31,7 @@ const ADR120 = '12 bis rue du Docteur Jean-Baptiste de la Fontaine-Mortagne, Ré
   const fermer = () => p.evaluate(() => { try { fermerCreation(); } catch (e) {} });
   let r = await essai({ nom: 'Essai un' }); await fermer();
   console.log('  · nom seul → ' + JSON.stringify(r));
-  v('intervention-01 : un client sans téléphone, sans e-mail ni adresse ne se crée pas (le formulaire du devis, lui, l’exige)', r.cree === 0, r);
+  v('clients-04 : un client sans téléphone, sans e-mail ni adresse ne se crée pas (le formulaire du devis, lui, l’exige) — décision « facultatifs » à confirmer', r.cree === 0, r);
   await ouvrirNv('int'); r = await essai({ nom: 'Essai deux', tel: '12' }); v('téléphone « 12 » refusé (« à vérifier »)', r.cree === 0 && /téléphone|numéro/i.test(r.toast), r); await fermer();
   await ouvrirNv('int'); r = await essai({ nom: 'Essai trois', tel: '06 00 00 00 03', mail: 'pas-un-mail' }); v('e-mail « pas-un-mail » refusé', r.cree === 0 && /mail/i.test(r.toast), r); await fermer();
   const nBase = await nb(); console.log('  · ' + (nBase - n0) + ' client(s) de plus après les trois essais refusables : ces refus n’existent pas dans ce formulaire');
@@ -75,7 +75,7 @@ const ADR120 = '12 bis rue du Docteur Jean-Baptiste de la Fontaine-Mortagne, Ré
   const cd = await p.evaluate(k => ({ c: CLIENTS[k], geo: CR_GEO[k] || null, sect: SECT_CLI[k] || null, dv: DV.filter(d => d.cli === k).map(d => d.objet) }), k2);
   v('client créé avec un devis : pro, raison sociale gardée, contact « Anne Ledoux », téléphone formaté (« ' + cd.c.tel + ' »)', cd.c.type === 'pro' && cd.c.nom === NOM60 && cd.c.contact === 'Anne Ledoux' && cd.c.tel.replace(/\D/g, '').endsWith('612345678'), cd.c);
   v('client créé avec un devis : le devis est à son nom', cd.dv.length === 1, cd.dv);
-  v('client créé avec un devis : il a lui aussi sa position (Rochefort) pour la carte des tournées — comme celui créé avec une intervention', !!cd.geo, { geo: cd.geo, sect: cd.sect });
+  v('clients-05 : client créé avec un devis : il a lui aussi sa position (Rochefort) pour la carte des tournées — comme celui créé avec une intervention', !!cd.geo, { geo: cd.geo, sect: cd.sect });
   await p.evaluate(() => { chercheClient = ''; }); await L.aller(p, 'clients'); const ln = await p.evaluate(() => { const e = [...document.querySelectorAll('#contenu .client-carte')].find(x => x.textContent.includes('Établissements')); window.__cartes = [...document.querySelectorAll('#contenu .client-carte')].map(x => x.textContent.slice(0, 30)); const r = e && e.getBoundingClientRect(); return e ? { w: Math.round(r.width), h: Math.round(r.height), t: e.querySelector('b').scrollWidth > e.querySelector('b').clientWidth } : null; });
   d = await L.deborde(c); v('carte au nom de 63 signes : aucun glissement latéral', d.bouge === 0 && !!ln, { d, ln, cartes: await p.evaluate(() => window.__cartes) });
   await L.capture(c, CAP + `creer-liste-long-${PROFIL}${NUIT ? '-nuit' : ''}.png`);

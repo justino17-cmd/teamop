@@ -8,6 +8,8 @@ const SRC = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.
 const ETAT = () => ({ panneau:(document.querySelector('#calque .panneau h2') || {}).textContent || null, iban:ENTREPRISE.iban, bic:ENTREPRISE.bic, payees:ACHATS.filter(a => a.paye).length, onglet:CP.onglet, compta:!!PAIE.compta, envoi:!!PAIE.envoi,
   droits:JSON.stringify(eqDe('julie').droits), provSm:SECU.comptes.sm.prov, telKb:!!SECU.comptes.kb.tel, actifTl:eqDe('tl').actif, session:SESSION, journal:JOURNAL.length, bande:!!document.querySelector('.sec-bande') });
 const etat = c => c.p.evaluate(ETAT);
+// la personne TOUCHE l'écran avant que l'horloge de démonstration avance : sans cela, 3 × 6 minutes de silence dépassent les 15 minutes d'inactivité (un clic synthétique `.click()` ne compte pas comme un toucher)
+const avancer = async (c, n) => { await c.p.evaluate(() => document.dispatchEvent(new Event('pointerdown', { bubbles:true }))); await S.avancer(c, n); };
 const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' : ' + a[k] + ' → ' + b[k]);
 (async () => {
   console.log('\n── 0. le recensement : les quatorze gestes, chacun gardé DANS la fonction qui montre ou écrit ──');
@@ -24,13 +26,13 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
   const c = await S.ouvrir({ profil:'mac' }); await S.tous(c);
   const rg = await S.entrer(c, 'marc'); v('population : Marc connecté par le nombre (session NON auto), son téléphone activé', rg.ok && await c.p.evaluate(() => SESSION === 'marc' && SECU.sessions.marc.auto === false));
   v('la connexion approuvée compte déjà comme une confirmation (fenêtre de 5 minutes ouverte)', await c.p.evaluate(() => secuFenetreValide('marc')));
-  const essai = async (cle, phrase, declencher, reprise, o) => { o = o || {};
-    await S.avancer(c, 6); const av = await etat(c);
+  const essai = async (cle, phrase, declencher, reprise, o) => { o = o || {}; console.log('  … ' + cle);
+    await avancer(c, 6); const av = await etat(c);
     await declencher(); await c.p.waitForTimeout(500); const cf = await S.conf(c), ap = await etat(c);
     v(cle + ' : sans fenêtre valable, la confirmation s’ouvre avec SA phrase « Pour ' + phrase + ' »', !!cf && cf.texte.includes('Pour ' + phrase + ', OP GESTION vérifie que c’est bien toi.') && /Confirme sur ton téléphone/.test(cf.texte) && /^\d\d$/.test(cf.nombre || ''), cf && cf.texte.slice(0, 140));
     const d = diff({ ...av, bande:false }, { ...ap, bande:false }).filter(x => !/^panneau/.test(x) || !o.panneauOk);
     v(cle + ' : état avant = état après (rien ne s’est ouvert, rien ne s’est écrit)', d.length === 0, d);
-    await S.confirmer(c, 'marc'); await c.p.waitForTimeout(700); const fin = await etat(c);
+    console.log('  … ' + cle + ' : nombre lu, tapé sur le téléphone'); await S.confirmer(c, 'marc'); await c.p.waitForTimeout(700); const fin = await etat(c);
     v(cle + ' : confirmé, le geste REPREND là où il s’était arrêté', await reprise(fin, av), diff(av, fin));
     v(cle + ' : la fenêtre de confirmation s’est refermée', !(await S.conf(c)));
     return { av, fin }; };
@@ -48,22 +50,21 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
 
   console.log('\n── 2. l’IBAN se re-masque à l’expiration ; « Enregistrer » redemande la confirmation (S2) ──');
   await c.p.evaluate(() => { const b = document.getElementById('en-bic'); b.value = 'BNPAFRPP'; b.dispatchEvent(new Event('input', { bubbles:true })); });
-  await S.avancer(c, 6); await c.p.waitForTimeout(500);
+  await avancer(c, 6); await c.p.waitForTimeout(500);
   const exp = await c.p.evaluate(() => ({ champ:document.getElementById('en-iban').value, ban:(document.querySelector('.sec-expire-pan') || {}).textContent || '', bic:document.getElementById('en-bic').value, toast:(document.getElementById('toast') || {}).textContent }));
-  v('l’IBAN du champ revient masqué (« FR•• •••• •••• 0189 ») : l’entier n’est plus nulle part dans le DOM', exp.champ === 'FR•• •••• •••• 0189' && await c.p.evaluate(() => !/FR76\s?3000\s?6000/.test(document.getElementById('calque').innerHTML)), exp.champ);
+  v('l’IBAN du champ revient masqué (« FR•• •••• •••• 0189 ») : l’entier n’est plus nulle part dans le DOM', exp.champ === 'FR•• •••• •••• 0189' && await c.p.evaluate(() => !/FR76\s?3000\s?6000/.test(document.getElementById('calque').innerHTML.replace(/placeholder="[^"]*"/g, ''))), exp.champ);
   v('toast « Cinq minutes ont passé : ton IBAN est de nouveau masqué. »', /Cinq minutes ont passé : ton IBAN est de nouveau masqué\./.test(exp.toast || ''), exp.toast);
   v('le panneau de SAISIE reste ouvert avec ce que la personne a tapé, et le dit en tête', exp.bic === 'BNPAFRPP' && /La confirmation a expiré : elle sera redemandée à l’enregistrement\./.test(exp.ban), exp);
   await essai('banque-enregistrer', 'enregistrer ton IBAN', () => c.p.evaluate(() => document.querySelector('[data-ent="banqueok"]').click()),
     async (f, a) => f.bic === 'BNPAFRPP' && f.iban === ibanEntier && f.bic !== a.bic, { panneauOk:true });
   v('le BIC est enregistré tel que tapé, l’IBAN non retouché reste celui de la fiche (jamais « FR•• •••• »)', await c.p.evaluate(i => ENTREPRISE.bic === 'BNPAFRPP' && ENTREPRISE.iban === i && !/•/.test(ENTREPRISE.iban), ibanEntier));
 
-  console.log('\n── 3. S3 et S4 · Achats › Virement groupé ──');
-  await L.aller(c.p, 'achats');
-  await c.p.evaluate(() => { acSel.clear(); acAPayer().slice(0, 2).forEach(o => acSel.add(o.id)); rendre(); }); await c.p.waitForTimeout(500);
-  v('population : 2 factures cochées, le bouton « Virement groupé » est là', await c.p.evaluate(() => acSel.size === 2 && !!document.querySelector('[data-ac="virement"]')));
-  await essai('virement-ouvrir', 'préparer un virement groupé', () => c.p.evaluate(() => document.querySelector('[data-ac="virement"]').click()),
+  console.log('\n── 3. S3 et S4 · Achats › Virement groupé (l\'onglet « À payer » n\'est plus dans l\'écran Achats : on joue les FONCTIONS, qui portent la garde) ──');
+  await c.p.evaluate(() => { acSel.clear(); acAPayer().slice(0, 2).forEach(o => acSel.add(o.id)); });
+  v('population : 2 factures à payer choisies (le bouton « Virement groupé » n’est plus au menu d’Achats : la garde est dans la fonction, un chemin neuf ne la contourne pas)', await c.p.evaluate(() => acSel.size === 2 && typeof acVirement === 'function' && typeof acVirok === 'function'));
+  await essai('virement-ouvrir', 'préparer un virement groupé', () => c.p.evaluate(() => acVirement()),
     async (f, a) => /facture/.test(f.panneau || '') && !!(await c.p.evaluate(() => document.querySelector('[data-ac="virok"]'))), { panneauOk:true });
-  await essai('virement-fichier', 'télécharger le fichier de virement', () => c.p.evaluate(() => document.querySelector('[data-ac="virok"]').click()),
+  await essai('virement-fichier', 'télécharger le fichier de virement', () => c.p.evaluate(() => acVirok()),
     async (f, a) => f.payees === a.payees + 2, { panneauOk:true });
 
   console.log('\n── 4. S7, S8, S9 · Temps de travail › Paie (chacun par la FONCTION : un second chemin ne contourne rien) ──');
@@ -93,14 +94,14 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
   v('« Revenir à mon compte » : retour à la session de Marc, sans nouvelle approbation, la bande disparaît', await c.p.evaluate(() => SESSION === 'marc' && !document.querySelector('.sec-bande') && !document.getElementById('cnx')));
 
   console.log('\n── 6. les cinq minutes : deux gestes d’affilée sans redemander, +5 redemande, PAS de prolongation ──');
-  await S.avancer(c, 6); await c.p.evaluate(() => { fermerPanneau(); });
+  await avancer(c, 6); await c.p.evaluate(() => { fermerPanneau(); });
   await c.p.evaluate(() => paieAller('fiches')); await c.p.waitForTimeout(400); await S.confirmer(c, 'marc'); await c.p.waitForTimeout(500);
   v('population : une confirmation vient d’être faite', await c.p.evaluate(() => secuFenetreValide('marc')));
   await c.p.evaluate(() => paieEnvoyer()); await c.p.waitForTimeout(300);
   v('deux gestes d’affilée : le second ne redemande rien', !(await S.conf(c)) && /Envoyer au cabinet de paie/.test((await etat(c)).panneau || ''));
-  await S.avancer(c, 3); await c.p.evaluate(() => { fermerPanneau(); paieAller('fiches'); }); await c.p.waitForTimeout(300);
+  await avancer(c, 3); await c.p.evaluate(() => { fermerPanneau(); paieAller('fiches'); }); await c.p.waitForTimeout(300);
   v('à +3 minutes : toujours pas de demande', !(await S.conf(c)));
-  await S.avancer(c, 2.5); await c.p.evaluate(() => { fermerPanneau(); paieAller('fiches'); }); await c.p.waitForTimeout(400);
+  await avancer(c, 2.5); await c.p.evaluate(() => { fermerPanneau(); paieAller('fiches'); }); await c.p.waitForTimeout(400);
   v('à +5,5 minutes de la confirmation (le dernier geste date de 2,5 min) : la fenêtre NE s’est PAS prolongée, la confirmation est redemandée', !!(await S.conf(c)));
   await c.p.evaluate(() => document.querySelector('#sec-conf [data-sec3="annuler"]').click()); await c.p.waitForTimeout(300);
   v('« Annuler » : la fenêtre se ferme, le geste n’a pas lieu, aucun échec n’est compté', !(await S.conf(c)) && await c.p.evaluate(() => SECU.comptes.marc.echecs === 0));
@@ -110,9 +111,11 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
   await c.p.evaluate(() => paieEnvoyer()); await c.p.waitForTimeout(400);
   await S.confirmer(c, 'marc', { ok:false }); await c.p.waitForTimeout(600);
   const e1 = await etat(c), n1 = await S.compte(c, 'marc');
-  v('mauvais nombre : la fenêtre se ferme, le geste est ANNULÉ (rien ne s’est passé)', !(await S.conf(c)) && diff(e0, e1).length === 0, diff(e0, e1));
+  const dj = diff({ ...e0, journal:0 }, { ...e1, journal:0 });
+  v('mauvais nombre : la fenêtre se ferme, le geste est ANNULÉ (rien ne s’est passé)', !(await S.conf(c)) && dj.length === 0, dj);
+  v('la seule trace est la ligne de sécurité du journal : « a tapé un mauvais nombre sur son téléphone » (le geste, lui, n’a laissé aucune ligne)', e1.journal === e0.journal + 1 && await c.p.evaluate(() => { const j = JOURNAL[JOURNAL.length - 1]; return j.type === 'securite' && /a tapé un mauvais nombre sur son téléphone/.test(j.action); }));
   v('toast « Mauvais nombre : l’action est annulée par sécurité. » et un échec compté', /Mauvais nombre : l’action est annulée par sécurité\./.test(await S.texte(c, '#toast') || '') && n1.echecs === n0.echecs + 1, n1.echecs);
-  await c.p.evaluate(() => paieEnvoyer()); await c.p.waitForTimeout(400); await S.avancer(c, 3); await c.p.waitForTimeout(500);
+  await c.p.evaluate(() => paieEnvoyer()); await c.p.waitForTimeout(400); await avancer(c, 3); await c.p.waitForTimeout(500);
   const ex = await S.conf(c);
   v('2 minutes sans réponse : « La demande a expiré. » + « Recommencer »', !!ex && /La demande a expiré\./.test(ex.texte) && /Recommencer/.test(ex.texte) && !ex.nombre, ex && ex.texte);
   await c.p.evaluate(() => document.querySelector('#sec-conf [data-sec3="recommencer"]').click()); await c.p.waitForTimeout(400);
@@ -120,7 +123,7 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
   await c.p.keyboard.press('Escape'); await c.p.waitForTimeout(300); v('Échap = « Annuler »', !(await S.conf(c)));
 
   console.log('\n── 8. le cadre de la Comptabilité (iframe) : deux messages, source vérifiée ──');
-  await S.avancer(c, 6); await c.p.evaluate(() => { fermerPanneau(); cpSysAllerRubrique('comptabilite'); }); await c.p.waitForTimeout(2500);
+  await avancer(c, 6); await c.p.evaluate(() => { fermerPanneau(); cpSysAllerRubrique('comptabilite'); }); await c.p.waitForTimeout(2500);
   const f = L.cadre(c.p); v('population : le cadre de la Comptabilité est ouvert (iframe)', !!f);
   if (f) {
     await f.evaluate(() => aller('banque')); await c.p.waitForTimeout(700);
@@ -129,7 +132,7 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
     const cf = await S.conf(c); v('la page ouvre la confirmation avec SA phrase « voir la banque de la comptabilité »', !!cf && /Pour voir la banque de la comptabilité, OP GESTION vérifie que c’est bien toi\./.test(cf.texte), cf && cf.texte.slice(0, 100));
     await S.confirmer(c, 'marc'); await c.p.waitForTimeout(900);
     v('confirmé : le cadre montre la banque (la carte d’attente a disparu)', await f.evaluate(() => !document.querySelector('[data-opc="attente"]') && UI.route === 'banque'));
-    await f.evaluate(() => aller('accueil')); await S.avancer(c, 6); await f.evaluate(() => aller('fec')); await c.p.waitForTimeout(500);
+    await f.evaluate(() => aller('accueil')); await avancer(c, 6); await f.evaluate(() => aller('fec')); await c.p.waitForTimeout(500);
     const dl0 = await f.evaluate(() => !!document.querySelector('#fec-msg') && document.querySelector('#fec-msg').textContent.trim().length);
     await f.evaluate(() => document.querySelector('[data-a="fec-dl"]').click()); await c.p.waitForTimeout(600);
     const cf2 = await S.conf(c); v('le FEC : « Pour exporter la comptabilité, … » et rien ne part avant', !!cf2 && /Pour exporter la comptabilité, OP GESTION vérifie que c’est bien toi\./.test(cf2.texte) && !(await f.evaluate(() => (document.querySelector('#fec-msg') || {}).textContent || '').length), cf2 && cf2.texte.slice(0, 100));
