@@ -355,6 +355,13 @@ suppression : `server/index.js` appelle Google quand la Tour ferme, supprime ou 
 (`fbRevoquerEquipe`, effacement Firestore, vérification de jeton) — à retirer, bancs à l'appui, puis mise en ligne du serveur
 sur la phrase de Justin, AVANT de supprimer le projet. Piège de la soirée : un nom demandé juste avant d'exister reste « inconnu »
 dans la mémoire du serveur (`resolvectl flush-caches`).
+⚠️ **La bêta d'OP MESSAGES de l'atelier RÉPOND mais on n'y ENTRE pas (vu par Justin le 17 au soir : « La connexion est momentanément
+indisponible »).** Cause lue dans `server-msg/porte-beta.js` : la porte d'essai vérifie l'identifiant donné par la Tour en appelant
+OP GESTION en boucle locale (`POST /api/beta/login`, 127.0.0.1:8080) — sur le serveur des clients les deux vivent ensemble ; sur
+l'atelier il n'y a PAS de serveur OP GESTION. À FAIRE EN PREMIER à la reprise : un serveur OP GESTION d'ESSAI sur l'atelier
+(`server/index.js`, `TEAMOP_CONFIG`/`TEAMOP_DATA` jetables, port 8080, un accès bêta créé pour Justin), puis vérifier l'entrée de
+bout en bout AU NAVIGATEUR avant de lui redire « c'est en ligne » — je l'ai annoncé sur la seule foi de `/health`, à tort. La
+porte de test des codes SMS est posée (`OPMSG_TEST_CODES`, drop-in `atelier-opmsg.service.d/codes.conf`).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
