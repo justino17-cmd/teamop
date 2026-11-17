@@ -27,6 +27,18 @@ const comme = (p, id) => p.evaluate(i => secuVoirComme(i), id);
   await L.capture(c, E.CAP + `corr-connexion-julie-${SUF}.png`);
   if (c.doigt) { const t = await L.doigts(p, '#calque .cn-mdp'); v(`equipe-13 cibles au doigt ≥ 44 px (${SUF})`, t.petits.length === 0, t.petits); }
   await E.ranger(c);
+  // ── equipe-05/06/07 : les refus de l'ajout d'une habilitation disent chacun SA phrase, sous le champ (le sondeur du testeur accepte « refusé ou signalé » : ici on exige la bonne phrase)
+  await E.fiche(c, 'kb'); await L.toucher(c, '[data-eq="habajout|kb"]'); await L.calme(p, 400);
+  const nb0 = await p.evaluate(() => eqDe('kb').habil.length), clic = async () => { await L.toucher(c, '#calque [data-eq^="habok|kb"]'); await L.calme(p, 300); }, err = () => p.evaluate(() => { const e = document.getElementById('eqx-hn-err'), n = document.getElementById('eq-hn-err'); return { fin:e ? e.textContent : '', nom:n ? n.textContent : '', marque:document.getElementById('eqx-hn').getAttribute('aria-invalid') }; });
+  await p.fill('#eq-hn', 'Formation de test'); await p.fill('#eqx-hd', '2026-10-20'); await p.fill('#eqx-hn', '2026-10-10'); await clic(); const e6 = await err();
+  v('equipe-06 une fin AVANT la date d’obtention est refusée avec cette phrase-là, sous le champ, champ marqué', /ne peut pas être avant/.test(e6.fin) && e6.marque === 'true' && await p.evaluate(() => eqDe('kb').habil.length) === nb0, e6);
+  await p.fill('#eqx-hn', '2026-10-25'); await p.fill('#eqx-hd', '2026-10-25'); await p.fill('#eqx-hn', '2020-01-01'); await p.fill('#eqx-hd', '2019-01-01'); await clic(); const e6b = await err();
+  v('equipe-06 une fin déjà passée est SIGNALÉE (« Expirée » tout de suite) et rien n’est ajouté au premier toucher', /déjà passée/.test(e6b.fin) && await p.evaluate(() => eqDe('kb').habil.length) === nb0, e6b);
+  await p.fill('#eqx-hn', ''); await clic(); const e7 = await err();
+  v('equipe-07 une date de fin vide sans « Sans date de fin » : on demande de choisir (phrase propre)', /Choisis la date de fin/.test(e7.fin) && await p.evaluate(() => eqDe('kb').habil.length) === nb0, e7);
+  await p.fill('#eq-hn', 'Habilitation électrique BR'); await p.fill('#eqx-hn', '2027-10-25'); await clic(); const e5 = await err();
+  v('equipe-05 une habilitation de même nom : refusée sous le champ du nom, avec la phrase qui renvoie à « Renouveler » ou dit qu’elle est valable', /a déjà/.test(e5.nom) && await p.evaluate(() => eqDe('kb').habil.length) === nb0, e5);
+  await E.ranger(c);
   // ── equipe-09 : sur téléphone, adresse et rôle / téléphone chacun sur sa ligne
   await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.calme(p, 400);
   const iv = await p.evaluate(() => { const m = document.getElementById('eq-m').getBoundingClientRect(), r = document.getElementById('eq-r').getBoundingClientRect(); return { memeLigne:Math.abs(m.top - r.top) < 4, wMail:Math.round(m.width) }; });
