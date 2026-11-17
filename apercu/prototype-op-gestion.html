@@ -22319,7 +22319,7 @@ function opdOuvrir(faire, o){
 function opdFermer(motif){
   const z = document.getElementById('opdz'); if (!z || z.hidden) return; clearTimeout(OPDZ.tAtt); OPDZ.file = [];
   z.hidden = true; document.body.style.overflow = OPDZ.overflow || '';
-  if (motif === 'role') toast('Ton rôle n’a pas accès aux documents sur mesure.'); else if (motif === 'absent') toast('L’atelier n’a pas pu s’ouvrir.');
+  if (motif === 'role') toast('Ton rôle n’a pas accès aux documents sur mesure.'); else if (motif === 'absent') toast('L’atelier n’a pas pu s’ouvrir.'); else if (motif === 'supprime') toast('Brouillon supprimé');   // le cadre de l'atelier est rangé aussitôt : sa propre infobulle ne se verrait pas
   const de = OPDZ.depart; OPDZ.depart = '';
   if (OPDZ.sale) { OPDZ.sale = false; opdRedessiner(); }
   if (de) { const e = document.querySelector(de) || document.querySelector('#contenu h1'); if (e) { if (!e.matches('button,a,[tabindex]')) e.tabIndex = -1; e.focus({ preventScroll:true }); } }   // le focus revient au bouton d'origine APRÈS le rendu : on mémorise un sélecteur, jamais l'élément (le rendu le remplace)
@@ -22347,7 +22347,7 @@ addEventListener('message', ev => {
     }
     if (opdA(d, 'opd_docs') !== undefined) opdDocsRecus(opdA(d, 'opd_docs'));
     if (opdA(d, 'opd_client') !== undefined) opdClientRecu(opdA(d, 'opd_client'));
-    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
+    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' || m === 'supprime' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
   } catch (e) { console.error('opd', e); }
 });
 /* le bouton Retour de l'atelier : le mécanisme COMMUN des calques (CAL_GENRES, « atelier ») pose et consomme son entrée d'historique ; un Retour traité DANS l'atelier (cadre) ne touche pas à la nôtre */
