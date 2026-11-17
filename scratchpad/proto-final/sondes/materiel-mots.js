@@ -14,8 +14,7 @@ const SIGNES = /[✓✕✔✖➜➔]/g;
   const src = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname, '..', '..', '..'), 'apercu', 'prototype-op-gestion.html'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   const tranche = (debut, fin) => { const i = src.indexOf(debut); if (i < 0) return ''; const j = src.indexOf(fin, i + debut.length); return src.slice(i, j < 0 ? i + 6000 : j); };
   const blocs = { 'visite guidée · Fournisseurs':tranche("tourPartie('produits'", "tourPartie('stock'"), 'visite guidée · Stock':tranche("tourPartie('stock'", "tourPartie('boxes'"), 'visite guidée · Dépôts':tranche("tourPartie('boxes'", "tourPartie('pointage'"),
-    'visite parlée · Fournisseurs':tranche("immChap('produits'", "immChap('stock'"), 'visite parlée · Stock':tranche("immChap('stock'", "immChap('boxes'"), 'visite parlée · Dépôts':tranche("immChap('boxes'", "\nimmChap('", ), 'guide · Le matériel, refait':tranche('const NV_MAT = [', '];') + tranche('function nvCarteMat()', '\n}'),
-    'guide · ce qui a changé de place (colonne « où »)':tranche('const NV_PLACE = [', '];').split('\n').map(l => { const m = l.match(/^\s*\['(?:[^'\\]|\\.)*',\s*'((?:[^'\\]|\\.)*)'/); return m ? '\'' + m[1].replace(/\\'/g, '’') + '\'' : ''; }).join('\n') };
+    'visite parlée · Fournisseurs':tranche("immChap('produits'", "immChap('stock'"), 'visite parlée · Stock':tranche("immChap('stock'", "immChap('boxes'"), 'visite parlée · Dépôts':tranche("immChap('boxes'", "\nimmChap('", ), 'guide · les cartes de chaque rôle (refait le 17 novembre)':tranche('const NV_CARTES = {', 'function nvRole()') };
   for (const [nom, t] of Object.entries(blocs)) {
     v('population : le texte « ' + nom + ' » a été trouvé dans la page (' + t.length + ' signes)', t.length > 150);
     // on n'examine que les CHAÎNES (ce que l'écran dit), pas les noms de fonctions ni les sélecteurs
@@ -43,10 +42,11 @@ const SIGNES = /[✓✕✔✖➜➔]/g;
   await R(() => { COMMANDES.splice(0, COMMANDES.length, ...window.__c); });
   await L.aller(p, 'stock'); await L.calme(p, 300);
   // le guide : toutes ses pages
-  await R(() => nvOuvrir()); await L.calme(p, 400); let guide = '';
-  for (let k = 0; k < 8; k++) { guide += await R(() => (document.querySelector('#nv .nv-corps') || {}).innerText + '\n'); const fini = await R(() => { const b = document.querySelector('#nv [data-nv="apres"]'); if (b) { b.click(); return false; } return true; }); if (fini) break; await L.calme(p, 250); }
-  await lire('le guide des nouveautés (la carte « Le matériel, refait » et ce qui a changé de place)', async () => guide.split('\n').filter(l => !/^Mouvements de stock|^Consommation produits|^Produits, Fournisseurs|^Mes demandes/.test(l)).join('\n'), '#nv [data-vis="guide-materiel"]');
-  v('le guide dit « Ce qui a changé de place » avec les NOUVEAUX noms (« Ce qui a bougé », « Envois à accepter », « Sortir du stock »)', /Ce qui a bougé/.test(guide) && /Envois à accepter/.test(guide) && /Sortir du stock/.test(guide), guide.slice(guide.indexOf('Mouvements') - 40, guide.indexOf('Mouvements') + 160));
+  await R(() => nvOuvrir()); await L.calme(p, 400);
+  // le guide refait : toutes les cartes sont dans le document (on les lit d'un coup, sans les faire défiler)
+  const guide = await R(() => (document.querySelector('#nv .nv-defile') || {}).innerText + '\n');
+  await lire('le guide des nouveautés (les cartes de ce rôle)', async () => guide, '#nv .nv-defile');
+  v('le guide parle du Stock avec les mots de l’écran (« où il est », « combien il en reste »)', /où il est/.test(guide) && /combien il en reste/.test(guide), guide.slice(0, 300));
   // les boutons à icône seule portent un nom
   await R(() => { fermerPanneau && fermerPanneau(); document.getElementById('nv') && document.getElementById('nv').remove(); });
   let sansNom = [];

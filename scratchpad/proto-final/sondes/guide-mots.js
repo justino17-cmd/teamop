@@ -4,6 +4,7 @@
 // Usage : PROFIL=mac|iphone QUI=marc,julie,sm,kb node guide-mots.js
 const G = require('./guide-commun.js'), L = G.L, v = L.v;
 const PROFIL = process.env.PROFIL || 'mac', QUIS = (process.env.QUI || 'marc,julie,sm,kb').split(','), TEL = G.TEL.includes(PROFIL);
+const MD = require('fs').readFileSync(require('path').join(__dirname, '..', 'refonte', 'GUIDE-NOUVEAUTES.md'), 'utf8').replace(/\s+/g, ' ').replace(/[\u00a0\u202f]/g, ' ');
 const TECHNIQUES = /\b(onglets?|interface|module|fonctionnalit|param[eè]tr|synchro|serveur|authentification|API|CRM|DSN|SIRET|IBAN|PDF|workflow|dashboard|checkbox|toggle|widget|cache|session|compte administrateur|base de donn)/i;
 // ce que chaque carte PROMET, vérifié sur l'écran où « Voir » mène (un texte lu dans l'écran, un bouton qui existe, une zone qui répond)
 const txt = f => f.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' '));
@@ -40,6 +41,11 @@ const PROMESSES = {
     const pg = await G.pages(c);
     v(`${tag} : population : entre 2 et 6 cartes (${pg.length})`, pg.length >= 2 && pg.length <= 6, pg.map(x => x.k));
     const labels = await p.evaluate(() => rlLignes().map(x => x.l));
+    // la SOURCE des textes est GUIDE-NOUVEAUTES.md : la page et le document disent la même chose, mot pour mot
+    for (const x of pg) { const dans = s => MD.includes(String(s).replace(/\s+/g, ' ').replace(/[\u00a0\u202f]/g, ' '));
+      v(`${tag} : « ${x.t} » : le titre est écrit dans GUIDE-NOUVEAUTES.md`, dans(x.t), x.t);
+      if (x.k === 'menu') for (const l of x.lignes) v(`${tag} : la ligne « ${l} » est écrite dans GUIDE-NOUVEAUTES.md`, dans(l), l);
+      else v(`${tag} : « ${x.t} » : la phrase est écrite dans GUIDE-NOUVEAUTES.md`, dans(x.texte), x.texte); }
     for (const x of pg) {
       const nt = G.mots(x.t), nd = x.k === 'menu' ? 0 : G.mots(x.texte);
       v(`${tag} : « ${x.t} » : titre de 2 à 5 mots (${nt})`, nt >= 2 && nt <= 5, nt);

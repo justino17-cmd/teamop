@@ -46,7 +46,11 @@ const rap = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .
     if (TEL) {
       await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); d.scrollTo({ left:0, behavior:'instant' }); }); await L.calme(p, 300);
       const cdp = await c.ctx.newCDPSession(p); const r0 = await p.evaluate(() => { const r = document.querySelector('#nv .nv-defile').getBoundingClientRect(); return { x:Math.round(r.left + r.width / 2), y:Math.round(r.top + r.height / 2) }; });
-      const balayer = async dx => { await cdp.send('Input.synthesizeScrollGesture', { x:r0.x, y:r0.y, xDistance:dx, yDistance:0, gestureSourceType:'touch', speed:900 }); await p.waitForTimeout(700); return G.index(p); };
+      // un doigt qui se pose, glisse par pas de 24 px (ce Chromium ne transmet aucun mouvement de moins de ~15 px) et se lève : touchStart, touchMove…, touchEnd
+      const balayer = async dx => { const pas = 24, n = Math.ceil(Math.abs(dx) / pas), s = Math.sign(dx), y = r0.y, x0 = r0.x - s * Math.round(Math.abs(dx) / 2);
+        await cdp.send('Input.dispatchTouchEvent', { type:'touchStart', touchPoints:[{ x:x0, y }] });
+        for (let k = 1; k <= n; k++) { await cdp.send('Input.dispatchTouchEvent', { type:'touchMove', touchPoints:[{ x:x0 + s * Math.min(k * pas, Math.abs(dx)), y }] }); await p.waitForTimeout(32); }
+        await cdp.send('Input.dispatchTouchEvent', { type:'touchEnd', touchPoints:[] }); await p.waitForTimeout(900); return G.index(p); };
       const a = await balayer(-Math.round(c.largeur * 0.7)); v(`${tag} : un balayage vers la gauche montre la carte suivante (carte ${a + 1})`, a === 1, a);
       const pts = await p.evaluate(() => [...document.querySelectorAll('#nv .nv-points-nav i')].map(e => e.classList.contains('on')));
       v(`${tag} : …et le point de progression suit (${pts.map(x => x ? '●' : '○').join('')})`, pts.length === n && pts[1] === true && pts.filter(Boolean).length === 1, pts);
