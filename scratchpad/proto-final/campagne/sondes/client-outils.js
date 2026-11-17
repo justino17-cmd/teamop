@@ -3,6 +3,15 @@
 // on ne juge pas les bandeaux de revue, seulement ce que le client voit.
 const L = require('../../lib.js');
 exports.L = L;
+// Un doigt (ou une souris) touche ce qui est AU MILIEU de l'écran, comme une personne qui fait défiler : Playwright ne défile que le strict
+// nécessaire (le bouton reste sous la barre du bas fixe : « intercepts pointer events », 4 s perdues, faux « geste manqué »). On amène la cible
+// au milieu, on vérifie que c'est bien elle (ou son contenu) qui reçoit le point, et on touche CE point ; sinon, le geste d'origine.
+const toucher0 = L.toucher;
+L.toucher = async (c, cible, opt) => { if (typeof cible !== 'string') return toucher0(c, cible, opt);
+  try { const pt = await c.p.evaluate(s => { const e = document.querySelector(s); if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'nearest' }); const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return null;
+      const x = r.left + r.width / 2, y = r.top + r.height / 2, t = document.elementFromPoint(x, y); return t && (t === e || e.contains(t)) ? { x, y } : null; }, cible);
+    if (pt) { await new Promise(r => setTimeout(r, 120)); if (c.doigt) await c.p.touchscreen.tap(pt.x, pt.y); else await c.p.mouse.click(pt.x, pt.y); await L.calme(c.p, 300); return true; } } catch (e) {}
+  return toucher0(c, cible, opt); };
 exports.CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-client/';
 // ouvre le prototype nu, puis bascule en client par le vrai bouton de la bande (ou par rlChanger si la bande est repliée)
 exports.client = async (o) => { o = o || {}; const c = await L.ouvrir({ profil: o.profil || 'mac', nuit: !!o.nuit, qui: null, app: false, attente: 1500 });
