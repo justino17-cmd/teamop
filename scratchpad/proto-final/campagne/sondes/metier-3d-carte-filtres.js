@@ -15,6 +15,7 @@ let ok = 0, ko = 0; const notes = []; const v = (nom, cond, det) => { if (cond) 
         v(`${site} · filtre « ${f} » : montre exactement les box de ce type (${att.length} attendues)`, JSON.stringify(on) === JSON.stringify(att), `montrées ${JSON.stringify(on)} attendues ${JSON.stringify(att)}`); }
       else if (f === 'tout') v(`${site} · filtre « tout » : toutes les box (${tous.length})`, on.length === tous.length, JSON.stringify(on));
       else v(`${site} · filtre « À regarder » : au moins une box et pas plus que « Tout »`, on.length <= tous.length, JSON.stringify(on));
+      if (on.length === 0) { const t = await p.evaluate(() => document.getElementById('contenu').innerText.replace(/\s+/g, ' ')); v(`${site} · filtre « ${f} » sans résultat : l'écran dit qu'il n'y a aucune box de ce type (sinon le plan paraît cassé)`, /aucune|pas de box|aucun/i.test(t.replace(/Rongeurs|Insectes/g, '')) && /(aucune|aucun)[^.]{0,60}(box|type|UV|insecte)/i.test(t), 'rien de tel dans : ' + t.slice(0, 120)); }
       notes.push(`${site} · ${f} → ${on.join(',') || '(aucune)'}`); }
     v(`${site} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); }
   await L.fermer(); process.exit(O.bilan('metier-3d-carte-filtres', ok, ko, notes));

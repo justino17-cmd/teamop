@@ -77,7 +77,8 @@ const S = {
       const t = await txt(p); dit(`Carte des box (${profil}) : ` + t.slice(0, 300));
       v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/, '#contenu summary') && await p.locator('#contenu .cb-plus-l button').locator('visible=true').count() >= 3); await L.aller(p, 'carteBox');
       for (const [re, att] of [[/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
-        await bouton(c, /Plus d.actions/, '#contenu summary'); await L.calme(p, 500); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
+        // le menu peut être resté OUVERT d'un tour à l'autre (rendre() garde l'attribut open) : on ne le referme pas en le touchant de nouveau
+        if (!(await p.locator('#contenu .cb-plus-l button').first().isVisible())) await bouton(c, /Plus d.actions/, '#contenu summary'); await L.calme(p, 500); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
         await L.calme(p, 500); const apres = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; v(`D ${profil} : « ${re.source} » fait quelque chose`, f && apres !== avant, apres.slice(0, 160)); dit(`${profil} · ${re.source} → ` + (await pan(p) || await toast(p)).slice(0, 200)); await O.nettoyer(p); await L.aller(p, 'carteBox'); }
       // une box
       const b0 = await p.locator('#contenu [data-d3^="box|"]').first(); const lib = await b0.getAttribute('aria-label'); await L.toucher(c, b0); await L.calme(p, 500);
@@ -114,9 +115,29 @@ const S = {
       const tt = eurN((t1.match(/(\d[\d\s]*[,.]\d{2})\s*€\s*TTC|TTC\s*:?\s*(\d[\d\s]*[,.]\d{2})/) || [0, '0'])[1] || 0); dit(`${profil} · fiche du devis créé : ` + t1.slice(0, 380));
       await L.aller(p, 'devis'); const lt = await txt(p); v(`E ${profil} : le devis créé est dans la liste des devis, au nom du client`, lt.includes(opt[1].slice(0, 12)), lt.slice(0, 200));
       v(`E ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
-  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), dxTexte: (document.querySelector('.dx-rel-carte') || {}).innerText, dxAff: document.querySelector('.dx-rel-carte') ? [getComputedStyle(document.querySelector('.dx-rel-carte')).display, document.querySelector('.dx-rel-carte').getBoundingClientRect().height, document.querySelector('.dx-rel-carte').offsetParent !== null] : null, dansContenu: !!document.querySelector('#contenu .dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
-    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/i.test(t), t.slice(0, 200));   // le titre de la carte est écrit en capitales par la feuille de style : texte lu sans casse
-    const r = await bouton(c, /Relever les mesures|Faire un relevé|Relever/, '#contenu button'); await L.calme(p, 700); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 420)); v('F : le relevé s\'ouvre', r && /relev|mesure/i.test(t1), t1.slice(0, 120));
+  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); await L.calme(p, 900); const t = await txt(p);
+    v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/i.test(t), t.slice(0, 200));
+    const r = await L.toucher(c, p.locator('#contenu [data-dxb="relever|"]').first()); await L.calme(p, 800); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 380));
+    v('F : « Relever les mesures » ouvre l\'écran de relevé, sans aucun prix', r && /Relever les mesures/.test(t1) && !/€/.test(t1), t1.slice(0, 160));
+    // envoyer à vide : refusé avec un mot clair
+    const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 600); const tv = await toast(p), tr = await txt(p);
+    v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi', !/Relevé envoyé/.test(tr) && /client|mesure|zone/i.test(tv + tr), 'toast=« ' + tv + ' »');
+    // un vrai relevé : client, une zone de 18,5 m²
+    const opt = await p.evaluate(() => [...document.querySelector('[data-dxr="cli"]').options].filter(o => o.value)[0].value); await p.selectOption('[data-dxr="cli"]', opt); await L.calme(p, 400);
+    await L.toucher(c, p.locator('[data-dxrb^="zadd|"]').first()); await L.calme(p, 300); const zm = p.locator('[data-dxr^="zm|"]').first(); await zm.fill('18,5'); await zm.blur(); await L.calme(p, 500);
+    dit('Résumé du relevé : ' + (await p.locator('#dxr-resume').innerText().catch(() => '')).replace(/\s+/g, ' '));
+    await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 800); const t2 = await txt(p);
+    v('F : le relevé part au bureau (« Relevé envoyé »)', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), t2.slice(0, 200));
+    // le gérant le retrouve, le chiffre, en fait un devis
+    await p.evaluate(() => rlChanger('patron', { h: 'devisXylo', muet: true })); await L.calme(p, 900); const t3 = await txt(p);
+    v('F : le gérant voit « 1 relevé à chiffrer » sur le Devis xylophage', /1 relevé à chiffrer/.test(t3), t3.slice(0, 260));
+    await p.evaluate(() => aller('taches')); await L.calme(p, 600); const tt = await txt(p); v('F : une tâche « Chiffrer le relevé » attend le gérant', /Chiffrer le relevé/.test(tt), tt.slice(0, 160));
+    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600);
+    await L.toucher(c, p.locator('#contenu [data-dxrel]').first()); await L.calme(p, 800); const t4 = await txt(p);
+    v('F : « Chiffrer le relevé » ouvre le devis avec les mesures du technicien (18,5)', /18,5/.test(await p.evaluate(() => [...document.querySelectorAll('[data-dx^="zm|"]')].map(e => e.value).join(' '))), t4.slice(0, 200));
+    const cr = await L.toucher(c, p.locator('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]').locator('visible=true').first()); await L.calme(p, 900); const h = await p.evaluate(() => location.hash);
+    v('F : le devis créé depuis le relevé s\'ouvre', cr && /devis/i.test(h) && !/devisXylo/.test(h), h);
+    await p.evaluate(() => aller('devisXylo')); await L.calme(p, 600); const t5 = await txt(p); v('F : plus aucun relevé « à chiffrer » ensuite', !/relevés? à chiffrer/.test(t5), t5.slice(0, 160));
     v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async G() { const c = await ouvrir({ qui: 'julie' }), p = c.p;
     for (const r of ['registre', 'carteBox', 'devisXylo']) { await L.aller(p, r); const t = await txt(p), e = await O.lire(p); v(`G : le bureau ouvre « ${r} »`, e.route === r, 'route=' + e.route); dit(`Bureau · ${r} : ` + t.slice(0, 220)); const g = await L.gestes(p, '#contenu'); dit(`Bureau · ${r} : ${g.length} gestes dont ${g.filter(x => /Saisir|Créer|Relever|Ajouter|Modifier/.test(x.lib)).map(x => x.lib).join(', ')}`); }
