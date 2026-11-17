@@ -6,7 +6,14 @@
   "sm/kb iphone, android, petit, jour et nuit : Ma journée, Mon camion, Mes heures — hauteur, débordement latéral (contre la largeur posée), cibles < 44 px, champs < 16 px : 0 débordement, 0 champ < 16 px, 0 cible < 44 px dans #contenu ; captures regardées",
   "sm iphone : Mon camion — Noter un plein (carte et ma poche, alerte du prix au litre improbable), Relever le compteur (trop bas refusé, saut de 4 390 km confirmé), Un souci (deux fois de suite)",
   "marc iphone : Temps de travail › Semaine › feuille de Karim › journée du 28 ; sélecteur d'heure ; motif ; Enregistrer la correction ; puis session kb : Mes heures demande bien de reconfirmer",
-  "marc iphone, android, petit, jour et nuit : Véhicules (liste, hauteur, premier écran), Temps de travail (trois onglets, hauteur, débordement, cibles, champs)"
+  "marc iphone, android, petit, jour et nuit : Véhicules (liste, hauteur, premier écran), Temps de travail (trois onglets, hauteur, débordement, cibles, champs)",
+  "tl iphone : oubli de vendredi (carte « Ta journée du … est restée ouverte »), « Une autre heure », Mes heures (message de demande), Mes fiches de paie › Voir (muet : salarie-08), formulaire « Il y a une erreur » à 3 gestes sur 6 profils jour/nuit (0 débordement, 0 cible < 44 px, 0 champ < 16 px)",
+  "marc iphone : « Accepter 17:40 » puis session tl : « Tes heures d'octobre sont prêtes », la demande disparaît, la journée affiche « corrigée par le bureau » ; « Terminer à 16:47 » (jamais l'heure courante)",
+  "relecture du diff : recensement des fonctions déclarées deux fois (0), des constantes de haut niveau en double (0), des fonctions que la spec voulait retirer (toutes absentes sauf ptxSemaine et ptxChampsCloture, encore appelée par l'ancien « Clôturer »), des enveloppes (aucune sur les écrans du lot)",
+  "tl iphone + petit nuit : Mon camion d'un camion au garage (phrase, boutons, plein possible), ligne « Mon camion » de Ma journée ; sm iphone + petit nuit : « J'ai commencé plus tôt » (heure future refusée, 07:15 acceptée), panneau « Terminer ma journée » (pause proposée 60), ligne « Mon camion » ouvre l'onglet Camion",
+  "marc iphone/android/petit jour+nuit : fiche d'un véhicule (3 onglets : 15, 14 et 21 contrôles ; matériel : 8 lignes de 52 px), « Noter un plein » du gérant, « Nouveau véhicule », « Mettre au garage » : 0 débordement, 0 cible < 44 px, 0 champ < 16 px",
+  "nombres recalculés à la main : onglet Mois (1 045h44 = Σ des minutes des jours terminés 1045,73 h ; 108h14 en plus = Σ s25+s50 ; 2 sur 6 ont confirmé ; 4 à régler), Semaine (Sophie 40h50 dont 5h50, Karim 48h45 dont 13h45, Léa 31h40, Julie 40h00 dont 5h00), tuile « 1 566 € dépensés en octobre » = 544,50 + 515,17 + 318 + 188",
+  "sonde existante vehtemps-t6-salarie.js (iphone jour) : 45 ✓ 0 ✗ — elle ne voit aucun des défauts ci-dessus"
  ],
  "defauts": [
   {
@@ -56,8 +63,8 @@
    "profils": "iphone",
    "etapes": "Un souci › Un voyant › Prévenir le bureau, deux fois de suite (le bouton reste proposé après le premier signalement). Résultat : 2 tâches urgentes « Camion GH-482-KL : voyant allumé » (vsouci-veh1-…), 2 notifications au gérant, mais v.souci ne garde que le dernier : « C'est réglé » (vxSouciRegle) ne ferme que la tâche s.tache, la première reste ouverte pour toujours.",
    "attendu": "Un seul souci ouvert à la fois : le bouton dit « Souci déjà signalé » (ou ajoute au souci existant), ou « C'est réglé » ferme tous les signalements du camion.",
-   "constate": "Tâche urgente orpheline chez le gérant après « C'est réglé » (à vérifier en 2e rejeu : voir salarie-04 preuve).",
-   "preuve": "sonde d2 : tâches souci = 2 clés différentes, v.souci unique ; code vxSouciOk (ligne ~18476) fait `v.souci = {…, tache:t.id}` sans regarder un souci déjà là ; vxSouciRegle ne ferme que s.tache",
+   "constate": "Rejoué 2 fois (android jour, iPhone nuit) : 2 tâches urgentes « Camion GH-482-KL : un pneu… » ouvertes ; après « C'est réglé » du gérant il en reste 1 ouverte pour toujours (n2 = 1 sur les deux profils), le camion n'a plus de souci signalé : plus aucun écran ne mène à cette tâche.",
+   "preuve": "sondes d2 puis i1 (relire-vehtemps-salarie) : « 0 ✓ · 2 ✗ » ; code vxSouciOk (ligne ~18476) fait v.souci = {…, tache:t.id} sans regarder un souci déjà là ; vxSouciRegle ne ferme que s.tache",
    "ou": "vxSouciOk / vxSouciRegle (lignes ~18476-18492)",
    "correction": "Dans vxSouciOk : si v.souci existe, ne pas créer une 2e tâche (ajouter le mot à la note de la tâche existante) ; ou garder v.souci.taches=[…] et les fermer toutes dans vxSouciRegle ; le bouton de Mon camion devient « Ajouter un mot sur le souci » quand un souci est ouvert."
   },
@@ -99,6 +106,79 @@
    "preuve": "capture kb-iphone-j-moncamion.png",
    "ou": "vueMonCamion (pastille ajoutée par « Restes technicien, tour 1 »)",
    "correction": "Décision à confirmer : la garder (lien, pas texte) ou la retirer."
+  },
+  {
+   "n": "salarie-08",
+   "gravite": "bloquant",
+   "ecran": "Mes heures › Mes fiches de paie › « Voir »",
+   "role": "sm, tl, kb (tout salarié)",
+   "profils": "android jour (sm), iphone nuit (kb), iphone jour (tl)",
+   "etapes": "Barre du bas › Heures › « Mes fiches de paie » › toucher « Voir » à côté de Septembre 2026 ou Août 2026. Mesure : le toucher atteint le bouton, #calque .panneau reste absent, aucun toast, aucune fenêtre de document : RIEN ne se passe (3 rejeux, 3 comptes).",
+   "attendu": "La fiche de paie du mois s'ouvre (spec § 4.7 : « une ligne par mois avec Voir (paieBulletinVoir) », geste n°7 du technicien en 3 touchers).",
+   "constate": "Refus muet : le bouton porte data-paie=\"bulletin|<salarié>|<mois>\", que la garde des droits lit comme un geste de Comptabilité › Paie (famille paie, groupe « l » = lecture, ligne ~12000) ; GESTES_SOI (ligne 12130) ne laisse passer au salarié que « confirme » et « signalok » : « bulletin » est donc retiré sans un mot. Même cause exacte que paieConfirmer (corrigée dans bd76539 pour « Je confirme mes heures »), oubliée pour « Voir ».",
+   "preuve": "sondes f1 et f2 (relire-vehtemps-salarie) : « 0 ✓ · 2 ✗ » ; code ttMhFiches (ligne ~17880) émet data-paie=\"bulletin|k|…\" ; GESTES_SOI = { paie:['confirme','signalok'] } (ligne 12130) ; la sonde de l'étape (vehtemps-t6-salarie, iphone jour) rend 45 ✓ 0 ✗ parce qu'elle ne touche jamais « Voir » : elle ne compte que les lignes.",
+   "ou": "apercu/prototype-op-gestion.html ligne ~12130 (GESTES_SOI) et ttMhFiches (~17880)",
+   "correction": "Ajouter 'bulletin' à GESTES_SOI.paie (la condition mots[1] === p.k limite déjà au salarié lui-même, il ne voit que SA fiche) ; ou appeler paieBulletinVoir(k, mois) par un data-tt neuf, comme « mhconf » le fait pour paieConfirmer. Ajouter à la sonde t6 un contrôle « Voir » ouvre un document, joué avec le compte sm."
+  },
+  {
+   "n": "salarie-09",
+   "gravite": "détail",
+   "ecran": "code du module Temps de travail (ancien écouteur ptx)",
+   "role": "—",
+   "profils": "—",
+   "etapes": "Recensement par recherche dans le fichier : « ptsem| » n'apparaît qu'UNE fois, dans l'écouteur qui le lit (ligne ~17393) ; les actions data-ptx « sem », « releve » et « sig » ne sont émises par aucun balisage (data-ptx émis : debut, finhier, finhierautre, finhierok, pause, plustard, plustot, plustotok, reprendre, sigok, termine, termineok, termineprop) ; ptxSemaine n'est appelée que par ces branches mortes.",
+   "attendu": "Spec § 7.3 : « vérifier par recherche qu'aucun appelant ne reste » ; pas de code mort laissé.",
+   "constate": "Un écouteur et trois branches sans émetteur, plus la fonction ptxSemaine qui les sert.",
+   "preuve": "recensement Python des data-ptx émis et traités",
+   "ou": "lignes ~17393, ~17412, ~17413, ~17414 et ptxSemaine (~17308)",
+   "correction": "Retirer l'écouteur data-pt^=\"ptsem|\", les branches a === 'sem' / 'releve' / 'sig' du gestionnaire data-ptx et ptxSemaine."
+  },
+  {
+   "n": "salarie-10",
+   "gravite": "détail",
+   "ecran": "Ma journée de travail (technicien) dans un mois verrouillé",
+   "role": "sm",
+   "profils": "iphone",
+   "etapes": "Verrouiller octobre (PAIE.verrou), puis sm : « Je commence ma journée », « Je termine ».",
+   "attendu": "Spec § 4.6-A : « mois verrouillé : plus aucune écriture ».",
+   "constate": "ptxCommencer et ptxTerminer écrivent quand même dans le mois fermé (« Journée terminée : 0h00. Merci ! ») ; seule ptxFinHier garde paieMoisVerrou. Cas limite (le prototype est figé au 31/10), mais la règle du lot est « une garde AU DÉBUT de chaque écriture ».",
+   "preuve": "sonde f1 (ligne « SM commence/termine en mois fermé »)",
+   "ou": "ptxCommencer / ptxTerminer (~17300-17330)",
+   "correction": "if (paieMoisVerrou(AUJ)) return toast(…est verrouillé : parle au bureau.) en première instruction, comme ptxFinHier."
+  },
+  {
+   "n": "salarie-11",
+   "gravite": "détail",
+   "ecran": "Ma journée (technicien) — code",
+   "role": "—",
+   "profils": "—",
+   "etapes": "Recensement : vueMaJournee est réaffectée 7 fois par des enveloppes qui retouchent le HTML de la couche d'avant par replace() (lignes 14697, 15503, 16761, 17380, 20023, 21124, 21133). Le lot en a ajouté une (ligne 15503 : h.replace('<div class=\"rl-jour\">', vhLigneCamion() + …)), et la carte « Ma journée de travail » est posée par une autre qui cherche '</span></div></div>' (ligne 17380).",
+   "attendu": "Spec § 7 : « une fonction par écran, aucun replace() sur du HTML d'une couche précédente, sinon les anciens blocs reviennent ».",
+   "constate": "Si un marqueur change (une classe, une balise), la ligne « Mon camion » ou la carte du jour disparaît sans erreur ; l'ordre des enveloppes décide de l'ordre à l'écran.",
+   "preuve": "grep des affectations « vueMaJournee = function » ; lecture des lignes 15503 et 17380",
+   "ou": "apercu/prototype-op-gestion.html (sept enveloppes de vueMaJournee)",
+   "correction": "Écrire vueMaJournee une fois (la source de l'écran), qui appelle ptxCarteSalarie, vhLigneCamion, tkxBlocTech… dans l'ordre voulu ; ou à défaut retirer au moins l'enveloppe du lot (15503) et poser la ligne par un point d'ancrage nommé (data-slot) plutôt que par une chaîne de balises."
+  },
+  {
+   "n": "salarie-12",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Semaine (gérant au téléphone)",
+   "role": "marc",
+   "profils": "iphone, android, petit",
+   "etapes": "Ouvrir Semaine : en-tête, deux rangées de chiffres, onglets, navigateur de semaine, bouton « Valider les 4 personnes en règle » et sa phrase de trois lignes remplissent le premier écran ; la liste des personnes commence sous la barre du bas (iPhone) ou n'est pas visible du tout (Android 360×740, 320×568).",
+   "attendu": "Spec § 4.4 : « Les heures de la semaine sont-elles justes ? » doit se lire sans défiler.",
+   "constate": "Il faut défiler pour voir la première personne ; sur Android et 320 px la phrase qui dit si la semaine est en règle est coupée par la barre.",
+   "preuve": "captures e1-iphone-j-temps-sem.png, e1-petit-n-temps-sem.png",
+   "ou": "ttSemaine (bloc des quatre chiffres répété sur les trois onglets)",
+   "correction": "Sur téléphone, replier les quatre chiffres en une rangée défilante sur l'onglet Semaine, ou raccourcir la phrase d'aide à une ligne."
   }
- ]
+ ],
+ "nonVerifie": [
+  "aucun vrai iPhone ni Android : encoches simulées (Emulation.setSafeAreaInsetsOverride), toucher émulé ; le clavier à l'écran n'existe pas dans ce navigateur, donc « bouton collé au-dessus du clavier » n'est pas vérifié",
+  "kb (chef d'équipe) rejoué seulement sur iPhone jour (Ma journée, Mon camion, Mes heures) ; pas sur android ni petit",
+  "ordinateur, Windows, iPad : hors de mon angle",
+  "les lignes de l'Accueil, d'Équipe, de la Paie, les visites parlées : hors de mon angle (voisins)",
+  "je n'ai modifié aucune page : aucune mutation jouée"
+ ],
+ "bilan": "12 défauts : 1 bloquant (salarie-08), 4 gênants (01, 03, 04, 05), 7 détails (02, 06, 07, 09, 10, 11, 12)."
 }
