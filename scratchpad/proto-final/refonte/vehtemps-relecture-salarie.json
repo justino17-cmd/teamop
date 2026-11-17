@@ -9,7 +9,11 @@
   "marc iphone, android, petit, jour et nuit : Véhicules (liste, hauteur, premier écran), Temps de travail (trois onglets, hauteur, débordement, cibles, champs)",
   "tl iphone : oubli de vendredi (carte « Ta journée du … est restée ouverte »), « Une autre heure », Mes heures (message de demande), Mes fiches de paie › Voir (muet : salarie-08), formulaire « Il y a une erreur » à 3 gestes sur 6 profils jour/nuit (0 débordement, 0 cible < 44 px, 0 champ < 16 px)",
   "marc iphone : « Accepter 17:40 » puis session tl : « Tes heures d'octobre sont prêtes », la demande disparaît, la journée affiche « corrigée par le bureau » ; « Terminer à 16:47 » (jamais l'heure courante)",
-  "relecture du diff : recensement des fonctions déclarées deux fois (0), des constantes de haut niveau en double (0), des fonctions que la spec voulait retirer (toutes absentes sauf ptxSemaine et ptxChampsCloture, encore appelée par l'ancien « Clôturer »), des enveloppes (aucune sur les écrans du lot)"
+  "relecture du diff : recensement des fonctions déclarées deux fois (0), des constantes de haut niveau en double (0), des fonctions que la spec voulait retirer (toutes absentes sauf ptxSemaine et ptxChampsCloture, encore appelée par l'ancien « Clôturer »), des enveloppes (aucune sur les écrans du lot)",
+  "tl iphone + petit nuit : Mon camion d'un camion au garage (phrase, boutons, plein possible), ligne « Mon camion » de Ma journée ; sm iphone + petit nuit : « J'ai commencé plus tôt » (heure future refusée, 07:15 acceptée), panneau « Terminer ma journée » (pause proposée 60), ligne « Mon camion » ouvre l'onglet Camion",
+  "marc iphone/android/petit jour+nuit : fiche d'un véhicule (3 onglets : 15, 14 et 21 contrôles ; matériel : 8 lignes de 52 px), « Noter un plein » du gérant, « Nouveau véhicule », « Mettre au garage » : 0 débordement, 0 cible < 44 px, 0 champ < 16 px",
+  "nombres recalculés à la main : onglet Mois (1 045h44 = Σ des minutes des jours terminés 1045,73 h ; 108h14 en plus = Σ s25+s50 ; 2 sur 6 ont confirmé ; 4 à régler), Semaine (Sophie 40h50 dont 5h50, Karim 48h45 dont 13h45, Léa 31h40, Julie 40h00 dont 5h00), tuile « 1 566 € dépensés en octobre » = 544,50 + 515,17 + 318 + 188",
+  "sonde existante vehtemps-t6-salarie.js (iphone jour) : 45 ✓ 0 ✗ — elle ne voit aucun des défauts ci-dessus"
  ],
  "defauts": [
   {
@@ -112,7 +116,7 @@
    "etapes": "Barre du bas › Heures › « Mes fiches de paie » › toucher « Voir » à côté de Septembre 2026 ou Août 2026. Mesure : le toucher atteint le bouton, #calque .panneau reste absent, aucun toast, aucune fenêtre de document : RIEN ne se passe (3 rejeux, 3 comptes).",
    "attendu": "La fiche de paie du mois s'ouvre (spec § 4.7 : « une ligne par mois avec Voir (paieBulletinVoir) », geste n°7 du technicien en 3 touchers).",
    "constate": "Refus muet : le bouton porte data-paie=\"bulletin|<salarié>|<mois>\", que la garde des droits lit comme un geste de Comptabilité › Paie (famille paie, groupe « l » = lecture, ligne ~12000) ; GESTES_SOI (ligne 12130) ne laisse passer au salarié que « confirme » et « signalok » : « bulletin » est donc retiré sans un mot. Même cause exacte que paieConfirmer (corrigée dans bd76539 pour « Je confirme mes heures »), oubliée pour « Voir ».",
-   "preuve": "sondes f1 et f2 (relire-vehtemps-salarie) : « 0 ✓ · 2 ✗ » ; code ttMhFiches (ligne ~17880) émet data-paie=\"bulletin|k|…\" ; GESTES_SOI = { paie:['confirme','signalok'] } (ligne 12130)",
+   "preuve": "sondes f1 et f2 (relire-vehtemps-salarie) : « 0 ✓ · 2 ✗ » ; code ttMhFiches (ligne ~17880) émet data-paie=\"bulletin|k|…\" ; GESTES_SOI = { paie:['confirme','signalok'] } (ligne 12130) ; la sonde de l'étape (vehtemps-t6-salarie, iphone jour) rend 45 ✓ 0 ✗ parce qu'elle ne touche jamais « Voir » : elle ne compte que les lignes.",
    "ou": "apercu/prototype-op-gestion.html ligne ~12130 (GESTES_SOI) et ttMhFiches (~17880)",
    "correction": "Ajouter 'bulletin' à GESTES_SOI.paie (la condition mots[1] === p.k limite déjà au salarié lui-même, il ne voit que SA fiche) ; ou appeler paieBulletinVoir(k, mois) par un data-tt neuf, comme « mhconf » le fait pour paieConfirmer. Ajouter à la sonde t6 un contrôle « Voir » ouvre un document, joué avec le compte sm."
   },
@@ -168,5 +172,13 @@
    "ou": "ttSemaine (bloc des quatre chiffres répété sur les trois onglets)",
    "correction": "Sur téléphone, replier les quatre chiffres en une rangée défilante sur l'onglet Semaine, ou raccourcir la phrase d'aide à une ligne."
   }
- ]
+ ],
+ "nonVerifie": [
+  "aucun vrai iPhone ni Android : encoches simulées (Emulation.setSafeAreaInsetsOverride), toucher émulé ; le clavier à l'écran n'existe pas dans ce navigateur, donc « bouton collé au-dessus du clavier » n'est pas vérifié",
+  "kb (chef d'équipe) rejoué seulement sur iPhone jour (Ma journée, Mon camion, Mes heures) ; pas sur android ni petit",
+  "ordinateur, Windows, iPad : hors de mon angle",
+  "les lignes de l'Accueil, d'Équipe, de la Paie, les visites parlées : hors de mon angle (voisins)",
+  "je n'ai modifié aucune page : aucune mutation jouée"
+ ],
+ "bilan": "12 défauts : 1 bloquant (salarie-08), 4 gênants (01, 03, 04, 05), 7 détails (02, 06, 07, 09, 10, 11, 12)."
 }
