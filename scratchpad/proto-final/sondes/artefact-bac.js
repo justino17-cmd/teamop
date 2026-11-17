@@ -67,8 +67,8 @@ function initBac(o) {
       if (!/\./.test(nom) || EXT.indexOf(ext) < 0) throw { code: 'rejected_extension', message: 'extension refusée : ' + nom };
       let taille = 0, debut = '';
       if (typeof d === 'string') { taille = new TextEncoder().encode(d).length; debut = d.slice(0, 8); }
-      else if (d instanceof Blob) { taille = d.size; try { const b = new Uint8Array(await d.slice(0, 8).arrayBuffer()); debut = String.fromCharCode(...b); } catch (e) {} }
-      else if (d instanceof ArrayBuffer || ArrayBuffer.isView(d)) { taille = d.byteLength; const b = new Uint8Array(d.buffer || d, d.byteOffset || 0, Math.min(8, d.byteLength)); debut = String.fromCharCode(...b); }
+      else if (d && typeof d.size === 'number' && typeof d.slice === 'function' && typeof d.arrayBuffer === 'function') { taille = d.size; try { const b = new Uint8Array(await d.slice(0, 8).arrayBuffer()); debut = String.fromCharCode(...b); } catch (e) {} }   // un Blob fabriqué dans un CADRE n'est pas un « instanceof Blob » de la page du haut
+      else if (Object.prototype.toString.call(d) === '[object ArrayBuffer]' || ArrayBuffer.isView(d)) { taille = d.byteLength; const b = new Uint8Array(d.buffer || d, d.byteOffset || 0, Math.min(8, d.byteLength)); debut = String.fromCharCode(...b); }
       else throw { code: 'bad_request', message: 'données absentes' };
       if (!taille) throw { code: 'bad_request', message: 'données vides' };
       if (o.echec) { J.refus.push({ nom, code: o.echec }); throw { code: o.echec, message: 'échec simulé' }; }

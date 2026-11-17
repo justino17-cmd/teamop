@@ -17,7 +17,10 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
     const routes = await c.p.evaluate(() => [...new Set([...document.querySelectorAll('#menu a[href^="#"]')].map(a => a.getAttribute('href').slice(1)))].filter(r => routeConnue(r)));
     v(`${T} : population (des écrans à visiter : ${routes.length})`, routes.length >= 3, routes);
     let vides = [];
-    for (const r of routes.slice(0, 14)) { await L.aller(c.p, r); const h = await c.p.evaluate(() => ({ h1: ((document.querySelector('#contenu h1') || {}).textContent || '').trim(), n: document.getElementById('contenu').innerText.length })); if (h.n < 60) vides.push(r + ':' + h.n); }
+    for (const r of routes.slice(0, 14)) { await L.aller(c.p, r);
+      if (r === 'boiteMail') { await L.attendre(c.p, () => typeof COURRIER !== 'undefined' && (COURRIER.etat === 'pret' || COURRIER.etat === 'echec'), 20000); await L.calme(c.p, 500);   // le module de courrier se charge à la première ouverture
+        const m = await c.p.evaluate(() => { const h = document.getElementById('courrier-hote'), sr = h && h.firstElementChild && h.firstElementChild.shadowRoot; return { etat: COURRIER.etat, n: sr ? sr.innerHTML.length : 0 }; }); if (m.etat !== 'pret' || m.n < 500) vides.push('boiteMail:' + JSON.stringify(m)); continue; }
+      const h = await c.p.evaluate(() => ({ h1: ((document.querySelector('#contenu h1') || {}).textContent || '').trim(), n: document.getElementById('contenu').innerText.length })); if (h.n < 60) vides.push(r + ':' + h.n); }
     v(`${T} : ${Math.min(14, routes.length)} écrans visités, aucun vide`, vides.length === 0, vides);
     // un devis rapide (rôles qui ont les devis)
     if (qui !== 'sm' && routes.includes('devis')) {
@@ -30,14 +33,15 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
       } else v(`${T} : le bouton « Devis rapide » répond`, false, 'non touché');
     }
     // un réglage qui se range (Jour/Nuit) : il vaut pour l'ouverture même si le rangement refuse
-    await c.p.evaluate(() => { try { mode = 'nuit'; appliquerMode(); } catch (e) {} }); await L.calme(c.p, 200);
+    const bouton = await c.p.evaluate(() => { const b = document.querySelector('[data-modetheme="nuit"]'); if (!b) return false; b.click(); return true; }); await L.calme(c.p, 300);
+    v(`${T} : population (le bouton « Nuit » existe et a été touché)`, bouton, '');
     v(`${T} : le thème nuit s'applique malgré le rangement refusé`, (await c.p.evaluate(() => document.documentElement.dataset.mode)) === 'nuit', '');
     v(`${T} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 4));
     await L.fin(c);
   }
   // les trois cadres voisins ouverts SEULS (comme dans l'artefact, où ils sont des pages à part) : ils se rendent aussi, rangement refusé
   for (const page of ['prototype-documents.html', 'prototype-comptabilite.html', 'prototype-paiement.html']) for (const mode of ['refuse', 'methodes']) {
-    const c = await bac.ouvrir({ profil: 'mac', qui: null, page, requete: '?app=1&mode=jour' }, { rangement: mode }); await A.calmer(c.p);
+    const c = await bac.ouvrir({ profil: 'mac', qui: null, page, requete: page === 'prototype-documents.html' ? '' : '?app=1&mode=jour' }, { rangement: mode }); await A.calmer(c.p);
     const n = await c.p.evaluate(() => document.body.innerText.length);
     v(`${page} rangement ${mode} : la page se rend (${n} signes)`, n > 200, n);
     v(`${page} rangement ${mode} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 4));

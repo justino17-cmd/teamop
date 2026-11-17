@@ -1,0 +1,12 @@
+{
+  "partie": "clients",
+  "etat": "en cours (17 novembre 2026) — rapport provisoire, complété au fil des sondes",
+  "ecrans": [
+    { "nom": "Clients (liste, recherche, Tous / Par semaine / Par mois)", "fonction": "vueClients, vueClientsSemaine, vueClientsMois", "acces": "menu « Clients et ventes › Clients » · barre du bas « Clients »" },
+    { "nom": "Fiche client (Historique, Factures, Appareils, Contrats, Documents, Infos)", "fonction": "vueClient(k)", "acces": "une carte de la liste, une ligne Par semaine / Par mois, un passage ou une facture ailleurs (data-go=client-x-…)" },
+    { "nom": "Nouveau client (avec une intervention / avec un devis)", "fonction": "ACTIONS.clientNouveau → clientNvInt (ouvrirCreation) / clientNvDevis (dvNouveau)", "acces": "« ＋ Nouveau client » de la liste" }
+  ],
+  "couverture": { "ecrans": 3, "gestesRecenses": 0, "gestesTouches": 0, "parcours": 0, "profils": ["mac", "iphone"] },
+  "nonCouvert": [],
+  "defauts": []
+}
