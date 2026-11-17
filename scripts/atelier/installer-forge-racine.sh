@@ -21,7 +21,7 @@ BIN="$(ls /home/atelier/forge/bin/forgejo-* | sort -V | tail -1)"
 
 echo "── [1/7] Les deux noms mènent-ils à ce serveur ?"
 IP_MOI="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')"
-for h in "$PORTE" "$FORGE"; do IP_NOM="$(getent ahostsv4 "$h" 2>/dev/null | awk '{print $1; exit}')"
+for h in "$PORTE" "$FORGE"; do IP_NOM="$(getent ahostsv4 "$h" 2>/dev/null | awk '{print $1; exit}' || true)"
   if [ "$IP_NOM" != "$IP_MOI" ]; then echo "✗ $h mène à « ${IP_NOM:-nulle part} », pas à ce serveur ($IP_MOI) : poser ou attendre l'enregistrement DNS (type A)."; exit 1; fi; done
 echo "   oui ($IP_MOI)"
 

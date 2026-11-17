@@ -17,7 +17,7 @@ ICI="$(cd "$(dirname "$0")" && pwd)"
 
 echo "── [1/5] Le nom $HOTE mène-t-il à ce serveur ?"
 IP_MOI="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')"
-IP_NOM="$(getent ahostsv4 "$HOTE" 2>/dev/null | awk '{print $1; exit}')"
+IP_NOM="$(getent ahostsv4 "$HOTE" 2>/dev/null | awk '{print $1; exit}' || true)"
 if [ -z "$IP_NOM" ]; then echo "✗ $HOTE ne mène nulle part pour l'instant : l'enregistrement DNS n'est pas encore en place (ou pas encore propagé). Réessayer dans quelques minutes."; exit 1; fi
 if [ "$IP_NOM" != "$IP_MOI" ]; then echo "✗ $HOTE mène à $IP_NOM, pas à ce serveur ($IP_MOI) : corriger l'enregistrement DNS."; exit 1; fi
 echo "   oui ($IP_MOI)"
