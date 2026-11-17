@@ -239,7 +239,10 @@ que pour le futur ça sera mieux ». Répondu OUI : c'est le serveur d'ATELIER (
 parallèle), le M+ reste le serveur des clients ; mêmes consignes de commande (Ubuntu 24.04, France, engagement le plus court,
 aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). ⏳ Panier VÉRIFIÉ sur sa capture de 17 h 20 : « IONOS VPS Linux XXL+ », 12 mois d'engagement (582 € hors taxes la première année),
 « garantie 30 jours satisfait ou remboursé », centre de données UE (pas de choix « France »), Ubuntu 24.04 (le panier avait gardé
-« Alma 9 » d'une première tentative : corrigé), aucune option ; il lui a été dit qu'il pouvait payer. Commande NON confirmée ici.
+« Alma 9 » d'une première tentative : corrigé), aucune option ; il lui a été dit qu'il pouvait payer. ✅ **« Commande faite »** (Justin, 17 novembre, 17 h 24), avec son compte IONOS habituel (l'écran
+proposait d'en créer un second : évité). Le serveur d'atelier existe donc ; son adresse n'est pas encore connue ici, son mot de
+passe ne doit jamais l'être. PREMIERS GESTES à lui donner à la reprise, avant toute installation : clé SSH à la place du mot de
+passe, pare-feu (22, 80, 443), mises à jour de sécurité automatiques — puis seulement la forge.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
