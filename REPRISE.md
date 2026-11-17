@@ -381,6 +381,12 @@ serveur des clients : données, configuration ET clé maître de l'instance) ver
 à préparer et à répéter, gestes de Justin sur son Mac, la clé ne passant jamais par la conversation ; (2) la version de TEST
 d'OP GESTION (la page bêta et son serveur) sur l'atelier aussi : « ça va être le nouveau serveur pour les tests, et on va quitter
 Firebase et GitHub ». ⚠️ Il s'est agacé deux fois ce soir : dire en UNE phrase ce qu'on fait et pour quoi, avant de le faire.
+FIREBASE, suite (17 novembre, vers 23 h) — LU dans `server/index.js` (lu, pas joué) : `fbRevoquerEquipe` ne jette jamais (tout
+est dans un `try`) et rend `{fait:false, motif}` quand Google refuse ; ses trois appelants (repartir à neuf, fermer, supprimer)
+CONTINUENT — ils coupent et effacent le socle — et remontent seulement « coupure non faite » avec le motif. Donc, projet
+supprimé : ces trois gestes de la Tour marchent encore mais AFFICHENT un avertissement Firebase jusqu'au retrait du code. Dit à
+Justin : il peut supprimer le projet quand il a regardé ce qu'il contient ; la décision est la sienne. À faire ensuite : retirer
+ce code et ses bancs, et dire dans `REPRISE.md` si le projet a été supprimé (ne pas le supposer).
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
