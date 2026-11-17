@@ -2656,8 +2656,9 @@ body.dp-ouvert{overflow:hidden}
 .a-flash{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--vert) 10%,var(--feuille));border:1px solid color-mix(in srgb,var(--vert) 35%,transparent)}
 /* calendrier */
 .ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.a-avis{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
-.a-avis-c{overflow-wrap:anywhere;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
+/* le texte garde au moins 180 px : si les gestes (« Voir au planning › », « Vu ») ne tiennent pas à côté, ils passent SOUS le texte au lieu de l'écraser (12 px de large à 320 px, un mot par ligne : défaut des recontrôles du 17 novembre) */
+.a-avis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
+.a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
 .a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
@@ -2688,6 +2689,8 @@ body.dp-ouvert{overflow:hidden}
 /* Calendrier des absences : flèches de période et pastilles de personnes à 44 px au doigt (défaut taches-absences-07). Le recensement `.st-nav`
    est partagé avec Statistiques : on ne touche que celui du calendrier. */
 @media (max-width:760px),(pointer:coarse){.ac-ctrl .ac-nav button{width:44px;height:44px;flex:none}.ac-ctrl .ac-chip{min-height:44px}}
+/* « 2 semaines · 1 mois … 6 mois » tient sur une ligne dès 320 px : à 15 px et 16 px de marge, « 6 mois » sortait de la rangée (on ne voyait que « 6 ») */
+@media (max-width:400px){.ac-ctrl .ac-per{padding:2px;gap:0}.ac-ctrl .ac-per button{padding:0 3px;font-size:13px;min-width:0}}
 /* Soldes à 320 px : la colonne « À surveiller » sortait de sa boîte sans rien dire (tableau de 337 px dans 286). On resserre les colonnes
    et le texte, et la dernière passe à la ligne (défaut taches-absences-09). */
 @media (max-width:760px){.a-leg{display:flex}.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 6px}.as-t th:first-child,.as-t td:first-child{padding-left:12px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{font-size:10.5px;white-space:normal}.as-lg{display:none}.ac-aide{font-size:13px}.ac-nom{width:132px;padding:8px}.ac-nom small{display:none}.ac-nn{display:none}.ac-qui{margin-left:0;width:100%}.ac-ctrl .ac-per{width:100%}.ac-nav{flex:1}}
@@ -4506,7 +4509,7 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
-  t.classList.add('on'); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
@@ -5157,7 +5160,7 @@ function panneauReglagesRdv(){
     <div class="carte"><h3>Limites</h3>
       <label class="champ">Pas de demande avant<select data-rr="delai">${[0,1,2,3,5].map(n=>`<option value="${n}" ${R.delai===n?'selected':''}>${n ? n + ' jour' + (n>1?'s':'') : 'aujourd’hui'}</option>`).join('')}</select></label>
       <label class="champ">Jusqu’à<select data-rr="horizon">${[7,14,21,30].map(n=>`<option value="${n}" ${R.horizon===n?'selected':''}>${n} jours à l’avance</option>`).join('')}</select></label></div>
-    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention, touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
+    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
 }
 
 /* ══ FACTURES ══ */
@@ -6785,7 +6788,8 @@ let DECISIONS_ABS = [
 // le bureau qui se met à sa place. Avant, tout lisait l'interrupteur `aComme` seul : masqué en mode application (aCommeSeg) mais resté à
 // 'marc', il faisait voir à la technicienne les gestes du bureau (« ＋ Nouvelle absence » validée tout de suite, pour n'importe quel collègue).
 // « Voir comme Marc » : un raccourci de REVUE (il change l'écran de rôle). Une vraie technicienne n'a pas de Marc à devenir : bouton mort.
-const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; rendre(); scrollTo({ top:0 }); } };
+const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; if (typeof ROLE !== 'undefined' && ROLE === 'tech') return rlChanger('patron', { h:'absences', muet:true });   // revue en technicien : le rôle change vraiment, sinon l'écran restait en lecture seule
+    rendre(); scrollTo({ top:0 }); } };
 const aLecture = () => (typeof ROLE !== 'undefined' && ROLE === 'tech') || aComme !== 'marc';
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
@@ -7082,8 +7086,13 @@ function aApercu(){ // ce que l'absence touche, avant d'enregistrer
   const el = document.getElementById('an-apercu'); if (!el) return;
   const a = { tech:document.getElementById('an-t').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null };
   if (!a.du || !a.au || a.au < a.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
-  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
+  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au), btn = document.querySelector('[data-anouvok]');
+  // mêmes règles que la demande du technicien : rien à poser un week-end, et une demande déjà en attente sur ces jours se traite d'abord
+  // (sinon l'accorder plus tard doublerait l'absence et débiterait le solde en plus : défaut des recontrôles du 17 novembre)
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
+  if (btn) btn.disabled = !!(autre || attente || !aJours(a));
+  if (!aJours(a)) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y a rien à poser. Choisis d’autres dates.</small></div>'; return; }
+  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (attente && !autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)}</b><small>Une demande attend ta réponse sur ces jours : accorde-la ou refuse-la d’abord, dans « À valider ».</small></div>` : '') + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
 }
 /* valider : l'absence entre au planning, chaque intervention va à la personne choisie (ou passe « à planifier » + une tâche),
    la décision reste écrite, et on MONTRE le planning du jour, avec ce qui a bougé */
@@ -7232,6 +7241,8 @@ document.addEventListener('click', ev => {
   if (b.dataset.anouvok) { const a = { tech:document.getElementById('an-t').value, type:document.getElementById('an-ty').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null, motif:document.getElementById('an-m').value.trim() };
     if (!a.du || !a.au || a.au < a.du) return toast('La date de fin est avant la date de début');
     if (a.demi && a.du !== a.au) a.demi = null;
+    if (!aJours(a)) return toast('Ces jours ne sont pas travaillés : choisis d’autres dates');
+    if (DEMANDES_ABS.some(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au)) return toast(`${aPrenom(a.tech)} a une demande en attente sur ces jours : accorde-la ou refuse-la d’abord`);
     const autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);   // même garde que « déplacer » et la demande du technicien
     if (autre) return toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)} : choisis d’autres dates`);
     const moves = aValider(a, 'saisie'); fermerPanneau();
@@ -7278,7 +7289,7 @@ function aMenu(k, id, x, y){ if (aLecture()) return; const a = (k === 'd' ? DEMA
 function aMenuType(a, x, y){ ouvrirMenu(x, y, 'Changer le type', [{ ic:'‹', l:'Retour', garde:true, fn:() => aMenu('a', a.id, x, y) }, '---',
   ...Object.keys(A_TYPES).map(k => ({ ic:A_TYPES[k][1], l:(k === a.type ? '✓ ' : '') + k, fn:() => { if (k === a.type) return; const av = a.type; a.type = k;
     journalAjout('marc', 'equipe', 'a changé le type de l’absence', { lib:tech(a.tech).nom }, { avant:av, apres:k }); aRendreGarde();
-    toast(`Absence de ${aPrenom(a.tech)} : ${av.toLowerCase()} → ${k.toLowerCase()}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
+    toast(`Absence de ${aPrenom(a.tech)} : ${aTypeBas(av)} → ${aTypeBas(k)}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
 /* déplacer ou redater une absence VALIDÉE : jamais par-dessus une autre absence de la même personne ; on dit ce que ça touche au planning */
 function aAppliquer(a, du, au, demi){
   if (!du || !au || au < du) { toast('La date de fin est avant la date de début'); return false; }
@@ -7494,6 +7505,9 @@ document.addEventListener('click', ev => {
     return aAppliquer(a, document.getElementById('ax-du').value, document.getElementById('ax-au').value, document.getElementById('ax-demi').value || null); }
 });
 document.addEventListener('change', ev => { const id = ev.target.id || '';
+  // « Au » suit « Du » tant qu'on n'a pas touché « Au » : choisir un début après la fin par défaut ne laisse plus « La date de fin est avant… »
+  if (id === 'ad-au') ev.target.dataset.touche = '1';
+  if (id === 'ad-du') { const au = document.getElementById('ad-au'); if (au && !au.dataset.touche && ev.target.value && au.value < ev.target.value) { au.value = ev.target.value; if (typeof dtPeindre === 'function') dtPeindre(au); } }   // dtPeindre : le bouton de date montre la nouvelle valeur
   if (['ad-ty', 'ad-du', 'ad-au'].includes(id)) aApercuDemande();
   if (['ax-du', 'ax-au', 'ax-demi'].includes(id)) { const b = document.querySelector('[data-axok]'); if (b) aApercuDates(ABSENCES.find(x => x.id === b.dataset.axok)); } });
 document.addEventListener('input', ev => { if (['ad-du', 'ad-au'].includes(ev.target.id || '')) aApercuDemande(); });
@@ -8262,7 +8276,11 @@ function lireHash(){
   scrollTo({ top:0 });
 }
 addEventListener('hashchange', lireHash);
-function ouvrirPanneau(html, large){ const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
+function ouvrirPanneau(html, large){
+  /* un message posé il y a plus d'un instant (« Ajoutée pour demain · Annuler ») ne reste pas collé sur le bas de la fiche qu'on ouvre juste après : il couvrait « Reporter » et « Confier à ».
+     Un message de LA MÊME action (moins de 0,4 s) reste, et un panneau déjà ouvert qu'on redessine n'y touche pas. */
+  { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
+  const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
@@ -11356,8 +11374,10 @@ const GESTES = {
   rgf:{ k:'inter', d:'m' }, rlv:{ k:'inter', d:'m' }, suite:{ k:'inter', d:'m' },
   d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
   /* planning, absences, tâches */
-  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, atdem:{ k:'planif', d:'c' }, atenvoi:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
+  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
   kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  /* « Mes congés » : la demande de la technicienne, sa réponse à une proposition, le retrait de sa demande sont SES gestes (comme « Mes tâches », ci-dessous), jamais une case de planning : classés « planif », ils refusaient « Envoyer la demande à Marc » à toute technicienne (« Ce geste n'est pas ouvert à ton compte »). Décider d'une absence (aok, anouvok…) reste au planning. */
+  atdem:{ d:'l' }, atenvoi:{ d:'l' }, atrep:{ d:'l' }, atrepondre:{ d:'l' }, atrepok:{ d:'l' }, atretire:{ d:'l' }, atvoir:{ d:'l' }, addemi:{ d:'l' },
   /* « Mes tâches » est un outil PERSONNEL, toujours ouvert : ses gestes ne dépendent d'aucune case (les Tâches sortent des cases, spec § 2.6) */
   tkxs:{ d:'l' }, tajout:{ d:'l' }, tkxajout:{ d:'l' }, tnouv:{ d:'l' }, tfait:{ d:'l' }, tmodif:{ d:'l' }, tpiece:{ d:'l' }, tqui:{ d:'l' },
   tsdok:{ d:'l' }, tsfait:{ d:'l' }, tsqui:{ d:'l' }, tsdatep:{ d:'l' }, tsdevis:{ d:'l' },
@@ -12143,7 +12163,7 @@ function paieSemLigne(w, fin){
   const sup = w.s25 + w.s50, note = w.avant ? `avec les jours de fin ${paieMoisVoisin(-1)}` : w.report ? `se termine en ${paieMoisVoisin(1)}` : '';
   return `<div class="paie-semaine${fin ? ' a4' : ''}"><span class="paie-sem-t">Semaine du ${esc(jCourt(w.L))}${note ? `<small class="gris">${note}</small>` : ''}</span><b class="paie-sem-n">${ptH(w.tot)}</b><span class="${sup && w.ici ? 'fo-up' : 'gris'} petit paie-sem-sup">${sup ? '+' + ptH(sup) + ' sup.' + (w.report ? ` · sur ${paieMoisVoisin(1)}` : '') : '—'}</span>${fin ? `<span class="paie-sem-a">${fin}</span>` : ''}</div>${fin && !w.valide && w.alertes.length ? `<div class="paie-al">${w.alertes.map(a => `<span class="ve-pt ve-${a.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span>${esc(a.t)}`).join('<br>')}</div>` : ''}`;
 }
-const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${t.toLowerCase()}`).join(', ') || '—';
+const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${aTypeBas(t)}`).join(', ') || '—';
 /* où en est le mois : cinq étapes, chacune dit ce qui manque et où le régler */
 function paieEtapes(V){
   const ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), nonVal = V.reduce((s, v) => s + v.nonValidees, 0), sig = V.filter(v => v.signale), conf = V.filter(v => v.confirme).length;
@@ -23564,16 +23584,17 @@ document.addEventListener('click', ev => { if (mbAvale && Date.now() - mbAvale <
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-mabarre]'); if (b) { ev.stopPropagation(); mbBasculer(b.dataset.mabarre); } }, true);
 { const b0 = mbBasculer; mbBasculer = function(k){ if (k === '~ouvrir') { mbPanneau(); return; } return b0.apply(this, arguments); }; }
 /* l'appui long sur la barre ouvre « Ma barre ». La feuille monte SOUS le doigt : le clic du relâcher est avalé, où qu'il tombe, et lui seul. */
-{ let t = null, x0 = 0, y0 = 0;
+{ let t = null, x0 = 0, y0 = 0, tenu = false;   // `tenu` : le doigt de l'appui long est encore posé — seul SON relâcher renouvelle l'avale (sinon, sans clic au relâcher, le premier toucher suivant était avalé à son tour)
   const fin = () => { if (t) { clearTimeout(t); t = null; } };
-  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
+  const relache = () => { fin(); if (tenu) { tenu = false; mbAvale = Date.now(); } };
+  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); tenu = true; if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
-  document.addEventListener('touchend', () => { fin(); if (mbAvale) mbAvale = Date.now(); }, { passive:true });
+  document.addEventListener('touchend', relache, { passive:true });
   document.addEventListener('touchcancel', fin, { passive:true });
   document.addEventListener('mousedown', ev => { if (ev.button === 0 && ev.target.closest('.opg-barre')) debut(ev.clientX, ev.clientY); });
   document.addEventListener('mousemove', ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fin(); });
-  document.addEventListener('mouseup', () => { fin(); if (mbAvale) mbAvale = Date.now(); });
+  document.addEventListener('mouseup', relache);
   document.addEventListener('contextmenu', ev => { if (ev.target.closest('.opg-barre')) ev.preventDefault(); });
 }
 if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
