@@ -24,7 +24,7 @@ exports.diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]);
 // comptent, ce que getBoundingClientRect ne voit pas). Rend les cibles dont la zone qui répond est sous 44 px dans un sens ou l'autre.
 exports.doigtsReel = (p, zone) => p.evaluate(z => {
   const R = document.querySelector(z || '#contenu') || document.body, out = [], vus = new Set();
-  const cand = [...R.querySelectorAll('button, a, [role=button], summary, input[type=checkbox], input[type=radio]')].filter(e => e.offsetParent && !e.disabled && e.getBoundingClientRect().width >= 2);
+  const cand = [...R.querySelectorAll('button, a, [role=button], summary, input[type=checkbox], input[type=radio]')].filter(e => e.offsetParent && !e.disabled && e.getBoundingClientRect().width >= 2 && !(e.tagName !== 'SUMMARY' && e.closest('details:not([open])')));   // le contenu d'un <details> fermé n'est pas touchable
   for (const e of cand) {
     const nom = (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);
     e.scrollIntoView({ block: 'center', inline: 'center' });

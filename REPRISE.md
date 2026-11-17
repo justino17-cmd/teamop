@@ -77,6 +77,30 @@ File d'attente des lots, dans l'ordre : boîte mail (en construction) ; composit
 même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
 droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
 
+**DOUBLE AUTHENTIFICATION « Team OP Authenticator » (transmise le 17 novembre à 0 h 02 par une AUTRE conversation de Justin,
+« Application authentificateur double et sécurité », session_01PfEEAFacHYFcKcxje3rvGH).** Le message dit que Justin a demandé
+de l'appliquer à OP GESTION, « à la fois à l'application et au prototype », et de vérifier avec lui la priorité. Ce message est
+une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à lui faire confirmer.
+- Les pièces : kit complet https://claude.ai/artifact/1X6NBpETFHVuZfCsMNbqW1 (40 fichiers ; `kit/INTEGRATION.md` = décisions et
+  contrats) et prototype de référence validé https://claude.ai/artifact/4LtzeGKprH7t79jxt2xgKv. Copie locale HORS du dépôt
+  (le dépôt est PUBLIC : ne pas y pousser le kit sans l'accord de Justin) : `/home/user/kit-2fa/` ; si le disque est perdu, les
+  relire par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
+- Les huit décisions (non négociables d'après le message) : aucune application tierce ; double authentification obligatoire
+  pour tous les rôles ; AUCUN code de secours (téléphone perdu : un administrateur vérifie l'identité en personne, « Nouveau
+  téléphone ») ; chaque connexion s'approuve sur le téléphone en TAPANT un nombre de 10 à 99 ; connexions inhabituelles en rouge ;
+  « Ce n'est pas moi » verrouille le compte ; actions sensibles re-confirmées sur le téléphone (5 minutes) ; ne jamais promettre
+  « sûr à 100 % ».
+- CE QUI EST DÉCIDÉ ICI : (a) le PROTOTYPE reproduit ce comportement (téléphone simulé à côté de l'application) — voie
+  `double-auth` de `workflows/voies.js` (6 étapes, arbre `/home/user/wt-double-auth`), spécification à écrire dans
+  `refonte/DOUBLE-AUTHENTIFICATION.md` ; le paramètre `?auto=` des sondes reste utilisable en local seulement ;
+  (b) la VRAIE application (serveur `server/`, `app.html`) : RIEN sans une phrase de Justin ici — c'est la production, et
+  l'authentification du serveur est un chantier à part (à lui présenter avec son plan).
+
+**TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
+Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
+`/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
+tenu 40 minutes (charge 2 à 4, 2 Go de mémoire) ; on remonte par paliers (sept voies à 0 h 05).
+
 **SECOND REDÉMARRAGE (16 novembre, 22 h 56) — COMMENT REPRENDRE.** La session est retombée avec 13 agents et 46 processus de
 navigateur (charge 7 sur 4 cœurs). Cette fois le DISQUE a survécu : les arbres `/home/user/wt-*` gardent le travail non commité des
 agents interrompus (`git -C <arbre> status --short`), et `/tmp/…/scratchpad/cap/` leurs notes et captures. Depuis :
