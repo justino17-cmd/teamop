@@ -4,9 +4,9 @@
 // jette (« methodes »), le rangement oublie tout (« vide »). Population : le bac PROUVE qu'il a mordu (la page a bien tenté d'y toucher).
 //   PROFILS=mac,iphone  node artefact-rangement.js
 const A = require('./artefact-commun.js'), { bac, L, v } = A;
-const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
+const PROFILS = (process.env.PROFILS || (process.env.RAPIDE ? 'mac' : 'mac,iphone')).split(','), MODES = process.env.RAPIDE ? ['refuse'] : ['refuse', 'methodes', 'vide'], ROLES = process.env.RAPIDE ? ['marc'] : ['marc', 'julie', 'sm'];   // RAPIDE=1 : pour les mutations
 (async () => {
-  for (const mode of ['refuse', 'methodes', 'vide']) for (const profil of PROFILS) for (const qui of ['marc', 'julie', 'sm']) {
+  for (const mode of MODES) for (const profil of PROFILS) for (const qui of ROLES) {
     const T = `${mode} ${qui}/${profil}`;
     const c = await bac.ouvrir({ profil, qui, guide: false }, { rangement: mode }); await A.calmer(c.p);
     const ouv = await c.p.evaluate(() => ({ h1: ((document.querySelector('#contenu h1') || {}).textContent || '').trim(), texte: document.getElementById('contenu').innerText.length, route }));
@@ -40,7 +40,7 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
     await L.fin(c);
   }
   // les trois cadres voisins ouverts SEULS (comme dans l'artefact, où ils sont des pages à part) : ils se rendent aussi, rangement refusé
-  for (const page of ['prototype-documents.html', 'prototype-comptabilite.html', 'prototype-paiement.html']) for (const mode of ['refuse', 'methodes']) {
+  for (const page of process.env.RAPIDE ? [] : ['prototype-documents.html', 'prototype-comptabilite.html', 'prototype-paiement.html']) for (const mode of ['refuse', 'methodes']) {
     const c = await bac.ouvrir({ profil: 'mac', qui: null, page, requete: page === 'prototype-documents.html' ? '' : '?app=1&mode=jour' }, { rangement: mode }); await A.calmer(c.p);
     const n = await c.p.evaluate(() => document.body.innerText.length);
     v(`${page} rangement ${mode} : la page se rend (${n} signes)`, n > 200, n);

@@ -1,0 +1,66 @@
+{
+ "partie": "planning",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  5,
+  6,
+  7,
+  8,
+  10
+ ],
+ "pasRegles": [
+  {
+   "n": 4,
+   "constat": "Rejoué (planning-parcours2 P10, mac) : les 3 contrôles tombent encore (Sophie masquée : « 9 interventions » et « 11 h » pour 6 cartes ; Sur mesure, Sophie seule : « 12 » pour 4 cartes). Non corrigé, annoncé « à soumettre à Justin » : c'est un écran validé. Rien de cassé à côté."
+  },
+  {
+   "n": 9,
+   "constat": "Rejoué sur iPhone (capture) : la première page montre toujours la carte « tâches pour toi », deux rangées d'onglets, la date, les puces, les chiffres et le paragraphe d'aide avant la grille ; aucune intervention visible au premier regard. Non corrigé, annoncé « à soumettre à Justin »."
+  },
+  {
+   "n": 11,
+   "constat": "Réglé seulement en partie. scroll-padding-left égal à la colonne des noms est bien posé (172 px ordinateur, 150 px téléphone), mais une carte DÉJÀ À MOITIÉ visible n'est pas ramenée par le focus : au clavier (Tab réel, iPhone et iPad), la carte i22 (Tom, jour passé) prend le focus à x = 21 alors que la colonne des noms finit à 167 : 146 px sur 157 sont cachés sous la colonne, le seul bord visible est l'anneau de focus (capture R11-i22-iphone.png ; sondes/planning-recontrole.js R11, iphone et ipad : 1 ✗ sur 15 cartes). Au plus petit écran (320 px) toutes les cartes se posent à 156 px pour une colonne qui finit à 167 : 11 px du bord gauche de chaque carte passent sous la colonne (le texte reste lisible, les angles arrondis et le liseré non), et i20 reste coupée de 28 px à droite (150 + 162 > 286, inévitable à cette largeur)."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Carte des tournées : la bulle « 54 min · 41 km » est peinte PAR-DESSUS les repères d'urgence (iPhone, jour et nuit)",
+   "gravite": "gênant",
+   "etapes": "iPhone 390 × 844 (Android aussi) › Planning › Carte › aujourd'hui, samedi 31 octobre, sans toucher à rien. Regarder la carte entre « La Rochelle » et « Rochefort ».",
+   "constat": "Les deux repères en losange (urgence i17 « Mme Roux » rouge, i5 « Hôtel de la Plage » orange) sont en grande partie cachés par la bulle de trajet de Sophie : recouvrement mesuré 722 px² (i17) et 1 047 px² (i5) sur iPhone, 605 px² (i5) sur ordinateur. La bulle est un repère de la carte avec son propre z-index (pointer-events:none, donc le toucher passe encore, mais l'œil ne voit pas le repère le plus important de la journée). Capture : cap/campagne-planning-recontrole/carte-iphone.png, carte-iphone-nuit.png. Piste : bulle sous les repères d'étape (z-index inférieur à celui des .cr-mk) ou masquée quand elle en recouvre un.",
+   "preuve": "scratchpad insp16.js (recoupement DOM) + captures relues"
+  },
+  {
+   "titre": "Adresse dont la RUE porte le nom d'une autre commune : le client est posé au mauvais endroit (jusqu'à 38 km) et les liens « Y aller avec » y envoient le technicien",
+   "gravite": "gênant",
+   "etapes": "Planning › « ＋ Nouvelle intervention » › « Nouveau client » › adresse « 12 Route de La Rochelle, 17300 Rochefort » (ou « 3 Rue de Rochefort, 17230 Marans »). Ou, dans la console : geoDeAdresse('12 Route de La Rochelle, 17300 Rochefort').",
+   "constat": "geoDeAdresse (la correction de planning-01) prend la PREMIÈRE commune de la table dont le nom figure n'importe où dans l'adresse : « la rochelle » gagne sur « rochefort » (point 46.1603,-1.1511 au lieu de 45.9378,-0.9617), « rochefort » gagne sur « marans ». Le formulaire dit alors « Repérée : La Rochelle · 0 km » alors que le client est à 38 km, la carte pose l'étape au dépôt et Waze / Google Maps / Apple Plans visent La Rochelle : exactement le défaut planning-01, pour une adresse plus rare. Rejoué avec 11 adresses ordinaires : toutes justes ; 2 adresses de ce type : 2 ✗ (planning-recontrole.js R1). Piste : chercher la commune dans la partie qui suit le code postal (ou le dernier segment après la virgule) avant de chercher n'importe où.",
+   "preuve": "planning-recontrole.js R1 : 20 ✓ · 2 ✗"
+  },
+  {
+   "titre": "Carte réelle : après un zoom, passer au jour suivant laisse la vue où elle était — les étapes du nouveau jour sont hors de l'écran",
+   "gravite": "détail",
+   "etapes": "Planning › Carte › aujourd'hui › « ＋ » deux fois (zoom 12,8) › « Suivant » (lundi 2 novembre).",
+   "constat": "Mesuré à chaque « Suivant » : le zoom et le centre ne bougent pas, les 3 repères de lundi sont à x = −34…36 px, y = −213…−149 px de la carte (hors cadre) ; mardi 3 : 2 repères sur 2 hors cadre ; la carte paraît vide alors que le jour a des étapes (la liste à droite reste juste, « Recentrer » les ramène). Sans zoom préalable, aucun souci (10,8 sur tous les jours, 0 hors cadre). C'est peut-être voulu (la vue de l'utilisateur est respectée) : c'est à soumettre à Justin plutôt qu'à corriger seul. Captures : R7b-mac.png.",
+   "preuve": "planning-recontrole.js R7b : 6 pas, 2 jours à repères hors cadre"
+  },
+  {
+   "titre": "Une intervention TERMINÉE montre le curseur « main qui attrape » mais ne bouge pas, et rien ne le dit",
+   "gravite": "détail",
+   "etapes": "Ordinateur › Planning › Jour › glisser la carte « Contrôle d'étanchéité » (Terminée, Tom) vers 15 h.",
+   "constat": "cursor:grab sur la carte, aucun fantôme, aucun message, la carte reste en place : le geste a l'air de n'avoir pas pris. Une carte qui ne peut pas bouger devrait avoir le curseur normal ou dire « Une intervention terminée ne se déplace pas ». Même constat sur les 3 autres cartes terminées possibles.",
+   "preuve": "planning-recontrole-parcours.js PB : 1 ✗ avant correction du test, insp13.js (aucun toast, body.glisse faux)"
+  },
+  {
+   "titre": "« Voir dans Tâches › » mesure 41 px de haut au doigt",
+   "gravite": "détail",
+   "etapes": "Téléphone ou iPad › Planning (toute vue) › ouvrir « tâches pour toi aujourd'hui » › lien « Voir dans Tâches ›».",
+   "constat": "Lien pleine largeur (274 à 494 px selon l'appareil) mais 41 px de haut, 3 px sous les 44 px que la correction planning-05 a posés partout ailleurs. Les autres cibles du Planning sont à 44 px ou répondent sur 46 à 48 px (puces de la carte : 40 px dessinés, 48 qui répondent ; repères : 30 px dessinés, 46 qui répondent)."
+  }
+ ],
+ "sondes": [],
+ "doutes": []
+}

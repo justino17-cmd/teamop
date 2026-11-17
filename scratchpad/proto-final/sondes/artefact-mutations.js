@@ -37,7 +37,7 @@ for (const [nom, f, ancien, neuf, sonde] of MUT) {
   if (n !== 1) { log(`? ${nom} : l'ancien texte est trouvé ${n} fois — mutation non jouée`); survivantes++; continue; }
   const mut = src.replace(ancien, () => neuf); if (mut === src) { log(`? ${nom} : le fichier n'a pas changé`); survivantes++; continue; }
   fs.writeFileSync(path.join(COPIE, 'apercu', F[f]), mut);
-  const t0 = Date.now(), r = spawnSync('node', [path.join(__dirname, sonde)], { env: { ...process.env, RACINE: COPIE }, encoding: 'utf8', timeout: 590000 });
+  const t0 = Date.now(), r = spawnSync('node', [path.join(__dirname, sonde)], { env: { ...process.env, RACINE: COPIE, RAPIDE: '1' }, encoding: 'utf8', timeout: 590000 });
   const sortieTxt = (r.stdout || '') + (r.stderr || ''), bilan = (sortieTxt.match(/[0-9]+ ✓ +· +[0-9]+ ✗/g) || []).pop() || '?', mord = r.status !== 0; jouees++;
   if (!mord) survivantes++;
   log(`${mord ? 'MORD   ' : 'SURVIT '} ${nom} — ${sonde} (code ${r.status}, ${bilan}, ${Math.round((Date.now() - t0) / 1000)} s)` + (mord ? ' · ' + ((sortieTxt.split('\n').find(l => /^ ✗/.test(l)) || '').slice(0, 130)) : ''));

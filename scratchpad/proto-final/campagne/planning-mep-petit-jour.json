@@ -1,4 +1,112 @@
 {
+ "jour": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 510,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
  "general": {
   "debordement": {
    "largeur": 320,
@@ -8,18 +116,89 @@
    "coupable": ""
   },
   "doigts": {
-   "petits": [
-    "09:00 – 10:30✓ faitEntretien climatisati (recouvert au centre)",
-    "13:30 – 15:00✓ faitRéglage pompe à chale (recouvert au centre)",
-    "14:00 – 15:00✓ faitDépannage — fuite d’e (recouvert au centre)",
-    "09:00 – 10:00✓ faitEntretien climatisati (recouvert au centre)",
-    "10:30 – 11:30✓ faitContrôle chauffe-eauC (recouvert au centre)",
-    "08:00 – 10:00✓ faitContrat — visite 2 su (recouvert au centre)"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": [],
    "petitsRect": [
     "Voir dans Tâches › 274×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 274×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 488,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 288,
+     "h": 46,
+     "droite": 304
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "1 30×30",
+    "2 30×30",
+    "3 30×30",
+    "! 30×30",
+    "Sophie 86×40",
+    "Karim 80×40",
+    "Tom 70×40"
    ]
   },
   "verif": {
