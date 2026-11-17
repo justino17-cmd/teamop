@@ -1,0 +1,42 @@
+{
+ "noms": [
+  "accueil-03 — la ligne « reçu sur place » de l'Historique dit ce que l'Accueil compte",
+  "Statistiques 700 à 760 px — marge, fondu et « Glisse vers la droite » seulement si le graphique défile",
+  "Bilan du mois — la tuile « Encaissé » garde sa comparaison et dit « hors X € reçus sur place »"
+ ],
+ "regles": [
+  "accueil-03 : rejoué, réglé. accueil-restes-1-recontrole ABDE mac 33 ✓ · 0 ✗ (A2 « payé en totalité » sans montant : une ligne, au TTC de la facture, comptée par l'Accueil, la Comptabilité et le bilan ; B : la facture envoyée reprend l'argent une fois ; D : sept rôles, ni undefined ni NaN). Rejoué en plus : Espèces et Chèque sans montant (182,61 € = 40 + 142,61 partout : Accueil, Comptabilité Le mois et Caisse, Journal, fiche client « + 142,61 € reçus sur place », fiche intervention, Statistiques « hors 183 € »), Carte non automatique (aucune ligne, rien compté), envoi automatique Espèces/Carte (la facture part payée, rien « sur place » de plus).",
+  "Statistiques : rejoué, réglé aux largeurs d'écran réelles. Sonde d'origine partie C : mac 61 ✓, ipad 33 ✓, iphone nuit 61 ✓ · 0 ✗. Balayage neuf tous les 10 px de 480 à 940 px (mac, ipad, iphone) : jamais de mois coupé net, jamais de glissement de la page, la barre de bulle au survol (premier, milieu, dernier mois) reste dans la carte, toucher un mois ouvre son détail. La requête de conteneur n'a rien cassé à côté (bulle, détail, légende).",
+  "Bilan : rejoué, réglé. accueil-restes-2 : 16 ✓ · 0 ✗ sur mac, ipad, iphone jour et nuit, android nuit, petit (320 px), valeur longue 12 345,67 € comprise ; en plus mois, 3 mois et 12 mois, mois d'avant octobre : toutes les tuiles Encaissé du bilan (synthèse et pages) gardent « par rapport à… », « hors 40 € reçus sur place » ne figure que là où il compte (octobre), rien de coupé.",
+  "Sondes d'accueil rejouées en entier (accueil-tout.sh, mac et iphone, jour et nuit, 26 exécutions) : coherence 22, corrections 27, parcours2 12, mots 36, vides 10, recontrole-divers 8, recontrole 15, recontrole-parcours 25, restes-1 21 et 23, mise-en-page 16 et 28 ✓, toutes à 0 ✗ ; accueil-roles sort 0. Deux exécutions à ✗ (accueil-parcours P7), expliquées plus bas : une sonde périmée, pas la page, réparée."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Statistiques — graphique des 12 mois, fenêtres de 590 à 625 px (et iPad à 890-900 px) : il défile de 4 à 24 px pour rien",
+   "defaut": "la requête de conteneur prend 557 px (528 de colonnes + 30 de marge) comme seuil. Mais la marge de 30 px n'est utile que s'il défile ; le graphique tient sans elle dès 528 px. Entre 528 et 557 px, c'est la marge du fondu qui le fait défiler : le mois le plus récent (« oct », surligné) est coupé au bord droit de 24 px au plus, la dernière colonne de gauche est voilée, et « Glisse vers la droite pour les mois d'avant » invite à glisser pour rien. Mesuré : mac 600, 610, 620 px (carte 534, 544, 554 px), ipad 890 et 900 px ; 3 largeurs sur 47. Capture : rc2-graph-mac610.png (et -fin).",
+   "constat": "détail, sur des fenêtres peu courantes (petite fenêtre de bureau, tablette en écran partagé) ; non corrigé, je ne touche pas aux pages. Correction : @container (max-width:527px) au lieu de 557px dans les deux requêtes (lignes ~26380 et ~26381 de apercu/prototype-op-gestion.html). Sonde : accueil-restes-2-recontrole.js partie C, 3 ✗ tant que ce n'est pas fait (60 ✓ · 3 ✗ sur mac)."
+  },
+  {
+   "nom": "Intervention datée après octobre, terminée tôt par le technicien : l'argent noté sur place n'est compté ni écrit nulle part",
+   "defaut": "cpPaieTerrain ne retient que les interventions d'octobre (cpOct), et la ligne de l'Historique suit désormais cette règle. i8 (planifiée le 2 novembre, Karim) terminée le 31 octobre avec 50 € en espèces : aucune ligne « reçu sur place », rien à l'Accueil, à la Comptabilité, aux Statistiques ni au bilan. Avant la correction la ligne existait (mais l'Accueil comptait déjà 0) ; maintenant les deux se taisent d'accord, et les 50 € disparaissent de tous les écrans.",
+   "constat": "gênant si ce cas peut arriver en vrai (finir une intervention d'avance) ; c'est une limite du prototype (la Comptabilité ne montre qu'octobre), pas de la correction. Décision à prendre : compter l'argent de toute intervention terminée (la ligne d'Historique y gagnerait), ou refuser « Terminée » avant le jour prévu. Sonde : accueil-restes-2-recontrole.js partie R, ✗ sur i8, ✓ sur i3."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  "Bilan en PDF à 320 px : « 3 045 € » et « TTC » se coupent en deux lignes dans la tuile Encaissé (l'unité tombe sous le montant, plus grande que « HT » de la tuile Facturé qui, elle, tient). Pas de lien avec la correction : la tuile s'allonge de la ligne de comparaison et le défaut se voit mieux. À 360 et 390 px, tout tient sur la ligne. Capture : rc2-bilan-tuiles-petit.png. Détail.",
+  "Le même geste (Carte ou virement noté sur place) écrit ou non une ligne « reçu sur place » selon le mode d'envoi : envoi manuel, aucune ligne ; envoi automatique, une ligne « 142,61 € · Carte » parce que la facture part déjà encaissée. Cohérent avec « ce que l'Accueil compte », mais deux comportements pour un même geste ; à ranger avec le doute déjà posé par le correcteur (Carte / virement). Détail.",
+  "accueil-parcours P7 (sonde, pas la page) : la sonde ouvrait la ligne j45 du journal « Dépannage climatisation » ; d'autres lots ont inséré des lignes et j45 est maintenant « a validé l'absence » (et « Ouvrir » y mène bien aux Absences). Sonde réparée : la ligne se cherche par son contenu ; 28 ✓ · 0 ✗ sur mac et iphone. Et « Ouvrir » vérifié sur douze lignes d'intervention du journal, toutes mènent à la bonne fiche."
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/accueil-restes-1-recontrole.js", "resultat": "ABDE mac 33 ✓ · 0 ✗ ; C mac 61, ipad 33, iphone nuit 61 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/accueil-restes-2.js", "resultat": "16 ✓ · 0 ✗ sur iphone, iphone nuit, petit, android nuit, ipad, mac" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/accueil-restes-2-recontrole.js (neuf)", "resultat": "C mac 60 ✓ · 3 ✗ (les 3 largeurs du défaut ci-dessus), ipad et iphone idem ; R mac 1 ✓ · 1 ✗ (i8) ; ces ✗ sont voulus : ils restent rouges tant que les deux points ne sont pas tranchés" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/accueil-tout.sh (mac et iphone)", "resultat": "26 exécutions ; 24 à 0 ✗ ; accueil-parcours P7 tombait (sonde périmée) : réparée, 28 ✓ · 0 ✗ sur mac et iphone" }
+ ],
+ "doutes": [
+  "Une carte ou un virement noté sur place doit-il apparaître dans l'Historique comme « reçu sur place » ? (déjà soumis à Justin par le correcteur ; voir aussi la différence selon l'envoi automatique ci-dessus)",
+  "Une intervention terminée avant son jour, dans un mois que la Comptabilité d'octobre ne montre pas : que doit-il arriver à l'argent noté ?",
+  "Non éprouvé : une facture déjà partie AVANT « Terminée » avec un encaissement d'un autre moyen (la ligne d'Historique en additionnerait le total). Aucune intervention de la démonstration n'est dans ce cas, je n'ai pas pu le jouer."
+ ]
+}

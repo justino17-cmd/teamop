@@ -1,0 +1,102 @@
+{
+ "noms": [
+  "planning"
+ ],
+ "regles": [
+  "décision (k) « chiffres du bandeau selon les personnes affichées » : rejouée sur 7 vues (Jour, Semaine, Vue d'ensemble, Mois, Sur mesure par jour, Sur mesure par personne, Carte) × 7 façons de masquer (une personne, deux, trois, « Non assigné », tout le monde sauf « Non assigné », tout le monde) = 49 combinaisons : tuile « interventions » = cartes dessinées (= ce que la page compte indépendamment), « de travail prévu » = durées des cartes, « absent » = personnes absentes affichées, « à planifier » / « en retard » = toute l'équipe, la note est là quand un filtre est posé, la Carte n'a ni note ni masque ; mac 261 ✓, ipad / iphone / petit / windows / android nuit 218 ✓ chacun (le seul ✗ est dans casses)",
+  "panneaux ouverts par la tuile (interventions, travail prévu, absent) : mêmes lignes que le chiffre, aucune personne masquée, « Seulement les personnes affichées » ; le panneau « à planifier » garde toute l'équipe (3 lignes pour 3) ; « Tout afficher » lève le filtre, y compris celui de Sur mesure seul (multiExclu) ; le filtre survit à un aller-retour d'écran, à « Suivant », au passage de Jour à Semaine",
+  "autres rôles (secrétariat, technicienne, chef d'équipe) : le droit « planning » leur est refusé (rlPermis false), ni tuiles, ni note, ni rangée de personnes, même avec un masque forcé : les corrections ne leur ouvrent rien (3 profils iphone et mac, 0 erreur JS)",
+  "communeDe : l'ancienne et la nouvelle fonction rejouées sur TOUTES les adresses de la page (clients, liste de démonstration) : 0 différence ; 19 formes d'écriture d'une commune de la liste (sans accent, majuscules, cedex, « , France », code postal avant ou après, virgule absente, numéro de téléphone derrière, « Nieul sur mer », « Châtelaillon » seul…) donnent la bonne commune ; 6 adresses hors liste (Saintes, Royan, Saint-Xandre, L'Houmeau, « 17000 LR », Saint-Médard-d'Aunis) ne sont placées nulle part ; le client hors liste créé avec une intervention est enregistré sans blocage, sans point ni secteur inventés, zone 1, et la fiche de la Carte dit « Position inconnue : la carte la place au dépôt » avec des liens « Y aller avec » qui visent l'adresse écrite (capture A-carte-client-hors-liste-mac.png relue) — mac, ipad, petit, iphone nuit : 35 ✓ · 0 ✗",
+  "titre de la période : 6 vues (jour 4 dates, semaine 3, Vue d'ensemble 2, mois 5, Sur mesure 6 dates, carte 3) × 8 largeurs (320, 340, 360, 375, 380, 381, 390, 400) : le texte tient entre les deux flèches partout, la page ne glisse pas de côté, à 381 px le titre est encore sur une ligne (captures D-titre-320/375/381 relues) — petit, android, iphone",
+  "carte, première ouverture SANS recadrage : 5 jours (9, 2, 1, 3 et 2 étapes) × mac, mac720, windows, ipad, ipad nuit, iphone nuit, android, petit : aucun repère sous un bouton, aucune bulle de trajet sous un bouton ni sur un repère ni hors de la carte, 2 tracés seulement (pas de boucle) ; fonds Satellite puis Plan : repères toujours là et hors des boutons (35 ✓ · 0 ✗ partout, mac 34 ✓ + 1 faux rouge de sonde corrigé)",
+  "mutations sur une COPIE de la page (RACINE=/tmp/claude-0/mut, la page du dépôt n'est jamais touchée) : Ma (communeDe sans la règle), Mb (kpiFiltre aveugle à Sur mesure), Mc (masque d'un jour ignoré dans la tuile), Md (titre à 320 px), Me (pas de retraçage à l'arrivée du fond), Mf (« absent » = toute l'équipe) : 6 sur 6 TOMBENT (4, 3, 3, 22, 1 et 22 ✗) ; Mf ne tombait pas seule avant l'ajout du contrôle « absent » à la sonde : corrigé"
+ ],
+ "pasRegles": [
+  {
+   "nom": "planning",
+   "defaut": "première page du téléphone : l'emploi du temps n'est pas au premier regard (carte « tâches pour toi », deux rangées d'onglets, date, puces, chiffres, paragraphe d'aide)",
+   "constat": "inchangé, à soumettre à Justin (dessin validé). Revu sur capture iphone et petit, jour et nuit : sur la Carte, la carte elle-même démarre sous le pli et sous la barre du bas"
+  },
+  {
+   "nom": "planning",
+   "defaut": "doutes du tour 1 repris tels quels : « Ordre proposé » absent ; vue Mois « 216 interventions » qui mélange passé généré et prévu ; Vue d'ensemble à 320 px ; 11 communes seulement",
+   "constat": "inchangés, à soumettre à Justin ; rien de neuf de mon côté"
+  },
+  {
+   "nom": "planning",
+   "defaut": "bulles de trajet sur téléphone de 320 à 360 px",
+   "constat": "REJOUÉ cette fois : à 360 px (android) 0 bulle le 31/10, 1 le 26/10 ; à 320 px (petit) 0 bulle sauf un jour à une étape ; le temps de route est dit dans la fiche de l'étape. Aucune bulle ne recouvre un repère ni un bouton : à confirmer par Justin que l'absence de bulle est acceptable"
+  }
+ ],
+ "casses": [
+  {
+   "titre": "La note du bandeau compte « Non assigné » comme une personne : « (4 sur 5) » pour 4 personnes dont une masquée",
+   "gravite": "faible (texte)",
+   "etapes": [
+    "Planning, vue Jour, toucher « Sophie » pour la masquer",
+    "lire la note sous les tuiles"
+   ],
+   "constat": "Mesuré sur 6 profils : « seulement les personnes affichées (4 sur 5) » alors que l'équipe compte 4 personnes + la colonne « Non assigné » ; elle devrait dire « 3 sur 4 ». Si seule « Non assigné » est masquée la note dit encore « (4 sur 5) ». Cause : techsVus().length sur TECHS.length compte la colonne vide (id ''). Introduit par la note du tour 2 (chiffresPlanning et detailKpi)"
+  },
+  {
+   "titre": "Sur mesure, une personne écartée UN JOUR seulement : la note dit « seulement les personnes affichées (5 sur 5) »",
+   "gravite": "faible à moyenne (texte qui se contredit)",
+   "etapes": [
+    "Planning > Sur mesure",
+    "écarter une personne sur une date (multiExclu)",
+    "lire la note : « (5 sur 5) » alors qu'elle dit qu'on ne voit que certaines personnes"
+   ],
+   "constat": "Mesuré mac : la note est là (le filtre est bien vu par kpiFiltre) mais le compte « (N sur 5) » ne lit que plMasques, jamais multiExclu : 5 sur 5 à côté de « seulement ». Le panneau ouvert par la tuile redit la même chose. Les chiffres, eux, sont justes (tuile = cartes). Piste : en Sur mesure, ne pas donner de « N sur M » (ou compter les couples personne × jour)"
+  }
+ ],
+ "nouveaux": [
+  "Planning sur iPad portrait (768 à ~890 px, menu latéral affiché) : le sélecteur de vues défile (574 px de contenu pour 506 visibles) et « Carte », la sixième vue, est HORS DE VUE à droite, sans indice ; quand la Carte est la vue active, l'onglet actif n'est pas ramené dans le cadre (scrollLeft 0) : on ne voit qu'un bout de pastille blanche. Mesuré ipad 820 et 768 ; ≥ 900 px tout tient. ANTÉRIEUR au tour 2 (même mesure sur la page d'avant 9fe35bfa~1). Gravité moyenne : la vue ajoutée le 3 novembre est invisible sur iPad portrait. Piste : repasser en rangée de pastilles (segTient) ou ramener l'onglet actif dans le cadre. Captures B-note-ipad.png, E-premiere-2026-10-31-ipad.png",
+  "En-tête du Planning à 345–420 px (Android 360, iPhone 390, iPhone SE 375) : le texte « ＋ Nouvelle intervention » dépasse du bouton ou le touche (marge −5 px à 360, −1 à 375, 0 à 380, 2 à 390, 3 à 393 ; « Rendez-vous en ligne » 3 px à 360), les deux boutons côte à côte ; à 320–340 px ils s'empilent et tout va bien. ANTÉRIEUR au tour 2 (identique sur 9fe35bfa~1). Gravité moyenne : c'est le premier écran des deux téléphones les plus courants. Piste : empiler les deux boutons jusqu'à ~430 px ou réduire le libellé. Captures B-note-android-nuit.png, E-premiere-2026-10-26-iphone-nuit.png (le défaut se voit en haut). La sonde le garde (D · « les boutons de l'en-tête gardent 8 px de marge » : tombe sur android, iphone, petit à 360–400 px)",
+  "Sonde du tour 2 restes-planning-2.js S3 mac : un jour à une seule étape (30/10) a un seul repère : ma population « au moins 2 repères » donnait un faux rouge, corrigé dans ma sonde (pas dans la leur : leur choix de jours en a toujours deux)"
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/restes-planning-2-recontrole.js (NOUVELLE, parties A à E)",
+   "resultat": "A communeDe : 35 ✓ · 0 ✗ (mac, ipad, petit, iphone nuit) ; B chiffres du bandeau : mac 261 ✓ · 2 ✗, ipad / iphone / petit / windows / android nuit 218 ✓ · 1 ✗ (les ✗ sont les deux casses ci-dessus, laissés tels pour qu'on rejoue la sonde après correction) ; C autres rôles : iphone 159 ✓ avec D ; D titre et en-tête : iphone 159 ✓ · 0 ✗ (avant l'ajout du contrôle d'en-tête), android et petit 149 ✓ · 6 ✗ (en-tête à 360–400 px) ; E carte : 35 ✓ · 0 ✗ sur ipad nuit, iphone nuit, android, petit, windows, mac720 (mac et ipad : 34 ✓ + faux rouge de population corrigé)"
+  },
+  {
+   "fichier": "campagne/sondes/restes-planning-2.js (rejouée)",
+   "resultat": "mac 53 ✓ · 0 ✗ ; ipad 53 ✓ · 0 ✗ ; iphone nuit 53 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-parcours2.js mac P9 P10",
+   "resultat": "29 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole.js ipad / mac",
+   "resultat": "88 ✓ · 0 ✗ ; 78 ✓ · 0 ✗ (R7 de l'ipad, qui tombait au tour 1, est vert)"
+  },
+  {
+   "fichier": "campagne/sondes/planning-mise-en-page.js iphone / ipad nuit",
+   "resultat": "31 ✓ · 0 ✗ ; 31 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-marqueurs.js ipad",
+   "resultat": "9/9, code 0"
+  },
+  {
+   "fichier": "campagne/sondes/planning-recontrole-parcours.js iphone ; planning-recontrole-absent-doigt.js",
+   "resultat": "25 ✓ · 0 ✗ ; 6 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/planning-gestes.js mac (toutes les vues)",
+   "resultat": "délai de 560 s dépassé (code 124), aucun ✗ vu : non rejoué en entier, le tour 1 l'avait passé (46 ✓ sur jour, semaine, général)"
+  },
+  {
+   "fichier": "contrôles du dépôt",
+   "resultat": "compiler-pages, verifier-syntaxe (41 pages), test-835 844 ✓, test-836 307 ✓, test-837 122 ✓, test-1008 54 ✓, test-2994 15 ✓, verif-secrets : tous à 0 ✗"
+  }
+ ],
+ "doutes": [
+  "communeDe choisit la PREMIÈRE commune de la liste trouvée dans le texte qui suit le code postal, pas la première du texte : « 17180 Périgny, La Rochelle » rend La Rochelle (aussi avant le tour 2). Adresse peu réaliste, rien à faire sauf si Justin en saisit de ce genre",
+  "Un client hors liste (Saintes) apparaît sur la Carte AU DÉPÔT, numéroté dans la tournée, et la tournée compte le trajet d'après depuis le dépôt : la fiche le dit en orange, mais la carte et les temps de trajet restent faux tant que la liste n'a que 11 communes (décision de contenu à soumettre à Justin, déjà soumise par le correcteur)",
+  "Les rôles sans droit « planning » gardent #planning dans l'adresse alors que l'écran montre leur accueil (aller('planning') ne remet pas le hash) : sans conséquence visible, hors du périmètre de ces corrections",
+  "Le panneau « travail prévu » compte toujours les passages générés de l'historique avec le prévu (mélange déjà signalé au tour 1 pour le Mois)",
+  "Les captures vues : B-note-mac/ipad, A-carte-client-hors-liste-mac, D-titre-320-semaine, D-titre-375-jour, E-premiere-2026-10-31-ipad, E-premiere-2026-10-26-iphone-nuit, B-note-android-nuit, F-note-defilee-iphone, F-note-defilee-petit-nuit (dossier cap/restes-planning-2-recontrole/, hors dépôt). Je n'ai pas vu le Planning sur un Windows ou un Android réels, seulement les profils émulés"
+ ]
+}

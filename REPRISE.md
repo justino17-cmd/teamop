@@ -169,6 +169,43 @@ le tableau : `/home/user/attendre-etape.sh <run> 6` prévient) · `restes` pour 
 `final-regard`, `final-rapport`) à lancer vers 14 h (machine) au plus tard · contrôle de fumée et captures regardées par le chef ·
 republication · réponse chiffrée à Justin avec la LISTE DES DOUTES. Le plan OP Security (vraie application) attend toujours sa réponse.
 
+**SESSIONS SŒURS — LE CHANTIER TOURNE SUR PLUSIEURS MACHINES DEPUIS LE 17 NOVEMBRE, 11 H 31 (machine ; 12 h 31 en France).**
+Justin, mot pour mot : « Tu peux pas mettre plus d'agent pour aller plus vite ? », puis « Ouvre un maximum de branche avec tout ce
+qu'il faut pour que ça aille beaucoup plus vite. Je gagnerai combien de temps ? », et avant : « fait tout tkt pas ». La machine du
+chef n'a que quatre cœurs (mesuré : 5 à 7 navigateurs, une quinzaine de sondes en file) ; une session sœur (`create_session` du
+serveur `claude-code-remote`, modèle `claude-sonnet-5-5`, effort `high`, même dépôt, même branche en sortie) a SA machine et joue
+une voie de `voies.js` par son propre outil Workflow. Mode d'emploi : `scratchpad/proto-final/workflows/SESSION-SOEUR.md` ; la
+consigne complète d'une étape s'imprime par `workflows/consigne.js`. Le tableau des sœurs (identifiant, voie, args) est dans
+`VOIES-EN-COURS.md`. Sept ouvertes à 11 h 35 : six préparent le REJEU de toutes les sondes (470, par groupes de familles), une
+teste le compositeur de devis. RÈGLE : à chaque changement d'étape d'une voie d'ici (`/home/user/guetter-etapes.sh`, par l'outil
+Monitor, à réarmer toutes les 30 minutes), l'étape suivante part sur une sœur ; on ne déplace pas une correction en cours.
+Annoncé à Justin à 12 h 45 (heure française) : gain d'environ 2 h 30 à 3 h — version du soir vers 17 h 30, tout fini vers 20 h —
+à confirmer aux premiers comptes rendus. ⚠️ Son forfait était en ALERTE de limite hebdomadaire à 11 h 30 (`get_session` →
+`rate_limit_info.status: allowed_warning`, remise à zéro le 18 vers 21 h machine) : il le sait ; l'essentiel passe d'abord.
+Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaient tout : chaque étape de correction et de recontrôle
+rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
+boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
+
+**ÉTAT À 12 H 20 (machine ; 13 h 20 en France) — 34 SESSIONS SŒURS, DEUX VOIES ENCORE ICI.** Justin, à 12 h 55 (heure française) :
+« Ok fait un maximum de saison sœur que tu fermera quand elle auront fini » → chaque sœur qui a rendu (« SŒUR n : ») reçoit sa voie
+suivante (`send_message` : « VOIE SUIVANTE : <args> ») ou est FERMÉE (`archive_session`) s'il n'y a plus rien pour elle. Annoncé à
+13 h 43 (française) : « tout fini entre 18 h et 19 h, je vise 18 h 30 ; je te confirme l'heure à 15 h » — sa réponse : « Ok tu me
+dit ». Forfait relu à 12 h 13 (machine) : statut `allowed` (l'alerte du matin est levée). Ici ne tournent plus que le recontrôle
+de la sécurité et celui de « compta-reste » ; leur suite (`restes`, un tour) part sur une sœur. Déjà sur des sœurs : tout le reste
+(tableau complet dans `VOIES-EN-COURS.md`), dont le REGARD écran par écran lancé SANS attendre la fin des corrections pour les
+parties déjà corrigées (gérant a, b, c ; technicien a ; bureau a). RESTE À OUVRIR : regard gérant « d » (Équipe, Mon entreprise),
+« e » (Temps de travail, Véhicules), « f » (les trois écrans 3D), technicien « b » (Mes frais, Mes heures, Mon camion), bureau « b »
+(Achats et frais, Stock, Fournisseurs, Véhicules), client, et les écrans du seul mode application (connexion, OP Security, guide,
+visite) ; scripts de rejeu des familles guide, metier, achats, equipe ; les tours « restes » après chaque recontrôle ; puis le REJEU
+FINAL (`final-rejeu`, `depuis:1`) de tous les groupes sur la version complète, `final-rapport`, la vérification du chef (fusion,
+compilation, fumée gérant-bureau-technicienne, client et chef d'équipe, nuit, captures REGARDÉES), la publication et la réponse.
+**LA LISTE DES DOUTES pour Justin se compose à la fin depuis quatre sources, toutes dans le dépôt** : `final/vus-par-le-chef.md`
+(lignes « à soumettre » et « décisions du chef ») ; `DECISIONS` (g à l) de `workflows/voies.js` ; les clés `doutes` et
+`nonVerifiable` des `*-recontrole.json` (campagne/, refonte/, final/, securite/, artefact/) ; et ce qui ne se vérifie pas d'ici (un
+vrai iPhone, Android, Windows ; l'artefact réel ; le prototype n'est pas l'application des stores). À TRANCHER PAR LUI, relevé à ce
+jour : le secrétariat voit-il la Boîte mail ; le bouton principal de nuit ; le nom « OP COMPTABLE » de la fenêtre ; le groupe
+« Personnel » d'une seule ligne chez le bureau ; glisser pour archiver un courriel ; la première page du Planning au téléphone.
+
 **VERSION 64 DE L'ARTEFACT PUBLIÉE LE 17 NOVEMBRE À 9 H 20 (machine ; 10 h 20 en France)** — version d'ÉTAPE, à la question de
 Justin « tu en es où ? ». Pages du commit `5f87524` (8 h 06), figées dans le dossier `pub-64` du scratchpad avant publication.
 Vérifié par le chef AVANT, sur ces pages-là : fumée `sondes/fumee-routes.js` gérant, bureau, technicienne × Mac et iPhone
