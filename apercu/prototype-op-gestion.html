@@ -4181,7 +4181,8 @@ function barreMulti(){
   </div>`;
 }
 function libellePeriode(){
-  if (plVue === 'multi') { const J = [...multiJours].sort(); return J.length + ' date' + (J.length>1?'s':'') + ' · ' + techsVus().length + ' personne' + (techsVus().length>1?'s':''); }
+  if (plVue === 'multi') { const J = [...multiJours].sort(); const n = techsVus().filter(t => t.id).length;   // des PERSONNES : la colonne « Non assigné » n'en est pas une (« 4 personnes », pas « 5 »)
+    return J.length + ' date' + (J.length>1?'s':'') + ' · ' + (n ? n + ' personne' + (n>1?'s':'') : 'aucune personne'); }
   if (plVue === 'jour' || plVue === 'carte') return (plRef === AUJ ? 'Aujourd’hui · ' : '') + jlong(plRef);
   if (plVue === 'semaine' || plVue === 'general') { const a = lundi(plRef), b = ajoute(a, plJours - 1); return `Semaine du ${num1er(dObj(a).getDate())} ${dObj(a).toLocaleDateString('fr-FR',{month:'short'})} au ${num1er(dObj(b).getDate())} ${dObj(b).toLocaleDateString('fr-FR',{month:'short'})}`; }
   return dObj(plRef).toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
@@ -4204,9 +4205,26 @@ function kpiPopulation(){
   return { J, DANS: INTS.filter(i => J.includes(i.d) && i.st !== 'annulee').concat(J.flatMap(histDe)).filter(i => kpiDe(i.tech, i.d)),
     ABS: ABSENCES.filter(a => J.some(j => a.du <= j && j <= a.au && kpiDe(a.tech, j))) };
 }
+/* ce que le filtre pose, EN MOTS (restes, tour 3, décisions du chef du 17/11 à 12 h 45) : la phrase et le compte disent la même chose.
+   · « (N sur M) » ne compte que des PERSONNES : la colonne « Non assigné » n'en est pas une (« 3 sur 4 », pas « 4 sur 5 ») ;
+   · la colonne « Non assigné » masquée se dit à part (« sans la colonne « Non assigné » »), jamais par un compte ;
+   · en Sur mesure, une personne écartée certains jours seulement est NOMMÉE, avec le jour (« sans Sophie le mardi 3 novembre » ; « sans
+     Sophie 3 jours » au-delà d'un) : jamais « seulement les personnes affichées (5 sur 5) », un compte complet à côté du mot « seulement ».
+   Une SEULE phrase, lue par la note sous les tuiles ET par le panneau qu'elles ouvrent. */
+function kpiPhrase(){
+  const P = TECHS.filter(t => t.id), cache = P.filter(t => plMasques.has(t.id)).length, parts = [];
+  if (cache) parts.push(`seulement les personnes affichées (${P.length - cache} sur ${P.length})`);
+  if (plMasques.has('')) parts.push('sans la colonne « Non assigné »');
+  if (plVue === 'multi') {
+    const J = joursPeriode();
+    TECHS.filter(t => !plMasques.has(t.id)).forEach(t => { const D = J.filter(d => multiExclu.has(t.id + '|' + d));
+      if (D.length) parts.push(`sans ${t.id ? t.nom.split(' ')[0] : 'la colonne « Non assigné »'} ${D.length === 1 ? 'le ' + jlong(D[0]) : D.length + ' jours'}`); });
+  }
+  return parts.join(' ; ');
+}
 function chiffresPlanning(){
   const { J, DANS: L, ABS } = kpiPopulation(), mn = L.reduce((s,i)=>s+i.dur,0), filtre = kpiFiltre();
-  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status"><span>Interventions, travail prévu et absents : seulement les personnes affichées (${techsVus().length} sur ${TECHS.length}). « À planifier » et « en retard » comptent toute l’équipe.</span><button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
+  const note = !filtre ? '' : `<div class="pl-kpis-note" role="status"><span>Interventions, travail prévu et absents : ${kpiPhrase()}. « À planifier » et « en retard » comptent toute l’équipe.</span><button type="button" class="lien" data-mqtous="1">Tout afficher</button></div>`;
   return `<div class="kpis kpis-rang ${plVue === 'carte' ? 'kpis-serre' : ''}">
     <button type="button" class="kpi" data-kpi="int"><b>${L.length}</b><span>${L.length > 1 ? 'interventions' : 'intervention'}${plVue === 'carte' ? '' : ' sur la période'}</span></button>
     <button type="button" class="kpi" data-kpi="plan"><b style="color:var(--orange)">${INTS.filter(i=>i.st==='aplanifier').length}</b><span>à planifier</span></button>
@@ -5083,7 +5101,7 @@ function detailKpi(k){
      replanifier ou appeler, « absent » → le planning de la personne sur ses jours d'absence. La fiche reste à un clic. */
   // même population que la tuile (chiffresPlanning, par kpiPopulation) : sinon « 214 » s'ouvre sur « Rien ici »
   const { J, DANS: DANS0, ABS } = kpiPopulation(), filtre = kpiFiltre(), DANS = DANS0.slice().sort((a, b) => a.d.localeCompare(b.d) || a.h.localeCompare(b.h));
-  const seulement = filtre && ['int', 'abs', 'temps'].includes(k) ? `<div class="info petit">Seulement les personnes affichées au planning (${techsVus().length} sur ${TECHS.length}).</div>` : '';
+  const seulement = filtre && ['int', 'abs', 'temps'].includes(k) ? `<div class="info petit">Dans ce panneau : ${kpiPhrase()}.</div>` : '';
   const L = k === 'plan' ? INTS.filter(i => i.st === 'aplanifier') : k === 'retard' ? INTS.filter(i => i.st === 'retard') : DANS;
   const titre = { int:'Interventions sur la période', plan:'À planifier', retard:'En retard', abs:'Absences', temps:'Travail prévu' }[k] + (['int','temps'].includes(k) ? ' · ' + libellePeriode() : '');
   const ligne = (i, droite) => `<div class="kpi-l"><button type="button" class="kpi-l-t" data-go="inter-x-${i.id}"><b>${jlib(i.d)} · ${i.h} · ${esc(i.titre)}</b><span class="gris petit">${esc(CLIENTS[i.cli].nom)} · ${tech(i.tech).nom}${i.demande ? ' · <b style="color:var(--bleu)">demande client</b>' : ''}</span></button><span class="kpi-l-a">${droite}</span></div>`;
@@ -5091,7 +5109,7 @@ function detailKpi(k){
   if (k === 'abs') { corps = ABSENCES.map((a, n) => !ABS.includes(a) ? '' : `<button type="button" class="ligne-clic" data-kabs="${n}"><span style="display:flex;gap:10px;align-items:center">${avatar(tech(a.tech))}<span><b>${tech(a.tech).nom}</b><br><span class="gris petit">${a.type} · ${a.du === a.au ? 'le ' + jlong(a.du) : 'du ' + jlong(a.du) + ' au ' + jlong(a.au)} · ${(nb => nb ? nb + ' intervention' + (nb > 1 ? 's' : '') + ' à réaffecter' : 'aucune intervention à réaffecter')(INTS.filter(i => i.tech === a.tech && i.d >= a.du && i.d <= a.au && i.st !== 'annulee').length)}</span></span></span><span>Voir son planning ›</span></button>`).join('') || '<p class="gris">Personne n’est absent sur cette période.</p>';
     corps += `<button type="button" class="btn gris" data-kabsnouv="1" style="align-self:flex-start">＋ Ajouter une absence</button>`; }
   else if (k === 'temps') { const tot = DANS.reduce((s,i)=>s+i.dur,0);
-    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), ${filtre ? 'pour les personnes affichées seulement' : 'toutes personnes confondues — y compris celles « à planifier »'}. Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + (filtre ? techsVus() : TECHS).map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
+    corps = `<div class="info petit">C’est la somme des durées prévues des interventions de la période (${J.length===1?'ce jour-là':J.length+' jours'}), ${filtre ? 'pour ce qui est affiché seulement' : 'toutes personnes confondues — y compris celles « à planifier »'}. Les réunions et activités de bureau ne comptent pas. Touche une personne pour voir son planning.</div>` + (filtre ? techsVus() : TECHS).map(t => { const L2 = DANS.filter(i => i.tech === t.id), mn = L2.reduce((s,i)=>s+i.dur,0); return `<button type="button" class="ligne-clic" data-kseul="${t.id}"><span style="display:flex;gap:10px;align-items:center">${avatar(t)}<span>${t.nom}<br><span class="gris petit">${L2.length} intervention${L2.length>1?'s':''}${t.id && J.some(d => aOuvre(d)) ? ' · sur ' + duree(J.filter(d => aOuvre(d)).length * 420) + ' de contrat' : ''}</span></span></span><b>${duree(mn)} ›</b></button>`; }).join('') + `<div class="ligne" style="font-size:17px"><b>Total</b><b>${duree(tot)}</b></div>`; }
   else if (k === 'plan') { aide = '<div class="info petit">« Placer au planning » ouvre le jour prévu : la carte clignote dans la colonne « Non assigné », ' + (tactile() ? 'appui long dessus, puis glisse-la' : 'glisse-la') + ' sur un technicien. Le titre ouvre la fiche.</div>';
     corps = L.map(i => ligne(i, i.demande ? `<button type="button" class="btn petit" data-dem="${i.id}">Valider la demande</button>` : `<button type="button" class="btn petit" data-kplacer="${i.id}">Placer au planning</button>`)).join('') || '<p class="gris">Rien à planifier.</p>'; }
   else if (k === 'retard') { aide = '<div class="info petit">Replanifier ouvre le planning sur la carte, pour la déplacer. Appelle le technicien pour savoir où il en est. Le titre ouvre la fiche.</div>';
@@ -26716,16 +26734,20 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
 @media (max-width:760px){
   html[data-app] .tete-tel > div:has(> .mode-seg){display:none}
   html[data-app] .tete-tel .logo{flex:1;min-width:0}
-  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
-  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;min-width:0;justify-content:center}
+  /* Planning, en-tête (restes, tour 3, 17/11) : côte à côte tant que les DEUX libellés tiennent sur une ligne, sinon l'un sous l'autre, chacun
+     sur toute la largeur — jamais deux lignes dans un bouton, jamais un mot qui touche le bord. Une rangée qui passe à la ligne décide seule
+     (flex-wrap), sans seuil écrit en pixels : « min-width:max-content » (la largeur du texte, white-space:nowrap) décide du passage à la ligne — un
+     simple « min-width:auto » vaut 0 ici, le bouton ayant un « overflow » ; « flex:1 1 0 » garde deux moitiés égales quand ça tient. Avant : une grille à deux colonnes, qui forçait
+     « ＋ Nouvelle intervention » dans une demi-largeur trop étroite (le texte dépassait à 360 px, puis passait sur deux lignes). */
+  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){display:flex;flex-wrap:wrap;gap:8px;width:100%}
+  html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{flex:1 1 0;min-width:max-content;min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;justify-content:center}
   .cpsys-barre{gap:8px!important;padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important;flex-wrap:nowrap!important}
   .cpsys-barre b{display:none!important}
   .cpsys-barre button{min-height:44px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
 }
 @media (max-width:400px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{padding:0 8px;font-size:13.5px} }   /* 360 px : « ＋ Nouvelle intervention » dépassait la pastille de 5 px, et son dernier « n » (blanc) se perdait sur le fond clair ; 390 px : le texte touchait les deux bords */
-@media (max-width:380px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{white-space:normal;line-height:1.15;text-align:center} }   /* 360 px : même à 13,5 px le texte (158 px) ne tient pas dans une demi-largeur (144 px) ; il passe sur deux lignes dans la pastille plutôt que de la déborder */
-@media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
+@media (max-width:380px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{padding:0 7px;font-size:13px} }   /* 360 px : à 13,5 px les deux libellés mesurent 5 px de trop pour une ligne (328 px de large) ; à 13 px ils tiennent côte à côte, 7 px de marge de chaque côté du texte. Plus étroit, la rangée passe d'elle-même à la ligne (un bouton sous l'autre) */
 </style>`);
 
 /* le même écran de chargement, en plus court, entre deux écrans (vérification du lien, connexion) */
