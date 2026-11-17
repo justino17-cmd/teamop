@@ -211,3 +211,15 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       (c'est celle de la vraie application et d'une facture) : rien à changer, à dire à Justin dans la liste des doutes.
       · Les défauts technicien-11 à 14 de la relecture (dont « Je l'ai pris » qui dit « Envoyé au bureau » sans réseau) n'étaient
       pas dans la liste lue par le correcteur (il en a lu 10 sur 14) : à corriger au tour « restes » s'ils sont encore là.
+
+- [ ] **Espace client — décisions du chef du 17/11, 12 h 10 (client)** : · **client-14** : UNE seule navigation par appareil pour les cinq
+      destinations du client (Accueil, Factures, Interventions, Devis, Contrat). Au téléphone : la barre du bas, et plus d'onglets répétés
+      dans la page. À l'ordinateur : les onglets de la page, et le menu de gauche ne répète pas les cinq entrées. Les mêmes mots et le même
+      ordre partout. · **client-15** : le client voit l'entreprise, pas le logiciel : en haut, le logo ou les initiales de l'entreprise et son
+      nom UNE fois (plus de carré « OP », plus de nom répété juste dessous). · **client-11** : la phrase du paiement reste (c'est un
+      prototype : aucun argent ne bouge) mais elle vouvoie et se lit simplement : « Démonstration : aucun paiement réel. Dans l'application,
+      le paiement se fait sur la page sécurisée de la banque. » · **client-19** : les deux devis presque pareils du client de démonstration
+      n'en font plus qu'un. · Les casses du recontrôle se corrigent : plus AUCUN message tutoyé ni de bureau pour le client (les trois écrans
+      du métier 3D compris : la garde du rôle passe avant) ; « Demander un contrat » laisse une trace visible côté client (« Demande envoyée
+      le … ») et ne crée pas une seconde tâche si on redemande ; un mot très long ne sort pas de sa carte ; « CTR-2026-011 » ne se coupe pas ;
+      pour une entreprise cliente, on salue la personne (« Bonjour Mme … ») ou « Bonjour, » — jamais « Bonjour Syndic Foncia ».
