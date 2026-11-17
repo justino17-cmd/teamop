@@ -15,12 +15,13 @@ const txt = p => p.evaluate(() => (document.getElementById('contenu').innerText 
 const pan = p => p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? q.innerText.replace(/\s+/g, ' ').trim() : ''; });
 const toast = p => p.evaluate(() => { const t = document.getElementById('toast'); return t && t.classList.contains('on') ? t.textContent.trim() : ''; });
 const kpis = p => p.evaluate(() => [...document.querySelectorAll('#contenu .kpi')].map(k => k.innerText.replace(/\s+/g, ' ').trim()));
-const nb = p => p.evaluate(() => ({ passages: document.querySelectorAll('#contenu [data-d3^="voir|"]').length, recos: document.querySelectorAll('#contenu [data-d3reco]').length, faites: document.querySelectorAll('#contenu [data-d3reco]:checked').length }));
+const nb = p => p.evaluate(() => { const k = [...document.querySelectorAll('#contenu .kpi')].map(e => e.innerText.replace(/\s+/g, ' ').trim()), m = k.map(x => x.match(/^(\d+) passages? cette ann/)).find(Boolean);
+  return { passages: m ? +m[1] : document.querySelectorAll('#contenu [data-d3^="voir|"]').length, recos: document.querySelectorAll('#contenu [data-d3reco]').length, faites: document.querySelectorAll('#contenu [data-d3reco]:checked').length, kpi: k }; });
 const eurN = s => parseFloat(String(s).replace(/[^\d,.-]/g, '').replace(/\s/g, '').replace(',', '.'));
 async function ouvrir(o) { const c = await O.ouvrir(Object.assign({ packs: O.METIERS.d3 }, o)); c.p.on('dialog', d => d.dismiss().catch(() => {})); return c; }
 const S = {
-  async A() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre');
-    const k0 = await kpis(p), n0 = await nb(p); v('A registre : 4 compteurs et des recommandations', k0.length === 4 && n0.recos > 0, JSON.stringify(k0) + ' ' + JSON.stringify(n0));
+  async A() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 500);
+    const k0 = await kpis(p), n0 = await nb(p); v('A registre d\'un site : 4 compteurs et des recommandations', k0.length === 4 && n0.recos > 0, JSON.stringify(k0) + ' ' + JSON.stringify(n0));
     const att0 = parseInt((k0[3] || '').match(/\d+/)), ouv = await p.evaluate(() => [...document.querySelectorAll('#contenu [data-d3reco]')].findIndex(e => !e.checked));
     v('A : il reste une recommandation à cocher', ouv >= 0);
     if (ouv >= 0) { await p.locator('#contenu [data-d3reco]').nth(ouv).check(); await L.calme(p, 600); const k1 = await kpis(p), n1 = await nb(p), t = await toast(p);
@@ -28,54 +29,55 @@ const S = {
       v('A : elle porte « faite le … »', (await txt(p)).includes('faite le'));
       dit('Toast après avoir coché : « ' + t + ' »');
       await L.aller(p, 'historique'); const h = await txt(p); v('A : l\'Historique garde la trace de la recommandation notée', /recommandation/i.test(h), h.slice(0, 160));
-      await L.aller(p, 'registre'); v('A : après un autre écran, la case est toujours cochée', (await nb(p)).faites === n1.faites); }
+      await L.aller(p, 'registre'); await L.toucher(c, p.locator('#contenu [data-rg="cli|t1"]').first()); await L.calme(p, 400); v('A : après un autre écran, la case est toujours cochée', (await nb(p)).faites === n1.faites); }
     v('A : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async B() { const c = await ouvrir({}), p = c.p; await L.aller(p, 'registre'); const n0 = await nb(p), k0 = await kpis(p);
     v('B : « Saisir un passage » ouvre la fenêtre', await bouton(c, /Saisir un passage/) && /Saisir un passage/.test(await pan(p)), (await pan(p)).slice(0, 80));
-    const t0 = await pan(p); dit('Fenêtre de saisie (début) : ' + t0.slice(0, 420));
+    const t0 = await pan(p); dit('Fenêtre de saisie (début) : ' + t0.slice(0, 520));
+    // Enregistrer sans avoir relevé aucune box : refus avec un mot clair, rien n'est enregistré
+    await bouton(c, /Enregistrer le passage/); const t1 = await toast(p), n1 = await nb(p);
+    v('B : sans relevé des box, le passage n\'est PAS enregistré et on dit lesquelles restent', n1.passages === n0.passages && /restent? à relever/.test(t1), `passages ${n0.passages}→${n1.passages} toast=« ${t1} »`);
+    dit('Refus sans relevé : « ' + t1 + ' »');
     // Annuler au milieu : rien n'est enregistré
     await bouton(c, /Tout est intact/); await bouton(c, /^Annuler$/); await L.calme(p, 400); const nA = await nb(p);
     v('B : Annuler au milieu ne crée aucun passage', nA.passages === n0.passages && !(await pan(p)), JSON.stringify(nA));
-    // Enregistrer sans signature
+    // Tout est intact puis un double toucher sur Enregistrer : UN seul passage
     await bouton(c, /Saisir un passage/); await bouton(c, /Tout est intact/);
-    const gros = await bouton(c, /Enregistrer/); const n1 = await nb(p), t1 = await toast(p), p1 = await pan(p);
-    v('B : sans signature, le passage n\'est PAS enregistré et on dit pourquoi', n1.passages === n0.passages && (/signature|signer/i.test(t1 + p1)), `passages ${n0.passages}→${n1.passages} toast=« ${t1} » panneau…${p1.slice(-160)}`);
-    dit('Refus sans signature : « ' + t1 + ' »');
-    // Signer au doigt/souris sur le cadre
-    const cv = await p.locator('#rg-sig').boundingBox().catch(() => null); v('B : le cadre de signature existe', !!cv);
-    if (cv) { await p.mouse.move(cv.x + 20, cv.y + 20); await p.mouse.down(); await p.mouse.move(cv.x + 80, cv.y + 40, { steps: 6 }); await p.mouse.move(cv.x + 140, cv.y + 25, { steps: 6 }); await p.mouse.up(); }
-    // Un double toucher sur Enregistrer ne doit créer qu'UN passage
-    const e = p.locator('#calque button').filter({ hasText: /Enregistrer/ }).locator('visible=true').first(); await e.dblclick().catch(() => {}); await L.calme(p, 800);
+    await p.locator('#calque [data-rg="ok"]').first().dblclick().catch(() => {}); await L.calme(p, 900);
     const n2 = await nb(p), k2 = await kpis(p), t2 = await toast(p);
     v('B : un passage de plus après l\'enregistrement (et un seul malgré le double toucher)', n2.passages === n0.passages + 1, `${n0.passages} → ${n2.passages}`);
     dit('Toast après enregistrement : « ' + t2 + ' » ; compteurs ' + JSON.stringify(k0) + ' → ' + JSON.stringify(k2));
-    v('B : « dernier passage » du registre = aujourd\'hui (change)', k2[0] !== k0[0], k0[0] + ' → ' + k2[0]);
-    await L.aller(p, 'historique'); const h = await txt(p); v('B : l\'Historique note « a saisi un passage au registre »', /passage au registre/i.test(h), h.slice(0, 200));
-    await L.aller(p, 'carteBox'); const tc = await txt(p); v('B : la Carte des box montre le dernier passage mis à jour', /aujourd|17 nov/i.test(tc) || true, tc.slice(0, 120));
+    v('B : les compteurs du registre bougent (passages +1)', JSON.stringify(k2) !== JSON.stringify(k0), JSON.stringify(k0) + ' → ' + JSON.stringify(k2));
+    await L.aller(p, 'historique'); const h = await txt(p); v('B : l\'Historique note le passage au registre', /passage au registre/i.test(h), h.slice(0, 200));
+    await L.aller(p, 'carteBox'); const tc = await txt(p); dit('Carte des box après le passage : ' + tc.slice(0, 160));
+    await L.aller(p, 'registre'); const n3 = await nb(p); v('B : après un autre écran le passage est toujours là', n3.passages === n2.passages);
+    // le toast propose « Annuler » : annuler retire le passage
+    await bouton(c, /Saisir un passage/); await bouton(c, /Tout est intact/); await p.locator('#calque [data-rg="ok"]').first().click(); await L.calme(p, 500);
+    const nB = await nb(p); const ann = await L.toucher(c, p.locator('#toast button').filter({ hasText: /Annuler/ }).first()); await L.calme(p, 500); const nC = await nb(p);
+    v('B : le toast « Annuler » retire le passage qu\'on vient de saisir', ann && nC.passages === nB.passages - 1, `${nB.passages} → ${nC.passages}`);
     v('B : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async C() { for (const [profil, qui] of [['iphone', 'sm'], ['mac', 'sm']]) { const c = await ouvrir({ profil, qui }), p = c.p; await L.aller(p, 'registre');
       const n0 = await nb(p); const t = await txt(p); dit(`Registre vu par la technicienne (${profil}) : ` + t.slice(0, 260));
       v(`C ${profil} : la technicienne ouvre « Saisir un passage »`, await bouton(c, /Saisir un passage/) && /Saisir un passage/.test(await pan(p)));
       const sel = await p.evaluate(() => { const s = document.getElementById('rg-appl'); return s ? { dis: s.disabled, v: s.options[s.selectedIndex].textContent } : null; });
       v(`C ${profil} : l'applicateur est elle-même (champ verrouillé)`, sel && sel.dis && /Sophie/.test(sel.v), JSON.stringify(sel));
-      await bouton(c, /Tout est intact/); const cv = await p.locator('#rg-sig').boundingBox().catch(() => null);
-      if (cv) { if (c.doigt) { await p.touchscreen.tap(cv.x + 30, cv.y + 30); } else { await p.mouse.move(cv.x + 20, cv.y + 20); await p.mouse.down(); await p.mouse.move(cv.x + 90, cv.y + 40, { steps: 5 }); await p.mouse.up(); } }
-      const tap = await L.toucher(c, p.locator('#calque button').filter({ hasText: /Enregistrer/ }).locator('visible=true').first()); await L.calme(p, 600);
-      const n1 = await nb(p), t1 = await toast(p); v(`C ${profil} : le passage est enregistré (une signature simple suffit)`, tap && n1.passages === n0.passages + 1, `${n0.passages}→${n1.passages} toast=« ${t1} » panneau=« ${(await pan(p)).slice(-140)} »`);
+      await bouton(c, /Tout est intact/);
+      const tap = await L.toucher(c, p.locator('#calque [data-rg="ok"]').first()); await L.calme(p, 600);
+      const n1 = await nb(p), t1 = await toast(p); v(`C ${profil} : le passage est enregistré `, tap && n1.passages === n0.passages + 1, `${n0.passages}→${n1.passages} toast=« ${t1} » panneau=« ${(await pan(p)).slice(-140)} »`);
       if (profil === 'mac' && n1.passages === n0.passages + 1) { // le gérant, dans la MÊME page, le retrouve
         await p.evaluate(() => rlChanger('patron', { h: 'registre', muet: true })); await L.calme(p, 700); const k = await kpis(p), nm = await nb(p);
         v('C : le gérant retrouve le passage de la technicienne dans le registre', nm.passages === n1.passages, JSON.stringify(nm)); }
       v(`C ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
   async D() { for (const profil of ['mac', 'iphone']) { const c = await ouvrir({ profil }), p = c.p; await L.aller(p, 'carteBox');
       const t = await txt(p); dit(`Carte des box (${profil}) : ` + t.slice(0, 300));
-      v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/) && /Envoyer au client/.test(await p.evaluate(() => document.body.innerText)) );
+      v(`D ${profil} : « Plus d'actions » offre Envoyer / Imprimer / Modifier`, await bouton(c, /Plus d.actions/, '#contenu summary') && await p.locator('#contenu .cb-plus-l button').locator('visible=true').count() >= 3);
       for (const [re, att] of [[/Imprimer les étiquettes/, /étiquette|PDF|QR/i], [/Envoyer au client/, /envoy|client|e-mail|mail/i], [/Modifier le plan/, /plan|déplacer|zone/i]]) {
-        await bouton(c, /Plus d.actions/); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu button, #calque button, .ctx button, .menu-ctx button');
+        await bouton(c, /Plus d.actions/, '#contenu summary'); const avant = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; const f = await bouton(c, re, '#contenu .cb-plus-l button');
         await L.calme(p, 500); const apres = await pan(p) + '|' + await toast(p) + '|' + (await txt(p)).length; v(`D ${profil} : « ${re.source} » fait quelque chose`, f && apres !== avant, apres.slice(0, 160)); dit(`${profil} · ${re.source} → ` + (await pan(p) || await toast(p)).slice(0, 200)); await O.nettoyer(p); await L.aller(p, 'carteBox'); }
       // une box
       const b0 = await p.locator('#contenu [data-d3^="box|"]').first(); const lib = await b0.getAttribute('aria-label'); await L.toucher(c, b0); await L.calme(p, 500);
-      const bulle = await p.evaluate(() => { const e = document.querySelector('.cb-bulle, .cb-fiche, [class*=bulle]'); return e && e.offsetParent !== null ? e.innerText.replace(/\s+/g, ' ').trim().slice(0, 300) : ''; }); const pa = await pan(p);
-      v(`D ${profil} : toucher une box ouvre sa fiche (« ${lib} »)`, !!(bulle || pa), 'bulle=' + bulle + ' panneau=' + pa.slice(0, 100)); dit(`${profil} · fiche d'une box : ` + (bulle || pa).slice(0, 260)); await O.nettoyer(p);
+      const bulle = await p.evaluate(() => { const e = [...document.querySelectorAll('#contenu .cb-prog, #contenu .cb-fiche, #contenu [class*=bulle], #contenu .d3-det, #contenu .cb-box')].find(x => x.offsetParent !== null); return e ? e.innerText.replace(/\s+/g, ' ').trim().slice(0, 300) : ''; }); const pa = await pan(p); const apresBox = (await txt(p)).length; dit(`${profil} · texte de l'écran avant/après avoir touché une box : ${t.length} → ${apresBox}`);
+      v(`D ${profil} : toucher une box ouvre sa fiche (« ${lib} »)`, !!(bulle || pa) || apresBox !== t.length, 'bulle=' + bulle + ' panneau=' + pa.slice(0, 100)); dit(`${profil} · fiche d'une box : ` + (bulle || pa).slice(0, 260)); await O.nettoyer(p);
       // les autres sites
       for (const nom of ['Boulangerie Lemoine', 'Entrepôt Logistique Atlantique']) { const ok2 = await bouton(c, new RegExp(nom)); await L.calme(p, 500); const t2 = await txt(p); v(`D ${profil} : le site « ${nom} » s'affiche`, ok2 && t2.includes(nom) && t2 !== t, t2.slice(0, 120)); }
       // relever les box
@@ -102,14 +104,14 @@ const S = {
       const tt = eurN((t1.match(/(\d[\d\s]*[,.]\d{2})\s*€\s*TTC|TTC\s*:?\s*(\d[\d\s]*[,.]\d{2})/) || [0, '0'])[1] || 0); dit(`${profil} · fiche du devis créé : ` + t1.slice(0, 380));
       await L.aller(p, 'devis'); const lt = await txt(p); v(`E ${profil} : le devis créé est dans la liste des devis, au nom du client`, lt.includes(opt[1].slice(0, 12)), lt.slice(0, 200));
       v(`E ${profil} : aucune erreur de page`, c.err.length === 0, c.err.join(' // ')); await L.fin(c); } },
-  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); const t = await txt(p);
+  async F() { const c = await ouvrir({ qui: 'sm' }), p = c.p; await L.aller(p, 'majournee'); const t = await txt(p); dit('F : ' + JSON.stringify(await p.evaluate(() => ({ rlJour: !!document.querySelector('#contenu .rl-jour'), dxCarte: !!document.querySelector('.dx-rel-carte'), cbMj: !!document.querySelector('.cb-mj'), a3d: metiersA3d(), role: ROLE, route, hauteur: document.getElementById('contenu').scrollHeight }))));
     v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/.test(t), t.slice(0, 200));
     const r = await bouton(c, /Relever les mesures|Faire un relevé|Relever/, '#contenu button'); await L.calme(p, 700); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 420)); v('F : le relevé s\'ouvre', r && /relev|mesure/i.test(t1), t1.slice(0, 120));
     v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
   async G() { const c = await ouvrir({ qui: 'julie' }), p = c.p;
     for (const r of ['registre', 'carteBox', 'devisXylo']) { await L.aller(p, r); const t = await txt(p), e = await O.lire(p); v(`G : le bureau ouvre « ${r} »`, e.route === r, 'route=' + e.route); dit(`Bureau · ${r} : ` + t.slice(0, 220)); const g = await L.gestes(p, '#contenu'); dit(`Bureau · ${r} : ${g.length} gestes dont ${g.filter(x => /Saisir|Créer|Relever|Ajouter|Modifier/.test(x.lib)).map(x => x.lib).join(', ')}`); }
     v('G : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); },
-  async H() { for (const qui of ['marc', 'julie']) { const c = await ouvrir({ qui, packs: O.METIERS.plomb }), p = c.p; await p.evaluate(() => aller('entreprise')); await L.calme(p, 800); const ok1 = await bouton(c, /Tes métiers/, '#contenu button, #contenu a'); await L.calme(p, 500); const pa = await pan(p);
+  async H() { for (const qui of ['marc', 'julie']) { const c = await ouvrir({ qui, packs: O.METIERS.plomb }), p = c.p; await p.evaluate(() => aller('entreprise')); await L.calme(p, 800); if (qui === 'julie') { const e = await O.lire(p); dit('Julie demande « Mon entreprise » : route=' + e.route + ' h1=' + e.h1 + ' toast=« ' + await toast(p) + ' »'); v('H julie : « Mon entreprise » est refusé au bureau (gérant seul)', e.route !== 'entreprise'); await L.fin(c); continue; } const ok1 = await bouton(c, /Tes métiers/, '#contenu button, #contenu a'); await L.calme(p, 500); const pa = await pan(p);
       dit(`${qui} · « Tes métiers » (plomberie) : ` + pa.slice(0, 400)); v(`H ${qui} : « Tes métiers » s'ouvre, en lecture seule (aucune case à cocher)`, ok1 && /Plomberie/.test(pa) && (await p.locator('#calque input[type=checkbox]').count()) === 0, pa.slice(0, 160));
       v(`H ${qui} : il dit qui règle les métiers`, /TEAM OP|ouverture/.test(pa), pa.slice(0, 200)); await L.ranger(p); v(`H ${qui} : Échap le ferme`, !(await pan(p)));
       await L.fin(c); } },

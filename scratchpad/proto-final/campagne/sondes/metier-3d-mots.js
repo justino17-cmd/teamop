@@ -7,12 +7,20 @@
 // relevé porte l'écran, la fenêtre et 90 caractères de contexte, et on classe à la main « texte » ou « donnée d'exemple ».
 const fs = require('fs'), O = require('./metier-3d-outils.js'), L = O.L;
 const JEUX = (process.argv[2] || 'plomberie').split(';').map(x => x.split(',')), profil = process.argv[3] || 'mac', qui = process.argv[4] || 'marc', seules = process.argv[5] ? process.argv[5].split(',') : null;
-const trouver = (txt, re) => { const r = [], g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'); let m; while ((m = g.exec(txt))) { r.push({ mot: m[0], ctx: txt.slice(Math.max(0, m.index - 45), m.index + m[0].length + 45) }); if (r.length > 12) break; } return r; };
+const trouver = (txt, re, estD) => { const r = [], g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'); let m; while ((m = g.exec(txt))) { r.push({ mot: m[0], ctx: txt.slice(Math.max(0, m.index - 45), m.index + m[0].length + 45), donnee: estD ? estD(txt, m.index, m[0]) : false }); if (r.length > 40) break; } return r; };
 (async () => { for (const packs of JEUX) {
   const avecClim = packs.includes('climatisation'), avec3d = packs.includes('3d');
   const c = await O.ouvrir({ profil, qui, packs }), p = c.p, rel = [], vus = new Set(); let ecrans = 0, boutons = 0, touches = 0;
+  // le corpus des données d'exemple : toutes les chaînes des tables de démonstration, en minuscules sans accents
+  const corpus = await p.evaluate(() => { const bruts = []; const marcher = (o, d) => { if (d > 5 || o == null) return; if (typeof o === 'string') { if (o.length > 4) bruts.push(o); return; } if (typeof o !== 'object') return; for (const k of Object.keys(o).slice(0, 400)) marcher(o[k], d + 1); };
+    ['INTS', 'CLIENTS', 'TACHES', 'PRODUITS', 'MES_FOURN', 'FOURN_DIR', 'JOURNAL', 'DEVIS_REG', 'CONTRATS', 'COMMANDES', 'EQUIPE', 'ABSENCES', 'ACHATS', 'DEMANDES_ACHAT', 'BOXES', 'STOCK', 'VEHICULES', 'MESSAGES', 'NOTES'].forEach(n => { try { marcher(eval(n), 0); } catch (e) {} });
+    return bruts.map(x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ')); });
+  const joint = corpus.join(' ¦ ');
+  const norm = x => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+  // un relevé est une DONNÉE si le mot, avec son voisin de gauche ou de droite, se lit tel quel dans une table de démonstration
+  const estDonnee = (txt, i, mot) => { const g = txt.slice(0, i).match(/(\S+)\s*$/), d = txt.slice(i + mot.length).match(/^\s*(\S+)/); const f = [g && norm(g[1] + ' ' + mot), d && norm(mot + ' ' + d[1])].filter(Boolean); return f.some(x => joint.includes(x)); };
   const lire = async (ou) => { const e = await O.lire(p); const t = [e.texte, ...e.champs.map(x => 'CHAMP[' + x.ph + '|' + x.v + ']')].join(' ¦ ');
-    const hits = [...trouver(t, /prototype|pour l.essai|dans ce prototype|Exemple pour|clients fictifs|données? fictives?|\bfictif/i).map(h => ({ ...h, famille: 'échafaudage' })), ...(avecClim ? [] : trouver(t, O.MOTS_CLIM).map(h => ({ ...h, famille: 'clim' }))), ...(avec3d ? [] : trouver(t, O.MOTS_3D).map(h => ({ ...h, famille: '3d' })))];
+    const hits = [...trouver(t, /prototype|pour l.essai|dans ce prototype|Exemple pour|clients fictifs|données? fictives?|\bfictif/i).map(h => ({ ...h, famille: 'échafaudage' })), ...(avecClim ? [] : trouver(t, O.MOTS_CLIM, estDonnee).map(h => ({ ...h, famille: 'clim' }))), ...(avec3d ? [] : trouver(t, O.MOTS_3D, estDonnee).map(h => ({ ...h, famille: '3d' })))];
     for (const h of hits) { const cle = ou + '|' + h.famille + '|' + h.ctx; if (vus.has(cle)) continue; vus.add(cle); rel.push({ ou, ...h }); }
     return e; };
   const routes = (await p.evaluate(() => CATS.flatMap(([g, l]) => l.map(x => x[0])))).filter(r => !seules || seules.includes(r));
@@ -30,7 +38,7 @@ const trouver = (txt, re) => { const r = [], g = new RegExp(re.source, re.flags.
   }
   console.log(JSON.stringify({ packs, profil, ecrans, boutonsCreation: boutons, touches, erreurs: c.err.length }));
   fs.writeFileSync(O.CAP + 'mots-' + packs.join('+') + '-' + profil + '.json', JSON.stringify(rel, null, 1));
-  const par = {}; rel.forEach(h => { (par[h.ou.split(' ▸ ')[0]] = par[h.ou.split(' ▸ ')[0]] || []).push(h); });
+  const par = {}; console.log('relevés : ' + rel.filter(h => h.donnee).length + ' dans des données d\'exemple (écartés), ' + rel.filter(h => !h.donnee).length + ' dans des TEXTES'); rel.filter(h => !h.donnee).forEach(h => { (par[h.ou.split(' ▸ ')[0]] = par[h.ou.split(' ▸ ')[0]] || []).push(h); });
   for (const [k, v] of Object.entries(par)) { console.log('## ' + k + ' (' + v.length + ')'); v.slice(0, 8).forEach(h => console.log('   [' + h.famille + '] ' + h.ou.replace(k, '').replace(' ▸ ', '▸') + ' : …' + h.ctx.replace(/\s+/g, ' ') + '…')); }
   await L.fin(c); }
   await L.fermer();

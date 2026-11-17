@@ -10,10 +10,11 @@ let ok = 0, ko = 0; const v = (nom, cond, det) => { if (cond) ok++; else { ko++;
   const cles = await p.evaluate(() => Object.keys(PACKS)); v('population : 24 métiers', cles.length === 24, cles.length);
   for (const k of cles) {
     await O.poser(p, [k]);
-    const d = await p.evaluate(() => { const fam = metiersFamille(), cm = metiersClesModeles(), mods = metiersModeles().map(([cl, M]) => ({ cl, nom: M.nom, presta: M.presta, controles: M.controles || null, releves: M.releves || null, compte: M.compte || '' }));
-      return { nom: PACKS[PACKS_ENT[0]].nom, fam, cm, mods, types: TYPES.slice(), titres: Object.assign({}, TITRES), motifs: Object.assign({}, MOTIFS), dv: DV_MODELES.map(m => m[0] + ' : ' + m[1].map(l => l[0]).join(' / ')), ctr: metiersCtr(cm[0] || fam), cats: PACKS[PACKS_ENT[0]].cats.map(x => x.n), groupe3d: CATS.some(g => g[0] === GROUPE_3D) }; });
+    const d = await p.evaluate(() => { const fam = metiersFamille(), cm = metiersClesModeles(), mods = metiersModeles().map(([cl, M]) => ({ cl, nom: M.nom, presta: M.presta, controles: CONTROLES[cl] || null, releves: RELEVES[cl] || null, compte: MOT_COMPTE[cl] || '' }));
+      return { nom: PACKS[PACKS_ENT[0]].nom, fam, cm, mods, types: TYPES.slice(), titres: Object.fromEntries(Object.entries(TITRES).filter(([t]) => TYPES.includes(t))), motifs: Object.fromEntries(Object.entries(MOTIFS).filter(([t]) => TYPES.includes(t))), dv: DV_MODELES.map(m => m[0] + ' : ' + m[1].map(l => l[0]).join(' / ')), ctr: metiersCtr(cm[0] || fam), cats: PACKS[PACKS_ENT[0]].cats.map(x => x.n), groupe3d: CATS.some(g => g[0] === GROUPE_3D) }; });
     tout[k] = d;
     const texte = JSON.stringify({ t: d.types, ti: d.titres, mo: d.motifs, dv: d.dv, mods: d.mods, ctr: d.ctr });
+    // la fiche d'une intervention du métier : ses contrôles et ses relevés sont ce que le technicien coche et mesure sur place
     const clim = k === 'climatisation' || k === 'froid' ? [] : [...texte.matchAll(new RegExp(O.MOTS_CLIM.source, 'gi'))].map(m => texte.slice(Math.max(0, m.index - 40), m.index + m[0].length + 30));
     const d3 = k === '3d' ? [] : [...texte.matchAll(new RegExp(O.MOTS_3D.source, 'gi'))].map(m => texte.slice(Math.max(0, m.index - 40), m.index + m[0].length + 30));
     v(`${k} : aucun mot de climatisation dans ses types, titres, motifs, modèles de devis et de contrat`, clim.length === 0, [...new Set(clim)].slice(0, 3).join(' ¦ '));
@@ -21,8 +22,9 @@ let ok = 0, ko = 0; const v = (nom, cond, det) => { if (cond) ok++; else { ko++;
     v(`${k} : le groupe 3D du menu ${k === '3d' ? 'est là' : 'n\'est pas là'}`, d.groupe3d === (k === '3d'));
     v(`${k} : au moins un modèle de devis (DV_MODELES) et un type d'intervention`, d.dv.length >= 3 && d.types.length >= 4, d.dv.length + ' modèles, ' + d.types.length + ' types');
     v(`${k} : au moins un modèle de contrat`, d.mods.length >= 1, 'clés de modèle : ' + JSON.stringify(d.cm));
-    if (d.mods.length) v(`${k} : le modèle de contrat porte ses contrôles et ses relevés`, d.mods.every(m => m.controles && m.controles.length && m.releves && m.releves.length) || d.mods.every(m => m.cl in { clim:1, nett:1, nuis:1, plomb:1 }), d.mods.map(m => m.cl + (m.controles ? '' : ' sans contrôles') + (m.releves ? '' : ' sans relevés')).join(', '));
-    v(`${k} : « Mise en service » présent seulement pour clim, chauffage, plomberie`, d.types.includes('Mise en service') === ['climatisation', 'chauffage', 'plomberie'].includes(k) || ['froid'].includes(k), d.types.join(', '));
+    if (d.mods.length) v(`${k} : le modèle de contrat porte ses contrôles, ses relevés et son « compte rendu »`, d.mods.every(m => m.controles && m.controles.length && m.releves && m.releves.length && m.compte), d.mods.map(m => m.cl + (m.controles ? '' : ' sans contrôles') + (m.releves ? '' : ' sans relevés') + (m.compte ? '' : ' sans compte rendu')).join(', '));
+    v(`${k} : « Mise en service » présent seulement pour clim, chauffage, plomberie (et 3D, qui l'appelle « première mise en place »)`, d.types.includes('Mise en service') === ['climatisation', 'chauffage', 'plomberie', '3d'].includes(k), d.types.join(', '));
+    v(`${k} : « Traitement du bois » seulement avec le métier 3D`, d.types.includes('Traitement du bois') === (k === '3d'), d.types.join(', '));
   }
   // un métier sans modèle de contrat propre : à dire (c'est le modèle général)
   const sansModele = cles.filter(k => tout[k].mods.length && !['clim', 'nett', 'nuis', 'plomb'].includes(tout[k].cm[0]) && !/·/.test(tout[k].mods[0].nom));
