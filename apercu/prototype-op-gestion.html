@@ -2345,7 +2345,9 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .tk .tk-mode{background:rgba(0,0,0,.6);color:#fff;padding:2px 6px;border-radius:4px;align-self:flex-start}
 .preuve-aj{cursor:pointer;white-space:nowrap;font-size:14px}
 .fin3{align-items:stretch!important}
+.crea-aide .lien{display:inline;min-height:0;font-size:inherit}   /* un lien au milieu d'une phrase reste dans la phrase : à 44 px de haut il coupait la ligne avant et après lui */
 .fin-c{display:flex;flex-direction:column;gap:10px;min-height:250px}
+@media (max-width:1100px){.fin-c{min-height:0}}   /* une seule colonne : les trois cartes ne s'égalisent plus, une garantie n'a pas à garder 160 px de vide sous sa phrase */
 .fin-t{display:flex;justify-content:space-between;align-items:center;gap:10px}.fin-t h3{margin:0}
 .fin-p{margin:0;flex:1}
 .fin-a{display:flex;flex-direction:column;gap:6px;margin-top:auto}
@@ -13693,7 +13695,7 @@ function rendreCreation_(){
     <div class="crea-outils"><div class="seg" role="group" aria-label="Afficher" style="width:auto">${[['jour','Un jour · toute l’équipe'],['semaine','Une personne · sa semaine']].map(([v,l]) => `<button type="button" data-cvue="${v}" aria-pressed="${CREA.vue===v}">${l}</button>`).join('')}</div>
       ${CREA.vue === 'jour' ? `<div class="puces">${jours.map(d => `<button type="button" class="puce-c" data-cjour="${d}" aria-pressed="${CREA.jour===d}">${jlib(d)}</button>`).join('')}</div>` : `<div class="puces">${TECHS.filter(t=>t.id).map(t => `<button type="button" class="puce-c" data-ctech="${t.id}" aria-pressed="${CREA.techSem===t.id}">${avatar(t,'p')}${t.nom.split(' ')[0]}</button>`).join('')}</div>`}
       ${sect && CREA.vue === 'jour' ? `<label class="case" style="border:0;min-height:44px"><input type="checkbox" data-csect="1" ${CREA.secteurSeul?'checked':''}>Seulement les techniciens du secteur ${sect}</label>` : CREA.vue === 'jour' && !CREA.nouveau && CREA.cli && CLIENTS[CREA.cli] ? `<span class="gris petit">Ce client est hors des secteurs de l’entreprise : tous les techniciens sont proposés.</span>` : ''}</div>
-    <div class="gris petit" style="margin:6px 0 10px">Les cases « Disponible » sont les trous du planning, entre ${hm(PARAMS.debut)} et ${hm(PARAMS.fin)} (tes horaires, dans ${entLien('Mon entreprise')}). Touche l’heure où commencer : la nouvelle intervention se pose là. Ensuite tu peux la déplacer (${tactile() ? 'appui long, puis glisse' : 'glisse-la'}), ou tirer son bas pour la durée.</div>
+    <div class="gris petit crea-aide" style="margin:6px 0 10px">Les cases « Disponible » sont les trous du planning, entre ${hm(PARAMS.debut)} et ${hm(PARAMS.fin)} (tes horaires, dans ${entLien('Mon entreprise')}). Touche l’heure où commencer : la nouvelle intervention se pose là. Ensuite tu peux la déplacer (${tactile() ? 'appui long, puis glisse' : 'glisse-la'}), ou tirer son bas pour la durée.</div>
     ${planningCrea()}
     <div class="actions" style="margin-top:10px"><button type="button" class="btn gris petit" data-action="cPlusTot">Le premier créneau libre</button><button type="button" class="btn gris petit" data-action="cPlusTard">Plus tard · « à planifier »</button></div>
     ${CREA.plusTard ? '<div class="info petit" style="margin-top:8px">Elle va dans la ligne <b>« Non assigné »</b> du planning, et dans le chiffre <b>« à planifier »</b> en haut du planning. Le jour où tu la poses, tu la déplaces sur un technicien.</div>' : ''}</section>`;
