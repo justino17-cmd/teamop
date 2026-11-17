@@ -22,7 +22,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
     v('P1 la place est comptée : « 7 / 8 »', /7 \/ 8/.test(ap.places), ap.places);
     v('P1 « 1 invitation en attente »', ap.inv === '1', ap.inv);
     v('P1 après l’envoi, une fenêtre dit que l’invitation est partie ET donne le mot de passe provisoire à remettre en main propre', /invitation est partie/i.test(fen) && /Mot de passe provisoire/i.test(fen), fen.slice(0, 300));
-    v('P1-02 la fenêtre ne se contredit pas : le formulaire dit « personne d’autre ne le connaît », la fenêtre donne un mot de passe à remettre en main propre', !(/personne d’autre ne le connaît/.test(await (async () => { await L.toucher(c, '[data-eq="inviter"]'); const t = await E.texte(p, '#calque'); await E.ranger(c); return t; })()) && /remets ce mot de passe/i.test(fen)), 'deux consignes contraires pour la même personne');
+    v('equipe-03 la fenêtre ne se contredit pas : le formulaire dit « personne d’autre ne le connaît », la fenêtre donne un mot de passe à remettre en main propre', !(/personne d’autre ne le connaît/.test(await (async () => { await L.toucher(c, '[data-eq="inviter"]'); const t = await E.texte(p, '#calque'); await E.ranger(c); return t; })()) && /remets ce mot de passe/i.test(fen)), 'deux consignes contraires pour la même personne');
     await L.toucher(c, '[data-eq="filtre|invites"]'); v('P1 le filtre « Invités » montre exactement elle', JSON.stringify(await nomsListe(c)) === JSON.stringify(['Camille Dupont']), await nomsListe(c));
     await L.toucher(c, '[data-eq="filtre|terrain"]'); v('P1 « Terrain » : elle y est (case terrain cochée par défaut)', (await nomsListe(c)).includes('Camille Dupont'), await nomsListe(c));
     await L.toucher(c, '[data-eq="filtre|tous"]');
@@ -43,7 +43,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
     await remplir(c, { 'eq-p':'Rémi', 'eq-n':'Poulain', 'eq-m':'pas-une-adresse' }); await L.toucher(c, '[data-eq="inviterok"]'); const t2 = await E.toast(p);
     const inline = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? [...q.querySelectorAll('.erreur,[role=alert],#eq-homo,.champ .faible')].map(e => e.textContent.trim()).filter(Boolean) : []; });
     v('P2 e-mail faux : refusé avec un message clair', /adresse e-mail valide/.test(t2), t2);
-    v('P2-01 e-mail faux : le message est AUSSI écrit sous le champ (un clavier de téléphone cache le toast)', inline.some(x => /e-mail|adresse/i.test(x)), { inline, toast:t2 });
+    v('equipe-04 e-mail faux : le message est AUSSI écrit sous le champ (un clavier de téléphone cache le toast)', inline.some(x => /e-mail|adresse/i.test(x)), { inline, toast:t2 });
     await remplir(c, { 'eq-p':'Julie', 'eq-n':'Petit', 'eq-m':'x@y.fr' }); await L.toucher(c, '[data-eq="inviterok"]');
     const homo = await p.evaluate(() => (document.getElementById('eq-homo') || {}).textContent || ''); v('P2 homonyme : « existe déjà », avec l’astuce de l’initiale, écrit dans la fenêtre', /existe déjà/.test(homo) && /initiale/.test(homo), homo);
     const nb = await p.evaluate(() => EQUIPE.filter(q => q.prenom === 'Julie').length); v('P2 aucun doublon créé', nb === 1, nb);
@@ -73,7 +73,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
     const d = await p.evaluate(() => ({ nom:eqNom(eqDe('julie')), tel:eqDe('julie').tel, hnom:typeof H_NOM === 'function' ? H_NOM('julie') : null }));
     v('P5 enregistré : la donnée change', d.nom === 'Julie Petit-Moreau' && d.tel === '06 99 88 77 66', d);
     await L.aller(p, 'equipe'); v('P5 la liste montre le nouveau nom', (await nomsListe(c)).includes('Julie Petit-Moreau'), await nomsListe(c));
-    v('P5-01 le nom partout ailleurs (H_NOM : planning, tâches, pointage, historique) suit la fiche', d.hnom === 'Julie Petit-Moreau', { hnom:d.hnom, fiche:d.nom });
+    v('equipe-02 le nom partout ailleurs (H_NOM : planning, tâches, pointage, historique) suit la fiche', d.hnom === 'Julie Petit-Moreau', { hnom:d.hnom, fiche:d.nom });
     await L.aller(p, 'pointage'); await L.calme(p, 600); const tpt = await E.texte(p, '#contenu'); v('P5-04 Temps de travail écrit le NOUVEAU nom de Julie (pas « Julie Petit » seul)', /Petit-Moreau/.test(tpt) || !/Julie Petit(?!-)/.test(tpt), (tpt.match(/Julie[^,.;]{0,16}/g) || []).slice(0, 3));
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eqx="modifier|sm"]'); await p.fill('#eqx-mn', 'Martin-Garcia'); await L.toucher(c, '[data-eqx="modifok|sm"]'); await L.calme(p, 600);
     const s2 = await p.evaluate(() => ({ hnom:H_NOM('sm'), tech:(TECHS.find(t => t.id === 'sm') || {}).nom, fiche:eqNom(eqDe('sm')) }));
@@ -101,13 +101,13 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eq="habajout|sm"]');
     await L.toucher(c, '#calque [data-eq="habok|sm"]'); const t0 = await E.toast(p); v('P6b nom vide : refusé, message clair', /nom de l’habilitation/.test(t0) && (await nb()) === n0, t0);
     await p.fill('#eq-hn', 'Habilitation électrique BR'); await L.toucher(c, '#calque [data-eq="habok|sm"]'); await L.calme(p, 500);
-    v('P6b-01 une habilitation de MÊME nom déjà valable est refusée ou fusionnée (pas deux lignes identiques)', (await nb()) === n0, { avant:n0, apres:await nb() });
+    v('equipe-05 une habilitation de MÊME nom déjà valable est refusée ou fusionnée (pas deux lignes identiques)', (await nb()) === n0, { avant:n0, apres:await nb() });
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eq="habajout|sm"]'); await p.fill('#eq-hn', 'Formation absurde'); await p.fill('#eqx-hn', '2020-01-01'); await L.toucher(c, '#calque [data-eq="habok|sm"]'); await L.calme(p, 500);
     const h = await p.evaluate(() => { const x = eqDe('sm').habil.find(o => o[0] === 'Formation absurde'); return x ? x[1] : 'absente'; });
-    v('P6b-02 une fin de validité AVANT la date d’obtention (2020 < aujourd’hui) est refusée ou signalée', h === 'absente' || /Expir|avant|passée|antérieure/i.test(await E.toast(p)), { fin:h, toast:await E.toast(p) });
+    v('equipe-06 une fin de validité AVANT la date d’obtention (2020 < aujourd’hui) est refusée ou signalée', h === 'absente' || /Expir|avant|passée|antérieure/i.test(await E.toast(p)), { fin:h, toast:await E.toast(p) });
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eq="habajout|sm"]'); await p.fill('#eq-hn', 'Sans date remplie'); await p.fill('#eqx-hn', ''); await L.toucher(c, '#calque [data-eq="habok|sm"]'); await L.calme(p, 500);
     const h2 = await p.evaluate(() => { const x = eqDe('sm').habil.find(o => o[0] === 'Sans date remplie'); return x ? x[1] : 'absente'; });
-    v('P6b-03 une date de fin LAISSÉE VIDE sans cocher « Sans date de fin » : on demande (pas de « sans date de fin » posé en silence)', h2 === 'absente' || h2 !== null, { fin:h2 });
+    v('equipe-07 une date de fin LAISSÉE VIDE sans cocher « Sans date de fin » : on demande (pas de « sans date de fin » posé en silence)', h2 === 'absente' || h2 !== null, { fin:h2 });
   });
   // ── P7 · désactiver puis réactiver
   await jouer(c, 'P7 désactiver', async () => {
