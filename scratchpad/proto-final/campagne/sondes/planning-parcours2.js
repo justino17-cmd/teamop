@@ -34,6 +34,7 @@ parcours('P9 · la vue « Sur mesure » : choisir les jours, les personnes, le r
   L.v('P9 · la croix retire la date lointaine', await c.p.evaluate(d => !multiJours.includes(d), lointaine), '');
   await c.p.keyboard.press('Escape'); await L.calme(c.p, 300);
   L.v('P9 · Échap referme la fenêtre des dates (planning-03)', await c.p.evaluate(() => !document.querySelector('.pm-pop')), '');
+  L.v('P9 · Échap rend le focus au bouton « Quels jours ? » qui avait ouvert la fenêtre', await c.p.evaluate(() => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.mpop === 'dates'), await c.p.evaluate(() => document.activeElement && document.activeElement.outerHTML.slice(0, 80)));
   if (await c.p.evaluate(() => !!document.querySelector('.pm-pop'))) await L.toucher(c, '[data-mpop="dates"]');
   // personnes
   await L.toucher(c, '[data-mpop="qui"]'); await L.capture(c, CAP + `P9-qui-${profil}${nuit ? '-nuit' : ''}.png`);

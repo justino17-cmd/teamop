@@ -20,6 +20,7 @@ const ESSAIS = [
   ['campagne', { cles: ['coque', 'accueil', 'planning', 'taches-absences', 'interventions', 'clients', 'contrats', 'compta-ventes', 'compta-reste', 'technicien', 'client', 'metier-3d', 'devis-atelier', 'mail', 'achats', 'materiel', 'vehicules-temps', 'equipe'], arbre: '/home/user/wt-x' }],
   ['final-rejeu', { familles: ['atelier', 'mail'], arbre: '/home/user/wt-x' }],
   ['final-regard', { role: 'gerant', rubriques: ['Accueil', 'Planning'], arbre: '/home/user/wt-x' }],
+  ['restes', { noms: ['taches-absences', 'planning'], arbre: '/home/user/wt-x' }],
   ['final-parcours', { arbre: '/home/user/wt-x' }], ['final-mots', { arbre: '/home/user/wt-x' }], ['final-rapport', { arbre: '/home/user/wt-x' }],
 ];
 const seule = process.argv[2];
@@ -50,6 +51,9 @@ const seule = process.argv[2];
   if (!seule) {
     const vus = []; await fn({ voie: 'mail', depuis: 2, jusqua: 3 }, async (t, o) => { vus.push(o.label); return 'x'; }, () => {});
     if (vus.length !== 2 || !/^mail:3:/.test(vus[0]) || !/^mail:4:/.test(vus[1])) { ko++; console.log('✗ reprise { depuis:2, jusqua:3 } :', vus.join(' | ')); } else console.log('✓ reprise { depuis:2, jusqua:3 } : 2 étapes,', vus.join(' | '));
+    // Un arbre passé en argument remplace celui de la voie (deux tranches d'une même voie côte à côte).
+    let vu = ''; await fn({ voie: 'securite', depuis: 2, jusqua: 2, arbre: '/home/user/wt-autre' }, async (t2, o) => { vu = t2; return 'x'; }, () => {});
+    if (!vu.includes('Ton arbre de travail git : /home/user/wt-autre') || vu.includes('/home/user/wt-securite')) { ko++; console.log('✗ arbre en argument : la consigne ne porte pas le bon arbre'); } else console.log('✓ arbre en argument : la consigne porte /home/user/wt-autre et plus /home/user/wt-securite');
     let jete = false; try { await fn({ voie: 'inconnue' }, async () => 'x', () => {}); } catch (e) { jete = true; }
     if (!jete) { ko++; console.log('✗ une voie inconnue ne jette pas'); } else console.log('✓ une voie inconnue jette');
   }
