@@ -4,6 +4,7 @@
 // B · la phrase d'état suit le véhicule (en règle, contrôle dans 12 jours, en retard, souci, garage + remplaçant, hors service, papiers manquants) — la MÊME source que la liste du gérant ;
 // C · « Ma journée » : UNE ligne « Mon camion » (plus de carte « Mon véhicule », plus de doublon), elle dit l'état ET ce qu'il faut remettre à bord, et ouvre l'écran Camion ;
 // D · les gestes comptés au toucher depuis la barre du bas : un plein (3, sans défiler), le compteur (3), un souci (4) — et ce qu'ils ÉCRIVENT ;
+// F · les autres techniciens (Karim, Tom, Léa) : leur camion à eux ;
 // E · mise en page : aucun débordement latéral, cibles ≥ 44 px, plein visible sans défiler sur 390 × 844, valeurs longues ; zéro erreur JavaScript.
 // PROFILS=iphone,mac NUIT=0,1 (jour ET nuit) SEULS=A,B pour restreindre. ⛔ 127.0.0.1 seulement, un navigateur à la fois. Sort en 1 si un contrôle tombe.
 const L = require('../lib.js'), v = L.v;
@@ -135,6 +136,16 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       v(nom + ' · …et la phrase d\'état garde sa place (jamais écrasée)', e2.phrase.length > 60 && !(await L.doigts(c.p, '#contenu')).ecrases.length, e2.phrase);
       if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · zéro erreur JavaScript (mise en page)', c.err.length === 0, c.err.slice(0, 3));
       await L.fin(c);
+    }
+
+    if (on('F')) {   // les autres techniciens : leur camion à eux (Karim : contrôle dans 12 jours ; Tom : au garage ; Léa : en règle) — un rôle qui change les écrans est une POPULATION
+      for (const [qui, veh, attendu] of [['kb', 'veh2', /^Le contrôle technique est dans 12 jours\. Le bureau s’en occupe\.$/], ['tl', 'veh4', /^Ton camion est au garage jusqu’au/], ['lr', 'veh3', /^Tout est en règle\.$/]]) {
+        const c = await ouvrirSm(profil, nuit, qui); await L.aller(c.p, 'moncamion');
+        const r = await ev(c, id => ({ sur:(document.querySelector('#contenu .mc-tete .surtitre') || {}).textContent, phrase:((document.querySelector('#contenu .mc-etat') || {}).textContent || '').trim(), boutons:[...document.querySelectorAll('#mc-vehicule .vh-cam-b')].map(b => b.dataset.vx), plaque:vehDe(id).plaque }), veh);
+        v(nom + ' · ' + qui + ' : SON camion (' + r.plaque + ') en surtitre, la phrase d\'état qui lui correspond (« ' + r.phrase + ' »)', (r.sur || '').includes(r.plaque) && attendu.test(r.phrase), r);
+        v(nom + ' · ' + qui + ' : les trois boutons visent SON véhicule (' + veh + ')', r.boutons.length === 3 && r.boutons.every(b => b.endsWith('|' + veh)), r.boutons);
+        const d = await L.deborde(c); v(nom + ' · ' + qui + ' : aucun débordement latéral', d.bouge === 0 && d.seconde <= d.largeur, d);
+        if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · ' + qui + ' : zéro erreur JavaScript', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c); }
     }
   }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);

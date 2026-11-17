@@ -25,7 +25,7 @@ const QUI = { tech:'sm' };
     const fin = await c.p.evaluate(k => ({ perdus:IMM.perdus.filter(x => x.startsWith(k + ' :') || x.startsWith('jouer')), toutes:IMM.perdus.slice(0, 6) }), cle);
     v('« ' + cle + ' » · la visite ne se bloque pas sur une étape (aucune étape ne reste plus de 45 s)', !bloque, { dernier, ecran:ecran.slice(-3) });
     v('« ' + cle + ' » · la visite joue sans perdre un sélecteur (aucun « clic » ni « champ » introuvable)', fin.perdus.length === 0, fin);
-    v('« ' + cle + ' » · la visite avance : plusieurs étapes vues (' + ecran.length + ')', ecran.length >= Math.min(8, info.n - 1), ecran);
+    v('« ' + cle + ' » · la visite avance : plusieurs étapes vues (' + ecran.length + ')', ecran.length >= Math.ceil((info.n - 1) / 2), ecran);   // l'immersion rapide saute vite : le relevé (toutes les 0,9 s) en rate quelques-unes, la moitié suffit pour dire qu'elle avance
     const dit = [...vues].join(' | '); v('« ' + cle + ' » · ce que la visite DIT n\'emploie plus les anciens mots', !VIEUX.test(dit), (dit.match(VIEUX) || [])[0]);
     v('« ' + cle + ' » · zéro erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
