@@ -3600,9 +3600,14 @@ table.l th.n{text-align:right}
   /* ce qu'on verse à un organisme : le montant et la date passent sous le nom (il lui restait 60 px) */
   .paie-org{flex-wrap:wrap}.paie-org>span:first-child{flex:1 1 100%}   /* réservé à cet écran : les autres .paie-sem gardent le libellé à gauche et la valeur à droite */
 }
-/* sous 340 px, l'aperçu d'un document écrit la quantité après la désignation et referme sa colonne (la désignation tenait dans 88 px) */
+/* L'aperçu d'un document se mesure sur SA largeur, pas sur celle de l'écran (la fenêtre d'un téléphone fait 358 px de large, l'aperçu 326 : « Qté » et 155,00 € se coupaient en deux lignes
+   alors que l'écran dépassait le seuil de 340 px). Un montant ne se coupe jamais — « 155,0 / 0 € » est un document laid que le client reçoit — : cellules chiffrées insécables, et dès que le
+   document est étroit la quantité passe derrière la désignation (« × 3 ») et sa colonne se referme. */
 .p-q{display:none}
-@media (max-width:340px){.pdf:where(:not(.doc-fixe)) table :is(th,td).p-qc{font-size:0;padding-inline:0;width:0}.pdf:where(:not(.doc-fixe)) table .p-q{display:inline;white-space:nowrap}.pdf:where(:not(.doc-fixe)) table{font-size:11px}}
+.pdf:where(:not(.doc-fixe)){container:pdf/inline-size}
+.pdf table :is(td,th)[style*="text-align:right"],.pdf table .p-qc{white-space:nowrap}
+.pdf table :is(td,th)[style*="text-align:right"]{padding-left:12px}   /* sans ça, « 3 » (la quantité) et « 3 703,50 € » se lisent « 3 3 703,50 € » */
+@container pdf (max-width:440px){.pdf table :is(th,td).p-qc{font-size:0;padding-inline:0;width:0}.pdf table .p-q{display:inline;white-space:nowrap}.pdf table{font-size:11px}.pdf table th[style*="text-align:right"]{white-space:normal}}
 
 /* 8. Les fiches que l'audit n'ouvrait pas avant le 10 novembre (un devis n'a pas d'« id » : la route rouvrait la liste) */
 /* le champ d'un prix manquant portait le nom « manque », donc la taille (15 px), la couleur et la graisse du MESSAGE du même nom :
@@ -5563,7 +5568,7 @@ function vueFacture(id){
         ${L.map((l,k)=>`<tr><td>${esc(l.d)} <span class="l-q">×\u00a0${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td><td class="l-qc n">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(totLigne(l)):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="${modifiable?2:3}">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="${modifiable?2:3}" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?(c.type==='pro'?'taux réduit : attestation du client à conserver':'particulier, logement de plus de 2 ans, attestation signée'):f.tva===5.5?'travaux d’économie d’énergie':c.type==='pro'?'client professionnel':'taux normal : logement neuf ou de moins de 2 ans'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
-        <tr><td colspan="${modifiable?2:3}" class="ttc-l">Total TTC</td><td class="n ttc-m">${eur(ht*(1+f.tva/100))}</td></tr>${f.recu?`<tr><td colspan="${modifiable?2:3}" style="font-weight:500">Déjà reçu</td><td class="n">− ${eur(f.recu)}</td></tr>${f.st==='annulee'?`<tr><td colspan="${modifiable?2:3}">À rembourser au client</td><td class="n">${eur(f.recu)}</td></tr>`:`<tr><td colspan="${modifiable?2:3}">Reste à payer</td><td class="n">${eur(restant(f))}</td></tr>`}`:''}</tfoot></table>
+        <tr><td colspan="${modifiable?2:3}" class="ttc-l">Total TTC</td><td class="n ttc-m">${eur(ht*(1+f.tva/100))}</td></tr>${f.recu?`<tr><td colspan="${modifiable?2:3}" style="font-weight:500">Déjà reçu</td><td class="n">− ${eur(f.recu)}</td></tr>${f.st==='annulee'?`<tr><td colspan="${modifiable?2:3}">${rembourseFait(f) ? 'Remboursé au client' : 'À rembourser au client'}</td><td class="n">${eur(f.recu)}</td></tr>`:`<tr><td colspan="${modifiable?2:3}">Reste à payer</td><td class="n">${eur(restant(f))}</td></tr>`}`:''}</tfoot></table>
         ${modifiable?'<button type="button" class="lien" data-action="ligneAjout" data-id="'+id+'">＋ Ajouter une ligne</button>':''}</div>
       <div class="carte"><h3>${f.st === 'avoir' ? 'Facture d’origine' : 'Joint à la facture'}</h3>${i ? `<div class="ligne"><span><b>${esc(i.titre)}</b><br><span class="gris petit">${jlong(i.d)} · sur place ${fiche(i.id).debut} – ${fiche(i.id).fin} · ${tech(i.tech).nom}</span></span><button type="button" class="lien" data-go="inter-x-${i.id}">Ouvrir</button></div>
         <div class="ligne"><span>📄 Compte rendu de l’intervention (PDF)<br><span class="gris petit">${fiche(i.id).photos.length} photo(s) · ${fiche(i.id).absent?'client absent':'signé par '+esc(fiche(i.id).signeNom)}</span></span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>` : (f.st === 'avoir' ? (o => o ? '<div class="ligne"><span>Avoir sur la facture <b>' + o.num + '</b></span><button type="button" class="lien" data-go="facture-x-' + o.id + '">Ouvrir</button></div>' : '<span class="gris">Avoir sans facture d’origine retrouvée.</span>')(FACTURES.find(o => o.st !== 'avoir' && f.objet === 'Avoir sur ' + o.num)) : (d => d ? '<div class="ligne"><span>Facture tirée du devis <b>' + esc(d.num) + '</b> · ' + (d.facAcompte === f.id ? 'acompte' : 'solde') + '</span><button type="button" class="lien" data-go="devis-x-' + dvCle(d) + '">Ouvrir le devis</button></div>' : (k => k ? '<div class="ligne"><span>Facture tirée du contrat <b>' + esc(k.num) + '</b> · ' + esc(k.titre) + '</span><button type="button" class="lien" data-go="contrat-x-' + k.id + '">Ouvrir le contrat</button></div>' : '<span class="gris">Facture faite à la main, sans intervention.</span>')(CONTRATS.find(x => 'fc-' + x.id === f.id)))(dvInit().find(x => x.facAcompte === f.id || x.facSolde === f.id)))}</div>
@@ -5580,8 +5585,13 @@ function vueFacture(id){
       ${f.st === 'payee' ? `<div class="carte"><h3>Paiement</h3><div class="ligne"><span>Payée le ${f.paye}</span><b>${f.mode}</b></div>${(av => av ? `<div class="ligne"><span>Un avoir existe : <b>${av.num}</b></span><button type="button" class="lien" data-go="facture-x-${av.id}">Ouvrir</button></div>` : `<button type="button" class="lien" data-action="avoir" data-id="${id}">Faire un avoir (remboursement, erreur)</button>`)(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))}</div>` : ''}
     </div></div>`;
 }
+/* Le remboursement d'une facture annulée n'a qu'un cycle de vie : la tâche « Rembourser » (clé remb-<id>), terminée par la personne. Une fois faite, la fiche, la ligne du bas, le cadre de la
+   Comptabilité et la fenêtre de l'avoir le disent d'une seule voix — avant, ils affirmaient jusqu'au bout « À rembourser 500,00 € » pour une somme déjà rendue. */
+function rembourseFait(f){ const t = TACHES.find(x => x.cle === 'remb-' + f.id); return !!(t && t.fait); }
 function etapes(f){
   const E = [['Préparée toute seule', true, f.int ? 'à la fin de l’intervention' : ''], ['Validée et envoyée', f.st !== 'avalider', f.emise !== '—' ? 'le ' + f.emise : ''], ['Ouverte par le client', (f.vue !== false || ['payee','partielle'].includes(f.st)) && ['envoyee','retard','payee','partielle'].includes(f.st), f.st !== 'avalider' ? 'le ' + (f.emise === '—' ? '31/10' : f.emise) : ''], ['Payée', f.st === 'payee', f.paye ? 'le ' + f.paye + ' · ' + f.mode : f.st === 'partielle' ? 'en partie' : '']];
+  /* une facture annulée n'attend plus ni ouverture ni paiement : deux ronds vides qui ne viendront jamais mentent sur ce qui reste à faire */
+  if (f.st === 'annulee') E.splice(2, 2, ['Annulée par un avoir', true, '']);
   return `<div class="etapes">${(f.st === 'avoir' ? E.slice(0, 2) : E).map(e=>`<div class="etape ${e[1]?'ok':''}"><span class="pt"></span><span><b>${e[0]}</b>${e[2]&&e[1]?`<br><span class="faible mini">${e[2]}</span>`:''}</span></div>`).join('')}</div>${f.st==='retard'?`<div class="alerte" style="margin-top:10px">Échéance du ${f.ech} dépassée${f.relances?' · relancée '+f.relances+' fois':''}</div>`:''}`;
 }
 function pdfFacture(f){
@@ -22755,7 +22765,7 @@ addEventListener('message', ev => {
 function opLiaDonnees(){
   const nom = k => (CLIENTS[k] || {}).nom, typ = k => (CLIENTS[k] || {}).type;
   return { prochain:numSuiv,
-    factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
+    factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), rembourse:f.st === 'annulee' && rembourseFait(f), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
     enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
