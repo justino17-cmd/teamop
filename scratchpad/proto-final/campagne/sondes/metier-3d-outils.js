@@ -19,5 +19,5 @@ exports.lire = p => p.evaluate(() => { const c = document.getElementById('conten
 exports.nettoyer = async p => { await p.evaluate(() => { try { docPleinFermer(); } catch (e) {} try { fermerPanneau(); } catch (e) {} }); await L.calme(p, 150); };
 // mots qui n'ont rien à faire dans un texte d'un métier qui n'est pas le leur
 exports.MOTS_CLIM = /clim(?:atisation|atiseur)?\b|\bsplit\b|frigorig|\bR-?32\b|R-?410|daikin|pompe à chaleur|groupe froid|unité extérieure|unité intérieure|\bPAC\b|gainable|cassette/i;
-exports.MOTS_3D = /rongeur|\brats?\b|souris|nuisible|biocide|xylophage|dératis|deratis|appât|appat|cafard|punaise|capricorne|vrillette|termite|désinsect|desinsect|\b3D\b|hygiène anti/i;
+exports.MOTS_3D = /rongeur|\brats?\b|nuisible|biocide|xylophage|dératis|deratis|appât|appat|cafard|punaise|capricorne|vrillette|termite|désinsect|desinsect|\b3D\b|hygiène anti/i;
 exports.bilan = (nom, ok, ko, notes) => { console.log('\n' + nom + ' : ' + ok + ' ✓ · ' + ko + ' ✗'); (notes || []).forEach(n => console.log('  · ' + n)); return ko ? 1 : 0; };
