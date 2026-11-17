@@ -333,6 +333,8 @@ Justin, 17 novembre, vers 21 h, une SECONDE fois : « il faut aussi passer OP ME
 version d'ESSAI d'OP MESSAGES (données fictives), oui, sur l'atelier ; la version aux VRAIS comptes, non tant qu'il ne l'a pas
 décidé en connaissance de cause (porte d'exécution sur ce serveur, Allemagne, pages légales à mettre à jour) — à lui faire
 TRANCHER à la reprise, sans le redire une troisième fois : s'il confirme, c'est sa décision.
+✅ TRANCHÉ par Justin le soir même : « non, que la version bêta ». Donc : la BÊTA d'OP MESSAGES sur l'atelier (données
+d'essai) ; la vraie version reste sur un serveur de production, à choisir sur la mesure.
 **Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
 && uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
 
