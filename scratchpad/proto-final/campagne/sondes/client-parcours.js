@@ -94,7 +94,7 @@ const texte = (p, sel) => p.evaluate(s => { const e = document.querySelector(s);
   await signer(c, '#signe-ctr'); const av3 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length }));
   await p.evaluate(() => { document.querySelector('[data-action="signerContrat"]').click(); }); await L.calme(p, 500); d = await O.dessus(p);
   console.log('   message au premier toucher :', d.toast, '| hash', d.hash);
-  v('P3 · un toucher sur « Signer le contrat » : le message confirme la signature et la copie par e-mail', /Contrat signé/.test(d.toast) && /e-mail/.test(d.toast), d.toast);
+  v('P3 · client-03 · un toucher sur « Signer le contrat » : le message confirme la signature et la copie par e-mail', /Contrat signé/.test(d.toast) && /e-mail/.test(d.toast), d.toast);
   // un second toucher (double toucher un peu tardif, retour du navigateur) sur le bouton encore là
   await p.evaluate(() => { const b = document.querySelector('[data-action="signerContrat"]'); if (b) b.click(); }); await L.calme(p, 500); d = await O.dessus(p);
   const ap3 = await ev(p, () => ({ nInt: INTS.length, nFac: FACTURES.length, k: CONTRATS.find(x => x.cli === 'cm' && x.st === 'signe') }));
