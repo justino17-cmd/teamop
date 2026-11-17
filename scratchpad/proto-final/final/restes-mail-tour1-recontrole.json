@@ -62,10 +62,10 @@
   { "fichier": "sondes/mail-roles.js", "resultat": "15 ✓ · 0 ✗" },
   { "fichier": "sondes/mail-recontrole-ordi.js", "resultat": "88 ✓ · 0 ✗" },
   { "fichier": "sondes/mail-recontrole-parcours.js", "resultat": "24 ✓ · 0 ✗" },
-  { "fichier": "sondes/restes-mail-tour1-recontrole.js (NOUVELLE, adverse)", "resultat": "PARTIE=1 : 20 ✓ · 4 ✗ (pastille) ; 2 : 20 ✓ · 0 ✗ (population 11 lignes, informations de lignes entières) ; 3 : 16 ✓ · 2 ✗ (rotation) ; 4 : 4 ✓ · 0 ✗ ; 5 : 13 ✓ · 1 ✗ (bulle sous la fenêtre de la Comptabilité) ; 6 : 5 ✓ · 3 ✗ (deux bulles). Les 10 ✗ sont les 4 casses : la sonde reste rouge jusqu'à leur correction" },
-  { "fichier": "sondes/restes-mail-mutations.py", "resultat": "voir bilan_mutations" }
+  { "fichier": "sondes/restes-mail-tour1-recontrole.js (NOUVELLE, adverse)", "resultat": "PARTIE=1 : 16 ✓ · 4 ✗ (pastille) ; 2 : 20 ✓ · 0 ✗ (population 11 lignes, informations de lignes entières) ; 3 : 16 ✓ · 2 ✗ (rotation) ; 4 : 4 ✓ · 0 ✗ ; 5 : 13 ✓ · 1 ✗ (bulle sous la fenêtre de la Comptabilité) ; 6 : 5 ✓ · 3 ✗ (deux bulles). Les 10 ✗ sont les 4 casses : la sonde reste rouge jusqu'à leur correction" },
+  { "fichier": "sondes/restes-mail-mutations.py", "resultat": "6 mutations jouées, 6 mordent, 0 muette (R1 à R5 dont R3b ; dépôt propre après)" }
  ],
- "bilan_mutations": "à compléter",
+ "bilan_mutations": "restes-mail-mutations.py : 6 jouées sur copie, 6 mordent, 0 muette ; git status apercu/ propre. Les corrections « regles » tiennent donc leurs gardes ; ce sont les angles non gardés (pastille sur téléphone, rotation, bulle sous la Comptabilité, sens inverse des bulles) que la nouvelle sonde ajoute",
  "doutes": [
   "Safari, Windows et Android réels, clavier virtuel, polices du système : non vérifiables ici (profils émulés dans Chromium)",
   "Glisser pour archiver / supprimer, mot sous les icônes, « Écrire » en double au téléphone, secrétaire de gestion et Boîte mail : décisions de Justin déjà listées par le tour 1, rien de nouveau",
