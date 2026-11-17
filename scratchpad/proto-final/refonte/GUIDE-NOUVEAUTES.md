@@ -86,4 +86,9 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 
 `scratchpad/proto-final/sondes/guide-voir.js` (chaque « Voir »), `guide-mots.js` (mots, promesses, ancien → nouveau, la recherche), `guide-fermer.js` (fermetures, une seule ouverture, jamais par-dessus,
 mémoire de page, pas de guide pour le client), `guide-mise-en-page.js` (aucun débordement à 320, 360, 390 px et ailleurs, 44 px, contraste, balayage au doigt), `guide-premiere-connexion.js`
-(la vraie connexion avec double authentification), `guide-tout.sh` (toutes, en série), `guide-mutations.js` (18 défauts remis sur des copies).
+(la vraie connexion avec double authentification), `guide-lib.js` (`lib.ouvrir({ guide:true })` le laisse paraître, les autres sondes ne le voient pas), `guide-tout.sh` (toutes, en série),
+`guide-mutations.js` (18 défauts remis sur des copies, trois processus au plus : `MUT_N=3 MUT_I=0|1|2`).
+
+Les sondes voisines qui lisaient l'ancien guide (carte « Le matériel, refait », table « Ce qui a changé de place », « Tes heures, en deux onglets ») ont été adaptées : `materiel-mots`, `materiel-voisins`,
+`materiel-voisins-captures`, `materiel-mutations` (la mutation 70 portait sur une ligne qui n'existe plus), `vehtemps-v5-voisins`, `entreprise-phrases`, `entreprise-rapide`, et la sonde de la campagne `coque-guide.js`
+(qui lance maintenant `guide-voir`, `guide-mots` et `guide-fermer`).
