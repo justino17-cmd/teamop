@@ -11322,11 +11322,13 @@ const GESTES = {
   /* stock, fournisseurs, dépôts */
   bc:{ k:'stock', s:'delai', l:'revision pieces' },
   bxl:{ k:'stock', c:'nou', m:'modok nouok prendre', s:'fermerok', l:'fiche kit' },
-  ce:{ k:'stock', c:'nouvelle add', m:'envoi modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
+  ce:{ k:'stock', c:'nouvelle add', m:'envoi envoyer modif cpok recommander retour', s:'suppr jeter', l:'brouillon bon go voirbon portail' },
   cm:{ k:'stock', m:'conf confok relok recok accepte conteste relance preparer', s:'annuler', c:'plus', l:'depl hors ancre filtre voir recep rappro' },
   fo:{ k:'stock', c:'ajouter creer', m:'localok appliquer facok commandes', s:'retirer', l:'liste plustard tarifs facture fiche local preparer tout exemple facex' },
   mat:{ k:'stock', m:'ajoute ajouter plus oublie manque pris prise toutpris envoyer modifier mchange menvoyer mplus mmoins moins chginter mchginter', s:'retire', l:'messages usage bord ret mliste mpiece mlibre mquand minter inter' },
   md:{ k:'stock', c:'nou aj dadd cmdadd', m:'deplacer dok rok dcop mettre avanttout remplir fplus dm dp dx dnon', l:'fiche avant stock plus rouvrir sortir compter tout' },
+  /* la liste des fournisseurs et des articles (fx) : des menus, des pas de quantité sur un panier, des filtres = lecture ; « Ajouter » ouvre la fiche d'un article et « Passer en comptoir » règle un fournisseur = modifier */
+  fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
   ms:{ k:'stock', m:'rok cok toutacc acc ref rmot ajouteq gajoute gmoins gplus gret grecevoir gchinter gfacture gechange genvoyer gpour cmoins cplus ctout fcmd fseuil fseuilx fseuilo fprix fprixx fprixo fchez fchange fmanque', l:'envois t habituels ou maj plus onglet filtrer pk fraz q gorig ginter cpt cgrp fusage fq fhisto' },
   msf:{ k:'stock', d:'m' }, msg:{ k:'stock', m:'ticket vers', l:'de qi collegue br texte lieu montant' }, msr:{ k:'stock', d:'m' },
   pdx:{ k:'stock', m:'decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
@@ -11402,7 +11404,7 @@ const droitCaseActive = (cat, x) => x === 'v' || !!(DROIT_CASES[cat] && DROIT_CA
 const GESTES_SP = { eq:{ inviter:'comptes', inviterok:'comptes', relancer:'comptes' }, eqx:{ placeok:'comptes' },
   ptx:{ corrige:'corrpt' }, pt:{ ajout:'corrpt', closok:'corrpt', clore:'corrpt' },   /* corriger un pointage DÉJÀ enregistré (les déclarations du salarié sur sa propre journée, « plus tôt » et « fin d'hier », restent les siennes) */
   sx:{ toutval:'valstock', refok:'valstock', expok:'valstock', eok:'valstock', dotok:'valstock' }, ms:{ toutacc:'valstock', acc:'valstock', ref:'valstock' },
-  ce:{ envoi:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
+  ce:{ envoi:'commander', envoyer:'commander' }, cm:{ conf:'commander', confok:'commander' }, ac:{ commande:'commander' } };
 const DROIT_SP_PHRASE = { comptes:'créer des comptes, dans la limite des places', corrpt:'corriger un pointage', atelier:'se servir à l’atelier sans validation', valstock:'valider les gestes de stock des autres', commander:'envoyer une commande à un fournisseur', prix:'voir les prix d’achat et les marges' };
 const DROITS_REFUS = [];
 let droitsRefusVu = 0;
