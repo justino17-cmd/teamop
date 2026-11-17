@@ -5008,7 +5008,7 @@ function vueFiche(id){
       <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
       <div class="carte"><h3>Appareils chez ce client</h3>${c.appareils.length ? '' : '<div class="gris petit">Aucun appareil enregistré pour l’instant.</div>'}${c.appareils.map(a=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
-      <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
+      <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
       <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
       ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : ça part sur la facture au prix du catalogue. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne"><span style="min-width:0;overflow-wrap:anywhere">${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center;flex:none;white-space:nowrap"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
@@ -5017,7 +5017,7 @@ function vueFiche(id){
     </div>
     <div class="col">
       <div class="carte"><h3>Les contrôles <span class="st ${n===tot?'st-v':'st-b'}">${n} sur ${tot}</span></h3>${CONTROLES[F.metier].map(([g,L])=>`<div class="groupe">${g}</div>${L.map(k=>`<label class="case"><input type="checkbox" data-ctrl="${esc(k)}" data-id="${id}" ${F.coches[k]?'checked':''}>${esc(k)}</label>`).join('')}`).join('')}</div>
-      <div class="carte"><h3>${MOT_COMPTE[F.metier]}</h3><label class="champ"><span class="faible">Ce que le client lira, en quelques phrases simples</span><textarea data-champ="compte" data-id="${id}">${esc(F.compte)}</textarea></label></div>
+      <div class="carte"><h3>${MOT_COMPTE[F.metier]}</h3><label class="champ"><span class="faible">Ce que le client lira, en quelques phrases simples</span><textarea data-champ="compte" aria-label="${MOT_COMPTE[F.metier]}" data-id="${id}">${esc(F.compte)}</textarea></label></div>
       <div class="carte"><h3>Heures sur place</h3><div class="deux-champs"><label class="champ">Arrivée<input type="time" value="${F.debut}" data-champ="debut" data-id="${id}"></label><label class="champ">Départ<input type="time" value="${F.fin}" data-champ="fin" data-id="${id}"></label></div><div class="faible mini" style="margin-top:6px">Remplies toutes seules, modifiables. Elles vont sur le compte rendu et la facture.</div></div>
       <div class="carte"><h3>Signature du client</h3>${F.absent ? `<div class="info">Le client n’était pas sur place : le compte rendu lui est envoyé par e-mail, sans signature.</div>` : `<label class="champ">Nom de la personne qui signe <span class="faible">(le contact du client : corrige si ce n’est pas lui)</span><input value="${esc(F.signeNom)}" data-champ="signeNom" data-id="${id}"></label><canvas class="signe" id="signe" width="600" height="200" aria-label="Signer ici avec le doigt ou la souris"></canvas><button type="button" class="lien" data-action="sigEfface" data-id="${id}">Effacer la signature</button>`}
         <label class="case"><input type="checkbox" data-absent="${id}" ${F.absent?'checked':''}>Client pas sur place</label></div>
@@ -8348,6 +8348,10 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if
 new MutationObserver(() => { if (mode === 'auto') appliquerMode(); }).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
 const segMode = () => `<div class="mode-seg" role="group" aria-label="Apparence">${[['jour','Jour'],['nuit','Nuit'],['auto','Auto']].map(([k,l])=>`<button type="button" data-modetheme="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div>`;
 const BASE = { clientvoit:'interventions', inter:'interventions', facture:'factures', client:'clients', contrat:'contrats', 'contrat-nouveau':'contrats', signer:'contrats' };
+/* « ‹ Retour » sans historique (lien direct, rechargement) ramène à la liste du bureau — que la personne n'a pas forcément : une technicienne y lisait « Cette page n'est pas dans ton espace »
+   (« technicien-07 »). On ne revient qu'à un écran qu'elle a le droit d'ouvrir, sinon à sa première rubrique (Ma journée pour un terrain). */
+function retourSure(r){ try { const p = typeof eqDe === 'function' && typeof ROLE !== 'undefined' && ROLE !== 'client' ? eqDe(acteur()) : null;
+  return p && typeof droitVoit === 'function' && !droitVoit(r, p) ? ouvertureDe(p) : r; } catch (e) { return r; } }
 /* la table des écrans, dressée à chaque appel (les vues sont réaffectées plus bas : on lit le dernier état) */
 function vues(){ return { accueil:vueAccueil, mesheures:vueMesHeures, espaceclient:vueEspaceClient, techfrais:vueTechFrais, majournee:vueMaJournee, devisXylo:vueDevisXylo, carteBox:vueCarteBox, registre:vueRegistre, achats:vueAchats, boiteMail:vueBoiteMail, equipe:vueEquipe, entreprise:vueEntreprise, pointage:vuePointage, vehicules:vueVehicules, boxes:vueBoxes, stock:vueStock, planning:vuePlanning, interventions:vueInterventions, inter:() => vueFiche(param), clientvoit:vueClientVoit, factures:vueFactures, facture:() => vueFacture(param), clients:vueClients, client:() => vueClient(param), contrats:vueContrats, 'contrat-nouveau':vueContratNouveau, contrat:() => vueContrat(param), signer:() => vueSigner(param), encaissements:vueEncaissements, statistiques:vueStatistiques, historique:vueHistorique, taches:vueTaches, absences:vueAbsences, comptabilite:() => cpSysteme ? vueComptaSysteme() : vueComptabilite(), produits:vueProduits, devis:() => param ? vueDevisFiche(param) : vueDevis() }; }
 /* une adresse que l'application ne connaît pas : le menu, la barre et les cases d'Équipe n'y mènent jamais */
@@ -8715,7 +8719,7 @@ document.addEventListener('click', ev => {
     const [t, id] = b.dataset.go.split('-x-'), ici = BASE[route] || route;
     if (id && PAGE_DE[t] && PAGE_DE[t] !== ici && !['accueil','planning'].includes(ici) && b.closest('#contenu,.panneau')) { apercuElement(t, id); return; }
     aller(b.dataset.go); return; }
-  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || (BASE[route] || 'accueil')); return; }
+  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || 'accueil')); return; }
   if ((b = q('[data-modetheme]'))) { mode = b.dataset.modetheme; try { localStorage.setItem(MODE_CLE, mode); } catch (e) { /* rangement plein ou refusé : le choix vaut pour cette ouverture */ } appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); return; }
   if ((b = q('[data-creer]'))) { ouvrirCreation(route === 'client' ? { cli:param } : {}); return; }
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
@@ -11735,6 +11739,10 @@ function droitsRefus(cat, x, fam, verbe){
   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
   return false;
 }
+/* les gestes qu'une personne fait sur SA PROPRE ligne, quelle que soit sa case : un salarié confirme son relevé d'heures ou signale une erreur dessus
+   (« paie » est rangée dans Comptabilité, mais confirmer SES heures n'est pas de la comptabilité — « technicien-03 » : « Je confirme mes heures » était refusé
+   à la technicienne par un message de comptable). Le second morceau de la valeur (« confirme|sm ») désigne la personne : seule la sienne passe. */
+const GESTES_SOI = { paie:['confirme', 'signalok'] };
 /* ce que la garde laisse toujours passer : naviguer, fermer, changer d'apparence, la palette, l'écran de connexion */
 const DROIT_LIBRES = '#pal,#hl-ecran,.rl-bande,#cnx,[data-ferme],[data-retour],[data-retourva],[data-pretour],[data-go],[data-modetheme],[data-nv],[data-menu],[data-tab],[data-logo]';
 const DROIT_BALISES = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL|SUMMARY)$/;
@@ -11749,6 +11757,8 @@ function droitsGeste(ev){
       let decide = false, refus = null;
       for (const a of el.attributes) { if (a.name.slice(0, 5) !== 'data-') continue; const fam = a.name.slice(5); const connue = Object.hasOwn(GESTES, fam) || fam === 'action';
         if (!connue && !(DROIT_BALISES.test(el.tagName) || el.getAttribute('role') === 'button')) continue;
+        const mots = String(a.value).split('|');
+        if (GESTES_SOI[fam] && GESTES_SOI[fam].includes(mots[0]) && mots[1] === p.k) { decide = true; continue; }
         const g = geste(fam === 'action' ? 'action' : fam, String(a.value).split('|')[0]); if (connue) decide = true;
         if (g && g.cat && !peut(g.cat, g.x, p)) { refus = [g, fam, String(a.value).split('|')[0]]; break; }
         const sp = GESTES_SP[fam] && GESTES_SP[fam][String(a.value).split('|')[0]]; if (sp && !droitSp(p, sp)) { refus = [{ cat:sp, x:'sp' }, fam, String(a.value).split('|')[0]]; break; } }
@@ -11799,11 +11809,13 @@ function droitsNote(){
   const T = ROUTE_DROIT[route][droitForme(p)] || []; const cat = T[0] && T[0].split('.')[0]; if (!cat || !droitCase(p, cat)) return;
   const actifs = ['c', 'm', 's'].filter(x => droitCaseActive(cat, x)); if (!actifs.length) return;
   const manque = actifs.filter(x => !peut(cat, x, p)); if (!manque.length) return;
+  /* la note du pied (« ton compte ne peut pas créer… ») parle d'une rubrique du bureau. Les écrans PERSONNELS d'un terrain (Ma journée, Mes heures, Mon camion, Mes congés) sont faits pour créer
+     une note de frais, une demande, une pièce qui manque : y lire qu'on ne peut pas « créer » ou « supprimer » — sans dire quoi — refuse au technicien son propre travail (« technicien-01 »). */
   const qui = esc(droitPremierAdmin());
   if (manque.length === actifs.length) {
     const h = c.querySelector('.tete') || c.querySelector('.tete-tel'); const html = `<div class="info petit droits-note" role="status">Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à ${qui}.</div>`;
     if (h) h.insertAdjacentHTML('afterend', html); else c.insertAdjacentHTML('afterbegin', html);
-  } else c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
+  } else if (droitForme(p) !== 'terrain') c.insertAdjacentHTML('beforeend', `<div class="gris petit droits-note" role="note" style="margin-top:14px">Dans cette rubrique, ton compte ne peut pas ${droitsMotsVerbes(manque.map(x => DROIT_X[x]))}. Pour changer ça, demande à ${qui}.</div>`);
 }
 /* « Mes tâches » est un outil personnel, toujours ouvert : une personne à qui rien d'autre n'est ouvert le sait */
 function droitsVide(){
@@ -12084,7 +12096,7 @@ function vueMaJournee(){
   ${rlNotifsCarte(moi)}<div class="rl-jour">${auj.map(carte).join('') || '<div class="carte gris">Rien de prévu aujourd’hui.</div>'}</div>
   <div class="grille2"><div class="col">
     <div class="carte"><h3>L’argent que tu as sur toi · ${eur(tot)}</h3>${chez.length ? chez.map(e => `<div class="ligne"><span>${esc(CLIENTS[e.cli].nom)}<br><span class="gris petit">${e.mode.toLowerCase()} · reçu le ${e.d}</span></span><b>${eur(e.ttc)}</b></div>`).join('') + `<div class="actions" style="margin-top:8px"><button type="button" class="btn gris petit" data-rl="remis">Je l’ai remis au bureau</button></div><span class="gris petit">Les espèces et les chèques sont suivis jusqu’à la banque : le bureau voit ce que tu as, et ce que tu lui as remis.</span>` : '<span class="gris petit">Rien : tout ce que tu as encaissé est remis au bureau.</span>'}</div>
-    <div class="carte"><h3>Mes dépenses${ndf.length ? ' · ' + ndf.length + ' en attente' : ''}</h3><span class="gris petit">Un plein, un repas, un péage payé de ta poche : prends le ticket en photo, c’est remboursé avec la paie.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-go="techfrais">Voir mes notes</button></div></div></div>
+    <div class="carte"><h3>Mes dépenses${ndf.length ? ' · ' + ndf.length + ' en attente' : ''}</h3><span class="gris petit">Un plein, un repas, un péage payé de ta poche : prends le ticket en photo, c’est remboursé avec la paie.</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-go="techfrais">Voir mes frais</button></div></div></div>
    <div class="col"><div class="carte"><h3>Les prochains jours</h3>${apres.map(i => `<div class="ligne"><span><b>${jcourt(i.d)} · ${i.h}</b> · ${esc(CLIENTS[i.cli].nom)}<br><span class="gris petit">${esc(i.titre)}</span></span></div>`).join('') || '<span class="gris petit">Rien de prévu.</span>'}</div></div></div>`;
 }
 function vueTechFrais(){
@@ -19603,7 +19615,7 @@ vueTechFrais = function () {
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
   const h = v0.apply(this, arguments), moi = rlQui(), D = axMesDemandes(moi), att = D.filter(d => d.etat === 'attente').length, ach = D.filter(d => d.etat === 'aacheter').length;
   const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
-  const cle = 'data-go="techfrais">Voir mes notes</button></div></div>';
+  const cle = 'data-go="techfrais">Voir mes frais</button></div></div>';
   return h.includes(cle) ? h.replace(cle, cle + carte) : h; }; })();
 
 /* ───────── la note de frais : un formulaire plus juste ───────── */
