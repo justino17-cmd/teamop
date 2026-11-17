@@ -121,16 +121,19 @@ const S = {
     v('F : « Ma journée » de la technicienne propose le relevé « Traitement du bois » (métier 3D)', /Traitement du bois/i.test(t), t.slice(0, 200));
     const r = await L.toucher(c, p.locator('#contenu [data-dxb="relever|"]').first()); await L.calme(p, 800); const t1 = await txt(p); dit('Relevé du technicien (début) : ' + t1.slice(0, 380));
     v('F : « Relever les mesures » ouvre l\'écran de relevé, sans aucun prix', r && /Relever les mesures/.test(t1) && !/€/.test(t1), t1.slice(0, 160));
+    await p.evaluate(() => { window.__t = []; const t0 = toast; toast = function (m) { window.__t.push(String(m)); return t0.apply(this, arguments); }; window.__rel0 = DX_REL.length; window.__err = []; window.addEventListener('error', e => window.__err.push(e.message)); });
     // envoyer à vide : refusé avec un mot clair
     const h0 = await p.evaluate(() => location.hash); await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"], #contenu [data-dxrb="envoyer"]').locator('visible=true').first()); await L.calme(p, 600); const tv = await toast(p), tr = await txt(p);
-    v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi', !/Relevé envoyé/.test(tr) && /client|mesure|zone/i.test(tv + tr), 'toast=« ' + tv + ' »');
+    { const tt0 = await p.evaluate(() => window.__t.join(' / ')); v('F : « Envoyer au bureau » sans client ni mesure ne part pas et dit pourquoi (message vu : « Choisis le client. »)', !/Relevé envoyé/.test(tr) && /Choisis le client/.test(tt0), 'messages=« ' + tt0 + ' »'); }
     // un vrai relevé : client, une zone de 18,5 m²
     const opt = await p.evaluate(() => [...document.querySelector('[data-dxr="cli"]').options].filter(o => o.value)[0].value); await p.selectOption('[data-dxr="cli"]', opt); await L.calme(p, 400);
     await L.toucher(c, p.locator('[data-dxrb^="zadd|"]').first()); await L.calme(p, 300); const zm = p.locator('[data-dxr^="zm|"]').first(); await zm.fill('18,5'); await zm.blur(); await L.calme(p, 500);
     dit('Résumé du relevé : ' + (await p.locator('#dxr-resume').innerText().catch(() => '')).replace(/\s+/g, ' '));
-    await L.toucher(c, p.locator('#contenu .dx-creer-carte[data-dxrb="envoyer"]').first()); await L.calme(p, 800); let t2 = await txt(p); dit('Après « Envoyer au bureau » (bouton de la carte) : toast « ' + await toast(p) + ' »');
+    await L.toucher(c, p.locator('#contenu .dx-creer-carte[data-dxrb="envoyer"]').first()); await L.calme(p, 800); let t2 = await txt(p); dit('Après « Envoyer au bureau » (bouton de la carte) : ' + JSON.stringify(await p.evaluate(() => ({ toasts: window.__t, relevesAvant: window.__rel0, relevesApres: DX_REL.length, envoye: !!(DXR && DXR.envoye), cli: DXR && DXR.cli, zones: DXR && DXR.zones.map(z => z.m), erreurs: window.__err }))));
     if (!/Relevé envoyé/.test(t2)) { await L.toucher(c, p.locator('#dx-barre [data-dxrb="envoyer"]').first()); await L.calme(p, 800); t2 = await txt(p); dit('Après « Envoyer au bureau » (barre du bas) : toast « ' + await toast(p) + ' » ¦ ' + t2.slice(0, 120)); }
-    v('F : le relevé part au bureau (« Relevé envoyé »)', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), t2.slice(0, 200));
+    const refus = await p.evaluate(() => DROITS_REFUS.slice(-2));
+    v('F [metier-3d-11] : le relevé part au bureau (« Relevé envoyé ») — la technicienne a le droit de relever', /Relevé envoyé/.test(t2) && /Envoyé au bureau/.test(t2), 'refus de droits : ' + JSON.stringify(refus) + ' ¦ ' + t2.slice(0, 120));
+    if (!/Relevé envoyé/.test(t2)) { dit('F : suite du parcours (le gérant chiffre le relevé) NON JOUÉE : le relevé n\'est pas parti [metier-3d-11] ; à rejouer après correction'); v('F : aucune erreur de page', c.err.length === 0, c.err.join(' // ')); await L.fin(c); return; }
     // le gérant le retrouve, le chiffre, en fait un devis
     await p.evaluate(() => rlChanger('patron', { h: 'devisXylo', muet: true })); await L.calme(p, 900); const t3 = await txt(p);
     v('F : le gérant voit « 1 relevé à chiffrer » sur le Devis xylophage', /1 relevé à chiffrer/.test(t3), t3.slice(0, 260));
