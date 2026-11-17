@@ -10,7 +10,7 @@ exports.TEL = ['iphone', 'android', 'petit'];
 // ouvre l'application SANS guide (lib le ferme), puis l'ouvre par sa fonction : le cas « je rouvre depuis Nouveautés »
 exports.ouvrir = async (profil, qui, nuit) => { const c = await L.ouvrir({ profil, qui, nuit }); await c.p.evaluate(() => { nvOuvrir(); }); await L.calme(c.p, 600); return c; };
 // les cartes que le guide porte : titre, écran, mot, phrase (texte brut)
-exports.pages = c => c.p.evaluate(() => NV ? NV.pages.map(p => { const d = document.createElement('div'); d.innerHTML = p.c; return { k:p.k, t:p.t, voir:p.voir, mot:p.mot, texte:d.textContent.replace(/\s+/g, ' ').trim(), lignes:[...d.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()) }; }) : []);
+exports.pages = c => c.p.evaluate(() => NV ? NV.pages.map(p => { const d = document.createElement('div'); d.innerHTML = p.c; return { k:p.k, t:p.t, voir:p.voir, mot:p.mot, texte:d.textContent.replace(/\s+/g, ' ').trim(), lignes:[...d.querySelectorAll('li')].map(li => [li.querySelector('.nv-avant'), li.querySelector('.nv-apres')].map(e => e ? e.textContent.replace(/\s+/g, ' ').trim() : '').join(' → ')) }; }) : []);
 exports.ouvert = p => p.evaluate(() => { const z = document.getElementById('nv'); return !!z && z.getBoundingClientRect().width > 0 && !z.classList.contains('part'); });
 exports.index = p => p.evaluate(() => NV ? NV.i : -1);
 // va à la carte i par le BOUTON « Suivant » (le geste d'un débutant), jamais en posant l'état
