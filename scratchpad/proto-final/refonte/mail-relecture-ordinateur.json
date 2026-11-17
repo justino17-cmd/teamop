@@ -1,0 +1,96 @@
+{
+ "lot": "mail",
+ "angle": "relire-ordinateur : profils mac, mac720 (1280×720), windows (1366×768), ipad, jour et nuit, mode application, gérant (Marc) puis Gestion (Julie), technicienne (Sophie), client",
+ "date": "2026-11-17",
+ "couvert": [
+  "liste (catégories, filtres, sous-titres, dossiers, états vides)",
+  "lecture d’un courriel reconnu (8 sujets) et bandeau",
+  "réponses rapides, r, Échap, refus d’envoi",
+  "intervention créée depuis un courriel",
+  "proposer un créneau",
+  "confier",
+  "en faire une tâche",
+  "ranger la pièce jointe",
+  "mise en page à 1280×720 / 1366×768 / 1440×900 / iPad"
+ ],
+ "defauts": [
+  {
+   "n": "ordinateur-01",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › liste › sous-titre de la liste et des catégories",
+   "role": "patron",
+   "profils": "mac (1440×900), jour",
+   "etapes": "Ouvrir Boîte mail ; relever le sous-titre sous « Boîte de réception » ; toucher tour à tour Notifications, Factures et reçus, Voyages, Promotions, Tout ; compter les lignes en gras (non lues) de chaque liste.",
+   "attendu": "Le nombre à côté du nom de la catégorie est celui des courriels non lus DE CETTE catégorie.",
+   "constate": "« Principal · 7 non lus » alors que la liste Principal n’a que 5 lignes non lues ; « Factures et reçus · 7 non lus » pour 1 non lue ; « Voyages · 7 non lus » pour 0 ; « Promotions · 7 non lus » pour 1. Le 7 est celui de toute la boîte, collé au nom d’une catégorie : on lit un mensonge, et l’encart « 2 messages non lus rangés dans d’autres catégories » juste dessous le contredit (7 − 2 = 5).",
+   "preuve": "sonde cap/relire-mail-ordinateur/a4.js : lbSub et nombre de .msg.unread relevés après chaque clic de catégorie (rejouée 2 fois, mêmes chiffres). D04 du plan n’est donc corrigé que pour « Tout » (« 7 non lus » seul, juste).",
+   "ou": "apercu/prototype-courrier.js, rendu de #lbSub (libellé = catégorie active + nombre de la boîte)",
+   "correction": "Ne mettre que le nombre de la catégorie affichée (« Principal · 5 non lus »), ou retirer le nom de la catégorie du sous-titre quand le nombre est celui de la boîte."
+  },
+  {
+   "n": "ordinateur-02",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › Brouillons, À envoyer plus tard, Avec drapeau, Archive, Corbeille, En cours, Assignés à moi, Notifications (listes vides)",
+   "role": "patron",
+   "profils": "mac, jour",
+   "etapes": "Ouvrir Boîte mail ; toucher dans la colonne de gauche Brouillons (puis À envoyer plus tard, Avec drapeau, Archive, Corbeille, En cours, Assignés à moi) ; toucher la catégorie Notifications.",
+   "attendu": "Une liste vide dit « Aucun brouillon », « Aucun message… » ; un dossier qui n’a rien à voir avec la réception (Brouillons, À envoyer plus tard) ne dépend pas de la boîte qui ne répond plus.",
+   "constate": "Les huit listes vides répondent « Réception indisponible — marc@climservices17.fr : le mot de passe est à saisir de nouveau » avec 0 ligne, et le sous-titre « réception indisponible » ; seules les listes qui ont au moins une ligne montrent la ligne PLUS le bandeau rouge. Un gérant qui regarde ses brouillons lit que sa réception est en panne ; le démonstrateur de la boîte « à reconnecter » transforme 8 dossiers sur 11 en écran d’erreur.",
+   "preuve": "sonde a4.js : pour chacun des 8 dossiers, rows = 0 et #listScroll contient « Réception indisponible » (11 dossiers parcourus).",
+   "ou": "apercu/prototype-courrier.js (état vide quand une boîte rejette) ; la boîte b2 de courrierSource() du prototype rejette tous les dossiers",
+   "correction": "Dossiers locaux (brouillons, programmés) : jamais d’erreur de réception ; ailleurs, liste vide = « Aucun message » + bandeau de la boîte en panne au-dessus, pas un écran d’erreur qui remplace tout."
+  },
+  {
+   "n": "ordinateur-03",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › liste (format tablette du module) › en-tête de la liste défilée",
+   "role": "patron",
+   "profils": "mac720 (1280×720), jour et nuit",
+   "etapes": "Fenêtre 1280×720, Boîte mail ; faire défiler la liste de 200 px (ou ouvrir un message puis défiler).",
+   "attendu": "Le petit titre « Boîte de réception » apparaît au centre sans toucher « Boîtes » ni « Sélectionner ».",
+   "constate": "Le titre (x 404–553) se pose sur « Sélectionner » (x 375–474) : « SélBoîte de réception » illisible, boutons superposés.",
+   "preuve": "sonde c2.js : rectangles de #lbTitle, #btnSelect, #btnNav, opacité 1 ; ✗ au jour et ✗ de nuit ; capture c2-mac720-defile.png",
+   "ou": "apercu/prototype-courrier.js, en-tête de liste de la mise en page « pad » (zone de 968 px)",
+   "correction": "Dans cette mise en page, ranger « Sélectionner » à droite (comme sur iPad) ou masquer le petit titre tant que « Boîtes » est affiché."
+  },
+  {
+   "n": "ordinateur-04",
+   "gravite": "gênant",
+   "ecran": "Boîte mail › lecture d’un courriel reconnu",
+   "role": "patron",
+   "profils": "windows (1366×768), mac720 (1280×720), mac (1440×900) ; jour et nuit",
+   "etapes": "Ouvrir Boîte mail, toucher « Mme Bernard — Climatisation chambre 214 en panne » (puis la facture de Chauffage Distribution, puis le paiement de M. Durand).",
+   "attendu": "Le texte du courriel est la première chose qu’on lit.",
+   "constate": "En-tête, ligne de catégorie, ligne Suivi, champ « Assigné à », puis un encadré « OP GESTION a reconnu » de 245 à 291 px de haut (4 à 6 boutons sur 3 rangées) passent AVANT le message. À 1366×768 le « Bonjour » est à y = 738-837 pour une zone qui s’arrête à 752 : le texte n’est PAS visible sans défiler pour les 3 courriels les plus importants (panne, facture fournisseur, paiement) ; à 1280×720 pour les mêmes trois ; à 1440×900 il ne reste qu’une ligne en bas d’écran.",
+   "preuve": "sonde g1.js : y du premier mot du message contre le bas de #readScroll, 4 courriels × 4 profils = 9 ✗ sur 16 ; mêmes chiffres de jour et de nuit (windows). Captures a6-windows-m1.png, a6-mac720-m1.png",
+   "ou": "apercu/prototype-courrier.js (renderReading : suiviHtml puis HOTE.lecture avant le corps) ; courrierBandeau() dans apercu/prototype-op-gestion.html",
+   "correction": "Message d’abord, gestes ensuite : bandeau replié sur une rangée (« Demande d’intervention · Créer l’intervention ▾ ») ou barre de gestes collante sous la barre d’outils ; Suivi et Assigné sur une seule ligne."
+  },
+  {
+   "n": "ordinateur-05",
+   "gravite": "détail",
+   "ecran": "Boîte mail › colonne des dossiers › pied",
+   "role": "patron",
+   "profils": "windows (1366×768)",
+   "etapes": "Fenêtre 1366×768, Boîte mail, regarder le bas de la colonne de gauche.",
+   "attendu": "« Archive », « Courrier indésirable », « Corbeille » lisibles ou clairement défilables.",
+   "constate": "Le pied « Ajouter une boîte mail / Réglages » recouvre à moitié « Archive » (libellé coupé en deux) ; les deux autres dossiers sont dessous.",
+   "preuve": "capture a6-windows-m1.png (la colonne défile, mais rien ne le dit)",
+   "ou": "apercu/prototype-courrier.js, #sideScroll et pied de colonne",
+   "correction": "Réserver sous la liste une marge égale à la hauteur du pied, ou mettre un fondu net."
+  },
+  {
+   "n": "ordinateur-06",
+   "gravite": "question",
+   "ecran": "Rôles › Gestion des factures (Julie) et Boîte mail",
+   "role": "gestion",
+   "profils": "mac",
+   "etapes": "Entrer comme Julie (Gestion des factures) ; chercher Boîte mail dans le menu ; taper #boiteMail.",
+   "attendu": "Le plan (§ 2.4) dit « visible pour le gérant et le bureau ».",
+   "constate": "Julie ne voit pas la Boîte mail et #boiteMail la ramène chez elle ; la fenêtre « Confier ce courriel » écrit d’ailleurs « Julie Petit — Pas d’accès à la Boîte mail ». La sonde mail-roles.js garde ce comportement (julie = false), le plan dit l’inverse : à trancher par Justin.",
+   "preuve": "ROLES.gestion.routes (apercu/prototype-op-gestion.html l. 11262) ne contient pas boiteMail ; sonde mail-roles.js",
+   "ou": "ROLES.gestion.routes",
+   "correction": "Décision de Justin : ajouter boiteMail aux routes de Gestion (et le dire dans sa description) ou corriger la phrase du plan."
+  }
+ ]
+}
