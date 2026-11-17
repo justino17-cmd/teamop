@@ -1,9 +1,14 @@
-# Spécification : « Mon entreprise », les droits d'Équipe qui agissent, « Achats et frais » (voie entreprise, étape 2 sur 8, 17 novembre 2026)
+# Spécification : « Mon entreprise », les droits d'Équipe qui agissent, « Achats et frais » (voie entreprise, étape 2 sur 8, 17 novembre 2026 ; RÉVISÉE à l'étape 3)
 
 Écrite à partir de `refonte/entreprise-droits-etude.md` (16 novembre), après contrôle dans le code de chaque point d'appui
 (`apercu/prototype-op-gestion.html`, 22 889 lignes au 17 novembre : les numéros bougent, les fonctions sont nommées). Cette étape ne modifie
 aucune page. La critique (étape 3) puis l'application (étapes 4 et 5) partent de ce document seul : il doit pouvoir être appliqué sans me
 reparler. Les mots entre « » sont les libellés EXACTS de l'écran ; les noms en `code` sont ceux du fichier.
+
+> **Révisée à l'étape 3 par une critique d'adversaire (`refonte/entreprise-droits-critique.md`, 18 objections O1 à O18, B1 à B8).** Chaque passage corrigé
+> porte la marque ⟲ et le numéro de l'objection. Quatre CHIFFRES de la version du matin sont changés, à lire d'abord : **Julie a 9 lignes au menu**
+> (et non 7 : la fusion de Matériel lui a ouvert Stock et Fournisseurs, ⟲O1) ; **17** gabarits `logo-ent` (et non 19, ⟲O11) ; **236 familles** de gestes
+> (et non une quarantaine, ⟲O4) ; **quatre** appelants d'`envoyerFacture` à garder (et non trois, ⟲O5).
 
 ## 0. Les deux propositions, et ce qui est tranché
 
@@ -21,12 +26,12 @@ frais ; ne voit pas… »), il change de profil d'un geste, et s'il ouvre la gri
 client, ses coordonnées, ses notes ») et une case qui n'a aucun geste dans le prototype n'existe pas à l'écran. Pour « Mon entreprise » : cinq
 cartes, une phrase d'aide chacune, les champs qui s'impriment quelque part et aucun autre.
 
-### Les vingt décisions (le reste du document les déroule)
+### Les vingt-quatre décisions (le reste du document les déroule)
 
 1. « Mon entreprise » est une ligne du groupe « Personnel », après « Véhicules » (route `entreprise`), ouverte par la case `admin`
    (Voir), modifiable par `admin` (Modifier). Cinq cartes + une liste de liens. Aucun réglage n'y est copié : une case, un endroit.
 2. Elle crée la garde que « Comment ça marche » promettait sans la tenir : **une facture ne PART pas tant que le nom, l'adresse et le
-   SIRET manquent** (trois portes d'envoi), et le client sans e-mail retient l'envoi automatique. Le plafond et le « premier passage »
+   SIRET manquent** (UNE porte d'envoi, quatre appelants qui la lisent, ⟲O5), et le client sans e-mail retient l'envoi automatique. Le plafond et le « premier passage »
    sont retirés du texte d'aide (ils n'existent pas).
 3. L'identité devient modifiable : nom, dirigeant, adresse (rue, code postal, ville), téléphone, e-mail, site, SIRET, TVA, mentions
    légales, assurance en quatre champs, logo, IBAN et BIC, horaires, tarif horaire, durée minimale, trois déplacements, expert-comptable.
@@ -34,29 +39,32 @@ cartes, une phrase d'aide chacune, les champs qui s'impriment quelque part et au
 4. Le bug du pont atelier (l'assurance saisie n'y arrive jamais) est corrigé en unifiant les noms : `assureur`, `assurNum`, `assurc`, `assurZone`.
 5. **La forme de l'écran se décide par UNE case : « Travaille sur le terrain »** (elle existe déjà à l'invitation ; elle devient réglable
    sur la fiche). Terrain = les cinq écrans de la personne (Ma journée, Mes frais, Mes heures, Mon camion, Mes congés) + Mes tâches ;
-   sinon les écrans d'équipe. Plus aucune décision au NOM du rôle : `sessionRole` lit la case.
+   sinon les écrans d'équipe. Plus aucune décision au NOM du rôle : `sessionRole` lit la case. ⟲O7 `eqxTerrain(p) = !!p.terrain` est LA seule lecture :
+   `EQX_BASE` et les treize listes en dur `['sm','kb','lr','tl']` disparaissent (sans ça la case ne se décoche pas pour les quatre de démonstration).
 6. **Le menu, la barre du bas, la recherche, les raccourcis, l'ouverture et les adresses tapées sont déduits d'UNE table**
    (`ROUTE_DROIT` : route → catégorie, forme) par UNE fonction `droitVoit(route)` qui remplace `drRefuse`, `ROLES[x].routes` et
    `LIGNES_ROLE` pour les rôles internes. Responsable et Secrétariat cessent d'être le même moule.
 7. Les cases **Créer / Modifier / Supprimer** agissent par UNE garde de geste (écouteurs en capture) pilotée par une TABLE de gestes
-   (`famille|verbe` → catégorie, case), complète par construction (une sonde recense tous les `data-*` du fichier et fait tomber
-   toute valeur non classée).
+   (famille → catégorie, case), complète par construction (une sonde recense tous les `data-*` du fichier et fait tomber
+   toute valeur non classée). ⟲O4 O14 **236 familles, 1 041 verbes** au 17 novembre : la table se fait PAR FAMILLE (verbes de lecture par motifs nommés, exceptions
+   c / s listées), et l'écran se nettoie par une FEUILLE DE STYLE fabriquée de la même table (aucun `MutationObserver`).
 8. Un geste refusé : le bouton **n'est pas dessiné** ; l'écran en lecture seule le dit en une phrase ; un geste qui arrive par un autre
    chemin (raccourci, annulation, atelier) reçoit un message qui dit quoi et à qui demander. Jamais de bouton grisé sans raison.
 9. **`tout` (Voir toute l'équipe) est RETIRÉ de l'écran** : le brancher exige un troisième écran (le chef d'équipe), qui n'existe pas.
    `prix`, `atelier`, `valstock`, `commander`, `corrpt`, `comptes` sont BRANCHÉS (les quatre derniers lots après fusion des voies
    Matériel, Temps de travail et Boîte mail) ; repli décidé d'avance pour `prix` (§ 2.8).
 10. Une case qui n'a aucun effet pour la FORME de la personne n'est pas affichée (un terrain n'a pas de « Valider le stock des autres »).
-11. Les profils types sont réécrits pour donner EXACTEMENT les menus que Justin a validés (gérant, bureau, technicien) et un
-    Responsable qui voit tout, sans régler l'entreprise (§ 2.12).
+11. ⟲O1 Les profils types sont réécrits pour donner les menus de la branche TELLE QU'ELLE EST depuis la fusion de Matériel (gérant 20 avec Mon entreprise, **bureau 9**,
+    technicien 6) et un Responsable qui voit tout, sans régler l'entreprise (§ 2.12). Le bureau a deux lignes de plus que les sept de MENU-FINAL (Stock, Fournisseurs) parce que le lot
+    Matériel les lui a ouvertes en suivant sa question 1, sans réponse de Justin : la bascule vers sept est UNE valeur (`secr.stock` à 0000), dite au § 7, doute 8.
 12. « Mes tâches » est toujours ouverte (outil personnel) ; Accueil, Statistiques, Historique, Équipe et Mon entreprise suivent la case
     `admin`, relibellée « L'entreprise et l'équipe ».
 13. Le gérant ne peut pas se retirer ses droits (cases désactivées, dernier administrateur protégé : déjà vrai) ; **personne ne règle
     ses propres droits, ni ne donne un droit qu'il n'a pas, ni ne touche la fiche d'un administrateur** (§ 2.11).
-14. « Qui a fait quoi » : `journalAjout` remplace lui-même le `'marc'` écrit en dur par `acteur()` ; le reste des acteurs en dur se
-    recense et se corrige avant toute garde (lot D1).
-15. « Achats et frais » garde son nom ; sa ligne grise au menu devient « Demandes de l’équipe » (127 px mesurés sur 147 disponibles) ; son
-    sous-titre dit QUOI ; ses quatre chiffres passent « ce que je décide ici » d'abord ; une aide en trois phrases.
+14. « Qui a fait quoi » : `journalAjout` remplace lui-même le `'marc'` écrit en dur par `acteur()` ; le reste se recense en TROIS emplois (donnée de démonstration, acteur,
+    texte lu : « Bonjour Marc » à l'Accueil du bureau, ⟲O8) et se corrige avant toute garde (lot D1).
+15. « Achats et frais » garde son nom (doute n° 9 pour Justin) ; sa ligne grise au menu devient « Demandes de l’équipe » (127 px mesurés sur 147 disponibles) ; son
+    sous-titre dit QUOI ; ⟲B1 **deux chiffres** (ce que l'équipe demande) puis **deux lignes** « Ça se règle dans la Comptabilité » (les deux chiffres qui mènent ailleurs) ; une aide en trois phrases.
 16. Les phrases qui renvoient à « Paramètres » (un écran qui n'a jamais existé) deviennent des liens vers « Mon entreprise ».
 17. L'identité saisie est du texte injecté dans les gabarits : 63 lectures de `ENTREPRISE.nom` sur 102 ne l'échappent pas ; les champs refusent donc `< > "` (et le refus se prouve).
 18. Le prototype ne garde rien d'un rechargement à l'autre : « Mon entreprise » aussi (comme tout le reste) ; le message le dit en mode
@@ -64,6 +72,11 @@ cartes, une phrase d'aide chacune, les champs qui s'impriment quelque part et au
 19. La coque `ROLE` reste (patron, gestion, tech, compta, client) : c'est la FORME d'écran, pas un droit. Les ~40 décisions « au nom
     du rôle » qui refusent ou cachent un geste deviennent des cases (liste § 2.9) ; celles qui choisissent entre deux mises en page restent.
 20. Ce qui est laissé de côté et les doutes à dire à Justin sont au § 6 et au § 7 : jamais décidés en silence.
+21. ⟲B2 **Une catégorie partielle se dit.** Quand une personne a une partie seulement de Créer / Modifier / Supprimer dans une catégorie, chaque écran de cette catégorie écrit en pied,
+    une fois, ce qu'elle ne peut pas faire (« Dans cette rubrique, ton compte ne peut pas supprimer. Pour changer ça, demande à Marc. ») : un bouton qui disparaît sans un mot est pire qu'un bouton grisé.
+22. ⟲O2 Les trois « routes » que Matériel a inventées pour le bureau (`stockAccepter`, `stockReglages`, `produitsPrixVente`) et la fermeture de Dépôts et camions deviennent des CASES (§ 2.6 bis).
+23. ⟲O13 Un refus d'un `change` ou d'un `input` **remet l'écran d'aplomb** (la case redécochée, la valeur d'avant) : un écran ne montre jamais ce que la donnée n'a pas reçu.
+24. ⟲O10 La clé de contrôle du SIRET **avertit, ne bloque pas** (le SIRET de démonstration ne la passe pas, certains vrais non plus).
 
 ---
 
@@ -109,8 +122,8 @@ moins de 16 px fait zoomer l'iPhone). Une adresse, un IBAN ou un nom très long 
 ### 1.3 Le bandeau d'état
 
 Une ligne sous le titre, `role="status"` :
-- **fiche incomplète** (`entrepriseManque()` non vide) : `.alerte` orange : « Il manque {le nom de l’entreprise, ton adresse, ton SIRET} :
-  une facture ne peut pas partir sans. » + bouton `.btn` « Compléter » qui ouvre la première carte à compléter. Les éléments manquants
+- **fiche incomplète** (`entrepriseManque()` non vide) : `.alerte` orange : ⟲B5 « Il manque {le nom de ton entreprise, ton adresse et ton SIRET} :
+  une facture ne peut pas partir sans. » (trois possessifs identiques : « ton » partout) + bouton `.btn` « Compléter » qui ouvre la première carte à compléter. Les éléments manquants
   s'écrivent avec « et » avant le dernier (« ton adresse et ton SIRET ») ;
 - **fiche complète** : `.ok-bloc` vert : « Ta fiche est complète : tes factures peuvent partir. » (une fois la fiche légale aussi
   complète : « …et tes mentions légales sont en règle. » ; sinon « Il reste ton assurance à compléter » comme le fait le toast actuel).
@@ -143,13 +156,13 @@ la reprennent telle quelle. Le panneau préremplit par cette même expression ; 
 laisse code postal et ville vides (c'est alors « à compléter », honnêtement).
 
 **Carte 2 · « Tes mentions légales »** — aide : « Ce qui s’écrit en bas de chaque facture et de chaque devis. » État : complète si SIRET
-valide ET `cxMentionsManquantes()` vide ; « à compléter » sinon. Résumé : « SIRET {n} · {forme} ». Le panneau est `cxFicheLegale`
+à quatorze chiffres ET `cxMentionsManquantes()` vide ; « à compléter » sinon (⟲O10 : la clé de contrôle ne décide pas de l'état). Résumé : « SIRET {n} · {forme} ». Le panneau est `cxFicheLegale`
 (une seule fonction : le bouton « Compléter ma fiche légale » de Comptabilité › Conformité › « Les mentions obligatoires » l'ouvre
 toujours, c'est un lien vers elle) ; il perd les trois « gris » SIRET / TVA qu'il montrait sans pouvoir les changer et gagne :
 
 | Étiquette | Écrit | Règle | Message |
 |---|---|---|---|
-| SIRET (obligatoire) | `ENTREPRISE.siret`, rangé « 123 456 789 00012 » | 14 chiffres (espaces permis) ; les 9 premiers passent `cxSirenOk` | « Le SIRET a quatorze chiffres. Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr). » · « Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. » |
+| SIRET (obligatoire) | `ENTREPRISE.siret`, rangé « 123 456 789 00012 » | 14 chiffres (espaces permis) : c'est la SEULE condition de refus. ⟲O10 La clé de contrôle (`cxSirenOk` sur les 9 premiers) AVERTIT sans bloquer : le SIRET s'enregistre et un toast dit « Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. » — **mesuré : le SIRET de démonstration 123 456 789 00012 ne passe pas la clé** (somme de Luhn non multiple de 10), et certains vrais SIRET non plus (La Poste) ; un refus rendait la fiche de la société fictive impossible à enregistrer. Ne PAS remplacer la valeur de démonstration par un SIRET « valide » : il pourrait être celui d'une vraie entreprise | « Le SIRET a quatorze chiffres. Tu le trouves sur ton avis de situation de l’Insee ou sur l’Annuaire des entreprises (annuaire-entreprises.data.gouv.fr). » (refus) · « Ce SIRET ne semble pas juste : le numéro de contrôle ne correspond pas. Vérifie-le. » (avertissement, enregistré) |
 | Numéro de TVA | `ENTREPRISE.tva` | vide permis ; sinon `FR` + 2 chiffres + 9 chiffres (espace permis) | « Un numéro de TVA français commence par FR, puis deux chiffres et les neuf chiffres de ton SIREN. » (aide : « Laisse vide si tu ne factures pas de TVA. » : ce que le PDF écrit alors est laissé de côté, § 6) |
 | Forme juridique, Capital social, Immatriculation | inchangés (`forme`, `capital`, `rcs`) | inchangées (`ficheok` actuel) | inchangés |
 | Assureur | `ENTREPRISE.assureur` | ≤ 80 | — |
@@ -171,20 +184,20 @@ accept="image/png,image/jpeg,image/svg+xml">`) ; « Retirer le logo » (si prés
 choisis-en une plus légère. »), lue par `FileReader` en `data:` URL, **jamais envoyée nulle part** ; le SVG est refusé s'il contient
 `<script` ou `on…=` (« Ce fichier n’est pas accepté. »). Écrit : `ENTREPRISE.logo` (data URL ou vide). `logoEnt(classe)` rend
 `<img class="logo-ent" src="…" alt="">` ou `<span class="logo-ent">{initiales}</span>` (initiales = première lettre des deux premiers mots
-du nom, « CS » pour « Clim Services 17 ») ; il remplace les **19 `class="logo-ent">CS<`** (devis, facture, contrat, bilans, registre, espace
+du nom, « CS » pour « Clim Services 17 ») ; il remplace les **17 `class="logo-ent">CS<`** (⟲O11 : `grep -o` = 17 au 17 novembre, la sonde le compte avant de conclure ; la règle CSS `.logo-ent` en plus) (devis, facture, contrat, bilans, registre, espace
 client, bon de paie…), la règle CSS `.logo-ent` gagnant `object-fit:contain` et `overflow:hidden`. Le logo n'atteint pas l'atelier
 (§ 6).
 
-**Carte 4 · « Pour être payé »** — aide : « Où tes clients peuvent te payer, et qui est ton expert-comptable. » État : complète si IBAN
+**Carte 4 · « Ta banque et ton comptable »** (⟲B4 : « Pour être payé » ne disait rien du comptable ; une question par carte, et le titre dit les deux) — aide : « Ton IBAN, pour que tes clients te paient, et le cabinet qui reçoit tes bilans et ta paie. » État : complète si IBAN
 rempli. Panneau en deux groupes `.groupe` :
 - « Ton compte » : IBAN (`ENTREPRISE.iban`, 14 à 34 signes ; contrôle mod 97 ; « Cet IBAN ne semble pas juste. Vérifie-le : il commence
   par FR et compte 27 caractères. ») ; BIC (`ENTREPRISE.bic`, 8 ou 11 signes ; « Un BIC a huit ou onze signes. ») — le BIC s'ajoute à la
   ligne IBAN des PDF natifs et alimente l'atelier ;
-- « Ton expert-comptable » : Cabinet (`CP_EXPERT.cab`), Son nom (`CP_EXPERT.qui`), Son e-mail (`CP_EXPERT.mail`, forme e-mail). Écrit aussi
-  `PAIE_CAB` (copie faite au chargement : `{nom, qui, mail}`) : sans ça, « Envoyer à ton expert-comptable » et la paie parleraient à deux
-  cabinets. Aide : « Les bilans et la paie lui sont envoyés d’ici. ».
+- « Ton expert-comptable » : Cabinet (`CP_EXPERT.cab`), Son nom (`CP_EXPERT.qui`), Son e-mail (`CP_EXPERT.mail`, forme e-mail). ⟲O12 `PAIE_CAB` (copie faite au chargement, 11845) **n'est plus une copie** :
+  il devient `{ get nom(){ return CP_EXPERT.cab }, get qui(){ return CP_EXPERT.qui }, get mail(){ return CP_EXPERT.mail } }` — une seule source, ses lectures ne changent pas ;
+  une donnée en deux exemplaires dont un seul est mis à jour est la panne type de ce dépôt. Aide : « Les bilans et la paie lui sont envoyés d’ici. ».
 
-**Carte 5 · « Tes horaires et tes prix »** — aide : « Ta journée de travail, ton tarif et tes déplacements : le planning, les devis et les
+**Carte 5 · « Tes horaires et tes tarifs »** (⟲B4 : le champ s'appelle « Tarif horaire », on ne mélange pas « prix » et « tarif » dans une page) — aide : « Ta journée de travail, ton tarif et tes déplacements : le planning, les devis et les
 factures au temps les reprennent. » État : toujours complète (valeurs de départ). Panneau :
 | Étiquette | Écrit | Règle | Message |
 |---|---|---|---|
@@ -227,11 +240,18 @@ lien depuis la fiche légale (Conformité).
 `ACTIONS.envoyer`, l'envoi d'un devis et d'un contrat ne regardent jamais l'identité. Des six retenues du texte « Comment ça marche »,
 une seule existait.
 
-**Décision.** Trois portes d'ENVOI de facture lisent `entrepriseManque()` en première instruction : `envoyerFacture(f)`, `ACTIONS.envoyer`
-(quand l'objet est une facture), et l'envoi automatique dans `ACTIONS.terminer`. Si quelque chose manque :
+**Décision (⟲O5).** UNE porte, `envoyerFacture(f)`, lit `entrepriseManque()` en PREMIÈRE instruction et **rend un booléen** (`false` : rien n'est parti, le message est déjà dit ; `true` : la facture est partie). Ses
+**quatre** appelants lisent ce booléen au lieu de supposer l'envoi (sinon l'écran ment : « Facture envoyée » après un refus) :
+- `ACTIONS.envoyer` : son toast « Facture envoyée au client… » ne se dit que si `true` ;
+- **`ACTIONS.toutValider`** (`L.forEach(envoyerFacture)`, oubliée de la première version) : son toast compte les factures PARTIES, il dit « Aucune facture n'est partie : il manque {…} » quand le compte est nul, et le manque n'est dit qu'UNE fois pour tout le lot (pas N toasts) ;
+- l'envoi automatique dans `ACTIONS.terminer` : la facture reste « à valider » ; le toast de fin ne dit pas « la facture est préparée et part » quand elle ne part pas ;
+- `ACTIONS.apercuEnvoi` (le panneau d'aperçu) : il dit le manque AVANT le bouton « Envoyer », que le bouton « Compléter ma fiche » remplace.
+**`terminer` est le geste du TECHNICIEN** : il ne peut rien régler dans « Mon entreprise », un message « Il manque ton SIRET » ne lui sert à rien. Pour lui le refus est silencieux (la facture attend « à valider » ; le toast
+habituel de `terminer` est inchangé) ; c'est le gérant qui lit le manque, dans le bandeau et la pastille de la ligne du menu. Si quelque chose manque :
 - rien ne part, la facture reste « à valider » (brouillon) ;
-- le message (toast à bouton, ou panneau si l'appel venait d'un panneau) : « Il manque {ton SIRET} sur ta fiche : une facture doit le porter.
-  Ça prend trente secondes. » + bouton « Compléter » (ouvre `aller('entreprise')` puis la carte concernée) ;
+- le message (toast à bouton, ou panneau si l'appel venait d'un panneau), pour qui peut régler (`admin › Modifier`) : « Il manque {ton SIRET} sur ta fiche : une facture doit le porter.
+  Ça prend trente secondes. » + bouton « Compléter » (ouvre `aller('entreprise')` puis la carte concernée) ; pour une personne qui ne le peut pas (bureau) : « Il manque {ton SIRET} sur la fiche de l’entreprise :
+  demande à {prénom du gérant} de la compléter. », sans bouton ;
 - l'envoi d'un DEVIS et d'un CONTRAT n'est pas bloqué (le devis n'engage pas ; § 7, doute 1) mais le message est le même, en toast, sans blocage ;
 - la prévisualisation et le téléchargement d'un brouillon restent possibles (le PDF porte déjà « brouillon »).
 
@@ -259,8 +279,8 @@ lignes « plafond » et « premier passage » sont retirées (§ 6).
 ### 1.9 Messages quand quelque chose manque, à l'écran
 
 - Carte à compléter : pastille `st st-o` « À compléter » + en gris sous le titre ce qui manque (« SIRET », « adresse »).
-- Un champ refusé : la valeur reste, le champ prend le focus, le message est un toast (comme tous les formulaires validés) **et** le texte
-  du champ est entouré (`aria-invalid="true"`) ; jamais d'alerte du navigateur.
+- Un champ refusé : la valeur reste, le champ prend le focus, le message est un toast (comme tous les formulaires validés) **et** il est ÉCRIT SOUS LE CHAMP (⟲B6 : le clavier d'un téléphone cache la zone du toast, qui disparaît en trois secondes ;
+  `.erreur` en rouge, `role="alert"`, relié par `aria-describedby`), le champ est entouré (`aria-invalid="true"`) ; jamais d'alerte du navigateur. La sonde lit le message SOUS le champ pour chaque refus.
 - Lecture seule (Responsable) : pas de « Enregistrer » ; les panneaux s'ouvrent, champs désactivés, première ligne : « Tu peux regarder cette
   fiche ; c’est le gérant qui la modifie. » (§ 2.8).
 
@@ -281,7 +301,10 @@ lignes « plafond » et « premier passage » sont retirées (§ 6).
 - Confirmé par une mesure au navigateur le 17 novembre (mode application) : Marc 19 lignes, Julie 7 (Mes tâches, Interventions, Clients,
   Devis, Contrats, Comptabilité, Achats et frais ; barre : Comptabilité, Devis, Clients, Mes tâches, Achats et frais ; ouverture :
   Comptabilité), Sophie et Karim 6 (Ma journée, Mes tâches, Mes frais, Mes heures, Mon camion, Mes congés ; ouverture : Ma journée).
-  **Ces trois menus sont ceux que Justin a validés : ils doivent sortir tels quels des profils types (§ 2.12).**
+  ⟲O1 **Remesuré le soir du 17 novembre APRÈS la fusion de Matériel (`menus-actuels.js`) : Julie 9** (les sept + Stock + « Fournisseurs, matériel & produits », que le lot 2 de Matériel
+  lui a ouverts : `ROLES.gestion.routes.push('stock','produits')` et un groupe « Matériel » dans `LIGNES_ROLE.gestion`, 14984-14985) ; Marc 19 ; Sophie et Karim 6 ; barres et ouvertures inchangées.
+  Marc et Sophie/Karim sont les menus que Justin a validés ; Julie = les sept validés + les deux lignes de Matériel, **pas encore validées par lui** (§ 7, doute 8). Les profils types (§ 2.12) donnent
+  ces menus-là, tels quels ; `menu-commun.js` fige encore 7 pour Julie (déjà faux avant cette voie).
 
 ### 2.2 Les cinq règles (tout le reste en découle)
 
@@ -310,8 +333,12 @@ Les deux candidats de l'étude sont tranchés ainsi :
 
 **Conséquences écrites une fois :**
 - la case « Travaille sur le terrain » devient réglable sur la fiche, première ligne du bloc « Droits » (§ 2.4) ; à l'invitation, sa valeur
-  de départ suit le profil choisi (Technicien : cochée ; Responsable, Secrétariat : décochée), et le choix d'un profil sur la fiche ne la
+  de départ suit le profil choisi (Technicien : cochée ; Responsable, Secrétariat : décochée — ⟲O7 aujourd'hui la case de l'invitation est TOUJOURS cochée, 9778 et sa jumelle d'`eqInviter`), et le choix d'un profil sur la fiche ne la
   change pas (c'est un fait sur la personne, pas un droit) ;
+- ⟲O7 **la case doit pouvoir se DÉCOCHER pour les quatre de démonstration.** Aujourd'hui `eqxTerrain = p => EQX_BASE.includes(p.k) || !!p.terrain` : décocher la case pour Sophie ne change rien (elle est dans
+  `EQX_BASE`), et treize listes en dur `['sm','kb','lr','tl']` (filtres et chiffres d'Équipe, soldes de congés, `aSolde`…) lisent la même chose à leur façon. À D2 : `p.terrain` est posé (booléen) sur chaque personne de démonstration
+  (Marc, Julie : `false` ; Sophie, Karim, Léa, Tom : `true`), `eqxTerrain = p => !!p.terrain` devient LA seule lecture, `EQX_BASE` et les treize listes sont supprimés (chacune lit `eqxTerrain`). Sonde `droits-formes.js` : décocher la case pour
+  Sophie change son menu, sa barre et son ouverture à l'instant, sans recharger ; recocher les rend ;
 - un terrain ne reçoit que les lignes personnelles (Ma journée, Mes tâches, Mes frais, Mes heures, Mon camion, Mes congés, Registre
   sanitaire si le pack 3D est pris) ; la grille de sa fiche ne montre que les six catégories qui ont un écran personnel (`planif`, `inter`,
   `crm`, `stock`, `temps`, `achats`) et les trois droits à part qui y changent quelque chose (`atelier`, `prix`, `corrpt`) ;
@@ -326,9 +353,9 @@ L'ordre du bloc « Droits » reste celui de la fiche actuelle (`eqFiche` redéfi
 Droits · profil Secrétariat, ajusté                        ← eqxProfilTitre (inchangé)
 En plus : … En moins : …    Revenir au profil Secrétariat   (inchangé)
 Appliquer un profil [Choisir…]                              (inchangé ; la liste = Responsable, Secrétariat, Technicien, Comptable)
-**[☐/☑] Travaille sur le terrain   — « Il voit son téléphone : sa journée, ses frais, ses heures, son camion, ses congés. Décoché : il voit les écrans du bureau. »**
-**Ce que {Julie} voit : Mes tâches, Interventions, Clients, Devis, Contrats, Comptabilité, Achats et frais.**   ← phrase calculée par rlLignes() de la personne
-**Ce qu’elle ne voit pas : Planning, Stock, … **                                                    ← uniquement les lignes que la table sait fermer
+**[☐/☑] Travaille sur le terrain   — « Coché : l'application s'ouvre sur sa journée, ses frais, ses heures, son camion et ses congés. Décoché : elle s'ouvre sur les écrans du bureau. »**   ⟲B3 (neutre : « Il voit… » était faux pour Sophie)
+**Ce que {Julie} voit : Mes tâches, Interventions, Clients, Devis, Contrats, Comptabilité, Achats et frais, Stock, Fournisseurs, matériel & produits.**   ← phrase calculée par rlLignes() de la personne (⟲O1 : neuf lignes)
+**Ce que {Julie} ne voit pas : Planning, Statistiques, … **                                                    ← ⟲B3 neutre ; uniquement les lignes que la table sait fermer
 Les droits à part (cases, voir § 2.7)
 ▸ Voir et régler les droits détaillés par catégorie        (details, replié ; ouvert, la grille 10 × 4)
 ```
@@ -360,11 +387,11 @@ chaque verbe y reçoit sa case selon ces définitions, et la colonne « quelques
 | Catégorie | Voir ouvre | Créer = | Modifier = | Supprimer = | Quelques gestes (famille\|verbe) |
 |---|---|---|---|---|---|
 | `planif` Planning et absences | Planning ; Absences et congés (équipe) ou Mes congés (terrain) | poser sur le planning, créer une absence, (terrain) demander un congé | déplacer, redimensionner, changer de technicien, décider d'une absence, (terrain) corriger sa demande | retirer du planning, annuler une absence | `planconf\|annuler,supprimer` ; glisser (`poser()`) ; `a…` des absences à recenser à la main |
-| `inter` Interventions | Interventions (équipe) ou Ma journée (terrain) ; Registre sanitaire (pack 3D) | créer une intervention | modifier une fiche, terminer, noter, photographier, signer, « Je ne peux pas finir » | supprimer une note, une photo, une pièce | ACTIONS `creerOk`, `modifIntOk`, `terminer`, `noteOk`, `photoSuppr`, `pieceSuppr` ; `rg\|…` (registre) |
+| `inter` Interventions | Interventions (équipe) ou Ma journée (terrain) ; Registre sanitaire (pack 3D) | créer une intervention | modifier une fiche, terminer, noter, photographier, signer, « Je ne peux pas finir », noter un paiement sur place (la fiche de TERRAIN) | **retirer ce qu'on a mis dans la fiche : une note, une photo, une pièce, effacer la signature du client pour la refaire (`sigEfface`)** | ACTIONS `creerOk`, `modifIntOk`, `terminer`, `noteOk`, `photoSuppr`, `pieceSuppr`, `sigEfface`, `pasFini`, `envoiePb` ; `rg\|…` (registre) — ⟲O6 **tout geste de la fiche de terrain est `inter`** (règle 3 du § 2.2 appliquée jusqu'au bout : la portée suit la forme) ; sans ça le technicien ne peut plus défaire sa propre photo ni refaire une signature |
 | `crm` Clients | Clients (équipe) ; fiche client ; (terrain) « Ce que voit le client » | créer un client | changer ses coordonnées, ses notes, son SIREN | (aucun geste : la case n'est pas dessinée) | ACTIONS `clientNouveau`, `clientEnreg` ; `cx\|sirenok` (Comptabilité) reste `compta.m` |
-| `ventes` Devis, factures, contrats, paiements | Devis, Contrats, Devis xylophage (pack 3D), fiches facture et contrat, signature | créer un devis, un contrat, une facture, un avoir, noter un encaissement | modifier, envoyer, relancer, faire signer, noter une réponse du client | supprimer un devis ; effacer une signature | `dv\|nouveau,creerInt,ligneAj` · `dv\|envoyer,relancer,signer,clientRefus` · `dv\|supprimer` ; ACTIONS `nouvelleFacture`, `ajoutEncOk`, `avoirOk`, `envoyer`, `creerContrat`, `signerContrat`, `sigCtrEfface` ; atelier : message `opd_role` étendu (§ 2.10) |
+| `ventes` Devis, factures, contrats, paiements | Devis, Contrats, Devis xylophage (pack 3D), fiches facture et contrat, signature | créer un devis, un contrat, une facture, un avoir, noter un encaissement | modifier, envoyer, relancer, faire signer, noter une réponse du client | supprimer un devis ; effacer la signature d'un CONTRAT (bureau) | `dv\|nouveau,creerInt,ligneAj` · `dv\|envoyer,relancer,signer,clientRefus` · `dv\|supprimer` ; ACTIONS `nouvelleFacture`, `ajoutEncOk`, `avoirOk`, `envoyer`, `toutValider`, `creerContrat`, `signerContrat`, `sigCtrEfface` (⟲O6 : `sigEfface` de la fiche de terrain n'est PAS ici, il est `inter`) ; atelier : message `opd_role` étendu (§ 2.9, couche 5) |
 | `compta` Comptabilité | Comptabilité (et Factures, Paiements par la recherche et les adresses) | nouvelle dépense, nouvelle écriture | payer, valider, relancer, saisir une dépense ; la fiche légale, la plateforme, les SIREN | supprimer une prime de paie | `cx\|nouveau,payer,payerliste,factureok,depenseok,ficheok,sirenok,plateformeok` · `cxaf\|relancer,facturer,payer,valider` · `cp\|payer` ; **la paie** (`paie\|…`, 13 verbes) demande en plus `admin.m` (§ 2.5 bis) |
-| `stock` Stock, fournisseurs, dépôts | Stock, Fournisseurs…, Dépôts et camions, Carte des box (3D) ; (terrain) Mon camion | créer un produit, un fournisseur, un dépôt, une box, une commande ; ajouter à son camion | modifier, inventorier, transférer, réceptionner, cocher « pris / oublié » dans son camion | retirer, jeter, supprimer, fermer une box | `pr\|nouveau,modif,garder,retirer,retirerok` · `fo\|…` · `bxl\|…` · `sk\|…` · `mat\|…` (Mon camion) · `ce\|…` · `cm\|…` — **gardes posées en DERNIER, après la fusion de la voie Matériel** |
+| `stock` Stock, fournisseurs, dépôts | Stock, Fournisseurs…, Carte des box (3D) ; **Dépôts et camions seulement avec Modifier-et-Supprimer (`s`)** ; (terrain) Mon camion | créer un produit, un fournisseur, un dépôt, une box, une commande | modifier, inventorier, transférer, réceptionner, cocher « pris / oublié » dans son camion, **ajouter à son camion** (⟲ le technicien n'a pas de « créer » de stock) | retirer, jeter, supprimer, fermer une box ; **régler le stock et changer un prix de vente** (§ 2.6 bis) | `pr\|nouveau,modif,garder,retirer,retirerok` · `fo\|…` · `bxl\|…` · `sk\|…` · `mat\|…` (Mon camion) · `ce\|…` · `cm\|…` — **gardes posées en DERNIER, après la fusion de la voie Matériel** |
 | `temps` Temps de travail et véhicules | Temps de travail, Véhicules ; (terrain) Mes heures | ajouter un pointage, un véhicule, un plein, une dépense véhicule, (terrain) pointer | modifier un véhicule, valider des heures, terminer une journée, entretien, sinistre, amende | clore un pointage, supprimer un frais ou un document de véhicule | `pt\|ajout,closok,clore` · `ptx\|…` · `tt\|…` · `ve\|…` · `vx\|…` — **gardes en DERNIER, après la fusion de la voie Temps de travail et Véhicules** ; corriger = `corrpt` en plus |
 | `com` Boîte mail | Boîte mail (et la décision « confier un courriel » : `mbxAcces`, déjà là) | écrire, connecter une boîte, ajouter une règle | répondre, classer, confier, changer les réglages | supprimer, déconnecter, retirer une règle | `mbx\|add,addstop,addpas,addfin,confok,reco` · `ml\|ajout,reco,confok` · `mbx\|decook,rmregle,deco` — **le module `prototype-courrier.js` : le pont reçoit les droits (§ 2.10)** |
 | `achats` Achats et frais | Achats et frais (équipe) ; (terrain) Mes frais | faire une demande (`＋ Demande`), une note de frais | décider : accepter, refuser, transférer, commander, valider une note, fixer un budget, un prix du kilomètre | annuler une demande, supprimer une note | `ac\|transfert,commande,magasin,refuser,payer,virement,ndfok,refok,virok` · `axa\|dem,demok,budgetok,tickok,toutval,nonok,toutok,relancer,renvoyer,precok,kmok,demannul` · `rl\|ndfmodok,ndfok,ndfsuppr` |
@@ -394,7 +421,7 @@ devis:['ventes','equipe']  contrats:['ventes','equipe']  contrat:…  'contrat-n
 comptabilite:['compta','equipe']  factures/facture/encaissements:['compta','equipe'] + ['ventes','equipe']   // les deux, comme drRefuse
 boiteMail:['com','equipe']
 achats:['achats','equipe']  techfrais:['achats','terrain']
-stock:['stock','equipe']  produits:['stock','equipe']  boxes:['stock','equipe']  carteBox:['stock','equipe']  moncamion:['stock','terrain']
+stock:['stock','equipe']  produits:['stock','equipe']  boxes:['stock','equipe','s']  carteBox:['stock','equipe']  moncamion:['stock','terrain']   // ⟲O2 `boxes` : un TROISIÈME élément = une case de geste de plus à avoir (Dépôts et camions n'est pas ouvert au bureau)
 pointage:['temps','equipe']  vehicules:['temps','equipe']  mesheures:['temps','terrain']
 equipe:['admin','equipe']  entreprise:['admin','equipe']
 registre:['inter','tous'] (+ pack 3D)   espaceclient: hors droits (rôle client)
@@ -438,9 +465,34 @@ phrases sont déjà couvertes par les sondes `menu-*`, à conserver mot pour mot
 (`iGestes`, `ctx` des tâches, `opd*`, `mailOk`, `[data-plein]`…) continuent de fonctionner sans changement. Une notification n'ouvre
 que ce qu'`rlPermis` permet (déjà le cas dans `nvVoit`).
 
-**Guide et visite** : `NV_NEUF`/`NV_PLACE` filtrent par `nvVoit(route)` (donc par `rlPermis`) ; la visite parlée (`immChap`) saute un
+**Guide et visite** : ⟲O3 `NV_NEUF`/`NV_PLACE` filtrent par `nvVoit(route)`, qui NE passe PAS par `rlPermis` aujourd'hui (22888 lit `ROLES[ROLE].routes` ET `drRefuse` lui-même ; la version du matin disait le contraire) : `nvVoit` devient `droitVoit` ; la visite parlée (`immChap`) saute un
 chapitre que la personne n'a pas. Une page « Mon entreprise » est ajoutée à chacun (`immChap('entreprise', 'entreprise', 'Mon entreprise', …)`
 et une ligne dans `NV_NEUF`) : texte laissé à l'étape « guide des nouveautés » ; ici seulement le rappel de ne rien oublier.
+
+**§ 2.6 bis — ⟲O2 les noms qui ne sont pas des routes, et ce qui ferme Dépôts et camions.** La fusion de Matériel (lot 2) a posé trois noms que `rlPermis` reçoit alors qu'aucune vue ne les porte :
+`stockAccepter`, `stockReglages`, `produitsPrixVente` (lus par `msAccepte`, `msReglages`, `msPrixVente`, ~6 appels), et ferme « Dépôts et camions » au bureau par l'ABSENCE de `boxes` dans `ROLES.gestion.routes`. Remplacée telle quelle par
+un `droitVoit` qui exige « la route connue », la porte rendrait `false` à tout le monde, **le gérant compris** : Matériel perdrait ses boutons « Accepter », « Réglages » et le prix de vente ; et, dans `ROUTE_DROIT`, toute personne qui a
+`stock › Voir` ouvrirait Dépôts et camions. Donc une seconde table, `ACTE_DROIT`, de même forme que `ROUTE_DROIT`, sur des cases de GESTE :
+
+| Nom reçu par `droitVoit` / `rlPermis` | Condition | Pour qui, aujourd'hui |
+|---|---|---|
+| `stockAccepter` (accepter ou refuser un envoi du terrain) | forme équipe ET `valstock` | Marc, Responsable ; pas Julie |
+| `stockReglages` (régler le stock, retirer) | `stock › Supprimer` | Marc, Responsable ; pas Julie |
+| `produitsPrixVente` (changer un prix de vente) | `stock › Supprimer` | Marc, Responsable ; pas Julie |
+| route `boxes` (Dépôts et camions) | `stock › Voir` ET `stock › Supprimer` | Marc, Responsable ; pas Julie |
+
+Valeurs de départ : Administrateur et Responsable (stock 1111) : tout ; **Secrétariat (stock 1110, inchangé) : Stock et Fournisseurs, sans Dépôts, sans Accepter, sans réglages, sans prix de vente — exactement ce que Matériel livre aujourd'hui.** `droitVoit` refuse un
+nom absent des DEUX tables, et la sonde `droits-table.js` recense chaque argument littéral de `rlPermis(` et de `droitVoit(` du fichier (au 17 novembre : dix noms littéraux, dont ces trois, plus des appels à variable à lister aussi).
+
+**§ 2.6 ter — ⟲O3 tout ce qui lit encore `ROLES[x].routes` (relevé `grep "\.routes"` du 17 novembre), et ce que D2 en fait :**
+
+| Où | Ce que ça fait | D2 |
+|---|---|---|
+| `rlPermis` (11341) | la porte de tout | réécrite (§ 2.6) |
+| `sessionVue` (22472) | l'adresse demandée à l'ouverture | lit `droitVoit` |
+| `nvVoit` (22888) | guide, nouveautés, visite | lit `droitVoit` |
+| `mbxAcces` (17778) | « qui peut recevoir un courriel confié » : `ROLES[sessionRole(eqDe(k))].routes.includes('boiteMail')` pour UNE AUTRE personne | `droitVoit('boiteMail', eqDe(k))` — c'est la raison pour laquelle `droitVoit` prend la personne en paramètre |
+| NEUF écrivains `ROLES.gestion.routes.push(…)` / `ROLES.tech.routes.push(…)` (12154, 12155, 13288, 14491, 14984, 15864, 18444, 19879, 20264) et `LIGNES_ROLE.gestion.push(…)` (14985) | les voies ajoutent leurs routes au rôle | **SUPPRIMÉS** : conservés, ils auraient l'air d'une garde et n'en seraient pas une ; `ROLES.client` et `ROLES.compta` gardent leur `routes` |
 
 ### 2.7 Les sept droits à part : un par un
 
@@ -449,10 +501,10 @@ et une ligne dans `NV_NEUF`) : texte laissé à l'étape « guide des nouveauté
 | « Voir les interventions de toute l’équipe » (`tout`) | **RETIRÉ** | — | n'est plus affiché ni compté (§ 2.3) ; sa valeur reste dans les données |
 | « Créer des comptes » (`comptes`, dans la limite des places) | brancher (lot D3) | `eq\|inviter`, `eq\|inviterok`, `eqx\|placeok`, « Renvoyer l'invitation », « Réactiver le compte » : refusés sans lui ; la ligne « ＋ Inviter une personne » n'est pas dessinée | non terrain avec `admin.v` |
 | « Corriger les pointages » (`corrpt`, les siens comme ceux des autres) | brancher (D6, après `vehtemps`) | toute écriture dans un pointage DÉJÀ enregistré (`ptx\|corrige`, `pt\|ajout`, `pt\|clore`, `champ\|debut,fin` sur un jour passé, `[data-ptc]`) ; pointer et dépointer SOI-MÊME reste `temps.c` | tous |
-| « Se servir à l’atelier sans validation » (`atelier`) | brancher (D6, après `materiel`) | `STK_VALID` actif et personne sans `atelier` ni `valstock` : sa sortie va dans `MVTS_ATT` (« À valider ») au lieu de s'appliquer (`stkAppliquer`, première instruction) | tous (terrain : Mon camion) |
-| « Valider les gestes de stock des autres » (`valstock`) | brancher (D6) | `sx\|toutval,refok,expok,eok,dotok` (l'onglet « À valider » ne s'ouvre pas) | non terrain seulement |
+| « Se servir à l’atelier sans validation » (`atelier`) | brancher (D6, après `materiel`) | `STK_VALID` actif et personne sans `atelier` ni `valstock` : sa sortie va dans `MVTS_ATT` (« À valider ») au lieu de s'appliquer (`stkAppliquer`, première instruction) | tous (terrain : Mon camion) ; ⟲ la version fusionnée de `stkAppliquer` (14402) a déjà sa règle `SX.autoUsage && sxAuto(m)` : le droit s'ajoute à elle, ne la remplace pas |
+| « Valider les gestes de stock des autres » (`valstock`) | brancher (D6) | `sx\|toutval,refok,expok,eok,dotok` (l'onglet « À valider » ne s'ouvre pas) | non terrain seulement ; ⟲O2 aussi `stockAccepter` (Accepter / Refuser un envoi du terrain, § 2.6 bis) |
 | « Envoyer des commandes aux fournisseurs » (`commander`) | brancher (D6) | `ce\|envoi`, `cm\|conf`, `ac\|commande`, `panneauEnvoi` : le bon reste en « brouillon » | non terrain seulement |
-| « Voir les prix d’achat et les marges » (`prix`) | brancher en tout dernier, **repli décidé d'avance** | voir ci-dessous | tous |
+| « Voir les prix d’achat et les marges » (`prix`) | brancher en tout dernier, **repli décidé d'avance** | voir ci-dessous | tous ; ⟲O2 le PRIX DE VENTE (`produitsPrixVente`) n'est pas ce droit : § 2.6 bis |
 
 **`prix`** : ~25 endroits affichent un prix d'achat ou une marge (Produits liste et fiche, formulaire « Achat HT », Stock « valeur »,
 Fournisseurs, rapprochement des commandes, Comptabilité › Par intervention, `pdx` courbe) ; 153 lectures de `.pa`. Mécanisme : une classe
@@ -467,11 +519,15 @@ sans effet.
 ### 2.8 Un geste interdit : comment il se présente
 
 1. **Le bouton n'est pas dessiné** (créer, supprimer, et la plupart des « modifier » : boutons, cases à cocher qui écrivent, champs en saisie
-   directe passés en `disabled` avec leur valeur lisible). Le nettoyage (`droitsNettoyer()`) passe après `rendre()`, après
-   `ouvrirPanneau`/`foOuvrir`/`eqxPan` et après un `MutationObserver` sur `#contenu` ; il applique la TABLE, jamais une liste à la main.
+   directe passés en `disabled` avec leur valeur lisible). ⟲O14 Le nettoyage n'est PAS un parcours du DOM :
+   c'est une **feuille de style** `<style id="droits-css">` fabriquée par `droitsCss(personne)` depuis la TABLE (une règle `[data-<famille>^="verbe|"]{display:none!important}` par geste refusé, une par `data-action`),
+   recalculée à la connexion, au changement de personne et à chaque changement de droits. Aucun `MutationObserver` (il se réveille sur ses propres retraits, et un balayage à chaque écriture de `#contenu` est exactement le coût que ce dépôt
+   a payé le 26 septembre avec `:has()`), aucun passage après `rendre()`, `ouvrirPanneau`, `foOuvrir` ou `eqxPan` : un écran ou un panneau neuf est nettoyé à sa naissance par le navigateur ; `display:none` retire aussi le bouton de l'ordre de
+   tabulation et de l'arbre d'accessibilité. Un champ de saisie directe qui écrit (`data-champ`…) passe en `disabled` par la même table. Ce qui n'a pas d'attribut (glisser du planning, un `<input>` sans `data-*`) reste gardé par la couche 2
+   et la sonde le nomme (« geste sans attribut »).
 2. **L'écran en lecture seule le dit une fois**, sous le titre, `.info petit` `role="status"` : « Tu peux regarder cet écran, pas le modifier.
    Pour changer quelque chose, demande à {prénom du premier administrateur actif}. » Il n'est posé que si la personne a `v` et AUCUN de
-   `c m s` dans la catégorie ; si seule une partie manque (par exemple pas de suppression), rien n'est écrit (le bouton absent suffit).
+   `c m s` dans la catégorie ; si seule une partie manque, c'est le point 7.
 3. **Un geste qui arrive par un autre chemin** (raccourci, annulation, message de l'atelier, clic synthétique, appel direct) est avalé par la
    garde et dit par un toast : « Ce geste n’est pas ouvert à ton compte : {verbe} ({catégorie}). Demande à {prénom du gérant}. » ; `{verbe}` vient
    de la phrase de la case (§ 2.5), jamais du code. Aucune ligne de journal pour un refus (ce serait du bruit) ; un compteur `DROITS_REFUS`
@@ -480,6 +536,10 @@ sans effet.
    dans Équipe. » avec « Se déconnecter » en mode application.
 5. **Mon entreprise en lecture seule** : les cartes restent, sans « Modifier » ; chaque panneau s'ouvre en lecture (champs désactivés,
    pas d'« Enregistrer ») avec la phrase de 1.9.
+7. ⟲B2 **Une catégorie partielle se dit.** Quand la personne a `v` et au moins une, mais pas toutes, des cases `c m s` de la catégorie de l'écran, le pied de l'écran (`.gris petit`, `role="note"`, une ligne, posé une seule fois
+   par `rendre()` sur les écrans dont la route est dans `ROUTE_DROIT`) écrit : « Dans cette rubrique, ton compte ne peut pas {créer, modifier, supprimer : les verbes manquants, deux au plus}. Pour changer ça, demande à {prénom du premier administrateur actif}. »
+   Sans elle, la secrétaire à qui on a retiré « Supprimer » cherche la corbeille et ne la trouve pas, sans un mot. Sonde `droits-partiel.js` : pour chaque combinaison `v+c`, `v+m`, `v+s`, `v+c+m`… d'une catégorie, la ligne existe et nomme EXACTEMENT les verbes
+   absents ; avec les trois cases ou aucune (les deux cas extrêmes), elle n'existe pas (le point 2 parle à la place).
 6. Les boutons que la garde refuserait mais qui servent aussi à autre chose (une ligne qui ouvre la fiche ET modifie) ne sont jamais retirés
    : la table classe le VERBE, pas l'élément ; l'élément garde sa navigation (`data-go`).
 
@@ -496,6 +556,15 @@ sans effet.
   la table dit `{cat, x}` ou `lecture`. S'il faut un droit que la personne n'a pas : `ev.stopImmediatePropagation(); ev.preventDefault();`
   puis le toast du § 2.8. La personne reçoit alors l'événement AVANT les 138 écouteurs de `click` de `document` (74 sont déjà en capture, mais
   sur `document`, après `window`).
+- ⟲O13 **Un refus ne laisse pas l'écran mentir.** `preventDefault` sur un `change` ou un `input` ne défait RIEN : la case est déjà cochée, la valeur déjà tapée, alors que la donnée n'a pas bougé (les cases des droits `data-eqd`, `data-skvalid`…).
+  La garde écoute donc AUSSI `click` sur les cases à cocher et les boutons radio (seule étape où `preventDefault` empêche la coche) et `mousedown`/`keydown` sur les `<select>` ; et tout refus d'un `change`/`input` qui a quand même eu lieu rend à
+  l'élément sa valeur d'avant (`checked = !checked`, `value = defaultValue`) et, dans le doute, appelle `rendre()`. Sonde `droits-restauration.js` : après chaque refus, l'état VISIBLE de l'élément égale la donnée (population : une case, un champ, un
+  `<select>`, une case de droit).
+- ⟲O4 **Le classement se fait par FAMILLE, pas par verbe.** 236 familles, 1 041 verbes au 17 novembre (`gestes.js`) ; les autres voies en ajoutent chaque jour. La table (`GESTES`, un fichier lisible) dit : famille → catégorie ; verbes de LECTURE par motifs
+  nommés (`fiche`, `ouvrir`, `voir`, `filtre`, `onglet`, `nav`, `sel`, `pdf`, `tout`, `plus`, `aide`…) ; exceptions `c` et `s` listées ; tout le reste d'une famille = `m`. **Un verbe inconnu d'une famille connue suit la famille. Une famille inconnue
+  prend la catégorie de l'écran ouvert (`ROUTE_DROIT[route]`) et n'est refusée que si le verbe a la FORME d'une écriture** (le même motif `ECRITURE_RE` que `gestes.js` et que la table : UNE définition) ; sinon elle passe — refuser tout ce qu'on ne connaît pas
+  interdirait d'ouvrir une fiche ou de filtrer à quelqu'un qui n'a que « Voir » sur un écran qu'une autre voie vient d'enrichir. Dans les deux cas `droits-table.js` tombe en NOMMANT la famille ou le verbe, et **il entre dans les contrôles de CHAQUE
+  poussée dès D3** (§ 4) : la complétude est une garantie de la sonde, pas du moment où la table a été faite.
 - **Laissés passer** (sinon la garde avale du légitime : le piège connu de `stopPropagation` dans l'atelier) : `data-ferme`, `data-retour`,
   `data-pretour`, `data-go`, les champs de recherche et les filtres, `data-modetheme`, `data-nv`, `data-menu`, `data-tab`, tout élément dans
   `#pal`, `#hl-ecran`, `.rl-bande`.
@@ -508,7 +577,8 @@ sans effet.
   instruction de `poser()`.
 - **Jamais de garde dans `ouvrirPanneau` ni `foOuvrir`** : elles ouvrent aussi bien des lectures.
 
-**Couche 3 : l'écran.** `droitsNettoyer()` (§ 2.8). Ne protège pas ; ne doit jamais retirer ce que la garde laisse passer.
+**Couche 3 : l'écran.** `droitsCss(personne)` (§ 2.8, ⟲O14). Ne protège pas ; ne doit jamais retirer ce que la garde laisse passer (la sonde `droits-gestes-garde.js` joue AUSSI le sens inverse : pour chaque bouton caché, la garde le refuserait ; pour chaque
+geste que la garde refuse, le bouton est caché ou sans attribut nommé).
 
 **Couche 4 : portes de fonction (règle du dépôt : PREMIÈRE instruction).** `poser()`, `stkAppliquer()` (aussi le point de `atelier`),
 `envoyerFacture()` (aussi la garde SIRET), `payer()`, `factureDepuis()`, `produitCreer`/`prCreer` (à confirmer après `materiel`), et les
@@ -520,7 +590,7 @@ sans `c`, refuse d'enregistrer sans `m`, et ses « supprimer » sans `s` (modifi
 `crm.c`/`inter.c`/`ventes.c` (« créer une intervention, un devis, un client depuis un courriel ») ; la voie `mail` écrit le module : on lui
 LAISSE le message, on ne touche pas `prototype-courrier.js`. Palette « Faire » (§ 2.6).
 
-**Les ~40 décisions « au nom du rôle » à convertir** (étude § 2.4, relues) : `axLect()` → `!peut('achats','m')` ; `cbRO()`, `cbPatron()`
+**Les ~40 décisions « au nom du rôle » à convertir** (étude § 2.4, relues) : `axLect()` → `!peut('achats','m')` (⟲ 17947 : `ROLE === 'gestion'` aujourd'hui, donc le Responsable lirait seulement : avec la case il décide) ; `cbRO()`, `cbPatron()`
 (carte des box) → `stock.m` ; `cxEstPatron()` → `admin.m` (§ 2.5 bis) ; les sept `ROLE !== 'gestion'` qui masquent « Voir au planning » et
 « Planifier » → `planif.v` / `planif.m` ; `rcCreer` et la palette (§ 2.6) ; `mabarre` (barre personnalisée) → `admin.v` ; l'attribution `aComme !== 'marc'`
 des absences → `peut('planif','m')`. **Règle de tri pour le reste** (`grep -n "ROLE ===\|ROLE !==\|ROLE=="` : environ 125 lignes, dont `tech` 52,
@@ -540,6 +610,9 @@ ligne, fonction, droit ou forme, case) AVANT de coder.
 4. les écritures directes se recensent (`grep -n "'marc'"`, 275 occurrences ; la plupart sont des données de démonstration) et chaque
    ACTEUR devient `acteur()` ; les données de démonstration restent. **Ce lot passe AVANT les gardes** : sinon le journal dit « Marc » pour
    ce que Julie a fait dès le premier geste permis.
+⟲O8 **Le recensement distingue TROIS emplois de `'marc'`** (266 occurrences au 17 novembre) : (a) la donnée de démonstration (le client de Marc, ses habilitations : reste) ; (b) l'ACTEUR d'un geste (devient `acteur()`) ;
+(c) **le TEXTE QU'ON LIT** — « Bonjour Marc » (5152) est écrit en dur dans l'Accueil, que le Responsable et la coque « gestion » ouvriront : mesuré le 17 novembre, l'Accueil ouvert par la coque « gestion » dit « Bonjour Marc ». Le (c) prend `prenom(acteur())`
+(ainsi que les toasts et les phrases qui nomment l'acteur). `rlQui` (11340) et `rlQuiMenu` lisent `acteur()` : UN chemin, plus un `ROLES[ROLE].qui` à côté. La sonde `droits-acteur.js` ajoute : l'Accueil de Julie ne contient pas « Marc » comme salutation.
 Preuve (sonde) : en tant que Julie, jouer cinq gestes (créer un client, modifier un client, créer un devis, noter un encaissement, envoyer
 une facture) ; le JSON de `JOURNAL`, `MVTS`, `ACHATS`, `DEM_ACHAT` après moins avant ne contient AUCUN `'marc'` dans les enregistrements neufs ;
 population comptée (au moins cinq lignes neuves) avant de conclure.
@@ -548,7 +621,7 @@ population comptée (au moins cinq lignes neuves) avant de conclure.
 
 - Les cases d'un administrateur sont désactivées (déjà) ; le dernier administrateur actif ne se désactive pas (déjà).
 - **On ne règle pas ses propres droits** : `eqd`, `eqs`, `eqprof`, « Travaille sur le terrain » sont désactivés sur sa propre fiche
-  (`p.k === SESSION`), avec la phrase du § 2.4. Un administrateur peut ouvrir sa fiche, pas la changer.
+  (`p.k === acteur()` ⟲O8 : `SESSION` est nul dans le prototype nu avec la bande « Tester en tant que »), avec la phrase du § 2.4. Un administrateur peut ouvrir sa fiche, pas la changer.
 - **On ne donne pas un droit qu'on n'a pas** (`droitsBorner`) : un non-administrateur qui aurait `admin › Modifier` ne peut cocher que ce
   que sa propre fiche porte ; il ne peut pas toucher la fiche d'un administrateur ; il ne peut pas se nommer administrateur (le profil
   Administrateur n'est déjà pas dans la liste).
@@ -563,31 +636,32 @@ Notation `v c m s` (1 = oui). **Les cases non listées valent 0000.** « T » = 
 | Catégorie | Administrateur | Responsable | Secrétariat | Technicien | Comptable |
 |---|---|---|---|---|---|
 | `planif` | 1111 | 1111 | 0000 | 1101 | 0000 |
-| `inter` | 1111 | 1111 | 1110 | 1010 | 0000 |
+| `inter` | 1111 | 1111 | 1110 | **1011** (était 1010 ; ⟲O6 : Supprimer = retirer ce qu'il a lui-même mis dans sa fiche : photo, pièce, note, signature à refaire) | 0000 |
 | `crm` | 1111 | 1111 | 1110 | 1000 | 0000 |
 | `ventes` | 1111 | 1111 | 1110 | 0000 | 0000 |
-| `compta` | 1111 | 1000 | **1110** (était 1000) | 0000 | 1111 |
-| `stock` | 1111 | 1111 | **0000** (était 1110) | **1010** (était 1000) | 0000 |
+| `compta` | 1111 | 1000 | **1110** (était 1000 ; ⟲ le bureau « gestion des factures » note les paiements, relance, saisit des dépenses : aujourd'hui rien n'est gardé, elle le fait ; 1000 lui retirerait ce que Justin a vu et validé — doute 11) | 0000 | 1111 |
+| `stock` | 1111 | 1111 | **1110** (inchangé ⟲O1 : Stock et Fournisseurs, depuis la fusion de Matériel ; Dépôts, Accepter, réglages et prix de vente restent fermés par `s`, § 2.6 bis ; pour revenir aux sept lignes de MENU-FINAL : 0000) | **1010** (était 1000) | 0000 |
 | `temps` | 1111 | 1111 | **0000** (était 1000) | **1110** (était 1100) | 0000 |
 | `com` | 1111 | 1111 | **0000** (était 1110) | **0000** (était 1100) | 0000 |
 | `achats` | 1111 | 1111 | **1000** (était 1110 ; la gestion lit, ne décide pas : `axLect` d'aujourd'hui) | **1111** (était 1100 : sa demande, sa note, la modifier, l'annuler) | 0000 |
 | `admin` | 1111 | 1000 | 0000 | 0000 | 0000 |
 | T (terrain) | non | non | non | **oui** | non |
-| `prix` | oui | oui | non | non | non |
-| `atelier` | oui | oui | non | non | non |
+| `prix` | oui | oui | **oui** (inchangé ⟲O1 : Matériel montre au bureau le prix d'achat et la valeur du stock) | non | non |
+| `atelier` | oui | oui | **oui** (inchangé) | non | non |
 | `valstock` | oui | oui | non | non | non |
-| `commander` | oui | oui | non | non | non |
+| `commander` | oui | oui | **oui** (inchangé ⟲O1 : le bureau prépare et envoie les commandes, « 3 clics » de Matériel) | non | non |
 | `corrpt` | oui | oui | non | non | non |
 | `comptes` | oui | non | non | non | non |
 | `tout` | (retiré) | | | | |
 
-Menus déduits (rejoués par `scratchpad/proto-final/refonte/entreprise-droits-outils/derive.js`, à relancer sur la table finale) :
+Menus déduits (⟲ rejoués par `scratchpad/proto-final/refonte/entreprise-droits-outils/derive-table-finale.js` : il applique `ROUTE_DROIT`, `ACTE_DROIT` et CE tableau tels qu'ils sont écrits ici et rend 12 ✓ · 0 ✗ ; trois mutations de la table sur quatre le font tomber, la quatrième — une Boîte mail donnée au technicien — est neutralisée par la FORME, ce qui est voulu ; `derive.js` rejoue les profils d'AVANT et ne sert plus) :
 - **Administrateur** : les 19 lignes d'aujourd'hui + Mon entreprise = **20** (groupe Personnel : Équipe, Temps de travail, Véhicules, Mon entreprise).
 - **Responsable** : les mêmes 20, Équipe, Mon entreprise, Historique et Comptabilité en lecture seule ; pas de paie ; pas d'invitation.
-- **Secrétariat** : Mes tâches, Interventions, Clients, Devis, Contrats, Comptabilité, Achats et frais = **les sept validés**. Elle perd ce que sa fiche promettait
-  sans que le menu le donne (Boîte mail, Stock, Temps de travail) : « Le rôle bureau n'a pas Stock / Produits alors que sa fiche le promet » est résolu par la fiche, pas par le menu.
+- **Secrétariat** (⟲O1) : Mes tâches, Interventions, Clients, Devis, Contrats, Comptabilité, Achats et frais, **Stock, Fournisseurs, matériel & produits = NEUF lignes** : les sept validés + les deux de Matériel (voir § 2.1). Elle perd ce que sa fiche promettait
+  sans que le menu le donne (Boîte mail, Temps de travail) : c'est le seul écart qui se résout par la fiche. Stock ne se retire plus : le constat « Le rôle bureau n'a pas Stock / Produits alors que sa fiche le promet » est résolu dans l'autre sens, par le lot Matériel.
+  Son pied de page (§ 2.8 point 7) dit « ton compte ne peut pas supprimer » sur Stock et Interventions, « ne peut pas créer, modifier, supprimer » sur Planning s'il l'avait ouvert, etc.
 - **Technicien** : Ma journée, Mes tâches, Mes frais, Mes heures, Mon camion, Mes congés (+ Registre sanitaire en 3D) = **les six validés**.
-  Sa fiche cesse de promettre une Boîte mail et un Stock qu'il n'a pas.
+  Sa fiche cesse de promettre une Boîte mail et un Stock (hors « Mon camion ») qu'il n'a pas.
 - **Comptable** : inchangé (coque `compta`, « ouvert depuis sa fiche Équipe »).
 - **Karim** (`tech*`) : même menu que Sophie ; sa valeur `valstock` (case sans écran pour un terrain) est mise à 0 dans les données de démonstration,
   `atelier` reste ; « Chef d'équipe » est son nom, pas un droit (§ 7, doute 2).
@@ -620,21 +694,22 @@ rythme du menu. À remesurer sur les neuf profils avec la police de chacun ; si 
 
 **En-tête de l'écran**
 - surtitre « Argent » ; titre « Achats et frais » ;
-- sous-titre du gérant (`axLect()` faux) : **« Ce que ton équipe te demande de payer : du matériel et ses notes de frais. »** (74 signes ; à ≤ 3 lignes sur
-  iPhone) ;
-- sous-titre en lecture seule (`!peut('achats','m')`) : **« Du matériel et des notes de frais demandés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide. »** ;
+- sous-titre du gérant (`axLect()` faux) : ⟲B1 **« Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser. »** (72 signes ; à ≤ 3 lignes sur iPhone). L'ancienne phrase (« …du matériel et ses notes de frais ») était
+  ambiguë (« ses » : l'équipe, au singulier) et promettait « ce que ton équipe te demande de payer » devant des chiffres qui n'en étaient pas ;
+- sous-titre en lecture seule (`!peut('achats','m')`) : **« Le matériel demandé et les frais avancés par l’équipe. Tu peux les regarder ; c’est le gérant qui décide. »** ;
 - « ＋ Demande » : sur téléphone, il passe SOUS le sous-titre, pleine largeur utile (il ne prend plus la moitié de la ligne) ; masqué en lecture
   seule (c'est la case `achats.c`, plus `ROLE === 'gestion'`) ;
-- la phrase « Les factures des fournisseurs, leur paiement et les justificatifs sont dans la Comptabilité. » quitte le sous-titre : elle devient la
-  légende des deux derniers chiffres (ci-dessous).
+- la phrase « Les factures des fournisseurs, leur paiement et les justificatifs sont dans la Comptabilité. » quitte le sous-titre : ⟲B1 elle devient le TITRE du bloc de deux lignes « Ça se règle dans la Comptabilité » (ci-dessous).
 
-**Quatre chiffres** (mêmes boutons `kpi`, même grille ; l'ordre sépare « ce que je décide ici » de « ce qui est ailleurs ») :
+⟲B1 **Deux chiffres, puis deux lignes** (au lieu de quatre chiffres : deux d'entre eux n'étaient pas des demandes de l'équipe et menaient AILLEURS, dans une rangée dont le titre promet « ce que ton équipe demande » ; un gérant de 55 ans prend un
+chiffre pour ce qu'il est écrit et « 896 € de factures fournisseurs » n'est pas une demande). Les deux premiers sont les `kpi` actuels (même grille, deux colonnes) :
 1. `{n}` · « demande{s} de matériel à décider{ · {m} à acheter} » (`data-ac="onglet|demandes"`) — lecture seule : « demande{s} en attente… » ;
-2. `{n}` · « note{s} de frais à valider » (`data-ac="onglet|notes"`) ;
-3. `{eur}` · « de factures fournisseurs à payer{ · {r} en retard} · à voir dans la Comptabilité › » (`data-cx="sec|factures|achats|traiter"`) ;
-4. `{n}` · « achat{s} sans facture · à voir dans la Comptabilité › » (`data-cx="sec|factures|achats|sanspiece"`).
-La visite parlée (`immChap('achats', …)`) dit déjà « quatre chiffres » ; elle est mise à jour pour l'ordre (3 demandes, 3 notes, 896 euros,
-4 achats), pas pour le nombre.
+2. `{n}` · « note{s} de frais à valider » (`data-ac="onglet|notes"`).
+Dessous, un `.groupe` « Ça se règle dans la Comptabilité » et **deux `ligne-clic`** (la grammaire des liens de « Mon entreprise », jamais un chiffre déguisé en porte) :
+3. « {eur} de factures fournisseurs à payer{ · {r} en retard} › » (`data-cx="sec|factures|achats|traiter"`) ;
+4. « {n} achat{s} sans facture › » (`data-cx="sec|factures|achats|sanspiece"`).
+Un gérant qui n'a pas la Comptabilité (`compta › Voir` fermée : un Responsable l'a, un Secrétariat l'a) ne voit pas ce bloc (la table de navigation dit déjà si la porte s'ouvre). La visite parlée (`immChap('achats', …)`) dit « quatre chiffres » : elle devient
+« deux chiffres (3 demandes, 3 notes) et deux portes vers la Comptabilité (896 euros à payer, 4 achats sans facture) » ; la sonde `achats-lisible.js` compte 2 chiffres et 2 lignes.
 
 **Onglets** : « Demandes de matériel » (court téléphone : « Matériel ») · « Notes de frais » (court : « Frais »). Les valeurs de `acOnglet`
 (`demandes`, `notes`) ne changent pas.
@@ -655,6 +730,9 @@ d’un ticket » seulement s'il fait doublon avec l'aide), `immChap('achats', �
 juste ; l'ordre des chiffres), `NV_PLACE` (« Mes demandes et Brouillon → Achats et frais › « Demandes » » : devient « « Demandes de matériel » »),
 `palEntrees` (`Achats et frais`, avec le mot « demandes » dans `m:` pour que « demande » le trouve), aide de page.
 
+**Doute pour Justin (§ 7, n° 9) : le NOM.** Justin a écrit : « Achat et frais. Ça, je sais pas ce que c'est. » Le nom reste (décidé le 16 novembre, la ligne grise « Demandes de l'équipe » l'explique), mais c'est la première chose qu'un gérant lit : l'alternative
+chiffrée est « Demandes de l'équipe » COMME nom de la ligne, « Achats et frais » disparaissant du menu et des visites. Coût : la cascade ci-dessous, plus les adresses qui ne changent pas (`#achats`) ; aucun code nouveau.
+
 **À contrôler au navigateur (étape 7)** : la ligne grise du menu tient sur 258 px à l'ordinateur et dans la feuille « Menu » à 320, 360, 390 px ;
 le chiffre « 896 € » ne se coupe pas ; les onglets tiennent sur 320 px ; en lecture seule, aucun bouton de décision n'est dessiné (§ 2.8).
 
@@ -664,26 +742,27 @@ le chiffre « 896 € » ne se coupe pas ; les onglets tiennent sur 320 px ; en 
 
 Étape 4 (« appliquer Mon entreprise et Achats et frais ») : lots **E1 à E6**. Étape 5 (« appliquer les droits ») : lots **D1 à D7**.
 D1 et D2 peuvent partir dès l'étape 4 terminée ; **D3 à D5 avant D6 ; D6 en dernier**, après fusion de `materiel`, `vehtemps`, `mail`.
-Chaque lot passe `compiler-pages.js`, `verifier-syntaxe.js`, les bancs 835, 836, 837, 1008, 2994 et `verif-secrets.sh` avant la poussée.
+Chaque lot passe `compiler-pages.js`, `verifier-syntaxe.js`, les bancs 835, 836, 837, 1008, 2994 et `verif-secrets.sh` avant la poussée — et, **à partir de D3, `node scratchpad/proto-final/sondes/droits-table.js`** (⟲O4 : les autres voies écrivent
+des `data-*` neufs en parallèle ; sans ce contrôle à CHAQUE poussée, la complétude de la table n'est vraie que le jour où elle a été faite). **Avant D2, rejouer `refonte/entreprise-droits-outils/bureau-toutes-cases-avant.js`** (déjà écrite et passée le 17 novembre, 20 ✓ · 0 ✗, § 5).
 
 | Lot | Contenu | Dépend de |
 |---|---|---|
-| **E1** | `ENTREPRISE` complété (`site`, `bic`, `assureur`, `assurNum`, `assurc`, `assurZone`, `logo`, `patron`) ; `entrepriseManque()` ; `logoEnt()` et ses 19 remplacements ; renommage `assur`/`zone` ; correction de `opdDonnees` si besoin ; filtre `< > "` | rien |
+| **E1** | `ENTREPRISE` complété (`site`, `bic`, `assureur`, `assurNum`, `assurc`, `assurZone`, `logo`, `patron`) ; `entrepriseManque()` ; `logoEnt()` et ses 17 remplacements (⟲O11) ; `PAIE_CAB` en accesseurs sur `CP_EXPERT` (⟲O12) ; renommage `assur`/`zone` ; correction de `opdDonnees` si besoin ; filtre `< > "` | rien |
 | **E2** | route et ligne `entreprise` (`CATS`, `vues()`, `IC`, `MB_COURT`, `rlPastille`), page : bandeau, cinq cartes, six liens ; les cinq panneaux (champs, validations, messages exacts du § 1.4) ; `cxFicheLegale` agrandie ; lecture seule | E1 |
-| **E3** | garde de la facture (trois portes), retenue « client sans e-mail », nouveau texte de « Comment ça marche », toasts « Compléter » | E2 |
+| **E3** | ⟲O5 garde de la facture (UNE porte `envoyerFacture` qui rend un booléen, quatre appelants qui le lisent : `envoyer`, `toutValider`, `terminer`, `apercuEnvoi`), retenue « client sans e-mail », nouveau texte de « Comment ça marche », toasts « Compléter » | E2 |
 | **E4** | phrases « Paramètres » (§ 1.8) sauf l'atelier ; visite « avenir » ; aide des créneaux liée à `PARAMS` | E2 |
-| **E5** | « Achats et frais » (§ 3) : menu, en-tête, quatre chiffres, onglets, aide, vides, côté technicien, cascade | rien |
+| **E5** | « Achats et frais » (§ 3) : menu, en-tête, deux chiffres et deux lignes (⟲B1), onglets, aide, vides, côté technicien, cascade | rien |
 | **E6** | atelier : bouton « Ouvrir Mon entreprise » (`opd_fermer {motif:'entreprise'}` + parent) ; **coordonné avec la voie compositeur, fait en dernier** | E2, compositeur |
-| **D1** | `acteur()`, `journalAjout` normalisé, `moi()`/`T_MOI`, écritures directes ; tri `refonte/entreprise-droits-roles.md` | rien |
-| **D2** | `ROUTE_DROIT`, `droitVoit`, `peut`, `sessionRole` (terrain), `rlPermis`, `rlLignes` (personne en paramètre), `LIGNES_TERRAIN`, `mbRetenue`/barre, `rlOuverture`, `sessionVue`, `rcCreer`/`palEntrees`/`RC_LISTE`, `drRefuse` supprimée, case « Travaille sur le terrain » ; profils types ; données de démonstration ; fiche : phrases « voit / ne voit pas », libellés, retraits du § 2.13, grille repliée et générée | E2 (la route existe) |
-| **D3** | table des gestes `GESTES` (générée par `gestes.js`, relue), garde en capture, refus, `droitsNettoyer`, lecture seule, écran vide ; `comptes` | D1, D2 |
-| **D4** | portes de fonction (`poser`, `stkAppliquer`, `envoyerFacture`, `payer`, `factureDepuis`), `cxEstPatron` → `admin.m`, `axLect` → `achats.m`, `cbRO`/`cbPatron`, les conversions du tri | D3 |
+| **D1** | `acteur()`, `journalAjout` normalisé, `moi()`/`T_MOI`, `rlQui`/`rlQuiMenu` lisent `acteur()`, écritures directes ET texte lu (« Bonjour Marc », ⟲O8) ; tri `refonte/entreprise-droits-roles.md` | rien |
+| **D2** | `ROUTE_DROIT`, `droitVoit`, `peut`, `sessionRole` (terrain), `rlPermis`, `rlLignes` (personne en paramètre), `LIGNES_TERRAIN`, `mbRetenue`/barre, `rlOuverture`, `sessionVue`, `rcCreer`/`palEntrees`/`RC_LISTE`, `drRefuse` supprimée, ⟲O3 les neuf écrivains de `routes` et `LIGNES_ROLE.gestion.push` supprimés, `nvVoit`/`mbxAcces`/`sessionVue` sur `droitVoit`, ⟲O2 `ACTE_DROIT` (`stockAccepter`, `stockReglages`, `produitsPrixVente`, `boxes`), ⟲O7 `p.terrain` posé et `eqxTerrain` seule lecture (`EQX_BASE` et treize listes supprimés), case « Travaille sur le terrain » ; profils types ; données de démonstration ; fiche : phrases « voit / ne voit pas », libellés, retraits du § 2.13, grille repliée et générée | E2 (la route existe) |
+| **D3** | table des gestes `GESTES` PAR FAMILLE (⟲O4 : 236 familles ; amorcée par `gestes.js`, relue à la main, `ECRITURE_RE` unique), garde en capture avec restauration des écrans (⟲O13), refus, `droitsCss` (feuille de style, ⟲O14), lecture seule, pied « catégorie partielle » (⟲B2), écran vide ; `comptes` ; **dès D3, `droits-table.js` entre dans les contrôles de chaque poussée** | D1, D2 |
+| **D4** | portes de fonction (`poser`, `stkAppliquer`, `envoyerFacture` — ⟲ E3 y a posé la garde d'IDENTITÉ : D4 y ajoute la case `ventes › Modifier` AVANT elle, deux premières instructions dans cet ordre, le booléen de retour est le même —, `payer`, `factureDepuis`), `cxEstPatron` → `admin.m`, `axLect` → `achats.m`, `cbRO`/`cbPatron`, les conversions du tri | D3 |
 | **D5** | ponts (atelier : `opd_role` étendu côté prototype ; courrier : message de droits) | D3 |
 | **D6** | `corrpt`, `atelier`, `valstock`, `commander`, `prix` ; gardes des rubriques refaites par `materiel`, `vehtemps`, `mail` | D3, fusion des voies |
-| **D7** | sondes (§ 5), mutations, réécriture des sondes `menu-*` et `atelier-roles.js` | D2 à D6 |
+| **D7** | sondes (§ 5), mutations, réécriture des **dix-sept** sondes qui lisent le menu d'une personne (⟲O15, § 5) | D2 à D6 |
 
 **Fonctions touchées hors de leur voie : le moins de lignes possible** (rappel de la consigne) : D2 réécrit `rlPermis`, `rlLignes`,
-`sessionRole`, `drRefuse` (lignes ~11340 et ~22130) ; D3 pose un module neuf ; aucune ligne de `vueStock`, `vueVehicules`, `vuePointage`,
+`sessionRole`, `drRefuse` (lignes ~11340 et ~22455 au 17 novembre) ; D3 pose un module neuf ; aucune ligne de `vueStock`, `vueVehicules`, `vuePointage`,
 `prototype-courrier.js` avant D6. **Si une voie en cours a déjà posé sa propre garde** (par exemple `axLect`), on la remplace, on ne l'empile pas.
 
 ---
@@ -699,9 +778,9 @@ contrôle tombe ; captures hors dépôt, REGARDÉES. Aucune sonde ne vise teamop
 | Sonde | Promesse jouée |
 |---|---|
 | `entreprise-structure.js` | la ligne existe pour Marc, pas pour Sophie (terrain) ; cinq cartes + six liens ; état « Complète » ; aucun débordement (largeur du profil) à 320, 360, 390, 820, 1280, 1440 ; cibles ≥ 44 px au doigt ; **valeurs longues** (nom de 60, adresse de 80, IBAN de 34) |
-| `entreprise-champs.js` | pour CHAQUE champ : une valeur juste s'enregistre ; une valeur fausse est refusée avec le message EXACT ; `< > "` refusés dans tous les champs texte (aucun élément injecté : le DOM relu) ; l'adresse relue se redécoupe comme `opdDonnees` |
-| `entreprise-destinations.js` | nom, adresse, SIRET, TVA, téléphone, e-mail, IBAN, BIC : changés, puis lus dans la facture, le devis, le contrat, le bilan, le bon de paie, l'espace client (texte du PDF) ET dans `opdDonnees()` ; assureur / contrat / zone : dans le pied des PDF ET dans le bloc identité de l'atelier ; horaires : créneaux du planning ; tarif, minimum, zones : une facture « au temps » recalculée ; logo : image dans **les 19 gabarits** (compté) ; expert-comptable : « Envoyer à… » ET la paie parlent au même cabinet |
-| `entreprise-garde-facture.js` | SIRET vidé (population : 3 portes) : `envoyerFacture`, `ACTIONS.envoyer`, `terminer` n'envoient pas ; SIRET rempli : tout part ; devis et contrat ne sont pas bloqués mais préviennent ; client sans e-mail retient ; le message contient « Compléter » qui ouvre la bonne carte |
+| `entreprise-champs.js` | pour CHAQUE champ : une valeur juste s'enregistre ; une valeur fausse est refusée avec le message EXACT, écrit SOUS le champ (⟲B6) ; `< > "` refusés dans tous les champs texte (aucun élément injecté : le DOM relu) ; l'adresse relue se redécoupe comme `opdDonnees` ; ⟲O10 le SIRET de démonstration (ne passant pas la clé) s'enregistre AVEC l'avertissement, la fiche reste « Complète » |
+| `entreprise-destinations.js` | nom, adresse, SIRET, TVA, téléphone, e-mail, IBAN, BIC : changés, puis lus dans la facture, le devis, le contrat, le bilan, le bon de paie, l'espace client (texte du PDF) ET dans `opdDonnees()` ; assureur / contrat / zone : dans le pied des PDF ET dans le bloc identité de l'atelier ; horaires : créneaux du planning ; tarif, minimum, zones : une facture « au temps » recalculée ; logo : image dans **les 17 gabarits** (compté avant de conclure, ⟲O11) ; expert-comptable : « Envoyer à… » ET la paie parlent au même cabinet |
+| `entreprise-garde-facture.js` | SIRET vidé (population : **4 appelants**, ⟲O5) : `envoyer`, `toutValider`, `terminer`, `apercuEnvoi` n'envoient pas et leur toast ne ment pas (« Facture envoyée » absent après un refus ; « 0 facture envoyée » pour `toutValider`, dit une seule fois) ; le refus de `terminer` est silencieux pour un terrain ; SIRET rempli : tout part ; devis et contrat ne sont pas bloqués mais préviennent ; client sans e-mail retient ; le message contient « Compléter » qui ouvre la bonne carte |
 | `entreprise-liens.js` | chaque lien mène au bon écran ET au bon panneau, en tant que Marc ; absent pour qui n'a pas la case ; « Compléter ma fiche légale » de Conformité ouvre le MÊME panneau |
 | `entreprise-lecture-seule.js` | en tant que le Responsable : cartes lisibles, aucun « Enregistrer », champs désactivés, la phrase du 1.9 ; une écriture forcée (clic synthétique, `ev.dispatchEvent`) est avalée |
 | `entreprise-phrases.js` | recense `grep "Paramètres"` : plus aucune phrase qui renvoie à un écran absent (hors la colonne « avant » de `NV_PLACE`) ; « Comment ça marche » ne promet que ce qui existe |
@@ -711,7 +790,7 @@ contrôle tombe ; captures hors dépôt, REGARDÉES. Aucune sonde ne vise teamop
 |---|---|
 | `droits-table.js` | **complétude** : recense tous les `data-<famille>="verbe\|…"` du fichier, les clés de `ACTIONS` et `ACTIONS_CREA` ; chacun est dans la table (écriture c/m/s ou lecture) ; population comptée ; tout verbe non classé fait tomber le contrôle et est nommé |
 | `droits-fiche.js` | la fiche d'une personne : « Travaille sur le terrain », phrases « voit / ne voit pas » (égales à `rlLignesDe`), grille repliée, cases sans geste absentes, libellés ; téléphone : la feuille de quatre lignes par catégorie ; nuit ; aucun débordement |
-| `droits-menus.js` | pour les cinq profils et chaque forme : le menu (lignes, ordre, groupes), la barre du bas, la feuille « Menu », la recherche (« Aller à »), les raccourcis ⌘1-9, l'ouverture, une adresse tapée : **Julie = les 7 validées, Sophie/Karim = les 6 validées, Marc = 20, Responsable = 20 (lecture)** ; Responsable ≠ Secrétariat |
+| `droits-menus.js` | pour les cinq profils et chaque forme : le menu (lignes, ordre, groupes), la barre du bas, la feuille « Menu », la recherche (« Aller à »), les raccourcis ⌘1-9, l'ouverture, une adresse tapée : **Julie = les 9 de la branche (les 7 validées + Stock et Fournisseurs, ⟲O1), Sophie/Karim = les 6 validées, Marc = 20, Responsable = 20 (lecture)** ; Responsable ≠ Secrétariat |
 | `droits-cases-voir.js` | pour CHAQUE catégorie (10) : décocher « Voir » → la ou les lignes disparaissent du menu, de la barre, de la recherche, des raccourcis, de l'adresse tapée (message `rlRefus`), des liens de fiche et des notifications ; recocher → elles reviennent ; population : lignes avant/après comptées |
 | `droits-gestes-garde.js` | **la garde, sur TOUTE la table** : pour chaque `famille\|verbe` d'écriture, créer un bouton portant l'attribut, le toucher en tant que quelqu'un à qui la case manque : le compteur d'écouteurs-témoins reste à 0 et `DROITS_REFUS` monte de 1 ; en tant que quelqu'un qui l'a : le témoin se déclenche. Une personne par catégorie (`v` seul / `v+c` / `v+m` / `v+s`), populations comptées |
 | `droits-gestes-reels.js` | un geste RÉEL de chaque catégorie, de bout en bout, avec et sans la case : créer un client, modifier un client, envoyer un devis, noter un encaissement, créer une intervention, terminer, poser au planning (glisser, au doigt et à la souris), décider une demande d'achat, valider une note de frais, inviter une personne, modifier une fiche ; la donnée change ou ne change pas (état relu), le bouton est absent ou présent, le toast du refus est le bon |
@@ -720,14 +799,17 @@ contrôle tombe ; captures hors dépôt, REGARDÉES. Aucune sonde ne vise teamop
 | `droits-soi-meme.js` | on ne règle pas ses propres droits ; on ne donne pas ce qu'on n'a pas ; la fiche d'un administrateur ne se change pas ; le dernier administrateur ne se désactive pas ; un clic synthétique sur `eqd` sans `admin.m` est avalé |
 | `droits-specifiques.js` | `comptes`, puis (D6) `corrpt`, `atelier`, `valstock`, `commander` : chacun, coché et décoché, sur les gestes nommés au § 2.7 ; `prix` : la sonde d'oracle (la valeur d'achat d'un produit connu n'apparaît nulle part dans le texte, sur CHAQUE écran, pour la personne sans `prix`) |
 | `droits-formes.js` | une personne non terrain n'a jamais les cinq écrans personnels (`#mesheures` tapé → refus) ; un terrain n'a jamais un écran d'équipe ; changer « Travaille sur le terrain » change la coque, le menu et la barre à l'instant, sans recharger |
-| `droits-bureau-toutes-cases.js` | **la coque `gestion` n'a jamais ouvert Stock, Fournisseurs, Dépôts, Boîte mail, Équipe, Temps, Véhicules, Planning, Absences, Accueil, Statistiques, Historique** : une personne non terrain qui a TOUTES les cases ouvre chaque route (0 exception, 0 écran vide) ; à jouer AVANT le câblage (D2), il peut révéler des écrans à réparer |
+| `droits-bureau-toutes-cases.js` | **la coque `gestion` n'a jamais ouvert Stock, Fournisseurs, Dépôts, Boîte mail, Équipe, Temps, Véhicules, Planning, Absences, Accueil, Statistiques, Historique** : une personne non terrain qui a TOUTES les cases ouvre chaque route (0 exception, 0 écran vide) ; à jouer AVANT le câblage (D2), il peut révéler des écrans à réparer. ⟲O18 **Version « avant » déjà écrite et jouée le 17 novembre** : `refonte/entreprise-droits-outils/bureau-toutes-cases-avant.js` (19 routes, Julie contre Marc, 20 ✓ · 0 ✗ : aucune exception ; seuls écarts, nommés : « Mes tâches », la Comptabilité dans son cadre plein écran, la Boîte mail chargée en différé ; défaut trouvé : l'Accueil dit « Bonjour Marc », § 2.10) ; la version `droits-` rejouée après D2 y ajoute le contenu pour une personne SANS droit d'écrire |
+| `droits-partiel.js` | ⟲B2 la ligne de pied « Dans cette rubrique, ton compte ne peut pas … » : pour chaque combinaison partielle de `c m s` d'une catégorie, elle existe et nomme EXACTEMENT les verbes absents ; avec les trois cases ou aucune, elle n'existe pas ; le prénom est celui du premier administrateur actif |
+| `droits-restauration.js` | ⟲O13 après un refus, l'état VISIBLE de l'élément (case, champ, `<select>`, case de droit) égale la donnée |
+| `droits-fabrication-css.js` | ⟲O14 `droitsCss` : pour chaque geste que la table refuse, une règle existe ET le bouton rendu par l'écran est `display:none` (population : tous les boutons d'écriture d'une catégorie) ; changer de personne ou de droits recalcule la feuille sans recharger ; aucun `MutationObserver` ajouté |
 | `droits-ponts.js` | atelier (`opd_role` avec les droits : « Composer un devis » absent sans `ventes.c`), courrier (messages de droits), palette « Faire », touches N, D, C, A |
 | `achats-lisible.js` | § 3 : ligne grise du menu sur une ligne (neuf profils, de jour et de nuit, mesure du texte et du conteneur), sous-titre ≤ 3 lignes sur iPhone, 4 chiffres dans l'ordre, « ＋ Demande » sous le titre sur téléphone, aide, vides, lecture seule sans bouton de décision |
 
-Sondes existantes qui **tomberont** (elles figent « Julie = 7 lignes ») et qui sont RÉÉCRITES pour lire le menu DÉDUIT (D7) :
-`menu-commun.js`, `menu-nu.js`, `menu-ordinateur.js`, `menu-telephone.js`, `menu-memoire.js`, `menu-mutations.js`, `menu-renommages.js`,
-`menu-echafaudage.js`, `menu-visites.js`, `menu-routes.js`, `menu-conges.js`, `menu-conges-bureau.js`, `atelier-roles.js`. Les résultats
-attendus (7, 6, 6) ne changent pas : ce qui change est la source de la liste.
+Sondes existantes qui **tomberont** ou qui lisent déjà la liste d'une personne, et qui sont RÉÉCRITES pour lire le menu DÉDUIT (D7) — ⟲O15 **dix-sept**, pas treize :
+`menu-commun.js` (⟲ son `ATTENDU.julie` fige 7 lignes alors que la branche en sert 9 : déjà fausse avant cette voie), `menu-nu.js`, `menu-ordinateur.js`, `menu-telephone.js`, `menu-memoire.js`, `menu-mutations.js`, `menu-renommages.js`,
+`menu-echafaudage.js`, `menu-visites.js`, `menu-routes.js`, `menu-conges.js`, `menu-conges-bureau.js`, `menu-poste.js`, `atelier-roles.js`, et les trois que la première liste ignorait : **`mail-roles.js`** (`rlPermis('boiteMail')`, julie `false`),
+**`materiel-stock-gestes.js`** (ouvre Stock en tant que Julie : attendu NEUF lignes, ⟲O1) et **`vehtemps-t1-structure.js`** (julie, sm, kb sur `pointage`). Les résultats attendus sont 20 (Marc avec Mon entreprise), **9 (Julie)**, 6, 6 ; ce qui change est la source de la liste.
 
 ### Mutations (≥ 30, toutes doivent faire tomber au moins un contrôle ; `entreprise-mutations.py`, `droits-mutations.py`)
 Contre-épreuves à jouer, chacune vérifiée par `git diff` après mutation (la mutation a touché le bon endroit) et restaurée par un commit
@@ -739,7 +821,7 @@ famille dans `FAMILLES_GESTE` ; laisser passer `data-action` ; faire de `droitVo
 `rlOuverture` qui rend toujours `accueil` ; la barre du bas qui ne filtre plus ; `sessionVue` qui lit encore `ROLES[x].routes` ; la recherche
 « Faire » qui retombe sur `ROLE !== 'patron'` ; `acteur()` qui rend `'marc'` ; `journalAjout` non normalisé ; une personne qui règle ses
 propres droits ; `droitsBorner` retiré ; la garde en `if (false && …)` (première instruction : la seule mutation qui échappe à un motif de
-texte, déjà pris) ; `droitsNettoyer` retirant aussi les `data-go`. Chaque mutation a sa ligne : « mutation → contrôle qui tombe ».
+texte, déjà pris) ; `droitsCss` fabriquant aussi une règle pour les `data-go`. Chaque mutation a sa ligne : « mutation → contrôle qui tombe ».
 
 ### Contrôles d'étape
 `node scratchpad/proto-final/sondes/compiler-pages.js` ; `node scripts/verifier-syntaxe.js` ; `node tests/test-835.js`, `836`, `837`, `1008`,
@@ -775,9 +857,8 @@ windows, ipad, iphone, android, petit ; jour ET nuit.
 2. **Le chef d'équipe (Karim)** ne peut pas voir l'équipe : les droits « Voir toute l'équipe » et « Valider le stock des autres » n'ont de
    sens que pour une personne qui a les écrans du bureau. J'ai retiré le premier et caché le second pour un terrain. Si Justin veut un
    chef d'équipe, c'est une forme d'écran de plus à construire.
-3. **Les profils types ont changé pour coller aux menus qu'il a validés** : la secrétaire n'a plus Boîte mail, Stock ni Temps de travail
-   (sa fiche les promettait, son menu ne les donnait pas) ; le technicien non plus. Le Responsable voit tout et ne règle rien. À lui de
-   cocher ce qu'il veut en plus.
+3. **Les profils types ont changé pour coller aux menus de la branche** (⟲O1) : la secrétaire n'a plus Boîte mail ni Temps de travail (sa fiche les promettait, son menu ne les donnait pas) ; elle GARDE Stock et Fournisseurs (que le lot Matériel lui a ouverts, voir 8) ; le technicien
+   n'a plus de Boîte mail ni de Stock hors « Mon camion ». Le Responsable voit tout et ne règle rien. À lui de cocher ce qu'il veut en plus.
 4. **« Accueil » et « Statistiques » suivent la case « L’entreprise et l’équipe »** : un Responsable les voit (avec les chiffres), une secrétaire non.
 5. **Mon entreprise vit dans « Personnel »** : le mot de groupe désigne des personnes ; c'est le meilleur endroit sous ses règles de
    menu (jamais un groupe d'une seule ligne). S'il préfère « Équipe et entreprise », c'est un renommage de deux textes, pas de code.
@@ -785,3 +866,12 @@ windows, ipad, iphone, android, petit ; jour ET nuit.
    que de rester affichée sans effet.
 7. **Le prototype ne se souvient de rien** : ce que le gérant règle dans « Mon entreprise » disparaît au rechargement. La vraie
    application l'enregistrera ; le prototype montre comment.
+8. ⟲O1 **Le bureau (Julie) a NEUF lignes, pas les sept qu'il a validées** : le lot Matériel lui a ouvert Stock et « Fournisseurs, matériel & produits » (sans Dépôts, sans Accepter, sans réglages, sans prix de vente), en suivant sa question 1
+   (`MATERIEL.md` § 12 : « le bureau doit-il voir Stock et Fournisseurs ? Recommandation : oui »), qui attend toujours sa réponse. La spécification ne défait pas ce lot en silence : les profils suivent la branche. S'il préfère sept lignes : `secr.stock` à 0000
+   (une valeur), le bureau perd aussi ses commandes aux fournisseurs. La BOÎTE MAIL du bureau suit le même choix : `BOITE-MAIL.md` la lui donne, la branche et MENU-FINAL non ; on suit la branche (gérant et Responsable seulement).
+9. ⟲B1 **Le nom « Achats et frais »** : il a écrit « je sais pas ce que c'est ». Il reste (ligne grise « Demandes de l'équipe », sous-titre, aide). L'alternative est de nommer la ligne « Demandes de l'équipe » et de ne plus employer « Achats et frais » nulle part.
+10. ⟲B8 **La fiche d'une personne (écran Équipe) est un écran qu'il a validé (« c'est bien ») et elle change** : grille des droits repliée derrière un titre, phrases « voit / ne voit pas », case « Travaille sur le terrain », catégorie « L'entreprise et l'équipe », case « Voir toute l'équipe » retirée.
+    Le rapport de l'étape 7 montre l'avant et l'après de cette fiche.
+11. ⟲ **Julie passe de « Comptabilité en lecture » (profil d'avant, jamais appliqué) à « Comptabilité en écriture »** (1110). Dans le prototype rien n'était gardé : elle note des paiements, relance, saisit des dépenses depuis le début de la démonstration ; 1000 le lui retirerait. À lui de dire si une secrétaire doit
+    seulement LIRE la Comptabilité (alors l'envoi des factures reste dans « Devis, factures, contrats », case `ventes`, qu'elle a).
+12. ⟲O10 **Le SIRET de démonstration (123 456 789 00012) ne passe pas la clé de contrôle** : la clé avertit sans bloquer (certains vrais SIRET, ceux de La Poste, ne la passent pas non plus). Rien à décider, à savoir : l'avertissement paraîtra dans la démonstration.

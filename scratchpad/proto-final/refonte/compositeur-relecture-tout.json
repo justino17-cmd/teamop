@@ -1,9 +1,316 @@
 {
-  "lot": "compositeur",
-  "angle": "tout : profils mac, mac720, windows, ipad, iphone, android (et petit), jour et nuit, mode application, gérant puis bureau ; devis et contrat complets de bout en bout, sorties, numéros, fiche client, listes",
-  "etat": "en cours (premier enregistrement) : le devis complet est rejoué au navigateur, la suite est notée dans « couvert »",
-  "couvert": [
-    "devis complet (client par la recherche, deux articles dont prix et quantité à virgule, ligne libre, acompte 25 %, mot, aperçu, créer, remise dans l'éditeur, envoyer, retour, liste En attente, rouvrir) : mac et windows jour, 18 contrôles chacun, totaux recalculés au centime"
-  ],
-  "defauts": []
+ "lot": "compositeur",
+ "angle": "tout : profils mac, mac720, windows, ipad, iphone, android (et petit), jour et nuit, mode application, gérant puis bureau ; devis et contrat complets de bout en bout, sorties, numéros, fiche client, listes",
+ "etat": "terminé pour ce passage (voir « couvert » et « non_verifie »)",
+ "couvert": [
+  "devis complet (client par recherche, 2 articles du catalogue dont prix « 199,90 » et quantité « 1,75 » à virgule, ligne libre 1,5 h à 10 %, acompte 25 % qui tombe sur un demi-centime, mot, aperçu, créer, remise de 10 % dans l'éditeur, envoyer, retour, liste En attente, rouvrir) : mac, mac720, windows, ipad, iphone, android, petit en jour — 18 contrôles chacun à zéro échec, totaux recalculés au centime (HT 777,05 ; TVA 6,89 + 141,64 ; TTC 925,58 ; acompte 231,40 ; reste 694,18 ; avec remise : 717,08 / 853,62 / 213,41 / 640,21)",
+  "contrat complet (client, titre à signes HTML, prix « 280,50 », modèle, article de la bibliothèque, « Écrire mon article » avec {{variables}}, créer, numéro CTR-2026-012, envoyer, retour, liste, rouvrir) : mac jour",
+  "mise en page : largeur de la page d'aperçu, taille de texte réellement rendue, hauteur et texte des champs, titres d'étape, cibles au doigt, débordement, contrastes, texte le plus fin, captures regardées : mac, iphone, ipad, android en jour et nuit",
+  "sorties (Échap sans et avec contenu, croix, Continuer, Abandonner, Retour du navigateur, historique) : mac et iphone, devis",
+  "valeurs difficiles (devis) : quantités « 2.5 », « 1 000 », « abc », « -2 », « 0 », « 1e3 », « 999999999 », « 0,001 » ; prix « 199,90 », « 1.234,56 », « 12,345 », « abc », « -5 », « 99999999,99 » ; ligne libre vide ou au prix « abc » ; acompte « 150 », « -5 », « abc », « 12,5 » ; objet de 780 signes : mac et iphone — chaque refus se dit, aucun total ne dit NaN",
+  "numéros : devis composé D-2026-042, devis rapide D-2026-043, devis composé D-2026-044, aucun numéro en double (10 numéros relevés) ; brouillon, envoyé, signé (raccourci DIT : la signature au doigt n'est pas rejouée) : onglets À envoyer / En attente / Acceptés / Refusés / Tous et quatre chiffres du haut recalculés (+1, +57,60 €) : mac et iphone ; fiche du client",
+  "sorties : Échap sans contenu (ferme), Échap avec contenu (confirmation), Échap sur la confirmation, croix, Continuer, Abandonner (rien créé, rouvert vide), Retour du navigateur (UNE entrée d'historique consommée, saisie reprise AVEC le dire « Ton devis en cours est repris ») : devis et contrat, mac et iphone, 31 contrôles chacun",
+  "rotation et redimensionnement : mac 1440 → 1180 → 1024 → 900 → 1440 ; ipad portrait → paysage → 1024 → 900 → 1440, avec et sans l'aperçu plein écran ouvert",
+  "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad",
+  "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)",
+  "gestes du devis (iphone et mac) : recherche de client (accents, majuscules, ville, sans résultat, « + 4 autres clients » = 8 − 4), catalogue (recherche, filtres, « Mon matériel »), quantités +/−, option (non comptée), monter, descendre, retirer, « Ranger par catégorie », « Garder dans mon matériel » (gardé après fermeture) : 26 contrôles justes sur 27",
+  "clavier seul (windows, mac nuit) : ouverture par Entrée, focus à l'ouverture sur la recherche, ordre de Tab (14 étapes), indicateur de focus visible sur chaque élément, Entrée sur un client, Espace sur un article, 90 Tab sans sortir du compositeur, Échap : 8 contrôles justes, 2 défauts (une cause : la confirmation)",
+  "Devis rapide et Contrat rapide : boutons secondaires à côté des principaux, panneau (champs 46 px / 16 px, boutons 44 px), « Préparer le devis » mène à la fiche, captures regardées : mac jour, iphone jour et nuit",
+  "Retour du navigateur PENDANT l'éditeur (retouche gardée, 144,00 €), devant la confirmation, deux fois de suite : mac, iphone, android nuit, 7 contrôles justes chacun",
+  "deux onglets du même navigateur (la liste suit sans recharger, les numéros ne se doublent pas) : mac, iphone ; valeurs longues dans la carte des documents composés (objet de 200 signes, mot de 60 lettres, 10 678 932,00 €) : petit, iphone nuit, mac ; frappe vraie touche par touche (délai 70 ms) : mac ; messages à action « Annuler » et « Recommencer » : iphone, mac, petit (vrai toucher, 44 px) ; nouveau client (refus dits, client créé qui paraît dans Clients et sa fiche, HTML en texte) : mac, iphone",
+  "contrats (modèles, bibliothèque, écrire mon article, monter / descendre / retirer, suggestions, date, prix invalide) : mac, iphone ; contrat complet : mac, iphone, android, windows, ipad, mac nuit, secrétariat"
+ ],
+ "defauts": [
+  {
+   "n": "tout-01",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / Composer un contrat > bouton « Aperçu » (une colonne)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "iphone jour",
+    "iphone nuit",
+    "android jour",
+    "android nuit",
+    "petit jour (320 px : 4,4 px)"
+   ],
+   "etapes": [
+    "Ouvrir le prototype en mode application, aller sur Devis (ou Contrats)",
+    "Toucher « Composer un devis », choisir un client et trois articles",
+    "Toucher « Aperçu » en haut à droite"
+   ],
+   "attendu": "La page du devis se lit sans zoom : Justin a dit « composer un devis, c'est trop petit » et la spécification demande « la page entière en grand » au téléphone",
+   "constate": "« Ajuster » ouvre la page à 45 % sur iPhone (358 px sur 390) et 41 % sur Android (328 px sur 360) : le texte du document est rendu à 5,5 px (devis) / 5,9 px (contrat) sur iPhone et 5,0 / 5,4 px sur Android ; à 100 % il passe à 12,2 px mais la page fait 794 px et se lit en défilant de côté (la table est coupée à « Qté »)",
+   "preuve": "mise-en-page.js (relire-compositeur-tout) : « aperçu plein écran : page 358 px sur 390, texte rendu 5.5 px, échelle 0.45 » ×4 (iphone jour/nuit, android jour/nuit, devis et contrat) ; captures mep-iphone-jour-devis-apercu.png et -apercu100.png ; code : vvEchelle, fit = largeur de la zone / 794 (page.source:5379)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5374-5383 (vvEchelle), valeur par défaut V.zoom='ajuster'",
+   "correction": "Au téléphone, ouvrir l'aperçu sur 100 % (texte 12 px) en laissant défiler dans les deux sens, ou proposer « Lire » à 75 % ; garder « Ajuster » comme vue d'ensemble ; dire « pince pour agrandir » sous le réglage. Décision de Justin : c'est un choix de produit (voir la page entière ou la lire)"
+  },
+  {
+   "n": "tout-02",
+   "gravite": "gênant",
+   "ecran": "Composer un contrat > étape 3 « Articles du contrat » > ligne d'un article (Modifier le texte, monter, descendre, retirer)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "petit (320×568) jour"
+   ],
+   "etapes": [
+    "Profil 320 px de large",
+    "Contrats > Composer un contrat > choisir un modèle (Entretien clim — particulier : 11 articles)",
+    "Descendre jusqu'à « Mes articles »"
+   ],
+   "attendu": "Les quatre gestes de chaque article tiennent dans la largeur ; rien ne se coupe",
+   "constate": "La rangée « Modifier le texte · ↑ · ↓ · ✕ » mesure 343 px dans une colonne de 320 : le bouton rouge « Retirer » sort à droite, coupé par le bord, et la colonne des étapes défile de 23 px de côté. Rien de tel à 360, 390 et 820 px",
+   "preuve": "debord-form.js : « contrat {sw:343, cw:320, coup:[DIV.vv-l-a « Modifier le texte » droite=343 bord=320, BUTTON.bt icone danger « Retirer : … » droite=343 …]} » ; la même coupure se voit sur la capture mep-petit-jour-contrat-compo-bas.png (le ✕ rouge est rogné) — deux sondes indépendantes",
+   "ou": "scratchpad/proto-final/atelier/page.source:1343 et 1348 (.vv-l-a{flex-wrap:wrap} mais .vv-a .vv-l-a{flex:none;margin:0} : la rangée ne peut pas passer à la ligne dans l'article)",
+   "correction": "Laisser la rangée passer à la ligne dans l'article à moins de 340 px (par exemple .vv-a{flex-wrap:wrap} ou .vv-a .vv-l-a{flex:1 1 100%;min-width:0}) et garder la zone de toucher du ✕ à 44 px"
+  },
+  {
+   "n": "tout-03",
+   "gravite": "détail",
+   "ecran": "Composer un devis / un contrat, quand l'aperçu plein écran est ouvert PUIS qu'on tourne la tablette (ou agrandit la fenêtre) PUIS qu'on le ferme",
+   "role": "gérant (Marc)",
+   "profils": [
+    "ipad portrait → paysage 1180",
+    "ipad → 1440"
+   ],
+   "etapes": [
+    "iPad portrait (820 px) : Composer un devis, un client, un article",
+    "Toucher « Aperçu » (la page en grand s'ouvre)",
+    "Tourner la tablette en paysage (1180 px)",
+    "Toucher « Fermer »"
+   ],
+   "attendu": "La colonne de droite montre la page à la largeur « Ajuster » (636 px à 1180 px, 800 px à 1440 px)",
+   "constate": "La page reste à 476 px (échelle par défaut 0,6, aucune échelle posée : --vs vide) dans une colonne de 700 px ; le réglage affiche pourtant « Ajuster · 125 % » ; à 1440 px elle fait 476 px au lieu de 800 (spécification : au moins 620). Un toucher sur « Ajuster » la remet d'aplomb. Sans aperçu ouvert la rotation est juste (80 %, 636 px)",
+   "preuve": "rotation2.js : « (b) après fermeture de l'aperçu : feuilleCol 476, vs '' » contre « (a) rotation simple : feuilleCol 636, vs 0.8010 » ; rotation.js : feuille 476 à 1180 et à 1440 ; capture rot-ipad-jour-1440.png",
+   "ou": "scratchpad/proto-final/atelier/page.source:5376 (vvEchelle ne règle que la zone de l'aperçu tant qu'il existe) et 5386 (vvGrand(f,false) retire l'aperçu sans rappeler vvEchelle)",
+   "correction": "Appeler vvEchelle(f) après g.remove() dans vvGrand, ou faire régler les deux zones (colonne et aperçu) à chaque appel"
+  },
+  {
+   "n": "tout-04",
+   "gravite": "détail",
+   "ecran": "Composer un devis > étape « Conditions et textes » (Délai, Paiement) ; Composer un contrat > étape 3 (recherche d'un article)",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "android jour"
+   ],
+   "etapes": [
+    "Ouvrir le compositeur",
+    "Déplier l'étape Conditions et textes (devis) ou l'étape 3 (contrat)"
+   ],
+   "attendu": "Le texte d'aide du champ se lit en entier, ou se termine proprement",
+   "constate": "Le texte gris du champ est coupé net au bord : « Par virement ou carte bancaire. Solde à la réception de la » (la fin « facture. » manque) ; « Chercher un article : prix, résilia » (sur 360 px). C'est un champ d'une seule ligne",
+   "preuve": "captures mep-mac-jour-devis-compo-bas.png et mep-android-jour-contrat-compo.png, relevées sur deux profils",
+   "ou": "scratchpad/proto-final/atelier/page.source : #vv-paiement, #vv-delai (champs input à une ligne), #vv-bq (placeholder « Chercher un article : prix, résiliation, assurance… »)",
+   "correction": "Raccourcir les textes d'aide (« Solde à la réception de la facture » → phrase plus courte) ou passer ces champs en zone de texte de deux lignes ; au téléphone : « Chercher un article… »"
+  },
+  {
+   "n": "tout-05",
+   "gravite": "détail",
+   "ecran": "Composer un devis > étape Matériel > une ligne ajoutée (champ Prix HT) ; aussi la fiche « Ligne de prix » de l'éditeur au téléphone",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac",
+    "iphone",
+    "android"
+   ],
+   "etapes": [
+    "Ajouter un article du catalogue",
+    "Écrire « 199,90 » dans Prix HT, puis quitter le champ"
+   ],
+   "attendu": "« 199,90 » (deux décimales, comme tout ce que l'écran écrit en euros)",
+   "constate": "Le champ se relit « 199,9 » ; « 62,5 » reste « 62,5 », alors que la page à côté dit « 199,90 € » et « 62,50 € »",
+   "preuve": "valeurs.js : « prix « 199,90 » (champ relu : « 199,9 ») » sur mac et iphone ; capture devis-android-jour-marc-3-remise.png (fiche Ligne de prix : « 199,9 »)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5261 (rawMontant(l.puC))",
+   "correction": "Rendre le champ avec deux décimales quand on le quitte (199,90) ; garder la saisie brute pendant la frappe"
+  },
+  {
+   "n": "tout-06",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / Composer un contrat > « Créer le devis » (« Créer le contrat »), ordinateur à deux colonnes",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "windows jour"
+   ],
+   "etapes": [
+    "Ordinateur (1366 px ou plus)",
+    "Composer un devis : un client, un article",
+    "Double-cliquer vite sur « Créer le devis » (en haut à droite)"
+   ],
+   "attendu": "Le devis est créé et l'éditeur s'ouvre ; le second clic est ignoré",
+   "constate": "L'éditeur s'ouvre, et le second clic tombe sur le bouton « Envoyer » qui prend la place de « Créer » au même endroit : la fenêtre « Envoyer le devis » s'ouvre (adresse du client déjà remplie, « Envoyer (exemple) » prêt à toucher) ; pour un contrat : « Envoyer à signer — Avant d'envoyer, il manque : adresse du site ». Un double clic est un geste courant à la souris",
+   "preuve": "double-creer.js : « devis après un double clic sur Créer : dialogue [Envoyer le devis Pour Objet Message D-2026-042.pdf] » et « contrat : dialogue [Envoyer à signer Avant d'envoyer Il manque : adresse du site] » sur mac ET windows (4/4) ; capture dbl-mac-jour-devis.png ; sur iPad (une colonne, « Créer » en bas) le même double clic ne fait rien de tel (0/2)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5653-5672 (viergeCreer ferme la fenêtre et ouvre l'éditeur de façon synchrone) et :1486 (.vv-pl .fen-pied passe en haut à droite à partir de 1032 px, juste sous le futur bouton « Envoyer » de l'éditeur)",
+   "correction": "Ignorer les clics de l'éditeur pendant 400 ms après la création (par exemple pointer-events:none sur la barre de l'éditeur le temps d'un fondu), ou ne pas faire coïncider « Créer » et « Envoyer »"
+  },
+  {
+   "n": "tout-07",
+   "gravite": "gênant",
+   "ecran": "Devis et Contrats > liste « Composés dans l'atelier » et éditeur d'un document composé",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "etapes": [
+    "Composer un devis (ou un contrat), le créer, revenir à OP GESTION",
+    "Chercher comment le supprimer : ligne de la liste, éditeur (menu « Plus d'actions » au téléphone, barre à l'ordinateur)"
+   ],
+   "attendu": "Un brouillon fait par erreur ou pour essayer se supprime ; sinon la liste s'encombre pour toujours",
+   "constate": "Aucun geste « Supprimer » ni « Dupliquer » : le menu de l'éditeur au téléphone ne contient que Annuler, Rétablir, Modèles, Optimiser avec l'IA ; à l'ordinateur « Supprimer la ligne » ne vise qu'une ligne du devis. Et le numéro est donné dès la création (D-2026-042 en brouillon), alors que « Devis rapide » dit « Le numéro se donnera à l'envoi » : chaque essai consomme un numéro qu'on ne peut plus rendre",
+   "preuve": "menu-editeur.js : iphone « éléments du menu : [Annuler, Rétablir, Modèles, Optimiser avec l'IA] », mac « [Ligne de prix, Section, En option, Dupliquer, Monter, Descendre, Supprimer la ligne] » (ce sont des gestes de ligne) ; cas-limites.js iphone : « gestes supprimer/dupliquer visibles dans l'éditeur : [] » ; code : la suppression d'un document n'existe que dans le menu de l'accueil de l'atelier (page.source:3185-3187), masqué dans OP GESTION (html[data-app] #vue-accueil{display:none}, :1399)",
+   "ou": "scratchpad/proto-final/atelier/page.source:3184-3188 (ACTIONS['menu-doc'], le seul « Supprimer » d'un document, dans l'accueil de l'atelier) et :1398 (html[data-app] #vue-accueil{display:none}) ; apercu/prototype-op-gestion.html : opdLigne (≈ 20918) et opdCarte (≈ 20927), sans geste de suppression",
+   "correction": "Ajouter « Supprimer ce brouillon » (avec confirmation) à la ligne de la liste ou dans le menu de l'éditeur, limité aux brouillons ; ne donner le numéro qu'à l'envoi comme « Devis rapide », ou dire dans l'éditeur « Numéro provisoire »"
+  },
+  {
+   "n": "tout-08",
+   "gravite": "détail",
+   "ecran": "Devis et Contrats > carte « Composés dans l'atelier »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer et créer un devis ou un contrat",
+    "Revenir sur la page Devis (ou Contrats)"
+   ],
+   "attendu": "Le titre de la carte est calé comme le contenu qu'il annonce, avec l'aération des cartes voisines (21 px du bord, aligné sur le numéro du document)",
+   "constate": "Le titre « COMPOSÉS DANS L'ATELIER · 1 » est collé à 9 px du bord de la carte, 12 px à gauche du numéro (293 contre 305 à l'ordinateur ; 25 contre 33 à 390 px) : il a l'air posé après coup. Le mot « atelier » ne dit rien à un débutant (la page de Devis l'explique plus bas seulement)",
+   "preuve": "titre-liste.js : décalage 9 px (devis et contrat, mac et iphone, 4/4), cartes à padding 6px 8px ; captures liste-mac-jour-1-brouillon.png et contrat-ct-mac-jour-marc-3-liste.png comparées au tableau de la carte voisine",
+   "ou": "apercu/prototype-op-gestion.html : opdCarte (≈ 20927), le titre n'a pas le rembourrage des lignes",
+   "correction": "Rembourrer le titre comme les lignes (12 px de plus à gauche) ; envisager « Devis préparés avec le compositeur » / « Documents composés » plutôt que « atelier »"
+  },
+  {
+   "n": "tout-09",
+   "gravite": "gênant",
+   "ecran": "Composer un devis > étape 3 « Matériel et prestations » > pastilles de catégorie du catalogue",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis",
+    "Étape 3 : toucher « Main-d'œuvre » (puis « Entretien », puis « Déplacement »)"
+   ],
+   "attendu": "Des prestations à choisir : un devis d'entreprise de terrain commence presque toujours par la main-d'œuvre et le déplacement ; une pastille proposée mène à des articles",
+   "constate": "Les 25 articles du catalogue sont tous du matériel (filtres, fluides, pompes…) : « Matériel » donne la même liste que « Tout » (25 / 25) et « Main-d'œuvre », « Entretien », « Déplacement » donnent 0 article avec le message « Rien ne correspond. Essaie un autre mot, ou écris une ligne libre. » alors qu'on n'a rien cherché. Il faut retaper « Main-d'œuvre 58 € » en ligne libre à chaque devis, alors que le prototype connaît ces prestations (tarif de zone, « Main-d'œuvre technicien 58 € / h », les modèles de Devis rapide)",
+   "preuve": "chips.js : « pastille Main-d'œuvre → 0 article », « Entretien → 0 », « Déplacement → 0 », « catalogue envoyé par OP GESTION : 25 articles, aucune main-d'œuvre ni déplacement » ; lignes-gestes.js : « filtre Main-d'œuvre : 0 article(s) » sur mac ET iphone ; capture chips-mac-jour-vide.png",
+   "ou": "apercu/prototype-op-gestion.html : opdDonnees (≈ 20949 : le catalogue n'est que PRODUITS vendables) ; scratchpad/proto-final/atelier/page.source:5221 (les cinq pastilles sont fixes) et :4989 (vvCatDe)",
+   "correction": "Ajouter au catalogue envoyé les prestations du prototype (Main-d'œuvre à l'heure, Déplacement par zone, Entretien annuel, Mise en service) avec leur catégorie, et ne montrer une pastille que si elle a au moins un article ; sinon un message qui dit « Aucun article dans cette catégorie »"
+  },
+  {
+   "n": "tout-10",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / un contrat > confirmation « Abandonner ce devis ? » (Échap ou ‹ OP GESTION avec du contenu)",
+   "role": "gérant (Marc), au clavier",
+   "profils": [
+    "windows jour",
+    "mac nuit"
+   ],
+   "etapes": [
+    "Au clavier : ouvrir « Composer un devis » (Entrée), écrire un objet",
+    "Échap : la confirmation « Abandonner ce devis ? » paraît, le focus est sur « Continuer »",
+    "Tab pour aller sur « Abandonner », puis Entrée"
+   ],
+   "attendu": "Tab passe de « Continuer » à « Abandonner » ; Entrée abandonne",
+   "constate": "Tab ne déplace pas le focus : il reste sur « Continuer » (Maj+Tab aussi). Entrée referme alors la confirmation (comme « Continuer ») et rend le focus au compositeur : on ne peut pas abandonner sans la souris",
+   "preuve": "clavier-confirm.js (windows) : « Échap → focus Continuer data-r=0 ; Tab → focus Continuer data-r=0 ; Entrée → dialogue false, focus « 3 Matériel et prestations » » ; clavier.js windows jour ET mac nuit : « Tab puis Entrée dans la confirmation : atelier fermé = false »",
+   "ou": "scratchpad/proto-final/atelier/page.source:3456 (ouvrirFenetre, f.touche : la branche Tab n'écarte pas la confirmation, alors que la branche Échap, 3455, regarde .voile:not(.fen-v)) : le piège de focus de la fenêtre remet le focus au premier élément du compositeur, puis le piège de la confirmation (2791) le ramène sur « Continuer »",
+   "correction": "Dans f.touche, ne rien faire sur Tab quand une confirmation est ouverte : if(document.querySelector('.voile:not(.fen-v)')) return; comme pour Échap"
+  },
+  {
+   "n": "tout-11",
+   "gravite": "gênant",
+   "ecran": "Devis (onglets À envoyer, En attente, Acceptés…) et Contrats : où paraît un document composé",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac nuit",
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis, l'envoyer (Envoyer (exemple)), revenir à OP GESTION",
+    "Onglet « En attente »"
+   ],
+   "attendu": "Un devis envoyé est dans la liste « En attente » avec les autres, dit comme les autres (« envoyé aujourd'hui », « Envoyé · sans réponse »), et compte dans la ligne de chiffres comme dans la liste",
+   "constate": "La liste « En attente » montre 3 devis, le chiffre du haut dit « en attente de réponse · 4 » : le quatrième est dans une AUTRE carte plus bas, « Composés dans l'atelier », avec une autre forme (« 31/10 » au lieu de « envoyé aujourd'hui », pastille « Envoyé » au lieu de « Envoyé · sans réponse »). Le même état est donc dit à deux endroits et de deux façons ; au téléphone la seconde carte est sous le pli. Un devis composé envoyé depuis 8 jours ne se propose jamais à la relance (« 2 à relancer » ne compte que les autres)",
+   "preuve": "liste-numeros.js (mac et iphone) : KPI « en attente de réponse · 4 » pour 3 lignes dans la liste, 1 dans la carte « Composés » ; capture devis-mac-nuit-marc-4-liste.png (D-2026-041 « envoyé aujourd'hui · Envoyé · sans réponse » contre D-2026-042 « 31/10 · Envoyé ») ; code : opdCarte/opdLigne affichent une carte à part (apercu/prototype-op-gestion.html : opdLigne et opdCarte (≈ 20918-20930))",
+   "ou": "apercu/prototype-op-gestion.html : opdCarte (≈ 20927), opdLigne (≈ 20918), les chiffres du haut (opdKpi…) ; décision d'intégration « liste à part » (INTEGRATION.md, « Dans le prototype »)",
+   "correction": "Mêler les documents composés aux lignes existantes (même gabarit, même vocabulaire d'état et de date, tri par date) ; au minimum, dire la même chose que les autres lignes et compter la relance (> 7 jours sans réponse)"
+  },
+  {
+   "n": "tout-12",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / un contrat > « Nouveau client… » > « Ajouter ce client »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un devis > Nouveau client…",
+    "Nom « Restaurant Le Vieux Port », e-mail « marc@vieuxport.fr », téléphone « 06 12 34 56 78 » (les mêmes qu'un client existant)",
+    "Ajouter ce client"
+   ],
+   "attendu": "« Ce client existe peut-être déjà » comme dans « Devis rapide » (dvnCreer : doublon par e-mail, téléphone ou adresse) ; au moins un message avant de créer le second",
+   "constate": "Le client est créé sans un mot : la base passe de 9 à 10 clients, deux fiches identiques « Restaurant Le Vieux Port », et les devis se répartissent entre les deux",
+   "preuve": "nouveau-client.js : « doublon : clients 9 → 10 · message : '' » sur mac ET iphone ; à comparer au refus du chemin court (apercu/prototype-op-gestion.html : dvnCreer, « Ce client existe peut-être déjà : … Touche encore « Préparer le devis » »)",
+   "ou": "scratchpad/proto-final/atelier/page.source:3109-3129 (nouveauClient ne cherche pas de doublon) ; apercu/prototype-op-gestion.html : opdClientRecu (≈ 21002 : « id in CLIENTS » ne regarde que l'identifiant)",
+   "correction": "Chercher un client existant de même e-mail, téléphone, ou nom (comparaison sans accents ni casse) dans les données reçues et proposer « Utiliser ce client » avant de créer"
+  },
+  {
+   "n": "tout-13",
+   "gravite": "détail",
+   "ecran": "Composer un contrat > informations > « Prix annuel (€) » et texte de l'article « Prix et paiement »",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un contrat, prix annuel « 280,50 »",
+    "Regarder la page : « Article 5 Prix et paiement »"
+   ],
+   "attendu": "Le montant dit s'il est hors taxes ou toutes taxes comprises, comme la page Contrats (« Prix / an HT ») et le « Contrat rapide » (« 180,00 € HT par an. Facturation à chaque visite. TVA en sus »)",
+   "constate": "« Le prix de l'entretien est de 280,50 € par an, pour l'ensemble des visites. » : ni HT ni TTC ; le champ s'appelle « Prix annuel (€) » ; la ligne composée de la liste dit « 280,50 € par an » sans HT, juste sous un tableau dont la colonne est « Prix / an HT »",
+   "preuve": "capture contrat-ct-mac-jour-marc-1-composition.png (article 5), contrat-ct-mac-jour-marc-3-liste.png, rapide-mac-jour-contrat-rapide.png (« 180,00 € HT par an ») ; texte source : page.source:1980",
+   "ou": "scratchpad/proto-final/atelier/page.source:1980 (article « prix ») et :1939 (VARS prix « Prix annuel (€) »)",
+   "correction": "Écrire « Prix annuel (€ HT) » et « … est de {{prix}} HT par an » (à faire relire par `juriste` : un contrat avec une copropriété doit dire HT ou TTC)"
+  },
+  {
+   "n": "tout-14",
+   "gravite": "détail",
+   "ecran": "Composer un contrat > étape 3 > « Modifier le texte » d'un article",
+   "role": "gérant (Marc)",
+   "profils": [
+    "mac jour",
+    "iphone jour"
+   ],
+   "etapes": [
+    "Composer un contrat avec un modèle",
+    "Toucher « Modifier le texte » sur l'article 2, changer le texte dans la zone",
+    "Regarder le titre de l'article, sans fermer la zone"
+   ],
+   "attendu": "La pastille « Modifié » paraît dès la première lettre (la page à droite montre déjà le nouveau texte)",
+   "constate": "La page se met à jour mais la pastille « Modifié » ne paraît pas tant que la liste n'est pas redessinée (elle apparaît à la fermeture de la zone) : la liste dit « non modifié » pendant que la page dit le contraire",
+   "preuve": "contrat-gestes.js : « l'article porte la pastille « Modifié » → [] » sur mac et iphone (le texte, lui, est bien sur la page : ✓)",
+   "ou": "scratchpad/proto-final/atelier/page.source:5596 (x.edite=true puis viergeMaj sans vvMajArts) et :5642 (la pastille n'est écrite que par vvMajArts)",
+   "correction": "Poser la pastille à la main sur la ligne au premier changement (ou appeler vvMajArts en gardant le focus, comme le fait « a-edit »)"
+  }
+ ],
+ "non_verifie": [
+  "vrai iPhone, vrai Android, vrai Windows (barre de défilement classique, polices Segoe), vrai iPad : les profils sont des émulations de Chromium ; les encoches sont simulées (setSafeAreaInsetsOverride), l'iPhone réel peut les rendre autrement",
+  "l'artefact publié sur claude.ai (téléchargement du PDF, « Optimiser avec l'IA ») : ne se joue pas depuis une session",
+  "la signature au doigt d'un devis (le passage à « Signé » est forcé par le code dans les sondes de numéros) et l'état « Non enregistré » (rangement refusé par l'appareil)",
+  "le comportement du clavier virtuel de l'iPhone sur les champs en bas d'écran",
+  "le contrat de bout en bout sur petit (320) et sur ipad en nuit (le jour est joué, la mise en page de nuit l'est aussi) ; une troisième entreprise ou un autre jeu de données que « Clim Services 17 »"
+ ],
+ "doutes_pour_justin": [
+  "Aperçu au téléphone : « Ajuster » montre la page entière à 45 % (texte 5 px, illisible sans pincer) ; « 100 % » est lisible (12 px) mais la page défile de côté. Lequel doit être le choix d'ouverture ?",
+  "Les documents composés sont dans une carte à part sous la liste : le garder, ou les mêler aux autres lignes ?",
+  "« atelier » est un mot du métier de l'équipe de développement : à remplacer par « Documents composés » dans les cartes et les aides ?",
+  "Contrat : HT ou TTC ? Le texte de l'article « Prix et paiement » ne le dit pas (à faire relire par `juriste`)"
+ ]
 }
