@@ -1,0 +1,104 @@
+{
+ "lot": "vehtemps",
+ "angle": "salarié et téléphone : profils iphone (encoches), android, petit 320 ; au doigt, jour et nuit ; sm, kb, puis le gérant au téléphone sur Véhicules et Temps de travail ; relecture du diff",
+ "couvert": [
+  "sm iphone jour/nuit : Ma journée (Je commence, Pause, Je reprends, Je termine + panneau, Annuler du toast) 6 ✓ 0 ✗",
+  "sm/kb iphone, android, petit, jour et nuit : Ma journée, Mon camion, Mes heures — hauteur, débordement latéral (contre la largeur posée), cibles < 44 px, champs < 16 px : 0 débordement, 0 champ < 16 px, 0 cible < 44 px dans #contenu ; captures regardées",
+  "sm iphone : Mon camion — Noter un plein (carte et ma poche, alerte du prix au litre improbable), Relever le compteur (trop bas refusé, saut de 4 390 km confirmé), Un souci (deux fois de suite)",
+  "marc iphone : Temps de travail › Semaine › feuille de Karim › journée du 28 ; sélecteur d'heure ; motif ; Enregistrer la correction ; puis session kb : Mes heures demande bien de reconfirmer",
+  "marc iphone, android, petit, jour et nuit : Véhicules (liste, hauteur, premier écran), Temps de travail (trois onglets, hauteur, débordement, cibles, champs)"
+ ],
+ "defauts": [
+  {
+   "n": "salarie-01",
+   "gravite": "gênant",
+   "ecran": "Temps de travail › fiche d'une journée (feuille) › Corriger une heure",
+   "role": "marc (gérant)",
+   "profils": "iphone jour+nuit, android, petit (320)",
+   "etapes": "Temps de travail › Semaine › Karim › mer. 28 › toucher « Fin » › choisir 19 h 30 › OK. Mesure : #pt-motif en [713–759] px sous le pied collant [661–788] (iPhone), à 725 sous [649–758] (Android), à 711 hors fenêtre de 568 (petit) ; elementFromPoint au centre du champ rend « tt-aide » / « tt-pied ».",
+   "attendu": "Dès que le bloc « Pourquoi changes-tu cette heure ? » apparaît, le champ à remplir se voit au-dessus du bouton grisé (condition visible AVANT, spec § 4.6-A).",
+   "constate": "Le bouton gris « Enregistrer la correction » et « Écris d'abord pourquoi. » sont visibles, le champ du motif est caché dessous (ou sous le bas de la feuille) : le gérant doit deviner qu'il faut défiler la feuille. Rien ne fait défiler ni ne donne le focus au champ.",
+   "preuve": "sondes c4/c5 (relire-vehtemps-salarie), captures c4-iphone-j-motif.png et c4-iphone-j-motif-rempli.png ; code : ttBrouillonMaj (ligne ~17783) montre le bloc sans le faire défiler ; .tt-pied{position:sticky;bottom:0} (ligne ~3665)",
+   "ou": "apercu/prototype-op-gestion.html ttBrouillonMaj ; .tt-pied",
+   "correction": "Quand le bloc passe de caché à visible : scrollIntoView({block:'center'}) sur #tt-motif-bloc dans la feuille (panneau.scrollTop) et focus() du champ ; ou placer le champ du motif DANS le pied collant, au-dessus du bouton."
+  },
+  {
+   "n": "salarie-02",
+   "gravite": "détail",
+   "ecran": "Sélecteur d'heure (#dtpop) ouvert depuis la fiche d'une journée",
+   "role": "marc",
+   "profils": "iphone, jour",
+   "etapes": "Temps de travail › Semaine › Karim › mer. 28 › toucher « Fin ». L.doigts(#dtpop) : « Maintenant 182×40 », « 00 h … 23 h 85×40 », les minutes 40 px.",
+   "attendu": "Cibles tactiles ≥ 44 px (consigne du lot : « cibles ≥ 44 px »).",
+   "constate": "Toutes les cases d'heure et de minute font 40 px de haut ; le reste de la feuille fait 44.",
+   "preuve": "sonde c4, ligne « doigts dtpop » de c4.out",
+   "ou": "composant dtpop (sélecteur d'heure partagé, hors lot) — min-height 40 px",
+   "correction": "min-height:44px sous (pointer:coarse), l'écran a la place (la fenêtre tient dans 844 px avec 6 rangées de 44 + 2 de minutes)."
+  },
+  {
+   "n": "salarie-03",
+   "gravite": "gênant",
+   "ecran": "Mon camion › carte « Le camion »",
+   "role": "sm, kb",
+   "profils": "iphone, android, petit",
+   "etapes": "Barre du bas › Camion. Mesure des trois boutons .vh-cam-b : iPhone 107×45 à 13 px ; Android 98×61 ; 320 px : 85×61, « Un souci avec le camion » sur TROIS lignes à 13 px ; le titre « Le camion » est masqué (1×1 px) sous 520 px.",
+   "attendu": "Spec § 3.4 / décision D7 : trois boutons empilés pleine largeur, 48 px, libellés lisibles (« dans le tiers d'un écran de 320 px il passerait sur trois lignes » : c'est exactement ce qu'on a rejeté).",
+   "constate": "Trois pastilles côte à côte au texte de 13 px, plus petit que tout le reste de l'écran (16 px) ; sur 320 px le libellé du souci passe sur trois lignes. La carte n'a plus de titre : un novice ne sait pas de quoi parlent ces trois pastilles.",
+   "preuve": "sonde b2 ; captures sm-petit-n-moncamion.png, sm-iphone-j-moncamion.png ; CSS ligne ~3716 (@media max-width:520px .vh-cam-g à 3 colonnes, h3 masqué)",
+   "ou": "CSS .vh-cam-g (ligne ~3716), choix de la refonte du Matériel (lot 6) pour garder « Il manque à bord » sur le premier écran",
+   "correction": "Deux colonnes : « Noter un plein » et « Relever le compteur » côte à côte, « Un souci avec le camion » pleine largeur dessous, 15-16 px, titre « Le camion » gardé visible ; ou à défaut garder 3 colonnes mais passer à 15 px avec « Un souci » dans un lien."
+  },
+  {
+   "n": "salarie-04",
+   "gravite": "gênant",
+   "ecran": "Mon camion › Un souci avec le camion, puis Véhicules › C'est réglé",
+   "role": "sm puis marc",
+   "profils": "iphone",
+   "etapes": "Un souci › Un voyant › Prévenir le bureau, deux fois de suite (le bouton reste proposé après le premier signalement). Résultat : 2 tâches urgentes « Camion GH-482-KL : voyant allumé » (vsouci-veh1-…), 2 notifications au gérant, mais v.souci ne garde que le dernier : « C'est réglé » (vxSouciRegle) ne ferme que la tâche s.tache, la première reste ouverte pour toujours.",
+   "attendu": "Un seul souci ouvert à la fois : le bouton dit « Souci déjà signalé » (ou ajoute au souci existant), ou « C'est réglé » ferme tous les signalements du camion.",
+   "constate": "Tâche urgente orpheline chez le gérant après « C'est réglé » (à vérifier en 2e rejeu : voir salarie-04 preuve).",
+   "preuve": "sonde d2 : tâches souci = 2 clés différentes, v.souci unique ; code vxSouciOk (ligne ~18476) fait `v.souci = {…, tache:t.id}` sans regarder un souci déjà là ; vxSouciRegle ne ferme que s.tache",
+   "ou": "vxSouciOk / vxSouciRegle (lignes ~18476-18492)",
+   "correction": "Dans vxSouciOk : si v.souci existe, ne pas créer une 2e tâche (ajouter le mot à la note de la tâche existante) ; ou garder v.souci.taches=[…] et les fermer toutes dans vxSouciRegle ; le bouton de Mon camion devient « Ajouter un mot sur le souci » quand un souci est ouvert."
+  },
+  {
+   "n": "salarie-05",
+   "gravite": "gênant",
+   "ecran": "Temps de travail › Aujourd'hui (gérant au téléphone)",
+   "role": "marc",
+   "profils": "iphone (h=2084), android (2267), petit (2332)",
+   "etapes": "Ouvrir Temps de travail. Premier écran 390×844 : en-tête, quatre chiffres, onglets, puis la carte « Ma journée de travail » du gérant (≈ 190 px) ; « À régler · 4 » n'apparaît qu'en bas, sa première ligne (« Tom n'a pas terminé… ») est sous la barre du bas ; sur Android 360×740 et 320×568 elle n'est pas visible du tout.",
+   "attendu": "Spec § 4.3 : « le premier écran d'iPhone montre déjà la première ligne à régler » ; hauteur de la page ≤ 2 000 px sur iPhone (§ 4.2).",
+   "constate": "La carte de sa propre journée passe avant ce qu'il vient régler ; page à 2 084 px (iPhone), 2 267 (Android), 2 332 (320).",
+   "preuve": "sonde e1 (hauteurs), captures e1-iphone-j-temps-auj.png et e1-android-n-temps-auj.png",
+   "ou": "ttAuj (carte du gérant posée avant « À régler », D12)",
+   "correction": "Sur téléphone, mettre « À régler » avant la carte du gérant quand elle a des lignes (ou réduire sa carte du gérant à une ligne « Pas encore commencé · Je commence »)."
+  },
+  {
+   "n": "salarie-06",
+   "gravite": "détail",
+   "ecran": "Véhicules (liste, gérant au téléphone)",
+   "role": "marc",
+   "profils": "iphone 1 515 px, android 1 615, petit 1 683",
+   "etapes": "Ouvrir Véhicules.",
+   "attendu": "Spec § 3.2 : cible ≤ 1 200 px sur iPhone avec 4 véhicules.",
+   "constate": "1 515 px sur iPhone (+26 %) : la rangée de tête « Assurance des 4 véhicules » et le bouton « Noter un plein » pleine largeur occupent le premier écran ; seule une rangée de véhicule apparaît sans défiler.",
+   "preuve": "sonde e1 (ligne [vehicules] h=)",
+   "ou": "vueVehicules",
+   "correction": "Cible à réviser (les sondes de l'étape 2 ont été alignées sur la hauteur réelle) ou rangée de groupe sur deux lignes."
+  },
+  {
+   "n": "salarie-07",
+   "gravite": "détail",
+   "ecran": "Mon camion (chef d'équipe Karim)",
+   "role": "kb",
+   "profils": "iphone",
+   "etapes": "Barre du bas › Camion : une pastille « 2 messages du bureau › » s'affiche sous la phrase d'état.",
+   "attendu": "Spec § 3.4 : « Les messages du bureau ne sont plus répétés ici ».",
+   "constate": "Une pastille (lien) les rappelle, au-dessus de la recherche de pièce ; ce n'est pas le texte mais c'est le même rappel.",
+   "preuve": "capture kb-iphone-j-moncamion.png",
+   "ou": "vueMonCamion (pastille ajoutée par « Restes technicien, tour 1 »)",
+   "correction": "Décision à confirmer : la garder (lien, pas texte) ou la retirer."
+  }
+ ]
+}
