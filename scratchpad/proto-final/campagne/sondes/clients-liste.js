@@ -18,7 +18,7 @@ const chercher = async (p, t) => { await p.fill('[data-cherche]', t); await L.ca
   await L.capture(c, CAP + `liste-${PROFIL}${NUIT ? '-nuit' : ''}.png`);
   // ── recherche ──
   const essais = [['roux', ['Mme Roux']], ['ROUX', ['Mme Roux']], ['  roux  ', ['Mme Roux']], ['mimosa', ['Copropriété Les Mimosas']], ['foncia', ['Copropriété Les Mimosas']], ['aytre', ['Camping Les Pins', 'Mme Roux']], ['Aytré', ['Camping Les Pins', 'Mme Roux']],
-    ['hotel', ['Hôtel de la Plage']], ['hôtel plage', ['Hôtel de la Plage']], ['0655443', ['Mme Roux']], ['06 55 44', ['Mme Roux']], ['05 46', ['Cabinet dentaire Martin', 'Hôtel de la Plage', 'Copropriété Les Mimosas']], ['contrat', ['Copropriété Les Mimosas', 'Hôtel de la Plage']], ['mimosas@syndic', ['Copropriété Les Mimosas']], ['rue gambetta', ['Mme Roux']]];
+    ['hotel', ['Hôtel de la Plage']], ['hôtel plage', ['Hôtel de la Plage']], ['0655443', ['Mme Roux']], ['06 55 44', ['Mme Roux']], ['05 46', ['Cabinet dentaire Martin', 'Hôtel de la Plage', 'Copropriété Les Mimosas']], ['contrat', ['Copropriété Les Mimosas', 'Hôtel de la Plage']], ['mimosas@syndic', ['Copropriété Les Mimosas']], ['rue gambetta', ['Mme Roux']], ['06.55.44.33.22', ['Mme Roux']], ['06-55-44', ['Mme Roux']], ['+33 6 55 44 33 22', ['Mme Roux']]];
   for (const [q, att] of essais) { await chercher(p, q); const s = await lire(p); const ok = att.every(n => s.noms.includes(n)) && (s.noms.length === att.length || ['05 46', 'contrat'].includes(q));
     v(`recherche « ${q} » → ${s.noms.join(' · ') || s.vide}`, ok, { att, vu: s.noms }); }
   await chercher(p, 'zzzz'); let s = await lire(p); v('recherche sans résultat : le message le dit et propose quoi faire', /Aucun client/.test(s.vide) && s.cartes === 0, s.vide);
