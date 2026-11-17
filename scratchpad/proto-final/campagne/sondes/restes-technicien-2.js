@@ -8,7 +8,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   // 1. le pied du menu (iPad et ordinateur : le menu latéral est affiché), pour chaque rôle
   for (const qui of ['sm', 'julie', 'marc']) {
     const c = await L.ouvrir({ profil, qui, nuit, hash: qui === 'sm' ? 'majournee' : 'accueil' }); await L.calme(c.p, 500);
-    const r = await c.p.evaluate(() => [...document.querySelectorAll('.menu .pied button, .menu .pied .nv-menu')].filter(b => b.offsetParent !== null).map(b => { const q = b.getBoundingClientRect(); return { t: b.textContent.trim(), w: Math.round(q.width), h: Math.round(q.height) }; }));
+    if (c.largeur < 761) { await c.p.evaluate(() => { const b = [...document.querySelectorAll('.tete-tel button')].find(x => /Menu/.test(x.textContent)); if (b) b.click(); }); await L.calme(c.p, 600); }   // au téléphone le menu est une feuille : on l'ouvre
+    const r = await c.p.evaluate(() => [...document.querySelectorAll('.pied button, .pied .nv-menu')].filter(b => b.offsetParent !== null).map(b => { const q = b.getBoundingClientRect(); return { t: b.textContent.trim(), w: Math.round(q.width), h: Math.round(q.height) }; }));
     v(`[${J}] ${qui} : population : le pied du menu porte Jour, Nuit, Auto et Nouveautés`, ['Jour', 'Nuit', 'Auto', 'Nouveautés'].every(t => r.some(x => x.t === t)), r);
     if (c.doigt) v(`[${J}] ${qui} : pied du menu ≥ 44 px au doigt`, r.every(x => x.h >= 44), r);
     await L.fin(c);
@@ -38,9 +39,9 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     await L.toucher(c, '[data-rl="ndfok"]'); await L.calme(p, 400);
     const ap = await p.evaluate(() => ({ n: NDF.length, ouvert: !!document.getElementById('rn-o'), toast: (document.getElementById('toast') || {}).textContent || '' }));
     v(`[${J}] sans choix : l'envoi est refusé avec une phrase claire, la fenêtre reste ouverte, rien n'est créé`, ap.n === avant && ap.ouvert && /Choisis d’abord/.test(ap.toast), ap);
-    await p.selectOption('#rn-o', 'Péage ou parking'); await L.toucher(c, '[data-rl="ndfok"]'); await L.calme(p, 600);
+    if (ap.ouvert) { await p.selectOption('#rn-o', 'Péage ou parking'); await L.toucher(c, '[data-rl="ndfok"]'); await L.calme(p, 600); }   // fenêtre déjà fermée = le défaut est là : on ne la rouvre pas, on le dit
     const f = await p.evaluate(() => ({ n: NDF.length, objet: NDF[0].objet }));
-    v(`[${J}] choisi « Péage ou parking » + « Péage A10 » : la note est titrée comme tapé, sans plaque ni « Carburant »`, f.n === avant + 1 && f.objet === 'Péage ou parking · Péage A10' && !/Carburant|[A-Z]{2}-\d{3}-[A-Z]{2}/.test(f.objet), f);
+    v(`[${J}] choisi « Péage ou parking » + « Péage A10 » : la note est titrée comme tapé, sans plaque ni « Carburant »`, ap.ouvert && f.n === avant + 1 && f.objet === 'Péage ou parking · Péage A10' && !/Carburant|[A-Z]{2}-\d{3}-[A-Z]{2}/.test(f.objet), f);
     await L.fin(c); }
   // 4. « Il manque encore des choses » : pas de grands vides autour de la liste
   { const c = await L.ouvrir({ profil, qui: 'kb', nuit, hash: 'inter-x-i3' }), p = c.p; await L.calme(p, 600);

@@ -1,6 +1,11 @@
 <title>Documents sur mesure</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<!-- polices : plus de feuille Google (S18 de l'audit de sécurité : l'adresse IP et le navigateur de chaque personne partaient chez un tiers). Chaque famille retombe sur la police de l'appareil (SANS_PILE / SERIF_PILE) -->
+<!-- polices : la feuille Google est REMISE (décision du chef de chantier, 17 novembre 2026). L'audit de sécurité l'avait retirée (S18 : l'adresse IP
+     de chaque personne part chez un tiers) ; mais sans elle les treize polices proposées retombent sur deux polices de l'appareil : un choix qui ne
+     change plus rien, sur un écran que Justin a validé. Dans le PROTOTYPE (entreprise fictive) le choix doit agir, et l'artefact n'admet que cet hôte
+     de polices. Dans la VRAIE application, la règle de S18 tient : les polices se servent depuis notre serveur, jamais depuis Google. Si la feuille ne
+     charge pas (hors ligne, hôte refusé), chaque famille retombe sur SANS_PILE / SERIF_PILE. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Lora:wght@400..700&family=Playfair+Display:wght@400..800&family=Merriweather:wght@400;500;700&family=Libre+Baskerville:wght@400;500;700&family=Montserrat:wght@400..800&family=Poppins:wght@400;500;600;700&family=Work+Sans:wght@400..700&family=DM+Sans:wght@400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Raleway:wght@400..700&display=swap">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    DOCUMENTS SUR MESURE — prototype OP GESTION (devis + contrats)
