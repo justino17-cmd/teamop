@@ -111,7 +111,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un cadre voisin sans pont retombe sur le LIEN de téléchargement avec la phrase honnête (« téléchargement demandé ; s'il
         ne démarre pas, ton navigateur le bloque »), comme la page du haut — le texte à copier reste le dernier recours ; et
         chaque `history.replaceState` nu prend son `try` (sept lignes citées).
-- [ ] **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
+- [x] (artefact, restes tour 2 : `donneesPourPont` dans la page principale, `blobPourPont` dans l'atelier, le FEC reste une chaîne ; sondes `restes-artefact-tour2.js` 32 ✓ · 0 ✗, bac `strict`, voir `final/restes-artefact-tour2.json`) **Artefact : un fichier fabriqué dans un cadre voisin (artefact)** — relu par le chef dans le contrat du pont
       (`downloads.d.ts` 0.2.96 : `data: string | Blob | ArrayBuffer | ArrayBufferView`). Un Blob ou un ArrayBuffer né dans le
       cadre de l'atelier ou de la Comptabilité n'est PAS un « instanceof Blob / ArrayBuffer » de la page du haut, là où vit
       `window.claude` : si le pont teste le type, il répond `bad_request` et rien ne s'enregistre (le doute du recontrôle).
