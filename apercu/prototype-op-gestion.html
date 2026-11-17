@@ -24100,9 +24100,10 @@ function rcChampRecherche(){ return [...document.querySelectorAll('#contenu inpu
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
 const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
-  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture relance impayé impayés imprimer export exporter',
   equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
-  planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
+  planning:'rendez-vous rdv agenda calendrier', absences:'congés vacances arrêt maladie',
+  vehicules:'véhicule voiture camion camionnette essence carburant plein entretien', interventions:'rapport photo photos chantier passage', clients:'contact téléphone coordonnées adresse' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
@@ -24122,7 +24123,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
   return E; }
 function rcMode(k){ const b = document.querySelector(`[data-modetheme="${k}"]`); if (b) b.click(); }
-function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
+function palOuvrir(){ if (PAL || !rcBureau() || rcDevant()) return; fermerMenu();
   PAL = { E:palEntrees(), q:'', i:0, avant:document.activeElement };
   document.body.insertAdjacentHTML('beforeend', `<div id="pal" role="dialog" aria-modal="true" aria-label="Rechercher ou aller à"><div class="pal-b"><div class="pal-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pal-q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Une rubrique, un client, une action…" aria-label="Rechercher ou aller à" aria-controls="pal-l"><kbd>Échap</kbd></div><div class="pal-l" id="pal-l" role="listbox"></div></div></div>`);
   palDessiner(); document.getElementById('pal-q').focus(); }
@@ -24148,7 +24149,10 @@ const RC_LISTE = [
 const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
 function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length && (t !== 'Trackpad' || MAC)).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
-function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
+/* ce qui couvre TOUT l'écran et passe devant les fenêtres : le guide des nouveautés, le document en grand, la pièce jointe du client. Derrière eux, une touche (N, D, C, A, ?, Ctrl+K) ouvrait
+   une fenêtre qu'on ne voyait pas, et le focus partait dedans : les touches suivantes s'y écrivaient sans rien montrer · campagne coque, recontrôle, 17 novembre 2026 */
+const rcDevant = () => !!document.querySelector('#nv:not(.part), #docplein, #cx-vis');
+function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; if (rcDevant()) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
   if (nom === 'aide') { palFermer(false); rcAide(); return true; }
   if (nom === 'precedent') { history.back(); return true; }
@@ -24167,6 +24171,7 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
     if (k === 'Tab') { ev.preventDefault(); return; }
     if (cmd && !ev.shiftKey && !ev.altKey && k.toLowerCase() === 'k') { ev.preventDefault(); palFermer(true); }
     return; }
+  if (rcDevant()) return;   /* Échap et la fermeture restent à leurs propres gestionnaires */
   if (cmd && !ev.altKey && !ev.shiftKey) {
     if (k.toLowerCase() === 'k') { ev.preventDefault(); opgRaccourci('palette'); return; }
     if (/^[1-9]$/.test(k)) { if (opgRaccourci('rubrique' + k)) ev.preventDefault(); return; }
@@ -25772,7 +25777,7 @@ function nvRendre(){ const z = document.getElementById('nv'); if (!z || !NV) ret
     <div class="nv-pied"><div class="nv-points-nav" aria-hidden="true">${P.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
       <div class="nv-boutons">${i ? '<button type="button" class="btn gris" data-nv="avant">Précédent</button>' : '<button type="button" class="btn gris" data-nv="fermer">Passer</button>'}<button type="button" class="btn" data-nv="${fin ? 'fermer' : 'apres'}">${fin ? 'C’est parti' : 'Suivant'}</button></div></div>`;
   z.querySelector('.nv-corps').scrollTop = 0; const b = z.querySelector('.nv-boutons .btn:not(.gris)'); if (b && innerWidth > 760) b.focus({ preventScroll:true }); }
-function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); document.getElementById('nv')?.remove();
+function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); if (PAL) palFermer(false); document.getElementById('nv')?.remove();
   NV = { pages:nvPages(), i:0 };
   document.body.insertAdjacentHTML('beforeend', `<div id="nv" role="dialog" aria-modal="true" aria-labelledby="nv-titre"><div class="nv-feuille"></div></div>`);
   nvRendre(); return true; }
