@@ -3,7 +3,7 @@
 // première connexion (choisir son mot de passe), « Rester connecté » coché ou non, « Mot de passe oublié ? », « Changer d'entreprise »,
 // compte désactivé, clavier (Entrée, Tab ne sort pas de l'écran), « Se déconnecter ». Le prototype n'a pas de serveur : tout est local.
 // Usage : PROFIL=mac|iphone|… NUIT=1 node coque-connexion.js   (rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe)
-const L = require('../../lib.js'), v = L.v;
+const L = require('../../lib.js'), v = L.v, S = require('../../sondes/secu-commun.js');   /* double authentification : la première connexion se joue par les outils des sondes secu-* */
 const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-coque/';
 const att = (p, f, ms) => L.attendre(p, f, ms || 9000);
@@ -13,9 +13,6 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   const c = await L.ouvrir({ profil: PROFIL, nuit: NUIT, qui: null, attente: 300 }), p = c.p;
   const tap = async s => { await p.locator(s).first()[c.doigt ? 'tap' : 'click']({ timeout: 5000 }); };
   const taper = async (s, t) => { await p.locator(s).first().fill(t); };
-  // depuis l'arrivée de la double authentification (17 novembre 2026) le mot de passe provisoire est tiré au hasard pour chaque compte (SECU.comptes[k].prov),
-  // et Karim et Léa ont déjà activé leur téléphone (leur mot de passe choisi est lisible dans le bloc « Démonstration » : demoClair)
-  const prov = k => p.evaluate(k => secuCompte(k).prov, k), clair = k => p.evaluate(k => secuCompte(k).demoClair, k), login = k => p.evaluate(k => cnxLogin(eqDe(k)), k);
   // 1. le chargement : un écran qui dit ce qui se passe, puis l'écran du lien (appareil neuf : rien n'est relié)
   v('le chargement du lancement est affiché (role=status, nom dit)', await att(p, () => { const e = document.getElementById('cnx'); return !!e && e.classList.contains('charge'); }, 3000));
   await p.screenshot({ path: CAP + `connexion-charge-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
@@ -57,72 +54,53 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   v('« Mot de passe oublié ? » : le message est lisible (pas de rouge d’erreur)', await p.evaluate(() => getComputedStyle(document.getElementById('cn-err')).color) !== 'rgb(220, 38, 38)');
   await p.screenshot({ path: CAP + `connexion-oubli-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
   // compte désactivé
+  const provTom = await S.provisoire({ p }, 'tl');   // le provisoire de Tom, lu dans le bloc « Démonstration » (seul endroit)
   await p.evaluate(() => { eqDe('tl').actif = false; });
-  await taper('#cn-id', await login('tl')); await taper('#cn-mdp', await prov('tl')); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await taper('#cn-id', 'tom'); await taper('#cn-mdp', provTom); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   v('compte désactivé : le dit et dit à qui s’adresser', /désactivé/.test(await txt(p, '#cn-err') || '') && /administrateur/.test(await txt(p, '#cn-err') || ''), await txt(p, '#cn-err'));
   await p.evaluate(() => { eqDe('tl').actif = true; });
+  // identifiant avec accent / majuscules / espace final
+  const provSophie = await S.provisoire({ p }, 'sm');
+  await taper('#cn-id', ' SOPHIE '); await taper('#cn-mdp', provSophie); await p.keyboard.press('Enter');
+  v('« SOPHIE » (majuscules, espaces) passe vers la première connexion (l’activation du téléphone)', await att(p, () => !!document.getElementById('cn-form-activer')));
+  v('première connexion : dit « Active OP Security » et explique', /Active OP Security/.test(await txt(p, '#cn-form-activer h1') || '') && /chaque connexion se confirme sur ton téléphone/.test(await txt(p, '#cn-form-activer .cn-expl') || ''));
+  await tap('[data-cnx="retour"]');
+  v('« Revenir à la connexion » ramène à l’identifiant', await att(p, () => !!document.getElementById('cn-form')));
   // « Changer d'entreprise »
   await tap('[data-cnx="quitter"]');
   v('« Changer d’entreprise » ramène à l’écran du lien', await att(p, () => !!document.getElementById('cn-form-lien')));
   v('« Changer d’entreprise » oublie vraiment l’entreprise (rangement local)', (await p.evaluate(() => localStorage.getItem('opg_proto_espace'))) === null);
   await taper('#cn-lien', 'teamop.fr/e/clim-services-17'); await p.keyboard.press('Enter'); await att(p, () => !!document.getElementById('cn-form'));
+  // 4. première connexion de Marc : provisoire → téléphone → code de vérification → mot de passe à lui (les règles du mot de passe sont jouées par secu-activation)
   await p.waitForTimeout(600);
-  // identifiant en majuscules, avec espaces : Karim a déjà activé son téléphone (Léa aussi, mais son compte est verrouillé au départ de la démonstration), la suite est « Confirme sur ton téléphone »
-  await taper('#cn-id', ' ' + (await login('kb')).toUpperCase() + ' '); await taper('#cn-mdp', await clair('kb')); await p.keyboard.press('Enter');
-  v('identifiant en MAJUSCULES et avec espaces : accepté, on passe à « Confirme sur ton téléphone »', await att(p, () => !!document.getElementById('cn-form-confirme')), await txt(p, '#cn-err'));
-  v('« Confirme sur ton téléphone » dit quoi faire et donne le nombre à taper', /Ouvre OP Security/.test(await txt(p, '#cn-form-confirme') || '') && await p.evaluate(() => /^\d{2}$/.test(((document.querySelector('[data-sec="nombre"]') || {}).textContent || '').trim())));
-  await tap('[data-cnx="annuler-demande"]');
-  v('« Annuler » de la confirmation ramène à l’identifiant (déjà rempli)', await att(p, () => !!document.getElementById('cn-form')) && (await p.evaluate(() => document.getElementById('cn-id').value)) !== '');
-  // marc n'a pas encore de téléphone : mot de passe provisoire → « Active OP Security »
-  await taper('#cn-id', 'marc'); await taper('#cn-mdp', await prov('marc')); await p.keyboard.press('Enter');
-  v('marc + mot de passe provisoire → « Active OP Security » (pas de téléphone encore)', await att(p, () => !!document.getElementById('cn-form-activer')));
-  v('« Active OP Security » dit pourquoi, en trois étapes, et propose « Revenir à la connexion »', /obligatoire/.test(await txt(p, '#cn-form-activer .cn-expl') || '') && (await p.locator('#cn-form-activer .sec-etapes li').count()) === 3 && await sur(p, '[data-cnx="retour"]'));
-  await p.screenshot({ path: CAP + `connexion-activer-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
-  await tap('[data-cnx="retour"]');
-  v('« Revenir à la connexion » ramène à l’identifiant', await att(p, () => !!document.getElementById('cn-form')));
-  // le choix du mot de passe vient APRÈS l'activation du téléphone : on arrive à l'écran comme le fait le code (le téléphone simulé n'est pas notre sujet ici)
-  await p.evaluate(() => cnxPremier(eqDe('marc'))); await p.waitForTimeout(700);
-  v('« Choisis ton mot de passe » dit le prénom et explique', /Bonjour Marc/.test(await txt(p, '#cn-form-premier h1') || '') && /mot de passe personnel/.test(await txt(p, '#cn-form-premier .cn-expl') || ''));
   await p.screenshot({ path: CAP + `connexion-premier-${PROFIL}${NUIT ? '-nuit' : ''}.png` });
-  const essai = async (a, b) => { await taper('#cn-n1', a); await taper('#cn-n2', b); await p.keyboard.press('Enter'); await p.waitForTimeout(300); return txt(p, '#cn-err'); };
-  v('mot de passe trop court refusé, dit pourquoi', /Trop court/.test(await essai('abc', 'abc') || ''));
-  v('l’aide « 12 caractères au moins » ne se répète pas à côté de l’erreur « Trop court »', await p.evaluate(() => { const a = document.getElementById('cn-aide'); return !a || getComputedStyle(a).display === 'none'; }));
-  v('huit espaces refusés (on compte les caractères utiles)', /Trop court/.test(await essai('        ', '        ') || ''));
-  v('douze caractères tout simples (« 123456789012 ») refusés : trop répétitif ou trop courant', /répétitif|courant/.test(await essai('123456789012', '123456789012') || ''));
-  v('deux mots de passe différents refusés', /pas les mêmes/.test(await essai('cheval agrafe batterie correcte', 'cheval agrafe batterie correcter') || ''));
-  const pv = await prov('marc'); if (pv && pv.replace(/\s/g, '').length >= 12) v('le mot de passe provisoire refusé comme mot de passe personnel', /différent/.test(await essai(pv, pv) || ''));
-  await taper('#cn-n1', 'cheval agrafe batterie correcte'); await taper('#cn-n2', 'cheval agrafe batterie correcte');
-  await p.locator('#cn-form-premier button[type=submit]').first()[c.doigt ? 'tap' : 'click']();
+  const MDP_MARC = 'Cheval-agrafe-Marc-2026';
+  await S.activer({ p, err:c.err }, 'marc', { mdp:MDP_MARC, guide:true });
   v('mot de passe valable : on entre dans l’application (Bonjour Marc)', await att(p, () => /Bonjour Marc/.test((document.querySelector('#contenu h1') || {}).textContent || '') && !document.getElementById('cnx'), 12000));
   v('après la connexion : plus aucun écran de connexion ni guide devant sans que ce soit voulu', !(await sur(p, '#cnx')));
   const guide = await att(p, () => !!document.getElementById('nv'), 6000);
   v('le guide des nouveautés s’ouvre seul à la PREMIÈRE connexion de la personne', guide);
-  if (guide) { v('le guide a un titre et un bouton pour le fermer (« Passer »)', /Bienvenue/.test(await txt(p, '#nv h2') || '') && await sur(p, '#nv [data-nv="fermer"]'), await txt(p, '#nv h2')); await p.screenshot({ path: CAP + `connexion-guide-${PROFIL}${NUIT ? '-nuit' : ''}.png` }); await p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); b && b.click(); }); await p.waitForTimeout(500); }
-  // 5. « Rester connecté » (coché par défaut) : un rechargement garde la session
+  if (guide) { v('le guide a un titre et un bouton pour le fermer (« Passer »)', /Bienvenue/.test(await txt(p, '#nv h2') || '') && await sur(p, '#nv [data-nv="fermer"]'), await txt(p, '#nv h2')); await p.screenshot({ path: CAP + `connexion-guide-${PROFIL}${NUIT ? '-nuit' : ''}.png` }); await p.keyboard.press('Escape'); await p.waitForTimeout(500); v('Échap ferme le guide', !(await sur(p, '#nv'))); }
+  // 5. plus de « Rester connecté » : un rechargement ferme la session (décision 6 de la double authentification), la reconnexion se fait par le nombre
+  v('la case « Rester connecté » n’existe plus', !(await p.evaluate(() => !!document.getElementById('cn-reste'))));
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(6500);
-  // la case « Rester connecté » n'existe plus depuis la double authentification : rien ne se garde d'une page à l'autre, chaque ouverture se confirme sur le téléphone
-  v('la case « Rester connecté » n’existe plus : l’écran ne la promet pas', (await p.locator('#cn-reste').count()) === 0 && !(await p.evaluate(() => /Rester connecté/.test(document.body.innerText))));
-  const dedans = await att(p, () => !document.getElementById('cnx') && !!document.querySelector('#contenu h1'), 8000);
-  console.log('  · [coque-13] après un rechargement de la page : ' + (dedans ? 'la session est gardée' : 'retour à l’écran de connexion (la confirmation sur le téléphone est redemandée)'));
-  // se déconnecter
+  v('après rechargement : l’écran de connexion, aucune session gardée', await att(p, () => !!document.getElementById('cn-form'), 8000) && await p.evaluate(() => SESSION === null));
+  await p.evaluate(() => { const b = document.getElementById('nv'); if (b) b.remove(); });
+  // se déconnecter : on rouvre une session (première connexion de Julie, complète) puis « Se déconnecter »
+  await S.activer({ p, err:c.err }, 'julie', { mdp:'Cheval-agrafe-Julie-2026' });
   await p.evaluate(() => sessionFermer());
   v('« Se déconnecter » : retour à l’écran de connexion (pas celui du lien)', await att(p, () => !!document.getElementById('cn-form') && !document.getElementById('cn-form-lien'), 8000));
-  v('[coque-01] après déconnexion : rien de la personne précédente ne reste dans la page derrière la connexion', await p.evaluate(() => { const c = document.getElementById('contenu'); return !c || !/Marc/.test(c.textContent) ; }), 'le texte de l’écran de Marc reste dans la page derrière la connexion');
-  // reconnexion de Karim (téléphone déjà activé), « Rester connecté » décoché ; le téléphone simulé approuve
-  await taper('#cn-id', await login('kb')); await taper('#cn-mdp', await clair('kb'));
-  await p.keyboard.press('Enter');
-  v('Karim + son mot de passe : « Confirme sur ton téléphone »', await att(p, () => !!document.getElementById('cn-form-confirme')));
-  await p.evaluate(() => { const d = SECU.demandes.find(x => x.id === SECU.pc.demandeId); d.etat = 'approuvee'; secuTraiter(d, 'ok'); });
-  v('le téléphone approuve : Karim entre dans l’application', await att(p, () => !document.getElementById('cnx') && !!document.querySelector('#contenu h1'), 12000), await txt(p, '#cnx'));
+  v('[coque-01] après déconnexion : rien de la personne précédente ne reste dans la page derrière la connexion', await p.evaluate(() => { const c = document.getElementById('contenu'); return !c || !/Julie/.test(c.textContent) ; }), 'le texte de l’écran de Julie reste dans la page derrière la connexion');
+  const nombre = await S.jour({ p, err:c.err }, 'julie', 'Cheval-agrafe-Julie-2026');
+  v('reconnexion avec le mot de passe choisi, par le NOMBRE tapé sur le téléphone', await att(p, () => !document.getElementById('cnx') && !!SESSION, 12000) && /^[1-9][0-9]$/.test(nombre), nombre);
   await p.waitForTimeout(3000);
-  await p.evaluate(() => document.getElementById('nv')?.remove());
-  await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(6500);
-  v('après rechargement on retombe sur la connexion (rien n’est gardé d’une page à l’autre)', await att(p, () => !!document.getElementById('cn-form'), 8000));
+  v('le guide ne se rouvre pas à la deuxième connexion', !(await sur(p, '#nv')));
+  await p.evaluate(() => sessionFermer()); await att(p, () => !!document.getElementById('cn-form'), 8000);
   // 6. le clavier : Tab ne sort pas de l'écran de connexion
   const sorti = await p.evaluate(async () => { const r = []; for (let i = 0; i < 14; i++) { const e = document.activeElement; r.push(e && e.closest ? !!e.closest('#cnx') : false); document.activeElement && document.activeElement.blur && 0; } return r; });
   await p.focus('#cn-id'); let dehors = 0;
-  for (let i = 0; i < 14; i++) { await p.keyboard.press('Tab'); if (!await p.evaluate(() => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cnx')))) dehors++; }
-  v('[coque-01] Tab ne sort jamais de l’écran de connexion (14 tabulations)', dehors === 0, dehors + ' tabulations tombées derrière l’écran de connexion');
+  for (let i = 0; i < 14; i++) { await p.keyboard.press('Tab'); if (!await p.evaluate(() => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cnx, #opsec')))) dehors++; }
+  v('[coque-01] Tab ne sort jamais de l’écran de connexion ni du téléphone OP Security (14 tabulations)', dehors === 0, dehors + ' tabulations tombées derrière l’écran de connexion');
   v('aucune erreur de console pendant tout le parcours', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer();
   process.exit(L.bilan() ? 1 : 0);

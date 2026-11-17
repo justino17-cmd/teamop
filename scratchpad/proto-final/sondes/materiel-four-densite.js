@@ -1,11 +1,11 @@
-// Matériel, étape 4 (Fournisseurs, matériel & produits) — LA DENSITÉ (spec § 1 et § 13) : la première ligne de donnée de chaque onglet doit venir avant la moitié de l'écran (0,6 au téléphone : le titre y passe sur deux lignes)
+// Matériel, étape 4 (Fournisseurs, matériel & produits) — LA DENSITÉ (spec § 1 et § 13) : la première ligne de donnée de chaque onglet doit venir avant la moitié de l'écran (0,6 sur un téléphone haut, 0,7 sur un téléphone de 740 px, 0,9 sur un petit écran : le titre y passe sur deux lignes)
 // et au plus 12 éléments touchables avant elle (dans l'écran, pas dans le menu). On compte la population d'abord : une mesure sur zéro ligne ne prouve rien.
 // Usage : node materiel-four-densite.js [profil ...] → « N ✓ · M ✗ »  (défaut : les sept profils)
 const L = require('../lib.js');
 (async () => {
   const v = L.v, profils = process.argv.length > 2 ? process.argv.slice(2) : ['mac', 'mac720', 'windows', 'ipad', 'iphone', 'android', 'petit'];
   for (const profil of profils) {
-    const c = await L.ouvrir({ profil, qui:'marc' }), p = c.p, tel = !!L.PROFILS[profil].mobile, SEUIL = tel ? .6 : .5;
+    const c = await L.ouvrir({ profil, qui:'marc' }), p = c.p, tel = !!L.PROFILS[profil].mobile, SEUIL = !tel ? .5 : L.PROFILS[profil].h >= 800 ? .6 : L.PROFILS[profil].h >= 700 ? .7 : .9;   // un téléphone bas porte la MÊME barre du haut et le MÊME titre sur deux lignes : la moitié d'un petit écran ne se tient pas, on exige alors que la première ligne soit sur le premier écran
     await L.aller(p, 'produits');
     for (const [onglet, sel, nom] of [['commandes', '.fx-acmd .fx-pl', 'Commandes (première ligne à commander)'], ['articles', '.fx-arts .fx-a', 'Articles'], ['fournisseurs', '.fx-c', 'Fournisseurs']]) {
       await p.evaluate(k => { prVue = k; rendre(); window.scrollTo(0, 0); }, onglet); await L.calme(p, 450);

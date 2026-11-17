@@ -599,13 +599,14 @@ html .fx-acmd{padding:18px 20px}
 html .fx-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:6px}html .fx-ch h3{margin:0 0 2px;font-size:20px}
 html .fx-pan{padding:14px 0 6px;border-top:1px solid var(--trait)}html .fx-pan:first-of-type{border-top:0}
 html .fx-pt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}html .fx-pt>b{font-size:17px;overflow-wrap:anywhere}
+@media (min-width:761px){html .fx-pt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}}   /* sur ordinateur le nom du fournisseur et sa phrase tiennent sur une ligne : la première ligne à commander remonte de 24 px */
 html .fx-pl{display:flex;align-items:flex-start;gap:14px;padding:10px 0}
 html .fx-pl>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}html .fx-pl>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .fx-pl .gris{overflow-wrap:anywhere}
 html .fx-pq{display:flex;flex-direction:column;align-items:flex-end;gap:0;flex:none}html .fx-pq .mat-pas input{width:56px}html .fx-u{text-align:right;white-space:nowrap}
 html .fx-lien{text-align:left;overflow-wrap:anywhere}
 html .fx-ph{display:flex;align-items:flex-start;gap:8px}html .fx-ph>.gris{flex:0 1 auto;min-width:0}
-html .fx-ib{position:relative;flex:none;width:22px;height:22px;margin:1px 0 0 2px;padding:0;border-radius:50%;border:1.5px solid var(--doux);background:none;color:var(--doux);cursor:pointer;display:grid;place-items:center;font:italic 700 13px/1 Georgia,serif}
-html .fx-ib::after{content:'';position:absolute;inset:-11px}   /* le rond fait 22 px, ce qui répond au doigt en fait 44 */
+html .fx-ib{position:relative;flex:none;width:44px;height:44px;margin:-10px -10px -10px -8px;padding:0;border:0;background:none;color:var(--doux);cursor:pointer;display:grid;place-items:center;font:italic 700 13px/1 Georgia,serif}
+html .fx-ib::before{content:'';position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--doux);box-sizing:border-box}   /* le bouton fait 44 px (ce que mesure un doigt) ; le rond dessiné n'en fait que 22 */
 html .fx-det{display:none;overflow-wrap:anywhere}html .fx-pl.info .fx-det{display:block}
 html .fx-pr{display:flex;align-items:center;gap:6px 12px;justify-content:flex-end;flex-wrap:wrap}
 html .fx-tard{color:var(--orange);font-weight:650}
@@ -637,6 +638,10 @@ html .fx-fc{margin-top:12px}html .fx-fc h3{margin:0 0 6px}
 html .fx-lg{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0;border-bottom:1px solid var(--trait)}html .fx-fc>.fx-lg:last-of-type{border-bottom:0}
 html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .fx-aide{display:block}
 html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .fx-n{width:112px;text-align:right}
+/* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
+html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
+html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
+html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
 html .fx-lg .pdx-tel{display:flex;gap:8px;align-items:center;flex:none;width:min(62%,300px)}html .fx-lg .pdx-tel .saisie{flex:1 1 0;width:auto;min-width:0}
 html .fx-jours{display:inline-flex;align-items:center;gap:8px;flex:none}html .fx-jours .saisie{width:112px}
 html .fx-case{margin:8px 0 2px;min-height:48px}
@@ -657,11 +662,14 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
   html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){flex:1 1 0;min-width:0;min-height:48px;white-space:normal;line-height:1.2}
-  html .fx-photo,html .fx-plusb{flex:none;width:46px;min-height:48px;padding:0;font-size:0}
+  html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0;font-size:0}   /* !important : la règle générale des en-têtes (ligne ~1208) donne à tout .btn « flex:1 1 auto; min-width:0 » et rétrécissait ces deux boutons à 38 px sur un écran de 320 */
   html .fx-photo .fx-lib{display:none}html .fx-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
   html .fx-tete .actions>.fx-photo:first-child{margin-left:auto}
   html .fx-seg{display:flex;width:100%}html .fx-seg button{flex:1 1 auto;min-width:0;padding:0 8px;font-size:14.5px}
   html .fx-acmd{padding:14px 14px}
+  html #contenu:has(>.fx-seg){gap:10px}html .fx-arts .groupe{padding:8px 12px 2px}   /* téléphone : l'écart entre les rangées de l'en-tête et le titre de groupe se resserrent — la première ligne d'article remonte de ~25 px */
+  /* l'en-tête de « À commander » tient sur UNE rangée (le titre et sa phrase à gauche, « Tout préparer » à droite) : la première ligne à commander remonte de ~55 px, sur un écran où chaque ligne compte */
+  html .fx-ch{flex-wrap:nowrap;align-items:center}html .fx-ch>div{flex:1 1 0;min-width:0}html .fx-ch>div>.gris{font-size:14px;line-height:1.3;display:block}html .fx-ch .btn{flex:none;min-height:44px;padding:0 12px;font-size:15px}html .fx-ch h3{font-size:19px;white-space:nowrap}
   html .fx-pl{flex-wrap:wrap}html .fx-pl>.fo-n{flex:1 1 100%}html .fx-pq{flex-direction:row;align-items:center;flex-wrap:wrap;gap:0 10px;width:100%}html .fx-pr{flex:1 1 auto;justify-content:space-between}html .fx-u{text-align:left}
   html .fx-l{flex-wrap:wrap}html .fx-lm{flex:1 1 100%;min-height:64px}html .fx-ab{margin:-4px 8px 10px}html .fx-long{display:none}html .fx-court{display:inline}
   html .fx-lm .fo-dr{max-width:44%}
@@ -672,7 +680,18 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-el>.fo-n{flex:1 1 100%}
 }
 @media (max-width:520px){
-  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .saisie,html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto}
+  /* le bon de commande à l'écran (le fac-similé du PDF) : quatre colonnes de 60 px ne tiennent pas, la désignation passait sur huit lignes ; chaque ligne devient un petit bloc (désignation, puis quantité · prix · total) */
+  html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}
+  html .bc-t td{padding:0;border:0;text-align:left}html .bc-t td:first-child{grid-column:1/-1}html .bc-t td:nth-child(3){text-align:right;color:var(--doux)}html .bc-t td:nth-child(4){text-align:right;font-weight:650}
+}
+@media (max-width:400px){
+  /* un écran de 320 : le nom de la commande ne peut pas partager sa ligne avec la pastille (4 lignes de 127 px) ; la pastille passe dessous */
+  html .fx-lm{flex-wrap:wrap;gap:6px 10px}html .fx-lm>.fo-n{flex:1 1 100%}html .fx-lm .fo-dr{max-width:100%;flex:none;align-items:flex-start;text-align:left}
+  /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
+  html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
+}
+@media (max-width:520px){
+  html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
   html .fx-ep{width:100%}html .fx-eq,html .fx-ep,html .fx-et{flex:1 1 100%;text-align:left}
 }
 /* ── ce que d'autres écrans empruntent encore à Dépôts (carte « Réserve sur place » d'une intervention et d'un client, raccourci de « Ma journée », ligne repérée) ── */
@@ -2127,6 +2146,8 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
 .pg-g .pl-jh{position:sticky;top:0}
 .pg-tec{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--grille);position:sticky;left:0;z-index:3;background:var(--carte-fond)}
+/* la colonne des noms colle à gauche : sans cette marge, amener une carte à l'écran (clavier, lecteur d'écran, « scrollIntoView ») la posait SOUS les noms */
+.pl-defile:has(.pg-g){scroll-padding-left:172px}@media (max-width:760px){.pl-defile:has(.pg-g){scroll-padding-left:150px}}
 .pg-tec b{display:block;font-size:15px;line-height:1.2}.pg-tec small{display:block;color:var(--doux);font-size:13px}
 .pl-cel{border-top:1px solid var(--grille);border-left:1px solid var(--grille);padding:6px;display:flex;flex-direction:column;gap:6px;min-height:96px;cursor:copy}
 .pl-cel.auj{background:var(--cel-auj)}
@@ -2635,8 +2656,9 @@ body.dp-ouvert{overflow:hidden}
 .a-flash{display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--vert) 10%,var(--feuille));border:1px solid color-mix(in srgb,var(--vert) 35%,transparent)}
 /* calendrier */
 .ac-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.a-avis{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
-.a-avis-c{overflow-wrap:anywhere;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
+/* le texte garde au moins 180 px : si les gestes (« Voir au planning › », « Vu ») ne tiennent pas à côté, ils passent SOUS le texte au lieu de l'écraser (12 px de large à 320 px, un mot par ligne : défaut des recontrôles du 17 novembre) */
+.a-avis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 3px 0 0 var(--vert)}
+.a-avis-c{overflow-wrap:anywhere;flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:2px}.a-avis-m{font-size:13.5px;color:var(--encre);margin-top:2px}.a-dec-i.info{background:var(--bleu,#2f6fdf)}
 .a-mot{margin:10px 0 4px}.a-mot textarea{width:100%}.a-avis-g{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ac-choix-g{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .ac-chip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;border:1px solid var(--trait2);background:var(--surf-in);color:var(--encre);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
@@ -2667,6 +2689,8 @@ body.dp-ouvert{overflow:hidden}
 /* Calendrier des absences : flèches de période et pastilles de personnes à 44 px au doigt (défaut taches-absences-07). Le recensement `.st-nav`
    est partagé avec Statistiques : on ne touche que celui du calendrier. */
 @media (max-width:760px),(pointer:coarse){.ac-ctrl .ac-nav button{width:44px;height:44px;flex:none}.ac-ctrl .ac-chip{min-height:44px}}
+/* « 2 semaines · 1 mois … 6 mois » tient sur une ligne dès 320 px : à 15 px et 16 px de marge, « 6 mois » sortait de la rangée (on ne voyait que « 6 ») */
+@media (max-width:400px){.ac-ctrl .ac-per{padding:2px;gap:0}.ac-ctrl .ac-per button{padding:0 3px;font-size:13px;min-width:0}}
 /* Soldes à 320 px : la colonne « À surveiller » sortait de sa boîte sans rien dire (tableau de 337 px dans 286). On resserre les colonnes
    et le texte, et la dernière passe à la ligne (défaut taches-absences-09). */
 @media (max-width:760px){.a-leg{display:flex}.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 6px}.as-t th:first-child,.as-t td:first-child{padding-left:12px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{font-size:10.5px;white-space:normal}.as-lg{display:none}.ac-aide{font-size:13px}.ac-nom{width:132px;padding:8px}.ac-nom small{display:none}.ac-nn{display:none}.ac-qui{margin-left:0;width:100%}.ac-ctrl .ac-per{width:100%}.ac-nav{flex:1}}
@@ -3644,10 +3668,24 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:760px){.vh-rl{grid-template-columns:minmax(0,1fr) auto}.vh-rb{grid-column:1/-1;grid-row:2}}
 /* le matériel de sécurité : huit lignes à 44 px et plus, un interrupteur chacune */
 .vh-mat{display:flex;flex-direction:column}.vh-mat-l{min-height:52px;cursor:pointer;justify-content:space-between}
-.vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}
-.vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
-.vh-sw:checked{background:var(--vert)}.vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw{appearance:none;-webkit-appearance:none;flex:none;width:52px;height:32px;border-radius:99px;background:var(--trait2);border:0;position:relative;cursor:pointer;margin:0}   /* plus spécifique que la case de 20 px des lignes .fo-r */
+.fo-r input[type=checkbox].vh-sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--on-etat);transition:transform .15s}
+.fo-r input[type=checkbox].vh-sw:checked{background:var(--vert)}.fo-r input[type=checkbox].vh-sw:checked::after{transform:translateX(20px)}
+.fo-r input[type=checkbox].vh-sw:focus-visible{outline:2px solid var(--lien);outline-offset:2px}
 .vh-fichier{cursor:pointer;min-height:44px;flex-wrap:wrap}
+/* étape 4, les feuilles : une question à la fois, des réponses qui se TOUCHENT (deux à cinq gros boutons), UN gros bouton en bas */
+.vh-q{display:flex;flex-direction:column;gap:8px}.vh-q>b{font-size:14px;color:var(--doux);font-weight:550}
+.vh-choix{gap:8px}.vh-choix .puce-c{min-height:48px;justify-content:center;text-align:center;line-height:1.25;white-space:normal}
+.vh-choix.vh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vh-choix.vh-2 .puce-c{border-radius:14px;padding:8px 10px}
+.vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
+#calque .panneau>.vh-pied{position:sticky;bottom:-1px;z-index:2;background:var(--feuille);padding:10px 0 4px;margin-bottom:-4px;box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
+.vh-ret{align-self:flex-start;min-height:44px}
+.vh-prochain{margin:0;font-size:14.5px;line-height:1.45;overflow-wrap:anywhere}
+.vh-plus{border:1px solid var(--trait);border-radius:14px;padding:0 14px;background:var(--surf2)}.vh-plus>summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:600;color:var(--lien)}.vh-plus[open]{padding-bottom:14px}.vh-plus-c{display:flex;flex-direction:column;gap:12px}
+.vh-fin{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--trait);padding-top:12px}
+.vh-photo{cursor:pointer;min-height:44px;justify-content:center}
+.vh-jour{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#calque .lien[hidden]{display:none}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -4375,8 +4413,10 @@ function crMonter(el){
   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix(false);
   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; });
-  map.on('zoomend', () => crTracerReel());
+  /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
+     recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
+     sur leur voisin (planning-07, rejoué sur iPhone) */
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4386,8 +4426,11 @@ function crMonter(el){
   }
   crTracerReel();
 }
+/* la place prise en haut de la carte par la rangée de personnes (elle passe sur deux lignes sur un petit écran) : un repère ne doit pas s'y cacher,
+   sinon le toucher tombe sur la puce « Karim » (planning-07) */
+function crHautLibre(){ const ch = document.querySelector('#cr-carte .cr-chips'), z = document.getElementById('cr-lf'); if (!ch || !z) return 84; return Math.max(84, Math.round(ch.getBoundingClientRect().bottom - z.getBoundingClientRect().top + 26)); }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, crHautLibre()] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4412,8 +4455,10 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
-    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
+       que de laisser le repère sur son voisin */
+    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
@@ -4464,7 +4509,7 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
-  t.classList.add('on'); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
@@ -5115,7 +5160,7 @@ function panneauReglagesRdv(){
     <div class="carte"><h3>Limites</h3>
       <label class="champ">Pas de demande avant<select data-rr="delai">${[0,1,2,3,5].map(n=>`<option value="${n}" ${R.delai===n?'selected':''}>${n ? n + ' jour' + (n>1?'s':'') : 'aujourd’hui'}</option>`).join('')}</select></label>
       <label class="champ">Jusqu’à<select data-rr="horizon">${[7,14,21,30].map(n=>`<option value="${n}" ${R.horizon===n?'selected':''}>${n} jours à l’avance</option>`).join('')}</select></label></div>
-    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention, touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
+    <div class="gris petit">Enregistré tout de suite. Pour les voir : ouvre une intervention TERMINÉE (le bouton n’existe que sur celles-là), puis touche « Voir le lien client », onglet « Le lien sur téléphone », puis « Accepter et choisir une date » : les créneaux proposés changent. Il reste toujours au moins une semaine de créneaux après le délai de l’intervention.</div>`, true);
 }
 
 /* ══ FACTURES ══ */
@@ -6743,7 +6788,8 @@ let DECISIONS_ABS = [
 // le bureau qui se met à sa place. Avant, tout lisait l'interrupteur `aComme` seul : masqué en mode application (aCommeSeg) mais resté à
 // 'marc', il faisait voir à la technicienne les gestes du bureau (« ＋ Nouvelle absence » validée tout de suite, pour n'importe quel collègue).
 // « Voir comme Marc » : un raccourci de REVUE (il change l'écran de rôle). Une vraie technicienne n'a pas de Marc à devenir : bouton mort.
-const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; rendre(); scrollTo({ top:0 }); } };
+const aVoirMarc = () => enApp() ? undefined : { lib:'Voir comme Marc', fn:() => { aComme = 'marc'; aOnglet = 'valider'; if (typeof ROLE !== 'undefined' && ROLE === 'tech') return rlChanger('patron', { h:'absences', muet:true });   // revue en technicien : le rôle change vraiment, sinon l'écran restait en lecture seule
+    rendre(); scrollTo({ top:0 }); } };
 const aLecture = () => (typeof ROLE !== 'undefined' && ROLE === 'tech') || aComme !== 'marc';
 let aComme = 'marc', aDepl = null;   // prototype : l'écran vu du bureau ou du technicien ; une absence qu'on déplace au toucher
 let aOnglet = 'valider', aRefusees = [], aCalPer = innerWidth > 760 ? 0.5 : 1, aCalSem = null, aCalDeb = null, aCalQui = 'tous', aFlash = null;
@@ -7040,8 +7086,13 @@ function aApercu(){ // ce que l'absence touche, avant d'enregistrer
   const el = document.getElementById('an-apercu'); if (!el) return;
   const a = { tech:document.getElementById('an-t').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null };
   if (!a.du || !a.au || a.au < a.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
-  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
-  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
+  const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au), btn = document.querySelector('[data-anouvok]');
+  // mêmes règles que la demande du technicien : rien à poser un week-end, et une demande déjà en attente sur ces jours se traite d'abord
+  // (sinon l'accorder plus tard doublerait l'absence et débiterait le solde en plus : défaut des recontrôles du 17 novembre)
+  const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);
+  if (btn) btn.disabled = !!(autre || attente || !aJours(a));
+  if (!aJours(a)) { el.innerHTML = '<div class="a-alerte"><b>Ces jours ne sont pas travaillés</b><small>Week-end ou jour férié : il n’y a rien à poser. Choisis d’autres dates.</small></div>'; return; }
+  el.innerHTML = `<div class="a-quand"><b>${aMaj(aPeriode(a))}</b><span>${aDuree(a)}</span></div>` + (attente && !autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(attente)}</b><small>Une demande attend ta réponse sur ces jours : accorde-la ou refuse-la d’abord, dans « À valider ».</small></div>` : '') + (autre ? `<div class="a-alerte"><b>⚠ ${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)}</b><small>Choisis d’autres dates.</small></div>` : '') + (c.ints.length ? `<div class="a-alerte"><b>⚠ ${c.ints.length} intervention${c.ints.length > 1 ? 's' : ''} à confier à quelqu’un d’autre</b>${c.ints.map(i => { const r = aRemplacants(i, a.tech)[0]; return `<span>${aDate(i.d)} · ${i.h} · ${esc(i.titre)} → ${r ? `<b>${r.t.nom}</b> <span class="gris petit">(${r.trou}${r.memeSect ? ', même secteur' : ''})</span>` : '<b class="t-retard">personne de libre : à planifier</b>'}</span>`; }).join('')}<small>En enregistrant, chacune est confiée à la personne indiquée.</small></div>` : '<div class="a-ok">✓ Aucune intervention prévue</div>');
 }
 /* valider : l'absence entre au planning, chaque intervention va à la personne choisie (ou passe « à planifier » + une tâche),
    la décision reste écrite, et on MONTRE le planning du jour, avec ce qui a bougé */
@@ -7190,6 +7241,8 @@ document.addEventListener('click', ev => {
   if (b.dataset.anouvok) { const a = { tech:document.getElementById('an-t').value, type:document.getElementById('an-ty').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null, motif:document.getElementById('an-m').value.trim() };
     if (!a.du || !a.au || a.au < a.du) return toast('La date de fin est avant la date de début');
     if (a.demi && a.du !== a.au) a.demi = null;
+    if (!aJours(a)) return toast('Ces jours ne sont pas travaillés : choisis d’autres dates');
+    if (DEMANDES_ABS.some(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au)) return toast(`${aPrenom(a.tech)} a une demande en attente sur ces jours : accorde-la ou refuse-la d’abord`);
     const autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au);   // même garde que « déplacer » et la demande du technicien
     if (autre) return toast(`${aPrenom(a.tech)} a déjà ${aAbsDeja(autre)} : choisis d’autres dates`);
     const moves = aValider(a, 'saisie'); fermerPanneau();
@@ -7236,7 +7289,7 @@ function aMenu(k, id, x, y){ if (aLecture()) return; const a = (k === 'd' ? DEMA
 function aMenuType(a, x, y){ ouvrirMenu(x, y, 'Changer le type', [{ ic:'‹', l:'Retour', garde:true, fn:() => aMenu('a', a.id, x, y) }, '---',
   ...Object.keys(A_TYPES).map(k => ({ ic:A_TYPES[k][1], l:(k === a.type ? '✓ ' : '') + k, fn:() => { if (k === a.type) return; const av = a.type; a.type = k;
     journalAjout('marc', 'equipe', 'a changé le type de l’absence', { lib:tech(a.tech).nom }, { avant:av, apres:k }); aRendreGarde();
-    toast(`Absence de ${aPrenom(a.tech)} : ${av.toLowerCase()} → ${k.toLowerCase()}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
+    toast(`Absence de ${aPrenom(a.tech)} : ${aTypeBas(av)} → ${aTypeBas(k)}`, { lib:'Annuler', fn:() => { a.type = av; aRendreGarde(); } }); } }))]); }
 /* déplacer ou redater une absence VALIDÉE : jamais par-dessus une autre absence de la même personne ; on dit ce que ça touche au planning */
 function aAppliquer(a, du, au, demi){
   if (!du || !au || au < du) { toast('La date de fin est avant la date de début'); return false; }
@@ -7452,6 +7505,9 @@ document.addEventListener('click', ev => {
     return aAppliquer(a, document.getElementById('ax-du').value, document.getElementById('ax-au').value, document.getElementById('ax-demi').value || null); }
 });
 document.addEventListener('change', ev => { const id = ev.target.id || '';
+  // « Au » suit « Du » tant qu'on n'a pas touché « Au » : choisir un début après la fin par défaut ne laisse plus « La date de fin est avant… »
+  if (id === 'ad-au') ev.target.dataset.touche = '1';
+  if (id === 'ad-du') { const au = document.getElementById('ad-au'); if (au && !au.dataset.touche && ev.target.value && au.value < ev.target.value) { au.value = ev.target.value; if (typeof dtPeindre === 'function') dtPeindre(au); } }   // dtPeindre : le bouton de date montre la nouvelle valeur
   if (['ad-ty', 'ad-du', 'ad-au'].includes(id)) aApercuDemande();
   if (['ax-du', 'ax-au', 'ax-demi'].includes(id)) { const b = document.querySelector('[data-axok]'); if (b) aApercuDates(ABSENCES.find(x => x.id === b.dataset.axok)); } });
 document.addEventListener('input', ev => { if (['ad-du', 'ad-au'].includes(ev.target.id || '')) aApercuDemande(); });
@@ -8220,7 +8276,11 @@ function lireHash(){
   scrollTo({ top:0 });
 }
 addEventListener('hashchange', lireHash);
-function ouvrirPanneau(html, large){ const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
+function ouvrirPanneau(html, large){
+  /* un message posé il y a plus d'un instant (« Ajoutée pour demain · Annuler ») ne reste pas collé sur le bas de la fiche qu'on ouvre juste après : il couvrait « Reporter » et « Confier à ».
+     Un message de LA MÊME action (moins de 0,4 s) reste, et un panneau déjà ouvert qu'on redessine n'y touche pas. */
+  { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
+  const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
@@ -8617,7 +8677,7 @@ function prRangement(k){
   const P = PACKS[k], n = P.cats.reduce((s, c) => s + c.ex.length, 0);
   ouvrirPanneau(`<span class="surtitre">Fixé par TEAM OP · 24 métiers</span><h2>Le rangement par métier</h2>
     <span class="gris">Chaque entreprise ajoute ses propres articles ; les catégories, elles, sont les mêmes pour tous les clients d’un métier, et l’application range toute seule ce qu’on tape.</span>
-    <label class="champ" style="margin-top:12px">Métier<select data-prmet="1">${Object.entries(PACKS).map(([c, p]) => `<option value="${c}" ${c === k ? 'selected' : ''}>${p.ic} ${esc(p.nom)}${PACKS_ENT.includes(c) ? ' · le tien' : ''}</option>`).join('')}</select></label>
+    <label class="champ" style="margin-top:12px">Métier<select data-prmet="1">${Object.entries(PACKS).map(([c, p]) => `<option value="${c}" ${c === k ? 'selected' : ''}>${esc(p.nom)}${PACKS_ENT.includes(c) ? ' · le tien' : ''}</option>`).join('')}</select></label>
     <label class="champ">Essayer le rangement<input data-pressai="${k}" placeholder="ex. ${esc(P.cats[0].ex[0][0])}" autocomplete="off"></label><div id="pr-essai" class="pr-sugg" aria-live="polite"></div>
     <div class="gris petit" style="margin:8px 0">${P.cats.length} catégories · ${n} produits typiques</div>
     ${P.cats.map(c => `<details class="pr-rg"><summary><b>${esc(c.n)}</b><span class="st ${c.t === 'm' ? 'st-g' : c.t === 'x' ? 'st-b' : 'st-v'}">${prTypeLib[c.t]}</span></summary><div class="gris petit" style="margin:6px 0">${esc(c.q)}</div><div class="pr-exs">${c.ex.map(e => `<span>${esc(e[0])}<i>${esc(e[1])}</i></span>`).join('')}</div></details>`).join('')}`, true);
@@ -8631,7 +8691,7 @@ document.addEventListener('input', ev => {
 function prFormulaire(x, pack, cat){
   const k = x ? x.p : pack, P = PACKS[k], cats = P.cats.map(c => c.n); prFormulaire.touche = !!x; prFormulaire.met = false; prFormulaire.uTouche = !!x; prFormulaire.ouvert = { p:k, cat:x ? x.cat : cat };
   ouvrirPanneau(`<h2>${x ? 'Modifier l’article' : 'Ajouter un article'}</h2>
-    <div class="deux-champs pr-met"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${[...PACKS_ENT, ...(PACKS_ENT.includes(k) ? [] : [k])].map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${PACKS[p].ic} ${esc(PACKS[p].nom.split(/ \/|,/)[0])}</option>`).join('')}</select></label>
+    <div class="deux-champs pr-met"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${[...PACKS_ENT, ...(PACKS_ENT.includes(k) ? [] : [k])].map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${esc(PACKS[p].nom.split(/ \/|,/)[0])}</option>`).join('')}</select></label>
       <label class="champ">Catégorie<select id="pr-cat">${cats.map(c => `<option value="${esc(c)}" ${c === (x ? x.cat : cat) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
     <label class="champ">Nom<input id="pr-nom" data-prnom="1" value="${esc(x ? x.nom : '')}" placeholder="Tape le nom : il se range tout seul" autocomplete="off"></label><div id="pr-sugg" class="pr-sugg" aria-live="polite"></div>
     <div class="deux-champs"><label class="champ">Référence<input id="pr-ref" value="${esc(x ? x.ref : '')}"></label><label class="champ">Fournisseur<input id="pr-four" list="fo-dl" value="${esc(x ? x.four : '')}" autocomplete="off"><datalist id="fo-dl">${MES_FOURN.map(f => `<option value="${esc(f.nom)}">`).join('')}</datalist></label></div>
@@ -8677,7 +8737,7 @@ document.addEventListener('input', ev => {
   if (!ev.target.matches('[data-prnom]')) return;
   const sp = document.getElementById('pr-pack'), r = prRanger(ev.target.value, prFormulaire.met && sp ? [sp.value] : PACKS_ENT), z = document.getElementById('pr-sugg'); if (!z) return;
   if (!r) { z.innerHTML = ev.target.value.trim().length > 2 ? '<span class="gris">Je ne sais pas le ranger : choisis la catégorie ci-dessous.</span>' : ''; if (!prFormulaire.touche) { if (prFormulaire.met) { const sc = document.getElementById('pr-cat'), sp2 = document.getElementById('pr-pack'); if (sc && sp2) sc.value = PACKS[sp2.value].cats[0].n; } else metiersRevenir(); } return; }
-  z.innerHTML = `<span class="pr-sg">↳ ${r.sur === false ? 'Peut-être dans' : 'Rangé dans'} <b>${PACKS[r.p].ic} ${esc(PACKS[r.p].nom.split(' /')[0])} › ${esc(r.cat)}</b>${r.t === 'm' ? ' · matériel de l’équipe' : ''}${r.sur === false && !prFormulaire.touche ? ' (mis dans la liste : change-la si ce n’est pas ça)' : ''}</span>${prFormulaire.touche ? ' <button type="button" class="lien" data-pr="sugg">Prendre cette catégorie</button>' : ''}`;
+  z.innerHTML = `<span class="pr-sg">↳ ${r.sur === false ? 'Peut-être dans' : 'Rangé dans'} <b>${esc(PACKS[r.p].nom.split(' /')[0])} › ${esc(r.cat)}</b>${r.t === 'm' ? ' · matériel de l’équipe' : ''}${r.sur === false && !prFormulaire.touche ? ' (mis dans la liste : change-la si ce n’est pas ça)' : ''}</span>${prFormulaire.touche ? ' <button type="button" class="lien" data-pr="sugg">Prendre cette catégorie</button>' : ''}`;
   if (!prFormulaire.touche) prAppliquer(r);
 });
 function prAppliquer(r){
@@ -8771,17 +8831,17 @@ function fournPreparer(id){
   const f = MES_FOURN.find(o => o.id === id); if (!f) return; const C = foCats(f), deja = new Set(PRODUITS.filter(x => !x.retire).map(x => prNorm(x.nom)));
   const blocs = Object.entries(C).map(([k, L]) => L.map((cn, j) => { const c = PACKS[k].cats.find(o => o.n === cn); if (!c) return '';
     const libres = c.ex.filter(([nom]) => !deja.has(prNorm(nom))).length;
-    return `<details class="fo-cat" ${j === 0 && k === Object.keys(C)[0] ? 'open' : ''}><summary><span><b>${PACKS[k].ic} ${esc(cn)}</b><span class="gris petit">${c.ex.length} produits typiques${c.t === 'm' ? ' · matériel' : ''}</span></span><span class="fo-nb" data-fonb="${k}|${esc(cn)}"></span></summary>
+    return `<details class="fo-cat" ${j === 0 && k === Object.keys(C)[0] ? 'open' : ''}><summary><span><b>${esc(cn)}</b><span class="gris petit">${c.ex.length} produits typiques${c.t === 'm' ? ' · matériel' : ''}</span></span><span class="fo-nb" data-fonb="${k}|${esc(cn)}"></span></summary>
       ${libres ? `<button type="button" class="lien" data-fo="tout|${k}|${esc(cn)}">Tout cocher</button>` : ''}
       <div class="fo-cks">${c.ex.map(([nom, u], i) => { const pris = deja.has(prNorm(nom)); return `<label class="fo-ck${pris ? ' pris' : ''}"><input type="checkbox" data-foex="${k}|${esc(cn)}|${i}" ${pris ? 'disabled checked' : ''}><span>${esc(nom)} <i>${esc(u)}</i></span>${pris ? '<em>déjà là</em>' : ''}</label>`; }).join('')}</div></details>`; }).join('')).join('');
-  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Préparer mes articles</h2>
-    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de tarifs ou de ta prochaine facture : tu n’as rien à taper.</span>
+  foOuvrir(`<span class="surtitre">${esc(f.nom)}</span><h2>Choisir parmi ses articles habituels</h2>
+    <span class="gris">Coche ce que tu achètes chez ${esc(f.nom)}. Les articles arrivent rangés, à son nom. Les prix viendront de son fichier de prix ou de ta prochaine facture : tu n’as rien à taper.</span>
     ${blocs || '<div class="gris">Ce fournisseur ne couvre aucune catégorie de tes métiers.</div>'}
     <div class="fo-pied"><button type="button" class="btn" id="fo-creer" data-fo="creer|${f.id}" disabled>Coche des articles</button><button type="button" class="btn gris" data-fo="fiche|${f.id}">Retour</button></div>`, true);
 }
 function foCompterCoches(){
   const n = document.querySelectorAll('[data-foex]:checked:not(:disabled)').length, b = document.getElementById('fo-creer'); if (!b) return;
-  b.disabled = !n; b.textContent = n ? `Ajouter ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
+  b.disabled = !n; b.textContent = n ? `Créer ${n} article${n > 1 ? 's' : ''}` : 'Coche des articles';
   document.querySelectorAll('[data-fonb]').forEach(s => { const [k, cn] = s.dataset.fonb.split('|'); const m = [...document.querySelectorAll('[data-foex]:checked:not(:disabled)')].filter(i => i.dataset.foex.startsWith(k + '|' + cn + '|')).length; s.textContent = m ? m + ' ✓' : ''; });
 }
 function foCreer(id){
@@ -8791,7 +8851,7 @@ function foCreer(id){
     PRODUITS.push(x); cree.push(x); });
   if (!cree.length) return; prCatalogueMaj(); fermerPanneau(); prPack = 'tous'; prCat = null; rendre();
   const ac = cree.filter(x => x.ac).length;
-  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses tarifs', fn:() => fournTarifs(f.id) });
+  toast(`${cree.length} article${cree.length > 1 ? 's' : ''} ajouté${cree.length > 1 ? 's' : ''} chez ${esc(f.nom)}${ac ? ` · ${ac} attend${ac > 1 ? 'ent leur' : ' son'} prix` : ''}.`, { lib:'Importer ses prix', fn:() => fournTarifs(f.id) });
 }
 
 /* ── le fichier de tarifs : CSV ou texte exporté du tableur, séparateur deviné, colonnes reconnues par leur titre ── */
@@ -8858,7 +8918,7 @@ function foImportVue(){
     ${sec('Tes prix qui changent', maj, o => { const v = vente(o.x, o.pa), p = foPct(o.x.pa, o.pa); return ligne(o, true, `achat ${eur(o.x.pa)} → <b class="${p > 0 ? 'fo-up' : 'fo-down'}">${eur(o.pa)} (${p > 0 ? '+' : ''}${prNum(p)} %)</b>${v && FO_IMP.garder ? ` · vente ${eur(o.x.pv)} → ${eur(v)}` : ''}`); })}
     ${sec('Prix à compléter', rem, o => { const v = pv0(o.x.p, o.x.cat, o.pa); return ligne(o, true, `achat ${eur(o.pa)}${v ? ` · vente ${eur(v)} (× ${prNum(foCoef(o.x.p, o.x.cat))}, ta moyenne en ${esc(o.x.cat.replace(/ \(.*\)$/, ''))})` : ' · matériel'}`); }, 'Les articles préparés chez ce fournisseur, qui attendaient leur prix.')}
     ${sec('Ailleurs chez un autre de tes fournisseurs', ail, o => { const p = o.x.pa ? foPct(o.x.pa, o.pa) : null; return ligne(o, false, `chez ${esc(o.x.four)} : ${o.x.pa ? eur(o.x.pa) : '—'} · ici ${eur(o.pa)}${p != null ? ` <b class="${p < 0 ? 'fo-down' : 'fo-up'}">(${p > 0 ? '+' : ''}${prNum(p)} %)</b>` : ''} — coche pour passer chez ${esc(f.nom)}`); }, 'Les deux prix restent notés sur la fiche de l’article, pour comparer.')}
-    ${sec('Nouveaux articles possibles', neuf, o => ligne(o, false, o.r ? `rangé dans ${PACKS[o.r.p].ic} ${esc(o.r.cat.replace(/ \(.*\)$/, ''))} · achat ${eur(o.pa)}${o.r.t !== 'm' ? ' · vente ' + eur(foArr(o.pa * foCoef(o.r.p, o.r.cat))) : ' · matériel'}` : `achat ${eur(o.pa)} · catégorie à choisir`), 'Tout le catalogue de ton fournisseur ne t’intéresse pas : coche seulement ce que tu utilises.')}
+    ${sec('Nouveaux articles possibles', neuf, o => ligne(o, false, o.r ? `rangé dans ${esc(o.r.cat.replace(/ \(.*\)$/, ''))} · achat ${eur(o.pa)}${o.r.t !== 'm' ? ' · vente ' + eur(foArr(o.pa * foCoef(o.r.p, o.r.cat))) : ' · matériel'}` : `achat ${eur(o.pa)} · catégorie à choisir`), 'Tout le catalogue de ton fournisseur ne t’intéresse pas : coche seulement ce que tu utilises.')}
     ${pareil.length ? `<div class="gris petit">${pareil.length} prix inchangé${pareil.length > 1 ? 's' : ''}.</div>` : ''}
     <div class="fo-pied"><button type="button" class="btn" data-fo="appliquer" id="fo-appl">Mettre à jour mes prix</button><button type="button" class="btn gris" data-fo="tarifs|${f.id}">Un autre fichier</button></div>`, true);
   foComptImp();
@@ -8875,9 +8935,9 @@ function foAppliquer(){
     else if (o.sorte === 'ailleurs') { x.paAvant = x.pa; if (prVend(x) && x.pa && FO_IMP.garder) x.pv = foArr(x.pv * o.pa / x.pa); x.pa = o.pa; x.four = f.nom; if (o.ref) x.ref = o.ref; nc++; }
     else if (o.sorte === 'neuf') { const r = o.r || { p:PACKS_ENT[0], cat:PACKS[PACKS_ENT[0]].cats[0].n, t:'p' }; PRODUITS.push({ id:'p' + Date.now().toString(36) + o.i, p:r.p, cat:r.cat, nom:o.nom, ref:o.ref || '—', ean:o.ean || undefined, u:o.u || r.u || 'u', pa:o.pa, pv:r.t === 'm' ? null : foArr(o.pa * foCoef(r.p, r.cat)), tva:20, four:f.nom, q:0, seuil:0 }); nn++; }
   });
-  f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
+  const tarifsAvant = f.tarifsLe; f.tarifsLe = '31 octobre'; prCatalogueMaj(); fermerPanneau(); rendre();
   const bouts = [nm && `${nm} prix mis à jour`, nr && `${nr} prix complétés`, nc && `${nc} passés chez ${esc(f.nom)}`, nn && `${nn} articles ajoutés`].filter(Boolean);
-  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); prCatalogueMaj(); rendre(); } });
+  toast((bouts.join(' · ') || 'Prix notés pour comparer') + '. Les prochains devis prennent ces prix.', { lib:'Annuler', fn:() => { PRODUITS.splice(0, PRODUITS.length, ...avant); if (tarifsAvant === undefined) delete f.tarifsLe; else f.tarifsLe = tarifsAvant; prCatalogueMaj(); rendre(); } });
 }
 /* un fichier d'exemple, tel qu'un espace client le rend : les articles de ce fournisseur (quelques hausses), deux articles d'un autre
    fournisseur un peu moins chers ici, et des articles du métier que l'entreprise n'a pas encore. Fictif : aucun prix réel. */
@@ -8918,9 +8978,9 @@ function foFactureVue(){
   foOuvrir(`<span class="surtitre">${esc(F.f.nom)} · facture ${esc(F.num)} du ${F.d}</span><h2>J’ai lu ${F.L.length} ligne${F.L.length > 1 ? 's' : ''} · ${eur(F.ht)} HT</h2>
     ${F.fichier ? `<div class="info petit">Prototype : ta photo n’est pas lue ici (elle ne quitte pas l’appareil) ; voici la lecture d’une facture d’exemple.</div>` : ''}
     <div class="fo-bloc">${F.L.map(o => { const p = o.x && o.x.pa ? foPct(o.x.pa, o.pu) : null;
-      return `<div class="fo-r fo-rf"><span class="fo-n"><b>${esc(o.nom)}</b><span class="gris petit">${o.x ? `${esc(o.ref)} · en stock ${prNum(o.x.q)} → <b>${prNum(o.x.q + o.q)}</b> ${esc(prU(o.x.q + o.q, o.x.u))}` : `nouvel article · rangé dans ${o.r ? PACKS[o.r.p].ic + ' ' + esc(o.r.cat.replace(/ \(.*\)$/, '')) : '—'}`}</span></span>
+      return `<div class="fo-r fo-rf"><span class="fo-n"><b>${esc(o.nom)}</b><span class="gris petit">${o.x ? `${esc(o.ref)} · en stock ${prNum(o.x.q)} → <b>${prNum(o.x.q + o.q)}</b> ${esc(prU(o.x.q + o.q, o.x.u))}` : `nouvel article · rangé dans ${o.r ? esc(o.r.cat.replace(/ \(.*\)$/, '')) : '—'}`}</span></span>
         <span class="fo-dr"><b>${prNum(o.q)} × ${eur(o.pu)}</b>${p ? `<span class="${p > 0 ? 'fo-up' : 'fo-down'} petit">${p > 0 ? '↑ +' : '↓ '}${prNum(p)} % depuis le dernier achat</span>` : o.x ? '<span class="gris petit">même prix</span>' : ''}</span></div>`; }).join('')}</div>
-    ${F.L.some(o => o.x && o.x.pa && o.pu > o.x.pa) ? `<div class="info petit fo-alerte">⚠️ <b>Hausse</b> : ${F.L.filter(o => o.x && o.x.pa && o.pu > o.x.pa).map(o => '+' + eur(o.pu - o.x.pa) + ' sur ' + esc(o.nom)).join(', ')}. ${F.marges ? 'Tes prix de vente suivront pour garder ta marge.' : 'Tes prix de vente ne bougent pas : ta marge baisse.'}</div>` : ''}
+    ${F.L.some(o => o.x && o.x.pa && o.pu > o.x.pa) ? `<div class="info petit fo-alerte"><b>Ça coûte plus cher</b> : ${F.L.filter(o => o.x && o.x.pa && o.pu > o.x.pa).map(o => '+' + eur(o.pu - o.x.pa) + ' sur ' + esc(o.nom)).join(', ')}. ${F.marges ? 'Tes prix de vente suivront pour garder ta marge.' : 'Tes prix de vente ne bougent pas : ta marge baisse.'}</div>` : ''}
     <div>${t('stock', 'Entrer les quantités en stock')}${t('prix', 'Mettre à jour mes prix d’achat')}${t('marges', 'Garder mes marges (le prix de vente suit)')}${t('achats', 'Ranger la facture dans les achats du mois')}</div>
     <div class="fo-pied"><button type="button" class="btn" data-fo="facok">Mettre à jour le stock et les prix</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
@@ -8953,7 +9013,7 @@ document.addEventListener('click', ev => {
   if (a === 'tout') { ev.preventDefault(); document.querySelectorAll(`[data-foex^="${CSS.escape(x + '|' + y + '|')}"]:not(:disabled)`).forEach(i => { i.checked = true; }); return foCompterCoches(); }
   if (a === 'creer') return foCreer(x);
   if (a === 'tarifs') return fournTarifs(x);
-  if (a === 'exemple') { const f = foFournChoisi(); return foAnalyser(foExemple(f), f, 'tarifs-' + foSlug(f.nom) + '.csv'); }
+  if (a === 'exemple') { const f = foFournChoisi(); return foAnalyser(foExemple(f), f, 'prix-' + foSlug(f.nom) + ' (fichier d’exemple)'); }
   if (a === 'appliquer') return foAppliquer();
   if (a === 'facture') return fournFacture(x);
   if (a === 'facex') { const s = document.getElementById('fo-f-four'); return foFactureExemple(MES_FOURN.find(o => o.id === (s && s.value)) || MES_FOURN[0], false); }
@@ -9147,7 +9207,7 @@ function cmdDoc(o){
     ${o.note ? `<div class="bc-note"><small>Note</small>${esc(o.note)}</div>` : ''}
     <div class="bc-pied"><span>Merci de confirmer cette commande (votre référence et la date de livraison) par le lien joint à l’e-mail, ou en y répondant.</span><span>Bon pour commande · ${esc(tNom('marc'))}, ${esc(ENTREPRISE.nom)}</span></div></div>`;
 }
-const cmdLien = c => 'teamop.fr/c/' + c.num.toLowerCase() + '-' + (c.num.length * 7919 % 9000 + 1000).toString(36);
+const cmdLien = c => 'teamop.fr/c/' + matNumAff(c.num).toLowerCase() + '-' + (c.num.length * 7919 % 9000 + 1000).toString(36);
 function cmdMail(c){ const f = foDe(c.four) || {};
   return `Objet : Bon de commande ${c.num} · ${ENTREPRISE.nom}${f.compte ? ' (compte ' + f.compte + ')' : ''}\n\nBonjour,\n\nVeuillez trouver ci-joint notre bon de commande ${c.num} (${c.lignes.length} ligne${c.lignes.length > 1 ? 's' : ''}, ${eur(cmdHT(c))} HT)${c.souh ? ', ' + (c.liv === 'comptoir' ? 'à retirer' : 'à livrer') + ' le ' + jlong(c.souh) : ''}.\n\nConfirmez-la en un clic, ou signalez un article en rupture :\n${cmdLien(c)}\n\nMerci, bonne journée.\n${tNom('marc')} · ${ENTREPRISE.nom} · ${ENTREPRISE.tel}`; }
 /* ce que voit le fournisseur en ouvrant le lien de l'e-mail : la commande, et deux gestes (confirmer, signaler une rupture) — sans compte */
@@ -9169,7 +9229,7 @@ function cmdPortailValider(id){
   if (part) c.reliquat = d; else { c.st = 'confirmee'; c.conf = { le:AUJ, num, lien:true }; c.prevue = d; }   // reçue en partie, elle le reste : seul le reliquat se confirme
   c.journal.push([AUJ, `${part ? 'Reliquat confirmé' : 'Confirmée'} par ${c.four} depuis le lien${num ? ' (n° ' + num + ')' : ''}, livraison le ${jCourt(d)}${rupt.length ? ' · rupture : ' + rupt.map(l => cmdNom(l) + ' (prévu le ' + jCourt(l.rupture) + ')').join(', ') : ''}`]);
   rendre(); cmdFiche(c.id);
-  toast(`${esc(c.four)} a confirmé ${part ? 'le reliquat de ' : ''}${esc(c.num)}${rupt.length ? ' : ' + rupt.length + ' article' + (rupt.length > 1 ? 's' : '') + ' en rupture, suivi' + (rupt.length > 1 ? 's' : '') : ''}. Tu n’as rien eu à saisir.`);
+  toast(`${esc(c.four)} a confirmé ${part ? 'le reste de la commande ' : 'la commande '}${esc(matNumAff(c.num))}${rupt.length ? ' : ' + rupt.length + ' article' + (rupt.length > 1 ? 's' : '') + ' en rupture, suivi' + (rupt.length > 1 ? 's' : '') : ''}. Tu n’as rien eu à saisir.`);
 }
 
 /* ── la fiche d'une commande : où elle en est, ce qui reste, les gestes du moment ── */
@@ -9184,18 +9244,18 @@ document.addEventListener('click', ev => {
     else if (x === 't') { const [nom, u] = PACKS[k2].cats[+ci].ex[+j]; E.lignes.push({ pid:null, nom, ref:'—', u, q:1, pu:null, tva:20, recu:0 }); }
     else { const t = (document.querySelector('[data-cedrech]') || {}).value || ''; if (!t.trim()) return; E.lignes.push({ pid:null, nom:t.trim(), ref:'—', u:'u', q:1, pu:null, tva:20, recu:0 }); }
     foGarder(cmdEdVue); const s = document.querySelector('[data-cedrech]'); if (s) s.focus(); return; }
-  if (a === 'brouillon') { const c = cmdEdEnregistrer(); CMD_ED = null; fermerPanneau(); cmdFiltre = 'traiter'; rendre(); return toast(`Brouillon ${esc(c.num)} enregistré : il attend dans « À traiter ».`, { lib:'Ouvrir', fn:() => cmdFiche(c.id) }); }
-  if (a === 'bon') { const E = CMD_ED; return foOuvrir(`<span class="surtitre">Aperçu du PDF</span><h2>Bon de commande ${esc(E.num)}</h2>${cmdDoc(E)}<div class="fo-pied"><button type="button" class="btn" data-ce="retour">‹ Revenir à la commande</button></div>`, true); }
+  if (a === 'brouillon') { const c = cmdEdEnregistrer(); CMD_ED = null; fermerPanneau(); cmdFiltre = 'traiter'; rendre(); return toast(`Brouillon ${esc(matNumAff(c.num))} enregistré : il attend dans « À traiter ».`, { lib:'Ouvrir', fn:() => cmdFiche(c.id) }); }
+  if (a === 'bon') { const E = CMD_ED; return foOuvrir(`<span class="surtitre">Aperçu du PDF</span><h2>Bon de commande ${esc(matNumAff(E.num))}</h2>${cmdDoc(E)}<div class="fo-pied"><button type="button" class="btn" data-ce="retour">‹ Revenir à la commande</button></div>`, true); }
   if (a === 'retour') return cmdEdVue();
   if (a === 'envoyer') { const c = x ? COMMANDES.find(o => o.id === x) : cmdEdEnregistrer(); return c ? cmdEnvoyer(c.id) : null; }
   if (a === 'modif') { const c = COMMANDES.find(o => o.id === x); return cmdEdOuvrir(JSON.parse(JSON.stringify({ id:c.id, num:c.num, four:c.four, lignes:c.lignes, liv:c.liv || 'atelier', souh:c.souh || '', pour:c.pour || '', note:c.note || '' }))); }
-  if (a === 'voirbon') { const c = COMMANDES.find(o => o.id === x); return foOuvrir(`<span class="surtitre">${c.st === 'brouillon' ? 'Aperçu du PDF' : 'Envoyé le ' + jCourt(c.env)}</span><h2>Bon de commande ${esc(c.num)}</h2>${cmdDoc(c)}<div class="fo-pied"><button type="button" class="btn gris" data-cm="voir|${c.id}">‹ Retour à la commande</button></div>`, true); }
+  if (a === 'voirbon') { const c = COMMANDES.find(o => o.id === x); return foOuvrir(`<span class="surtitre">${c.st === 'brouillon' ? 'Aperçu du PDF' : 'Envoyé le ' + jCourt(c.env)}</span><h2>Bon de commande ${esc(matNumAff(c.num))}</h2>${cmdDoc(c)}<div class="fo-pied"><button type="button" class="btn gris" data-cm="voir|${c.id}">‹ Retour à la commande</button></div>`, true); }
   if (a === 'portail') return cmdPortail(x);
   if (a === 'cpok') return cmdPortailValider(x);
   if (a === 'recommander') { const c = COMMANDES.find(o => o.id === x), f = foDe(c.four) || {};
     return cmdEdOuvrir({ id:null, num:'BC-2026-0' + cmdNum, four:c.four, lignes:c.lignes.map(l => ({ pid:l.pid, nom:l.nom, ref:l.ref, u:l.u, q:l.q, pu:l.pid ? prixChez(cmdArt(l) || {}, c.four) || l.pu : l.pu, tva:l.tva || 20, recu:0 })), liv:c.liv || 'atelier', souh:cmdJourOuvre(ajoute(AUJ, f.dj || 1)), pour:'', note:c.note || '' }); }
   if (a === 'jeter') { const k = COMMANDES.findIndex(o => o.id === x), c = COMMANDES[k]; COMMANDES.splice(k, 1); fermerPanneau(); rendre();
-    return toast(`Brouillon ${esc(c.num)} supprimé.`, { lib:'Annuler', fn:() => { COMMANDES.splice(k, 0, c); rendre(); } }); }
+    return toast(`Brouillon ${esc(matNumAff(c.num))} supprimé.`, { lib:'Annuler', fn:() => { COMMANDES.splice(k, 0, c); rendre(); } }); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
@@ -9217,7 +9277,7 @@ document.addEventListener('input', ev => {
 });
 
 function cmdConfirmer(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.four);
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Le fournisseur a confirmé</h2>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</span><h2>Le fournisseur a confirmé</h2>
     <div class="deux-champs"><label class="champ">Sa référence de commande<input id="cmd-cnum" placeholder="ex. AR-55120" autocomplete="off"></label><label class="champ">Livraison prévue le<input id="cmd-cdate" type="date" value="${c.prevue || ajoute(AUJ, f && f.dj != null ? f.dj : 2)}"></label></div>
     <span class="gris petit">Si la date passe sans livraison, la commande passe en retard et une relance est prête.</span>
     <div class="actions"><button type="button" class="btn" data-cm="confok|${c.id}">Enregistrer</button><button type="button" class="btn gris" data-cm="voir|${c.id}">Retour</button></div>`);
@@ -9225,7 +9285,7 @@ function cmdConfirmer(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(
 function cmdRelance(id){ const c = COMMANDES.find(o => o.id === id), f = foDe(c.four) || {}, a = cmdAlerte(c);
   const reste = c.lignes.filter(l => l.recu < l.q).map(l => `- ${prNum(l.q - l.recu)} ${prU(l.q - l.recu, cmdU(l))} de ${cmdNom(l)}`).join('\n');
   const txt = `Objet : Relance commande ${c.num}${c.conf && c.conf.num ? ' (votre réf. ' + c.conf.num + ')' : ''}\n\nBonjour,\n\n${a && a.t === 'silence' ? `Nous vous avons envoyé la commande ${c.num} le ${jCourt(c.env)} et n’avons pas encore de confirmation. Pouvez-vous nous confirmer la date de livraison ?` : `Notre commande ${c.num} était prévue le ${jCourt(c.st === 'partielle' ? c.reliquat : c.prevue)} et n’est pas encore arrivée${c.st === 'partielle' ? ' en totalité' : ''}. Il nous manque :\n${reste}\n\nPouvez-vous nous donner une nouvelle date ?`}\n\nMerci,\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`;
-  foOuvrir(`<span class="surtitre">${esc(c.num)} · ${esc(c.four)}</span><h2>Relancer</h2><span class="gris">${f.mail ? `À ${esc(f.mail)}, depuis ta boîte.` : `Pas d’e-mail : appelle le ${esc(f.tel || 'fournisseur')}.`}</span>
+  foOuvrir(`<span class="surtitre">Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</span><h2>Relancer</h2><span class="gris">${f.mail ? `À ${esc(f.mail)}, depuis ta boîte.` : `Pas d’e-mail : appelle le ${esc(f.tel || 'fournisseur')}.`}</span>
     <pre class="cmd-pre">${esc(txt)}</pre>
     <div class="actions"><button type="button" class="btn" data-cm="relok|${c.id}">${f.mail ? 'Envoyer la relance' : 'Noter la relance'}</button><button type="button" class="btn gris" data-cm="voir|${c.id}">Retour</button></div>`, true);
 }
@@ -9256,7 +9316,7 @@ function cmdFacturer(id, conteste){
   c.st = 'facturee'; c.fac = { num:F.num, le:AUJ }; c.journal.push([AUJ, `Facture ${F.num} comparée${E.length ? ' : ' + E.length + ' écart' + (E.length > 1 ? 's' : '') + ' accepté' + (E.length > 1 ? 's' : '') + ', prix d’achat mis à jour' : ' : conforme'} · rangée dans les achats`]);
   MAILS.filter(mm => !mm.fait && mm.dossier === 'recu' && mlLire(mm).sujet === 'facfour' && mlLire(mm).cmd === c).forEach(mm => mlTraite(mm, `Facture comparée à ${c.num} et rangée dans les achats`, `data-ml="cmd|${c.id}"`));   // le courriel n’est traité qu’une fois la facture validée
   prCatalogueMaj(); rendre(); cmdFiche(c.id);
-  toast(`Commande ${esc(c.num)} terminée : facture comparée et rangée dans les achats.`);
+  toast(`Commande ${esc(matNumAff(c.num))} terminée : facture comparée et rangée dans les achats.`);
 }
 
 document.addEventListener('click', ev => {
@@ -9282,7 +9342,7 @@ document.addEventListener('click', ev => {
   if (a === 'annuler') { const c = COMMANDES.find(o => o.id === x), st = c.st; c.st = 'annulee'; c.journal.push([AUJ, 'Annulée']);
     const tt = [...new Set(c.lignes.map(l => l.inter).filter(Boolean))].map(i => TACHES.find(o => o.id === i)).filter(T => T && T.etat === 'commandee' && !COMMANDES.some(o => o !== c && o.st !== 'annulee' && o.st !== 'brouillon' && o.lignes.some(l => l.inter === T.id))), avT = tt.map(T => [T, T.etat, T.commandeLe]);
     tt.forEach(T => { T.etat = 'acommander'; delete T.commandeLe; }); rendre(); cmdFiche(c.id);
-    return toast(`${esc(c.num)} annulée : ses articles reviennent dans « À commander » s’ils sont sous le seuil.${tt.length ? ' Les pièces de l’intervention y reviennent aussi.' : ''}`, { lib:'Annuler', fn:() => { c.st = st; c.journal.pop(); avT.forEach(([T, e, l]) => { T.etat = e; T.commandeLe = l; }); rendre(); cmdFiche(c.id); } }); }
+    return toast(`Commande ${esc(matNumAff(c.num))} annulée : ses articles reviennent dans « À commander » s’ils sont bientôt finis.${tt.length ? ' Les pièces de l’intervention y reviennent aussi.' : ''}`, { lib:'Annuler', fn:() => { c.st = st; c.journal.pop(); avT.forEach(([T, e, l]) => { T.etat = e; T.commandeLe = l; }); rendre(); cmdFiche(c.id); } }); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
@@ -11314,8 +11374,10 @@ const GESTES = {
   rgf:{ k:'inter', d:'m' }, rlv:{ k:'inter', d:'m' }, suite:{ k:'inter', d:'m' },
   d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
   /* planning, absences, tâches */
-  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, atdem:{ k:'planif', d:'c' }, atenvoi:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
+  aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
   kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  /* « Mes congés » : la demande de la technicienne, sa réponse à une proposition, le retrait de sa demande sont SES gestes (comme « Mes tâches », ci-dessous), jamais une case de planning : classés « planif », ils refusaient « Envoyer la demande à Marc » à toute technicienne (« Ce geste n'est pas ouvert à ton compte »). Décider d'une absence (aok, anouvok…) reste au planning. */
+  atdem:{ d:'l' }, atenvoi:{ d:'l' }, atrep:{ d:'l' }, atrepondre:{ d:'l' }, atrepok:{ d:'l' }, atretire:{ d:'l' }, atvoir:{ d:'l' }, addemi:{ d:'l' },
   /* « Mes tâches » est un outil PERSONNEL, toujours ouvert : ses gestes ne dépendent d'aucune case (les Tâches sortent des cases, spec § 2.6) */
   tkxs:{ d:'l' }, tajout:{ d:'l' }, tkxajout:{ d:'l' }, tnouv:{ d:'l' }, tfait:{ d:'l' }, tmodif:{ d:'l' }, tpiece:{ d:'l' }, tqui:{ d:'l' },
   tsdok:{ d:'l' }, tsfait:{ d:'l' }, tsqui:{ d:'l' }, tsdatep:{ d:'l' }, tsdevis:{ d:'l' },
@@ -11341,8 +11403,8 @@ const GESTES = {
   ptx:{ k:'temps', m:'debut reprendre termineok sigok plustotok finhierok corrige validertous termine termineprop finhier finhierautre plustot plustard', l:'pause' },
   tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
   ve:{ k:'temps', c:'nouveau creer', m:'pleinok kmok', l:'fiche' },
-  vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout', s:'docdel', l:'fiche onglet statut fonglet frais per csv csvflotte rdv cout groupe' },
-  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir' },
+  vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout hs', s:'docdel suppr supprok', l:'fiche onglet statut fonglet frais per csv csvflotte rdv cout groupe choix montrer' },
+  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir achat' },
   /* devis, contrats, relevés */
   dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
@@ -11354,6 +11416,8 @@ const GESTES = {
   ec:{ d:'l' },
   /* gestes de soi et de l'écran : aucune case */
   gd:{ d:'l' }, imm:{ d:'l' }, nv:{ d:'l' }, mch:{ d:'l' }, menu:{ d:'l' }, mode:{ d:'l' }, tab:{ d:'l' }, go:{ d:'l' }, kpi:{ d:'l' }, kdash:{ d:'l' }, l:{ d:'l' }, vc:{ d:'l' }, vis:{ d:'l' }, oc:{ d:'l' }, tour:{ d:'l' }, taller:{ d:'l' }, voix:{ d:'l' },
+  /* le téléphone simulé d'OP Security (ops) est l'appareil PERSONNEL de la personne : verrouiller, supprimer SON activation, bloquer une connexion ne touchent aucune donnée de l'entreprise et ne dépendent d'aucune case */
+  ops:{ d:'l' },
   cmpt:{ k:'compta', m:'relance', d:'l' }, cmptfin:{ k:'compta', d:'m' }, cpsys:{ d:'l' }, retour:{ d:'l' }, retourva:{ d:'l' }, retourx:{ d:'l' }, pretour:{ d:'l' }, rlcli:{ d:'l' }
 };
 /* ── la phrase de chaque case : ce qu'elle change, en mots de tous les jours. Elle sert à la fiche (sous chaque case), au refus (« Ce geste n'est pas ouvert à ton compte : … ») et à l'infobulle. ── */
@@ -11380,8 +11444,17 @@ Object.entries(GESTES).forEach(([f, E]) => { GESTES_TJ[f] = { c:gesteListe(E, 'c
 /* la catégorie de l'écran ouvert (une famille inconnue la prend) */
 const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[droitForme(eqDe(acteur()))] || T.equipe || T.terrain); return f && f[0] ? f[0].split('.')[0] : null; };
 /* la portée suit la FORME : sur l'écran d'un terrain, noter un paiement sur place ou envoyer le compte rendu est un geste de SA fiche d'intervention (inter › Modifier), pas celui d'un devis ou d'une facture du bureau */
-const gesteForme = g => g && g.cat === 'ventes' && droitForme(eqDe(acteur())) === 'terrain' ? { ...g, cat:'inter', x:'m' } : g;
-const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe));
+/* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
+const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
+/* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
+const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+const gesteForme = (g, fam, verbe) => {
+  if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
+  const B = TERRAIN_BUREAU[fam];
+  if (B && (B === '*' || B.has(verbe))) return { ...g, x:'b' };   /* réservé au bureau : aucune case ne l'ouvre à un terrain */
+  return g.cat === 'ventes' && TERRAIN_VENTES.has(fam + '|' + verbe) ? { ...g, cat:'inter', x:'m' } : g;
+};
+const geste = (fam, verbe) => gesteForme(gesteBrut(fam, verbe), fam, verbe);
 function gesteBrut(fam, verbe){
   const E = GESTES[fam], T = GESTES_TJ[fam];
   if (E) {
@@ -11412,7 +11485,7 @@ let droitsRefusVu = 0;
 function droitsRefus(cat, x, fam, verbe){
   DROITS_REFUS.push({ cat, x, fam, verbe });
   const t = Date.now(); if (t - droitsRefusVu < 900) return; droitsRefusVu = t;
-  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
+  const ph = fam === 'ent' ? 'changer la fiche de l’entreprise' : x === 'b' ? 'ce geste est réservé au bureau, il n’est pas sur l’écran d’un terrain' : x === 'sp' ? DROIT_SP_PHRASE[cat] : (DROIT_PHRASES[cat] || {})[x] || 'faire ce geste';
   toast('Ce geste n’est pas ouvert à ton compte : ' + ph + '. Demande à ' + esc(droitPremierAdmin()) + '.');
   return false;
 }
@@ -11459,7 +11532,7 @@ function droitsCss(p){
   p = p || eqDe(acteur()); if (!p || droitAdmin(p) || (typeof ROLE !== 'undefined' && ROLE === 'client')) return '';
   const R = [];
   Object.entries(GESTES).forEach(([fam, E]) => { const T = GESTES_TJ[fam];
-    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
+    ['c', 'm', 's'].forEach(x => Object.entries(T[x]).forEach(([v, c]) => { const g = gesteForme({ cat:c || E.k, x }, fam, v); if (g.cat && !peut(g.cat, g.x, p)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
     if (E.d && E.d !== 'l' && E.k && !peut(E.k, E.d, p)) R.push(`[data-${fam}]`); });
   Object.entries(GESTES_SP).forEach(([fam, V]) => Object.entries(V).forEach(([v, sp]) => { if (!droitSp(p, sp)) R.push(`[data-${fam}="${v}"]`, `[data-${fam}^="${v}|"]`); }));
   /* un bouton, un lien, une ligne : on ne le dessine pas. Un champ de saisie ou une case : on le FIGE (sa valeur reste lisible, rien ne s'écrit : la garde rend la valeur d'avant) */
@@ -12090,7 +12163,7 @@ function paieSemLigne(w, fin){
   const sup = w.s25 + w.s50, note = w.avant ? `avec les jours de fin ${paieMoisVoisin(-1)}` : w.report ? `se termine en ${paieMoisVoisin(1)}` : '';
   return `<div class="paie-semaine${fin ? ' a4' : ''}"><span class="paie-sem-t">Semaine du ${esc(jCourt(w.L))}${note ? `<small class="gris">${note}</small>` : ''}</span><b class="paie-sem-n">${ptH(w.tot)}</b><span class="${sup && w.ici ? 'fo-up' : 'gris'} petit paie-sem-sup">${sup ? '+' + ptH(sup) + ' sup.' + (w.report ? ` · sur ${paieMoisVoisin(1)}` : '') : '—'}</span>${fin ? `<span class="paie-sem-a">${fin}</span>` : ''}</div>${fin && !w.valide && w.alertes.length ? `<div class="paie-al">${w.alertes.map(a => `<span class="ve-pt ve-${a.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span>${esc(a.t)}`).join('<br>')}</div>` : ''}`;
 }
-const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${t.toLowerCase()}`).join(', ') || '—';
+const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${aTypeBas(t)}`).join(', ') || '—';
 /* où en est le mois : cinq étapes, chacune dit ce qui manque et où le régler */
 function paieEtapes(V){
   const ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), nonVal = V.reduce((s, v) => s + v.nonValidees, 0), sig = V.filter(v => v.signale), conf = V.filter(v => v.confirme).length;
@@ -14010,7 +14083,7 @@ function pdxAchatsLignes(){
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return;
     if (a.t === 'retard') L.push({ k:'r', t:`${esc(c.num)} ${esc(c.four)} : ${esc(pdxMin(a.txt.replace(/ \(.*\)$/, '')))}`, go:'voir|' + c.id });
     else if (a.t === 'silence') L.push({ k:'s', t:`${esc(c.num)} ${esc(c.four)} : pas de confirmation`, go:'voir|' + c.id });
-    else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à rapprocher : ${esc(c.num)} ${esc(c.four)}`, go:'rappro|' + c.id }); });
+    else if (a.t === 'facture') L.push({ k:'f', t:`Facture fournisseur à comparer : commande ${esc(matNumAff(c.num))}, ${esc(c.four)}`, go:'rappro|' + c.id }); });
   const br = COMMANDES.filter(c => c.st === 'brouillon'); if (br.length) L.push({ k:'b', t:`${pdxPl(br.length, 'commande')} en brouillon à envoyer`, go:'voir|' + br[0].id });
   const ordre = 'arsfb'; return L.sort((a, b) => ordre.indexOf(a.k) - ordre.indexOf(b.k));
 }
@@ -14030,7 +14103,7 @@ function pdxMatin(){
 function pdxSuggTaches(S, deja){
   COMMANDES.forEach(c => { const a = cmdAlerte(c); if (!a) return; const cle = 'cmd-' + c.id + '-' + a.t; if (deja(cle)) return;
     const n = a.t === 'retard' ? -tJours(c.st === 'partielle' ? c.reliquat : c.prevue) : 0;
-    S.push({ cle, t:a.t === 'facture' ? `Rapprocher la facture de ${c.num} (${c.four})` : a.t === 'silence' ? `Relancer ${c.four} : ${c.num} sans confirmation` : `Relancer ${c.four} : ${c.num} en retard de ${pdxPl(n, 'jour')}`,
+    S.push({ cle, t:a.t === 'facture' ? `Comparer la facture de la commande ${matNumAff(c.num)} (${c.four})` : a.t === 'silence' ? `Relancer ${c.four} : commande ${matNumAff(c.num)} sans confirmation` : `Relancer ${c.four} : commande ${matNumAff(c.num)} en retard de ${pdxPl(n, 'jour')}`,
       pourquoi:a.t === 'facture' ? a.txt : a.txt + ' · l’e-mail de relance est prêt', lien:null, urgent:a.t === 'retard' }); });
   return S;
 }
@@ -14043,7 +14116,7 @@ function pdxTachesSync(){
 }
 /* la fiche d'une tâche de commande : le geste du moment (relancer, rapprocher) et le chemin vers la commande */
 (() => { const o = tDetail; tDetail = function(id){ const r = o.apply(this, arguments); const x = TACHES.find(t => t.id === id), m = x && x.cle && x.cle.match(/^cmd-(.+)-(retard|silence|facture)$/), c = m && COMMANDES.find(k => k.id === m[1]), p = document.querySelector('#calque .panneau .t-gestes-b');
-  if (c && p && !x.fait) p.insertAdjacentHTML('beforebegin', `<div class="t-gestes pdx-tg">${m[2] === 'facture' ? `<button type="button" class="btn" data-pdx="achat|rappro|${c.id}">Rapprocher la facture</button>` : `<button type="button" class="btn" data-pdx="achat|relance|${c.id}">Relancer ${esc(c.four)}</button>`}<button type="button" class="btn gris" data-pdx="achat|voir|${c.id}">Ouvrir la commande</button></div>`);
+  if (c && p && !x.fait) p.insertAdjacentHTML('beforebegin', `<div class="t-gestes pdx-tg">${m[2] === 'facture' ? `<button type="button" class="btn" data-pdx="achat|rappro|${c.id}">Comparer avec la facture</button>` : `<button type="button" class="btn" data-pdx="achat|relance|${c.id}">Relancer ${esc(c.four)}</button>`}<button type="button" class="btn gris" data-pdx="achat|voir|${c.id}">Ouvrir la commande</button></div>`);
   return r; }; })();
 
 /* ── ouvrir un point d'achat depuis un autre écran : Commandes, une commande, le rapprochement ; le panneau s'ouvre après le dessin de l'écran ── */
@@ -14262,7 +14335,7 @@ function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni
 function pdxToutPanneau(){
   const pans = cmdPaniers(); if (!pans.length) return toast('Rien à commander pour le moment.');
   const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = Math.round(pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0) * 100) / 100;
-    return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour le franco' : 'franco atteint') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
+    return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour la livraison gratuite' : 'livraison gratuite atteinte') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Tout préparer · ${pdxPl(pans.length, 'commande')}</h2>
     <span class="gris">Une ligne par fournisseur, tout est prêt. Chaque bon part avec son PDF, comme d’habitude. Décoche ce que tu préfères vérifier : une commande dont une ligne n’a pas de prix est décochée d’office.</span>
     <div class="fo-bloc">${pans.map(ligne).join('')}</div><div class="pdx-tot" id="pdx-tot" aria-live="polite"></div>
@@ -14295,7 +14368,7 @@ function pdxRelGroupe(){
   const L = pdxEnRetard(); if (!L.length) return toast('Aucune commande à relancer.');
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Relancer ${L.length > 1 ? 'les ' + L.length + ' commandes' : 'la commande'} en retard</h2>
     <span class="gris">Un e-mail prêt par fournisseur, depuis ta boîte. Lis-les, décoche ceux que tu préfères passer toi-même.</span>
-    ${L.map(c => { const f = foDe(c.four) || {}; return `<div class="pdx-rel"><label class="pdx-cb"><input type="checkbox" data-pdxrel="${c.id}" ${c.relanceLe === AUJ ? '' : 'checked'}> <span class="fo-n"><b>${esc(c.num)} · ${esc(c.four)}</b><span class="gris petit">${esc(cmdAlerte(c).txt)}${c.relanceLe === AUJ ? ' · <b class="fo-up">déjà relancée aujourd’hui : coche pour relancer encore</b>' : ''}${f.mail ? ' · à ' + esc(f.mail) : ' · pas d’e-mail : appelle le ' + esc(f.tel || 'fournisseur')}</span></span></label><details class="fo-mail"><summary>L’e-mail</summary><pre class="cmd-pre">${esc(pdxRelTexte(c))}</pre></details></div>`; }).join('')}
+    ${L.map(c => { const f = foDe(c.four) || {}; return `<div class="pdx-rel"><label class="pdx-cb"><input type="checkbox" data-pdxrel="${c.id}" ${c.relanceLe === AUJ ? '' : 'checked'}> <span class="fo-n"><b>Commande ${esc(matNumAff(c.num))} · ${esc(c.four)}</b><span class="gris petit">${esc(cmdAlerte(c).txt)}${c.relanceLe === AUJ ? ' · <b class="fo-up">déjà relancée aujourd’hui : coche pour relancer encore</b>' : ''}${f.mail ? ' · à ' + esc(f.mail) : ' · pas d’e-mail : appelle le ' + esc(f.tel || 'fournisseur')}</span></span></label><details class="fo-mail"><summary>L’e-mail</summary><pre class="cmd-pre">${esc(pdxRelTexte(c))}</pre></details></div>`; }).join('')}
     <div class="fo-pied"><button type="button" class="btn" data-pdx="relgo">Envoyer les relances</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
 }
 function pdxRelEnvoyer(){
@@ -14338,7 +14411,7 @@ function pdxIntDeLigne(c, l){ const t = l.inter && TACHES.find(o => o.id === l.i
     h += '</div>'; ligne.insertAdjacentHTML('afterend', h); }); }; })();
 function pdxRangement(l, c){   // où irait l'article d'une ligne hors liste, et ce qu'il serait : produit facturé ou matériel de l'équipe
   const r = prRanger(l.nom || '', PACKS_ENT), f = foDe(c.four), k = r ? r.p : (f && (f.packs || [])[0]) || PACKS_ENT[0], cat = r ? r.cat : PACKS[k].cats[0].n, t = r ? r.t : 'p';
-  return { p:k, cat, t, txt:`${PACKS[k].ic} ${cat.replace(/ \(.*\)$/, '')}${t === 'm' || l.pu == null ? ' · matériel de l’équipe' : ' · produit facturé'}`, u:(r && r.u) || l.u || 'u' };
+  return { p:k, cat, t, txt:`${cat.replace(/ \(.*\)$/, '')}${t === 'm' || l.pu == null ? ' · matériel de l’équipe' : ' · produit facturé'}`, u:(r && r.u) || l.u || 'u' };
 }
 (() => { const o = cmdReceptionner; cmdReceptionner = function(id){
   const c = COMMANDES.find(k => k.id === id); if (!c) return o.apply(this, arguments);
@@ -14381,9 +14454,9 @@ function pdxApresReception(c){
   const r = o.apply(this, arguments);
   const a = ACHATS[ACHATS.length - 1], ech = a && a.id === 'a' + c.id ? pdxEcheance(f, (c.facLue && c.facLue.le) || AUJ) : null; if (ech) { a.ech = ech; c.journal.push([AUJ, `Échéance de paiement : le ${ech} (${(PDX_PAIE.find(k => k[0] === f.paie) || [0, ''])[1].toLowerCase()})`]); }
   journalAjout('marc', 'achats', 'a comparé une facture fournisseur', { lib:c.num }, { det:`${c.facLue.num} · ${c.four}` });
-  toast(`Commande ${esc(c.num)} terminée : facture comparée et rangée dans les achats.`, { lib:'Annuler', fn:() => {
+  toast(`Commande ${esc(matNumAff(c.num))} terminée : facture comparée et rangée dans les achats.`, { lib:'Annuler', fn:() => {
     Object.keys(c).forEach(k => delete c[k]); Object.assign(c, snap.c); snap.p.forEach(([x, pa, pv, pav]) => { x.pa = pa; x.pv = pv; if (pav === undefined) delete x.paAvant; else x.paAvant = pav; }); ACHATS.splice(snap.nA); snap.tk.forEach(([t, e]) => { t.etat = e; }); nm.forEach(([m, f2, fl, lu]) => { m.fait = f2; m.faitLien = fl; m.lu = lu; });
-    PDX.noRep = new Set(); prCatalogueMaj(); rendre(); cmdFiche(c.id); toast('Annulé : les prix reviennent, la commande repasse en « Reçue · facture à rapprocher ».'); } });
+    PDX.noRep = new Set(); prCatalogueMaj(); rendre(); cmdFiche(c.id); toast('Annulé : les prix reviennent, la commande repasse en « Facture à comparer ».'); } });
   PDX.noRep = new Set(); return r; }; })();
 function pdxContesteApercu(c){
   const F = c.facLue, E = cmdEcarts(c), f = foDe(c.four) || {};
@@ -14413,10 +14486,10 @@ function pdxFacCandidates(F){
   const lues = F.L.map(o2 => ({ o2, m:ligneCmd(o2) })).filter(k => k.m);
   const titre = lues.map(k => `${pdxQ(k.m.l.q)} ${prU(k.m.l.q, cmdU(k.m.l))} de ${esc(k.o2.nom.replace(/ \(le .*\)$/, ''))}`).join(', ');
   const autres = COMMANDES.filter(cmdOuverte).filter(k => k.four === F.f.nom);
-  const bl = `<div class="pdx-fac" role="group" aria-label="Choisir la commande"><div><b>Cette facture correspond à ${esc(c.num)}</b> <span class="gris petit">(${titre})</span></div>
+  const bl = `<div class="pdx-fac" role="group" aria-label="Choisir la commande"><div><b>Cette facture correspond à la commande ${esc(matNumAff(c.num))}</b> <span class="gris petit">(${titre})</span></div>
     <span class="pdx-bt"><button type="button" class="btn petit" data-pdx="facchoix|lie" aria-pressed="${S.choix === 'lie'}">C’est cette commande</button>${autres.length > 1 ? `<button type="button" class="btn gris petit" data-pdx="facchoix|autre" aria-pressed="${S.choix === 'autre'}">Autre commande</button>` : ''}<button type="button" class="btn gris petit" data-pdx="facchoix|aucune" aria-pressed="${S.choix === 'aucune'}">Aucune commande</button></span>
-    ${S.choix === 'autre' ? `<label class="champ">Quelle commande ?<select data-pdxfacsel="1">${autres.map(k => `<option value="${k.id}" ${k.id === S.cmd ? 'selected' : ''}>${esc(k.num)} · ${eur(cmdHT(k))} HT</option>`).join('')}</select></label>` : ''}
-    <span class="gris petit">${S.choix === 'aucune' ? 'La facture entre en stock seule. Attention : si tu réceptionnes ensuite la commande, le stock sera compté deux fois.' : `Le stock monte une seule fois : c’est la livraison de ${esc(c.num)} (« Réception de ${esc(c.num)} » dans ce qui a bougé). ${lues.every(k => k.m.n >= k.m.l.q - k.m.l.recu) ? 'La commande passe à « Terminée ».' : 'Le reste de la commande reste attendu.'}`}</span></div>`;
+    ${S.choix === 'autre' ? `<label class="champ">Quelle commande ?<select data-pdxfacsel="1">${autres.map(k => `<option value="${k.id}" ${k.id === S.cmd ? 'selected' : ''}>${esc(matNumAff(k.num))} · ${eur(cmdHT(k))} HT</option>`).join('')}</select></label>` : ''}
+    <span class="gris petit">${S.choix === 'aucune' ? 'La facture entre en stock seule. Attention : si tu notes ensuite la livraison de la commande, le stock sera compté deux fois.' : `Le stock monte une seule fois : c’est la livraison de la commande ${esc(matNumAff(c.num))} (elle apparaît dans « Ce qui a bougé »). ${lues.every(k => k.m.n >= k.m.l.q - k.m.l.recu) ? 'La commande passe à « Terminée ».' : 'Le reste de la commande reste attendu.'}`}</span></div>`;
   const h2 = p.querySelector('h2'); if (h2) h2.insertAdjacentElement('afterend', Object.assign(document.createElement('div'), { innerHTML:bl }).firstElementChild);
 }; })();
 document.addEventListener('change', ev => { if (ev.target.matches('[data-pdxfacsel]') && PDX.fac) { PDX.fac.cmd = ev.target.value; foGarder(foFactureVue); } });
@@ -14436,7 +14509,7 @@ document.addEventListener('change', ev => { if (ev.target.matches('[data-pdxfacs
   if (F.achats) ACHATS.push({ id:'a' + Date.now().toString(36), d:F.d, fid:F.f.id, four:F.f.nom, objet:F.L.map(o2 => o2.nom).slice(0, 3).join(', '), ht:F.ht, tva:20, compte:'607', mode:null, piece:'facture', ref:F.num, just:F.num + ' (rapprochée de ' + c.num + ')' });
   pdxApresReception(c); journalAjout('marc', 'achats', 'a comparé une facture photographiée', { lib:c.num }, { det:`${F.num} · ${F.f.nom}` });
   PDX.fac = null; prCatalogueMaj(); fermerPanneau(); rendre();
-  toast(`Facture ${esc(F.num)} validée et comparée à ${esc(c.num)} : stock entré une seule fois${tout ? ', commande terminée' : ', le reste est attendu'}.`, { lib:'Annuler', fn:() => {
+  toast(`Facture ${esc(F.num)} validée et comparée à la commande ${esc(matNumAff(c.num))} : stock entré une seule fois${tout ? ', commande terminée' : ', le reste est attendu'}.`, { lib:'Annuler', fn:() => {
     PRODUITS.splice(0, PRODUITS.length, ...avant); Object.keys(c).forEach(k => delete c[k]); Object.assign(c, cS); ACHATS.splice(nA); MVTS.splice(0, MVTS.length - nM); tk.forEach(([t, e]) => { t.etat = e; }); prCatalogueMaj(); rendre(); } });
 }; })();
 
@@ -14543,6 +14616,7 @@ const MAT = { F:null, M:null, bord:false, file:[] };
 const matVis = n => ` data-vis="${n}"`;   // un attribut, jamais un style : la visite guidée vise l’attribut, pas une classe qu’on renomme
 const matNomCourt = x => String(x.nom).replace(/\s*\([^)]*\)\s*$/, '');
 const matQte = (q, x) => /^(kg|m|l)$/i.test(x.u) ? `${prNum(q)} ${x.u} de ${matNomCourt(x)}` : `${prNum(q)} ${matNomCourt(x)}`;
+const matSansPrefixe = t => String(t || '').replace(/\b(BC|BR)-(?=\d)/g, '');   // une phrase entière (journal d’une commande) : tous les numéros de document, sans leur préfixe, à l’écran
 const matNumAff = n => String(n || '').replace(/^(BC|BR)-/, '');   // « BC-2026-039 » devient « 2026-039 » À L’ÉCRAN ; le document et la donnée gardent leur numéro
 const matDCourt = d => { const o = dObj(d); return o.getDate() + '/' + (o.getMonth() + 1); };
 
@@ -15419,7 +15493,7 @@ function prFiche(id){
     <details class="ms-acc"><summary>Où il est</summary>${ou.map(l => `<div class="ligne"><span>${esc(l.nom)}</span><span class="fo-dr"><b>${prNum(stkAt(x, l.id))}</b>${tech ? '' : `<button type="button" class="lien ms-lien" data-ms="fq|deplacer|${x.id}|${l.id}">Déplacer</button>`}</span></div>`).join('') || '<div class="gris">Nulle part.</div>'}</details>
     <details class="ms-acc"><summary>Derniers gestes</summary>${gestes.map(m => `<div class="ms-ph ligne">${msPhraseHtml(m)}</div>`).join('') || '<div class="gris">Aucun geste.</div>'}${gestes.length ? `<button type="button" class="lien ms-lien" data-ms="fhisto|${x.id}">Tout voir</button>` : ''}</details>
     <details class="ms-acc"><summary>Dans tes documents</summary><div class="gris">Utilisé dans ${pdxPl(usage.inters.length, 'intervention')} et ${pdxPl(usage.devis.length, 'devis', 'devis')}.</div></details>
-    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msGerant() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
+    ${tech ? '' : `<div class="actions ms-pied-f"><button type="button" class="btn gris" data-pr="modif|${x.id}">Modifier</button>${msReglages() ? `<button type="button" class="lien ms-rouge" data-pr="retirer|${x.id}">Retirer cet article</button>` : ''}</div>`}`);
   const p = document.querySelector('#calque .panneau'); if (p) p.dataset.pdxart = id;
 }
 
@@ -16083,7 +16157,7 @@ document.addEventListener('input', ev => {
    Les écritures et les calculs restent ceux d’avant : cmdPaniers, cmdSuggere, cmdFranco, cmdMoinsCher, cmdAlerte, cmdReceptionner, cmdFacturer, foAppliquer, foFactureValider. */
 const FX = { filtre:'tout', term:false, ajTab:'liste' };
 try { const v = localStorage.getItem('opg_prvue'); if (v === 'commandes' || v === 'articles' || v === 'fournisseurs') prVue = v; } catch (e) {}   // l’onglet est celui que l’appareil a quitté ; la première fois : Commandes
-const fxGerant = () => msGerant();   // ajouter ou retirer un fournisseur, retirer un article : le gérant ; le bureau prépare, envoie et reçoit les commandes
+const fxGerant = () => msReglages();   // ajouter ou retirer un fournisseur, retirer un article : la case « Stock › Supprimer » (le gérant) ; le bureau, lui, prépare, envoie et reçoit les commandes, change un prix d’achat — un réglage du stock, pas son travail du jour
 const fxQuand = d => { const n = tJours(d); return n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n === -1 ? 'hier' : jlong(d); };
 const fxLiv = f => !f || f.dj == null ? '' : f.dj === 0 ? 'Retrait au comptoir' : `Livraison en ${f.dj} jour${f.dj > 1 ? 's' : ''}`;
 const fxGratuite = f => f && f.franco > 0 ? `gratuite dès ${eur(f.franco)}` : '';
@@ -16370,7 +16444,7 @@ function cmdFiche(id){
       <div class="fo-r"><span class="fo-n"><b>Total HT</b><span class="gris petit">TTC ${eur(cmdHT(c) + cmdTVA(c))}</span></span><b>${eur(cmdHT(c))}</b></div></div>
     ${c.note ? `<div class="gris petit">Note au fournisseur : ${esc(c.note)}</div>` : ''}
     <div class="ms-boutons fx-boutons">${noir}${a && (a.t === 'retard' || a.t === 'silence') ? `<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>` : ''}<button type="button" class="btn gris" data-fx="cplus|${c.id}" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div>
-    <details class="ms-acc"><summary>Ce qui s’est passé</summary><div class="cmd-journal">${[...c.journal].reverse().map(([d, t]) => `<div><span class="gris petit">${jCourt(d)}</span><span>${esc(t)}</span></div>`).join('')}</div></details>
+    <details class="ms-acc"><summary>Ce qui s’est passé</summary><div class="cmd-journal">${[...c.journal].reverse().map(([d, t]) => `<div><span class="gris petit">${jCourt(d)}</span><span>${esc(matSansPrefixe(t))}</span></div>`).join('')}</div></details>
     ${f ? `<button type="button" class="lien" data-fo="fiche|${f.id}">${esc(c.four)} : son compte et ses articles ›</button>` : ''}`, true);
 }
 function fxMenuCmd(b, id){
@@ -17197,7 +17271,7 @@ const VX = { periode:'12m', dernier:null, fiche:null };
 const VX_MARQUES = ['Renault', 'Peugeot', 'Citroën', 'Fiat', 'Ford', 'Mercedes', 'Volkswagen', 'Opel', 'Iveco', 'Nissan', 'Toyota', 'Dacia'];
 const VX_ENERGIES = ['Gazole', 'Essence', 'Électrique', 'Hybride'];
 const VX_PRIX_MATOS = { 'Extincteur':30, 'Gilet':5, 'Triangle':12, 'Trousse de secours':20, 'Roue de secours':90, 'Constat amiable':5, 'Lampe':15, 'Câbles de démarrage':25 };
-const VX_FAIT = { ct:'Contrôle fait', assur:'Assurance renouvelée', entretien:'Révision faite', mat:'Contrôle fait' };
+const VX_FAIT = { ct:'Noter le contrôle technique', assur:'Noter le renouvellement', entretien:'Noter la révision', mat:'Noter le contrôle du matériel' };
 const vxN = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vxKm = n => Math.round(n).toLocaleString('fr-FR') + ' km';
 const vxDm = d => d.slice(8) + '/' + d.slice(5, 7);
@@ -17334,13 +17408,14 @@ const vxApres = (from, vid) => { rendre(); if (from === 'fiche') vxFiche(vid); }
 function vxAlerte(html){ const a = vxG('vx-al'); if (a) { a.innerHTML = `<div class="alerte vx-alerte" role="alert">${html}</div>`; a.scrollIntoView({ block:'nearest' }); } return true; }
 /* un compteur qui recule, ou qui saute de plus de 3 000 km d'un coup, se confirme avant d'être cru */
 function vxKmCtl(v, n){
-  if (n < v.km) return { bas:true, txt:`Le compteur de ${v.plaque} affichait ${vxKm(v.km)} : un compteur ne recule pas. Tu es sûr de ${vxKm(n)} ?` };
-  if (n - v.km > 3000) return { bas:false, txt:`Le compteur de ${v.plaque} affichait ${vxKm(v.km)} : tu es sûr de ${vxKm(n)} ?` };
+  const dr = v.releves[v.releves.length - 1], depuis = dr ? 'le ' + vhJM(dr.d) : 'le dernier relevé';
+  if (n < v.km) return { bas:true, txt:`Le compteur ne peut pas être plus bas que ${vxKm(v.km)}${dr ? ' (relevé le ' + vhJM(dr.d) + ')' : ''}.` };
+  if (n - v.km > 3000) return { bas:false, txt:`${vxKm(n)} ? Il y a ${vxKm(n - v.km)} depuis ${depuis}.` };
   return null;
 }
-/* « Je confirme » est le MÊME geste que le bouton du panneau, avec « force » en dernier : on le reçoit déjà écrit (forceData) */
+/* « Oui, c'est bien ça » est le MÊME geste que le bouton de la feuille, avec « force » en dernier : on le reçoit déjà écrit (forceData) */
 function vxAlerteKm(c, v, forceData){
-  return vxAlerte(`<span>${esc(c.txt)}</span><div class="actions"><button type="button" class="btn petit gris" data-vx="kmnon">Corriger</button><button type="button" class="btn petit" data-vx="${forceData}">${c.bas ? 'Garder le compteur à ' + vxKm(v.km) : 'Je confirme'}</button></div>`);
+  return vxAlerte(`<span>${esc(c.txt)}</span><div class="actions"><button type="button" class="btn petit gris" data-vx="kmnon">Je corrige</button><button type="button" class="btn petit" data-vx="${forceData}">${c.bas ? 'Garder le compteur à ' + vxKm(v.km) : 'Oui, c’est bien ça'}</button></div>`);
 }
 function vxLireKm(id){ const t = (vxG(id) || {}).value || ''; if (!t.trim()) return { vide:true }; const n = foNum(t); return n == null || n < 0 ? { faux:true } : { n:Math.round(n) }; }
 /* la prochaine échéance PROPOSÉE : un contrôle technique tous les 2 ans, une assurance au bout d'un an, un entretien au prochain palier */
@@ -17349,7 +17424,7 @@ function vxProchaine(v, k, d, km){
   if (k === 'assur') return { d:vxMois(v.assur.fin && v.assur.fin >= d ? v.assur.fin : d, 12) };
   const nk = km + v.interv.km; return { d:vxMois(d, v.interv.mois), km:nk, lib:'Révision ' + nk.toLocaleString('fr-FR') + ' km' };
 }
-const vxRelever = (v, km, qui, src) => { if (km > v.km) v.km = km; v.releves.push({ d:AUJ, km, qui:qui || rlQui(), src }); };
+const vxRelever = (v, km, qui, src) => { if (km > v.km) v.km = km; const dr = v.releves[v.releves.length - 1]; if (dr && dr.km === km && dr.d === AUJ) return; v.releves.push({ d:AUJ, km, qui:qui || rlQui(), src }); };
 /* tout ce qu'une action a changé sur un véhicule, pour que « Annuler » le remette EXACTEMENT comme avant */
 const vxPhoto = (v, ph) => v ? JSON.parse(JSON.stringify({ ct:v.ct, assur:v.assur, entretien:v.entretien, km:v.km, materiel:v.materiel, statut:v.statut, immo:v.immo || null, garage:v.garage || null, souci:v.souci || null, conducteur:v.conducteur, anc:v.anc, hist:v.hist, immoHist:v.immoHist, releves:v.releves, pleins:v.pleins, frais:v.frais, incidents:v.incidents, docs:Object.fromEntries(Object.entries(v.docs).map(([k, d]) => [k, { ...d, url:null }])), lieuNom:lieu(v.lieu).nom, lieuTech:lieu(v.lieu).tech })) : null;
 const vxRestaurer = (v, p) => { const d0 = v.docs; Object.assign(v, JSON.parse(JSON.stringify(p))); delete v.lieuNom; delete v.lieuTech; if (!p.immo) delete v.immo; if (!p.garage) delete v.garage; if (!p.souci) delete v.souci; v.docs = d0; const l = lieu(v.lieu); l.nom = p.lieuNom; l.tech = p.lieuTech; };
@@ -17357,22 +17432,45 @@ const vxRestaurer = (v, p) => { const d0 = v.docs; Object.assign(v, JSON.parse(J
 const vxOuvertes = () => TACHES.filter(x => !x.fait);
 function vxRouvrir(avant){ avant.forEach(x => { if (x.fait) x.fait = null; }); }
 
+/* ═══ LES FEUILLES DE VÉHICULES (étape 4) : un titre, une phrase, au plus six champs, UN gros bouton en bas, « ‹ Retour à la fiche » quand une fiche l'a ouverte ═══ */
+const vhEnt = v => `<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span>`;
+const vhRet = (from, vid) => from === 'fiche' ? `<button type="button" class="lien vh-ret" data-vh="retour|${vid}">‹ Retour à la fiche</button>` : '';
+const vhGros = (act, lib, pied) => `<div class="actions vh-pied"><button type="button" class="btn large" data-vx="${act}">${lib}</button></div>${pied || ''}`;
+/* une réponse qui tient en un mot se TOUCHE (deux à cinq gros boutons) au lieu de se choisir dans une liste déroulante ; la valeur vit dans un champ caché que les fonctions d'écriture lisent comme avant */
+function vhChoix(id, opts, val, nom, deux){ return `<div class="puces vh-choix${deux ? ' vh-2' : ''}" role="radiogroup" aria-label="${esc(nom)}">${opts.map(([v, l]) => `<button type="button" class="puce-c" role="radio" aria-checked="${v === val}" aria-pressed="${v === val}" data-vh="choix|${id}|${esc(v)}">${l}</button>`).join('')}</div><input type="hidden" id="${id}" value="${esc(val)}">`; }
+function vhChoisir(id, val){ const h = vxG(id); if (!h) return; h.value = val;
+  document.querySelectorAll(`#calque [data-vh^="choix|${id}|"]`).forEach(b => { const on = b.dataset.vh === `choix|${id}|${val}`; b.setAttribute('aria-pressed', on); b.setAttribute('aria-checked', on); });
+  h.dispatchEvent(new Event('change', { bubbles:true })); }
+/* un détail qu'on ne montre que si on le demande (« Un autre jour », « Changer ») */
+function vhMontrer(id){ const e = vxG(id); if (!e) return; e.hidden = false; document.querySelectorAll(`#calque [data-vh="montrer|${id}"]`).forEach(b => { b.hidden = true; }); const f = e.querySelector('input:not([type=hidden]),select'); if (f) f.focus({ preventScroll:true }); }
+/* la dotation du camion d'un véhicule neuf suit le MÉTIER de l'entreprise (plus de « clim » écrit en dur) ; rien si l'entreprise n'a pas de dotation pour ce métier */
+const vhDotMetier = () => { const k = typeof metiersCleModele === 'function' && PACKS_ENT[0] ? metiersCleModele(PACKS_ENT[0]) : ''; return DOTATION[k] ? k : undefined; };
+
 /* ─── 1. clore une échéance ─── */
 function vxFaitPanel(vid, k, from){
   const v = vehDe(vid); if (!v) return;
-  if (k === 'mat') return vxMatFait(v, from);
+  if (k === 'mat') return vhMatPanel(vid, from);
   const e = vehEcheances(v).find(o => o.k === k); if (!e) return;
   const ct = k === 'ct', ass = k === 'assur', P = vxProchaine(v, k, AUJ, v.km);
   VX.ctx = { vid:v.id, k };
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)} · ${esc(v.marque + ' ' + v.modele)}</span><h2>${ct ? 'Contrôle technique passé' : ass ? 'Assurance renouvelée' : 'Révision faite'}</h2>
-    <span class="gris">${esc(e.lib)} · ${vehEchTxt(e)}.</span>
-    <div class="deux-champs"><label class="champ">${ass ? 'Renouvelée le' : 'Fait le'}<input type="date" id="vx-fd" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label>${ass ? '' : `<label class="champ">Kilométrage<input id="vx-fk" inputmode="numeric" value="${v.km}"></label>`}</div>
-    <label class="champ">${ass ? 'Prime annuelle (€, facultatif)' : 'Montant TTC (€, facultatif)'}<input id="vx-fm" inputmode="decimal" placeholder="ex. ${ass ? '1 080' : '79,00'}"></label>
-    <div class="groupe">Prochaine échéance, proposée</div>
-    ${ass || ct ? `<label class="champ">${ass ? 'Nouvelle fin de contrat' : 'Prochain contrôle le'}<input type="date" id="vx-nd" value="${P.d}" data-auto="1"></label>` : `<div class="deux-champs"><label class="champ">Prochaine révision (km)<input id="vx-nk" inputmode="numeric" value="${P.km}" data-auto="1"></label><label class="champ">ou le<input type="date" id="vx-nd" value="${P.d}" data-auto="1"></label></div>`}
-    <span class="gris petit">${ct ? 'Proposé deux ans après : remplace-le par la date écrite sur le procès-verbal.' : ass ? 'Proposée un an après la fin actuelle : vérifie-la sur ton avenant.' : `Proposé tous les ${v.interv.km.toLocaleString('fr-FR')} km ou ${v.interv.mois} mois (réglable dans « Modifier la fiche »).`}${ass ? ' Le montant est rangé au compte 616, à vérifier avec ton expert-comptable.' : ''}</span>
+  ouvrirPanneau(`${vhEnt(v)}<h2>${ct ? 'Noter le contrôle technique' : ass ? 'Noter le renouvellement' : 'Noter la révision'}</h2>
+    <span class="gris">${esc(vhSujet(e))} est ${esc(vhQuand(e, true))}.</span>
+    ${ass ? `<label class="champ">Renouvelée le<input type="date" id="vx-fd" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label>` : `<div class="deux-champs"><label class="champ">Fait le<input type="date" id="vx-fd" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label><label class="champ">Kilomètres au compteur<input id="vx-fk" inputmode="numeric" value="${v.km}" autocomplete="off"></label></div>`}
+    <label class="champ"><span>${ass ? 'Prime annuelle' : 'Montant payé'} <span class="faible">(facultatif${ass ? '' : ', toutes taxes comprises'})</span></span><input id="vx-fm" inputmode="decimal" placeholder="ex. ${ass ? '1 080' : '79,00'}" autocomplete="off"></label>
+    <p class="gris vh-prochain" id="vx-pr" aria-live="polite"></p>
+    <button type="button" class="lien" data-vh="montrer|vx-nx">${ct || ass ? 'Changer la date' : 'Changer ces repères'}</button>
+    <div id="vx-nx" hidden>${ass || ct ? `<label class="champ">${ass ? 'Nouvelle fin de contrat' : 'Prochain contrôle le'}<input type="date" id="vx-nd" value="${P.d}" data-auto="1"></label>` : `<div class="deux-champs"><label class="champ">Prochaine révision (km)<input id="vx-nk" inputmode="numeric" value="${P.km}" data-auto="1"></label><label class="champ">ou le<input type="date" id="vx-nd" value="${P.d}" data-auto="1"></label></div>`}</div>
     <div id="vx-al"></div>
-    <div class="actions"><button type="button" class="btn" data-vx="faitok|${v.id}|${k}|${from || ''}">Valider</button>${vxRetour(from, v.id)}</div>`);
+    ${vhGros(`faitok|${v.id}|${k}|${from || ''}`, 'Enregistrer', vhRet(from, v.id))}`);
+  vhProchainMaj();
+}
+/* LA phrase de la prochaine échéance : elle suit la date, le compteur et ce qu'on retape dans « Changer » */
+function vhProchainMaj(){
+  const o = vxG('vx-pr'), v = VX.ctx && vehDe(VX.ctx.vid); if (!o || !v) return; const k = VX.ctx.k, nd = (vxG('vx-nd') || {}).value, nk = (vxG('vx-nk') || {}).value;
+  if (!nd) { o.textContent = 'Donne la date de la prochaine échéance (« Changer »).'; return; }
+  o.textContent = k === 'ct' ? `Prochain contrôle : le ${vhDL(nd)} (deux ans après). Remplace par la date écrite sur le rapport si elle est différente.`
+    : k === 'assur' ? `Nouvelle fin de contrat : le ${vhDL(nd)} (un an après). Vérifie-la sur ton avenant.`
+    : `Prochaine révision : à ${nk ? Math.round(foNum(nk) || 0).toLocaleString('fr-FR') + ' km' : '—'} ou le ${vhDL(nd)} (tous les ${v.interv.km.toLocaleString('fr-FR')} km ou ${v.interv.mois} mois, réglable dans « Modifier la fiche »).`;
 }
 function vxFaitOk(vid, k, from, force){
   const v = vehDe(vid); if (!v) return;
@@ -17400,13 +17498,15 @@ function vxFaitOk(vid, k, from, force){
 }
 /* le renouvellement de toute la flotte d'un coup */
 function vxFaitGroupe(fin, cie){
-  const g = vxGroupes().find(o => o.fin === fin && o.cie === cie); if (!g) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(g.cie || 'Assurance')} · ${g.vs.length} véhicules</span><h2>Assurance de la flotte renouvelée</h2>
-    <span class="gris">${g.vs.map(v => esc(v.plaque)).join(', ')} · échéance le ${dFr(g.fin)}.</span>
-    <div class="deux-champs"><label class="champ">Renouvelée le<input type="date" id="vx-fd" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label><label class="champ">Nouvelle fin de contrat<input type="date" id="vx-nd" value="${vxMois(g.fin, 12)}"></label></div>
-    <label class="champ">Prime annuelle de la flotte (€, facultatif)<input id="vx-fm" inputmode="decimal" placeholder="ex. 4 440"></label>
-    <span class="gris petit">La prime est partagée entre les ${g.vs.length} véhicules, rangée au compte 616 : à vérifier avec ton expert-comptable.</span>
-    <div class="actions"><button type="button" class="btn" data-vx="groupeok|${esc(g.fin)}|${esc(g.cie)}">Valider pour les ${g.vs.length}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+  const g = vxGroupes().find(o => o.fin === fin && o.cie === cie); if (!g) return; const nd = vxMois(g.fin, 12);
+  ouvrirPanneau(`<span class="surtitre">${esc(g.cie ? 'Assurance ' + g.cie : 'Assurance')} · ${esc(vhPl(g.vs.length, 'véhicule'))}</span><h2>Les ${g.vs.length} véhicules : noter le renouvellement</h2>
+    <span class="gris">${g.vs.map(v => esc(v.plaque)).join(', ')} · échéance le ${esc(vhDL(g.fin))}.</span>
+    <label class="champ">Renouvelée le<input type="date" id="vx-fd" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label>
+    <label class="champ"><span>Prime annuelle des ${g.vs.length} véhicules <span class="faible">(facultatif)</span></span><input id="vx-fm" inputmode="decimal" placeholder="ex. 4 440" autocomplete="off"></label>
+    <p class="gris vh-prochain">Nouvelle fin de contrat : le ${esc(vhDL(nd))} (un an après). La prime est partagée entre les ${g.vs.length} véhicules, rangée au compte 616 : à vérifier avec ton expert-comptable.</p>
+    <button type="button" class="lien" data-vh="montrer|vx-nx">Changer la date de fin</button>
+    <div id="vx-nx" hidden><label class="champ">Nouvelle fin de contrat<input type="date" id="vx-nd" value="${nd}"></label></div>
+    ${vhGros(`groupeok|${esc(g.fin)}|${esc(g.cie)}`, 'Enregistrer')}`);
 }
 function vxFaitGroupeOk(fin, cie){
   const g = vxGroupes().find(o => o.fin === fin && o.cie === cie); if (!g) return;
@@ -17426,7 +17526,8 @@ function vxMatFait(v, from, av0){
   const av = av0 || vxPhoto(v), j = vxJ('a contrôlé le matériel de sécurité', v, { det:v.materiel.ok.length + ' sur ' + VEH_MATERIEL.length + ' présents' }), ouvAvant = vxOuvertes();
   v.materiel.fait = AUJ; rendre(); if (from === 'fiche' || VX.fiche === v.id && vxG('calque').innerHTML) vxFiche(v.id);
   const closes = TACHES.filter(x => x.fait && x.fait.auto && ouvAvant.includes(x));
-  toast(`Contrôle du matériel noté pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); vxRouvrir(closes); rendre(); if (vxG('calque').innerHTML) vxFiche(v.id); } });
+  const mq = VEH_MATERIEL.filter(x => !v.materiel.ok.includes(x));
+  toast(`Contrôle du matériel noté pour ${esc(v.plaque)}.${mq.length ? ' Il manque : ' + esc(mq.join(', ')) + '.' : ''}`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); vxRouvrir(closes); rendre(); if (vxG('calque').innerHTML) vxFiche(v.id); } });
 }
 function vxMatTout(v){
   const av = vxPhoto(v), n = VEH_MATERIEL.length - v.materiel.ok.length; v.materiel.ok = VEH_MATERIEL.slice();
@@ -17444,25 +17545,26 @@ function vxCommander(vid){
 /* ─── 3. le plein ─── */
 function vxPleinPanel(vid){
   const moi = rlQui(), mes = VEHICULES.filter(o => o.conducteur === moi), liste = ROLE === 'tech' ? mes : VEHICULES;
-  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || null, elec = v && v.energie === 'Électrique';
-  ouvrirPanneau(`<span class="surtitre">Véhicules</span><h2>Un plein ou une facture</h2>
-    ${liste.length === 1 ? `<input type="hidden" id="vx-v" value="${liste[0].id}"><div class="ligne"><span>Véhicule</span><b>${esc(liste[0].marque + ' ' + liste[0].modele)} · ${esc(liste[0].plaque)}</b></div>` : `<label class="champ">Véhicule<select id="vx-v">${v ? '' : '<option value="">Choisis le véhicule…</option>'}${liste.map(o => `<option value="${o.id}" ${v === o ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>`}
-    <div class="deux-champs"><label class="champ">Quoi<select id="vx-t">${['Carburant', 'Recharge électrique', 'Garage, entretien', 'Péage, parking'].map(o => `<option ${(elec ? 'Recharge électrique' : 'Carburant') === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label><label class="champ">Montant TTC (€)<input id="vx-m" inputmode="decimal" placeholder="ex. 84,60"></label></div>
-    <div class="deux-champs" id="vx-lit-b"><label class="champ"><span id="vx-lit-l">${elec ? 'kWh' : 'Litres'}</span><input id="vx-l" inputmode="decimal" placeholder="ex. 49"></label><div class="vx-pl"><small id="vx-pl-l">Prix au ${elec ? 'kWh' : 'litre'}</small><b id="vx-pl">—</b></div></div>
-    <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-d" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label><label class="champ">Kilométrage au compteur<input id="vx-km" inputmode="numeric" placeholder="${v ? v.km : ''}"></label></div>
-    <label class="champ">Payé avec<select id="vx-pay"><option value="Carte">La carte de l’entreprise</option><option value="Poche">Ma poche : note de frais, remboursée avec la paie</option></select></label>
-    <label class="btn gris" style="cursor:pointer;white-space:normal;flex-direction:column;gap:2px;padding:8px 18px;text-align:center;line-height:1.25;height:auto;min-height:44px;flex:none">📷 Photo du ticket <span class="faible" id="vx-pn">(sans photo, la tâche « Retrouver le ticket » te le rappellera)</span><input type="file" accept="image/*" capture="environment" id="vx-p" hidden></label>
-    <span class="gris petit">Le ticket rejoint les achats du mois, rangé au bon compte de la comptabilité.</span>
+  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || (liste.length === 1 ? liste[0] : null), elec = v && v.energie === 'Électrique', un = !!v && (ROLE === 'tech' || liste.length === 1);
+  ouvrirPanneau(`<span class="surtitre">${un ? esc(vhNom(v)) + ' · ' + esc(v.plaque) : 'Véhicules'}</span><h2>Noter un plein</h2>
+    ${un ? `<input type="hidden" id="vx-v" value="${v.id}">` : `<label class="champ">Quel véhicule ?<select id="vx-v">${v ? '' : '<option value="">Choisis le véhicule…</option>'}${liste.map(o => `<option value="${o.id}" ${v === o ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>`}
+    <div class="vh-q"><b>Qu’est-ce que c’est ?</b>${vhChoix('vx-t', [['Carburant', 'Carburant'], ['Recharge électrique', 'Recharge'], ['Garage, entretien', 'Garage ou entretien'], ['Péage, parking', 'Péage ou parking']], elec ? 'Recharge électrique' : 'Carburant', 'Ce que c’est', true)}</div>
+    <div class="deux-champs"><label class="champ">Montant payé<input id="vx-m" inputmode="decimal" placeholder="ex. 84,60" autocomplete="off"><small class="faible">toutes taxes comprises</small></label><label class="champ">Kilomètres au compteur<input id="vx-km" inputmode="numeric" value="${v ? v.km : ''}" autocomplete="off"></label></div>
+    <div class="deux-champs" id="vx-lit-b"><label class="champ"><span><span id="vx-lit-l">${elec ? 'kWh' : 'Litres'}</span> <span class="faible">(facultatif)</span></span><input id="vx-l" inputmode="decimal" placeholder="ex. 49" autocomplete="off"></label><div class="vx-pl"><small>Prix au <span id="vx-pl-l">${elec ? 'kWh' : 'litre'}</span></small><b id="vx-pl">—</b></div></div>
+    <div class="vh-q"><b>Payé avec</b>${vhChoix('vx-pay', [['Carte', 'La carte de l’entreprise'], ['Poche', 'Mon argent']], 'Carte', 'Payé avec', true)}<span class="gris petit" id="vx-pay-n" hidden>Une note de frais « à valider » est créée : elle sera remboursée avec la paie.</span></div>
+    <label class="btn gris vh-photo">Photo du ticket<input type="file" accept="image/*" capture="environment" id="vx-p" hidden></label><span class="gris petit" id="vx-pn">Sans photo, la tâche « Retrouver le ticket » te le rappellera.</span>
+    <div class="vh-jour"><span class="gris">Aujourd’hui</span><button type="button" class="lien" data-vh="montrer|vx-dd">Un autre jour</button></div>
+    <label class="champ" id="vx-dd" hidden>Quel jour ?<input type="date" id="vx-d" value="${AUJ}" min="2026-01-01" max="${AUJ}"></label>
     <div id="vx-al"></div>
-    <div class="actions"><button type="button" class="btn" data-vx="pleinok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+    ${vhGros('pleinok', 'Enregistrer le plein')}`);
   vxPleinAdapter();
 }
-/* le panneau suit le véhicule et le type : kWh pour un électrique, pas de litres pour un péage, le compteur affiché en exemple */
-function vxPleinAdapter(){
+/* la feuille suit le véhicule et la nature : kWh pour un électrique, pas de litres pour un péage, le compteur proposé = le dernier relevé */
+function vxPleinAdapter(ev){
   const s = vxG('vx-v'), v = s ? vehDe(s.value) : null, t = vxG('vx-t'), lit = vxG('vx-lit-b'); if (!t || !lit) return;
   const elec = t.value === 'Recharge électrique'; lit.style.display = /^(Carburant|Recharge)/.test(t.value) ? '' : 'none';
-  vxG('vx-lit-l').textContent = elec ? 'kWh' : 'Litres'; vxG('vx-pl-l').textContent = 'Prix au ' + (elec ? 'kWh' : 'litre');
-  if (v) vxG('vx-km').placeholder = v.km; vxPleinPrix();
+  vxG('vx-lit-l').textContent = elec ? 'kWh' : 'Litres'; vxG('vx-pl-l').textContent = elec ? 'kWh' : 'litre';
+  if (v && ev && ev.target && ev.target.id === 'vx-v') vxG('vx-km').value = v.km; vxPleinPrix();
 }
 function vxPleinPrix(){ const m = foNum((vxG('vx-m') || {}).value), l = foNum((vxG('vx-l') || {}).value), o = vxG('vx-pl'); if (o) o.textContent = m > 0 && l > 0 ? eur(m / l) : '—'; }
 function vxPleinOk(force){
@@ -17479,7 +17581,7 @@ function vxPleinOk(force){
   }
   if (!kmL.vide && force !== true) { const c = vxKmCtl(v, kmL.n); if (c) return vxAlerteKm(c, v, 'pleinok|force'); }
   const ht = Math.round(ttc / 1.2 * 100) / 100, dm = vxDm(d), fr = t === 'Carburant' ? 'TotalEnergies' : t === 'Recharge électrique' ? 'Recharge (borne)' : t === 'Garage, entretien' ? 'Garage' : 'Péage / parking';
-  const av = vxPhoto(v), prevDernier = VX.dernier, url = ph ? URL.createObjectURL(ph) : null, ouvKm = !kmL.vide && kmL.n >= v.km;
+  const av = vxPhoto(v), prevDernier = VX.dernier, url = ph ? URL.createObjectURL(ph) : null, ouvKm = !kmL.vide && kmL.n > v.km;   /* le compteur proposé (le dernier relevé) retapé tel quel ne fait pas un relevé de plus */
   if (ouvKm) vxRelever(v, kmL.n, moi, 'plein');
   let achat = null, note = null; const idP = vxId(poche ? 'n' : 'a');
   if (!poche) { achat = { id:idP, d:dm, fid:'veh', four:fr, objet:`${t} · ${v.plaque}`, ht, tva:20, compte:t === 'Garage, entretien' ? '6155' : t === 'Péage, parking' ? '625' : '6061', mode:'Carte', paye:dm, piece:ph ? 'ticket' : null, ref:`TICKET-${v.plaque}-${dm.replace('/', '')}-${ACHATS.length + 1}`, just:ph ? 'Ticket photographié · ' + v.plaque : '', photo:url, veh:v.id }; ACHATS.push(achat); }
@@ -17494,15 +17596,16 @@ function vxPleinOk(force){
 
 /* ─── le compteur ─── */
 function vxKmPanel(vid, from){
-  const v = vehDe(vid); if (!v) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Relever le compteur</h2><label class="champ">Kilométrage<input id="vx-nkm" inputmode="numeric" value="${v.km}"></label>
-    <span class="gris petit">Dernier relevé : ${vxKm(v.km)}. Les échéances au kilomètre se recalculent.</span><div id="vx-al"></div>
-    <div class="actions"><button type="button" class="btn" data-vx="kmok|${v.id}|${from || ''}">Enregistrer</button>${vxRetour(from, v.id)}</div>`);
+  const v = vehDe(vid); if (!v) return; const dr = v.releves[v.releves.length - 1];
+  ouvrirPanneau(`${vhEnt(v)}<h2>Relever le compteur</h2>
+    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
+    <span class="gris petit">Dernier relevé : ${vxKm(v.km)}${dr ? ', le ' + esc(vhJM(dr.d)) : ''}. Les échéances au kilomètre se recalculent.</span><div id="vx-al"></div>
+    ${vhGros(`kmok|${v.id}|${from || ''}`, 'Enregistrer', vhRet(from, v.id))}`);
 }
 function vxKmOk(vid, from, force){
   const v = vehDe(vid); if (!v) return; const L = vxLireKm('vx-nkm');
   if (L.vide || L.faux) { vxG('vx-nkm').focus(); return toast('Donne un kilométrage positif.'); }
-  if (L.n < v.km) return toast('Le compteur ne recule pas : donne un kilométrage plus grand.');
+  if (L.n < v.km) { const c = vxKmCtl(v, L.n); return vxAlerte(`<span>${esc(c.txt)}</span><div class="actions"><button type="button" class="btn petit" data-vx="kmnon">Je corrige</button></div>`); }
   if (!force) { const c = vxKmCtl(v, L.n); if (c) return vxAlerteKm(c, v, `kmok|${v.id}|${from || ''}|force`); }
   const av = vxPhoto(v), j = vxJ('a relevé le compteur', v, { avant:vxKm(v.km), apres:vxKm(L.n) });
   vxRelever(v, L.n, rlQui(), 'releve'); fermerPanneau(); vxApres(from, v.id);
@@ -17510,19 +17613,20 @@ function vxKmOk(vid, from, force){
 }
 
 /* ─── 5. le garage : motif, date de retour, remplacement — et le Planning est prévenu ─── */
-const VX_MOTIFS = ['Entretien', 'Panne', 'Accident', 'Contrôle technique'];
-function vxGaragePanel(vid){
+const VX_MOTIFS = ['Entretien', 'Panne', 'Accident', 'Contrôle technique', 'Autre'];   /* « Contrôle technique » reste : le retour propose alors « Noter le contrôle technique » */
+function vxGaragePanel(vid, from){
   const v = vehDe(vid); if (!v) return;
-  if (v.statut !== 'service') return vxRetourPanel(vid);
+  if (v.statut !== 'service') return vxRetourPanel(vid, from);
   const e = vehEcheances(v).find(o => o.urg !== 'v'), motif = e && e.k === 'ct' ? 'Contrôle technique' : 'Entretien', retour = ajoute(AUJ, 2);
   const garages = [...new Set(VEHICULES.flatMap(o => [o.immo && o.immo.garage, ...o.immoHist.map(h => h.garage)]).filter(Boolean))];
   VX.ctx = { vid:v.id };
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Mettre au garage</h2>
-    <div class="deux-champs"><label class="champ">Pourquoi<select id="vx-gm">${VX_MOTIFS.map(o => `<option ${o === motif ? 'selected' : ''}>${o}</option>`).join('')}</select></label><label class="champ">Garage<input id="vx-gg" list="vx-gl" autocomplete="off" placeholder="ex. Renault Pro"><datalist id="vx-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label></div>
-    <label class="champ">Rendu prévu le<input type="date" id="vx-gr" value="${retour}" min="${AUJ}"></label>
+  ouvrirPanneau(`${vhEnt(v)}<h2>Mettre au garage</h2>
+    <div class="vh-q"><b>Pourquoi ?</b>${vhChoix('vx-gm', VX_MOTIFS.map(o => [o, o]), motif, 'Pourquoi le véhicule va au garage')}</div>
+    <div class="deux-champs"><label class="champ"><span>Quel garage ? <span class="faible">(facultatif)</span></span><input id="vx-gg" list="vx-gl" autocomplete="off" placeholder="ex. Renault Pro"><datalist id="vx-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
+      <label class="champ">Rendu prévu le<input type="date" id="vx-gr" value="${retour}" min="${AUJ}"></label></div>
     <label class="champ">Véhicule de remplacement<select id="vx-gv"><option value="">Aucun</option><option>Voiture de location</option>${VEHICULES.filter(o => o !== v && o.statut === 'service').map(o => `<option value="${o.id}">${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>
     <div class="info vx-immo" id="vx-gc">${vxApercuGarage(v, retour)}</div>
-    <div class="actions"><button type="button" class="btn" data-vx="garageok|${v.id}">Mettre au garage</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+    ${vhGros(`garageok|${v.id}`, 'Mettre au garage', vhRet(from, v.id))}`);
 }
 function vxApercuGarage(v, retour){
   const L = vxIntsConcernees(v, retour);
@@ -17539,13 +17643,13 @@ function vxGarageOk(vid){
   fermerPanneau(); rendre(); vxFiche(v.id);
   toast(`${esc(v.plaque)} est au garage jusqu’à ${esc(vxQuand(retour)).replace(/\.$/, '')}. ${esc(vxMsgConcernees(v, retour))}.`, [{ lib:'Annuler', fn:() => { vxRestaurer(v, av); NOTIFS.length = nb; vxJRetirer(j); rendre(); vxFiche(v.id); } }, ...(n ? [{ lib:'Voir au Planning', fn:() => vxPlanningVoir(v.id) }] : [])]);
 }
-function vxRetourPanel(vid){
+function vxRetourPanel(vid, from){
   const v = vehDe(vid); if (!v || v.statut === 'service') return; const I = v.immo || { motif:'Entretien', garage:'' };
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Remettre en service</h2><span class="gris">${esc(v.garage || '')}</span>
-    <div class="deux-champs"><label class="champ">Rendu le<input type="date" id="vx-rd" value="${AUJ}" max="${AUJ}"></label><label class="champ">Km au retour<input id="vx-rk" inputmode="numeric" value="${v.km}"></label></div>
-    <label class="champ">Montant de la facture TTC (€, facultatif)<input id="vx-rm" inputmode="decimal" placeholder="ex. 312,00"></label>
+  ouvrirPanneau(`${vhEnt(v)}<h2>Le remettre en service</h2><span class="gris">${esc(v.garage || '')}</span>
+    <div class="deux-champs"><label class="champ">Rendu le<input type="date" id="vx-rd" value="${AUJ}" max="${AUJ}"></label><label class="champ">Kilomètres au retour<input id="vx-rk" inputmode="numeric" value="${v.km}" autocomplete="off"></label></div>
+    <label class="champ"><span>Montant de la facture <span class="faible">(facultatif, toutes taxes comprises)</span></span><input id="vx-rm" inputmode="decimal" placeholder="ex. 312,00" autocomplete="off"></label>
     <span class="gris petit">Le montant rejoint les achats (compte 6155), à payer au garage.</span><div id="vx-al"></div>
-    <div class="actions"><button type="button" class="btn" data-vx="retourok|${v.id}">Remettre en service</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+    ${vhGros(`retourok|${v.id}`, 'Le remettre en service', vhRet(from, v.id))}`);
 }
 function vxRetourOk(vid, force){
   const v = vehDe(vid); if (!v || v.statut === 'service') return;
@@ -17573,7 +17677,9 @@ function vxRdvGroupe(fin, cie){
 }
 
 /* ─── 2. modifier la fiche, changer de conducteur ─── */
-const vxListeConducteurs = (sel, sans) => (sans && !sel ? '<option value="" selected>Sans conducteur</option>' : '') + ['sm', 'kb', 'lr', 'tl', 'marc'].map(k => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(H_NOM(k))}</option>`).join('');
+/* qui peut conduire : l'ÉQUIPE réelle (les personnes actives, les techniciens d'abord), plus le tableau figé de cinq clés qui oubliait Julie · étape 4 */
+const vhEquipeActive = () => EQUIPE.filter(p => p.actif !== false).sort((a, b) => (b.terrain ? 1 : 0) - (a.terrain ? 1 : 0)).map(p => p.k);
+const vxListeConducteurs = (sel, sans) => (sans && !sel ? '<option value="" selected>Sans conducteur</option>' : '') + vhEquipeActive().map(k => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(H_NOM(k))}</option>`).join('');
 function vxApplicConducteur(v, c, d){
   const avant = v.conducteur; if (c === avant) return null;
   if (avant) v.anc.unshift({ qui:avant, au:d }); v.conducteur = c;   /* sans conducteur avant : rien à garder dans « Anciens conducteurs » (une ligne « (jusqu'au …) » sans nom) · 13 novembre 2026 */
@@ -17581,14 +17687,17 @@ function vxApplicConducteur(v, c, d){
   notifier(c, `Tu conduis maintenant ${v.marque} ${v.modele} ${v.plaque} (depuis ${vxQuand(d)}).`); if (avant && avant !== c) notifier(avant, `${v.marque} ${v.modele} ${v.plaque} passe à ${vxPren(c)}.`);
   return vxJ('a changé le conducteur', v, { avant:avant ? H_NOM(avant) : 'sans conducteur', apres:H_NOM(c) });
 }
-function vxCondPanel(vid){
+function vxCondPanel(vid, from){
   const v = vehDe(vid); if (!v) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Changer de conducteur</h2><span class="gris">Aujourd’hui : ${v.conducteur ? esc(H_NOM(v.conducteur)) : 'sans conducteur'}. L’ancien conducteur est gardé dans « Anciens conducteurs », le stock du camion suit.</span>
-    <div class="deux-champs"><label class="champ">Nouveau conducteur<select id="vx-cc">${vxListeConducteurs(v.conducteur, true)}</select></label><label class="champ">À partir du<input type="date" id="vx-cd" value="${AUJ}" max="${AUJ}"></label></div>
-    <div class="actions"><button type="button" class="btn" data-vx="condok|${v.id}">Valider</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+  ouvrirPanneau(`${vhEnt(v)}<h2>Changer de conducteur</h2><span class="gris">Aujourd’hui : ${v.conducteur ? esc(H_NOM(v.conducteur)) : 'sans conducteur'}. L’ancien est gardé dans l’historique, le stock du camion suit.</span>
+    <div class="vh-q"><b>Qui ?</b>${vhChoix('vx-cc', vhEquipeActive().filter(k => k !== v.conducteur).map(k => [k, hAv(k) + esc(H_NOM(k))]), '', 'Nouveau conducteur')}</div>
+    <label class="champ">À partir du<input type="date" id="vx-cd" value="${AUJ}" max="${AUJ}"></label>
+    <div id="vx-al"></div>
+    ${vhGros(`condok|${v.id}`, 'Enregistrer', vhRet(from || 'fiche', v.id))}`);
 }
 function vxCondOk(vid){
   const v = vehDe(vid); if (!v) return; const c = vxG('vx-cc').value, d = vxG('vx-cd').value || AUJ;
+  if (!c) return toast('Choisis la personne qui conduit ce véhicule.');
   if (c === v.conducteur) return toast(c ? `${vxPren(c)} conduit déjà ce véhicule.` : 'Ce véhicule est sans conducteur : choisis la personne qui le conduit.'); if (d > AUJ) return toast('Cette date n’est pas encore passée.');
   const av = vxPhoto(v), nb = NOTIFS.length, j = vxApplicConducteur(v, c, d);
   fermerPanneau(); rendre(); vxFiche(v.id);
@@ -17596,19 +17705,45 @@ function vxCondOk(vid){
 }
 function vxModifPanel(vid){
   const v = vehDe(vid); if (!v) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Modifier la fiche</h2>
-    <div class="deux-champs"><label class="champ">Marque<input id="vx-mq" list="vx-mql" value="${esc(v.marque)}"><datalist id="vx-mql">${VX_MARQUES.map(m => `<option value="${m}">`).join('')}</datalist></label><label class="champ">Modèle<input id="vx-md" value="${esc(v.modele)}"></label></div>
-    <div class="deux-champs"><label class="champ">Énergie<select id="vx-en">${VX_ENERGIES.map(o => `<option ${o === v.energie ? 'selected' : ''}>${o}</option>`).join('')}</select></label><label class="champ">Année<input id="vx-an" inputmode="numeric" value="${v.annee || ''}"></label></div>
-    <div class="groupe">Conducteur</div>
-    <div class="deux-champs"><label class="champ">Conducteur<select id="vx-cc">${vxListeConducteurs(v.conducteur, true)}</select></label><label class="champ">À partir du<input type="date" id="vx-cd" value="${AUJ}" max="${AUJ}"></label></div>
-    <div class="groupe">Assurance</div>
-    <div class="deux-champs"><label class="champ">Compagnie<input id="vx-ac" value="${esc(v.assur.cie || '')}" placeholder="ex. MAAF Pro"></label><label class="champ">N° de contrat<input id="vx-ak" value="${esc(v.assur.contrat && v.assur.contrat !== '—' ? v.assur.contrat : '')}"></label></div>
-    <div class="deux-champs"><label class="champ">Fin du contrat<input type="date" id="vx-af" value="${v.assur.fin || ''}"></label><label class="champ">Prime annuelle (€)<input id="vx-ap" inputmode="decimal" value="${v.assur.prime || ''}" placeholder="ex. 1 080"></label></div>
-    <div class="groupe">Contrôle technique et révision</div>
-    <label class="champ">Prochain contrôle technique<input type="date" id="vx-ct" value="${v.ct || ''}"></label>
-    <div class="deux-champs"><label class="champ">Révision tous les (km)<input id="vx-ik" inputmode="numeric" value="${v.interv.km}"></label><label class="champ">ou tous les (mois)<input id="vx-im" inputmode="numeric" value="${v.interv.mois}"></label></div>
-    <span class="gris petit">Les documents (carte grise, attestation, procès-verbal) s’ajoutent depuis la fiche.</span>
-    <div class="actions"><button type="button" class="btn" data-vx="modifok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+  ouvrirPanneau(`${vhEnt(v)}<h2>Modifier la fiche</h2>
+    <div class="deux-champs"><label class="champ">Marque<input id="vx-mq" list="vx-mql" value="${esc(v.marque)}" autocomplete="off"><datalist id="vx-mql">${VX_MARQUES.map(m => `<option value="${m}">`).join('')}</datalist></label><label class="champ">Modèle<input id="vx-md" value="${esc(v.modele)}" autocomplete="off"></label></div>
+    <div class="deux-champs"><label class="champ">Énergie<select id="vx-en">${VX_ENERGIES.map(o => `<option ${o === v.energie ? 'selected' : ''}>${o}</option>`).join('')}</select></label><label class="champ">Année<input id="vx-an" inputmode="numeric" value="${v.annee || ''}" autocomplete="off"></label></div>
+    <label class="champ">Qui le conduit ?<select id="vx-cc">${vxListeConducteurs(v.conducteur, true)}</select></label>
+    <label class="champ" id="vx-cdb" hidden>À partir du<input type="date" id="vx-cd" value="${AUJ}" max="${AUJ}"></label>
+    <details class="vh-plus"><summary>Assurance</summary><div class="vh-plus-c">
+      <div class="deux-champs"><label class="champ">Compagnie<input id="vx-ac" value="${esc(v.assur.cie || '')}" placeholder="ex. MAAF Pro" autocomplete="off"></label><label class="champ">Numéro de contrat<input id="vx-ak" value="${esc(v.assur.contrat && v.assur.contrat !== '—' ? v.assur.contrat : '')}" autocomplete="off"></label></div>
+      <div class="deux-champs"><label class="champ">Fin du contrat<input type="date" id="vx-af" value="${v.assur.fin || ''}"></label><label class="champ">Prime annuelle<input id="vx-ap" inputmode="decimal" value="${v.assur.prime || ''}" placeholder="ex. 1 080" autocomplete="off"></label></div></div></details>
+    <details class="vh-plus"><summary>Contrôle technique et révision</summary><div class="vh-plus-c">
+      <label class="champ">Prochain contrôle technique<input type="date" id="vx-ct" value="${v.ct || ''}"></label>
+      <div class="deux-champs"><label class="champ">Révision tous les (km)<input id="vx-ik" inputmode="numeric" value="${v.interv.km}" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vx-im" inputmode="numeric" value="${v.interv.mois}" autocomplete="off"></label></div></div></details>
+    <span class="gris petit">Les documents (carte grise, attestation, rapport du contrôle technique) s’ajoutent depuis l’onglet Papiers.</span>
+    <div id="vx-al"></div>
+    ${vhGros(`modifok|${v.id}`, 'Enregistrer', vhRet('fiche', v.id))}
+    <div class="vh-fin">${v.statut === 'hs' ? `<button type="button" class="btn gris petit" data-vh="hs|${v.id}">Le remettre en service</button>` : `<button type="button" class="btn gris petit" data-vh="hs|${v.id}">Passer hors service</button>`}<button type="button" class="btn rouge petit" data-vh="suppr|${v.id}">Supprimer ce véhicule</button></div>
+    <span class="gris petit">« Hors service » : le véhicule est vendu ou ne roule plus. Il reste dans la liste, sans rien à faire.</span>`);
+}
+/* hors service (vendu, en panne définitive) : le seul endroit où il s'atteint ; « Annuler » rétablit */
+function vxHsOk(vid){
+  const v = vehDe(vid); if (!v) return; const av = vxPhoto(v), hs = v.statut !== 'hs';
+  if (hs) { v.statut = 'hs'; delete v.immo; delete v.garage; } else v.statut = 'service';
+  const j = vxJ(hs ? 'a passé le véhicule hors service' : 'a remis le véhicule en service', v, { det:vhNom(v) });
+  fermerPanneau(); rendre(); vxFiche(v.id);
+  toast(hs ? `${esc(v.plaque)} est hors service : plus rien à faire dessus.` : `${esc(v.plaque)} est de nouveau en service.`, { lib:'Annuler', fn:() => { vxRestaurer(v, av); vxJRetirer(j); rendre(); vxFiche(v.id); } });
+}
+/* supprimer un véhicule : une question d'abord ; le camion ne part pas avec du stock dedans (Dépôts et camions le garderait orphelin) */
+function vxSupprPanel(vid){
+  const v = vehDe(vid); if (!v) return; const n = lieuArticles(v.lieu).length;
+  ouvrirPanneau(`${vhEnt(v)}<h2>Supprimer ce véhicule ?</h2>
+    <span class="gris">${n ? `Le camion « ${esc(lieu(v.lieu).nom)} » contient encore ${vhPl(n, 'article')}. Vide-le d’abord (Dépôts et camions) : le stock ne doit pas se perdre avec le véhicule.` : 'Il disparaît de la liste, avec son historique et ses tâches. Les dépenses déjà rangées dans les achats restent. Si tu l’as vendu ou s’il ne roule plus, « Passer hors service » le garde dans la liste.'}</span>
+    <div class="actions vh-pied">${n ? '' : `<button type="button" class="btn rouge large" data-vh="supprok|${v.id}">Oui, supprimer ce véhicule</button>`}<button type="button" class="btn gris large" data-vh="modif|${v.id}">Le garder</button></div>`);
+}
+function vxSupprOk(vid){
+  const v = vehDe(vid); if (!v || lieuArticles(v.lieu).length) return;
+  const iv = VEHICULES.indexOf(v), l = lieu(v.lieu), il = LIEUX.indexOf(l), liees = TACHES.filter(t => (t.lien && String(t.lien.id || '').split('|')[1] === v.id) || new RegExp('^(veh|vrdv|vsouci)-' + v.id + '-').test(t.cle || '')), pos = liees.map(t => TACHES.indexOf(t));
+  const j = vxJ('a supprimé le véhicule', v, { det:vhNom(v) });
+  liees.forEach(t => TACHES.splice(TACHES.indexOf(t), 1)); VEHICULES.splice(iv, 1); if (il >= 0) LIEUX.splice(il, 1);
+  fermerPanneau(); rendre();
+  toast(`${esc(v.plaque)} est supprimé${liees.length ? ' (' + vhPl(liees.length, 'tâche') + ' liée' + (liees.length > 1 ? 's' : '') + ' avec lui)' : ''}.`, { lib:'Annuler', fn:() => { VEHICULES.splice(iv, 0, v); if (il >= 0) LIEUX.splice(il, 0, l); liees.forEach((t, i) => TACHES.splice(pos[i], 0, t)); vxJRetirer(j); rendre(); toast('Suppression annulée.'); } });
 }
 function vxModifOk(vid){
   const v = vehDe(vid); if (!v) return;
@@ -17642,11 +17777,11 @@ function vxFraisCible(v, cle){
 function vxFraisPanel(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return;
   if (vxMoisClos(c.d)) return toast('Octobre est envoyé à l’expert-comptable : ce frais se corrige en novembre.');
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Cette dépense</h2>
-    <label class="champ">Ce que c’est<input id="vx-xl" value="${esc(c.lib)}"></label>
-    <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-xd" value="${c.d}" min="2026-01-01" max="${AUJ}"></label><label class="champ">Montant HT (€)<input id="vx-xm" inputmode="decimal" value="${String(c.ht).replace('.', ',')}"></label></div>
-    ${c.a ? '<span class="gris petit">Le changement est repris dans les achats et la comptabilité.</span>' : ''}
-    <div class="actions"><button type="button" class="btn" data-vx="frmodok|${v.id}|${cle}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>
+  ouvrirPanneau(`${vhEnt(v)}<h2>Cette dépense</h2><span class="gris">Corrige ce qui est faux, puis enregistre.${c.a ? ' Le changement est repris dans les achats et la comptabilité.' : ''}</span>
+    <label class="champ">Ce que c’est<input id="vx-xl" value="${esc(c.lib)}" autocomplete="off"></label>
+    <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-xd" value="${c.d}" min="2026-01-01" max="${AUJ}"></label><label class="champ"><span>Montant <span class="faible">(hors taxes)</span></span><input id="vx-xm" inputmode="decimal" value="${String(c.ht).replace('.', ',')}" autocomplete="off"></label></div>
+    ${c.a ? `<button type="button" class="lien" data-vx="achat|${esc(c.a.id)}">Voir dans les achats ›</button>` : ''}
+    ${vhGros(`frmodok|${v.id}|${cle}`, 'Enregistrer', vhRet('fiche', v.id))}
     <button type="button" class="btn rouge" data-vx="frdel|${v.id}|${cle}">Supprimer cette dépense</button>`);
 }
 function vxFraisOk(vid, cle){
@@ -17686,14 +17821,16 @@ function vxMonCamion(moi){
 const VX_SOUCIS = ['Voyant allumé', 'Pneu', 'Choc ou rayure', 'Autre'];
 function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Signaler un souci</h2><span class="gris">Le bureau est prévenu tout de suite, une tâche urgente est créée.</span>
-    <label class="champ">Quoi<select id="vx-st">${VX_SOUCIS.map(o => `<option>${o}</option>`).join('')}</select></label>
-    <label class="champ">Dis-nous <span class="faible">(facultatif)</span><textarea id="vx-sx" placeholder="ex. voyant orange du moteur, s’est allumé sur la rocade"></textarea></label>
-    <label class="btn gris" style="cursor:pointer;white-space:normal;flex-direction:column;gap:2px;padding:8px 18px;text-align:center;line-height:1.25;height:auto;min-height:44px;flex:none">📷 Prendre une photo <span class="faible" id="vx-spn">(facultatif)</span><input type="file" accept="image/*" capture="environment" id="vx-sp" hidden></label>
-    <div class="actions"><button type="button" class="btn" data-vx="soucisok|${v.id}">Prévenir le bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+  ouvrirPanneau(`${vhEnt(v)}<h2>Un souci avec le camion</h2><span class="gris">Le bureau est prévenu tout de suite : une tâche urgente est créée.</span>
+    <div class="vh-q"><b>Qu’est-ce qui ne va pas ?</b>${vhChoix('vx-st', [['Voyant allumé', 'Un voyant s’est allumé'], ['Pneu', 'Un pneu'], ['Choc ou rayure', 'Un choc'], ['Autre', 'Autre chose']], '', 'Le souci', true)}</div>
+    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange du moteur, sur la rocade" autocomplete="off"></label>
+    <label class="btn gris vh-photo">Photo<input type="file" accept="image/*" capture="environment" id="vx-sp" hidden></label><span class="gris petit" id="vx-spn">Facultative.</span>
+    <div id="vx-al"></div>
+    ${vhGros(`soucisok|${v.id}`, 'Prévenir le bureau')}`);
 }
 function vxSouciOk(vid){
   const v = vehDe(vid); if (!v) return; const moi = rlQui(), type = vxG('vx-st').value, txt = vxG('vx-sx').value.trim(), ph = vxG('vx-sp').files[0];
+  if (!type) return vxAlerte('<span>Dis ce qui ne va pas : touche l’un des quatre choix.</span>');
   const av = vxPhoto(v), nb = NOTIFS.length;
   const t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Camion ${v.plaque} : ${type.toLowerCase()} · signalé par ${vxPren(moi)}`, d:AUJ, qui:'marc', urgent:true, note:txt || undefined, creePar:moi, creeLe:'31/10', cle:`vsouci-${v.id}-${Date.now().toString(36)}`, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
   v.souci = { type, txt, qui:moi, d:AUJ, photo:ph ? URL.createObjectURL(ph) : null, tache:t.id }; TACHES.push(t);
@@ -17713,12 +17850,13 @@ function vxSouciRegle(vid){
 function vxConducteurLe(v, d){ const A = [...v.anc].sort((a, b) => a.au.localeCompare(b.au)); const a = A.find(o => d <= o.au); return a ? a.qui : v.conducteur; }
 function vxAmendePanel(vid){
   const v = vehDe(vid); if (!v) return; const lim = ajoute(AUJ, 45);
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Amende reçue</h2>
-    <div class="deux-champs"><label class="champ">Jour de l’infraction<input type="date" id="vx-ad" value="${ajoute(AUJ, -8)}" max="${AUJ}"></label><label class="champ">Montant (€)<input id="vx-am" inputmode="decimal" placeholder="ex. 135"></label></div>
-    <label class="champ">Qui conduisait ? <span class="faible">(proposé d’après les conducteurs datés du véhicule : à valider)</span><select id="vx-aq">${vxListeConducteurs(vxConducteurLe(v, ajoute(AUJ, -8)))}</select></label>
-    <label class="champ">Désigner le conducteur avant le<input type="date" id="vx-al2" value="${lim}"></label>
-    <span class="gris petit">Proposé 45 jours après la réception : vérifie la date écrite sur l’avis. Une tâche te le rappelle. L’amende est suivie à part, hors du coût du véhicule (à vérifier avec ton expert-comptable).</span>
-    <div class="actions"><button type="button" class="btn" data-vx="amendeok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+  ouvrirPanneau(`${vhEnt(v)}<h2>Une amende</h2>
+    <div class="deux-champs"><label class="champ">Quel jour ?<input type="date" id="vx-ad" value="${ajoute(AUJ, -8)}" max="${AUJ}"></label><label class="champ">Montant<input id="vx-am" inputmode="decimal" placeholder="ex. 135" autocomplete="off"></label></div>
+    <label class="champ"><span>Qui conduisait ? <span class="faible">(proposé d’après l’historique)</span></span><select id="vx-aq">${vxListeConducteurs(vxConducteurLe(v, ajoute(AUJ, -8)))}</select></label>
+    <label class="champ">À désigner avant le<input type="date" id="vx-al2" value="${lim}"></label>
+    <span class="gris petit">45 jours proposés après la réception : vérifie la date écrite sur l’avis. Une tâche te le rappelle. L’amende ne compte pas dans le coût du véhicule.</span>
+    <div id="vx-al"></div>
+    ${vhGros(`amendeok|${v.id}`, 'Enregistrer l’amende', vhRet('fiche', v.id))}`);
 }
 function vxAmendeOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-ad').value, m = foNum(vxG('vx-am').value), q = vxG('vx-aq').value, lim = vxG('vx-al2').value;
@@ -17730,21 +17868,22 @@ function vxAmendeOk(vid){
 }
 function vxSinistrePanel(vid){
   const v = vehDe(vid); if (!v) return;
-  ouvrirPanneau(`<span class="surtitre">${esc(v.plaque)}</span><h2>Sinistre</h2>
-    <div class="deux-champs"><label class="champ">Jour<input type="date" id="vx-sd" value="${AUJ}" max="${AUJ}"></label><label class="champ">Conducteur<select id="vx-sq">${vxListeConducteurs(v.conducteur)}</select></label></div>
-    <label class="champ">Où<input id="vx-sl" placeholder="ex. parking du client, rue de la République"></label>
-    <div class="deux-champs"><label class="champ">Tiers concerné <span class="faible">(facultatif)</span><input id="vx-st2" placeholder="nom, plaque"></label><label class="champ">Franchise (€, facultatif)<input id="vx-sf" inputmode="decimal"></label></div>
-    <span class="gris petit">Une tâche « Déclarer le sinistre » est créée : vérifie le délai de déclaration dans ton contrat d’assurance. La franchise s’ajoute aux frais du véhicule.</span>
-    <div class="actions"><button type="button" class="btn" data-vx="sinistreok|${v.id}">Enregistrer</button><button type="button" class="btn gris" data-vh="retour|${v.id}">Retour</button></div>`);
+  ouvrirPanneau(`${vhEnt(v)}<h2>Un accident</h2>
+    <div class="deux-champs"><label class="champ">Quel jour ?<input type="date" id="vx-sd" value="${AUJ}" max="${AUJ}"></label><label class="champ">Qui conduisait ?<select id="vx-sq">${vxListeConducteurs(v.conducteur)}</select></label></div>
+    <label class="champ">Où ?<input id="vx-sl" placeholder="ex. parking du client, rue de la République" autocomplete="off"></label>
+    <div class="deux-champs"><label class="champ"><span>L’autre personne ou l’assurance <span class="faible">(facultatif)</span></span><input id="vx-st2" placeholder="nom, plaque" autocomplete="off"></label><label class="champ"><span>Franchise <span class="faible">(facultatif)</span></span><input id="vx-sf" inputmode="decimal" placeholder="ex. 300" autocomplete="off"></label></div>
+    <span class="gris petit">Une tâche « Déclarer l’accident à l’assurance » est créée : vérifie le délai dans ton contrat. La franchise s’ajoute aux dépenses du véhicule.</span>
+    <div id="vx-al"></div>
+    ${vhGros(`sinistreok|${v.id}`, 'Enregistrer l’accident', vhRet('fiche', v.id))}`);
 }
 function vxSinistreOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-sd').value, q = vxG('vx-sq').value, lieuTxt = vxG('vx-sl').value.trim(), tiers = vxG('vx-st2').value.trim(), f = foNum(vxG('vx-sf').value) || 0;
-  if (!d || d > AUJ) return toast('Donne le jour du sinistre (pas dans le futur).'); if (!lieuTxt) { vxG('vx-sl').focus(); return toast('Dis où ça s’est passé.'); } if (f < 0) return toast('Donne une franchise positive.');
-  const x = { id:vxId('i'), k:'sinistre', d, qui:q, lieu:lieuTxt, tiers, franchise:f }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Déclarer le sinistre · ${v.plaque} (${dFr(d)})`, d:ajoute(AUJ, 2), qui:'marc', urgent:true, note:`${lieuTxt}${tiers ? ' · tiers : ' + tiers : ''} · vérifie le délai de déclaration dans le contrat`, creePar:rlQui(), creeLe:'31/10', cle:'vsinistre-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
+  if (!d || d > AUJ) return toast('Donne le jour de l’accident (pas dans le futur).'); if (!lieuTxt) { vxG('vx-sl').focus(); return toast('Dis où ça s’est passé.'); } if (f < 0) return toast('Donne une franchise positive.');
+  const x = { id:vxId('i'), k:'sinistre', d, qui:q, lieu:lieuTxt, tiers, franchise:f }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Déclarer l’accident à l’assurance · ${v.plaque} (${dFr(d)})`, d:ajoute(AUJ, 2), qui:'marc', urgent:true, note:`${lieuTxt}${tiers ? ' · tiers : ' + tiers : ''} · vérifie le délai de déclaration dans le contrat`, creePar:rlQui(), creeLe:'31/10', cle:'vsinistre-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
   x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise du sinistre', f]);
-  const j = vxJ('a noté un sinistre', v, { det:`${dFr(d)} · ${lieuTxt}${f ? ' · franchise ' + eur(f) : ''}` });
+  const j = vxJ('a noté un accident', v, { det:`${dFr(d)} · ${lieuTxt}${f ? ' · franchise ' + eur(f) : ''}` });
   fermerPanneau(); rendre(); vxFiche(v.id);
-  toast(`Sinistre noté pour ${esc(v.plaque)} : tâche « déclarer le sinistre » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
+  toast(`Accident noté pour ${esc(v.plaque)} : tâche « Déclarer l’accident à l’assurance » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
 }
 function vxIncClos(vid, id){
   const v = vehDe(vid), x = v && v.incidents.find(o => o.id === id); if (!x || x.clos) return; const t = TACHES.find(o => o.id === x.tache), ouvert = t && !t.fait;
@@ -17754,42 +17893,45 @@ function vxIncClos(vid, id){
 
 /* ─── 9. un nouveau véhicule : la fiche complète en un panneau, rien d'inventé en silence ─── */
 function vxNouveauPanel(){
-  const moi = rlQui(), c0 = VEHICULES.some(o => o.conducteur === moi) ? moi : '';
   ouvrirPanneau(`<span class="surtitre">Véhicules</span><h2>Nouveau véhicule</h2>
-    <div class="deux-champs"><label class="champ">Plaque<input id="vn-p" placeholder="AA-123-BB" autocomplete="off"></label><label class="champ">Année<input id="vn-an" inputmode="numeric" value="" placeholder="ex. ${AUJ.slice(0, 4)}"></label></div>
+    <label class="champ">Plaque<input id="vn-p" placeholder="AA-123-BB" autocomplete="off" autocapitalize="characters"></label>
     <div class="deux-champs"><label class="champ">Marque<input id="vn-mq" list="vn-mql" placeholder="ex. Renault" autocomplete="off"><datalist id="vn-mql">${VX_MARQUES.map(m => `<option value="${m}">`).join('')}</datalist></label><label class="champ">Modèle<input id="vn-md" placeholder="ex. Master L3H2" autocomplete="off"></label></div>
-    <div class="deux-champs"><label class="champ">Énergie<select id="vn-en">${VX_ENERGIES.map(o => `<option>${o}</option>`).join('')}</select></label><label class="champ">Kilométrage<input id="vn-k" inputmode="numeric" value="" placeholder="ex. 45 000"></label></div>
-    <label class="champ">Conducteur<select id="vn-c"><option value=""${c0 ? '' : ' selected'}>Sans conducteur</option>${vxListeConducteurs(c0)}</select></label>
-    <div class="groupe">Assurance</div>
-    <div class="deux-champs"><label class="champ">Compagnie<input id="vn-ac" placeholder="ex. MAAF Pro"></label><label class="champ">N° de contrat<input id="vn-ak"></label></div>
-    <label class="champ">Fin du contrat<input id="vn-a" type="date"></label>
-    <div class="groupe">Contrôle technique et révision</div>
-    <label class="champ">Prochain contrôle technique<input id="vn-ct" type="date"></label>
-    <div class="deux-champs"><label class="champ">Dernière révision, le<input id="vn-rd" type="date" max="${AUJ}"></label><label class="champ">à (km)<input id="vn-rk" inputmode="numeric"></label></div>
-    <div class="deux-champs"><label class="champ">Révision tous les (km)<input id="vn-ik" inputmode="numeric" value="20000"></label><label class="champ">ou tous les (mois)<input id="vn-im" inputmode="numeric" value="12"></label></div>
-    <span class="gris petit">Ce que tu ne sais pas encore reste vide : la fiche te le rappelle en orange, et tu complètes depuis « Modifier la fiche ».</span>
-    <div class="actions"><button type="button" class="btn" data-vx="creerok">Ajouter</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
+    <label class="champ">Qui le conduit ?<select id="vn-c"><option value="" selected>Personne pour l’instant</option>${vxListeConducteurs('')}</select></label>
+    <label class="champ">Kilomètres au compteur<input id="vn-k" inputmode="numeric" placeholder="ex. 45 000" autocomplete="off"></label>
+    <div class="vh-q"><b>Énergie</b>${vhChoix('vn-en', [['Gazole', 'Essence ou gazole'], ['Électrique', 'Électrique ou hybride']], 'Gazole', 'Énergie', true)}</div>
+    <details class="vh-plus"><summary>Ajouter plus tard</summary><div class="vh-plus-c">
+      <span class="gris petit">Ce que tu ne sais pas encore reste vide : l’assurance et le contrôle technique apparaîtront dans « À faire ».</span>
+      <div class="deux-champs"><label class="champ">Compagnie d’assurance<input id="vn-ac" placeholder="ex. MAAF Pro" autocomplete="off"></label><label class="champ">Fin du contrat<input id="vn-a" type="date"></label></div>
+      <label class="champ">Prochain contrôle technique<input id="vn-ct" type="date"></label>
+      <div class="deux-champs"><label class="champ">Dernière révision, le<input id="vn-rd" type="date" max="${AUJ}"></label><label class="champ">à (km)<input id="vn-rk" inputmode="numeric" autocomplete="off"></label></div>
+      <label class="champ">Énergie exacte<select id="vn-en2"><option value="">Comme choisi plus haut</option>${VX_ENERGIES.map(o => `<option>${o}</option>`).join('')}</select></label>
+      <span class="gris petit">Révision proposée tous les 15 000 km ou 12 mois · <button type="button" class="lien" data-vh="montrer|vn-iv">Changer</button></span>
+      <div class="deux-champs" id="vn-iv" hidden><label class="champ">Tous les (km)<input id="vn-ik" inputmode="numeric" value="15000" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vn-im" inputmode="numeric" value="12" autocomplete="off"></label></div>
+    </div></details>
+    <div id="vx-al"></div>
+    ${vhGros('creerok', 'Ajouter le véhicule')}`);
 }
 function vxCreerOk(){
   const p = (v0 => { const m = /^([A-Z]{2})[\s-]?(\d{3})[\s-]?([A-Z]{2})$/.exec(v0); return m ? m[1] + '-' + m[2] + '-' + m[3] : v0; })(vxG('vn-p').value.trim().toUpperCase()), norm = s => s.replace(/[\s-]/g, '');
   if (!p) { vxG('vn-p').focus(); return toast('La plaque est obligatoire.'); }
   if (!/^[A-Z]{2}-\d{3}-[A-Z]{2}$/.test(p) && !/^\d{1,4}[\s-]?[A-Z]{1,3}[\s-]?\d{2,3}$/.test(p)) { vxG('vn-p').focus(); return toast('La plaque n’a pas la bonne forme : AA-123-BB.'); }
-  if (VEHICULES.some(v => norm(v.plaque) === norm(p))) return toast('Cette plaque est déjà dans la flotte.');
-  const marque = vxG('vn-mq').value.trim(), modele = vxG('vn-md').value.trim(), kmL = vxLireKm('vn-k'), an = Math.round(foNum(vxG('vn-an').value)), ik = Math.round(foNum(vxG('vn-ik').value)), im = Math.round(foNum(vxG('vn-im').value));
+  if (VEHICULES.some(v => norm(v.plaque) === norm(p))) return toast('Cette plaque est déjà dans la liste.');
+  const marque = vxG('vn-mq').value.trim(), modele = vxG('vn-md').value.trim(), kmL = vxLireKm('vn-k'), ik = Math.round(foNum(vxG('vn-ik').value)), im = Math.round(foNum(vxG('vn-im').value));
   if (!marque) { vxG('vn-mq').focus(); return toast('Donne la marque du véhicule.'); }
   if (kmL.faux) { vxG('vn-k').focus(); return toast('Donne un kilométrage positif.'); }
   if (!kmL.vide && kmL.n > 1000000) { vxG('vn-k').focus(); return toast('Plus d’un million de kilomètres : vérifie le kilométrage.'); }
-  if (vxG('vn-an').value.trim() && !(an >= 1980 && an <= 2027)) { vxG('vn-an').focus(); return toast('Donne une année entre 1980 et 2027.'); }
-  if (!(ik > 0) || !(im > 0)) { vxG('vn-ik').focus(); return toast('L’intervalle de révision doit être positif, en km et en mois.'); }
+  if (!(ik > 0) || !(im > 0)) { vhMontrer('vn-iv'); vxG('vn-ik').focus(); return toast('L’intervalle de révision doit être positif, en km et en mois.'); }
   const km = kmL.vide ? 0 : kmL.n, c = vxG('vn-c').value, id = 'veh' + (Math.max(0, ...VEHICULES.map(o => +o.id.slice(3) || 0)) + 1), rd = vxG('vn-rd').value, rk = vxLireKm('vn-rk');
   if (rd && !rk.vide && rk.n > km) { vxG('vn-rk').focus(); return toast('La dernière révision ne peut pas être au-delà du compteur.'); }
-  const base = rd ? { d:rd, km:rk.vide ? km : rk.n } : { d:AUJ, km }, nk = base.km + ik, l = { id:'v' + id, nom:'', type:'vehicule', tech:c, dot:'clim' };
-  const v = { id, plaque:p, marque, modele, annee:an || null, km, conducteur:c, lieu:l.id, statut:'service', energie:vxG('vn-en').value, assur:{ cie:vxG('vn-ac').value.trim(), contrat:vxG('vn-ak').value.trim() || '—', fin:vxG('vn-a').value || null }, ct:vxG('vn-ct').value || null,
+  const base = rd ? { d:rd, km:rk.vide ? km : rk.n } : { d:AUJ, km }, nk = base.km + ik, dot = vhDotMetier(), l = { id:'v' + id, nom:'', type:'vehicule', tech:c };
+  if (dot) l.dot = dot;   /* la dotation suit le métier de l'entreprise, jamais « clim » en dur */
+  const v = { id, plaque:p, marque, modele, annee:null, km, conducteur:c, lieu:l.id, statut:'service', energie:vxG('vn-en2').value || vxG('vn-en').value, assur:{ cie:vxG('vn-ac').value.trim(), contrat:'—', fin:vxG('vn-a').value || null }, ct:vxG('vn-ct').value || null,
     entretien:{ km:nk, date:vxMois(base.d, im), lib:'Révision ' + nk.toLocaleString('fr-FR') + ' km' + (rd || !rk.vide ? '' : ' (estimée)') }, materiel:{ fait:null, ok:[] }, frais:[], interv:{ km:ik, mois:im }, hist:[], anc:[], docs:{}, immoHist:[], incidents:[], pleins:[], alertes:{}, releves:kmL.vide ? [] : [{ d:AUJ, km, qui:rlQui() }] };
   const deja = c ? VEHICULES.find(o => o.conducteur === c) : null;   /* un second camion pour la même personne se dit au lieu de passer en silence · 13 novembre 2026 */
   l.nom = vxNomLieu(v, c); LIEUX.push(l); VEHICULES.push(v); const j = vxJ('a ajouté un véhicule', v, { det:`${marque} ${modele}${c ? ' · ' + H_NOM(c) : ' · sans conducteur'}` });
-  fermerPanneau(); rendre(); vxFiche(v.id);
-  toast(`${esc(p)} ajouté : complète les documents. Son stock à bord (« ${esc(l.nom)} ») apparaît dans Dépôts et camions.${deja ? ' ' + esc(prenomDe(c)) + ' conduit déjà ' + esc(deja.plaque) + '.' : ''}`, { lib:'Annuler', fn:() => { VEHICULES.splice(VEHICULES.indexOf(v), 1); LIEUX.splice(LIEUX.indexOf(l), 1); vxJRetirer(j); fermerPanneau(); rendre(); toast('Ajout annulé.'); } });
+  const manque = [!v.assur.fin && 'l’assurance', !v.ct && 'le contrôle technique'].filter(Boolean);
+  fermerPanneau(); rendre();
+  toast(`Véhicule ajouté.${manque.length ? ' Il lui manque ' + manque.join(' et ') + ' : ' + (manque.length > 1 ? 'ils apparaîtront' : 'il apparaîtra') + ' dans « À faire ».' : ''}${deja ? ' ' + esc(prenomDe(c)) + ' conduit déjà ' + esc(deja.plaque) + '.' : ''}`, [{ lib:'Annuler', fn:() => { VEHICULES.splice(VEHICULES.indexOf(v), 1); LIEUX.splice(LIEUX.indexOf(l), 1); vxJRetirer(j); fermerPanneau(); rendre(); toast('Ajout annulé.'); } }, { lib:'Voir le véhicule', fn:() => vxFiche(v.id) }]);
 }
 
 /* ─── 7. l'écran d'ouverture dit quoi faire maintenant : UNE action recommandée par véhicule, l'assurance de la flotte en une ligne ─── */
@@ -17833,20 +17975,26 @@ document.addEventListener('click', ev => {
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.matches('[data-vxdoc]') && t.files[0]) { const [id, k] = t.dataset.vxdoc.split('|'); return vxDocAjouter(id, k, t.files[0]); }
-  if (t.id === 'vx-v' || t.id === 'vx-t') vxPleinAdapter();
-  if (t.id === 'vx-p' && t.files[0]) { const n = vxG('vx-pn'); if (n) n.textContent = '· ' + t.files[0].name; }
-  if (t.id === 'vx-sp' && t.files[0]) { const n = vxG('vx-spn'); if (n) n.textContent = '· ' + t.files[0].name; }
+  if (t.id === 'vx-v' || t.id === 'vx-t') vxPleinAdapter(ev);
+  if (t.id === 'vx-pay') { const n = vxG('vx-pay-n'); if (n) n.hidden = t.value !== 'Poche'; }
+  if (t.id === 'vx-cc') { const b = vxG('vx-cdb'); if (b) b.hidden = false; }
+  if (t.id === 'vn-en2') { const e = vxG('vn-en2').value; if (e) vhChoisir('vn-en', /^(Électrique|Hybride)$/.test(e) ? 'Électrique' : 'Gazole'); }
+  if (t.id === 'vx-p' && t.files[0]) { const n = vxG('vx-pn'); if (n) n.textContent = 'Photo ajoutée : ' + t.files[0].name; }
+  if (t.id === 'vx-sp' && t.files[0]) { const n = vxG('vx-spn'); if (n) n.textContent = 'Photo ajoutée : ' + t.files[0].name; }
   if (t.id === 'vx-gr') { const c = vxG('vx-gc'), v = VX.ctx && vehDe(VX.ctx.vid); if (c && v && t.value) c.innerHTML = vxApercuGarage(v, t.value); }
   if (t.id === 'vx-fd' || t.id === 'vx-fk') vxProposer();
+  if (t.id === 'vx-nd' || t.id === 'vx-nk') vhProchainMaj();
 }, true);
 document.addEventListener('input', ev => { const t = ev.target;
   if (t.id === 'vx-m' || t.id === 'vx-l') vxPleinPrix();
-  if (t.dataset && t.dataset.auto) t.dataset.auto = '0'; });
+  if (t.dataset && t.dataset.auto) t.dataset.auto = '0';
+  if (t.id === 'vx-nd' || t.id === 'vx-nk') vhProchainMaj(); });
 /* la prochaine échéance proposée suit la date et le compteur tant qu'on ne l'a pas retapée */
 function vxProposer(){
   const v = VX.ctx && vehDe(VX.ctx.vid); if (!v || !vxG('vx-fd')) return;
   const d = vxG('vx-fd').value || AUJ, k = vxLireKm('vx-fk'), P = vxProchaine(v, VX.ctx.k, d, k.n || v.km), nd = vxG('vx-nd'), nk = vxG('vx-nk');
   if (nd && nd.dataset.auto === '1') nd.value = P.d; if (nk && nk.dataset.auto === '1' && P.km) nk.value = P.km;
+  vhProchainMaj();
 }
 
 vxInit(); vxNotifs();
@@ -17863,7 +18011,7 @@ vxInit(); vxNotifs();
 const VH = { onglet:'tous', fOnglet:'afaire', q:'' };
 const vhBureau = () => typeof ROLE !== 'undefined' && ROLE === 'gestion' && !peut('temps', 's');   /* le bureau lit, note un plein, un rendez-vous, un contrôle ; qui peut AUSSI supprimer (Responsable, gérant) gère les véhicules en entier */
 /* ce que le bureau ne fait PAS (il lit, note un plein, un rendez-vous, un contrôle, met au garage) : garde au début de chaque geste, jamais seulement un bouton caché */
-const VH_BUREAU_NON = ['nouveau', 'creerok', 'modif', 'modifok', 'cond', 'condok', 'amende', 'amendeok', 'sinistre', 'sinistreok', 'incclos', 'docadd', 'docok', 'docdel', 'soucireg', 'km', 'kmok', 'plan', 'csvflotte'];
+const VH_BUREAU_NON = ['hs', 'suppr', 'supprok', 'nouveau', 'creerok', 'modif', 'modifok', 'cond', 'condok', 'amende', 'amendeok', 'sinistre', 'sinistreok', 'incclos', 'docadd', 'docok', 'docdel', 'soucireg', 'km', 'kmok', 'plan', 'csvflotte'];
 const vhPeut = a => !(vhBureau() && VH_BUREAU_NON.includes(a));
 const vhPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vhJM = d => jlong(d).split(' ').slice(1).join(' ');                 // « 28 octobre »
@@ -17904,9 +18052,10 @@ function vhEtat(v, from){
   if (v.statut === 'atelier') { const im = v.immo || {}, nb = vxIntsConcernees(v, im.retour).length, ou = im.garage ? 'Chez ' + im.garage : 'Au garage';
     return { k:'garage', rang:1, n:-5000, pastille:['st-o', 'Au garage'], couleur:'ve-ot',
       prec:[ou + (im.retour ? ' jusqu’au ' + jlong(im.retour) : ''), nb ? vhPl(nb, 'intervention') + ' de ' + vhPren(v.conducteur) + ' à déplacer' : ''].filter(Boolean).join(' · '),
-      bouton:{ act:'statut|' + v.id, lib:'Le remettre en service' }, lien:nb ? { act:'plan|' + v.id, lib:'Voir au planning ›' } : null }; }
+      bouton:{ act:'statut|' + v.id + (from === 'fiche' ? '|fiche' : ''), lib:'Le remettre en service' }, lien:nb ? { act:'plan|' + v.id, lib:'Voir au planning ›' } : null }; }
   if (v.statut === 'hs') return { k:'hs', rang:5, n:9999, pastille:['st-g', 'Hors service'], prec:'Ce véhicule ne roule plus.', couleur:'', bouton:null };
-  const e = prop[0];
+  const e = prop[0], sans = [!v.assur.fin && 'l’assurance', !v.ct && 'le contrôle technique'].filter(Boolean);
+  if (!e && sans.length) return { k:'afaire', rang:3, n:8000, pastille:['st-o', 'À faire'], couleur:'ve-ot', prec:(sans.join(' et ').replace(/^l/, 'L') + (sans.length > 1 ? ' ne sont pas encore renseignés' : (sans[0] === 'l’assurance' ? ' n’est pas encore renseignée' : ' n’est pas encore renseigné'))), bouton:vhPeut('modif') ? { act:'modif|' + v.id, lib:'Renseigner' } : null };
   if (e) { const retard = e.n < 0 || (e.km != null && e.km < 0), rdv = vhRdvNote(v, e);
     return { k:retard ? 'retard' : 'afaire', rang:retard ? 2 : 3, n:e.n, e, pastille:[e.urg === 'r' ? 'st-r' : 'st-o', retard ? 'En retard' : 'À faire'], couleur:e.urg === 'r' ? 've-rt' : 've-ot',
       prec:vhLib(e) + ' ' + vhQuand(e) + (rdv ? ' · Rendez-vous au garage le ' + jlong(rdv.d) : ''), bouton:vhBoutonEch(v, e, from) }; }
@@ -17984,6 +18133,7 @@ function vehFiche(id, onglet){
       <span class="vh-al-g">${vhGeste(E.bouton)}${nb && !vhBureau() ? `<button type="button" class="lien" data-vh="plan|${v.id}">Voir au planning ›</button>` : ''}</span></div>`;
     phrase = `<p class="vh-phrase ve-ot">Ce véhicule est au garage${im.du ? ' depuis le ' + esc(vhJM(im.du)) : ''}.</p>`; }
   else if (v.statut === 'hs') phrase = '<p class="vh-phrase">Ce véhicule est hors service.</p>';
+  else if (!E.e && E.k === 'afaire') phrase = `<p class="vh-phrase ve-ot">${esc(E.prec)}.</p>${vhGeste(E.bouton)}`;
   else if (E.e) { const e = E.e, rdv = vhRdvNote(v, e);
     phrase = `<p class="vh-phrase ${E.couleur}">${esc(vhSujet(e))} est ${esc(vhQuand(e))}. ${rdv ? 'Rendez-vous au garage le ' + esc(jlong(rdv.d)) + '.' : e.k === 'ct' || e.k === 'entretien' ? 'Aucun rendez-vous n’est noté.' : ''}</p>${vhGeste(E.bouton)}`; }
   else phrase = `<p class="vh-phrase gris">Tout est en règle. ${E.prec ? esc(E.prec) + '.' : ''}</p>`;
@@ -17998,7 +18148,7 @@ function vehFiche(id, onglet){
     <div class="fo-stats vh-stats"><span><b>${v.km || v.releves.length ? v.km.toLocaleString('fr-FR') + ' km' : '—'}</b>kilométrage${dr ? ' · relevé le ' + esc(vhJM(dr.d)) : ''}</span>
       <span><b>${cout.auKm == null ? '—' : vhEuro2(cout.auKm)}</b>${cout.auKm == null ? 'pas encore assez de relevés' : 'le kilomètre, sur 12 mois'}</span>
       <span><b>${m.length || A.length}</b>${m.length ? 'à remettre à bord' : vhPl(A.length, 'article').split(' ').slice(1).join(' ') + ' à bord'}</span></div>
-    ${gestes ? `<div class="vh-gestes">${vhPeut('plein') ? `<button type="button" class="btn gris petit" data-vh="plein|${v.id}">Noter un plein</button>` : ''}${vhPeut('km') ? `<button type="button" class="btn gris petit" data-vh="km|${v.id}">Relever le compteur</button>` : ''}${vhPeut('statut') && v.statut !== 'hs' ? `<button type="button" class="btn gris petit" data-vh="statut|${v.id}">${v.statut === 'service' ? 'Mettre au garage' : 'Le remettre en service'}</button>` : ''}</div>` : ''}
+    ${gestes ? `<div class="vh-gestes">${vhPeut('plein') ? `<button type="button" class="btn gris petit" data-vh="plein|${v.id}">Noter un plein</button>` : ''}${vhPeut('km') ? `<button type="button" class="btn gris petit" data-vh="km|${v.id}">Relever le compteur</button>` : ''}${vhPeut('statut') && v.statut !== 'hs' ? `<button type="button" class="btn gris petit" data-vh="statut|${v.id}|fiche">${v.statut === 'service' ? 'Mettre au garage' : 'Le remettre en service'}</button>` : ''}</div>` : ''}
     <div class="cmd-liens vh-liens">${liens}</div>
     <div class="seg vh-onglets" role="tablist" aria-label="Fiche du véhicule">${onglets.map(([k, l]) => `<button type="button" role="tab" data-vh="fonglet|${k}" aria-pressed="${VH.fOnglet === k}" aria-selected="${VH.fOnglet === k}">${l}</button>`).join('')}</div>
     <div class="vh-fcorps">${corps}</div>`, true);
@@ -18036,7 +18186,7 @@ function vhPapiers(v){
 function vhCleFrais(f){ return f.own != null && f.own !== 'a' ? 'o' + f.own : f.own === 'a' ? 'a' + f.achat : f.achat ? 'A' + f.achat : f.ndf ? 'N' + f.ndf : ''; }
 function vhDepenses(v){
   const per = [['mois', 'Ce mois-ci'], ['12m', '12 mois'], ['tout', 'Tout']], c = vxCalcCout(v, VX.periode), F = vehFrais(v).filter(f => VX.periode === 'mois' ? f.d.slice(0, 7) === AUJ.slice(0, 7) : VX.periode === '12m' ? f.d >= ajoute(AUJ, -365) : true);
-  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' ? 'sur 12 mois' : 'depuis le premier relevé du compteur';
+  const sur = VX.periode === 'mois' ? 'ce mois-ci' : VX.periode === '12m' && c.deb <= ajoute(AUJ, -365) ? 'sur 12 mois' : 'depuis le ' + vhJM(c.deb);   // jamais « sur 12 mois » pour quatre mois de données : on dit depuis quand on compte
   const bits = []; if (c.auKm != null) bits.push(vhEuro2(c.auKm) + ' du kilomètre'); if (VX.periode !== 'mois' && c.parMois) bits.push(eur0(c.parMois) + ' par mois');
   const bilan = `${eur0(c.total)} dépensés ${sur}${bits.length ? ', soit ' + bits.join(' et ') : ''}.${c.conso != null ? ' ' + c.conso.toFixed(1).replace('.', ',') + (v.energie === 'Électrique' ? ' kWh' : ' litres') + ' aux 100 km.' : ''}`;
   const connu = vxDebut(v), vides = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); if (d.slice(0, 7) < connu.slice(0, 7)) vides.push(d); }
@@ -18073,7 +18223,7 @@ function vxRdv(vid, k, from){
   ouvrirPanneau(`<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span><h2>Noter le rendez-vous</h2>
     <span class="gris">${esc(vhSujet(e))} est ${esc(vhQuand(e))}. Le rendez-vous devient une tâche, au jour que tu écris.</span>
     <label class="champ">Quel jour ?<input type="date" id="vh-rd" value="${prop}" min="${AUJ}"></label>
-    <label class="champ">Quel garage ? <span class="faible">(facultatif)</span><input id="vh-rg" list="vh-gl" placeholder="ex. ${esc(garages[0] || 'Renault Pro')}" value="${esc(garages[0] || '')}" autocomplete="off"><datalist id="vh-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
+    <label class="champ"><span>Quel garage ? <span class="faible">(facultatif)</span></span><input id="vh-rg" list="vh-gl" placeholder="ex. ${esc(garages[0] || 'Renault Pro')}" value="${esc(garages[0] || '')}" autocomplete="off"><datalist id="vh-gl">${garages.map(g => `<option value="${esc(g)}">`).join('')}</datalist></label>
     <div class="actions"><button type="button" class="btn large" data-vh="rdvok|${v.id}|${e.k}|${from || 'liste'}">Noter le rendez-vous</button></div>
     <button type="button" class="lien" data-vh="fait|${v.id}|${e.k}|${from || 'liste'}">C’est déjà fait ? ${esc(VH_FAIT[e.k])}</button>`);
 }
@@ -18101,7 +18251,8 @@ function vhMatPanel(vid, from){
     <span class="gris">${v.materiel.fait ? 'Dernier contrôle le ' + esc(vhJM(v.materiel.fait)) + '.' : 'Jamais contrôlé.'} Éteins ce qui manque à bord.</span>
     <div class="vh-mat">${VEH_MATERIEL.map(x => `<label class="fo-r vh-mat-l"><span class="fo-n"><b>${esc(x)}</b></span><input type="checkbox" class="vh-sw" data-vemat="${v.id}|${esc(x)}" ${v.materiel.ok.includes(x) ? 'checked' : ''}></label>`).join('')}</div>
     ${manque.length ? `<div class="info fo-alerte"><b>Il manque : ${esc(manque.join(', '))}</b><button type="button" class="lien" data-vx="commander|${v.id}">${vxDemDeja(v) ? 'Demande déjà faite · voir' : 'Les commander'}</button></div>` : ''}
-    <div class="actions"><button type="button" class="btn large" data-vh="mattout|${v.id}">Tout est là</button><button type="button" class="btn gris large" data-vh="matfait|${v.id}">${manque.length ? 'Il manque quelque chose : noter le contrôle' : 'Noter le contrôle'}</button></div>
+    <div id="vx-al"></div>
+    <div class="actions vh-pied"><button type="button" class="btn large" data-vh="mattout|${v.id}">Tout est là</button><button type="button" class="btn gris large" data-vh="matfait|${v.id}">Il manque quelque chose</button></div>
     ${VH_MAT_PAN.from === 'fiche' ? `<button type="button" class="lien" data-vh="fiche|${v.id}|afaire">‹ Retour à la fiche</button>` : ''}`);
 }
 
@@ -18112,12 +18263,12 @@ function vhAgir(a, x, y, z){
     fiche:() => vehFiche(x, y), onglet:() => { VH.onglet = x; rendre(); }, cout:() => vhCoutPanel(), plein:() => vxPleinPanel(x || ''), nouveau:() => vxNouveauPanel(),
     fonglet:() => { foGarder(() => vehFiche(VX.fiche, x)); }, per:() => { VX.periode = x; foGarder(() => vehFiche(y, 'depenses')); }, retour:() => vxFiche(x),
     rdv:() => vxRdv(x, y, z), rdvok:() => vxRdvOk(x, y, z), fait:() => y === 'mat' ? vhMatPanel(x, z) : vxFaitPanel(x, y, z === 'fiche' ? 'fiche' : 'liste'), groupe:() => vxFaitGroupe(x, y || ''),
-    statut:() => vxGaragePanel(x), plan:() => vxPlanningVoir(x), soucireg:() => vxSouciRegle(x), km:() => vxKmPanel(x, 'fiche'), cond:() => vxCondPanel(x), modif:() => vxModifPanel(x),
+    statut:() => vxGaragePanel(x, y), plan:() => vxPlanningVoir(x), soucireg:() => vxSouciRegle(x), km:() => vxKmPanel(x, 'fiche'), cond:() => vxCondPanel(x), modif:() => vxModifPanel(x),
     amende:() => vxAmendePanel(x), sinistre:() => vxSinistrePanel(x), incclos:() => vxIncClos(x, y), csv:() => vxCsv(x), csvflotte:() => vhCsvFlotte(),
-    docadd:() => vhDocPanel(x), docdel:() => vxDocRetirer(x, y),
+    docadd:() => vhDocPanel(x), docdel:() => vxDocRetirer(x, y), choix:() => vhChoisir(x, y), montrer:() => vhMontrer(x), hs:() => vxHsOk(x), suppr:() => vxSupprPanel(x), supprok:() => vxSupprOk(x),
     docok:() => { const f = vxG('vh-df') && vxG('vh-df').files[0]; if (!f) return toast('Choisis d’abord la photo ou le fichier.'); vxDocAjouter(x, vxG('vh-dk').value, f); },
     mattout:() => { const v = vehDe(x); if (!v) return; const av = vxPhoto(v); v.materiel.ok = VEH_MATERIEL.slice(); vxMatFait(v, VH_MAT_PAN.from, av); },
-    matfait:() => { const v = vehDe(x); if (v) vxMatFait(v, VH_MAT_PAN.from); },
+    matfait:() => { const v = vehDe(x); if (!v) return; if (VEH_MATERIEL.every(o => v.materiel.ok.includes(o))) return vxAlerte('<span>Éteins d’abord, dans la liste, ce qui manque à bord. Si rien ne manque, touche « Tout est là ».</span>'); vxMatFait(v, VH_MAT_PAN.from); },
     frais:() => { const v = vehDe(x); if (!v || !y) return; if (y[0] === 'A') { fermerPanneau(); return cxFicheAchat(y.slice(1)); } if (y[0] === 'N') { fermerPanneau(); return cxFicheNdf(y.slice(1)); } vxFraisPanel(x, y); }
   }[a];
   if (A) A();
@@ -23433,16 +23584,17 @@ document.addEventListener('click', ev => { if (mbAvale && Date.now() - mbAvale <
 document.addEventListener('click', ev => { const b = ev.target.closest('[data-mabarre]'); if (b) { ev.stopPropagation(); mbBasculer(b.dataset.mabarre); } }, true);
 { const b0 = mbBasculer; mbBasculer = function(k){ if (k === '~ouvrir') { mbPanneau(); return; } return b0.apply(this, arguments); }; }
 /* l'appui long sur la barre ouvre « Ma barre ». La feuille monte SOUS le doigt : le clic du relâcher est avalé, où qu'il tombe, et lui seul. */
-{ let t = null, x0 = 0, y0 = 0;
+{ let t = null, x0 = 0, y0 = 0, tenu = false;   // `tenu` : le doigt de l'appui long est encore posé — seul SON relâcher renouvelle l'avale (sinon, sans clic au relâcher, le premier toucher suivant était avalé à son tour)
   const fin = () => { if (t) { clearTimeout(t); t = null; } };
-  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
+  const relache = () => { fin(); if (tenu) { tenu = false; mbAvale = Date.now(); } };
+  const debut = (x, y) => { fin(); x0 = x; y0 = y; t = setTimeout(() => { t = null; if (!droitVoit('accueil')) return; mbAvale = Date.now(); tenu = true; if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } mbPanneau(); }, 550); };
   document.addEventListener('touchstart', ev => { if (ev.target.closest && ev.target.closest('.opg-barre') && ev.touches.length === 1) debut(ev.touches[0].clientX, ev.touches[0].clientY); }, { passive:true });
   document.addEventListener('touchmove', ev => { if (t && ev.touches[0] && Math.hypot(ev.touches[0].clientX - x0, ev.touches[0].clientY - y0) > 10) fin(); }, { passive:true });
-  document.addEventListener('touchend', () => { fin(); if (mbAvale) mbAvale = Date.now(); }, { passive:true });
+  document.addEventListener('touchend', relache, { passive:true });
   document.addEventListener('touchcancel', fin, { passive:true });
   document.addEventListener('mousedown', ev => { if (ev.button === 0 && ev.target.closest('.opg-barre')) debut(ev.clientX, ev.clientY); });
   document.addEventListener('mousemove', ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) fin(); });
-  document.addEventListener('mouseup', () => { fin(); if (mbAvale) mbAvale = Date.now(); });
+  document.addEventListener('mouseup', relache);
   document.addEventListener('contextmenu', ev => { if (ev.target.closest('.opg-barre')) ev.preventDefault(); });
 }
 if (typeof rendre === 'function' && typeof scrollX === 'number' && document.getElementById('contenu')) rendre();
@@ -24048,12 +24200,12 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-pastille{display:none}
 @media (max-width:1099px){
   #opsec .ops-rond{display:none}
-  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:rgba(5,8,14,.96);align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
+  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:#05080f;/* OPAQUE : à 96 % le texte de l'écran de connexion et sa pastille transparaissaient sous le téléphone (mesuré sur iPad en portrait) */align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
   #opsec .ops-tete{width:min(340px,100%);flex:none}#opsec .ops-qui{color:#cfd9ea}#opsec .ops-cacher{display:none}
   #opsec .ops-revenir{display:block;min-height:48px;flex:1 1 100%;background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-qui select{background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-cadre{width:320px;max-width:100%;height:min(640px,calc(100dvh - 170px));min-height:440px}
-  #opsec .sec-demo{width:min(340px,100%);flex:none}
+  #opsec .sec-demo{width:min(340px,100%);flex:none;--surf:#0f1b30;--encre:#eef3fb;--doux:#aebcd4;--trait:#24365a;--trait2:#3a4f78;--lien:#7aa2ff;--vert:#8fe0ad;--rouge:#ff8f95;background:#0f1b30;color:#eef3fb}   /* le bloc « Démonstration » est posé sur le fond sombre du téléphone : ses couleurs le sont aussi, de jour comme de nuit */
   .ops-pastille{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:14px;border:1px solid #3a4f78;background:#0b1422;color:#eef3fb;font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:0 16px}
   .ops-pastille::before{content:"📱"}
 }
@@ -24061,7 +24213,9 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
   #opsec .ops-cadre{width:100%;max-width:none;border:0;border-radius:0;height:auto;min-height:calc(100dvh - 190px)}
   #opsec .ops-encoche{display:none}
   #opsec .ops-ecran{min-height:calc(100dvh - 190px)}
-  #opsec .ops-tete{width:100%}#opsec .sec-demo{width:100%}
+  /* vue plein écran : l'écran du téléphone remplit la fenêtre de bord à bord, sur un fond OPAQUE (à 96 % le logo de l'écran de connexion transparaissait en filigrane sous la barre du haut) */
+  #opsec[data-ouvert] .ops-fenetre{padding-left:0;padding-right:0}
+  #opsec .ops-tete{width:100%;padding:0 14px;box-sizing:border-box}#opsec .sec-demo{width:calc(100% - 28px)}
 }
 /* le bloc « Démonstration » : le seul endroit où paraissent un mot de passe provisoire, les cases « autre ordinateur » et les boutons de simulation */
 .sec-demo{border-radius:16px;border:1px dashed var(--trait2);background:var(--surf,#fff);color:var(--encre);font-size:14px}
@@ -24094,6 +24248,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
 .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
 .cn-col .ops-pastille{max-width:420px}
+#cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
 @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
 </style>`);
 /* ══ OP SECURITY · LA DOUBLE AUTHENTIFICATION, ÉTAPE 2 · 17 novembre 2026 ══
@@ -24172,7 +24327,7 @@ const secuHHMM = t => { const d = new Date(t); return String(d.getHours()).padSt
 const secuJJMM = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
 function secuQuand(t){ const n = secuMaint(), a = new Date(n), j = new Date(t), m = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime(), j0 = new Date(j.getFullYear(), j.getMonth(), j.getDate()).getTime();
   return (j0 === m ? 'aujourd’hui' : j0 === m - 86400000 ? 'hier' : 'le ' + secuJJMM(t)) + ' à ' + secuHHMM(t); }
-const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
+const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + '\u00a0min\u00a0' + String(s % 60).padStart(2, '0') + '\u00a0s' : s + '\u00a0s'; };   /* insécables : « 59 » seul sur une ligne, puis « s » seul, à 320 px */
 /* un nom saisi par une personne passe par esc() à l'écran et refuse < > " à la saisie ; il est borné */
 const secuNomPropre = (t, max) => String(t || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, max || 60);
 const secuNomAppareil = k => SECU_DEPART.appareils[k] || ('Téléphone de ' + ((eqDe(k) || {}).prenom || 'toi'));
@@ -24446,7 +24601,14 @@ function secuTicDemarrer(){ if (SECU_TIC) return; SECU_TIC = setInterval(secuTic
 function opsSig(k){ const c = secuCompte(k), u = secuUi(k), now = secuMaint();
   return [u.ecran, u.pin.length, u.err, u.info, u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? u.retour.txt : '', u.blocage, u.supprimer, SECU.horsLigne, !!c.tel, c.tel && c.tel.efface, c.histo.length,
     SECU.pc.ecran === 'activer' && SECU.pc.k === k, SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)).map(d => d.id).join(',')].join('|'); }
-function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante);
+/* le bouton rond (52 px) ne recouvre JAMAIS une cible de l'écran : s'il en recouvrirait une, il monte ou se range à gauche d'un cran (jamais la page : aucun rembourrage). Il garde sa place tant qu'elle est libre. */
+const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76], [76, 136], [136, 16], [136, 76]];
+function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
+  const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
+  const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
+  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
+  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
   document.querySelectorAll('[data-sec="expire"][data-fin]').forEach(e => { const r = parseInt(e.dataset.fin, 10) - now; if (r > 0) e.textContent = e.dataset.pre + secuDuree(r); });

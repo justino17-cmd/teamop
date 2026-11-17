@@ -1,12 +1,68 @@
 [
- { "n":"planning-01", "etat":"corrigé", "changement":"COMMUNES_GEO (point de chaque commune) + geoDeAdresse ; cCreer range CR_GEO[id] pour le client créé à la main ; sans point connu, la fiche de la carte écrit « Position inconnue » et les liens Waze / Google Maps / Apple Plans visent l'adresse écrite, jamais le dépôt.", "preuve":"planning-parcours2.js mac P12 : 8 ✓ · 0 ✗ (trajet 37 km / 50 min, liens 45.9378,-0.9617)" },
- { "n":"planning-02", "etat":"corrigé", "changement":"déjà corrigé par le lot « menu final » (20b2cde) ; rejoué après fusion.", "preuve":"planning-parcours.js P7 ✓" },
- { "n":"planning-03", "etat":"corrigé", "changement":"Échap referme « Quels jours ? », « Personnes » et « Mes vues » et rend le focus au bouton qui l'avait ouverte (sans fenêtre, voile ni sélecteur de date ouverts).", "preuve":"planning-parcours2.js mac P9 : 23 ✓ · 0 ✗ (contrôle du focus ajouté)" },
- { "n":"planning-04", "etat":"à soumettre à Justin", "changement":"rien changé : le bandeau est un écran validé. Recommandation : « interventions » et « travail prévu » suivent les personnes affichées, avec la phrase « Chiffres des personnes affichées ».", "preuve":"planning-parcours2.js P10 (défaut reproduit par le testeur)" },
- { "n":"planning-05", "etat":"corrigé", "changement":"flèches Précédent / Suivant, puces de personnes, onglets de vue, boutons « Par personne / Par date / colonnes », pastilles et interventions du mois, repères et boutons de zoom de la carte : 44 px au doigt (zones invisibles pour les repères). Les onglets de vue étaient déjà à 44 : le « 40 px » rapporté sur les vues suivantes venait de la sonde (une capture pleine page fait perdre l'émulation tactile) — lib.js la rétablit.", "preuve":"planning-mise-en-page.js iphone / ipad : 0 ✗ sur les cibles" },
- { "n":"planning-06", "etat":"corrigé", "changement":"poignée de durée : zone de saisie de 18 à 28 px (10 px invisibles vers le haut ; le bas est rogné par la carte) — 44 px impossible sans manger les cartes courtes.", "preuve":"planning-parcours.js iphone P4 : 6 ✓ · 0 ✗ (la sonde mesure maintenant la zone qui répond)" },
- { "n":"planning-07", "etat":"corrigé", "changement":"repères de la vraie carte écartés en pixels (spirale, 45 px au doigt), hors des boutons de la carte, avec un fil vers leur vraie place ; l'onde de l'urgence ne reçoit plus le toucher (elle grandit jusqu'à 81 px et avalait les voisins) ; au téléphone le cadrage réserve la place de la légende (une étape lointaine s'y cachait).", "preuve":"planning-marqueurs.js : mac 9/9, iphone 9/9 marqueurs ouvrent leur fiche" },
- { "n":"planning-08", "etat":"corrigé", "changement":"la garde de crChargerLeaflet teste L.maplibreGL (plus Leaflet seul) ; crMonter est entouré d'un try/catch qui appelle crRepli.", "preuve":"planning-carte-reessayer.js : message et bouton « Réessayer » restent, 0 erreur JavaScript" },
- { "n":"planning-09", "etat":"à soumettre à Justin", "changement":"rien changé (dessin validé). Recommandation : sur téléphone, replier la carte des tâches et le paragraphe d'aide, une rangée de chiffres courte.", "preuve":"captures mep-iphone-jour" },
- { "n":"planning-10", "etat":"corrigé", "changement":"la poignée de la liste de la carte s'appelle « Voir toute la liste des étapes » et fait les deux sens : un toucher amène la liste, le suivant ramène la carte (le nom change avec).", "preuve":"sonde q9 iPhone : scrollY 0 → 1018 → 508 → 1018 ; libellé suivi" }
+ {
+  "n": "planning-01",
+  "etat": "corrigé",
+  "changement": "COMMUNES_GEO (point de chaque commune) + geoDeAdresse ; cCreer range CR_GEO[id] pour le client créé à la main ; sans point connu, la fiche de la carte écrit « Position inconnue » et les liens Waze / Google Maps / Apple Plans visent l'adresse écrite, jamais le dépôt.",
+  "preuve": "planning-parcours2.js mac P12 : 8 ✓ · 0 ✗ (trajet 37 km / 50 min, liens 45.9378,-0.9617)"
+ },
+ {
+  "n": "planning-02",
+  "etat": "corrigé",
+  "changement": "déjà corrigé par le lot « menu final » (20b2cde) ; rejoué après fusion.",
+  "preuve": "planning-parcours.js P7 ✓"
+ },
+ {
+  "n": "planning-03",
+  "etat": "corrigé",
+  "changement": "Échap referme « Quels jours ? », « Personnes » et « Mes vues » et rend le focus au bouton qui l'avait ouverte (sans fenêtre, voile ni sélecteur de date ouverts).",
+  "preuve": "planning-parcours2.js mac P9 : 23 ✓ · 0 ✗ (contrôle du focus ajouté)"
+ },
+ {
+  "n": "planning-04",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé : le bandeau est un écran validé. Recommandation : « interventions » et « travail prévu » suivent les personnes affichées, avec la phrase « Chiffres des personnes affichées ».",
+  "preuve": "planning-parcours2.js P10 (défaut reproduit par le testeur)"
+ },
+ {
+  "n": "planning-05",
+  "etat": "corrigé",
+  "changement": "flèches Précédent / Suivant, puces de personnes, onglets de vue, boutons « Par personne / Par date / colonnes », pastilles et interventions du mois, repères et boutons de zoom de la carte : 44 px au doigt (zones invisibles pour les repères). Les onglets de vue étaient déjà à 44 : le « 40 px » rapporté sur les vues suivantes venait de la sonde (une capture pleine page fait perdre l'émulation tactile) — lib.js la rétablit.",
+  "preuve": "planning-mise-en-page.js iphone / ipad : 0 ✗ sur les cibles"
+ },
+ {
+  "n": "planning-06",
+  "etat": "corrigé",
+  "changement": "poignée de durée : zone de saisie de 18 à 28 px (10 px invisibles vers le haut ; le bas est rogné par la carte) — 44 px impossible sans manger les cartes courtes.",
+  "preuve": "planning-parcours.js iphone P4 : 6 ✓ · 0 ✗ (la sonde mesure maintenant la zone qui répond)"
+ },
+ {
+  "n": "planning-07",
+  "etat": "corrigé",
+  "changement": "repères de la vraie carte écartés en pixels (spirale, 45 px au doigt), hors des boutons de la carte, avec un fil vers leur vraie place ; l'onde de l'urgence ne reçoit plus le toucher (elle grandit jusqu'à 81 px et avalait les voisins) ; au téléphone le cadrage réserve la place de la légende (une étape lointaine s'y cachait). Rejoué sur iPhone et sur le plus petit écran : un repère hors champ au moment du tracé restait empilé sur son voisin après un recadrage sans changement de zoom (« Recentrer », retour d'une étape lointaine) — le tracé se refait désormais à CHAQUE fin de mouvement ; la place libre commence sous la rangée de personnes (qui passe sur deux lignes) et l'écart se resserre (38, 31 px) quand la carte est étroite.",
+  "preuve": "planning-marqueurs.js : mac, iphone et petit 9/9 + onde sans toucher ; mutation 07d (tracé au seul zoom) tombe"
+ },
+ {
+  "n": "planning-08",
+  "etat": "corrigé",
+  "changement": "la garde de crChargerLeaflet teste L.maplibreGL (plus Leaflet seul) ; crMonter est entouré d'un try/catch qui appelle crRepli.",
+  "preuve": "planning-carte-reessayer.js : message et bouton « Réessayer » restent, 0 erreur JavaScript"
+ },
+ {
+  "n": "planning-09",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé (dessin validé). Recommandation : sur téléphone, replier la carte des tâches et le paragraphe d'aide, une rangée de chiffres courte.",
+  "preuve": "captures mep-iphone-jour"
+ },
+ {
+  "n": "planning-10",
+  "etat": "corrigé",
+  "changement": "la poignée de la liste de la carte s'appelle « Voir toute la liste des étapes » et fait les deux sens : un toucher amène la liste, le suivant ramène la carte (le nom change avec).",
+  "preuve": "sonde q9 iPhone : scrollY 0 → 1018 → 508 → 1018 ; libellé suivi"
+ },
+ {
+  "n": "planning-11",
+  "etat": "corrigé",
+  "changement": "trouvé en rejouant la mise en page au plus petit écran (320 px) : sur la Vue d'ensemble, amener une carte à l'écran la posait SOUS la colonne collante des noms (6 cartes « recouvertes au centre »). scroll-padding-left égal à la largeur de la colonne sur le conteneur qui défile : clavier, lecteur d'écran et défilement automatique laissent la carte visible.",
+  "preuve": "planning-mise-en-page.js petit : 31 ✓ · 0 ✗ ; mutation 11 tombe"
+ }
 ]
