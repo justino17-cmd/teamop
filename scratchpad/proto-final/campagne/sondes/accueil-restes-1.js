@@ -67,7 +67,8 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   const bil = await p.evaluate(() => (document.querySelector('#calque') || document.body).innerText.replace(/\s+/g, ' ').replace(/[  ]/g, ' '));
   const eur2 = n => n.toFixed(2).replace('.', ',') + ' €';
   v('B · le tableau dit « Non compris : 40,00 € reçus sur place, pas encore sur une facture »', bil.includes('Non compris : ' + eur2(surPlace) + ' reçus sur place, pas encore sur une facture'), (bil.match(/.{30}reçus sur place.{60}/) || [''])[0]);
-  v('B · la tuile « Encaissé » du bilan le dit aussi (hors X € reçus sur place)', /hors \d[\d ]* € reçus sur place/.test(bil), (bil.match(/.{40}hors.{40}/) || [''])[0]);
+  const nHors = (bil.match(/hors \d[\d ]* € reçus sur place/g) || []).length;   // la synthèse ET la page d'octobre portent chacune la tuile : deux occurrences
+  v('B · la tuile « Encaissé » du bilan le dit aussi, sur la synthèse ET sur la page du mois (hors X € reçus sur place)', nHors >= 2, { nHors, extrait: (bil.match(/.{40}hors.{40}/) || [''])[0] });
   v('B · le nombre du bilan est toujours « l’encaissé » de la période (pas le total avec le terrain)', /Encaissé sur la période.{0,120}?3 045,00 €/.test(bil), (bil.match(/Encaissé sur la période.{0,120}/) || [''])[0]);
   await cap('bilan'); await L.ranger(p);
 
