@@ -9714,8 +9714,8 @@ let MVTS = [
   { id:'m1', d:jour(-24), h:'16:10', type:'entree', pid:'p11', q:1, vers:'atelier', qui:'marc', motif:'Réception de la commande BC-2026-035', bc:'c35' },
   { id:'m2', d:jour(-4), h:'09:05', type:'entree', pid:'p18', q:1, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
   { id:'m3', d:jour(-4), h:'09:05', type:'entree', pid:'p21', q:6, vers:'atelier', qui:'julie', motif:'Réception de la commande BC-2026-036', bc:'c36' },
-  { id:'m4', d:jour(-3), h:'07:40', type:'transfert', pid:'p1', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
-  { id:'m5', d:jour(-3), h:'07:40', type:'transfert', pid:'p4', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Réassort du camion', valPar:'marc' },
+  { id:'m4', d:jour(-3), h:'07:40', type:'transfert', pid:'p1', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Camion rempli', valPar:'marc' },
+  { id:'m5', d:jour(-3), h:'07:40', type:'transfert', pid:'p4', q:3, de:'atelier', vers:'v2', qui:'kb', motif:'Camion rempli', valPar:'marc' },
   { id:'m6', d:jour(-3), h:'17:20', type:'entree', pid:'p25', q:2, vers:'atelier', qui:'julie', motif:'Réception partielle de BC-2026-038', bc:'c38' },
   { id:'m7', d:jour(-2), h:'13:45', type:'sortie', pid:'p3', q:1, de:'v1', qui:'sm', pourQui:'sm', motif:'Utilisé chez le client', inter:'i24', valPar:'marc' },
   { id:'m8', d:jour(-1), h:'08:15', type:'sortie', pid:'p27', q:2, de:'atelier', qui:'julie', pourQui:'lr', motif:'Donné à un collègue', br:'BR-2026-017', valPar:'marc' },
@@ -15452,27 +15452,6 @@ function sxExport(){
       <div class="actions" style="margin-top:8px"><button type="button" class="btn gris" data-sx="expok|pdf">Exporter en PDF</button></div><span class="gris petit">La valeur du stock se retient avec ta comptabilité : à vérifier avec ton expert-comptable.</span></div>`);
 }
 
-/* ── la dotation d'un camion : ce qu'il doit toujours avoir à bord ── */
-function sxDot(id){
-  const l = lieu(id), D = l.dot && DOTATION[l.dot] ? DOTATION[l.dot] : {};
-  SX.D = { id, lignes:Object.entries(D).map(([pid, q]) => ({ pid, q })) }; sxDotVue();
-}
-function sxDotVue(){
-  const Dd = SX.D; if (!Dd) return; const l = lieu(Dd.id), dispo = PRODUITS.filter(x => !x.retire && !Dd.lignes.some(o => o.pid === x.id)).sort((a, b) => a.nom.localeCompare(b.nom, 'fr')), autres = LIEUX.filter(o => o.type === 'vehicule' && o.id !== Dd.id);
-  foOuvrir(`<span class="surtitre">${esc(l.nom)}</span><h2>Modifier la dotation</h2><span class="gris">Ce que ce camion doit toujours avoir à bord. Le réassort et les alertes s’appuient dessus, ${esc(prenomDe(l.tech))} a la sienne.</span>
-    <label class="champ">Copier la dotation de<select data-sxdcop="1"><option value="">Choisir un camion…</option>${autres.map(o => `<option value="${o.id}">${esc(o.nom)}</option>`).join('')}</select></label>
-    <div class="fo-bloc">${Dd.lignes.map((o, j) => { const x = PRODUITS.find(p => p.id === o.pid) || { nom:'?', u:'u' }; return `<div class="fo-r"><span class="fo-n"><b>${esc(x.nom)}</b><span class="gris petit">à bord aujourd’hui : ${sxQte(stkAt(x, Dd.id), x)}</span></span><label class="fo-q"><span class="gris petit">Cible</span><input inputmode="decimal" data-sxdq="${j}" value="${prNum(o.q)}" aria-label="Dotation de ${esc(x.nom)}"></label><button type="button" class="cmd-x" data-sx="dx|${j}" aria-label="Retirer ${esc(x.nom)}">✕</button></div>`; }).join('') || '<div class="gris" style="padding:8px 2px">Aucun article : le camion n’a pas de dotation.</div>'}</div>
-    <label class="champ">＋ Ajouter un article<select data-sxdadd="1"><option value="">${sxPl(dispo.length, 'article')}…</option>${dispo.map(x => `<option value="${x.id}">${esc(x.nom)}</option>`).join('')}</select></label>
-    <div class="fo-pied"><button type="button" class="btn" data-sx="dotok">Enregistrer la dotation</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
-}
-function sxDotOk(){
-  const Dd = SX.D; if (!Dd) return; const l = lieu(Dd.id), snap = sxPhoto(), k = 'dot-' + l.id, nv = {};
-  Dd.lignes.filter(o => o.q > 0).forEach(o => { nv[o.pid] = o.q; }); DOTATION[k] = nv; l.dot = k; SX.D = null; fermerPanneau();
-  sxJournal('a modifié la dotation', l.nom, sxPl(Object.keys(nv).length, 'article') + ' à bord en permanence');
-  const m = lieuManques(l.id); rendre();
-  sxToast(`Ce qu’il doit y avoir à bord de ${esc(l.nom)} est enregistré${m.length ? ' : il manque ' + sxPl(m.length, 'article') : ''}.`, m.length ? { lib:'Remplir', fn:() => bxReassort(l.id) } : null, snap, 'ce qu’il doit y avoir à bord de ' + l.nom);
-}
-
 /* « Utilisé 0 intervention » ignorait les sorties « chez le client » : on les compte aussi, sans doubler une intervention déjà comptée par ses pièces */
 function sxIntsEnPlus(x, n){
   const deja = new Set(INTS.filter(i => (typeof FICHES === 'object' && FICHES[i.id] && (FICHES[i.id].pieces || []).some(p => n(p.nom))) || (i.prevues || []).some(p => n(p.nom))).map(i => i.id));
@@ -15999,8 +15978,7 @@ if (typeof hAutreLien === 'function') (() => { const h0 = hAutreLien; hAutreLien
 document.addEventListener('click', ev => {
   const k = ev.target.closest('[data-sk]');
   if (k) { const [a, x] = k.dataset.sk.split('|');
-    if (a === 'invok') { ev.stopPropagation(); return sxInvValider(); }
-    if (['fok', 'reassok', 'val'].includes(a)) SX.pre = { a, x, snap:sxPhoto(), type:a === 'fok' && SK_F ? SK_F.type : null, m:a === 'val' ? MVTS_ATT.find(o => o.id === x) : null }; }
+    if (a === 'invok') { ev.stopPropagation(); return sxInvValider(); } }
   const b = ev.target.closest('[data-sx]'); if (!b) return;
   const [a, x, y] = b.dataset.sx.split('|'); if (b.closest('[data-sk]') && b.matches('.sx-voir')) ev.stopPropagation();
   if (a === 'stkintertout') { SX.interTout = true; return foGarder(stkFormVue); }
@@ -16012,9 +15990,6 @@ document.addEventListener('click', ev => {
   if (a === 'mvexp') return sxExport();
   if (a === 'expok') { fermerPanneau(); return toast(x === 'csv' ? `Tableur préparé (simulé) : historique-du-stock, ${sxPl(msMvVisibles().faits.length, 'ligne')}.` : x === 'reg' ? 'Registre des fluides préparé en PDF (simulé).' : `PDF préparé (simulé) : stock valorisé au ${dFr(AUJ)}, par lieu.`); }
   if (a === 'annuler') { const D = SX.dernier; return D ? sxAnnule(D.photo, D.lib, D.sig) : undefined; }
-  if (a === 'dot') return sxDot(x);
-  if (a === 'dx') { SX.D.lignes.splice(+x, 1); return foGarder(sxDotVue); }
-  if (a === 'dotok') return sxDotOk();
   if (a === 'mvart') { fermerPanneau(); mvRech = sxNom(x); mvFiltre = 'tous'; SX.mvPer = 'tout'; SX.mvQui = 'tous'; stkOnglet = 'mvts'; return aller('stock'); }
   if (a === 'fluides') return sxRegistre();
   if (a === 'fprel') return sxFluidePreleve(x);
@@ -16022,29 +15997,12 @@ document.addEventListener('click', ev => {
   if (a === 'intajout') { fermerPanneau(); prVue = 'articles'; return aller('produits'); }
   if (a === 'voirlieu') { SX.lieuF = x; stkOnglet = 'ensemble'; stkFiltre = 'tous'; stkQ = ''; return aller('stock'); }
 }, true);
-/* après le geste d'origine : « Annuler » sur son message, la trace dans l'Historique, et la notification du technicien dont on valide le geste */
-document.addEventListener('click', () => {
-  const p = SX.pre; if (!p) return; SX.pre = null;
-  const nv = MVTS.length - p.snap.mvts.length; if (nv <= 0 && MVTS_ATT.length === p.snap.att.length) return;
-  const N = MVTS.slice(0, Math.max(0, nv)); let lib, act, det;
-  if (p.a === 'val') { if (!p.m || MVTS[0] !== p.m) return; lib = 'la validation du geste de ' + prenomDe(p.m.qui); act = 'a validé le geste de ' + prenomDe(p.m.qui); det = sxMvResume([p.m]) + ' · ' + (p.m.motif || '');
-    if (p.m.qui !== 'marc') notifier(p.m.qui, `Ton geste « ${sxNom(p.m.pid)} × ${prNum(p.m.q)} » est validé : ton stock est à jour.`); }
-  else if (p.a === 'reassok') { lib = 'le réassort des camions'; act = 'a fait le réassort des camions'; det = sxPl(N.length, 'transfert') + ' de l’atelier vers les camions'; }
-  else { if (!N.length) return; const t = N[0].type; lib = t === 'transfert' ? 'le transfert' : 'la sortie'; act = t === 'transfert' ? 'a transféré du stock' : 'a sorti du stock'; det = (t === 'transfert' ? lieuNom(N[0].de) + ' → ' + lieuNom(N[0].vers) : lieuNom(N[0].de)) + ' · ' + N[0].motif + (N[0].pourQui && N[0].pourQui !== N[0].qui ? ' · pour ' + H_NOM(N[0].pourQui) : ''); }
-  const first = p.a === 'val' ? p.m : N[0]; const i = first && first.inter && INTS.find(o => o.id === first.inter);
-  sxJournal(act, p.a === 'reassok' ? sxPl(N.length, 'transfert') : sxMvResume(p.a === 'val' ? [p.m] : N), det, i && i.cli);
-  const sig = sxSig(); SX.dernier = { lib, photo:p.snap, sig };
-  const t = document.getElementById('toast'); if (t && t.classList.contains('on')) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Annuler'; b.onclick = () => { t.classList.remove('on'); sxAnnule(p.snap, lib, sig); }; t.appendChild(b); }
-});
 document.addEventListener('change', ev => {
   const t = ev.target;
   if (t.matches('[data-sxauto]')) { SX.autoUsage = t.checked; const snap = sxPhoto(); let n = 0;
     if (t.checked) MVTS_ATT.slice().forEach(m => { if (sxAuto(m) && stkAppliquer(m) > 0) { MVTS_ATT.splice(MVTS_ATT.indexOf(m), 1); m.valPar = 'auto'; MVTS.unshift(m); n++; if (m.qui !== 'marc') notifier(m.qui, `Ton geste « ${sxNom(m.pid)} × ${prNum(m.q)} » est validé automatiquement.`); } });
     sxJournal(t.checked ? 'a activé la validation automatique' : 'a coupé la validation automatique', 'Utilisé chez le client', n ? sxPl(n, 'geste') + ' validé' + (n > 1 ? 's' : '') + ' d’un coup' : null); rendre();
     return n ? sxToast(`Règle activée : ${sxPl(n, 'geste validé', 'gestes validés')} d’un coup, « validé automatiquement » dans le journal.`, null, snap, 'la règle automatique') : toast(t.checked ? 'Règle activée : ce que les techniciens utilisent chez un client passera seul.' : 'Règle coupée : tout repasse par ta validation.'); }
-  if (t.matches('[data-sxdq]') && SX.D) { const n = foNum(t.value); if (n != null && n >= 0) SX.D.lignes[+t.dataset.sxdq].q = n; else toast('La dotation ne peut pas être négative.'); return foRefocus(() => foGarder(sxDotVue)); }
-  if (t.matches('[data-sxdadd]') && SX.D && t.value) { const x = PRODUITS.find(p => p.id === t.value); SX.D.lignes.push({ pid:x.id, q:Math.max(1, sxPas(x) < 1 ? 1 : 1) }); return foGarder(sxDotVue); }
-  if (t.matches('[data-sxdcop]') && SX.D && t.value) { const o = lieu(t.value), D = o.dot && DOTATION[o.dot] ? DOTATION[o.dot] : {}; SX.D.lignes = Object.entries(D).map(([pid, q]) => ({ pid, q })); return foGarder(sxDotVue); }
   if (t.matches('[data-sxper]')) { SX.mvPer = t.value; if (t.value === 'perso' && !SX.mvDu) { SX.mvDu = jour(-30); SX.mvAu = AUJ; } return rendre(); }
   if (t.matches('[data-sxdu]')) { SX.mvDu = t.value; return rendre(); }
   if (t.matches('[data-sxau]')) { SX.mvAu = t.value; return rendre(); }
