@@ -5,7 +5,7 @@
 const bac = require('./artefact-bac.js'), L = bac.lib, v = L.v;
 exports.bac = bac; exports.L = L; exports.v = v;
 // ce qu'un geste « qui sort » peut être : on filtre sur le libellé, le nom accessible et le motif des données… et sur la forme du lien
-const SENS = /télécharg|\bexport|imprim|\bpdf\b|\bcsv\b|\bfec\b|\bcopi|\bappel(er)?\b|\bécrire\b|e-?mail|courriel|\bsms\b|\bjoindre|pièce jointe|\bphoto\b|justificatif|ticket|importer|y aller|itinéraire|son site|↗|partager|\blien\b|bulletin|\bfichier\b/i;
+const SENS = /télécharg|\bexport|imprim|\bpdf\b|\bcsv\b|\bfec\b|\bcopi|\bappel(er)?\b|\bécrire\b|e-?mail|e-mail|\bsms\b|\bjoindre|pièce jointe|\bphoto\b|justificatif|ticket|importer|y aller|itinéraire|son site|↗|partager|\blien\b|bulletin|\bfichier\b/i;
 const SENS_DATA = /pdf|export|telech|download|copier|copie\b|\bdl\b/i;
 exports.SENS = SENS; exports.SENS_DATA = SENS_DATA;
 // collecte, DANS un cadre : marque chaque candidat (data-bac-i) et rend sa signature. racine : sélecteur de la zone.

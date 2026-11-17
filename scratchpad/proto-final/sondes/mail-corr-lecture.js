@@ -1,10 +1,10 @@
-// Boîte mail, étape 4 « corriger » (17 novembre 2026) — la LECTURE d'un courriel et ses gestes, sur ordinateur.
+// Boîte mail, étape 4 « corriger » (17 novembre 2026) — la LECTURE d'un e-mail et ses gestes, sur ordinateur.
 // Rejoue ordinateur-04, -11, -12, -15, -17, -18, -19 de scratchpad/proto-final/refonte/mail-relecture-ordinateur.json. ✓ = corrigé.
 const { lib, v, entrer, cap, fin, sortie, ouvrirMsg, casserBoite } = require('./mail-commun.js');
 const fs = require('fs'), { execFileSync } = require('child_process'), os = require('os'), path = require('path');
 const S = (c, f, a) => c.p.evaluate(f, a);
 (async () => {
-  // ── ordinateur-04 : le TEXTE d'abord, les gestes ensuite — quatre profils, au moins six courriels, dont ceux qui portent un bandeau « reconnu » ──
+  // ── ordinateur-04 : le TEXTE d'abord, les gestes ensuite — quatre profils, au moins six e-mails, dont ceux qui portent un bandeau « reconnu » ──
   let total = 0, avecBandeau = 0, sousLePli = [], mauvaisOrdre = [];
   for (const pr of ['mac', 'windows', 'mac720']) {
     const c = await entrer({ profil:pr }); const p = c.p;
@@ -18,7 +18,7 @@ const S = (c, f, a) => c.p.evaluate(f, a);
     if (pr === 'windows') { await S(c, () => R().querySelectorAll('#rows .msg')[1].click()); await p.waitForTimeout(400); await cap(c, 'corr-lecture-windows-jour'); }
     await fin(c); }
   v('ordinateur-04 population : au moins 15 lectures mesurées, dont 6 avec le bandeau « reconnu »', total >= 15 && avecBandeau >= 6, { total, avecBandeau });
-  v('ordinateur-04 le premier mot du message est AU-DESSUS du pli (windows 1366×768, mac720, mac) pour tous les courriels', sousLePli.length === 0, sousLePli);
+  v('ordinateur-04 le premier mot du message est AU-DESSUS du pli (windows 1366×768, mac720, mac) pour tous les e-mails', sousLePli.length === 0, sousLePli);
   v('ordinateur-04 le bandeau « reconnu », le suivi et le rangement viennent APRÈS le texte', mauvaisOrdre.length === 0, mauvaisOrdre);
 
   // ── ordinateur-15 : l'en-tête de la page suit les gestes de suivi ──
