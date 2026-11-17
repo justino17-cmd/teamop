@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 12 h 11 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 12 h 14 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -54,6 +54,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 27 | session_01PfEEAEYoMW25Tb5XEZ7wKd | `{voie:"restes", noms:["compta-ventes"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 12 h 03 | |
 | 28 | session_01PfEEAHD9WGFD22a8Jo2xqs | `{voie:"guide", depuis:1}` (relire, corriger, recontrôler ; le guide est construit et prouvé) — CHEMIN LE PLUS LONG | 12 h 08 | |
 | 29 | session_01PfEEAGyYh9kb2dxeKW7v6z | `{voie:"restes", noms:["client"], tours:1}` (campagne client finie à 12 h 07 : 13 réglés, 2 en partie, 5 casses ; décisions du chef dans sa consigne) | 12 h 11 | |
+| 30 | session_01PfEEAJEJjn7GkJkVzqExAL | `{voie:"final-regard", role:"technicien", rubriques:["Ma journée","Mes tâches","Mes congés"], suffixe:"a"}` (les trois autres rubriques du technicien — frais, heures, camion — après leurs corrections) | 12 h 14 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
