@@ -2561,7 +2561,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
-#ml-m{min-height:200px;font:inherit;line-height:1.5}
+#ml-m{min-height:200px;font:inherit;font-size:16px;line-height:1.5}   /* 16 px : sous cette taille un iPhone zoome toute la page au toucher (devis-atelier-12) */
 @media (max-width:760px){.st-ctr-d{align-items:flex-start}.st-int-3{grid-template-columns:52px minmax(0,1fr) auto}}
 /* ══ HISTORIQUE ══ */
 .h-comme{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.h-note{font-size:13px;color:var(--orange);font-weight:600}
@@ -2981,14 +2981,17 @@ body.dp-ouvert{overflow:hidden}
 .dv-focus-t{display:flex;justify-content:space-between;align-items:center}.dv-focus-t h3{margin:0}
 .dv-tache{display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--trait)}.dv-tache .dv-c{flex:1}.dv-tache.fait b{color:var(--faible);text-decoration:line-through}
 .dv-lgs{display:flex;flex-direction:column}
-.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 64px 110px 96px 40px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
+.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 88px 110px minmax(96px,max-content) 44px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
 .dv-lg .saisie{margin:0;min-width:0}.dv-lg .dv-q2,.dv-lg .dv-pu{text-align:right}.dv-pu.manque{border-color:var(--orange)}
 .dv-lg-t{font-size:12.5px;color:var(--doux);font-weight:600;border-bottom:1px solid var(--trait2)}.dv-lg-t span:nth-child(n+2){text-align:right}
 .dv-tot{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-.dv-x{width:40px;height:40px;border-radius:50%;border:0;background:var(--surf2);color:var(--doux);font-size:15px}
+.dv-x{width:44px;height:44px;border-radius:50%;border:0;background:var(--surf2);color:var(--doux);font-size:15px}
 .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto auto;padding:11px 0}.dv-lg.lu b{font-variant-numeric:tabular-nums;text-align:right;min-width:90px}
-@media (max-width:1250px){.dv-lg{grid-template-columns:minmax(0,1fr) 56px 92px 40px;grid-template-areas:"d d d d" "q q p x";row-gap:6px}
-  .dv-lg>input:first-child{grid-column:1/-1}.dv-lg .dv-tot{display:none}.dv-lg-t{display:none}.dv-lg .dv-q2{grid-column:2}.dv-lg .dv-pu{grid-column:3}
+@media (max-width:1250px){.dv-lg{grid-template-columns:minmax(0,1fr) minmax(76px,.45fr) minmax(112px,.8fr) 44px;grid-template-areas:"d d d d" "q q p x";row-gap:6px}
+  .dv-lg>input:first-child{grid-column:1/-1}.dv-lg-t{display:none}.dv-lg .dv-q2{grid-column:2}.dv-lg .dv-pu{grid-column:3}
+  /* le total de la ligne ne se cache plus : sous la quantité et le prix, dans sa propre rangée, il tient en entier (devis-atelier-13) */
+  .dv-lg .dv-tot{grid-column:1/-1;grid-row:3;text-align:right;font-size:13px;font-weight:500;color:var(--doux);white-space:nowrap}.dv-lg .dv-tot::before{content:'Total de la ligne : '}.dv-lg .dv-tot.vide{display:none}
+  .dv-lg .dv-x{grid-row:2;grid-column:4}
   .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:none}.dv-lg.lu>span:nth-child(2){grid-column:1;grid-row:2;font-size:13px}.dv-lg.lu b{grid-column:2;grid-row:1/3}}
 /* les lignes d'une facture à valider : mêmes champs que le devis, mais la quantité peut porter une unité (« 250 mL ») et la croix se touche au doigt */
 .fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 96px 44px}
@@ -2996,7 +2999,7 @@ body.dp-ouvert{overflow:hidden}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
 @media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 104px 44px}}
 .fac-edit table.l{margin-top:6px}
-.dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.dv-ajouts .puce-c,.dv-modeles .puce-c{min-height:44px}   /* comme toutes les autres rangées de pastilles : un doigt les touche sans viser (devis-atelier-11) */
 .dv-ajouts label.puce-c select{border:0;background:none;color:inherit;font:inherit;max-width:150px}
 .dv-totaux{margin-top:10px}.dv-totaux .ligne b{font-variant-numeric:tabular-nums;white-space:nowrap}.dv-ttc span,.dv-ttc b{font-size:19px;font-weight:750}
 .dv-sel{width:auto;min-height:38px;padding:4px 8px;display:inline-block}
@@ -5994,7 +5997,7 @@ document.addEventListener('click', ev => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
     ENVOIS.push({ a, objet:document.getElementById('ml-o').value, quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
-    toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(); return;
+    toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
   }
   if (b.dataset.pdfdl || b.dataset.pdfmail) {
     const doc = b.closest('#docplein') ? document.querySelector('#docplein .doc-feuille > .pdf, #docplein .doc-feuille > .bil') : b.closest('.doc-barre') && b.closest('.doc-barre').previousElementSibling; if (!doc) return;
@@ -6072,28 +6075,35 @@ function devisLignes(x){ // un devis d'exemple des statistiques : fourniture, ma
   const f = Math.round(x.ht * .58 * 100) / 100, dpl = 29.17, mo = Math.round((x.ht - f - dpl) * 100) / 100;
   return [[x.objet + ' — fourniture', 1, f], ['Main-d’œuvre (' + Math.max(1, Math.round(mo / 65)) + ' h)', 1, mo], ['Déplacement', 1, dpl]];
 }
+/* UN SEUL total de ligne, arrondi au centime comme on l'affiche : avant, chaque ligne s'arrondissait à l'écran mais le total additionnait les produits bruts
+   (14,585 + 43,755 = 58,34 affiché sous deux lignes à 14,59 et 43,76) — le client refaisait l'addition et trouvait un centime de moins (devis-atelier-01).
+   La TVA se calcule sur ce HT arrondi et le TTC est HT + TVA : trois nombres qui s'additionnent, sur l'écran, le PDF et le message. */
+function dvLigneHT(l){ return Math.round((Number(l[1]) || 0) * (Number(l[2]) || 0) * 100 + 1e-7) / 100; }
+function dvSomme(L){ return Math.round(L.reduce((s, l) => s + dvLigneHT(l), 0) * 100 + 1e-7) / 100; }
+function dvTvaDe(ht, tva){ return Math.round(ht * tva + 1e-7) / 100; }
+function dvTtcDe(ht, tva){ return Math.round((ht + dvTvaDe(ht, tva)) * 100 + 1e-7) / 100; }
 function docDevis(x){
-  const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
+  const c = CLIENTS[x.cli], L = devisLignes(x), ht = dvSomme(L), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), [y, m, j] = x.d.split('-');
   const fin = new Date(+y, +m - 1, +j + (x.valid || 30)), valid = String(fin.getDate()).padStart(2, '0') + '/' + String(fin.getMonth() + 1).padStart(2, '0') + '/' + fin.getFullYear();
-  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`${saluer(c.contact)},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(ht * (1 + tva / 100))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
+  return `<div class="pdf" ${x.num ? '' : 'data-brouillon="1" data-nom="Brouillon de devis.pdf"'} data-a="${esc(c.mail)}" data-objet="Devis ${x.num || '(brouillon)'} — ${esc(x.objet)}" data-corps="${esc(`${saluer(c.contact)},\n\nVoici notre devis ${x.num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTtcDe(ht, tva))} TTC.\n\nVous pouvez l’accepter en ligne depuis le lien de ce message et choisir votre date d’intervention. Il est valable jusqu’au ${valid}.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}">
     <div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}<br>${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div>
       <div style="text-align:right;margin-left:auto"><h4>Devis</h4><b>${x.num || 'Brouillon'}</b><br>Établi le ${j}/${m}/${y}<br>Valable jusqu’au ${valid}</div></div>
     <div class="deux"><div><h6>Client</h6><b>${esc(c.nom)}</b>${c.contact && c.contact !== c.nom ? '<br>' + esc(c.contact) : ''}<br>${esc(c.adr)}</div><div><h6>Objet</h6>${esc(x.objet)}${c.adr ? '<br>Lieu : ' + esc(c.adr) : ''}</div></div>
     <table><thead><tr><th>Désignation</th><th class="p-qc">Qté</th><th style="text-align:right">Prix unitaire HT</th><th style="text-align:right">Total HT</th></tr></thead>
-      <tbody>${L.map(l => `<tr><td>${esc(l[0])} <span class="p-q">×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(l[1] * l[2])}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${tva} %</td><td style="text-align:right">${eur(ht * tva / 100)}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(ht * (1 + tva / 100))}</b></td></tr></tfoot></table>
+      <tbody>${L.map(l => `<tr><td>${esc(l[0])} <span class="p-q">×\u00a0${prNum(l[1])}</span></td><td class="p-qc">${prNum(l[1])}</td><td style="text-align:right">${l[2] == null ? 'à chiffrer' : eur(l[2])}</td><td style="text-align:right">${l[2] == null ? '—' : eur(dvLigneHT(l))}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="3">Total HT</td><td style="text-align:right">${eur(ht)}</td></tr><tr><td colspan="3">TVA ${tva} %</td><td style="text-align:right">${eur(dvTvaDe(ht, tva))}</td></tr><tr><td colspan="3"><b>Total TTC</b></td><td style="text-align:right"><b>${eur(dvTtcDe(ht, tva))}</b></td></tr></tfoot></table>
     ${tva === 10 ? '<div class="mini">TVA à 10 % : travaux dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : tva === 5.5 ? '<div class="mini">TVA à 5,5 % : travaux d’amélioration énergétique dans un logement de plus de deux ans ; une attestation simplifiée sera demandée au client.</div>' : ''}
     <div class="deux"><div><h6>Conditions</h6>Délai d’intervention : sous 10 jours après accord.<br>Règlement : à réception de facture, par virement, carte ou chèque.<br>${x.acompte ? 'Acompte de ' + x.acompte + ' % à l’accord, déduit de la facture.' : 'Pas d’acompte demandé.'}</div>
       <div><h6>Bon pour accord</h6>${x.e === 'accepte' ? `<b style="color:#1c7a3a">${x.via && x.via !== 'en ligne' ? 'Accord ' + esc(x.via) : 'Accepté et signé en ligne'} le ${x.rep}/${y}</b><br>par ${esc(x.signePar || c.contact.split(',')[0])}${x.rdv ? '<br>Date choisie : ' + x.rdv : ''}` : 'Date, signature et mention « bon pour accord » :<div style="height:46px;border:1px dashed #c4cbd8;border-radius:6px;margin-top:6px"></div>'}</div></div>
     <div class="pdf-pied">${ENTREPRISE.nom} · SIRET ${ENTREPRISE.siret} · TVA ${ENTREPRISE.tva}. Devis gratuit. ${c.type === 'pro' ? 'En cas de retard de paiement : pénalités au taux d’intérêt de la BCE majoré de 10 points et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L441-10 du Code de commerce).' : 'Pas d’escompte pour paiement anticipé.'}</div></div>`;
 }
 function apercuDevis(x){
-  const c = CLIENTS[x.cli], L = devisLignes(x), ht = L.reduce((s, l) => s + l[1] * l[2], 0), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), lib = { accepte:['Accepté','st-v'], refuse:['Refusé','st-r'], attente:['Sans réponse','st-o'] }[x.e] || DV_ETATS[x.e] || ['—','st-g'];
+  const c = CLIENTS[x.cli], L = devisLignes(x), ht = dvSomme(L), tva = x.tva != null ? x.tva : (c.type === 'part' ? 10 : 20), lib = { accepte:['Accepté','st-v'], refuse:['Refusé','st-r'], attente:['Sans réponse','st-o'] }[x.e] || DV_ETATS[x.e] || ['—','st-g'];
   const [y, m, j] = x.d.split('-');
   const etapes = [['Envoyé', `le ${j}/${m}`, true], ['Ouvert par le client', x.e === 'attente' ? 'pas encore' : 'le ' + (x.rep || j + '/' + m), x.e !== 'attente'], [x.e === 'refuse' ? 'Refusé' : 'Accepté', x.rep ? 'le ' + x.rep + (x.rdv ? ' · date choisie ' + x.rdv : '') : 'en attente', x.e !== 'attente']];
   ouvrirPanneau(`<button type="button" class="lien" data-ferme="1" style="align-self:flex-start;margin-top:-6px">‹ Retour</button>
     <span class="st ${lib[1]}" style="align-self:flex-start">${lib[0]}</span><h2>Devis ${x.num}</h2><span class="gris">${esc(c.nom)} · ${esc(x.objet)}</span>
-    <div class="kpis"><div class="kpi"><b>${eur(ht * (1 + tva / 100))}</b><span>TTC · ${eur(ht)} HT</span></div><div class="kpi"><b>${lib[0]}</b><span>${x.rep ? 'le ' + x.rep : 'envoyé le ' + j + '/' + m}</span></div></div>
+    <div class="kpis"><div class="kpi"><b>${eur(dvTtcDe(ht, tva))}</b><span>TTC · ${eur(ht)} HT</span></div><div class="kpi"><b>${lib[0]}</b><span>${x.rep ? 'le ' + x.rep : 'envoyé le ' + j + '/' + m}</span></div></div>
     <div class="carte"><div class="etapes-d">${etapes.map(([t, s, ok]) => `<div class="${ok ? 'ok' : ''}"><i></i><span><b>${t}</b><small>${s}</small></span></div>`).join('')}</div>
       ${x.e === 'attente' ? `<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-streldev="${encodeURIComponent(JSON.stringify(x))}">Relancer le client</button></div>` : ''}</div>
     ${!estGrise('devis') && (dvInit(), DV.includes(DEVIS_REG[x.num])) ? `<div class="actions"><button type="button" class="btn" data-go="devis-x-${x.num}">Ouvrir la fiche du devis</button></div>` : ''}
@@ -6467,7 +6477,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-strel],[data-streldev],[data-strelctr]'); if (!b) return;
   if (b.dataset.strel) panneauEnvoi(stRelanceFacture(JSON.parse(decodeURIComponent(b.dataset.strel))));
   else if (b.dataset.streldev) { const x = JSON.parse(decodeURIComponent(b.dataset.streldev)), c = CLIENTS[x.cli];
-    if (x.ht == null) x.ht = devisLignes(x).reduce((s, l) => s + l[1] * l[2], 0);   // un devis venu d'ailleurs que des statistiques n'a que ses lignes
+    if (x.ht == null) x.ht = dvSomme(devisLignes(x));   // un devis venu d'ailleurs que des statistiques n'a que ses lignes
     panneauEnvoi({ titre:'Relancer le devis', a:c.mail, pj:x.num + '.pdf', objet:`Devis ${x.num} — ${x.objet}`,
       corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet du devis ${x.num} (${x.objet.toLowerCase()}, ${eur(x.ht)} HT) envoyé le ${jcourt(x.d)}.\n\nAvez-vous pu le regarder ? Je reste disponible pour en parler ou l’ajuster. Vous pouvez l’accepter en ligne depuis le lien reçu, et choisir votre date d’intervention.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` }); }
   else stRelanceContrat(CONTRATS.find(c => c.id === b.dataset.strelctr));
@@ -7073,7 +7083,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-st
 (() => { const avant = panneauEnvoi; panneauEnvoi = function(o){
   const tid = tEnvoiPour; tEnvoiPour = null; if (!tid) return avant.call(this, o);
   const ap = o.apres;
-  return avant.call(this, { ...o, apres:() => { const x = TACHES.find(t => t.id === tid); if (ap) ap();
+  return avant.call(this, { ...o, apres:a => { const x = TACHES.find(t => t.id === tid); if (ap) ap(a);
     if (x) { (x.actions = x.actions || []).push(({ 'Relancer le paiement':'relance du paiement envoyée', 'Relancer le devis':'relance du devis envoyée', 'Commander au fournisseur':'commande envoyée au fournisseur', 'Prévenir le client':'client prévenu', 'Écrire au client':'e-mail envoyé au client' })[o.titre] || o.titre.toLowerCase());
       x.actions[x.actions.length - 1] += ' le 31/10 à ' + hm(MAINT_MIN);
       if (tBut(x) === 'relancer' && /^(Relancer|Proposer le renouvellement)/.test(o.titre)) tFaire(x, x.actions[x.actions.length - 1]);
@@ -7160,7 +7170,7 @@ document.addEventListener('change', ev => {
 const tLiee = (x, t, id) => !x.fait && x.lien && x.lien.t === t && x.lien.id === id;
 (() => { const avant = panneauEnvoi; panneauEnvoi = function(o){
   const ap = o.apres, txt = [o.objet, o.pj].filter(Boolean).join(' ');
-  return avant.call(this, { ...o, apres:() => { const nj = JOURNAL.length; if (ap) ap(); if (JOURNAL.length === nj) emailJournal(o);
+  return avant.call(this, { ...o, apres:a => { const nj = JOURNAL.length; if (ap) ap(a); if (JOURNAL.length === nj) emailJournal(o);
     if (/^(Relancer|Proposer le renouvellement)/.test(o.titre || '')) TACHES.filter(x => !x.fait && tBut(x) === 'relancer' && x.lien && txt.includes(x.lien.lib)).forEach(x => { tFaire(x, ({ 'Relancer le paiement':'relance du paiement envoyée', 'Relancer le devis':'relance du devis envoyée' })[o.titre] || o.titre.toLowerCase() + ' : envoyé'); rendre(); }); } });
 }; })();
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
@@ -8049,9 +8059,18 @@ function dvSync(){ // « Ce que voit le client » et la fiche disent la même ch
     if (x.suite && x.e === 'accepte' && !x.int) { const n = INTS.find(o => o.id === 'n-ven-' + x.suite || (o.demande && o.demande.depuis === x.suite && o.st !== 'annulee')); if (n) x.int = n.id; } });   // l’intervention du rendez-vous est déjà là : sans ce lien, « Créer l’intervention » en ferait un doublon
 }
 const dvEtat = x => x.e === 'attente' && ajoute(x.d, x.valid) < AUJ ? 'expire' : x.e;
-const dvComplet = x => x.lignes.every(l => l[2] != null && l[2] !== '');
-const dvHT = x => x.lignes.reduce((s, l) => s + (Number(l[1]) || 0) * (Number(l[2]) || 0), 0);
-const dvTTC = x => Math.round(dvHT(x) * (1 + x.tva / 100) * 100) / 100;
+/* un devis part avec AU MOINS une ligne, et chaque ligne a un nom ET un prix : sur un tableau vide `every` rendait « vrai » et on envoyait un devis de 0,00 € (devis-atelier-08) */
+const dvSansPrix = x => x.lignes.filter(l => l[2] == null || l[2] === '').length;
+const dvSansNom = x => x.lignes.filter(l => !String(l[0]).trim()).length;
+const dvComplet = x => x.lignes.length > 0 && !dvSansPrix(x) && !dvSansNom(x);
+function dvManque(x){ // la phrase qui dit pourquoi « Aperçu et envoi » est grisé
+  if (!x.lignes.length) return '<b>Aucune ligne</b> — ajoute au moins une ligne pour pouvoir envoyer.';
+  const p = dvSansPrix(x), n = dvSansNom(x), pl = k => k + ' ligne' + (k > 1 ? 's' : '');
+  return '<b>' + [p ? pl(p) + ' sans prix' : '', n ? pl(n) + ' sans nom' : ''].filter(Boolean).join(' · ') + '</b> — ' + (p && !n ? 'chiffre-' + (p > 1 ? 'les' : 'la') : 'complète-' + (p + n > 1 ? 'les' : 'la')) + ' pour pouvoir envoyer. Le numéro du devis se donne à l’envoi.';
+}
+const dvHT = x => dvSomme(x.lignes);
+const dvTTC = x => dvTtcDe(dvHT(x), x.tva);
+const dvQui = () => prenomDe(acteur());   /* le prénom de la personne connectée : le devis, la relance et l'historique ne disent plus « Marc » quand c'est Julie (devis-atelier-10) */
 const dvFr = d => d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
 const dvPct = n => String(n).replace('.', ',') + ' %';
 function dvNum(){ // le numéro suivant : plus grand numéro DÉJÀ DONNÉ + 1 — un brouillon supprimé n'en avait pas, un remplacé garde le sien
@@ -8123,12 +8142,12 @@ function vueDevisFiche(k){
     : e === 'accepte' ? (iv && iv.st === 'aplanifier' && peut('planif', 'm') ? `<button type="button" class="btn" data-dv="planifier|${dvCle(x)}">Planifier l’intervention</button>` : iv ? `<button type="button" class="btn gris" data-go="inter-x-${iv.id}">Voir l’intervention</button>` : `<button type="button" class="btn" data-dv="creerInt|${dvCle(x)}">Créer l’intervention à planifier</button>`)
     : `<button type="button" class="btn gris" data-dv="version|${dvCle(x)}">Refaire ce devis</button>`;
   const lignes = x.lignes.map((l, n) => ed
-    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot">${l[2] == null ? '—' : eur(l[1] * l[2])}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
-    : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(l[1] * l[2])}</b></div>`).join('');
+    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot${l[2] == null ? ' vide' : ''}">${l[2] == null ? '—' : eur(dvLigneHT(l))}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
+    : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('');
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span class="st ${DV_ETATS[e][1]}" style="align-self:flex-start">${DV_ETATS[e][0]}</span><h1>${x.num || 'Devis en préparation'}</h1><button type="button" class="lien" data-go="client-x-${x.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(x.objet)}</span></div>
     <div class="actions">${gestes}</div></div>
-  ${ed && !complet ? `<div class="bandeau-info"><b>${x.lignes.filter(l => l[2] == null || l[2] === '').length} ligne${x.lignes.filter(l => l[2] == null || l[2] === '').length > 1 ? 's' : ''} sans prix</b> — chiffre-${x.lignes.filter(l => l[2] == null || l[2] === '').length > 1 ? 'les' : 'la'} pour pouvoir envoyer. Le numéro du devis se donne à l’envoi.</div>` : ''}
+  ${ed && !complet ? `<div class="bandeau-info" data-dvmanque="1">${dvManque(x)}</div>` : ''}
   ${x.remplace ? `<div class="info petit">Nouvelle version du devis <b>${x.remplace}</b> : à l’envoi, l’ancien passe « remplacé » et le client ne peut plus l’accepter.</div>` : ''}
   ${e === 'accepte' && x.signePar ? `<div class="ok-bloc"><b>✓ Accepté ${x.via === 'en ligne' ? 'et signé en ligne' : '(' + esc(x.via) + ')'} le ${x.rep} par ${esc(x.signePar)}.</b>${x.acompte ? `<br><span class="petit">Acompte de ${x.acompte} % : ${x.facAcompte ? 'la facture d’acompte est ' + dvFacEtat(dvFacLue(x.facAcompte)) + '.' : x.facSolde ? 'sans objet, la facture du solde est déjà faite pour le montant entier.' : 'facture d’acompte à préparer.'}</span>` : ''}</div>` : ''}
   ${e === 'refuse' ? `<div class="info petit"><b>Refusé le ${x.rep}</b>${x.motif ? ' · ' + esc(x.motif) : ''}</div>` : ''}
@@ -8138,9 +8157,9 @@ function vueDevisFiche(k){
         ${ed ? `<div class="dv-ajouts"><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|libre">＋ Ligne</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|mo">＋ 1 h de main-d’œuvre</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|dep">＋ Déplacement</button>
           <label class="puce-c">📦 Du catalogue<select data-dvcat="${dvCle(x)}" aria-label="Ajouter une pièce du catalogue"><option value="">…</option>${CATALOGUE.map(p => `<option value="${esc(p[0])}">${esc(p[0])} · ${eur(p[1])}</option>`).join('')}</select></label></div>` : ''}
         <div class="dv-totaux"><div class="ligne"><span>Total HT${complet ? '' : ' (partiel)'}</span><b>${eur(ht)}</b></div>
-          <div class="ligne"><span>TVA ${ed ? `<select class="saisie dv-sel" data-dvtva="${dvCle(x)}" aria-label="Taux de TVA">${[20, 10, 5.5].map(t => `<option value="${t}" ${x.tva === t ? 'selected' : ''}>${dvPct(t)}</option>`).join('')}</select>` : dvPct(x.tva)}<br><span class="faible mini">${DV_TVA[x.tva]}</span></span><b>${eur(ht * x.tva / 100)}</b></div>
-          <div class="ligne dv-ttc"><span>Total TTC</span><b>${eur(ht * (1 + x.tva / 100))}</b></div>
-          ${x.acompte ? `<div class="ligne"><span>Acompte demandé à l’accord (${x.acompte} %)</span><b>${eur(ht * (1 + x.tva / 100) * x.acompte / 100)}</b></div>` : ''}</div></div>
+          <div class="ligne"><span>TVA ${ed ? `<select class="saisie dv-sel" data-dvtva="${dvCle(x)}" aria-label="Taux de TVA">${[20, 10, 5.5].map(t => `<option value="${t}" ${x.tva === t ? 'selected' : ''}>${dvPct(t)}</option>`).join('')}</select>` : dvPct(x.tva)}<br><span class="faible mini">${DV_TVA[x.tva]}</span></span><b>${eur(dvTvaDe(ht, x.tva))}</b></div>
+          <div class="ligne dv-ttc"><span>Total TTC</span><b>${eur(dvTtcDe(ht, x.tva))}</b></div>
+          ${x.acompte ? `<div class="ligne"><span>Acompte demandé à l’accord (${x.acompte} %)</span><b>${eur(dvTtcDe(ht, x.tva) * x.acompte / 100)}</b></div>` : ''}</div></div>
       <div class="carte"><h3>Conditions</h3>
         ${ed ? `<div class="deux-champs"><label class="champ">Valable<select data-dvvalid="${dvCle(x)}">${[15, 30, 60, 90].map(n => `<option value="${n}" ${x.valid === n ? 'selected' : ''}>${n} jours</option>`).join('')}</select></label>
           <label class="champ">Acompte à l’accord<select data-dvacompte="${dvCle(x)}">${[0, 20, 30, 40, 50].map(n => `<option value="${n}" ${x.acompte === n ? 'selected' : ''}>${n ? n + ' %' : 'Pas d’acompte'}</option>`).join('')}</select></label></div>`
@@ -8170,24 +8189,27 @@ function dvCorps(x, num){
   const c = CLIENTS[x.cli];
   return `${saluer(c.contact)},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
 }
+/* l'adresse tapée à l'envoi d'un devis ou d'une relance se range dans la fiche du client quand elle n'en a pas : sinon il faut la retaper à chaque devis, et la facture n'en aura pas (devis-atelier-09) */
+function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
+  journalAjout('marc', 'client', 'a ajouté l’adresse e-mail du client', { t:'client', id:x.cli, lib:c.nom, cli:x.cli }, { det:'à l’envoi d’un devis' }); return ' Adresse enregistrée dans la fiche de ' + c.nom + '.'; }
 function dvEnvoyer(x){
-  if (!dvComplet(x)) { toast('Chiffre toutes les lignes avant d’envoyer.'); return; }
+  if (!dvComplet(x)) { toast(x.lignes.length ? 'Complète toutes les lignes (nom et prix) avant d’envoyer.' : 'Ajoute au moins une ligne avant d’envoyer.'); return; }
   const c = CLIENTS[x.cli], num = dvNum();
-  panneauEnvoi({ titre:'Envoyer le devis', a:c.mail, objet:`Devis ${num} — ${x.objet}`, corps:dvCorps(x, num), pj:'Devis ' + num + '.pdf', apres:() => {
+  panneauEnvoi({ titre:'Envoyer le devis', a:c.mail, objet:`Devis ${num} — ${x.objet}`, corps:dvCorps(x, num), pj:'Devis ' + num + '.pdf', apres:a => {
     const n = dvNum(), ancien = dvCle(x); DVN = +n.slice(7); x.num = n; x.e = 'attente'; x.d = AUJ; DEVIS_REG[n] = x;
-    dvTrace(x, 'Envoyé à ' + c.mail + ' · numéro ' + n + ' donné à l’envoi', 'a envoyé le devis');
+    const rangee = dvMailRanger(x, a); dvTrace(x, 'Envoyé à ' + a + ' · numéro ' + n + ' donné à l’envoi', 'a envoyé le devis');
     if (x.remplace) { const v = DEVIS_REG[x.remplace]; if (v && v.e === 'attente') { v.e = 'remplace'; v.remplacePar = n; v.trace.push([jcourt(AUJ), 'Remplacé par la nouvelle version ' + n + ' : le client ne peut plus l’accepter']); } }
-    dvFiltre = 'attente'; if (ancien !== n) oublierEcran('devis-x-' + ancien); aller('devis-x-' + n); } });
+    dvFiltre = 'attente'; if (ancien !== n) oublierEcran('devis-x-' + ancien); aller('devis-x-' + n); if (rangee) toast('E-mail envoyé à ' + esc(a) + ', PDF joint.' + rangee); } });
 }
 function dvRelancer(x){
   const c = CLIENTS[x.cli], n = -tJours(x.d);
   panneauEnvoi({ titre:'Relancer le devis', a:c.mail, objet:`Devis ${x.num} — ${x.objet}`, pj:'Devis ' + x.num + '.pdf',
-    corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\nMarc\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
-    apres:() => { x.relances++; x.relanceLe = AUJ; dvTrace(x, 'Relancé par Marc (e-mail)', 'a relancé le devis'); const T = document.getElementById('toast'), av = T ? T.innerHTML : ''; dvTachesFinir(x, 'relance du devis envoyée le 31/10 à ' + hm(MAINT_MIN), 'relancer'); const plus = T && T.innerHTML !== av && T.firstElementChild ? ' ' + T.firstElementChild.innerHTML : ''; rendre(); toast('Relance envoyée à ' + esc(c.mail) + '.' + plus); } });
+    corps:`${saluer(c.contact)},\n\nJe reviens vers vous au sujet de notre devis ${x.num} (${x.objet.toLowerCase()}, ${eur(dvTTC(x))} TTC), envoyé ${n === 0 ? 'aujourd’hui' : 'il y a ' + n + ' jour' + (n > 1 ? 's' : '')}. Il reste valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}.\n\nAvez-vous des questions ? Je peux aussi l’ajuster si besoin.\n\nBien cordialement,\n${dvQui()}\n${ENTREPRISE.nom} · ${ENTREPRISE.tel}`,
+    apres:a => { const rangee = dvMailRanger(x, a); x.relances++; x.relanceLe = AUJ; dvTrace(x, 'Relancé par ' + dvQui() + ' (e-mail)', 'a relancé le devis'); const T = document.getElementById('toast'), av = T ? T.innerHTML : ''; dvTachesFinir(x, 'relance du devis envoyée le 31/10 à ' + hm(MAINT_MIN), 'relancer'); const suite = T && T.innerHTML !== av && T.firstElementChild ? T.firstElementChild.innerHTML.replace(/^\s*Relance envoyée\s*·\s*/i, '').trim() : '', plus = suite ? ' ' + suite.charAt(0).toUpperCase() + suite.slice(1) + (/[.!?]$/.test(suite) ? '' : '.') : '';   /* la tâche cochée dit déjà « Relance envoyée » : on ne garde que sa suite (devis-atelier-02) */ rendre(); toast('Relance envoyée à ' + esc(a) + '.' + plus + rangee); } });
 }
 function dvAccepter(x, o){
   x.e = 'accepte'; x.rep = jcourt(AUJ); x.via = o.via; x.signePar = o.par; x.vu = true;
-  x.trace.push([jcourt(AUJ), o.via === 'en ligne' ? 'Accepté et signé en ligne par ' + o.par : 'Accord noté par Marc (' + o.via + ', ' + o.par + ')']);
+  x.trace.push([jcourt(AUJ), o.via === 'en ligne' ? 'Accepté et signé en ligne par ' + o.par : 'Accord noté par ' + dvQui() + ' (' + o.via + ', ' + o.par + ')']);
   journalAjout(o.via === 'en ligne' ? 'client' : 'marc', 'devis', o.via === 'en ligne' ? 'a accepté le devis' : 'a noté l’accord du client', { t:'devis', id:x.num, lib:x.num, cli:x.cli }, { det:x.objet });
   if (x.suite && etatSuite(x.suite) === 'aaccepter') SUITE_ETAT[x.suite] = 'accepte';
   dvCreerInt(x); if (x.acompte) dvAcompte(x, true);
@@ -8216,11 +8238,11 @@ function dvAcompte(x, seul){
 }
 function dvVersion(x){
   const n = { id:'BR' + (++dvSeq + 1), num:null, cli:x.cli, objet:x.objet, d:AUJ, e:'brouillon', tva:x.tva, valid:x.valid, acompte:x.acompte, lignes:x.lignes.map(l => l.slice()),
-    remplace:dvEtat(x) === 'attente' ? x.num : null, source:'Repris du devis ' + x.num + ' (' + DV_ETATS[dvEtat(x)][0].toLowerCase() + ')', trace:[[jcourt(AUJ), 'Repris du devis ' + x.num + ' par Marc']], relances:0 };
+    remplace:dvEtat(x) === 'attente' ? x.num : null, source:'Repris du devis ' + x.num + ' (' + DV_ETATS[dvEtat(x)][0].toLowerCase() + ')', trace:[[jcourt(AUJ), 'Repris du devis ' + x.num + ' par ' + dvQui()]], relances:0 };
   DV.push(n); DEVIS_REG[n.id] = n; dvFiltre = 'aenvoyer'; aller('devis-x-' + n.id); toast('Brouillon créé. Change ce qu’il faut, puis envoie : il aura un nouveau numéro.');
 }
 function dvCreer(o){ // o : { cli, objet, lignes, source }
-  const n = { id:'BR' + (++dvSeq + 1), num:null, cli:o.cli, objet:o.objet, d:AUJ, e:'brouillon', lignes:o.lignes, source:o.source, trace:[[jcourt(AUJ), o.trace || 'Préparé par Marc']], relances:0, acompte:0, valid:30 };
+  const n = { id:'BR' + (++dvSeq + 1), num:null, cli:o.cli, objet:o.objet, d:AUJ, e:'brouillon', lignes:o.lignes, source:o.source, trace:[[jcourt(AUJ), o.trace || 'Préparé par ' + dvQui()]], relances:0, acompte:0, valid:30 };
   n.tva = tvaDefautDe(o.cli); DV.push(n); DEVIS_REG[n.id] = n; journalAjout('marc', 'devis', 'a préparé un devis', { t:'devis', id:n.id, lib:'brouillon', cli:n.cli }, { det:n.objet });
   fermerPanneau(); dvFiltre = 'aenvoyer'; aller('devis-x-' + n.id);
 }
@@ -8245,6 +8267,9 @@ function dvNouveau(){
 function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; };
   if (f.nv) ['nom','prenom','tel','mail','adr'].forEach(k => { const x = v('dvn-' + k); if (x != null) f[k] = x; }); else { const x = v('dvn-cli'); if (x != null) f.cli = x; }
   const o = v('dvn-objet'); if (o != null) f.objet = o; }
+/* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
+   (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
+function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
 function dvnCreer(){
   dvnLire(); const f = DVN_F; f.err = '';
   if (f.nv && !f.nom) f.err = 'Indique le nom du client.'; else if (f.nv && !f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
@@ -8254,12 +8279,12 @@ function dvnCreer(){
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
     CLIENTS[cli] = { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] };
-    if (r) SECT_CLI[cli] = r.secteur; { const g = geoDeAdresse(f.adr); if (g) CR_GEO[cli] = g; }   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
+    cliPositionner(cli, f.adr);   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
     journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
   const zone = f.nv ? ((reconnaitre(f.adr) || {}).zone || 1) : ({ hp:2, cp:1, mr:1 }[cli] || 1);
   const lignes = m.map(l => l[0] === 'Déplacement' ? ['Déplacement', 1, TARIFS.zone[zone]] : l.slice());
-  DVN_F = null; dvCreer({ cli, objet:f.objet, lignes, source:f.nv ? 'Nouveau client créé avec le devis' : null, trace:'Préparé par Marc' + (f.nv ? ' · client créé en même temps' : '') });
+  DVN_F = null; dvCreer({ cli, objet:f.objet, lignes, source:f.nv ? 'Nouveau client créé avec le devis' : null, trace:'Préparé par ' + dvQui() + (f.nv ? ' · client créé en même temps' : '') });
 }
 /* dicter : prototype, la voix est simulée — dans l'application, c'est l'assistant « Devis IA » qui fait ce travail */
 let DVD = null;
@@ -8285,7 +8310,7 @@ function dvdPreparer(){
   if (!L.length) L.push(['À préciser', 1, null]);
   const obj = (/(remplacement|installation|entretien|depannage|reparation)[^:,.]*/.exec(s) || [])[0];
   const objet = obj ? t.substr(s.indexOf(obj), obj.length).replace(/^./, c => c.toUpperCase()) : 'Travaux';
-  DVD = null; dvCreer({ cli, objet, lignes:L, source:'Dicté au micro : « ' + t + ' » — à vérifier', trace:'Dicté par Marc au micro, préparé tout seul' });
+  DVD = null; dvCreer({ cli, objet, lignes:L, source:'Dicté au micro : « ' + t + ' » — à vérifier', trace:'Dicté par ' + dvQui() + ' au micro, préparé tout seul' });
 }
 /* ce que voit le client : son lien, le devis, la case « bon pour accord » et la signature au doigt */
 function dvClient(x){
@@ -8293,7 +8318,7 @@ function dvClient(x){
   ouvrirPanneau(`<button type="button" class="lien" data-ferme="1" style="align-self:flex-start;margin-top:-6px">‹ Retour</button><span class="surtitre">Ce que voit ${esc(c.contact.split(',')[0])} sur son téléphone</span>
     <div class="dv-cv"><div class="dv-cv-t">${logoEnt('span')}<span><b>${ENTREPRISE.nom}</b><small>Devis ${x.num} · valable jusqu’au ${dvFr(ajoute(x.d, x.valid))}</small></span></div>
       <h3>${esc(x.objet)}</h3>
-      ${x.lignes.map(l => `<div class="ligne"><span class="petit">${esc(l[0])}${l[1] > 1 ? ' × ' + l[1] : ''}</span><b>${eur(l[1] * l[2])}</b></div>`).join('')}
+      ${x.lignes.map(l => `<div class="ligne"><span class="petit">${esc(l[0])}${l[1] > 1 ? ' × ' + l[1] : ''}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('')}
       <div class="ligne"><span>Total TTC <span class="faible mini">dont TVA ${dvPct(x.tva)}</span></span><b class="dv-cv-tot">${eur(dvTTC(x))}</b></div>
       ${x.acompte ? `<div class="gris petit">Acompte de ${x.acompte} % à l’accord : ${eur(dvTTC(x) * x.acompte / 100)}</div>` : ''}
       <button type="button" class="lien" data-dv="pdf|${dvCle(x)}">Voir le devis complet (PDF)</button>
@@ -8335,14 +8360,14 @@ document.addEventListener('click', ev => {
   if (a === 'creerInt') { dvCreerInt(x); rendre(); toast('Intervention créée, à planifier.'); return; }
   if (a === 'acompte') return dvAcompte(x);
   if (a === 'signer') { const ok = document.getElementById('dv-ok').checked, nom = document.getElementById('dv-nom').value.trim(), sig = document.getElementById('dv-signe').dataset.signe;
-    const manque = !ok ? 'Cochez « bon pour accord » pour accepter.' : !nom ? 'Indiquez votre nom et votre prénom.' : !sig ? 'Signez dans le cadre, avec le doigt.' : '', er = document.getElementById('dv-err');   /* la fenêtre est celle du CLIENT (ou son aperçu au bureau : « Ce que voit Marc ») : on la vouvoie, jamais de tutoiement (client-01) */
+    const manque = !ok ? 'Cochez « bon pour accord » pour accepter.' : !nom ? 'Indiquez votre nom et votre prénom.' : !sig ? (document.getElementById('dv-signe').dataset.court ? 'Ce trait est trop court pour une signature : signez-la en entier.' : 'Signez dans le cadre, avec le doigt.') : '', er = document.getElementById('dv-err');   /* la fenêtre est celle du CLIENT (ou son aperçu au bureau : « Ce que voit Marc ») : on la vouvoie, jamais de tutoiement (client-01) */
     if (manque) { er.textContent = manque; er.hidden = false; return; }
     dvAccepter(x, { par:nom, via:'en ligne' }); fermerPanneau(); rendre();
     /* le client lit ce qui se passe POUR LUI ; « côté bureau : à planifier » est la conséquence interne, réservée à l'aperçu du gérant (client-02) */
     toast(RL_ACTIF && ROLE === 'client' ? 'Merci, votre devis est accepté et signé.' + (x.acompte ? ' Une facture d’acompte de ' + eur(dvTTC(x) * x.acompte / 100) + ' vous est envoyée.' : '') + ' Nous vous appelons pour fixer la date.' : '✓ Accepté et signé. Côté bureau : intervention à planifier' + (x.acompte ? ', facture d’acompte prête.' : '.')); return; }
   if (a === 'clientRefus') { if (!b.dataset.sur) { b.dataset.sur = '1'; b.textContent = 'Oui, refuser ce devis'; const er = document.getElementById('dv-err'); if (er) { er.textContent = 'Voulez-vous vraiment refuser ce devis ? ' + (RL_ACTIF && ROLE === 'client' ? 'L’entreprise sera prévenue' : 'Le bureau sera prévenu') + ' et vous ne pourrez plus l’accepter. Touchez encore « Oui, refuser ce devis » pour confirmer.'; er.hidden = false; } return; } x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = 'Refusé en ligne par le client'; x.vu = true; x.trace.push([jcourt(AUJ), 'Refusé en ligne par ' + CLIENTS[x.cli].contact.split(',')[0]]); journalAjout('client', 'devis', 'a refusé le devis', { t:'devis', id:x.num, lib:x.num, cli:x.cli }, { det:x.objet }); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast(RL_ACTIF && ROLE === 'client' ? 'Devis refusé. Votre réponse est transmise à ' + esc(ENTREPRISE.nom) + '.' : 'Devis refusé. Le bureau en est prévenu.'); return; }
   if (a === 'repOui') { const qui = document.getElementById('dvr-qui').value.trim() || CLIENTS[x.cli].contact, via = document.getElementById('dvr-via').value; dvAccepter(x, { par:qui, via }); fermerPanneau(); rendre(); toast('Accord noté. Intervention à planifier' + (x.acompte ? ', facture d’acompte prête.' : '.')); return; }
-  if (a === 'repNon') { const mo0 = document.getElementById('dvr-motif').value; if (!mo0) { toast('Choisis d’abord pourquoi il refuse.'); return; } const av = { e:x.e, rep:x.rep, motif:x.motif, vu:x.vu, nt:x.trace.length, nj:JOURNAL.length, ts:TACHES.filter(t => !t.fait) }; x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = document.getElementById('dvr-motif').value; x.vu = true; dvTrace(x, 'Refus noté par Marc : ' + x.motif.toLowerCase(), 'a noté le refus du devis'); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast('Refus noté : ' + esc(x.motif.toLowerCase()) + '. Le devis passe dans les refusés.', { lib:'Annuler', fn:() => { x.e = av.e; x.rep = av.rep; x.motif = av.motif; x.vu = av.vu; x.trace.length = av.nt; JOURNAL.splice(av.nj); av.ts.forEach(t => { t.fait = null; }); rendre(); toast('Refus annulé : le devis est de nouveau en attente.'); } }); return; }
+  if (a === 'repNon') { const mo0 = document.getElementById('dvr-motif').value; if (!mo0) { toast('Choisis d’abord pourquoi il refuse.'); return; } const av = { e:x.e, rep:x.rep, motif:x.motif, vu:x.vu, nt:x.trace.length, nj:JOURNAL.length, ts:TACHES.filter(t => !t.fait) }; x.e = 'refuse'; x.rep = jcourt(AUJ); x.motif = document.getElementById('dvr-motif').value; x.vu = true; dvTrace(x, 'Refus noté par ' + dvQui() + ' : ' + x.motif.toLowerCase(), 'a noté le refus du devis'); dvTachesFinir(x, 'devis refusé'); fermerPanneau(); rendre(); toast('Refus noté : ' + esc(x.motif.toLowerCase()) + '. Le devis passe dans les refusés.', { lib:'Annuler', fn:() => { x.e = av.e; x.rep = av.rep; x.motif = av.motif; x.vu = av.vu; x.trace.length = av.nt; JOURNAL.splice(av.nj); av.ts.forEach(t => { t.fait = null; }); rendre(); toast('Refus annulé : le devis est de nouveau en attente.'); } }); return; }
   if (a === 'ligneSup') { const l = x.lignes.splice(+p, 1)[0]; rendre(); toast('Ligne retirée', { lib:'Annuler', fn:() => { x.lignes.splice(+p, 0, l); rendre(); } }); return; }
   if (a === 'ligneAj') { x.lignes.push(p === 'mo' ? ['Main-d’œuvre (1 h)', 1, TARIFS.horaire] : p === 'dep' ? ['Déplacement', 1, TARIFS.zone[{ hp:2 }[x.cli] || 1]] : ['', 1, null]); rendre();
     if (p === 'libre') { const L = document.querySelectorAll('[data-dvl$="|0"]'); L[L.length - 1] && L[L.length - 1].focus(); } return; }
@@ -8895,10 +8920,11 @@ function brancherSignature(idCanvas, _f, id){
   const cv = document.getElementById(idCanvas); if (!cv) return;
   const F = idCanvas === 'signe' ? fiche(id) : null, x = cv.getContext('2d'); x.lineWidth = 3.2; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0b1426';
   if (F && F.signature && F.signature !== 'signee') { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0); im.src = F.signature; }
-  let on = false; const p = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
-  cv.addEventListener('pointerdown', e => { on = true; cv.setPointerCapture(e.pointerId); const [a,b] = p(e); x.beginPath(); x.moveTo(a,b); x.lineTo(a+.1,b); x.stroke(); });
-  cv.addEventListener('pointermove', e => { if (!on) return; const [a,b] = p(e); x.lineTo(a,b); x.stroke(); });
-  const fini = () => { if (!on) return; on = false; if (F) { F.signature = cv.toDataURL('image/png'); majCollant(id); } else cv.dataset.signe = cv.toDataURL('image/png'); };
+  let on = false, dern = null, long = 0; const p = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+  cv.addEventListener('pointerdown', e => { on = true; cv.setPointerCapture(e.pointerId); const [a,b] = p(e); dern = [a, b]; x.beginPath(); x.moveTo(a,b); x.lineTo(a+.1,b); x.stroke(); });
+  cv.addEventListener('pointermove', e => { if (!on) return; const [a,b] = p(e); if (dern) long += Math.hypot(a - dern[0], b - dern[1]); dern = [a, b]; x.lineTo(a,b); x.stroke(); });
+  /* un simple appui n'est pas une signature : celle du devis demande un vrai trait (un doigt qui frôle le cadre en faisant défiler la fenêtre suffisait ; devis-atelier-06) */
+  const fini = () => { if (!on) return; on = false; if (F) { F.signature = cv.toDataURL('image/png'); majCollant(id); } else if (idCanvas === 'dv-signe' && long < 40) { cv.dataset.court = '1'; } else { cv.dataset.signe = cv.toDataURL('image/png'); delete cv.dataset.court; } };
   cv.addEventListener('pointerup', fini); cv.addEventListener('pointercancel', fini);
 }
 function majCollant(id){ const c = document.getElementById('collant'); if (!c) return; const man = manque(fiche(id));
@@ -9143,7 +9169,7 @@ document.addEventListener('click', ev => {
     const [t, id] = b.dataset.go.split('-x-'), ici = BASE[route] || route;
     if (id && PAGE_DE[t] && PAGE_DE[t] !== ici && !['accueil','planning'].includes(ici) && b.closest('#contenu,.panneau')) { apercuElement(t, id); return; }
     aller(b.dataset.go); return; }
-  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || 'accueil')); return; }
+  if ((b = q('[data-retour]'))) { let prev = histo.pop(); while (prev && prev === location.hash.slice(1)) prev = histo.pop(); enRetour = true; aller(prev || retourSure(BASE[route] || (route === 'devis' && param ? 'devis' : 'accueil'))); return; }   /* sans écran d'où l'on vient, la fiche d'un devis ramène à sa liste, pas à l'Accueil (devis-atelier-05) */
   if ((b = q('[data-modetheme]'))) { mode = b.dataset.modetheme; try { localStorage.setItem(MODE_CLE, mode); } catch (e) { /* rangement plein ou refusé : le choix vaut pour cette ouverture */ } appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); return; }
   if ((b = q('[data-creer]'))) { ouvrirCreation(route === 'client' ? { cli:param } : {}); return; }
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
@@ -14299,11 +14325,11 @@ document.addEventListener('input', ev => {
   const [k, n, c] = t.dataset.dvl.split('|'); if (+c === 0) return; const x = DEVIS_REG[k]; if (!x || !x.lignes[+n]) return;
   const v = t.value.trim(); if (v !== '' && isNaN(dvLireNb(v))) return; x.lignes[+n][+c] = v === '' ? (+c === 1 ? 1 : null) : Math.min(dvLireNb(v), +c === 1 ? DV_Q_MAX : DV_PU_MAX);
   const ht = dvHT(x), complet = dvComplet(x), tot = document.querySelectorAll('.dv-totaux .ligne b'), lg = x.lignes[+n], st = t.closest('.dv-lg') && t.closest('.dv-lg').querySelector('.dv-tot');
-  if (st) st.textContent = lg[2] == null ? '—' : eur(lg[1] * lg[2]);
-  if (tot[0]) tot[0].textContent = eur(ht); if (tot[1]) tot[1].textContent = eur(ht * x.tva / 100); if (tot[2]) tot[2].textContent = eur(ht * (1 + x.tva / 100)); if (tot[3] && x.acompte) tot[3].textContent = eur(ht * (1 + x.tva / 100) * x.acompte / 100);
+  if (st) { st.textContent = lg[2] == null ? '—' : eur(dvLigneHT(lg)); st.classList.toggle('vide', lg[2] == null); }
+  if (tot[0]) tot[0].textContent = eur(ht); if (tot[1]) tot[1].textContent = eur(dvTvaDe(ht, x.tva)); if (tot[2]) tot[2].textContent = eur(dvTtcDe(ht, x.tva)); if (tot[3] && x.acompte) tot[3].textContent = eur(dvTtcDe(ht, x.tva) * x.acompte / 100);
   const lib = document.querySelector('.dv-totaux .ligne span'); if (lib) lib.textContent = 'Total HT' + (complet ? '' : ' (partiel)');
   const bt = document.querySelector('[data-dv^="envoyer|"]'); if (bt) bt.disabled = !complet;
-  const bd = [...document.querySelectorAll('#contenu .bandeau-info')].find(e => /sans prix/.test(e.textContent)); if (bd) bd.style.display = complet ? 'none' : '';
+  const bd = document.querySelector('#contenu .bandeau-info[data-dvmanque]'); if (bd) { bd.style.display = complet ? 'none' : ''; if (!complet) bd.innerHTML = dvManque(x); }
 });
 
 /* ══ Lot mail-équipe-3d ══ */
@@ -22435,7 +22461,7 @@ function dxClientCreer(){
   if (DX.cli) return DX.cli;
   const nom = DX.nom.trim(), pre = DX.prenom.trim(), k = 'n' + Date.now().toString(36), r = reconnaitre(DX.adr), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
   CLIENTS[k] = { nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] };
-  if (r) SECT_CLI[k] = r.secteur;
+  if (r) SECT_CLI[k] = r.secteur; { const g = geoDeAdresse(DX.adr.trim()); if (g) CR_GEO[k] = g; }
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, { det:'depuis le devis xylophage' });
   DX.cli = k; DX.nv = false; DX.nom = DX.prenom = DX.tel = DX.mail = DX.adr = ''; return k;
 }
@@ -22924,6 +22950,7 @@ function opdClientRecu(c){
   const id = opdA(c, 'id'), nom = opdT(opdA(c, 'nom'), 120); if (typeof id !== 'string' || !OPD_RE_ID.test(id) || !nom || id in CLIENTS) return;   // « in » : « __proto__ » et « constructor » existent déjà sur tout objet
   const adr = opdT(opdA(c, 'adresse'), 120), cp = opdT(opdA(c, 'cp'), 10), ville = opdT(opdA(c, 'ville'), 80), mail = opdT(opdA(c, 'email'), 120).replace(/[<>"'`]/g, ''), tel = opdT(opdA(c, 'tel'), 30).replace(/[<>"'`]/g, '');
   CLIENTS[id] = { nom, type:opdA(c, 'pro') === true ? 'pro' : 'part', contact:nom, tel, mail, adr:[adr, (cp + ' ' + ville).trim()].filter(Boolean).join(', '), acces:'', depuis:'2026', appareils:[] };
+  cliPositionner(id, CLIENTS[id].adr);
   opdSync();
 }
 addEventListener('message', ev => {
