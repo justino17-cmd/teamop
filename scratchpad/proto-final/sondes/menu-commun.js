@@ -6,7 +6,7 @@ exports.G3D = 'Hygiène anti-nuisibles (3D)';
 // [groupe, [lignes]] — '' = le bloc du haut, sans titre. L'ordre est celui de MENU-FINAL.md.
 exports.ATTENDU = {
   marc:[['', ['Accueil', 'Statistiques', 'Historique']], ['Travail', ['Planning', 'Interventions', 'Tâches', 'Absences et congés']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats', 'Boîte mail']],
-    ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits', 'Dépôts et camions']], ['Personnel', ['Équipe', 'Temps de travail', 'Véhicules', 'Mon entreprise']]],
+    ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits', 'Dépôts et camions']], ['Personnel', ['Équipe', 'Temps de travail', 'Véhicules', 'Mon entreprise', 'Sécurité']]],   // double-auth étape 3 : « Sécurité » (case « Gérer la sécurité des connexions ») est la 21e ligne du gérant
   julie:[['Travail', ['Mes tâches', 'Interventions']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats']], ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits']], ['Personnel', ['Véhicules']]],   // + Personnel › Véhicules : le bureau voit les véhicules (VEHICULES-TEMPS.md § 11, recommandation) ; + Matériel : le bureau voit Stock et Fournisseurs (MATERIEL.md § 4, étape 2)
   sm:[['', ['Ma journée', 'Mes tâches', 'Mes frais', 'Mes heures', 'Mon camion', 'Mes congés']]],
   client:[['', ['Accueil', 'Mes factures', 'Mes interventions', 'Mes devis', 'Mon contrat']]]

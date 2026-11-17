@@ -91,7 +91,7 @@ const INTERDITS = [
   for (const [nom, re] of INTERDITS) { const t = ecr.filter(x => re.test(x.t.replace(/^.*?(?=[A-Za-zÀ-ÿ])/, ''))); v('B : aucun « ' + nom + ' » dans ce que montrent les écrans (' + ecr.length + ' textes)', t.length === 0, t.slice(0, 3).map(x => x.ou + ' : ' + (x.t.match(re) || [])[0] + ' … ' + x.t.slice(Math.max(0, x.t.search(re) - 40), x.t.search(re) + 60))); }
   const da = ecr.filter(x => /double authentification/i.test(x.t)).map(x => x.ou + ' ' + x.t.slice(0, 40));
   v('« double authentification » n’apparaît que sur l’écran « Active OP Security » (' + da.length + ' texte(s))', da.length >= 1 && ecr.filter(x => /double authentification/i.test(x.t)).every(x => /Active OP Security/.test(x.t)), da);
-  const sec = N(nette.slice(nette.indexOf('const SECU_DEMO'), nette.indexOf('function cnxEntrer')));
+  const sec = N(nette.slice(nette.indexOf('const SECU_DEMO'), nette.indexOf('function cnxEntrer')).replace(/<style[\s\S]*?<\/style>/g, ' '));   // les feuilles de style (width:100%) ne sont pas des promesses : l'étape 3 y ajoute les siennes
   v('B : le bloc du fichier n’écrit aucune promesse d’absolu', !INTERDITS[1][1].test(sec), (sec.match(INTERDITS[1][1]) || [])[0]);
   v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);

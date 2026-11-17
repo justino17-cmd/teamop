@@ -7,7 +7,7 @@ exports.fin = async () => { await L.fermer(); const ko = L.bilan(); process.exit
 // le texte du toast s'il est visible (espaces insécables normalisés), sinon ''
 exports.toast = p => p.evaluate(() => { const t = document.getElementById('toast'); return t && t.classList.contains('on') ? t.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : ''; });
 // ouvre l'écran Équipe puis la fiche de la personne (par le geste, pas par la fonction)
-exports.fiche = async (c, k) => { await L.aller(c.p, 'equipe'); await L.toucher(c, `[data-eq="fiche|${k}"]`); await L.calme(c.p, 400); };
+exports.fiche = async (c, k) => { await L.aller(c.p, 'equipe'); await c.p.evaluate(() => { if (typeof eqFiltre !== 'undefined' && eqFiltre !== 'tous') { eqFiltre = 'tous'; rendre(); } }); await L.calme(c.p, 150); await L.toucher(c, `[data-eq="fiche|${k}"]`); await L.calme(c.p, 400); };
 // l'état OBSERVABLE d'un geste : écran, titre, fenêtre ouverte, toast, nombre de cartes, hachage — pour dire s'il a fait quelque chose et quoi
 exports.obs = async p => { const e = await L.etat(p); e.toast = await exports.toast(p); e.pan = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? (q.querySelector('h2') ? q.querySelector('h2').textContent.trim() : q.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)) : ''; }); return e; };
 exports.ranger = async c => { await L.ranger(c.p); await c.p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); await L.calme(c.p, 200); };
