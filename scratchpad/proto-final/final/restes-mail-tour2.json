@@ -1,0 +1,77 @@
+{
+ "voie": "restes",
+ "etape": "corriger-restes-2",
+ "noms": ["mail"],
+ "date": "2026-11-17",
+ "lu": "final/restes-mail-tour1-recontrole.json (le plus récent : 1 pasRegles, 4 casses, 4 nouveaux) ; vus-par-le-chef.md (une seule ligne mail, la décision « la secrétaire voit-elle la Boîte mail », laissée non cochée exprès) ; aucun autre recontrôle ne portait d'entrée mail ouverte.",
+ "entrees": [
+  {
+   "nom": "mail",
+   "defaut": "Pastille « Nouveau contact » : texte blanc sur gris 2,1:1 sur la ligne choisie d'un téléphone ou d'un iPad portrait, de jour",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js : le voile noir de la pastille d'une ligne choisie ne s'applique plus qu'hors mise en page « phone » (là seulement la ligne choisie est bleue) ; sur téléphone et iPad portrait la pastille garde ses couleurs normales",
+   "preuve": "restes-mail-tour1-recontrole.js PARTIE=1 : 16 ✓ · 4 ✗ avant, 20 ✓ · 0 ✗ après (iphone, android, petit, ipad, jour et nuit, plus iPad paysage) ; capture cap/restes1r/pastille-iphone-jour.png regardée (pastille orange pâle lisible) ; mutation T1 mord (4 ✗)"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Bulle de la fenêtre « Nouvelle intervention » invisible et intouchable quand elle est ouverte depuis la Comptabilité plein écran",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-op-gestion.html : body:has(#cpsys:not([hidden])) #toast{z-index:9200}, au-dessus de la Comptabilité (9000) et de sa fenêtre (9100) ; vaut aussi pour toute bulle émise pendant la Comptabilité plein écran",
+   "preuve": "restes-mail-tour1-recontrole.js PARTIE=5 : 13 ✓ · 1 ✗ avant, 14 ✓ · 0 ✗ après (le toucher du bouton « Annuler » arrive, Julie et Marc) ; mutation T2 mord"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Feuille d'écriture ouverte en paysage puis téléphone redressé : titre de nouveau coupé en « Nouveau messa… » (et, dans l'autre sens, « Message » gardé alors qu'il y a de la place)",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js : le ResizeObserver du module rappelle fitSheetTitles() à chaque changement de taille, pas seulement quand la mise en page change (debout et paysage sont tous deux « phone ») ; la fonction remet le titre entier avant de le mesurer, donc le sens inverse est repris aussi",
+   "preuve": "restes-mail-tour1-recontrole.js PARTIE=3 : 16 ✓ · 2 ✗ avant, 18 ✓ · 0 ✗ après (iphone, petit, android, les deux sens) ; mutation T3 mord (2 ✗)"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Deux bulles l'une sur l'autre quand l'hôte parle D'ABORD, puis le module (ordinateur)",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js : toast() du module appelle surHote() après avoir posé sa bulle ; si la bulle de l'hôte (#toast.on) est à l'écran et que les deux se recouvriraient en largeur, la nôtre monte juste au-dessus (variable --opc-sur ajoutée aux trois règles de bas de .opc .toast) ; calcul sur la hauteur réelle (bottom calculé + offsetHeight), jamais sur un rectangle en transition",
+   "preuve": "restes-mail-tour1-recontrole.js PARTIE=6 : 5 ✓ · 3 ✗ avant, 8 ✓ · 0 ✗ après (iphone, mac jour et nuit, windows) ; capture cap/restes1r/bulles-inverse-mac-jour.png regardée (« Brouillon enregistré » au-dessus de « Commande 2026-036 terminée », rien de couvert) ; mutation T4 mord (3 ✗)"
+  },
+  {
+   "nom": "mail",
+   "defaut": "telephone-15 — aucune ligne de message entière en paysage sur Android 740×360 et iPhone SE 568×320 (la liste n'était remplie que par le titre, la recherche et les catégories)",
+   "etat": "corrigé",
+   "changement": "apercu/prototype-courrier.js, sous 380 px de haut seulement (l'iPhone 844×390 garde son grand titre) : le grand titre passe dans la barre (title 14 px, « Boîtes » ne garde que sa flèche en colonne de 315 px), la recherche se resserre, et la liste s'ouvre PLIÉE sur ses messages (listeCourtePlier : une fois par ouverture, calée sous la barre du haut qui recouvre la liste sur téléphone, jamais si la personne a déjà fait défiler ; un geste vers le bas ramène la recherche et les catégories, comme Mail sur iPhone). Remise en haut aux quatre changements de dossier par listeEnHaut()",
+   "preuve": "nouvelle sonde sondes/restes-mail-tour2.js, qui compte les lignes entières AU-DESSUS de la barre d'onglets de l'hôte (le tour 1 comptait contre le bas du module, recouvert par cette barre) : population 11 lignes par profil, 24 ✓ · 0 ✗ (android et petit jour et nuit 1 ligne entière, iphone 844×390 1 ligne, titre non coupé, pas de défilement latéral) contre 16 ✓ · 8 ✗ avant ; captures cap/restes2/paysage-android-jour.png, paysage-petit-nuit.png, paysage-iphone-jour.png regardées ; sondes du tour 1 ajustées pour un titre retiré (restes-mail-tour1-recontrole.js PARTIE=2 : 20 ✓ · 0 ✗) ; mutations T6 (pli retiré, 4 ✗) et T7 (titre à 17 px, 2 ✗) mordent"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Le seuil max-height:500px du paysage s'applique aussi quand le clavier d'un téléphone debout réduit la fenêtre à ~430 px (le grand titre rétrécit et la phrase disparaît pendant la frappe)",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun",
+   "preuve": "relevé du recontrôle : la liste reste à 240 px et rien ne déborde ; le seuil neuf de 380 px (titre dans la barre, liste pliée) ne s'y applique pas, un clavier laisse plus de 380 px ; à regarder sur un vrai téléphone, Chromium émulé ne rend pas le clavier"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Boîte mail, bureau : la secrétaire voit-elle la Boîte mail ? (défaut ordinateur-06, ligne non cochée de vus-par-le-chef.md)",
+   "etat": "à soumettre à Justin",
+   "changement": "aucun",
+   "preuve": "c'est une décision de rôle (une ligne dans ROLES.gestion.routes quand Justin tranche), pas un défaut de code ; déjà portée au tour 1"
+  },
+  {
+   "nom": "mail",
+   "defaut": "Constats « déjà décidés » écartés : bouton Retour qui ferme la fenêtre ET quitte l'écran (a), cases du calendrier des absences et barres des soldes sous 44 px (b), Boîte mail ouverte sur deux boîtes connectées sans bandeau de panne (c), menu du bureau avec Matériel (d), bouton Menu visible dans la Comptabilité plein écran (e), texte « Rendez-vous en ligne » (f)",
+   "etat": "déjà décidé",
+   "changement": "aucun",
+   "preuve": "aucune entrée ouverte pour mail ne relevait de ces points ; le numéro de commande « COMMANDE 2026-036 » à l'écran contre « BC-2026-036 » dans le sujet du courriel du fournisseur est lui aussi déjà décidé (matNumAff)"
+  }
+ ],
+ "sondes": [
+  { "fichier": "sondes/restes-mail-tour1-recontrole.js (PARTIES 1, 2, 3, 5, 6)", "resultat": "20 ✓ · 0 ✗ ; 20 ✓ · 0 ✗ ; 18 ✓ · 0 ✗ ; 14 ✓ · 0 ✗ ; 8 ✓ · 0 ✗" },
+  { "fichier": "sondes/restes-mail-tour2.js (NOUVELLE)", "resultat": "24 ✓ · 0 ✗" },
+  { "fichier": "sondes/restes-mail-tour1.js", "resultat": "67 ✓ · 0 ✗" },
+  { "fichier": "sondes/mail-recontrole-tel.js", "resultat": "65 ✓ · 0 ✗" },
+  { "fichier": "sondes/restes-mail-mutations-tour2.py", "resultat": "6 mutations jouées sur copie, 6 mordent, 0 muette (T5, le grand titre rendu, retirée : neutralisée par le pli, pas une garde manquante) ; dépôt propre après" }
+ ],
+ "doutes": [
+  "Safari, Windows et Android réels, clavier virtuel, polices du système : non vérifiables ici (profils émulés dans Chromium)",
+  "La liste s'ouvre pliée en paysage court : la recherche est au-dessus et se retrouve en tirant la liste vers le bas — convention de Mail sur iPhone, mais un geste qu'un débutant peut ne pas connaître ; à confirmer par Justin",
+  "La machine est partagée (charge 5 à 11) : une sonde qui tombe sur un délai a été rejouée avant de conclure"
+ ]
+}
