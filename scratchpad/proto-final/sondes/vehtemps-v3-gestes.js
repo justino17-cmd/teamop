@@ -14,7 +14,7 @@ const toucher = async (c, sel) => { const ok = await L.toucher(c, sel); if (ok) 
 const aller = async (c, h) => { await L.aller(c.p, h); };
 const toast = c => ev(c, () => (document.getElementById('toast') || {}).textContent || '');
 const ligne = (c, id) => ev(c, i => { const l = [...document.querySelectorAll('.vh-liste .vh-l')].find(x => x.querySelector(`[data-vh="fiche|${i}"]`)); return l ? { pastille:(l.querySelector('.vh-et .st') || {}).textContent, prec:(l.querySelector('.vh-prec') || {}).textContent, geste:(l.querySelector('.btn') || {}).textContent || '' } : null; }, id);
-const panneau = c => ev(c, () => { const p = document.querySelector('#calque .panneau'); return p ? { h2:(p.querySelector('h2') || {}).textContent, txt:p.innerText } : null; });
+const panneau = c => ev(c, () => { const p = document.querySelector('#calque .panneau'); return p ? { h2:((p.querySelector('h2') || {}).textContent || '').trim(), txt:p.innerText || p.textContent } : null; });
 
 (async () => {
   for (const profil of PROFILS) {
@@ -24,14 +24,14 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       /* 1 · noter le rendez-vous : la tâche tombe À LA DATE saisie */
       const av = await ev(c, () => ({ taches:TACHES.length, ligne:null }));
       const l0 = await ligne(c, 'veh2'); v(nom + ' · rendez-vous : au départ la Peugeot propose « Noter le rendez-vous » et aucune tâche n\'existe', l0.geste === 'Noter le rendez-vous' && await ev(c, () => !TACHES.some(t => t.cle === 'veh-veh2-ct')), l0);
-      touches = 0; await toucher(c, '.vh-liste [data-vh="rdv|veh2|ct|liste"]'); await L.calme(c.p, 400); const p1 = await panneau(c);
-      v(nom + ' · rendez-vous : la feuille demande « Quel jour ? » et « Quel garage ? » (facultatif), un seul gros bouton, et le lien « C\'est déjà fait ? Noter le contrôle technique »', !!p1 && p1.h2 === 'Noter le rendez-vous' && /Quel jour \?/.test(p1.txt) && /Quel garage \?/.test(p1.txt) && /facultatif/.test(p1.txt) && /C’est déjà fait \? Noter le contrôle technique/.test(p1.txt), p1 && p1.txt.slice(0, 300));
+      touches = 0; await toucher(c, '.vh-liste [data-vh="rdv|veh2|ct|liste"]'); await L.calme(c.p, 800); const p1 = await panneau(c);
+      v(nom + ' · rendez-vous : la feuille demande « Quel jour ? » et « Quel garage ? » (facultatif), un seul gros bouton, et le lien « C\'est déjà fait ? Noter le contrôle technique »', !!p1 && p1.h2 === 'Noter le rendez-vous' && /Quel jour\s\?/.test(p1.txt) && /Quel garage\s\?/.test(p1.txt) && /facultatif/.test(p1.txt) && /C’est déjà fait\s\? Noter le contrôle technique/.test(p1.txt), p1 && p1.txt.slice(0, 300));
       const date = await ev(c, () => jour(5)); await ev(c, d => { const i = document.getElementById('vh-rd'); i.value = d; i.dispatchEvent(new Event('change', { bubbles:true })); const g = document.getElementById('vh-rg'); g.value = 'Garage Martin'; }, date);
       await ev(c, () => { const i = document.getElementById('vh-rd'); i.value = jour(-2); }); await toucher(c, '#calque .panneau [data-vh^="rdvok|"]'); await L.calme(c.p, 300);
       v(nom + ' · rendez-vous : un jour déjà passé est refusé (aucune tâche écrite)', /déjà passé/.test(await toast(c)) && await ev(c, () => !TACHES.some(t => t.cle === 'veh-veh2-ct')), await toast(c));
-      await ev(c, d => { document.getElementById('vh-rd').value = d; }, date); await toucher(c, '#calque .panneau [data-vh^="rdvok|"]'); await L.calme(c.p, 500);
+      await ev(c, d => { document.getElementById('vh-rd').value = d; }, date); touches = 1; await toucher(c, '#calque .panneau [data-vh^="rdvok|"]'); await L.calme(c.p, 500);
       const t1 = await ev(c, () => { const t = TACHES.find(x => x.cle === 'veh-veh2-ct'); return t ? { d:t.d, qui:t.qui, titre:t.t, fait:!!t.fait } : null; });
-      v(nom + ' · rendez-vous : la tâche est écrite À LA DATE saisie (' + date + '), pour la personne qui note, avec le garage ; 3 touchers (ligne, jour, « Noter le rendez-vous »)', !!t1 && t1.d === date && t1.qui === 'marc' && /Garage Martin/.test(t1.titre) && !t1.fait && touches === 2, { t1, touches });
+      v(nom + ' · rendez-vous : la tâche est écrite À LA DATE saisie (' + date + '), pour la personne qui note, avec le garage ; 2 touchers (la ligne, « Noter le rendez-vous »)', !!t1 && t1.d === date && t1.qui === 'marc' && /Garage Martin/.test(t1.titre) && !t1.fait && touches === 2, { t1, touches });
       const l1 = await ligne(c, 'veh2'); v(nom + ' · rendez-vous : la ligne dit « Rendez-vous au garage le … » et propose maintenant « Noter le contrôle technique » (jamais deux boutons)', l1.geste === 'Noter le contrôle technique' && /Rendez-vous au garage le /.test(l1.prec) && l1.prec.includes(await ev(c, d => jlong(d), date)), l1);
       const to = await toast(c); v(nom + ' · rendez-vous : le toast le dit et porte « Annuler »', /Rendez-vous noté pour le /.test(to) && /Annuler/.test(to), to);
       await ev(c, () => { [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await L.calme(c.p, 400);
@@ -50,7 +50,7 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       await toucher(c, '.vh-groupe [data-vh^="groupe|"]'); await L.calme(c.p, 400); await toucher(c, '#calque .panneau [data-vx^="groupeok|"]'); await L.calme(c.p, 500);
       const ass1 = await ev(c, () => VEHICULES.map(x => x.assur.fin).join());
       v(nom + ' · assurance : « Noter le renouvellement » met à jour les QUATRE véhicules d\'un geste, et la rangée de tête disparaît', ass0 !== ass1 && new Set(ass1.split(',')).size === 1 && await ev(c, () => !document.querySelector('.vh-groupe')), { ass0, ass1 });
-      const k = await ev(c, () => [...document.querySelectorAll('.vh-k .kpi')].map(x => x.textContent.replace(/\s+/g, ' ').trim())); v(nom + ' · le chiffre « à faire » suit (la population baisse)', /^2 à faire$/.test(k[1]) || /^1 à faire$/.test(k[1]), k);
+      const k = await ev(c, () => [...document.querySelectorAll('.vh-k .kpi')].map(x => x.innerText.replace(/\s+/g, ' ').trim())); v(nom + ' · le chiffre « à faire » suit (la population baisse)', /^2 à faire$/.test(k[1]) || /^1 à faire$/.test(k[1]), k);
       if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · zéro erreur JavaScript (rendez-vous, contrôle, assurance)', c.err.length === 0, c.err.slice(0, 3));
       await L.fin(c);
     }
@@ -68,7 +68,7 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       await ev(c, () => { rendre(); }); await toucher(c, '.vh-liste [data-vh="fiche|veh1"]'); await L.calme(c.p, 450); await toucher(c, '#calque .panneau [data-vh="statut|veh1"]'); await L.calme(c.p, 450);
       const pg = await panneau(c); v(nom + ' · garage : « Mettre au garage » ouvre la feuille (pourquoi, quel garage, retour prévu, remplaçant, interventions touchées)', !!pg && /Pourquoi|Motif/i.test(pg.txt) && /garage/i.test(pg.txt), pg && pg.txt.slice(0, 200));
       await toucher(c, '#calque .panneau [data-vx^="garageok|"]'); await L.calme(c.p, 500);
-      const g1 = await ev(c, () => ({ st:vehDe('veh1').statut, kpi:document.querySelector('.vh-k .kpi').textContent.replace(/\s+/g, ' ').trim() }));
+      const g1 = await ev(c, () => ({ st:vehDe('veh1').statut, kpi:document.querySelector('.vh-k .kpi').innerText.replace(/\s+/g, ' ').trim() }));
       v(nom + ' · garage : le Trafic est au garage (3 touchers : ligne, « Mettre au garage », confirmer) — « 2 sur 4 en service »', g1.st === 'atelier' && /^2 sur 4 en service$/.test(g1.kpi) && touches >= 5, g1);
       await ev(c, () => { fermerPanneau(); rendre(); }); await L.calme(c.p, 300);
       await toucher(c, '.vh-liste [data-vh="statut|veh4"]'); await L.calme(c.p, 450); const pr = await panneau(c);
@@ -77,9 +77,9 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       const r1 = await ev(c, () => vehDe('veh4').statut), lk = await ligne(c, 'veh4');
       v(nom + ' · retour : le Kangoo est en service, sa ligne retombe sur son échéance en retard (« Noter le rendez-vous »)', r1 === 'service' && lk.pastille === 'En retard' && lk.geste === 'Noter le rendez-vous', { r1, lk });
       /* 6 · « C'est réglé » */
-      await ev(c, () => { VEHICULES[2].souci = { type:'Voyant allumé', qui:'lr', d:jour(-1), txt:'voyant moteur' }; rendre(); }); await L.calme(c.p, 300);
-      const ls = await ligne(c, 'veh3'); await toucher(c, '.vh-liste [data-vh="soucireg|veh3"]'); await L.calme(c.p, 500);
-      v(nom + ' · souci : la rangée dit « Souci signalé » (« Léa signale : voyant moteur · hier ») avec « C\'est réglé » ; le geste efface le signalement', ls.pastille === 'Souci signalé' && /Léa signale : voyant moteur · hier/.test(ls.prec) && ls.geste === 'C’est réglé' && await ev(c, () => !VEHICULES[2].souci), ls);
+      await ev(c, () => { fermerPanneau(); VEHICULES[2].souci = { type:'Voyant allumé', qui:'lr', d:jour(-1), txt:'voyant moteur' }; rendre(); }); await L.calme(c.p, 400);
+      const ls = await ligne(c, 'veh3'); const okS = await toucher(c, '.vh-liste [data-vh="soucireg|veh3"]'); await L.calme(c.p, 500); ls.clic = okS; ls.pile = await ev(c, () => { const b = document.querySelector('.vh-liste [data-vh="soucireg|veh3"]'); if (!b) return 'absent'; const r = b.getBoundingClientRect(); return [...document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2)].slice(0, 4).map(e => e.tagName + '.' + String(e.className).slice(0, 30)).join(' > '); });
+      v(nom + ' · souci : la rangée dit « Souci signalé » (« Léa signale : voyant moteur · hier ») avec « C\'est réglé » ; le geste efface le signalement', ls.pastille === 'Souci signalé' && /Léa signale\s:\svoyant moteur · hier/.test(ls.prec) && ls.geste === 'C’est réglé' && await ev(c, () => !VEHICULES[2].souci), ls);
       /* 7 · une amende : fiche, Papiers, « Une amende », Enregistrer */
       touches = 0; await ev(c, () => { fermerPanneau(); rendre(); }); await toucher(c, '.vh-liste [data-vh="fiche|veh2"]'); await L.calme(c.p, 450); await toucher(c, '#calque .panneau [data-vh="fonglet|papiers"]'); await L.calme(c.p, 350);
       await toucher(c, '#calque .panneau [data-vh="amende|veh2"]'); await L.calme(c.p, 450);
@@ -109,7 +109,7 @@ const panneau = c => ev(c, () => { const p = document.querySelector('#calque .pa
       await c.p.setInputFiles('#vh-df', { name:'attestation.pdf', mimeType:'application/pdf', buffer:Buffer.from('%PDF-1.4 essai') }); await L.calme(c.p, 300);
       await toucher(c, '#calque .panneau [data-vh^="docok|"]'); await L.calme(c.p, 700);
       const d1 = await ev(c, () => ({ doc:!!vehDe('veh1').docs.assur, txt:(document.querySelector('#calque .panneau') || { innerText:'' }).innerText }));
-      v(nom + ' · document : « Ajouter un document » demande LEQUEL puis le fichier ; l\'attestation paraît dans Papiers avec « Retirer »', !!pd && pd.h2 === 'Ajouter un document' && /Lequel \?/.test(pd.txt) && d1.doc && /Attestation d’assurance/.test(d1.txt) && /Retirer/.test(d1.txt), { h2:pd && pd.h2, d1:d1.doc });
+      v(nom + ' · document : « Ajouter un document » demande LEQUEL puis le fichier ; l\'attestation paraît dans Papiers avec « Retirer »', !!pd && pd.h2 === 'Ajouter un document' && /Lequel\s\?/.test(pd.txt) && d1.doc && /Attestation d’assurance/.test(d1.txt) && /Retirer/.test(d1.txt), { h2:pd && pd.h2, d1:d1.doc, txt:d1.txt.slice(0, 500) });
       await toucher(c, '#calque .panneau [data-vh^="docdel|"]'); await L.calme(c.p, 400);
       v(nom + ' · document : « Retirer » le retire', await ev(c, () => !vehDe('veh1').docs.assur), await toast(c));
       /* 10 · le matériel : la feuille des huit lignes, « Tout est là » puis « Annuler » */

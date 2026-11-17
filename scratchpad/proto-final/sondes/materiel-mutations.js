@@ -56,6 +56,23 @@ const M = [
   ['41 · le lien « Stock » de la phrase retombe à 23 px de haut (sous le plancher du doigt)', "padding:11px 8px!important;margin:-11px -8px;", "padding:0!important;margin:0;", [['depots-appareils', 'iphone']]],
   ['42 · la visite parlée perd sa cible « Avant les visites » (le bandeau n\'a plus son attribut)', "<div class=\"carte dv-focus ms-bandeau\"${matVis('depots-visites')}>", "<div class=\"carte dv-focus ms-bandeau\">", [['depots-visites']]],
   ['43 · l\'ancien « À faire maintenant » est de retour dans le code (bxAFaire)', "function mdBandeau(){", "function bxAFaire(){ return ''; }\nfunction mdBandeau(){", [['depots-fonctions']]],
+  // ── Lot 4 : Fournisseurs, matériel & produits ──
+  ['44 · le compteur de l\'onglet Commandes compte des paniers au lieu des lignes à commander', "const nc = cmdNbACommander(), na = PRODUITS.filter(x => !x.retire).length, nf = MES_FOURN.length;", "const nc = cmdPaniers().length, na = PRODUITS.filter(x => !x.retire).length, nf = MES_FOURN.length;", [['four-gestes']]],
+  ['45 · « Annuler » après un envoi ne remet plus la commande en brouillon (la photo n\'est pas relue)', "Object.keys(c).forEach(k => delete c[k]); Object.assign(c, avant); tk.forEach(([t, e, l]) => { t.etat = e;", "tk.forEach(([t, e, l]) => { t.etat = e;", [['four-gestes']]],
+  ['46 · le bureau peut ajouter un fournisseur (le bouton ne regarde plus le rôle)', "const fxGerant = () => msGerant();", "const fxGerant = () => true;", [['four-roles']]],
+  ['47 · le bureau peut retirer un article depuis sa fiche', "${msGerant() ? `<button type=\"button\" class=\"lien ms-rouge\" data-pr=\"retirer|${x.id}\">Retirer cet article</button>` : ''}", "${true ? `<button type=\"button\" class=\"lien ms-rouge\" data-pr=\"retirer|${x.id}\">Retirer cet article</button>` : ''}", [['four-roles']]],
+  ['48 · une commande en retard offre « J\'ai reçu » au lieu de « Relancer » sur sa ligne (l\'ordre des états s\'inverse)', "  if (a && (a.t === 'retard' || a.t === 'silence')) return `<button type=\"button\" class=\"btn gris petit fx-ab\" data-cm=\"relance|${c.id}\">Relancer</button>`;\n  if (cmdOuverte(c))", "  if (cmdOuverte(c) && !(a && a.t === 'facture'))", [['four-gestes']]],
+  ['49 · « Annuler » après « J\'ai reçu la livraison » ne rend plus les articles (le stock reste monté)', "const ids = new Set(snap.p.map(x => x.id)); for (let k = PRODUITS.length - 1; k >= 0; k--) if (!ids.has(PRODUITS[k].id)) PRODUITS.splice(k, 1);\n    snap.p.forEach(x => { const y = PRODUITS.find(z => z.id === x.id); if (y) { Object.keys(y).forEach(k => delete y[k]); Object.assign(y, x); } });", "", [['four-gestes']]],
+  ['50 · cocher « Je le retire au comptoir » ne génère plus le texte du délai (le courriel garde l\'ancien)', "const delaiTxt = f => f && f.dj != null ? pdxDelaiTexte(f.dj) : (f && f.delai) || '';", "const delaiTxt = f => (f && f.delai) || '';", [['four-gestes']]],
+  ['51 · le titre de la feuille de réception redevient « Réceptionner » (l\'ancien lexique)', "<h2>J’ai reçu la livraison</h2><span class=\"gris\">Dis ce qui est arrivé", "<h2>Réceptionner</h2><span class=\"gris\">Dis ce qui est arrivé", [['four-mots']]],
+  ['52 · un émoji revient dans un menu (il ne rend pas pareil sur Mac, Windows et Android)', "{ ic:svg('registre'), l:'Voir ce que voit le fournisseur (démonstration)'", "{ ic:'👁', l:'Voir ce que voit le fournisseur (démonstration)'", [['four-mots']]],
+  ['53 · l\'appareil photo de l\'en-tête perd son nom (icône seule, plus d\'aria-label)', " data-fo=\"facture|\"${matVis('four-photo')} aria-label=\"Photographier une facture\" title=\"Photographier une facture\">", " data-fo=\"facture|\"${matVis('four-photo')}>", [['four-mots'], ['four-gestes']]],
+  ['54 · les trois onglets ne tiennent plus dans leur colonne (police et marges énormes sur téléphone)', "html .fx-seg button{flex:1 1 auto;min-width:0;padding:0 8px;font-size:14.5px}", "html .fx-seg button{flex:none;min-width:0;padding:0 26px;font-size:20px}", [['four-appareils', 'petit']]],
+  ['55 · la visite perd sa cible « À commander » (la carte n\'a plus son attribut)', "<div class=\"carte fx-acmd\" id=\"pans\"${matVis('four-commander')}>", "<div class=\"carte fx-acmd\" id=\"pans\">", [['four-visites']]],
+  ['56 · le filtre « Prix à compléter » garde tous les articles', "(f === 'ac' && x.ac);", "(f === 'ac' && true);", [['four-gestes']]],
+  ['57 · une seconde définition de cmdEtapes revient dans le code (la seconde gagne en silence)', "function cmdEtapes(c){", "function cmdEtapes(c){ return ''; }\nfunction cmdEtapes(c){", [['four-fonctions']]],
+  ['58 · un grand vide se glisse avant la première ligne à commander (la densité s\'effondre)', "html .fx-acmd{padding:18px 20px}", "html .fx-acmd{padding:18px 20px;margin-top:440px}", [['four-densite', 'mac', 'iphone']]],
+  ['59 · les lignes de réglage de la fiche d\'un fournisseur ne s\'empilent plus sur téléphone (le champ sort de l\'écran)', "html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}", "html .fx-lg{flex-direction:row;align-items:center;gap:6px;flex-wrap:nowrap}", [['four-appareils', 'petit']]],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
@@ -66,6 +83,7 @@ function racine(nom, page) {   // une copie du dépôt visible du serveur : aper
 let tombes = 0, vivantes = [], jouees = 0;
 for (const [nom, ancien, neuf, sondes] of M) {
   if (filtre && !nom.includes(filtre)) continue;
+  if ((parseInt(nom, 10) || 0) < (parseInt(process.env.DEPUIS || '0', 10) || 0)) continue;   // DEPUIS=44 : seules les mutations de l'étape 4
   const c = SRC.split(ancien).length - 1;
   if (c !== 1) { console.log(`✗ « ${nom} » : ${c} occurrence(s) du texte visé, 1 attendue — la mutation est mal visée, rien n'est joué`); process.exit(2); }
   if (process.env.DRY) { console.log('✓ visée juste :', nom); continue; }
