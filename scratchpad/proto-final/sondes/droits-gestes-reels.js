@@ -15,7 +15,7 @@ const G = [
   { n:'inviter une personne (droit à part « Créer des comptes »)', sans:{ sp:{ comptes:0 } }, mot:'créer des comptes, dans la limite des places', route:'equipe', mesure:PANNEAU, jouer:'clic("data-eq","inviter")' },
   { n:'déplacer une intervention au planning', sans:{ cases:{ planif:'1101' } }, mot:'déplacer, changer de technicien, décider d’une absence', route:'planning', mesure:'INTS.find(i => i.id === "i1").tech', jouer:'poser(INTS.find(i => i.id === "i1"), INTS.find(i => i.id === "i1").tech === "tl" ? "lr" : "tl", INTS.find(i => i.id === "i1").d, INTS.find(i => i.id === "i1").h)' },
   { n:'envoyer une facture (envoyerFacture, porte de fonction)', sans:{ cases:{ ventes:'1101' } }, mot:'modifier, envoyer, relancer, faire signer', route:'comptabilite', prep:'(() => { const f = JSON.parse(JSON.stringify(FACTURES[0])); f.id = "ftest"; f.st = "avalider"; f.num = "—"; f.vue = false; FACTURES.push(f); })()', mesure:'FACTURES.find(o => o.id === "ftest").st', jouer:'envoyerFacture(FACTURES.find(o => o.id === "ftest"))' },
-  { n:'régler l’entreprise (fiche de Mon entreprise)', sans:{ cases:{ admin:'1011' } }, mot:'changer la fiche de l’entreprise', route:'entreprise', sansSeul:true, mesure:'ENTREPRISE.tel', jouer:'clic("data-ent","identok")' }
+  { n:'régler l’entreprise (fiche de Mon entreprise)', sans:{ cases:{ admin:'1101' } }, mot:'changer la fiche de l’entreprise', route:'entreprise', sansSeul:true, mesure:'ENTREPRISE.tel', jouer:'clic("data-ent","identok")' }
 ];
 const CLIC = `window.clic = (a, val) => { const b = document.createElement('button'); b.type = 'button'; b.setAttribute(a, val); document.body.appendChild(b); try { b.click(); } finally { b.remove(); } };`;
 (async () => {
