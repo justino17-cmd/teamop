@@ -11653,7 +11653,7 @@ const cxVueCloture = () => { const et = cpEtapes(); return `<div class="cx-expli
 function cxVueNdf(D){
   return `<div class="cx-explique"><span aria-hidden="true">🧑‍🔧</span><span><b>Notes de frais</b> · ce que l’équipe avance de sa poche (carburant, repas, petit achat). Le technicien prend le ticket en photo depuis son téléphone, tu valides, c’est remboursé avec la paie, hors salaire.</span></div>
     <div id="cx-liste">${cxListe(D)}</div>
-    ${cmptNdfValidees()}${NDF.some(n => n.etat === 'refusee') ? `<div class="carte"><h3>Refusées · ${NDF.filter(n => n.etat === 'refusee').length}</h3>${NDF.filter(n => n.etat === 'refusee').map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · Note ${ndfNumero(n)} · ${eur(n.ttc)}</span></span><span class="st st-r">Refusée</span></div>`).join('')}</div>` : ''}<div class="carte"><h3>Les notes sans ticket</h3><label class="case"><input type="checkbox" data-ndfregle="1" ${NDF_REGLE.sansTicket ? 'checked' : ''} ${cxEstPatron() ? '' : 'disabled'}><span><b>Permettre de valider une note de frais sans ticket</b><br><span class="faible mini">À chaque fois, la question « Valider sans justificatif ? » est posée à celui qui valide, et la note garde la trace de qui l’a validée et quand. Sa TVA ne se récupère pas.${cxEstPatron() ? '' : ' C’est le patron qui décide de ce réglage.'}</span></span></label>
+    ${cmptNdfValidees()}${NDF.some(n => n.etat === 'refusee') ? `<div class="carte"><h3>Refusées · ${NDF.filter(n => n.etat === 'refusee').length}</h3>${NDF.filter(n => n.etat === 'refusee').map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · Note ${ndfNumero(n)} · ${eur(n.ttc)}</span></span><span class="st st-r">Refusée</span></div>`).join('')}</div>` : ''}<div class="carte"><h3>Les notes sans ticket</h3><label class="case"><input type="checkbox" data-ndfregle="1" ${NDF_REGLE.sansTicket ? 'checked' : ''} ${cxEstPatron() ? '' : 'disabled'}><span><b>Permettre de valider une note de frais sans ticket</b><br><span class="faible mini">À chaque fois, la question « Valider sans justificatif ? » est posée à celui qui valide, et la note garde la trace de qui l’a validée et quand. Sa TVA ne se récupère pas.${cxEstPatron() ? '' : ' C’est le gérant qui décide de ce réglage.'}</span></span></label>
       ${NDF.some(n => n.sansJustif) ? `<div class="groupe">Validées sans justificatif · ${NDF.filter(n => n.sansJustif).length}</div>${NDF.filter(n => n.sansJustif).map(n => `<div class="ligne"><span>${esc(n.objet)}<br><span class="gris petit">${esc(H_NOM(n.qui))} · validée par ${esc(H_NOM(n.sansJustif.par))} le ${esc(n.sansJustif.le)}</span></span><b>${eur(n.ttc)}</b></div>`).join('')}` : ''}</div>`;
 }
 const cxEstPatron = () => typeof ROLE === 'undefined' || typeof RL_ACTIF === 'undefined' || !RL_ACTIF || peut('admin', 'm');   /* la paie et les règles de notes de frais suivent la même case que « régler l'entreprise » */
@@ -11789,7 +11789,7 @@ document.addEventListener('click', ev => {
   if (!ev.target.closest('[data-cp="aide"]') || route !== 'comptabilite') return;
   ev.stopPropagation(); ev.preventDefault();
   ouvrirPanneau(`<h2>Comment ça marche</h2><span class="gris">Tu ne tapes rien : tu travailles dans l’application, la comptabilité se fait toute seule. Elle est rangée en espaces, comme chez un expert-comptable.</span>
-    <div class="cp-aide">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.', paie:'Les heures du mois, les fiches de paie, les salariés, les charges et la déclaration sociale (réservé au patron).' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
+    <div class="cp-aide">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.', paie:'Les heures du mois, les fiches de paie, les salariés, les charges et la déclaration sociale (réservé au gérant).' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
     <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne s’efface.</span></div></div>`);
 }, true);
 
@@ -14249,10 +14249,10 @@ addEventListener('message', e => { const z = document.getElementById('cpsys'), f
   return r; }; })();
 /* [7] la gestion ne planifie pas (sa fiche le dit) : la carte « La placer » est remplacée par une phrase, et « Voir au planning » ne mène plus à un écran refusé */
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments);
-  if (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLE === 'gestion' && !peut('planif', 'm')) document.querySelectorAll('#contenu .rl-placer').forEach(c => { c.innerHTML = '<h3>La planifier</h3><span class="gris">Le planning est tenu par le patron : c’est lui qui place cette intervention chez un technicien.</span>'; });
+  if (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLE === 'gestion' && !peut('planif', 'm')) document.querySelectorAll('#contenu .rl-placer').forEach(c => { c.innerHTML = '<h3>La planifier</h3><span class="gris">Le planning est tenu par le gérant : c’est lui qui place cette intervention chez un technicien.</span>'; });
   return v; }; })();
 document.addEventListener('click', ev => { if (typeof RL_ACTIF === 'undefined' || !RL_ACTIF || ROLE !== 'gestion' || peut('planif', 'm')) return; const b = ev.target.closest('[data-rl^="placer|"], [data-rl^="auplanning|"]'); if (!b) return;
-  ev.stopImmediatePropagation(); ev.preventDefault(); toast('Le planning est tenu par le patron.'); }, true);
+  ev.stopImmediatePropagation(); ev.preventDefault(); toast('Le planning est tenu par le gérant.'); }, true);
 /* ── taches ── */
 /* ══ TÂCHES — le lot du 10 novembre 2026 ══
    Justin : « Toutes les catégories qui ne sont pas faites, je veux que tu les fasses : pro, faciles, logiques, rapides, efficaces et
@@ -16094,10 +16094,10 @@ function matGPourquoi(G){
 }
 function matGPhrase(G){
   if (!G.lignes.length) return '';
-  const T = G.lignes.map(l => { const x = PRODUITS.find(p => p.id === l.pid); return x ? matQte(l.q, x) : ''; }).filter(Boolean), liste = G.lignes.length > 2 ? sxPl(G.lignes.length, 'article') : T.join(' et '), d = id => id === 'atelier' ? 'l’atelier' : lieu(id).type === 'vehicule' ? 'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve';
-  if (G.mode === 'sortir') { const i = INTS.find(o => o.id === G.inter), pour = G.pour === 'client' ? (i ? ', pour ' + CLIENTS[i.cli].nom : '') : G.pour === 'collegue' ? (G.collegue ? ', pour ' + prenomDe(G.collegue) : '') : ', cassé ou perdu'; return `Tu notes : ${liste} sorti${G.lignes.length > 1 ? 's' : ''} de ${d(G.de)}${pour}.`; }
+  const T = G.lignes.map(l => { const x = PRODUITS.find(p => p.id === l.pid); return x ? matQte(l.q, x) : ''; }).filter(Boolean), liste = G.lignes.length > 2 ? sxPl(G.lignes.length, 'article') : T.join(' et '), d = id => id === 'atelier' ? 'l’atelier' : lieu(id).type === 'vehicule' ? 'le camion de ' + prenomDe(lieu(id).tech) : 'la réserve', de = id => id === 'atelier' ? 'de l’atelier' : lieu(id).type === 'vehicule' ? 'du camion de ' + prenomDe(lieu(id).tech) : 'de la réserve';
+  if (G.mode === 'sortir') { const i = INTS.find(o => o.id === G.inter), pour = G.pour === 'client' ? (i ? ', pour ' + CLIENTS[i.cli].nom : '') : G.pour === 'collegue' ? (G.collegue ? ', pour ' + prenomDe(G.collegue) : '') : ', cassé ou perdu'; return `Tu notes : ${liste} sorti${G.lignes.length > 1 ? 's' : ''} ${de(G.de)}${pour}.`; }
   if (G.mode === 'ranger') return `Tu notes : ${liste} rangé${G.lignes.length > 1 ? 's' : ''} dans ${d(G.lieu)}.`;
-  return `Tu notes : ${liste} déplacé${G.lignes.length > 1 ? 's' : ''} de ${d(G.de)} vers ${d(G.vers)}.`;
+  return `Tu notes : ${liste} déplacé${G.lignes.length > 1 ? 's' : ''} ${de(G.de)} vers ${d(G.vers)}.`;
 }
 function matGVue(){
   const G = MAT.G; if (!G) return; const m = G.mode;
@@ -17911,7 +17911,7 @@ function ttMhMois(k, v){
 }
 function ttMhFiches(k){
   const recues = [...(PAIE.distribue && PAIE.bulletins[k] ? [[PAIE_NOM_MOIS, '', PAIE.distribue.le.slice(0, 5)]] : []), ['septembre 2026', 'sept', '30/09'], ['août 2026', 'aout', '31/08']];
-  return `<div class="carte tt-fiches"><h3>Mes fiches de paie</h3><span class="gris petit">Toi seul les vois, avec ton patron.</span>
+  return `<div class="carte tt-fiches"><h3>Mes fiches de paie</h3><span class="gris petit">Toi seul les vois, avec le gérant.</span>
     ${PAIE.distribue ? '' : `<div class="fo-r tt-fp"><span class="fo-n"><b>${esc(ttMaj(PAIE_NOM_MOIS))}</b><span class="gris petit">Elle arrivera ici quand ${PAIE.mode === 'cabinet' ? 'le cabinet l’aura faite' : 'le bureau l’aura validée'}.</span></span></div>`}
     ${recues.map(([m, id, le]) => `<div class="fo-r tt-fp"><span class="fo-n"><b>${esc(ttMaj(m))}</b><span class="gris petit">reçue le ${esc(le)}</span></span>${!id ? '<span class="st st-v">Nouvelle</span>' : ''}<button type="button" class="btn gris petit" data-paie="bulletin|${k}|${id ? m : ''}" aria-label="Voir la fiche de ${esc(m)}">Voir</button></div>`).join('')}</div>`;
 }
@@ -18738,7 +18738,7 @@ function vhQuand(e, km){
 }
 /* le nom court de l'échéance (une rangée), son sujet avec article (une phrase), son complément (« la prochaine échéance est… ») */
 const vhLib = e => e.k === 'ct' ? 'Contrôle technique' : e.k === 'assur' ? 'Assurance' : e.k === 'mat' ? 'Contrôle du matériel' : /^révision/i.test(e.lib) ? 'Révision' : e.lib;
-const vhSujet = e => e.k === 'ct' ? 'Le contrôle technique' : e.k === 'assur' ? 'L’assurance' : e.k === 'mat' ? 'Le contrôle du matériel de sécurité' : /^révision/i.test(e.lib) ? 'La révision' : e.lib;
+const vhSujet = e => e.k === 'ct' ? 'Le contrôle technique' : e.k === 'assur' ? 'L’assurance' : e.k === 'mat' ? 'Le contrôle du matériel de sécurité' : /^révision/i.test(e.lib) ? 'La révision' : 'L’entretien « ' + e.lib + ' »';
 const vhComp = e => e.k === 'ct' ? 'le contrôle technique' : e.k === 'assur' ? 'l’assurance' : e.k === 'mat' ? 'le contrôle du matériel' : /^révision/i.test(e.lib) ? 'la révision' : e.lib.charAt(0).toLowerCase() + e.lib.slice(1);
 const VH_FAIT = { ct:'Noter le contrôle technique', assur:'Noter le renouvellement', entretien:'Noter la révision', mat:'Noter le contrôle du matériel' };
 const vhRdvNote = (v, e) => (e.k === 'ct' || e.k === 'entretien') ? vxTacheOuverte(vxCleTache(v, e)) : null;
@@ -19931,7 +19931,7 @@ acNotes = function () {
   val.forEach(n => { parQui[n.qui] = (parQui[n.qui] || 0) + n.ttc; });
   const F = axFiltreQui('fn', att), L = att.filter(n => AX.fn === 'tous' || n.qui === AX.fn), avecT = att.filter(n => n.recu || n.km);
   const vieilles = val.filter(n => n.d.slice(0, 7) < axMoisIso);
-  const regle = `<div class="gris petit ax-regle"><span>${NDF_REGLE.sansTicket ? 'Les notes sans ticket se valident avec une confirmation.' : 'Les notes sans ticket ne se valident pas : il faut le ticket.'} ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="regle">Changer ›</button>' : 'C’est le patron qui décide de ce réglage.'}</span><span>Kilomètres : ${eur(AX.kmTarif)} le km (exemple de démonstration, à vérifier avec ton expert-comptable) ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="kmtarif">Changer ›</button>' : ''}</span></div>`;
+  const regle = `<div class="gris petit ax-regle"><span>${NDF_REGLE.sansTicket ? 'Les notes sans ticket se valident avec une confirmation.' : 'Les notes sans ticket ne se valident pas : il faut le ticket.'} ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="regle">Changer ›</button>' : 'C’est le gérant qui décide de ce réglage.'}</span><span>Kilomètres : ${eur(AX.kmTarif)} le km (à vérifier avec ton expert-comptable) ${cxEstPatron() ? '<button type="button" class="lien ax-lm" data-axa="kmtarif">Changer ›</button>' : ''}</span></div>`;
   const sit = NDF.filter(n => n.etat !== 'attente');
   return `${regle}${F}
     ${L.length ? `<div class="carte"><div class="ax-tt"><h2 class="cmd-titre" style="margin:0 0 4px">À valider · ${L.length}</h2>${avecT.length > 1 && AX.fn === 'tous' ? `<button type="button" class="btn petit" data-axa="toutval">Valider les ${avecT.length} notes avec ticket · ${eur(avecT.reduce((s, n) => s + n.ttc, 0))}</button>` : ''}</div>${L.map(axNoteLigne).join('')}</div>` : `<div class="carte gris">${att.length ? 'Rien pour cette personne.' : 'Aucune note de frais à valider. Quand un technicien envoie la photo d’un ticket, elle arrive ici.'}</div>`}
@@ -20084,7 +20084,7 @@ function axNdfNature() {
   const o = document.getElementById('rn-o'); if (!o) return; const km = o.value === AX_NATURES[4];
   document.getElementById('rn-euros').hidden = km; document.getElementById('rn-kms').hidden = !km; document.getElementById('rn-ph').hidden = km;
   if (km) { const k = axNum(document.getElementById('rn-km').value);
-    document.getElementById('rn-kmtxt').textContent = k > 0 ? `${prNum(k)} km × ${eur(AX.kmTarif)} = ${eur(k * AX.kmTarif)} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le patron.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le patron (${eur(AX.kmTarif)}).`; }
+    document.getElementById('rn-kmtxt').textContent = k > 0 ? `${prNum(k)} km × ${eur(AX.kmTarif)} = ${eur(k * AX.kmTarif)} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le gérant.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le gérant (${eur(AX.kmTarif)}).`; }
 }
 function axNdfEnvoyer(forcer) {
   const g = id => document.getElementById(id), nat = g('rn-o').value, km = nat === AX_NATURES[4], pr = g('rn-pr').value.trim(), iid = g('rn-i').value, d = g('rn-d').value || AUJ;
@@ -20163,7 +20163,7 @@ document.addEventListener('click', ev => {
   if (a === 'toutok') return axToutValider();
   if (a === 'fd' || a === 'fn') { AX[a] = x; return rendre(); }
   if (a === 'regle') return cxAller('ndf');
-  if (a === 'kmtarif') return ouvrirPanneau(`<span class="surtitre">Notes de frais · kilomètres</span><h2>Tarif au kilomètre</h2><span class="gris">Ce que tu rembourses par kilomètre parcouru avec un véhicule personnel. Le chiffre affiché est un exemple de démonstration : à vérifier avec ton expert-comptable.</span>
+  if (a === 'kmtarif') return ouvrirPanneau(`<span class="surtitre">Notes de frais · kilomètres</span><h2>Tarif au kilomètre</h2><span class="gris">Ce que tu rembourses par kilomètre parcouru avec un véhicule personnel. Le chiffre affiché est une proposition : vérifie-le avec ton expert-comptable.</span>
     <label class="champ">Tarif, en € le kilomètre<input class="saisie" id="ax-km" inputmode="decimal" value="${String(AX.kmTarif).replace('.', ',')}"></label><div class="actions"><button type="button" class="btn" data-axa="kmok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   if (a === 'kmok') { const v = axNum((g('ax-km') || {}).value); if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${eur(v)}.`); }
   if (a === 'paie') { if (typeof ptOnglet !== 'undefined') { ptOnglet = 'mois'; TT.garder = true; } return aller('pointage'); }
@@ -21997,7 +21997,7 @@ document.addEventListener('click', ev => {
   const bx = t.closest('[data-d3^="box|"]');
   if (bx && cbReleve && cbReleve.cli === d3Cli && !cbEdit) { ev.stopPropagation(); cbReleve.cur = bx.dataset.d3.split('|')[1]; cbRendre(); return cbVoir(); }
   const ad = t.closest('[data-d3="ajout"]');
-  if (ad) { if (cbRO()) { ev.stopPropagation(); return toast('La gestion voit la carte en lecture seule : le technicien et le patron posent les box.'); } if (d3Mode !== 'ajout') cbPoses = 0; cbEdit = null; }
+  if (ad) { if (cbRO()) { ev.stopPropagation(); return toast('Le secrétariat voit la carte en lecture seule : le technicien et le gérant posent les box.'); } if (d3Mode !== 'ajout') cbPoses = 0; cbEdit = null; }
   const cl = t.closest('[data-d3^="cli|"]'); if (cl) { cbZone = ''; cbEdit = null; }
   { const f = t.closest('[data-ferme]'); if (cbReleve && cbReleve.fin && f && (f.tagName === 'BUTTON' || f === t)) cbReleve.fin = false; }   // l'enveloppe du panneau porte aussi data-ferme : seul un vrai geste de fermeture compte
        // le panneau de fin de relevé se ferme : on reprend le relevé là où il en était
