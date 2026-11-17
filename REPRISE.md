@@ -231,6 +231,15 @@ commande à lui faire lancer sur le serveur, sans secret : `nproc && free -h && 
 Premium » (0 € trois mois puis 16 € HT par mois, douze mois) n'est PAS la bonne (hébergement mutualisé : ne fait pas tourner notre
 serveur) — s'il veut profiter des promotions, c'est un serveur privé virtuel, utile seulement comme serveur d'ESSAI à part ; GitHub
 Pro n'est plus nécessaire.
+**Sa crainte, à traiter DANS le plan du chantier 0** — Justin, 17 h 30 : « si on transfère tout le projet GitHub au serveur, il
+risque pas d'avoir des latences ou autre ». Répondu : on ne déménage pas le projet (le code reste sur GitHub, en privé), seulement
+les pages publiées ; pour des clients en France l'écart est de quelques millisecondes, et l'application reste rangée sur l'appareil
+après la première ouverture. Le plan doit donc PORTER, chiffres à l'appui : (1) une mesure avant / après (accueil, application,
+Tour ; téléphone en 4G simulée ; première visite et visite suivante) sur le jumeau puis sur le vrai avant la bascule ; (2) la
+compression et le cache réglés par nous (poids mesuré le 17 : `app.html` 4,96 Mo brut, 1,51 Mo compressé ; `tour.html` 1,26 Mo,
+0,38 Mo) ; (3) les deux vrais risques, dits tels quels : une panne du serveur arrête le site ET l'API ensemble, et un pic ou une
+attaque arrive droit sur lui, là où GitHub l'absorbait — avec l'option d'un réseau de protection et d'accélération devant
+(Cloudflare, déjà proposé le 9 octobre), à lui faire trancher.
 **Ce qui attend Justin** : (1) le résultat de cette commande et la confirmation de l'endroit où se règle l'adresse teamop.fr ;
 (2) ses deux essais de la version 64 (Véhicules › coût › « Exporter en tableau » ; Comptabilité › « Télécharger le FEC ») ;
 (3) reporté par lui : changer l'identifiant GitHub.
