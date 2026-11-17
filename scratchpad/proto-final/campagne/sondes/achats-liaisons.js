@@ -8,9 +8,10 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
   const ouvrirDemandes = async () => { await E(() => { acOnglet = 'demandes'; }); await L.aller(p, 'achats'); };
   // ── A. ce qui attend remonte partout, au même chiffre ─────────────────────────────────────────────────────────
   const att = await E(() => ({ dem: DEM_ACHAT.filter(d => d.etat === 'attente').length, ndf: NDF.filter(n => n.etat === 'attente').length }));
-  await L.aller(p, 'taches'); const tch = await txt(p);
-  v('A1 Tâches : une ligne pour chaque note à valider', (tch.match(/Valider la note de/g) || []).length === att.ndf, { att, tch: tch.slice(0, 600) });
-  v('A2 Tâches : une ligne pour chaque demande à décider', (tch.match(/Décider la demande de/g) || []).length === att.dem, { att, tch: tch.slice(0, 600) });
+  await L.aller(p, 'taches'); await clic('[data-tsuggs]'); const tch = await panneau(p);   // les propositions de tâches sont derrière le bandeau « OP GESTION te propose »
+  v('A1 Tâches › propositions : une ligne pour chaque note à valider', (tch.match(/Valider la note de/g) || []).length === att.ndf, { att, tch: tch.slice(0, 300) });
+  v('A2 Tâches › propositions : une ligne pour chaque demande à décider', (tch.match(/Décider la demande de/g) || []).length === att.dem, { att, tch: tch.slice(0, 300) });
+  await L.ranger(p);
   await L.aller(p, 'accueil'); const ac = await txt(p); console.log('   accueil :', ac.slice(0, 500));
   v('A3 le menu (pastille Achats) dit demandes + notes à décider', await E(() => { const n = document.querySelector('#menu a[href="#achats"] .ax-nb'); return n ? +n.textContent : -1; }) === att.dem + att.ndf, await E(() => { const n = document.querySelector('#menu a[href="#achats"]'); return n ? n.textContent : 'pas de lien'; }));
   // ── B. Transfert depuis l'atelier : Stock et Mon camion montrent la même chose ─────────────────────────────────
@@ -24,7 +25,10 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
   await L.aller(p, 'boxes'); const bx = await txt(p); console.log('   Dépôts et camions :', bx.slice(0, 300));
   const brut = await E(() => { const x = PRODUITS.find(o => o.id === 'p4'); return /R32/.test(document.body.innerText); }); 
   // le reste à commander : brouillon de commande présent avec la bonne quantité
-  const reste = Math.max(0, 10 - s0.at); if (reste) { await L.aller(p, 'commandes').catch(() => {}); const cm = await txt(p); v('B3 le reste (' + reste + ') part dans un brouillon de commande', /brouillon|BC-2026/i.test(cm), cm.slice(0, 400)); } else v('B3 stock suffisant : aucune commande créée', s1.cmds === (await E(() => COMMANDES.length)));
+  const reste = Math.max(0, 10 - s0.at);
+  const br = await E(() => COMMANDES.filter(o => o.st === 'brouillon' && /Demande de/.test(o.note || '')).map(o => JSON.parse(JSON.stringify(o))));
+  if (reste) v('B3 le reste (' + reste + ') part dans UN brouillon de commande, pour l’atelier, au bon fournisseur', br.length === 1 && br[0].lignes.length === 1 && br[0].lignes[0].q === reste && br[0].liv === 'atelier', br);
+  else v('B3 stock suffisant : aucune commande créée', s1.cmds === (await E(() => COMMANDES.length)));
   // ── C. Achat en magasin → Comptabilité ───────────────────────────────────────────────────────────────────────
   await ouvrirDemandes(); await clic('[data-ac="magasin|da3"]'); await L.calme(p, 400);
   await devenir(p, 'sm', 'techfrais'); await clic('[data-axa="tick|da3"]'); await p.fill('#ax-m', '294'); await p.selectOption('#ax-t', '20');
@@ -35,7 +39,7 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
   await E(() => { cxAller('ndf'); }); await L.calme(p, 600); const cn = await txt(p);
   const nA = await E(() => NDF.filter(n => n.etat === 'attente').length);
   console.log('   Compta › Notes de frais :', cn.slice(0, 500));
-  v('D1 Comptabilité › Notes de frais : le même nombre de notes à valider qu’Achats et frais (' + nA + ')', new RegExp('\\b' + nA + '\\b').test(cn.slice(0, 600)), { nA, cn: cn.slice(0, 400) });
+  v('D1 Comptabilité › Notes de frais : le même nombre de notes à valider qu’Achats et frais (' + nA + ')', cn.replace(/[  ]/g, ' ').includes('Notes de frais' + nA), { nA, cn: cn.slice(300, 700) });
   await L.capture(c, CAP + `liaison-compta-ndf-${tag}.png`);
   const dep = await L.deborde(c); v('D2 Compta › Notes de frais : pas de glissement', dep.bouge === 0, dep);
   const ligne = await p.$('#cx-liste [data-cx], #cx-liste .ligne-clic, #cx-liste button'); if (ligne) { await ligne.click(); await L.calme(p, 400); console.log('   fiche note (compta) :', (await panneau(p)).slice(0, 300)); await L.capture(c, CAP + `liaison-compta-fiche-${tag}.png`); }
@@ -43,11 +47,33 @@ const { L, CAP, PNG, devenir, txt, toast, panneau } = require('./achats-outils.j
     await ouvrirDemandes(); await E(() => { acOnglet = 'notes'; rendre(); }); await L.calme(p, 300); v('D4 Achats et frais ne la montre plus « à valider »', !(await p.$(`.ax-n[data-axid="${id}"]`))); }
   // ── E. paie : les frais validés sont-ils dans l'export de paie, au bon montant ? ─────────────────────────────────
   const val = await E(() => { const par = {}; NDF.filter(n => n.etat === 'validee').forEach(n => { par[n.qui] = Math.round(((par[n.qui] || 0) + n.ttc) * 100) / 100; }); return par; });
-  await E(() => { ptOnglet = 'mois'; TT.garder = true; }); await L.aller(p, 'pointage'); await L.calme(p, 600); const pa = (await txt(p)).replace(/[  ]/g, ' ');
-  console.log('   validées par personne :', JSON.stringify(val)); console.log('   paie :', pa.slice(0, 500));
-  v('E1 « Temps de travail › Paie » existe et parle de frais ou de remboursement', /frais|rembours/i.test(pa), pa.slice(0, 300));
-  for (const [k, s] of Object.entries(val)) v(`E2 la paie montre ${s.toFixed(2).replace('.', ',')} € de frais pour ${k}`, pa.includes(s.toFixed(2).replace('.', ',')), { k, s });
+  // le lien d'Achats « Voir dans l'export de paie › » doit mener à un écran qui montre ces frais (achats-02 : il arrive sur le mois, qui n'en dit rien)
+  await ouvrirDemandes(); await E(() => { acOnglet = 'notes'; rendre(); }); await L.calme(p, 300); await clic('[data-axa="paie"]'); await L.calme(p, 600);
+  const arr = await L.etat(p), pa = (await txt(p)).replace(/[  ]/g, ' ');
+  console.log('   validées par personne :', JSON.stringify(val)); console.log('   arrivée du lien paie :', arr.hash, arr.h1);
+  v('E0 « Voir dans l’export de paie › » mène à Temps de travail', /pointage/.test(arr.hash) && /Temps de travail/.test(arr.h1), arr);
+  v('E1 (achats-02) l’écran d’arrivée du lien dit qu’il y a des frais à rembourser avec cette paie', /frais|rembours/i.test(pa), pa.slice(0, 200));
   await L.capture(c, CAP + `liaison-paie-${tag}.png`);
+  for (const [k, s] of Object.entries(val)) {
+    await E(() => { ptOnglet = 'mois'; TT.garder = true; }); await L.aller(p, 'pointage'); await clic(`[data-tt="mois|${k}"]`); await L.calme(p, 500); await clic(`#calque [data-tt="releve|${k}"]`); await L.calme(p, 600);
+    const rl = (await panneau(p)).replace(/[  ]/g, ' ');
+    v(`E2 le relevé de paie de ${k} montre ${s.toFixed(2).replace('.', ',')} € de frais à rembourser, hors salaire`, rl.includes(s.toFixed(2).replace('.', ',')) && /rembours/i.test(rl), rl.slice(0, 300));
+    await L.ranger(p); await L.ranger(p);
+  }
+  // ── H. « Refacturer au client » : la ligne « Frais engagés » arrive dans la facture PRÉPARÉE de l'intervention, au prix HT, et « Annuler » la retire ──
+  // aucune facture préparée au départ : la fin d'une intervention la prépare (factureDepuis, appelée par l'application) — on joue cet appel pour l'intervention i1
+  const prep = await E(() => { const cherche = () => FACTURES.find(x => x.num === '—' && x.int && INTS.find(i => i.id === x.int)); let f = cherche(); if (!f) { try { factureDepuis(INTS.find(i => i.id === 'i1')); } catch (e) {} f = cherche(); } return f ? { fac: f.id, int: f.int, n: lignesDe(f).length } : null; });
+  v('H0 population : une facture préparée rattachée à une intervention existe', !!prep, prep);
+  if (prep) {
+    const nid = await E(i => { const n = NDF.filter(x => x.etat === 'attente' && (x.recu || x.km))[0]; n.int = i; n.refac = true; return n.id; }, prep.int);
+    await ouvrirDemandes(); await E(() => { acOnglet = 'notes'; AX.fn = 'tous'; rendre(); }); await L.calme(p, 300);
+    const ttc = await E(i => NDF.find(n => n.id === i).ttc, nid), ht = await E(i => axHT(NDF.find(n => n.id === i)), nid);
+    await clic(`.ax-n[data-axid="${nid}"] [data-ac^="ndfok"]`); await L.calme(p, 500);
+    const lg = () => E(i => lignesDe(FACTURES.find(x => x.id === i)).filter(l => /Frais engagés/.test(l.d)).map(l => [l.d, l.pu]), prep.fac);
+    const l1 = await lg(); v('H1 validée avec « Refacturer » : UNE ligne « Frais engagés » au prix HT dans la facture préparée', l1.length === 1 && l1[0][1] === ht, { ttc, ht, l1 });
+    v('H2 le message le dit (« Une ligne « Frais engagés » est ajoutée à la facture préparée »)', /ajoutée à la facture préparée/.test(await toast(p)), await toast(p));
+    await clic('#toast button'); await L.calme(p, 400); v('H3 « Annuler » retire la ligne de la facture', (await lg()).length === 0, await lg());
+  }
   // ── F. Historique : une ligne par geste ───────────────────────────────────────────────────────────────────────
   await L.aller(p, 'historique'); const hi = await txt(p); v('F1 l’Historique garde les gestes d’Achats (demande, refus, note…)', /demande d’achat|note de frais|achat en magasin|transfert/i.test(hi), hi.slice(0, 400));
   const err = c.err.filter(x => !/ERR_/.test(x)); v('G aucune erreur JavaScript', err.length === 0, err.slice(0, 3));
