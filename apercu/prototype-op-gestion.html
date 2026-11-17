@@ -11484,7 +11484,7 @@ const GESTES = {
   tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
   ve:{ k:'temps', c:'nouveau creer', m:'pleinok kmok', l:'fiche' },
   vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout hs', s:'docdel suppr supprok', l:'fiche onglet statut fonglet frais per csv csvflotte rdv cout groupe choix montrer' },
-  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir achat' },
+  vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir achat ndf' },
   /* devis, contrats, relevés */
   dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
   dvn:{ k:'ventes', c:'nv creer', l:'type modele' }, dvd:{ k:'ventes', d:'l' }, dvf:{ k:'ventes', d:'l' },
@@ -17416,7 +17416,7 @@ const vxCleGroupe = g => 'veh-flotte-assur-' + g.fin;
 /* les suggestions de Tâches : remplace la source d'origine (une ligne par échéance) par la même, groupée, et qui connaît le matériel */
 function vxLiens(){
   const G = vxGroupes(), L = [];
-  G.forEach(g => L.push({ cle:vxCleGroupe(g), t:`Assurance flotte : ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, pourquoi:`${g.cie ? g.cie + ' · ' : ''}${g.n < 0 ? 'dépassée depuis ' + -g.n + ' j' : g.n === 0 ? 'aujourd’hui' : 'dans ' + g.n + ' j'}`, urgent:g.urg === 'r', cat:'Véhicules', aller:'vehicules' }));
+  G.forEach(g => L.push({ cle:vxCleGroupe(g), t:`Assurance des ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, pourquoi:`${g.cie ? g.cie + ' · ' : ''}${g.n < 0 ? 'dépassée depuis ' + -g.n + ' j' : g.n === 0 ? 'aujourd’hui' : 'dans ' + g.n + ' j'}`, urgent:g.urg === 'r', cat:'Véhicules', aller:'vehicules' }));
   VEHICULES.forEach(v => vehEcheances(v).filter(e => e.urg !== 'v' && !(e.k === 'assur' && G.some(g => g.vs.includes(v)))).forEach(e =>
     L.push({ cle:`veh-${v.id}-${e.k}`, t:`${e.k === 'ct' ? 'Prendre rendez-vous pour le contrôle technique' : e.k === 'assur' ? 'Renouveler l’assurance' : e.k === 'mat' ? 'Contrôler le matériel de sécurité' : 'Prendre rendez-vous pour l’entretien'} · ${v.marque} ${v.modele} ${v.plaque}`, pourquoi:vehEchTxt(e), urgent:e.urg === 'r', cat:'Véhicules', aller:`vehicules|${v.id}` })));
   return L;
@@ -17524,7 +17524,7 @@ function vhChoisir(id, val){ const h = vxG(id); if (!h) return; h.value = val;
 /* un détail qu'on ne montre que si on le demande (« Un autre jour », « Changer ») */
 function vhMontrer(id){ const e = vxG(id); if (!e) return; e.hidden = false; document.querySelectorAll(`#calque [data-vh="montrer|${id}"]`).forEach(b => { b.hidden = true; }); const f = e.querySelector('input:not([type=hidden]),select'); if (f) f.focus({ preventScroll:true }); }
 /* la dotation du camion d'un véhicule neuf suit le MÉTIER de l'entreprise (plus de « clim » écrit en dur) ; rien si l'entreprise n'a pas de dotation pour ce métier */
-const vhDotMetier = () => { const k = typeof metiersCleModele === 'function' && PACKS_ENT[0] ? metiersCleModele(PACKS_ENT[0]) : ''; return DOTATION[k] ? k : undefined; };
+const vhDotMetier = () => { const k = typeof MET_FAMILLE !== 'undefined' && PACKS_ENT[0] ? MET_FAMILLE[PACKS_ENT[0]] : ''; return k && DOTATION[k] ? k : undefined; };
 
 /* ─── 1. clore une échéance ─── */
 function vxFaitPanel(vid, k, from){
@@ -17625,7 +17625,8 @@ function vxCommander(vid){
 /* ─── 3. le plein ─── */
 function vxPleinPanel(vid){
   const moi = rlQui(), mes = VEHICULES.filter(o => o.conducteur === moi), liste = ROLE === 'tech' ? mes : VEHICULES;
-  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || (liste.length === 1 ? liste[0] : null), elec = v && v.energie === 'Électrique', un = !!v && (ROLE === 'tech' || liste.length === 1);
+  const dernierPlein = () => liste.filter(o => o.pleins.length).sort((a, b) => b.pleins.map(p => p.d).sort().pop().localeCompare(a.pleins.map(p => p.d).sort().pop()))[0] || liste.find(o => o.statut === 'service') || liste[0] || null;   /* le gérant note souvent « le même » : le dernier utilisé, sinon le dernier plein noté */
+  const v = vehDe(vid) || mes[0] || vehDe(VX.dernier) || (liste.length === 1 ? liste[0] : dernierPlein()), elec = v && v.energie === 'Électrique', un = !!v && (ROLE === 'tech' || liste.length === 1);
   ouvrirPanneau(`<span class="surtitre">${un ? esc(vhNom(v)) + ' · ' + esc(v.plaque) : 'Véhicules'}</span><h2>Noter un plein</h2>
     ${un ? `<input type="hidden" id="vx-v" value="${v.id}">` : `<label class="champ">Quel véhicule ?<select id="vx-v">${v ? '' : '<option value="">Choisis le véhicule…</option>'}${liste.map(o => `<option value="${o.id}" ${v === o ? 'selected' : ''}>${esc(o.marque + ' ' + o.modele)} · ${esc(o.plaque)}</option>`).join('')}</select></label>`}
     <div class="vh-q"><b>Qu’est-ce que c’est ?</b>${vhChoix('vx-t', [['Carburant', 'Carburant'], ['Recharge électrique', 'Recharge'], ['Garage, entretien', 'Garage ou entretien'], ['Péage, parking', 'Péage ou parking']], elec ? 'Recharge électrique' : 'Carburant', 'Ce que c’est', true)}</div>
@@ -17750,8 +17751,8 @@ function vxRetourOk(vid, force){
 /* ─── 6. un rendez-vous au garage : une seule tâche, la même clé que la suggestion ─── */
 function vxRdvGroupe(fin, cie){
   const g = vxGroupes().find(o => o.fin === fin && o.cie === cie); if (!g) return; const cle = vxCleGroupe(g), ex = vxTacheOuverte(cle);
-  if (ex) return toast(`Une tâche existe déjà pour l’assurance de la flotte (échéance ${vxDm(g.fin)}).`, { lib:'Voir la tâche', fn:() => tDetail(ex.id) });
-  const x = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Assurance flotte : ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, d:jour(3), qui:'marc', creePar:'marc', creeLe:'31/10', cle, urgent:g.urg === 'r', note:g.vs.map(v => v.plaque).join(', '), lien:{ t:'aller', id:'vehicules', lib:'Véhicules', cat:'Véhicules' } };
+  if (ex) return toast(`Une tâche existe déjà pour l’assurance des véhicules (échéance ${vxDm(g.fin)}).`, { lib:'Voir la tâche', fn:() => tDetail(ex.id) });
+  const x = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Assurance des ${g.vs.length} véhicules, échéance ${vxDm(g.fin)}`, d:jour(3), qui:'marc', creePar:'marc', creeLe:'31/10', cle, urgent:g.urg === 'r', note:g.vs.map(v => v.plaque).join(', '), lien:{ t:'aller', id:'vehicules', lib:'Véhicules', cat:'Véhicules' } };
   TACHES.push(x); journalAjout('marc', 'equipe', 'a créé une tâche', { lib:x.t }, { det:'pour Marc Leblanc · depuis Véhicules' }); rendre();
   toast(`Tâche créée pour les ${g.vs.length} véhicules : renouveler l’assurance ${esc(g.cie)}.`, { lib:'Voir la tâche', fn:() => tDetail(x.id) });
 }
@@ -17959,14 +17960,14 @@ function vxSinistreOk(vid){
   const v = vehDe(vid); if (!v) return; const d = vxG('vx-sd').value, q = vxG('vx-sq').value, lieuTxt = vxG('vx-sl').value.trim(), tiers = vxG('vx-st2').value.trim(), f = foNum(vxG('vx-sf').value) || 0;
   if (!d || d > AUJ) return toast('Donne le jour de l’accident (pas dans le futur).'); if (!lieuTxt) { vxG('vx-sl').focus(); return toast('Dis où ça s’est passé.'); } if (f < 0) return toast('Donne une franchise positive.');
   const x = { id:vxId('i'), k:'sinistre', d, qui:q, lieu:lieuTxt, tiers, franchise:f }, t = { id:'t' + Date.now().toString(36) + Math.floor(Math.random() * 99), t:`Déclarer l’accident à l’assurance · ${v.plaque} (${dFr(d)})`, d:ajoute(AUJ, 2), qui:'marc', urgent:true, note:`${lieuTxt}${tiers ? ' · tiers : ' + tiers : ''} · vérifie le délai de déclaration dans le contrat`, creePar:rlQui(), creeLe:'31/10', cle:'vsinistre-' + x.id, lien:{ t:'aller', id:'vehicules|' + v.id, lib:'Véhicules', cat:'Véhicules' } };
-  x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise du sinistre', f]);
+  x.tache = t.id; v.incidents.unshift(x); TACHES.push(t); if (f) v.frais.push([d, 'Franchise de l’accident', f]);
   const j = vxJ('a noté un accident', v, { det:`${dFr(d)} · ${lieuTxt}${f ? ' · franchise ' + eur(f) : ''}` });
   fermerPanneau(); rendre(); vxFiche(v.id);
-  toast(`Accident noté pour ${esc(v.plaque)} : tâche « Déclarer l’accident à l’assurance » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise du sinistre' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
+  toast(`Accident noté pour ${esc(v.plaque)} : tâche « Déclarer l’accident à l’assurance » créée.`, [{ lib:'Annuler', fn:() => { v.incidents.splice(v.incidents.indexOf(x), 1); TACHES.splice(TACHES.indexOf(t), 1); if (f) { const i = v.frais.findIndex(l => l[1] === 'Franchise de l’accident' && l[0] === d); if (i >= 0) v.frais.splice(i, 1); } vxJRetirer(j); rendre(); vxFiche(v.id); } }, { lib:'Voir la tâche', fn:() => tDetail(t.id) }]);
 }
 function vxIncClos(vid, id){
   const v = vehDe(vid), x = v && v.incidents.find(o => o.id === id); if (!x || x.clos) return; const t = TACHES.find(o => o.id === x.tache), ouvert = t && !t.fait;
-  x.clos = true; if (ouvert) tFaire(t, x.k === 'amende' ? 'conducteur désigné' : 'dossier clos'); vxJ(x.k === 'amende' ? 'a désigné le conducteur de l’amende' : 'a clos un sinistre', v, { det:dFr(x.d) });
+  x.clos = true; if (ouvert) tFaire(t, x.k === 'amende' ? 'conducteur désigné' : 'dossier clos'); vxJ(x.k === 'amende' ? 'a désigné le conducteur de l’amende' : 'a clos un accident', v, { det:dFr(x.d) });
   rendre(); vxFiche(v.id); toast(x.k === 'amende' ? 'Désignation notée.' : 'Dossier clos.', { lib:'Annuler', fn:() => { x.clos = false; if (ouvert) t.fait = null; rendre(); vxFiche(v.id); } });
 }
 

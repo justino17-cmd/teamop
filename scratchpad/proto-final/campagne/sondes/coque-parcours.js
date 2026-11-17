@@ -38,7 +38,7 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
     const apres = await p.evaluate(() => { const v = document.querySelector('#calque .voile'); return v ? (() => { const r = v.getBoundingClientRect(); return { largeur: r.width, haut: r.height, fond: getComputedStyle(v).backgroundColor }; })() : null; });
     // on essaie de TOUCHER l'écran derrière : un voile resté devant avalerait le toucher
     const touche = await p.evaluate(() => { const e = document.elementFromPoint(innerWidth * 0.6, 300); return e ? (e.closest('.voile') ? 'voile' : e.tagName + '.' + (e.className || '').toString().slice(0, 30)) : null; });
-    v('A. feuille Menu ouverte puis fenêtre élargie : la feuille (' + ouverte + ') ne laisse pas de voile qui avale les touchers (point visé : ' + touche + ')', touche !== 'voile', { apres, touche });
+    v('[coque-08] A. feuille Menu ouverte puis fenêtre élargie : la feuille (' + ouverte + ') ne laisse pas de voile qui avale les touchers (point visé : ' + touche + ')', touche !== 'voile', { apres, touche });
     await L.ranger(p); await p.setViewportSize({ width: pr.w, height: pr.h }); await L.calme(p, 700);
   }
 
@@ -85,7 +85,7 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
     v('D. le focus revient au bouton « Menu » (il est resté sur ' + (await p.evaluate(() => document.activeElement && document.activeElement.tagName + '.' + (document.activeElement.className || '').toString().slice(0, 30))) + ')', await p.evaluate(() => { const a = document.activeElement; return !!a && !!a.closest('.tt-menu'); }));
     await p.locator('.tt-menu').first().focus(); await p.keyboard.press('Enter'); await L.calme(p, 600);
     let sorti = 0, dehors = new Set(); for (let i = 0; i < 30; i++) { await p.keyboard.press('Tab'); if (!(await dedans(p, '#calque .panneau'))) { sorti++; dehors.add(await p.evaluate(() => document.activeElement && (document.activeElement.tagName + '.' + (document.activeElement.className || '').toString().slice(0, 20)))); } }
-    v('[coque-16] 30 tabulations dans la feuille Menu : le focus n’en sort jamais (' + sorti + ' sorties, sur ' + [...dehors].slice(0, 3).join(' | ') + ')', sorti === 0);
+    v('[coque-11] 30 tabulations dans la feuille Menu : le focus n’en sort jamais (' + sorti + ' sorties, sur ' + [...dehors].slice(0, 3).join(' | ') + ')', sorti === 0);
     await p.keyboard.press('Escape'); await L.calme(p, 400);
   } else {
     // colonne : Tab arrive sur chaque ligne, un anneau de focus se voit, Entrée ouvre
@@ -98,9 +98,9 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
     v('D. Tab parcourt la colonne de menu (' + vus.size + ' éléments atteints sur ' + lignes + ' recensés)', vus.size >= Math.min(lignes, 12), [...vus]);
     v('D. chaque élément de la colonne atteint au clavier montre un anneau de focus (' + anneau + ' avec ; sans : ' + sansAnneau.join(' | ') + ')', sansAnneau.length === 0);
     // Entrée sur une ligne
-    const cible = await p.evaluate(() => { const b = [...document.querySelectorAll('#menu button, #menu a')].find(e => /Tâches/.test(e.textContent)); if (b) b.focus(); return !!b; });
+    const cible = await p.evaluate(() => { const b = [...document.querySelectorAll('#menu button, #menu a')].find(e => /tâches/i.test(e.textContent)); if (b) b.focus(); return !!b; });
     v('D. population : la ligne « Tâches » existe dans la colonne', cible);
-    if (cible) { await p.keyboard.press('Enter'); await L.calme(p, 600); v('D. Entrée sur la ligne « Tâches » de la colonne ouvre Tâches', /Tâche/i.test(await h1(p)), await h1(p)); }
+    if (cible) { await p.keyboard.press('Enter'); await L.calme(p, 600); v('D. Entrée sur la ligne « Tâches » de la colonne ouvre Tâches', /tâche/i.test(await h1(p)), await h1(p)); }
     // la recherche : le focus entre dans le champ, Échap le rend à l'élément d'avant
     const surClients = await p.evaluate(() => { const b = [...document.querySelectorAll('#menu button, #menu a')].find(e => /Clients/.test(e.textContent)); if (b) b.focus(); return !!b && document.activeElement === b; });
     v('D. population : le focus est posé sur la ligne « Clients » avant d’ouvrir la recherche', surClients);
@@ -119,7 +119,7 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
     await p.evaluate(() => rcAide()); await L.calme(p, 500);
     v('D. un panneau ouvert (raccourcis) : le focus entre dedans', await dedans(p, '#calque .panneau'));
     let hors = 0; for (let i = 0; i < 30; i++) { await p.keyboard.press('Tab'); if (!(await dedans(p, '#calque .panneau'))) hors++; }
-    v('[coque-16] 30 tabulations dans un panneau : le focus n’en sort jamais (' + hors + ' sorties)', hors === 0);
+    v('[coque-11] 30 tabulations dans un panneau : le focus n’en sort jamais (' + hors + ' sorties)', hors === 0);
     await p.keyboard.press('Escape'); await L.calme(p, 400);
     v('D. Échap ferme le panneau', !(await vis(p, '#calque .panneau')));
   }
@@ -128,11 +128,11 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
   await L.aller(p, 'accueil'); await L.calme(p, 500);
   // E1. « ＋ Nouvelle tâche » deux fois de suite : une seule fenêtre
   await L.aller(p, 'taches'); await L.calme(p, 600);
-  const bt = p.locator('#contenu button, #contenu a').filter({ hasText: /Nouvelle tâche/ }).first();
+  const bt = p.locator('#contenu button, #contenu a').filter({ hasText: /Nouvelle tâche|^\s*Détails\s*$/ }).first();   // sur Tâches la saisie rapide est un champ ; « Détails » ouvre la fenêtre complète d'une nouvelle tâche
   if (await bt.count()) {
     await bt.dblclick({ timeout: 4000 }).catch(() => {}); await L.calme(p, 700);
-    const n = await p.evaluate(() => ({ fen: document.querySelectorAll('#fenetre, #calque .panneau, .fen-voile').length, pile: typeof PANNEAU_PILE !== 'undefined' ? PANNEAU_PILE.length : 0, retour: !!document.querySelector('#calque .p-retour') }));
-    v('E. double clic sur « ＋ Nouvelle tâche » : une seule fenêtre, pas de « ‹ Retour » vers une copie d’elle-même (' + JSON.stringify(n) + ')', n.fen === 1 && !n.retour, n);
+    const n = await p.evaluate(() => ({ fen: document.querySelectorAll('#calque .panneau').length + (((document.getElementById('fenetre') || {}).innerText || '').trim() ? 1 : 0), pile: typeof PANNEAU_PILE !== 'undefined' ? PANNEAU_PILE.length : 0, retour: !!document.querySelector('#calque .p-retour') }));
+    v('E. double clic sur « Détails » (nouvelle tâche) : une seule fenêtre, pas de « ‹ Retour » vers une copie d’elle-même (' + JSON.stringify(n) + ')', n.fen === 1 && !n.retour, n);
     await p.screenshot({ path: CAP + `parcours-double-tache-${PROFIL}.png` });
     await L.ranger(p);
   } else console.log('  · pas de bouton « Nouvelle tâche » pour ' + QUI);
@@ -157,7 +157,7 @@ const dedans = (p, racine) => p.evaluate(r => { const a = document.activeElement
       for (const k of ['N', 'D', 'C', 'A'].filter(k => droits[k])) {
         await entrer(); const av = await L.etat(p); await p.keyboard.press(k.toLowerCase()); await L.calme(p, 800);
         const ap = await L.etat(p), cp = await cpOuvert(), fen = await p.evaluate(() => { const f = document.getElementById('fenetre'); return !!f && f.innerText.trim().length > 0; });
-        v('[coque-14] Comptabilité plein écran : la touche ' + k + ' (promise par le panneau des raccourcis) fait quelque chose (écran, fenêtre ou panneau)', fen || !!ap.panneau || ap.hash !== av.hash, { change: L.change(av, ap), cp, fen });
+        v('[coque-10] Comptabilité plein écran : la touche ' + k + ' (promise par le panneau des raccourcis) fait quelque chose (écran, fenêtre ou panneau)', fen || !!ap.panneau || ap.hash !== av.hash, { change: L.change(av, ap), cp, fen });
       }
       await entrer();
       await p.keyboard.press((await p.evaluate(() => MAC)) ? 'Meta+k' : 'Control+k'); await L.calme(p, 500);
