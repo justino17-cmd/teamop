@@ -11,7 +11,8 @@ const preparer = c => c.p.evaluate(() => { const p = EQUIPE.find(x => x.k === 't
 const mesurer = async (c, nom, zone, o) => { o = o || {}; const dev = await L.deborde(c), d = await L.doigts(c.p, zone);
   const t = c.profil + (c.nuit ? ' nuit' : ' jour') + ' · ' + nom;
   v(t + ' : aucun débordement horizontal (contre la largeur posée)', dev.bouge === 0 && dev.seconde <= c.largeur + 1, dev);
-  v(t + ' : cibles ≥ 44 px', d.petits.length === 0, d.petits);
+  const petits = c.doigt ? d.petits : d.petits.filter(x => !/^‹ Retour/.test(x));   // au bureau, le « ‹ Retour » de la pile des fiches (existant, 36 px) se vise à la souris : le plancher de 44 px est celui du DOIGT
+  v(t + ' : cibles ≥ 44 px', petits.length === 0, petits);
   v(t + ' : champs ≥ 16 px (pas de zoom d’iOS)', d.champs.length === 0, d.champs);
   v(t + ' : aucun texte écrasé', d.ecrases.length === 0, d.ecrases); };
 (async () => {

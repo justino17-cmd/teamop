@@ -38,14 +38,13 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const essais = [['voir seulement', { v: true }, false, false], ['voir + créer', { v: true, c: true }, true, false], ['voir + changer', { v: true, m: true }, false, true]];
   let n = 0; for (const [nom, cats, peutCreer, peutChanger] of essais) {
     n++; await q.evaluate(x => { eqDe('julie').droits.cats.crm = x; }, cats); await L.aller(q, 'clients');
-    const r0 = await q.evaluate(() => DROITS_REFUS.length); const bouton = await q.evaluate(() => !!document.querySelector('[data-action="clientNouveau"]'));
-    if (bouton) await L.toucher(c2, '[data-action="clientNouveau"]'); const ouvert = await q.evaluate(() => !!document.querySelector('#calque .panneau')); const rc = await q.evaluate(a => DROITS_REFUS.slice(a).map(x => x.cat + '.' + x.x), r0); await L.ranger(q);
-    v(`[julie : ${nom}] « ＋ Nouveau client » ${peutCreer ? 's’ouvre' : 'est absent ou refusé'} (bouton ${bouton}, ouvert ${ouvert}, refus ${JSON.stringify(rc)})`, peutCreer ? ouvert : !ouvert, { bouton, ouvert, rc });
-    await L.aller(q, 'client-x-mr'); await L.toucher(c2, '#contenu [role=tab][data-oc="infos"]'); const tel = '06 00 00 00 0' + n, avant = await q.evaluate(() => CLIENTS.mr.tel); const r1 = await q.evaluate(() => DROITS_REFUS.length);
-    if (await q.evaluate(() => !!document.querySelector('[data-action="clientEnreg"]'))) { await q.fill('[data-ci="tel"]', tel); await L.toucher(c2, '[data-action="clientEnreg"]'); await L.calme(q, 300); }
-    const apres = await q.evaluate(() => CLIENTS.mr.tel), changé = apres !== avant, rm = await q.evaluate(a => DROITS_REFUS.slice(a).map(x => x.cat + '.' + x.x), r1);
-    v(`[julie : ${nom}] « Enregistrer » la fiche d’un client ${peutChanger ? 'enregistre' : 'est refusé'} (téléphone ${changé ? 'changé' : 'inchangé'}, refus ${JSON.stringify(rm)}) — droits-01 : la case qui commande ce geste est « changer un client », pas « créer un client »`, changé === peutChanger, { avant, apres, rm });
-    if (!peutChanger && !changé) { const dit = await q.evaluate(() => ((document.querySelector('#toast') || {}).textContent || '')); }
+    const bouton = await q.evaluate(() => { const b = document.querySelector('[data-action="clientNouveau"]'); return !!(b && b.offsetParent); });
+    v(`[julie : ${nom}] « ＋ Nouveau client » ${peutCreer ? 'est proposé' : 'n’est pas proposé'} (case « créer un client » ${peutCreer ? 'cochée' : 'décochée'})`, bouton === peutCreer, { bouton });
+    if (bouton) { await L.toucher(c2, '[data-action="clientNouveau"]'); v(`[julie : ${nom}] … et s’ouvre`, await q.evaluate(() => !!document.querySelector('#calque .panneau'))); await L.ranger(q); }
+    await L.aller(q, 'client-x-mr'); await L.toucher(c2, '#contenu [role=tab][data-oc="infos"]');
+    const inf = await q.evaluate(() => ({ champsLibres: [...document.querySelectorAll('[data-ci]')].filter(e => !(e.disabled || e.readOnly)).length, enreg: (() => { const e = document.querySelector('[data-action="clientEnreg"]'); return !!(e && e.offsetParent); })(), phrase: /Tu peux regarder cette fiche/.test((document.querySelector('#contenu .grille2') || {}).innerText || '') }));
+    v(`[julie : ${nom}] l’onglet Infos ${peutChanger ? 'est modifiable (champs libres, « Enregistrer »)' : 'est en lecture seule et le DIT (« Tu peux regarder cette fiche ; pour la changer, demande à … »)'}`, peutChanger ? inf.champsLibres === 7 && inf.enreg : inf.champsLibres === 0 && !inf.enreg && inf.phrase, inf);
+    if (peutChanger) { const tel = '06 00 00 00 0' + n; await q.fill('[data-ci="tel"]', tel); await L.toucher(c2, '[data-action="clientEnreg"]'); await L.calme(q, 300); v(`[julie : ${nom}] « Enregistrer » enregistre`, (await q.evaluate(() => CLIENTS.mr.tel)).replace(/\D/g, '') === tel.replace(/\D/g, ''), await q.evaluate(() => CLIENTS.mr.tel)); }
   }
   v('[julie] aucune erreur de console', c2.err.length === 0, c2.err.slice(0, 3));
   await L.fin(c2);
