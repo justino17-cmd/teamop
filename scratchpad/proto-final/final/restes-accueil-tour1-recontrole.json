@@ -1,0 +1,56 @@
+{
+ "noms": [
+  "accueil-03 (reste) — ligne « reçu sur place » dans l'Historique",
+  "Bilan du mois (PDF) : encaissé 3 045 € contre 3 085 € à l'écran",
+  "Statistiques, graphique des 12 mois coupé au bord (iPhone, iPad)"
+ ],
+ "regles": [
+  "accueil-03 sur le chemin du CHARGEMENT et pour un acompte noté en Espèces/Chèque avec montant (A1, A8) : une ligne, au nom du technicien, même montant que l'Accueil et la Comptabilité ; « pas encore payé » ne fait aucune ligne (A5) ; envoi automatique + total sans montant : une seule ligne, montant de la facture, argent repris UNE fois (A4, B : 40,50 € sur place -> 40,50 € encaissés, une ligne d'Historique, le bilan dit « Non compris : 40,00 € » pour le reste) — mac.",
+  "Bilan : la note « Non compris : X € reçus sur place, pas encore sur une facture » et « hors X € reçus sur place » dans la tuile sont là, entières, sur mac, iPhone, iPad, petit, Android nuit, avec une valeur longue (12 345,67 € : rien de coupé, rien ne dépasse, la page ne glisse pas) ; la note suit la baisse après l'envoi de la facture.",
+  "Graphique des 12 mois : de 320 à 1 280 px (mac, iPhone, iPad, petit), les 12 libellés tiennent dans leur colonne, la page ne glisse pas de côté, la fenêtre du graphique ne sort pas de la carte, et quand il défile le premier mois est à 30 px du bord (fondu net, regardé sur capture jour et nuit).",
+  "L'Historique selon le rôle : le gérant voit la ligne de Tom ; secrétariat, techniciens ne voient pas l'écran (le secrétariat est ramené sur la Comptabilité, décidé par MENU-FINAL.md) ; aucun undefined / NaN ; 0 erreur JavaScript."
+ ],
+ "pasRegles": [
+  {
+   "nom": "accueil-03 — la ligne « reçu sur place » dit un autre montant que l'Accueil et la Comptabilité quand le montant est laissé vide ou que le moyen n'est pas physique",
+   "defaut": "journalPaieTerrain (appelée par ACTIONS.terminer) écrit la ligne pour TOUT moyen et, pour un « payé en totalité » sans montant, avec le TTC de la facture préparée ; cpPaieTerrain (Accueil, Comptabilité, bilan) ne compte que Espèces/Chèque ET un montant saisi > 0, tant qu'aucune facture numérotée n'existe.",
+   "constat": "Rejoué (accueil-restes-1-recontrole.js partie A, mac, 4 ✗ sur 16) : Sophie termine i1 facture à valider. A2 Espèces total sans montant : Historique « 142,61 € · Espèces », Accueil/Compta/bilan 0 € (le terrain reste à 40 € = la ligne de départ). A7 idem en Chèque. A3 Carte total sans montant : 142,61 €, compté 0. A6 Carte acompte 30 € : 30,00 €, compté 0. Le chemin du CHARGEMENT, lui, n'écrit que Espèces/Chèque avec montant (la démo i21, Carte 95 €, n'a pas de ligne) : les deux chemins n'ont pas la même règle. Contre-épreuve : A8 (Espèces, montant retapé 150) est cohérent."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Historique : « reçu sur place 142,61 € » alors que l'Accueil, la Comptabilité et le bilan comptent 0 € (montant vide) ou ne comptent pas la carte",
+   "gravite": "moyenne (démonstration : deux écrans se contredisent sur de l'argent ; un gérant qui rapproche l'Historique de sa caisse voit un écart que rien n'explique)",
+   "etapes": "Mode application, Sophie (sm) -> intervention i1 -> tout cocher, signature, pièces -> Paiement « Payé en totalité », Espèces (ou Chèque), laisser le montant vide -> Terminer, facture non envoyée (envoi automatique éteint) -> repasser gérant : Historique « Factures et paiements » = 142,61 € ; Accueil / Comptabilité (reçu sur place) = 40 € seulement.",
+   "constat": "Cause : le repli sur le TTC de la facture n'existe que dans journalPaieTerrain (apercu/prototype-op-gestion.html, ACTIONS.terminer ~ligne 8828), pas dans cpPaieTerrain (~8331). Deux sorties possibles, à choisir par le correcteur : (a) la ligne ne s'écrit que pour Espèces/Chèque (règle du chargement) ET cpPaieTerrain reprend le TTC de la facture à valider quand le « total » n'a pas de montant ; (b) seulement la ligne, limitée à ce que cpPaieTerrain compte. Sonde : accueil-restes-1-recontrole.js A (doit passer à 16 ✓ une fois corrigé)."
+  }
+ ],
+ "nouveaux": [
+  "Statistiques, 700 à 760 px (et iPad portrait 744 px) : quand les 12 mois tiennent SANS défiler, la marge gauche de 30 px et le masque restent posés (règle @media max-width:760px, ligne ~26349) : le graphique est décalé de 30 px à droite (gauche 55 px, droite 26 px sur la carte) et le texte « Glisse vers la droite pour les mois d'avant. » s'affiche alors qu'il n'y a rien à glisser. Cosmétique, regardé sur capture restes1-rec-vue-700-mac-jour.png ; pas introduit par la correction du fondu pour le texte (préexistant), mais la marge, oui. Piste : conditionner marge et masque à un vrai défilement, ou garder le texte seulement quand scrollWidth > clientWidth.",
+  "Bilan : la tuile « Encaissé » perd son « par rapport à sept. 2026 » quand la mention « hors X € reçus sur place » la remplace (la tuile Facturé, elle, le garde) ; la comparaison avec le mois d'avant n'est plus dite que par la flèche. Mineur."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/accueil-restes-1-recontrole.js",
+   "resultat": "parties C D E : mac 50 ✓ · 0 ✗, iPhone 45/0, iPad 34/0, petit nuit 45/0, android nuit (E) 6/0 ; partie A+B mac : 12 ✓ · 4 ✗ (A2, A3, A6, A7 = la casse ci-dessus). Sa mesure de « sortie de la carte » était fausse pour un graphique qui défile (colonnes hors fenêtre par construction) : corrigée pour mesurer la fenêtre ; l'ancien « ni masque ni marge » quand ça tient est devenu une observation imprimée. Cas A6, A7, A8 ajoutés."
+  },
+  {
+   "fichier": "campagne/sondes/accueil-restes-1-recontrole-vue.js",
+   "resultat": "captures du graphique à 390 et 700 px, regardées"
+  },
+  {
+   "fichier": "campagne/sondes/accueil-restes-1.js",
+   "resultat": "mac 21 ✓ · 0 ✗, iPhone nuit 23/0, iPad 23/0"
+  },
+  {
+   "fichier": "campagne/sondes/accueil-recontrole-divers.js, accueil-corrections.js, accueil-coherence.js, accueil-recontrole.js",
+   "resultat": "mac 8/0, 27/0, 22/0, 15/0"
+  }
+ ],
+ "doutes": [
+  "Carte et virement notés par le technicien : doivent-ils s'appeler « reçu sur place » dans l'Historique ? (le chargement dit non, Terminer dit oui) — à trancher par Justin si l'option (b) n'est pas choisie.",
+  "accueil-07 « À faire maintenant » (6 lignes + « Voir les autres ») et les chiffres fabriqués des mois d'avant octobre restent « à soumettre à Justin » (non touchés, pas rejoués).",
+  "Non rejoué : « Recommencer la mission » (hors mode application) laisse les anciennes lignes d'Historique et en ajoute de nouvelles au second Terminer, comme pour « a terminé l'intervention » : comportement de répétition, signalé seulement.",
+  "Non vérifié : mutations des trois corrections (jouées par le correcteur, non rejouées ici) ; téléchargement réel des PDF ; Windows et Android hors parties C/E."
+ ]
+}

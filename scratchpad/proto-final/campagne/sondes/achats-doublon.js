@@ -13,8 +13,7 @@ const { L, PNG, toast, panneau } = require('./achats-outils.js'), v = L.v;
   console.log('   première note :', JSON.stringify(infos));
   await clic('[data-rl="ndf"]'); await L.calme(p, 300);
   console.log('   2e formulaire : nature =', await E(() => document.getElementById('rn-o').value), '| date =', await E(() => (document.getElementById('rn-d') || {}).value), '| km masqué =', await E(() => document.getElementById('rn-kms').hidden));
-  await p.selectOption('#rn-o', 'Carburant');   // « C'est quoi ? » n'est plus pré-rempli (restes du technicien, tour 1) : la 2e note choisit la MÊME nature que la 1re, comme le ferait la personne
-  await p.fill('#rn-m', '12,50'); await clic('[data-rl="ndfok"]'); await L.calme(p, 400);
+  await p.selectOption('#rn-o', 'Carburant'); await p.fill('#rn-m', '12,50'); await clic('[data-rl="ndfok"]'); await L.calme(p, 400);   // rien n'est choisi d'avance : la personne choisit « Carburant »
   const dbl = await E(() => { const z = document.getElementById('rn-dbl'); return z && !z.hidden ? z.textContent.replace(/\s+/g, ' ').trim() : ''; });
   v('DB2 même montant, même jour : « existe déjà, c’est la même ? »', /existe déjà/.test(dbl), { dbl, n: await nb(), msg: await toast(p) });
   v('DB3 rien n’est créé tant qu’on n’a pas répondu', (await nb()) === n0 + 1, { n: await nb(), n0 });
