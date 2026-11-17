@@ -64,6 +64,11 @@ const cts = n => Math.round(n * 100);
   L.v('compta-ventes-06 · la fiche annulée dit « Annulée par l’avoir AV-… », sans bouton Encaisser ni Relancer ni second avoir', /Annulée par l’avoir AV-/.test(fa) && !(await p.evaluate(() => !!document.querySelector('[data-payer],[data-action="relance"],[data-action="avoir"],[data-action="partiel"]'))), fa.slice(0, 120));
   await L.capture(c, X.CAP + `c-${profil}-fiche-annulee.png`);
   await X.compta(c, 'fventes', { cat: 'clients' }); const lst = await X.texte(p, '#contenu'); L.v('la liste des factures clients dit « Annulée par un avoir » pour elle', /Annulée par un avoir/.test(lst), '');
+  // — la facture annulée se REFAIT depuis l'intervention (« Préparer la facture » ne tombe pas dans le vide, aucun identifiant en double) —
+  const refait = await p.evaluate(() => { const ex = FACTURES.find(f => f.num === 'FAC-2026-0143'), intId = ex.int; if (!intId) return { sansInter: true };
+    ACTIONS.prepFacture({ dataset: { id: intId } }); const m = FACTURES.filter(f => f.int === intId);
+    return { n: m.length, etats: m.map(f => f.st).sort(), ids: new Set(FACTURES.map(f => f.id)).size === FACTURES.length, annuleeGarde: FACTURES.some(f => f.num === 'FAC-2026-0143' && f.st === 'annulee') }; });
+  L.v('compta-ventes-06 · « Préparer la facture » refait une facture à valider, l’annulée reste annulée, aucun identifiant en double', !!refait.sansInter || (refait.n === 2 && refait.etats.join() === 'annulee,avalider' && refait.ids && refait.annuleeGarde), refait);
   L.v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.log('ÉCHEC DE LA SONDE', e.message); process.exit(2); });

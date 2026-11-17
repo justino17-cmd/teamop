@@ -161,7 +161,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
   { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]'); await L.aller(c.p, 'equipe'); await L.aller(c.p, 'pointage');
     v('K : on revient TOUJOURS sur « Aujourd\'hui »', (await ev(c, () => ptOnglet)) === 'auj' && (await ev(c, () => document.querySelector('.seg [aria-pressed="true"]').textContent)).startsWith('Aujourd’hui'));
     await L.aller(c.p, 'equipe'); await ev(c, () => eqFiche('sm')); await clic(c, '[data-eq="heures|sm"]'); await c.p.waitForTimeout(500);
-    v('K : « Ses heures › » d\'Équipe ouvre la Semaine (et non Aujourd\'hui)', (await ev(c, () => route)) === 'pointage' && (await ev(c, () => ptOnglet)) === 'semaine', await ev(c, () => ptOnglet));
+    v('K : « Ses heures › » d\'Équipe ouvre le MOIS de la personne (VEHICULES-TEMPS § 8 : étape 5), la feuille de Sophie ouverte', (await ev(c, () => route)) === 'pointage' && (await ev(c, () => ptOnglet)) === 'mois' && (await ev(c, () => (document.querySelector('#calque .panneau h2') || {}).textContent)) === 'Sophie Martin', await ev(c, () => ptOnglet));
     await ev(c, () => { ptOnglet = 'paie'; rendre(); }); v('K : l\'ancien onglet « paie » devient « Mois »', (await ev(c, () => ptOnglet)) === 'mois');
     await L.aller(c.p, 'comptabilite'); await ev(c, () => paieAller('paiemois')); await c.p.waitForTimeout(400);
     const e1 = await ev(c, () => { const V = PT_GENS.map(paieVariables), E = paieEtapes(V); return { t:E[0].d, vt:document.body.innerText.includes('Valider ce qui est en règle') }; });
