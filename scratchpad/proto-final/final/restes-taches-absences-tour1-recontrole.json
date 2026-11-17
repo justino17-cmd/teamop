@@ -1,0 +1,77 @@
+{
+ "noms": ["taches-absences", "menu"],
+ "regles": [
+  "Avis « Marc a validé / refusé ta demande » lisible au téléphone (sonde taches-absences-recontrole-avis 24 ✓ · 0 ✗ ; capture petit nuit relue : trois lignes, boutons dessous)",
+  "Absence posée par le gérant sur un week-end seul : refusée dans « Nouvelle absence » (bouton grisé, message, toast si on force) — recontrole-saisie 16 ✓",
+  "Absence posée par le gérant sur les jours d'une demande en attente de la même personne : refusée dans « Nouvelle absence » seulement (voir casses pour les deux autres formulaires)",
+  "« Au » suit « Du » dans la demande de congé du technicien (restes-taches-absences-1 partie A)",
+  "Message « Ajoutée pour demain · Annuler » retiré à l'ouverture d'une fiche (partie C)",
+  "Période du calendrier tient entière de 320 à 820 px, jour et nuit (partie B 16 ✓ ; capture petit jour relue)",
+  "Demande de congé de la technicienne rouverte (parcours Sophie → Marc → Sophie, solde 9 → 7 : recontrole-saisie)",
+  "Texte « Qu'as-tu fait ? » : singulier et pluriel (parcours-b 27 ✓) — le ton reste à relire par Justin",
+  "« RTT » en majuscules dans Mes heures (partie F)",
+  "Texte du réglage « Rendez-vous en ligne » (menu-recontrole 137 ✓)",
+  "Appui long de la barre dont le relâcher ne produit aucun clic : le toucher suivant n'est plus avalé (partie D) — mais voir casses 4 (touchcancel)",
+  "« Voir comme Marc » en revue technicien (partie E)",
+  "Bouton « Menu » dans la barre de la Comptabilité plein écran au téléphone : 44 px, visible, rien ne le recouvre, feuille au-dessus, « Clients » ferme la Comptabilité ; absent sur mac et ipad (bureau-tel 15 ✓ ; capture petit nuit relue)",
+  "Mutations du correcteur rejouées sur une copie : 13 sur 13 tombent (A à M), 0 qui ne tombe pas"
+ ],
+ "pasRegles": [
+  { "nom": "taches-absences", "defaut": "Pastille « Tâches » (1) contre l'écran « Aujourd'hui 7 · En retard 2 »", "constat": "Rien changé, à soumettre à Justin (le chiffre est juste mais jamais expliqué)." },
+  { "nom": "taches-absences", "defaut": "Cibles sous 44 px : cases d'un jour du calendrier, barres « mois par mois »", "constat": "Décision b : cases d'information, laissées." },
+  { "nom": "taches-absences", "defaut": "Retour du navigateur depuis une fiche de tâche (défaut 12)", "constat": "Réglé par la voie « retour » ; parcours-i 11 ✓ · 0 ✗ ce soir." }
+ ],
+ "casses": [
+  {
+   "titre": "Les formulaires « Modifier les dates » et « Proposer d'autres dates » du gérant acceptent un week-end seul (0 jour ouvré)",
+   "gravite": "gênant",
+   "etapes": "Absences et congés (Marc) › une absence validée › « Modifier les dates » › Du/Au = samedi 7 et dimanche 8 novembre : l'aperçu écrit « 0 jour ouvré » en vert (« ✓ Aucune intervention ») et « Enregistrer » reste actif ; forcé, l'absence reste enregistrée à 0 jour (a.du 2026-11-07, jours 0). Même chose dans « Proposer d'autres dates » à une demande en attente : la proposition part avec 0 jour (etat « proposee », prop 0), et l'accepter poserait une absence de 0 jour.",
+   "constat": "Le correcteur a posé la règle (« Ces jours ne sont pas travaillés », bouton grisé, toast) dans aApercu (« Nouvelle absence ») et la demande du technicien, pas dans aApercuDates/aAppliquer (ax-) ni aApercuModif/amodifok (am-). Sonde restes-taches-absences-1-recontrole.js, contrôles « Modifier les dates : un week-end seul… », « forcer le geste… », « Proposer d'autres dates : un week-end… », « forcer… »."
+  },
+  {
+   "titre": "« Modifier les dates » déplace une absence sur les jours d'une demande en attente de la même personne (double absence à l'acceptation)",
+   "gravite": "gênant",
+   "etapes": "Absences et congés (Marc) › absence validée d'une personne qui a une demande en attente › « Modifier les dates » › mêmes jours que la demande (23 au 27 novembre) › « Enregistrer » : accepté sans un mot, la demande reste en attente ; l'accorder plus tard double l'absence et le solde, le défaut même que le correcteur a fermé pour « Nouvelle absence ».",
+   "constat": "aAppliquer ne cherche que les autres ABSENCES (ABSENCES.find), jamais DEMANDES_ABS. Sonde, contrôle « Modifier les dates : déplacer une absence sur les jours d'une demande en attente… »."
+  },
+  {
+   "titre": "« Au » ne suit pas « Du » dans les trois formulaires du gérant (Nouvelle absence, Proposer d'autres dates, Modifier les dates)",
+   "gravite": "mineur",
+   "etapes": "Nouvelle absence (Marc) › « Du » = 30 novembre (« Au » reste au 2 novembre) : « La date de fin est avant la date de début. » et « Enregistrer » reste actif ; idem « Proposer d'autres dates » (du 2026-12-30 au 2026-11-27). La demande du technicien, elle, suit.",
+   "constat": "La règle « Au suit Du tant qu'on n'a pas touché Au » n'est posée que sur ad- (un seul `if (id === 'ad-du')` dans le gestionnaire de saisie) ; an-, am- et ax- sont restés à l'ancien comportement. Le message est clair, donc gêne plutôt que blocage ; mais deux formulaires de dates qui se comportent différemment dans le même écran déroutent un débutant."
+  },
+  {
+   "titre": "Un appui long annulé par le système (touchcancel) fait avaler le premier toucher ordinaire qui suit",
+   "gravite": "mineur, à confirmer sur appareil réel",
+   "etapes": "Téléphone › appui long sur la barre du bas (« Ma barre » s'ouvre) › le système annule le doigt (touchcancel, pas de touchend) › on ferme la feuille › on touche un bouton : son clic est avalé (recu 0 au lieu de 1).",
+   "constat": "Le correcteur a lié `mbAvale` à un drapeau `tenu` remis à faux seulement dans `relache` (touchend/mouseup). `touchcancel` n'appelle que `fin`, donc `tenu` reste vrai : le touchend de l'appui ordinaire suivant le relit et pose mbAvale juste avant son propre clic. Une ligne : `touchcancel` doit appeler `relache`. Non prouvé qu'iOS/Android envoient touchcancel à cet endroit ; la sonde le rejoue par événements."
+  }
+ ],
+ "nouveaux": [
+  "Voir casses 1 à 4 (aucun n'était dans la liste d'origine : les corrections ont fermé les défauts sur une seule porte chacun)."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-taches-absences-1.js", "resultat": "29 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-taches-absences-1-bureau-tel.js", "resultat": "15 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-taches-absences-1-mutations.py", "resultat": "13 mutations sur 13 tombent" },
+  { "fichier": "campagne/sondes/taches-absences-recontrole-avis.js", "resultat": "24 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-recontrole-saisie.js", "resultat": "16 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-recontrole-liens.js", "resultat": "20 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-recontrole-telephone.js", "resultat": "7 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-parcours-a/c/d/e/f/g/h/i.js", "resultat": "19, 25, 12, 6, 3, 18, 6, 11 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-mise-en-page.js", "resultat": "164 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/taches-absences-sonde-soldes.js", "resultat": "8 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/technicien-parcours-taches-conges.js", "resultat": "30 ✓ · 0 ✗" },
+  { "fichier": "sondes/menu-recontrole.js, menu-conges.js, menu-conges-bureau.js", "resultat": "137 ✓, 22 ✓, 30 ✓ · 0 ✗" },
+  { "fichier": "sondes/droits-cases-voir.js", "resultat": "46 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-taches-absences-1-recontrole.js (NOUVELLE, ce recontrôle)", "resultat": "8 ✓ · 8 ✗ : les 8 ✗ sont les casses 1 à 4 (week-end ×4 contrôles, demande en attente, « Au » ×2, touchcancel) ; les ✓ : population, mac et ipad sans bouton « Menu » de Comptabilité, aucune erreur JavaScript" }
+ ],
+ "doutes": [
+  "Un message posé par la PAGE pendant la Comptabilité plein écran serait sous elle (toast z-index 90, Comptabilité 9000 : elementFromPoint rend l'iframe). Aucun geste réel ne pose de message de la page à ce moment (le gestionnaire de messages du cadre ne fait que le mode et Échap) : doute, pas un défaut. À revoir le jour où un geste de la Comptabilité demandera un message à la page.",
+  "Au téléphone, la Comptabilité plein écran porte désormais DEUX boutons à trois traits : « Menu » dans la barre (celui de la page) et le ≡ de l'en-tête OP COMPTABLE (capture restes1-bureau-petit-nuit). Ce sont deux menus différents (page / Comptabilité) ; un débutant peut hésiter. À soumettre à Justin.",
+  "technicien-parcours-menu-droits.js J2 tombe (1 ✗) à cause de la SONDE : sa regex /commenc[ée]+e? à \\d/ est sensible à la casse et l'écran dit « Commencée à 10:40 ». Pas un défaut de la page ; à corriger par la voie technicien.",
+  "technicien-mise-en-page.js tombe (40 ✗ : « ton compte ne peut pas… », cible 24×24 « Choisir : Prévenir M. Durand », 1re intervention sous le pli à 832/844) : c'est la campagne technicien (en cours, technicien-01/02), pas les restes ; rien de ce recontrôle n'y touche.",
+  "Question « Qu'as-tu fait ? » réécrite : le ton reste à relire par Justin (le correcteur l'a déjà noté).",
+  "Appui long sans clic au relâcher : seul le cas rejoué par événements est prouvé, pas sur un appareil réel."
+ ]
+}
