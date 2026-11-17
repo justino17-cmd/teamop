@@ -32,7 +32,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
       L.v('la facture de la visite dit de quel contrat elle vient', !!r.facture && r.facture.lignes.some(l => /contrat|CTR/i.test(l)), r.facture && r.facture.lignes);
     } else if (mode === 'an') {
       L.v('contrat facturé « à l’an » : la facture de l’année est préparée à la signature (la fenêtre de signature le promet)', !!r.annuelle && Math.abs(r.annuelle.ht - r.k.prix) < .01, { annuelle: r.annuelle, fc: r.fc, kfact: r.kfact });
-      L.v('compta-ventes-12b · contrat facturé « à l’an » : la visite ne fait pas naître une SECONDE facture au tarif horaire (le dossier dit « Couverte par le contrat »)', !r.facture, r.facture);
+      L.v('compta-ventes-12b · contrat facturé « à l’an » : la visite ne fait pas naître une SECONDE facture au tarif horaire (le dossier dit « Couverte par le contrat »)', !r.facture || (r.facture.lignes.length > 0 && r.facture.lignes.every(l => !/Main-d|Déplacement|Forfait/i.test(l))), r.facture);   // décision contrats-15 (17/11) : une pièce HORS contrat posée sur une visite comprise se facture SEULE — jamais la main-d'œuvre ni le déplacement
     } else {
       console.log('  · contrat « mois » : visite →', JSON.stringify(r.facture), '(constat, sans verdict : la facturation mensuelle n’a pas de règle écrite)');
     }

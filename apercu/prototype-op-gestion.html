@@ -5567,7 +5567,9 @@ const ligneOk = l => l.pu != null && String(l.d || '').trim() !== '';
 const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main-d’œuvre et déplacement', q:'1', pu:f.ht }];
 /* UNE seule fonction pour le total d'une ligne : celle du total de la facture (17/11, compta-ventes-11 : « Prix HT » voulait dire tantôt l'unité,
    tantôt la ligne ; la fiche, le PDF et le total de la facture lisent maintenant la même multiplication) */
-const qteDe = l => parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
+/* Une quantité TAPÉE (« 2 h », « 250 mL », « 1 000 ») multiplie par son nombre (l.qn, posé à la saisie) : avant, tout ce qui portait une lettre comptait pour 1 — « 2 h × 100 € » faisait 100 €, sans un mot.
+   Les lignes préparées par OP GESTION (« 1h30 » avec le prix de la durée entière) n'ont pas de qn et gardent leur règle : la durée est déjà dans le prix. */
+const qteDe = l => typeof l.qn === 'number' && l.qn > 0 ? l.qn : parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
 const totLigne = l => (l.pu || 0) * qteDe(l);
 const htDe = f => lignesDe(f).reduce((s,l) => s + totLigne(l), 0);
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -8226,7 +8228,7 @@ function vueDevisFiche(k){
   ${e === 'refuse' ? `<div class="info petit"><b>Refusé le ${x.rep}</b>${x.motif ? ' · ' + esc(x.motif) : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix HT</span><span>Total</span><span></span></div>' : ''}${lignes}</div>
+      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>' : ''}${lignes}</div>
         ${ed ? `<div class="dv-ajouts"><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|libre">＋ Ligne</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|mo">＋ 1 h de main-d’œuvre</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|dep">＋ Déplacement</button>
           <label class="puce-c">📦 Du catalogue<select data-dvcat="${dvCle(x)}" aria-label="Ajouter une pièce du catalogue"><option value="">…</option>${CATALOGUE.map(p => `<option value="${esc(p[0])}">${esc(p[0])} · ${eur(p[1])}</option>`).join('')}</select></label></div>` : ''}
         <div class="dv-totaux"><div class="ligne"><span>Total HT${complet ? '' : ' (partiel)'}</span><b>${eur(ht)}</b></div>
@@ -9332,8 +9334,9 @@ document.addEventListener('change', ev => {
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
-    if (!/^\d+([.,]\d+)?(\s?\S.{0,9})?$/.test(v) || !(parseFloat(v.replace(',', '.')) > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
-    l.q = v; rendreApresClic(); }
+    const mq = v.match(/^(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(\S.{0,9}))?$/), nq = mq ? parseFloat(mq[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')) : NaN;
+    if (!(nq > 0) || nq >= 1e6) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
+    l.q = v; l.qn = nq; rendreApresClic(); }
   else if (t.dataset.tva) { FACTURES.find(x => x.id === t.dataset.tva).tva = +t.value; rendre(); }
   else if (t.dataset.voirint) { voirInt = t.value; rendre(); }
   else if (t.dataset.mqt !== undefined) { const id = t.dataset.mqt; t.checked ? plMasques.delete(id) : plMasques.add(id); rendre(); }
