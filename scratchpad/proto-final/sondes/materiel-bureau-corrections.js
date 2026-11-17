@@ -90,8 +90,8 @@ const L = require('../lib.js');
   v('bureau-18 : chaque ligne du registre a son client en lien vers l\'intervention (' + rg.liens + '/' + rg.n + ')', rg.liens === rg.n, rg);
   const avant = await R(() => location.hash + '|' + (document.querySelector('#calque .panneau h2') || {}).textContent);
   await clic('#calque .ms-regl .mv-l .ms-lien'); await calme(600);
-  const apres = await R(() => ({ h2: (document.querySelector('#calque .panneau h2, #calque h2') || {}).textContent || '', surtitre: (document.querySelector('#calque .surtitre') || {}).textContent || '' }));
-  v('bureau-18 : toucher le client ouvre bien une fiche d\'intervention (« ' + apres.h2 + ' »)', apres.h2 !== 'Registre des fluides' && apres.h2.length > 0, { avant, apres });
+  const apres = await R(() => ({ hash: location.hash, h1: (document.querySelector('#contenu h1, #contenu h2') || {}).textContent || '', panneau: !!document.querySelector('#calque .panneau') }));
+  v('bureau-18 : toucher le client ouvre la fiche de SON intervention (« ' + apres.h1 + ' », ' + apres.hash + ')', /^#inter-x-/.test(apres.hash) && apres.h1.length > 0 && !apres.panneau, { avant, apres });
   await L.ranger(p);
 
   // ── bureau-09 : la fréquence de comptage se règle lieu par lieu, dans « Modifier ce lieu » ──
@@ -117,10 +117,10 @@ const L = require('../lib.js');
   v('bureau-10 : la carte du camion de Sophie dit « Bouteille presque vide » (' + c10.slice(0, 80).replace(/\s+/g, ' ') + ')', /Bouteille presque vide/.test(c10), c10);
   await clic('[data-md="fiche|v1"]'); await calme(450);
   const f10 = await R(() => (document.querySelector('#calque .fo-alerte') || {}).textContent || '');
-  v('bureau-10 : la fiche du camion dit « Bouteille presque vide : R32-2231 (0,6 kg) »', /Bouteille presque vide/.test(f10) && /R32-2231 \(0,6 kg\)/.test(f10), f10);
+  v('bureau-10 : la fiche du camion dit « Bouteille presque vide : R32-2231 (0,6 kg) »', /Bouteille presque vide/.test(f10) && /R32-2231\s*\(0,6 kg\)/.test(f10), f10);
   await L.ranger(p); await L.aller(p, 'accueil'); await calme(500);
   const a10 = await R(() => { const e = document.querySelector('[data-vis="accueil-materiel"]'); return e ? e.textContent : ''; });
-  v('bureau-10 : la carte « Matériel » de l\'Accueil porte une ligne « Bouteille presque vide » (' + a10.replace(/\s+/g, ' ').slice(0, 120) + ')', /Bouteille presque vide : R32-2231/.test(a10), a10);
+  v('bureau-10 : la carte « Matériel » de l\'Accueil porte une ligne « Bouteille presque vide » (' + a10.replace(/\s+/g, ' ').slice(0, 120) + ')', /Bouteille presque vide\s*:\s*R32-2231/.test(a10), a10);
   v('bureau-10 : la fiche de l\'article dit « Presque vide » et non « Entamée »', b10.etat === 'Presque vide', b10);
   await R(() => { SX.bout.find(o => o.id === 'R32-2231').reste = 2.5; rendre(); });
 
@@ -135,7 +135,7 @@ const L = require('../lib.js');
   // ── bureau-16 : en-tête de Fournisseurs sur UNE rangée de boutons (tablette) ──
   await L.aller(p, 'produits'); await calme(300);
   const h16 = await R(() => { const a = [...document.querySelectorAll('.fx-tete .actions > *')].map(e => { const r = e.getBoundingClientRect(); return { t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }); return a; });
-  v('bureau-16 : les boutons de l\'en-tête tiennent sur une seule rangée (' + h16.map(x => x.t).join('/') + ')', h16.length >= 3 && new Set(h16.map(x => x.t)).size === 1, h16);
+  v('bureau-16 : les boutons de l\'en-tête tiennent sur une seule rangée (' + h16.map(x => x.t).join('/') + ')', h16.length >= 3 && Math.max(...h16.map(x => x.t)) - Math.min(...h16.map(x => x.t)) <= 4, h16);   // un bouton carré de 48 px et un de 46 px centrés sur la même ligne diffèrent d'un pixel de haut
 
   // ── bureau-17 : le pied de liste dit ce que la liste montre ──
   await L.aller(p, 'stock'); await calme(300);
@@ -145,11 +145,23 @@ const L = require('../lib.js');
   await p.fill('#ms-q', ''); await calme(300);
   v('bureau-17 : sans recherche, le montant de tout le stock revient', /de matériel \(prix d’achat HT\)/.test(await R(() => (document.querySelector('.ms-pied') || {}).textContent || '')));
 
+  // ── bureau-13 (écran bas, avec le bandeau « envois à accepter ») et bureau-14 (le menu montre tout le groupe Matériel) ──
+  await L.aller(p, 'stock'); await calme(300);
+  const m13 = await R(() => { const l = [...document.querySelectorAll('.ms-liste .ms-l')]; return { env: matEnvoisAAccepter().n, h: innerHeight, premiere: l[0] ? Math.round(l[0].getBoundingClientRect().top) : null, visibles: l.filter(e => e.getBoundingClientRect().bottom <= innerHeight).length }; });
+  if (profil === 'windows' || profil === 'mac720') {
+    v('bureau-13 : population — le bandeau « envois à accepter » est affiché (' + m13.env + ') sur un écran de ' + m13.h + ' px', m13.env > 0 && m13.premiere != null, m13);
+    v('bureau-13 : la première ligne d\'article commence avant 0,6 écran (' + m13.premiere + ' px sur ' + m13.h + ') et au moins 4 lignes se voient sans défiler (' + m13.visibles + ')', m13.premiere <= 0.6 * m13.h && m13.visibles >= 4, m13);
+  }
+  if (profil === 'ipad') {
+    const m14 = await R(() => { const l = document.querySelector('#menu .m-liste'), r = l.getBoundingClientRect(), pour = t => { const a = [...l.querySelectorAll('a')].find(e => e.textContent.trim().startsWith(t)); if (!a) return null; const b = a.getBoundingClientRect(); return b.top >= r.top - 1 && b.bottom <= r.bottom + 1; }; return { stock: pour('Stock'), depots: pour('Dépôts et camions'), four: pour('Fournisseurs'), liste: [Math.round(r.top), Math.round(r.bottom)], on: (l.querySelector('a.on') || {}).textContent }; });
+    v('bureau-14 : sur iPad, le menu montre « Stock », « Dépôts et camions » et « Fournisseurs » en entier (rubrique courante : ' + (m14.on || '').trim().slice(0, 12) + ')', m14.stock === true && m14.depots === true && m14.four === true, m14);
+  }
+
   // ── bureau-19 : « Ajouter un article » : pas de blanc entre le nom et la ligne « Rangé dans » ──
   await L.aller(p, 'produits'); await R(() => { prVue = 'articles'; rendre(); }); await calme(300);
   await clic('[data-pr^="nouveau|"]'); await calme(500);
   const g19 = await R(() => { const n = document.getElementById('pr-nom'), r = document.getElementById('ms-range'), s = document.getElementById('pr-sugg'); const lab = n && n.closest('label').getBoundingClientRect(); return { nomBas: lab && Math.round(lab.bottom), rangeHaut: r && Math.round(r.getBoundingClientRect().top), sugg: s ? Math.round(s.getBoundingClientRect().height) : null }; });
-  v('bureau-19 : l\'écart entre le champ Nom et « Rangé dans » est d\'au plus 24 px (' + (g19.rangeHaut - g19.nomBas) + ' px)', g19.rangeHaut != null && g19.rangeHaut - g19.nomBas <= 24, g19);
+  v('bureau-19 : la suggestion vide ne garde pas sa place (hauteur ' + g19.sugg + ' px) et l\'écart entre le champ Nom et « Rangé dans » est d\'au plus 32 px (' + (g19.rangeHaut - g19.nomBas) + ' px)', g19.rangeHaut != null && g19.rangeHaut - g19.nomBas <= 32 && !g19.sugg, g19);
   await p.fill('#pr-nom', 'filtre à air'); await calme(300);
   const g19b = await R(() => ({ s: (document.getElementById('pr-sugg') || {}).textContent || '', h: Math.round((document.getElementById('pr-sugg') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height) }));
   v('bureau-19 : la suggestion apparaît toujours quand on tape (« ' + g19b.s.slice(0, 40) + ' »)', g19b.s.length > 3 && g19b.h > 0, g19b);

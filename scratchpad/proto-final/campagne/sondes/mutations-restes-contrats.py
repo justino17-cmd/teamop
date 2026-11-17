@@ -11,7 +11,7 @@ for f in ['prototype-op-gestion.html', 'prototype-documents.html', 'prototype-co
     shutil.copy(os.path.join(DEPOT, 'apercu', f), os.path.join(COPIE, 'apercu', f))
 PAGE = open(os.path.join(DEPOT, 'apercu', 'prototype-op-gestion.html'), encoding='utf-8').read()
 S1 = 'restes-contrats-1.js'
-def M(nom, old, new, sonde=S1): return dict(nom=nom, old=old, new=new, sonde=sonde)
+def M(nom, old, new, sonde=S1, profil='mac'): return dict(nom=nom, old=old, new=new, sonde=sonde, profil=profil)
 MUT = [
  M("C1 le prix d'une visite n'est plus arrondi au centime (casse 1)", "const ctrPart = (prix, n, rang) => { const p = Math.round(prix * 100), u = Math.round(p / n), r = rang >= n ? p - u * (n - 1) : u; return r / 100; };", "const ctrPart = (prix, n, rang) => prix / n;"),
  M("C2 une pièce posée sur une visite comprise n'est facturée nulle part (casse 2)", "    if (!F.pieces.length) return;\n    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`Pièces", "    return;\n    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`Pièces"),
@@ -24,10 +24,10 @@ MUT = [
  M("C9 un brouillon de contrat propose « Envoyer par e-mail » (contrats-16)", "${ROLE === 'client' || d.hasAttribute('data-sans-mail') || (ROLE === 'tech' && d.classList.contains('paie-bul-doc')) ?", "${ROLE === 'client' || (ROLE === 'tech' && d.classList.contains('paie-bul-doc')) ?"),
  M("C10 la fausse barre d'adresse revient (contrats-14)", "<div class=\"client-web\" style=\"max-width:620px\"><div class=\"corps\">", "<div class=\"client-web\" style=\"max-width:620px\"><div class=\"url\">🔒 climservices17.teamop.fr/signer/K7P2</div><div class=\"corps\">"),
  M("C11 le mode « chaque mois » ne prépare plus la facture du premier mois (contrats-15)", "if (k.fact === 'visite' || FACTURES.some(f => f.id === 'fc-' + k.id)) return null;", "if (k.fact !== 'an' || FACTURES.some(f => f.id === 'fc-' + k.id)) return null;"),
- M("C12 au téléphone, le PDF repasse avant les cartes (contrats-13)", ".ctr-grille > .col{order:1}.ctr-grille > .ctr-doc{order:2}", ".ctr-grille > .col{order:2}.ctr-grille > .ctr-doc{order:1}"),
+ M("C12 au téléphone, le PDF repasse avant les cartes (contrats-13)", ".ctr-grille > .col{order:1}.ctr-grille > .ctr-doc{order:2}", ".ctr-grille > .col{order:2}.ctr-grille > .ctr-doc{order:1}", S1, 'iphone'),
  M("C13 l'article 4 du PDF ne dit plus le TTC (décision i)", "soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)} %)", "(TVA en sus)"),
  M("C14 le pied du PDF redit « Modèle de démonstration » (contrats-06)", "<div class=\"pdf-pied\">${ENTREPRISE.nom} · ${ENTREPRISE.adr}", "<div class=\"pdf-pied\">Modèle de démonstration, à faire relire avant tout usage. ${ENTREPRISE.nom} · ${ENTREPRISE.adr}"),
- M("C15 les visites d'un renouvellement lisent celles de l'ancien contrat", "&& (!o.ctr || o.ctr === k.id));", ");"),
+ M("C15 les visites d'un renouvellement lisent celles de l'ancien contrat", "&& ctrDeVisite(o) === k);", ");"),
  M("C16 le PDF d'un contrat terminé redit « à signer »", "const sig = k && k.st !== 'envoye' ? (k.sigImg", "const sig = k && k.st === 'signe' ? (k.sigImg"),
  M("C17 la liste composée ne dit plus le TTC (décision i)", "${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}", "", "restes-contrats-composes.js"),
 ]
@@ -44,7 +44,7 @@ for m in MUT:
     open(os.path.join(COPIE, 'apercu', 'prototype-op-gestion.html'), 'w', encoding='utf-8').write(neuf)
     t0 = time.time()
     try:
-        r = subprocess.run(['node', m['sonde'], 'mac'], cwd=ICI, env=dict(os.environ, RACINE=COPIE), capture_output=True, text=True, timeout=900)
+        r = subprocess.run(['node', m['sonde'], m['profil']], cwd=ICI, env=dict(os.environ, RACINE=COPIE), capture_output=True, text=True, timeout=900)
         code = r.returncode; sortie = r.stdout
     except subprocess.TimeoutExpired:
         code = 124; sortie = ''

@@ -43,7 +43,14 @@ const rap = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .
     const B = await p.evaluate(() => ['.nv-x', '.nv-voir', '.nv-tard', '.nv-suiv'].map(s => { const e = document.querySelector('#nv ' + s), r = e.getBoundingClientRect(); return [s, Math.round(r.width), Math.round(r.height)]; }));
     if (TEL) v(`${tag} : ✕, Voir, Plus tard et Suivant font 44 px au moins (${B.map(b => b.join(' ')).join(' · ')})`, B.every(b => b[1] >= 44 && b[2] >= 44), B);
     // le balayage du doigt change de carte (téléphone et tablette) ; un vrai geste tactile envoyé au navigateur
-    if (TEL) {
+    if (PROFIL === 'ipad') {   // l'émulation d'iPad de ce navigateur n'est pas un appareil mobile : le toucher envoyé ne fait pas défiler (même sur une page sans guide) — on joue ici la molette horizontale (pavé tactile) et les touches fléchées
+      await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); d.scrollTo({ left:0, behavior:'instant' }); }); await L.calme(p, 300);
+      const r0 = await p.evaluate(() => { const r = document.querySelector('#nv .nv-defile').getBoundingClientRect(); return { x:Math.round(r.left + r.width / 2), y:Math.round(r.top + r.height / 2) }; });
+      await p.mouse.move(r0.x, r0.y); await p.mouse.wheel(Math.round(c.largeur * 0.7), 0); await p.waitForTimeout(900);
+      const a = await G.index(p); v(`${tag} : un défilement horizontal (pavé tactile) montre la carte suivante (carte ${a + 1})`, a === 1, a);
+      await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(900); const b = await G.index(p); v(`${tag} : la flèche ← revient à la première carte`, b === 0, b);
+      await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900); const d = await G.index(p); v(`${tag} : la flèche → montre la suivante`, d === 1, d);
+    } else if (TEL) {
       await p.evaluate(() => { const d = document.querySelector('#nv .nv-defile'); d.scrollTo({ left:0, behavior:'instant' }); }); await L.calme(p, 300);
       const cdp = await c.ctx.newCDPSession(p); const r0 = await p.evaluate(() => { const r = document.querySelector('#nv .nv-defile').getBoundingClientRect(); return { x:Math.round(r.left + r.width / 2), y:Math.round(r.top + r.height / 2) }; });
       // un doigt qui se pose, glisse par pas de 24 px (ce Chromium ne transmet aucun mouvement de moins de ~15 px) et se lève : touchStart, touchMove…, touchEnd

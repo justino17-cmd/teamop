@@ -13,9 +13,13 @@ const v = (nom, cond, det) => { if (cond) ok++; else { ko++; console.log('  ✗ 
       await c.p.evaluate(x => aller(x), r); await L.calme(c.p, 900); ecrans++;
       const nom = `${profil}-${nuit ? 'nuit' : 'jour'}-${qui}-${r}`, e = await O.lire(c.p);
       v(nom + ' : l\'écran est celui qu\'on a demandé', !!e.h1 && e.route === r, 'route=' + e.route + ' h1=' + e.h1);
-      const d = await L.deborde(c); v(nom + ' : aucun glissement latéral', d.bouge === 0 && d.seconde <= c.largeur + 1, JSON.stringify(d));
+      const tag = (r === 'registre' && profil === 'ipad' ? ' [metier-3d-03]' : ''), tagC = r === 'carteBox' ? ' [metier-3d-04]' : r === 'devisXylo' ? ' [metier-3d-05]' : '';   // le numéro du défaut rapporté dans le nom du contrôle qui tombe
+      v(nom + ' [metier-3d-01] : aucune phrase de revue (« Exemple pour une entreprise… clients fictifs »)', !/Exemple pour une entreprise du/.test(e.texte), (e.texte.match(/Exemple pour une entreprise du[^.]{0,80}/) || [''])[0]);
+      const d = await L.deborde(c); v(nom + ' : aucun glissement latéral' + tag, d.bouge === 0 && d.seconde <= c.largeur + 1, JSON.stringify(d));
+      if (c.doigt && r === 'registre') { const col = await c.p.evaluate(() => { const t = document.querySelector('#contenu .tete > div:first-child'), z = document.getElementById('contenu'); return t && z ? { titre: Math.round(t.getBoundingClientRect().width), zone: Math.round(z.getBoundingClientRect().width) } : null; });
+        v(nom + ' [metier-3d-02] : le titre du registre garde au moins 60 % de la largeur (le bouton passe dessous)', !!col && col.titre >= 0.6 * col.zone, JSON.stringify(col)); }
       if (c.doigt) { const t = await L.doigts(c.p, '#contenu'); const pt = (t.petits || []), ch = (t.champs || []);
-        v(nom + ' : cibles au doigt ≥ 44 px', pt.length === 0, pt.slice(0, 6).join(' | ')); v(nom + ' : champs ≥ 16 px', ch.length === 0, ch.slice(0, 4).join(' | ')); }
+        v(nom + ' : cibles au doigt ≥ 44 px' + tagC, pt.length === 0, pt.slice(0, 6).join(' | ')); v(nom + ' : champs ≥ 16 px', ch.length === 0, ch.slice(0, 4).join(' | ')); }
       await L.capture(c, O.CAP + 'mep-' + nom + '.png');
     }
     v(`${profil} ${nuit ? 'nuit' : 'jour'} ${qui} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2).join(' // '));
