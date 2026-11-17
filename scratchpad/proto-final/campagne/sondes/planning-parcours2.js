@@ -210,6 +210,15 @@ parcours('P12 · un client créé à la main (adresse à Rochefort) : sa place s
   L.v('P12 · le trajet jusqu’à Rochefort n’est pas « 0 km » (planning-01)', r.km > 20, r.km);
 });
 
+parcours('P13 · un client SANS position connue : la fiche de la carte le dit et les liens « Y aller avec » visent l’adresse écrite (planning-01)', async c => {
+  const o = await c.p.evaluate(() => { const i = INTS.find(x => x.d === AUJ && x.tech && x.st !== 'fait' && CR_GEO[x.cli]); if (!i) return null; delete CR_GEO[i.cli]; CLIENTS[i.cli].adr = '5 chemin des Vignes, Nullepart-les-Oies'; return { id: i.id, cli: i.cli, d: i.d }; });
+  L.v('P13 · une intervention du jour dont on peut retirer la position', !!o, o); if (!o) return;
+  await vue(c, 'carte', o.d); await L.calme(c.p, 600); await c.p.evaluate(id => crChoisir(id, false), o.id); await L.calme(c.p, 600);
+  const f = await c.p.evaluate(() => { const e = document.querySelector('.cr-fiche'); return e ? { txt: e.textContent.replace(/\s+/g, ' '), liens: [...e.querySelectorAll('[data-craller]')].map(a => decodeURIComponent(a.href)) } : null; });
+  L.v('P13 · la fiche dit « Position inconnue »', !!f && /Position inconnue/.test(f.txt), f && f.txt.slice(0, 200));
+  L.v('P13 · les trois liens visent l’adresse écrite, pas des coordonnées de dépôt', !!f && f.liens.length === 3 && f.liens.every(h => /Vignes/.test(h) && !h.includes('46.15850')), f && f.liens);
+});
+
 (async () => {
   const c = await L.ouvrir({ profil, nuit, qui: 'marc' });
   for (const [nom, fn] of PARC) { const k = nom.split(' ')[0]; if (veut.length && !veut.includes(k)) continue; console.log('\n== ' + nom);
