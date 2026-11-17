@@ -140,6 +140,7 @@ const M = [
   ["120 · au téléphone, « À régler » repasse après la carte de la journée du gérant", [["matchMedia('(max-width:760px)').matches && R.length ?", "false && R.length ?"]], [CP], { PROFILS:'iphone' }],
   ["121 · les quatre chiffres du jour sont répétés au-dessus de la Semaine au téléphone", [["${ptOnglet === 'auj' ? '' : ' tt-k1-autre'}", ""]], [CP], { PROFILS:'iphone' }],
   ["122 · un marqueur de « Ma journée » absent fait disparaître le bloc", [["if (i < 0) return h + bloc;", "if (i < 0) return h;"]], [CP], { PROFILS:'iphone' }],
+  ["123 · le lien « Retour à la fiche » repasse APRÈS le pied collant (le pied le recouvre au téléphone)", [["<button type=\"button\" class=\"btn large\" data-vx=\"${act}\">${lib}</button>${pied || ''}</div>`;", "<button type=\"button\" class=\"btn large\" data-vx=\"${act}\">${lib}</button></div>${pied || ''}`;"]], [CV], { PROFILS:'iphone' }],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });

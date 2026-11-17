@@ -18529,7 +18529,8 @@ function vxRouvrir(avant){ avant.forEach(x => { if (x.fait) x.fait = null; }); }
 /* ═══ LES FEUILLES DE VÉHICULES (étape 4) : un titre, une phrase, au plus six champs, UN gros bouton en bas, « ‹ Retour à la fiche » quand une fiche l'a ouverte ═══ */
 const vhEnt = v => `<span class="surtitre">${esc(vhNom(v))} · ${esc(v.plaque)}</span>`;
 const vhRet = (from, vid) => from === 'fiche' ? `<button type="button" class="lien vh-ret" data-vh="retour|${vid}">‹ Retour à la fiche</button>` : '';
-const vhGros = (act, lib, pied) => `<div class="actions vh-pied"><button type="button" class="btn large" data-vx="${act}">${lib}</button></div>${pied || ''}`;
+/* le lien « Retour à la fiche » est DANS le pied collant, sous le gros bouton : posé après lui, le pied (qui s'enfonce dans le rembourrage de la feuille) le recouvrait au téléphone — « Retour » ne se voyait plus et ne se touchait plus */
+const vhGros = (act, lib, pied) => `<div class="actions vh-pied"><button type="button" class="btn large" data-vx="${act}">${lib}</button>${pied || ''}</div>`;
 /* une réponse qui tient en un mot se TOUCHE (deux à cinq gros boutons) au lieu de se choisir dans une liste déroulante ; la valeur vit dans un champ caché que les fonctions d'écriture lisent comme avant */
 function vhChoix(id, opts, val, nom, deux){ return `<div class="puces vh-choix${deux ? ' vh-2' : ''}" role="radiogroup" aria-label="${esc(nom)}">${opts.map(([v, l]) => `<button type="button" class="puce-c" role="radio" aria-checked="${v === val}" aria-pressed="${v === val}" data-vh="choix|${id}|${esc(v)}">${l}</button>`).join('')}</div><input type="hidden" id="${id}" value="${esc(val)}">`; }
 function vhChoisir(id, val){ const h = vxG(id); if (!h) return; h.value = val;
@@ -18813,9 +18814,9 @@ function vxModifPanel(vid){
       <div class="deux-champs"><label class="champ">Révision tous les (km)<input id="vx-ik" inputmode="numeric" value="${v.interv.km}" autocomplete="off"></label><label class="champ">ou tous les (mois)<input id="vx-im" inputmode="numeric" value="${v.interv.mois}" autocomplete="off"></label></div></div></details>
     <span class="gris petit">Les documents (carte grise, attestation, rapport du contrôle technique) s’ajoutent depuis l’onglet Papiers.</span>
     <div id="vx-al"></div>
-    ${vhGros(`modifok|${v.id}`, 'Enregistrer', vhRet('fiche', v.id))}
     <div class="vh-fin">${v.statut === 'hs' ? `<button type="button" class="btn gris petit" data-vh="hs|${v.id}">Le remettre en service</button>` : `<button type="button" class="btn gris petit" data-vh="hs|${v.id}">Passer hors service</button>`}<button type="button" class="btn rouge petit" data-vh="suppr|${v.id}">Supprimer ce véhicule</button></div>
-    <span class="gris petit">« Hors service » : le véhicule est vendu ou ne roule plus. Il reste dans la liste, sans rien à faire.</span>`);
+    <span class="gris petit">« Hors service » : le véhicule est vendu ou ne roule plus. Il reste dans la liste, sans rien à faire.</span>
+    ${vhGros(`modifok|${v.id}`, 'Enregistrer', vhRet('fiche', v.id))}`);
 }
 /* hors service (vendu, en panne définitive) : le seul endroit où il s'atteint ; « Annuler » rétablit */
 function vxHsOk(vid){
@@ -18879,8 +18880,8 @@ function vxFraisPanel(vid, cle){
     <label class="champ">Ce que c’est<input id="vx-xl" value="${esc(c.lib)}" autocomplete="off"></label>
     <div class="deux-champs"><label class="champ">Date<input type="date" id="vx-xd" value="${c.d}" min="2026-01-01" max="${AUJ}"></label><label class="champ"><span>Montant <span class="faible">(hors taxes)</span></span><input id="vx-xm" inputmode="decimal" value="${String(c.ht).replace('.', ',')}" autocomplete="off"></label></div>
     ${c.a ? `<button type="button" class="lien" data-vx="achat|${esc(c.a.id)}">Voir dans les achats ›</button>` : ''}
-    ${vhGros(`frmodok|${v.id}|${cle}`, 'Enregistrer', vhRet('fiche', v.id))}
-    <button type="button" class="btn rouge" data-vx="frdel|${v.id}|${cle}">Supprimer cette dépense</button>`);
+    <button type="button" class="btn rouge" data-vx="frdel|${v.id}|${cle}">Supprimer cette dépense</button>
+    ${vhGros(`frmodok|${v.id}|${cle}`, 'Enregistrer', vhRet('fiche', v.id))}`);   /* le pied collant s'enfonce dans le rembourrage de la feuille : il doit être le DERNIER élément, sinon il recouvre ce qui le suit */
 }
 function vxFraisOk(vid, cle){
   const v = vehDe(vid), c = v && vxFraisCible(v, cle); if (!c) return; const lib = vxG('vx-xl').value.trim(), d = vxG('vx-xd').value || c.d, ht = foNum(vxG('vx-xm').value);
