@@ -24048,12 +24048,12 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-pastille{display:none}
 @media (max-width:1099px){
   #opsec .ops-rond{display:none}
-  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:rgba(5,8,14,.96);align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
+  #opsec[data-ouvert] .ops-fenetre{inset:0;right:0;top:0;width:auto;max-height:none;border-radius:0;border:0;background:#05080f;/* OPAQUE : à 96 % le texte de l'écran de connexion et sa pastille transparaissaient sous le téléphone (mesuré sur iPad en portrait) */align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));gap:12px}
   #opsec .ops-tete{width:min(340px,100%);flex:none}#opsec .ops-qui{color:#cfd9ea}#opsec .ops-cacher{display:none}
   #opsec .ops-revenir{display:block;min-height:48px;flex:1 1 100%;background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-qui select{background:#13213a;color:#eef3fb;border-color:#3a4f78}
   #opsec .ops-cadre{width:320px;max-width:100%;height:min(640px,calc(100dvh - 170px));min-height:440px}
-  #opsec .sec-demo{width:min(340px,100%);flex:none}
+  #opsec .sec-demo{width:min(340px,100%);flex:none;--surf:#0f1b30;--encre:#eef3fb;--doux:#aebcd4;--trait:#24365a;--trait2:#3a4f78;--lien:#7aa2ff;--vert:#8fe0ad;--rouge:#ff8f95;background:#0f1b30;color:#eef3fb}   /* le bloc « Démonstration » est posé sur le fond sombre du téléphone : ses couleurs le sont aussi, de jour comme de nuit */
   .ops-pastille{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border-radius:14px;border:1px solid #3a4f78;background:#0b1422;color:#eef3fb;font:inherit;font-size:16px;font-weight:700;cursor:pointer;padding:0 16px}
   .ops-pastille::before{content:"📱"}
 }
@@ -24061,7 +24061,9 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
   #opsec .ops-cadre{width:100%;max-width:none;border:0;border-radius:0;height:auto;min-height:calc(100dvh - 190px)}
   #opsec .ops-encoche{display:none}
   #opsec .ops-ecran{min-height:calc(100dvh - 190px)}
-  #opsec .ops-tete{width:100%}#opsec .sec-demo{width:100%}
+  /* vue plein écran : l'écran du téléphone remplit la fenêtre de bord à bord, sur un fond OPAQUE (à 96 % le logo de l'écran de connexion transparaissait en filigrane sous la barre du haut) */
+  #opsec[data-ouvert] .ops-fenetre{padding-left:0;padding-right:0}
+  #opsec .ops-tete{width:100%;padding:0 14px;box-sizing:border-box}#opsec .sec-demo{width:calc(100% - 28px)}
 }
 /* le bloc « Démonstration » : le seul endroit où paraissent un mot de passe provisoire, les cases « autre ordinateur » et les boutons de simulation */
 .sec-demo{border-radius:16px;border:1px dashed var(--trait2);background:var(--surf,#fff);color:var(--encre);font-size:14px}
@@ -24094,6 +24096,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
 .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
 .cn-col .ops-pastille{max-width:420px}
+#cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
 @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
 </style>`);
 /* ══ OP SECURITY · LA DOUBLE AUTHENTIFICATION, ÉTAPE 2 · 17 novembre 2026 ══
@@ -24172,7 +24175,7 @@ const secuHHMM = t => { const d = new Date(t); return String(d.getHours()).padSt
 const secuJJMM = t => { const d = new Date(t); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); };
 function secuQuand(t){ const n = secuMaint(), a = new Date(n), j = new Date(t), m = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime(), j0 = new Date(j.getFullYear(), j.getMonth(), j.getDate()).getTime();
   return (j0 === m ? 'aujourd’hui' : j0 === m - 86400000 ? 'hier' : 'le ' + secuJJMM(t)) + ' à ' + secuHHMM(t); }
-const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
+const secuDuree = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60); return m ? m + '\u00a0min\u00a0' + String(s % 60).padStart(2, '0') + '\u00a0s' : s + '\u00a0s'; };   /* insécables : « 59 » seul sur une ligne, puis « s » seul, à 320 px */
 /* un nom saisi par une personne passe par esc() à l'écran et refuse < > " à la saisie ; il est borné */
 const secuNomPropre = (t, max) => String(t || '').replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, max || 60);
 const secuNomAppareil = k => SECU_DEPART.appareils[k] || ('Téléphone de ' + ((eqDe(k) || {}).prenom || 'toi'));
@@ -24446,7 +24449,14 @@ function secuTicDemarrer(){ if (SECU_TIC) return; SECU_TIC = setInterval(secuTic
 function opsSig(k){ const c = secuCompte(k), u = secuUi(k), now = secuMaint();
   return [u.ecran, u.pin.length, u.err, u.info, u.retour && (!u.retour.jusqua || now < u.retour.jusqua) ? u.retour.txt : '', u.blocage, u.supprimer, SECU.horsLigne, !!c.tel, c.tel && c.tel.efface, c.histo.length,
     SECU.pc.ecran === 'activer' && SECU.pc.k === k, SECU.demandes.filter(d => d.k === k && secuDemandeVivante(d)).map(d => d.id).join(',')].join('|'); }
-function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante);
+/* le bouton rond (52 px) ne recouvre JAMAIS une cible de l'écran : s'il en recouvrirait une, il monte ou se range à gauche d'un cran (jamais la page : aucun rembourrage). Il garde sa place tant qu'elle est libre. */
+const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76], [76, 136], [136, 16], [136, 76]];
+function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
+  const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
+  const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
+  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
+  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
   document.querySelectorAll('[data-sec="expire"][data-fin]').forEach(e => { const r = parseInt(e.dataset.fin, 10) - now; if (r > 0) e.textContent = e.dataset.pre + secuDuree(r); });

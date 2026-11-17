@@ -50,7 +50,9 @@ const rect = (c, sel) => c.p.evaluate(s => { const e = document.querySelector(s)
     const ec = await c.p.evaluate(() => { const e = document.querySelector('#opsec .ops-ecran'); const cs = getComputedStyle(e); return { fond:cs.backgroundColor, couleur:cs.color }; });
     v(tag + ' · le téléphone est SOMBRE (' + ec.fond + ') de jour comme de nuit', lum(ec.fond) < 0.1, ec);
     if (!large) { const cad = await rect(c, '#opsec .ops-cadre'), rev = await rect(c, '#opsec .ops-revenir');
-      v(tag + ' · vue étroite : le téléphone remplit la largeur (' + (cad && Math.round(cad.width)) + ' px pour ' + W + ') sans cadre arrondi', !!cad && cad.width >= W - 1 && cad.width <= W + 1, cad);
+      if (W <= 760) { const fond = await c.p.evaluate(() => getComputedStyle(document.querySelector('#opsec .ops-fenetre')).backgroundColor);
+        v(tag + ' · vue étroite : le téléphone remplit la largeur (' + (cad && Math.round(cad.width)) + ' px pour ' + W + ') sans cadre, sur un fond opaque (' + fond + ')', !!cad && cad.width >= W - 1 && cad.width <= W + 1 && /^rgb\(/.test(fond), { cad, fond }); }
+      else v(tag + ' · iPad en portrait : le téléphone encadré (' + (cad && Math.round(cad.width)) + ' × ' + (cad && Math.round(cad.height)) + ') est centré sur le fond sombre', !!cad && Math.abs(cad.width - 320) < 2 && Math.abs((cad.left + cad.width / 2) - W / 2) < 2, cad);
       v(tag + ' · « ‹ Revenir à OP GESTION » est là, cible de 44 px et plus', !!rev && rev.height >= 43.5, rev); }
     const dbp = await L.deborde(c); v(tag + ' · le téléphone ouvert : la page ne glisse pas de côté', dbp.bouge === 0 && dbp.seconde <= W, dbp);
     const dgp = await L.doigts(c.p, '#opsec'); v(tag + ' · téléphone : cibles ≥ 44 px, champs ≥ 16 px, aucun texte écrasé', dgp.petits.length === 0 && dgp.champs.length === 0 && dgp.ecrases.length === 0, dgp);
@@ -75,13 +77,14 @@ const rect = (c, sel) => c.p.evaluate(s => { const e = document.querySelector(s)
       const dgC = await L.doigts(c.p, '#cnx'); v(tag + ' · confirmation : cibles ≥ 44 px, champs ≥ 16 px, aucun texte écrasé', dgC.petits.length === 0 && dgC.champs.length === 0 && dgC.ecrases.length === 0, dgC);
       if (process.env.CAP) await L.capture(c, CAP + 'structure-' + nom + '-confirmation-' + jn + '.png');
       // approuver sur le téléphone puis regarder l'application
-      const nombre = n.texte; await S.approuver(c, 'kb', nombre); await S.attendreApp(c, 15000);
+      const nombre = n.texte; await S.approuver(c, 'kb', nombre); await S.attendreApp(c, 15000); await c.p.waitForTimeout(1400); await c.p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await c.p.waitForTimeout(500);   /* le guide s'ouvre 900 ms après la connexion */
       const ap = await c.p.evaluate(() => ({ s:SESSION, cnx:!!document.getElementById('cnx') })); v(tag + ' · le nombre juste ouvre l’application de Karim', ap.s === 'kb' && !ap.cnx, ap);
       // 2d. après la connexion
       const fl = await c.p.evaluate(() => { const o = document.getElementById('opsec'), r = []; if (!o) return r; o.querySelectorAll('*').forEach(e => { const cs = getComputedStyle(e), b = e.getBoundingClientRect(); if (cs.display !== 'none' && cs.visibility !== 'hidden' && b.width > 0 && b.height > 0 && (cs.position === 'fixed')) r.push(e.className + ' ' + Math.round(b.width) + '×' + Math.round(b.height)); }); return r; });
       if (!large) v(tag + ' · vue étroite : plus RIEN ne flotte sur l’application après la connexion (' + fl.length + ' élément)', fl.length === 0, fl);
-      else { const rond = await rect(c, '#opsec .ops-rond'); v(tag + ' · bouton rond (52 px) au bas à droite, à 16 px des bords', !!rond && Math.abs(rond.width - 52) < 2 && Math.abs((W - rond.right) - 16) < 3 && Math.abs((H - rond.bottom) - 16) < 3, rond);
-        if (nom === 'mac' || nom === 'mac720') for (const vue of ['accueil', 'planning', 'interventions', 'clients', 'equipe']) { await L.aller(c.p, vue); await c.p.waitForTimeout(300);
+      else { const rond = await rect(c, '#opsec .ops-rond'); await c.p.waitForTimeout(1300);   /* le bouton se range à la seconde qui suit (secuTic) */
+        const rond2 = await rect(c, '#opsec .ops-rond'); v(tag + ' · bouton rond (52 px) au bas à droite : à 16 px des bords, ou décalé d’un cran s’il recouvrirait une cible', !!rond2 && Math.abs(rond2.width - 52) < 2 && (W - rond2.right) >= 15 && (W - rond2.right) <= 140 && (H - rond2.bottom) >= 15 && (H - rond2.bottom) <= 200, rond2);
+        if (nom === 'mac' || nom === 'mac720') for (const vue of ['accueil', 'planning', 'interventions', 'clients', 'equipe']) { await L.aller(c.p, vue); await c.p.waitForTimeout(1400);
           const rc = await rect(c, '#opsec .ops-rond'), sous = await c.p.evaluate(() => { const o = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && getComputedStyle(e).visibility !== 'hidden') o.push({ t:(e.getAttribute('aria-label') || e.textContent || '').trim().slice(0, 30), left:b.left, top:b.top, right:b.right, bottom:b.bottom }); }); return o; });
           const touche = sous.filter(x => croise(rc, x)); v(tag + ' · « ' + vue + ' » : le bouton rond ne recouvre aucune des ' + sous.length + ' cibles', sous.length > 0 && touche.length === 0, touche.slice(0, 3)); }
         if (process.env.CAP) await L.capture(c, CAP + 'structure-' + nom + '-appli-' + jn + '.png'); }

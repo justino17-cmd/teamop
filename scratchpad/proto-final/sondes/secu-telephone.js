@@ -5,12 +5,12 @@ const txt = c => c.p.evaluate(() => document.querySelector('#opsec .ops-ecran').
 (async () => {
   const c = await S.ouvrir({ profil:'mac' });
   console.log('\n── le sélecteur « Téléphone de … » ──');
-  const sel = await c.p.evaluate(() => { const s = document.querySelector('#opsec .ops-qui'); return { label:s.getAttribute('aria-label'), opts:[...s.options].map(o => o.textContent.replace(/\s+/g, ' ').trim()), val:s.value }; });
+  const sel = await c.p.evaluate(() => { const s = document.querySelector('#opsec select[data-ops="qui"]'); return { label:s.getAttribute('aria-label'), opts:[...s.options].map(o => o.textContent.replace(/\s+/g, ' ').trim()), val:s.value }; });
   v('population : les six personnes, chacune avec son nom d’appareil', sel.opts.length === 6 && /iPhone de Marc/.test(sel.opts[0]) && /Android de Karim/.test(sel.opts.join('|')) && /Android de Sophie/.test(sel.opts.join('|')), sel);
   v('le sélecteur est nommé « Téléphone de quelle personne ? » et suit la personne de l’écran', /Téléphone de quelle personne \?/.test(sel.label) && sel.val === 'marc', sel);
   await S.connecter(c, 'kb', await S.provisoire(c, 'kb')); await S.attendreSel(c, '[data-sec="nombre"]', 6000);
-  v('quand Karim tape son mot de passe, le téléphone affiché devient celui de Karim', await c.p.evaluate(() => document.querySelector('#opsec .ops-qui').value === 'kb'));
-  v('chaque téléphone garde sa demande : celui de Marc n’en montre aucune', await c.p.evaluate(() => { const s = document.querySelector('#opsec .ops-qui'); s.value = 'marc'; s.dispatchEvent(new Event('change', { bubbles:true })); return SECU.telCourant === 'marc' && document.querySelector('#opsec .ops-ecran').querySelectorAll('.ops-carte').length === 0; }));
+  v('quand Karim tape son mot de passe, le téléphone affiché devient celui de Karim', await c.p.evaluate(() => document.querySelector('#opsec select[data-ops="qui"]').value === 'kb'));
+  v('chaque téléphone garde sa demande : celui de Marc n’en montre aucune', await c.p.evaluate(() => { const s = document.querySelector('#opsec select[data-ops="qui"]'); s.value = 'marc'; s.dispatchEvent(new Event('change', { bubbles:true })); return SECU.telCourant === 'marc' && document.querySelector('#opsec .ops-ecran').querySelectorAll('.ops-carte').length === 0; }));
   console.log('\n── cinq PIN faux : le téléphone s’efface ──');
   await S.telephone(c, 'kb'); const pin0 = await txt(c);
   v('téléphone verrouillé : « Saisis ton code PIN » et « Une demande t’attend » (une demande attend)', /Une demande t’attend : saisis ton code PIN/.test(pin0), pin0.slice(0, 200));
@@ -18,7 +18,7 @@ const txt = c => c.p.evaluate(() => document.querySelector('#opsec .ops-ecran').
   await S.pin(c, '111229'); await c.p.waitForTimeout(300); const t5 = await txt(c);
   v('PIN faux 5 : « Trop de codes PIN erronés : le compte a été effacé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone. »', /Trop de codes PIN erronés : le compte a été effacé de ce téléphone\. Demande à un administrateur de te donner un nouveau téléphone\./.test(t5), t5.slice(0, 300));
   const ef = await c.p.evaluate(() => ({ efface:SECU.comptes.kb.tel && SECU.comptes.kb.tel.efface, ecran:SECU.ui.kb.ecran })); v('le téléphone est revenu à « neuf » et ne peut plus approuver', ef.efface === true && ef.ecran === 'neuf', ef);
-  v('le bon PIN n’y change plus rien : le compte est effacé', await (async () => { await S.pin(c, '246802'); return /Commencer|pas installée|Trop de codes/.test(await txt(c)) && !(await c.p.evaluate(() => !!document.querySelector('#opsec .ops-barre'))); })());
+  v('le bon PIN n’y change plus rien : il n’y a plus de pavé, le compte est effacé et le téléphone ne montre plus aucun code', await c.p.evaluate(() => !document.querySelector('#opsec [data-ops="pin-touche"]') && !document.querySelector('#opsec .ops-barre') && !document.querySelector('#opsec [data-ops="code6"]')));
   await L.fin(c);
 
   console.log('\n── verrouillage à 60 s, hors réseau, révoqué, suppression ──');
@@ -46,8 +46,8 @@ const txt = c => c.p.evaluate(() => document.querySelector('#opsec .ops-ecran').
 
   console.log('\n── vue étroite : quitter la vue verrouille le téléphone ──');
   const e = await S.ouvrir({ profil:'iphone' });
+  await e.p.evaluate(() => { SECU.telCourant = 'lr'; });
   await e.p.click('#cnx .ops-pastille'); await e.p.waitForTimeout(500); await S.pin(e, '246802');
-  const cl = await e.p.evaluate(() => { const k = SECU.telCourant; SECU.telCourant = 'lr'; opsDessiner(true); return k; }); await S.pin(e, '246802');
   v('iPhone : le téléphone de Léa est ouvert', await e.p.evaluate(() => !!document.querySelector('#opsec .ops-barre')));
   await e.p.click('#opsec .ops-revenir'); await e.p.waitForTimeout(400); await e.p.click('#cnx .ops-pastille'); await e.p.waitForTimeout(500);
   v('« ‹ Revenir à OP GESTION » puis « Ouvrir OP Security » : le PIN est redemandé (c’est le vrai comportement : on a quitté l’application)', await e.p.evaluate(() => !document.querySelector('#opsec .ops-barre') && !!document.querySelector('#opsec [data-ops="pin-touche"]')));

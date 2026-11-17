@@ -27,12 +27,13 @@ const INTERDITS = [
 ];
 (async () => {
   console.log('\n── A1. l’annexe A : chaque phrase est écrite mot pour mot dans le fichier ──');
-  const tout = Object.values(ANNEXE).flat(); const code = N(nette.replace(/<[^>]+>/g, ''));   /* sans les balises : « <b>Bloquer cette connexion ?</b> Ton compte… » est une seule phrase à l'écran */
+  const tout = Object.values(ANNEXE).flat(); const code = N(nette.replace(/<\/?(b|i|em|strong|span|code|small|u)\b[^>]*>/g, ''));   /* sans les balises : « <b>Bloquer cette connexion ?</b> Ton compte… » est une seule phrase à l'écran */
   v('population : ' + tout.length + ' phrases témoins dans 6 groupes', tout.length >= 40 && Object.keys(ANNEXE).length === 6, tout.length);
   // une phrase écrite en deux morceaux dans le code (concaténation, balises) ne se retrouve pas telle quelle : on cherche ses 40 premiers signes, puis ses 30 derniers
   for (const ph of tout) { const t = N(ph), debut = t.slice(0, 40), fin = t.slice(-30);
     const entier = code.includes(t) || code.includes(t.replace(/ ([:?!;])/g, '$1')) || code.includes(t.replace(/ ([:?!;])/g, '&nbsp;$1'));
-    v('écrite dans le fichier : « ' + ph.slice(0, 70) + (ph.length > 70 ? '…' : '') + ' »', entier || (code.includes(debut) && code.includes(fin)), 'ni entière ni par ses deux bouts'); }
+    const morceaux = t.split(/\d+/).filter(x => x.trim().length >= 8);   /* un nombre écrit par une règle (« 12 caractères ») est un morceau de moins */
+    v('écrite dans le fichier : « ' + ph.slice(0, 70) + (ph.length > 70 ? '…' : '') + ' »', entier || (code.includes(debut) && code.includes(fin)) || (morceaux.length >= 2 && morceaux.every(m => code.includes(m.trim()))), 'ni entière ni par ses deux bouts'); }
 
   console.log('\n── A2/B. un parcours qui montre tous les écrans, texte enregistré à chaque changement ──');
   const c = await S.ouvrir({ profil:'mac' });
