@@ -20,6 +20,21 @@ ecrans = [
  {"nom": "Fiche d'une facture", "fonction": "vueFacture (ligne 5302, enveloppée ligne 10722)", "acces": "une ligne de la liste, #facture-x-<id>, « Ouvrir la facture » du cadre"},
  {"nom": "Fenêtres : Ajouter, Nouvelle facture, Aperçu et envoi, Relancer, Paiement en partie, Paiement reçu, Faire un avoir", "fonction": "cxNouveau, cxNouvelleFacture, ACTIONS.apercuEnvoi / relance / partiel / ajoutEnc / avoir", "acces": "boutons de la fiche et de l'en-tête de la Comptabilité"},
 ]
+SONDES = {
+ "compta-ventes-balayage-rapide.js": "balayage de chaque geste (recensement depuis le DOM) : voir couverture ; écrans : Par intervention, Factures & avoirs, Avoirs, Comptes clients, Contrats, Paiements, Caisse & chèques (ordinateur et iPhone) ; barre d'espaces et Pilotage : balayés une fois",
+ "compta-ventes-parcours-a.js": "19 ✓ · 4 ✗ — facture à la main (défauts 01, 02, 02b, 07)",
+ "compta-ventes-parcours-b.js": "mac 25 ✓ · 3 ✗, iphone 23 ✓ · 5 ✗ (défauts 08, 08b, et leurs suites) — encaisser (entier, partiel, annuler, paiement reçu)",
+ "compta-ventes-parcours-c.js": "16 ✓ · 2 ✗ — relancer et avoirs (défauts 05, 06)",
+ "compta-ventes-parcours-d.js": "25 ✓ · 1 ✗ — liaison OP GESTION ↔ cadre (défaut 13)",
+ "compta-ventes-parcours-e.js": "mac 13 ✓ · 0 ✗, iphone 13 ✓ · 0 ✗ — droits : Julie, Sophie, Karim",
+ "compta-ventes-parcours-f.js": "26 ✓ · 0 ✗ — facture d'une intervention (2 interventions, au centime), numéros uniques",
+ "compta-ventes-parcours-g.js": "voir défauts 12 et 12b — visite d'un contrat créé puis signé",
+ "compta-ventes-parcours-h.js": "11 ✓ · 0 ✗ — un encaissement de 121,00 € vu à l'Accueil, au Pilotage, aux Paiements, aux Comptes clients, sur la fiche client",
+ "compta-ventes-parcours-i.js": "5 ✓ · 1 ✗ — 600 devis à acompte rejoués (défaut 18)",
+ "compta-ventes-parcours-j.js": "23 ✓ · 0 ✗ — gestes maladroits : double toucher, retour du navigateur, Échap et croix sur 5 fenêtres",
+ "compta-ventes-mise-en-page.js": "mac 40 ✓ · 0 ✗, windows 40 ✓ · 0 ✗, iphone 94 ✓ · 6 ✗, android 94 ✓ · 6 ✗, petit 94 ✓ · 6 ✗, ipad 94 ✓ · 6 ✗, julie iphone 47 ✓ · 3 ✗ (les ✗ sont le défaut 14)",
+ "compta-ventes-enligne.js": "3 ✓ · 1 ✗ — Paiement en ligne (défaut 20)",
+}
 defauts = [
  {"n": "compta-ventes-01", "gravite": "gênant", "ecran": "Nouvelle facture (formulaire)", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Comptabilité › Ventes › Factures & avoirs › ＋ Ajouter › Facture client ; désignation « Mise en service », quantité « -3 », prix « 100 » ; Créer la facture.",
@@ -111,8 +126,8 @@ defauts = [
  {"n": "compta-ventes-12b", "gravite": "bloquant", "ecran": "Facture de la visite d'un contrat « à l'an »", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Créer un contrat facturé « une fois par an, à la signature » (600 €), le signer (la facture de l'année est préparée) ; terminer la première visite.",
   "attendu": "Le dossier de la visite dit « Couverte par le contrat » : aucune seconde facture.",
-  "constate": "Une seconde facture « Main-d'œuvre contrat 54,17 + Déplacement 29,17 » (83,34 € HT) est préparée pour la visite, en plus de la facture annuelle : le client est facturé deux fois (les contrats d'avant, eux, sont bien « couverts »).",
-  "preuve": "sonde compta-ventes-parcours-g.js (✗ compta-ventes-12b)", "ou": P + ":factureDepuis (5264) : aucun garde `contrat.fact === 'an'` avant la branche par défaut ; cxDossier ligne 10771 sait déjà dire « contrat »",
+  "constate": "Une seconde facture « Main-d'œuvre contrat 54,17 + Déplacement 29,17 + nettoyant 10,33 » (93,67 € HT) est préparée pour la visite, en plus de la facture annuelle : le client est facturé deux fois (les contrats d'avant, eux, sont bien « couverts »).",
+  "preuve": "sonde compta-ventes-parcours-g.js (✗ compta-ventes-12b : facture de visite de 93,67 € HT sur un contrat « à l'an » déjà facturé à la signature ; même constat pour un contrat « mensuel », sans verdict faute de règle écrite)", "ou": P + ":factureDepuis (5264) : aucun garde `contrat.fact === 'an'` avant la branche par défaut ; cxDossier ligne 10771 sait déjà dire « contrat »",
   "correction": "Dans factureDepuis : `const ctr = i.type === 'Contrat' && CONTRATS.find(k => k.cli === i.cli && k.st === 'signe'); if (ctr && ctr.fact === 'an') return;`."},
  {"n": "compta-ventes-13", "gravite": "gênant", "ecran": "Cadre « OP COMPTABLE » — Voir le PDF d'une facture", "role": "marc", "profils": ["mac"], "decision": "corriger",
   "etapes": "Menu Comptabilité › cadre › Ventes et encaissements › FAC-2026-0128 › Voir le PDF.",
@@ -148,14 +163,16 @@ J = {
  "defauts": defauts,
 }
 # couverture lue depuis les balayages déjà écrits
-tot, tou, profs = 0, 0, set()
-for f in os.listdir(D):
+tot, tou, profs, vus = 0, 0, set(), {}
+for f in sorted(os.listdir(D), key=lambda n: (n.count('-'), n)):   # ordre alphabétique : un fichier de reprise (suffixe) passe APRÈS le fichier complet et remplace son écran
     if f.startswith('balayage-compta-ventes-') and f.endswith('.json'):
         d = json.load(open(os.path.join(D, f)))
         if 'profil' not in d: continue
         profs.add(d['profil'])
-        for k, v in d['sorties'].items(): tot += v['recenses']; tou += v['touches']
-J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": sorted(profs)})
+        for k, v in d['sorties'].items(): vus[k] = v
+for k, v in vus.items(): tot += v['recenses']; tou += v['touches']
+J['couverture'].update({"gestesRecenses": tot, "gestesTouches": tou, "profils": ["mac", "windows", "ipad", "iphone", "android", "petit"], "profilsDuBalayage": sorted(profs), "parcours": 10})
+J['sondes'] = SONDES
 extra = os.path.join(D, 'compta-ventes-extra.json')   # constats ajoutés par les lots suivants (même forme), pour ne pas retoucher ce fichier
 if os.path.exists(extra):
     e = json.load(open(extra)); J['defauts'] += e.get('defauts', []); J['nonCouvert'] += e.get('nonCouvert', []); J['couverture'].update(e.get('couverture', {}))
