@@ -10,12 +10,11 @@
   },
   "d": {
    "petits": [
-    "Voir dans Tâches › 1114×41",
-    "Aujourd’hui · 9 140×40",
-    "À venir · 8 104×40",
-    "À planifier · 3 127×40",
-    "Terminées · 8 129×40",
-    "Toutes · 24 112×40"
+    "Aujourd’hui · 9 240×40",
+    "À venir · 8 204×40",
+    "À planifier · 3 227×40",
+    "Terminées · 8 229×40",
+    "Toutes · 24 212×40"
    ],
    "champs": [],
    "ecrases": []
@@ -37,12 +36,11 @@
   },
   "d": {
    "petits": [
-    "Voir dans Tâches › 1114×41",
-    "Aujourd’hui · 9 136×40",
-    "À venir · 8 104×40",
-    "À planifier · 3 127×40",
-    "Terminées · 8 129×40",
-    "Toutes · 24 114×40"
+    "Aujourd’hui · 9 237×40",
+    "À venir · 8 205×40",
+    "À planifier · 3 227×40",
+    "Terminées · 8 230×40",
+    "Toutes · 24 214×40"
    ],
    "champs": [],
    "ecrases": []
@@ -209,6 +207,7 @@
     "＋ Nouveau client 158×40",
     "Un jour · toute l’équipe 196×40",
     "Une personne · sa semaine 226×40",
+    "Mon entreprise 103×20",
     "Le premier créneau libre 195×40",
     "Plus tard · « à planifier » 195×40"
    ],
@@ -217,7 +216,7 @@
   },
   "bas": {
    "barreHaut": 900,
-   "dernierBas": 2626,
+   "dernierBas": 2603,
    "fixes": []
   }
  },
@@ -238,6 +237,7 @@
     "Professionnel 130×40",
     "Un jour · toute l’équipe 196×40",
     "Une personne · sa semaine 226×40",
+    "Mon entreprise 103×20",
     "Le premier créneau libre 195×40",
     "Plus tard · « à planifier » 195×40"
    ],
@@ -246,7 +246,7 @@
   },
   "bas": {
    "barreHaut": 900,
-   "dernierBas": 2579,
+   "dernierBas": 2556,
    "fixes": []
   }
  },
@@ -265,7 +265,7 @@
     "＋ Nouveau client 158×40",
     "Un jour · toute l’équipe 196×40",
     "Une personne · sa semaine 226×40",
-    " 876×40",
+    "Mon entreprise 103×20",
     "Le premier créneau libre 195×40",
     "Plus tard · « à planifier » 195×40"
    ],
@@ -274,7 +274,7 @@
   },
   "bas": {
    "barreHaut": 900,
-   "dernierBas": 2738,
+   "dernierBas": 2718,
    "fixes": []
   }
  },
@@ -538,7 +538,7 @@
   },
   "bas": {
    "barreHaut": 900,
-   "dernierBas": 355,
+   "dernierBas": 287,
    "fixes": []
   }
  },
@@ -626,12 +626,11 @@
   },
   "d": {
    "petits": [
-    "Voir dans Tâches › 1114×41",
-    "Aujourd’hui · 9 136×40",
-    "À venir · 8 104×40",
-    "À planifier · 3 127×40",
-    "Terminées · 8 129×40",
-    "Toutes · 24 114×40"
+    "Aujourd’hui · 9 237×40",
+    "À venir · 8 205×40",
+    "À planifier · 3 227×40",
+    "Terminées · 8 230×40",
+    "Toutes · 24 214×40"
    ],
    "champs": [],
    "ecrases": []

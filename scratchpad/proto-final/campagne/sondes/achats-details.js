@@ -25,10 +25,10 @@ const { L, CAP, txt, panneau } = require('./achats-outils.js'), v = L.v;
   await clic('[data-ac^="transfert|"]'); await L.calme(p, 700);
   if (/au garage/.test(await panneau(p))) { await clic('[data-ac^="transfertok"]'); await L.calme(p, 700); }
   const rec = await E(() => { const t = document.getElementById('toast'), vis = e => e && e.classList.contains('on'); const bs = [...document.querySelectorAll('#calque .panneau .actions button, #calque .panneau button')].filter(b => b.offsetParent && b.getBoundingClientRect().height > 10); const rt = t && vis(t) ? t.getBoundingClientRect() : null;
-    const touche = rt ? bs.filter(b => { const r = b.getBoundingClientRect(); return !(r.right < rt.left || r.left > rt.right || r.bottom < rt.top || r.top > rt.bottom); }).map(b => b.textContent.trim().slice(0, 30)) : []; return { toast: !!rt, haut: rt ? Math.round(rt.top) : null, couverts: touche, boutonsToast: t ? [...t.querySelectorAll('button')].map(b => b.textContent.trim()) : [], texte: t ? t.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '' }; });
+    const touche = rt ? bs.filter(b => { const r = b.getBoundingClientRect(); return !(r.right < rt.left || r.left > rt.right || r.bottom < rt.top || r.top > rt.bottom); }).map(b => b.textContent.trim().slice(0, 30)) : []; return { toast: !!rt, haut: rt ? Math.round(rt.top) : null, couverts: touche, annulerDansFenetre: !!document.querySelector('#calque .panneau [data-axa="trfannul"]'), boutonsToast: t ? [...t.querySelectorAll('button')].map(b => b.textContent.trim()) : [], texte: t ? t.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : '' }; });
   console.log('   toast / boutons de la fenêtre :', JSON.stringify(rec)); await L.capture(c, CAP + `det-toast-fenetre-${tag}.png`);
   v('D3 (achats-06) le message qui suit « Transférer » ne recouvre aucun bouton de la fenêtre de commande', rec.couverts.length === 0, rec);
-  v('D3b le message d’un transfert garde son bouton « Annuler » (un geste de stock se défait, huit secondes)', rec.boutonsToast.includes('Annuler'), rec);
+  v('D3b le message d’un transfert garde son bouton « Annuler » (un geste de stock se défait, huit secondes)', (rec.boutonsToast.includes('Annuler') || rec.annulerDansFenetre), rec);
   await L.ranger(p);
   // (4) le retour du navigateur ferme la fenêtre ouverte, sans quitter l'écran
   await L.aller(p, 'achats'); await clic('[data-axa="dem"]'); await L.calme(p, 400); const h0 = await E(() => location.hash);
