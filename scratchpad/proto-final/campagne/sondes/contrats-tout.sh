@@ -6,12 +6,14 @@
 #   AVEC_BALAYAGE=1 bash …/contrats-tout.sh                                   # + le balayage (recensement de gestes)
 # Journal complet : $CAP/contrats-tout.log (hors dépôt). Durée : voir la ligne « DURÉE » imprimée en fin de passage.
 #
-# CE QUI EST JOUÉ : chaque sonde sur UN ordinateur (mac, jour) ET UN téléphone (iphone ; la NUIT quand la sonde sait la jouer, le jour sinon).
-# CE QUI EST LAISSÉ DE CÔTÉ (pour tenir dans la durée, et DIT ici) :
-#   · les profils ipad, android, windows, petit, mac720 de la sonde de mise en page, et mac NUIT / iphone JOUR des sondes qui prennent « nuit » — sous COMPLET=1 ;
-#   · contrats-balayage : un RECENSEMENT (page neuve, un geste, ce qu'il a fait), sans verdict propre — le verdict s'y fabrique (« ✓ » = geste touché,
-#     « ✗ » = geste non touché ou erreur de console). Sous AVEC_BALAYAGE=1 seulement ;
-#   · contrats-outils.js (un outil, pas un contrôle).
+# CE QUI EST JOUÉ (le passage essentiel, ~6 min) : TOUTES les sondes sur UN ordinateur (mac, jour) ; et sur UN téléphone (iphone, la NUIT quand la sonde sait la jouer)
+# celles qui sont courtes ou qui regardent le rendu (atelier, début, fiche, renouvellement, droits, visite comprise, mise en page, barre de la fiche).
+# CE QUI EST LAISSÉ DE CÔTÉ (pour tenir dans la durée, et DIT ici) — sous COMPLET=1 :
+#   · le TÉLÉPHONE des parcours (a, b, c : une à deux minutes chacun) et des recontrôles a, b, c, e (de la nuit : un quart d'heure à eux quatre) ;
+#   · mac NUIT et iphone JOUR des sondes qui prennent « nuit » ; les profils ipad, android, windows, petit, mac720 de la sonde de mise en page.
+# CE QUI N'EST JOUÉ QUE SOUS AVEC_BALAYAGE=1 : contrats-balayage, un RECENSEMENT (page neuve, un geste, ce qu'il a fait) sans verdict propre — le verdict s'y fabrique :
+#   « ✓ » = geste touché, « ✗ » = geste non touché ou erreur de console.
+# CE QUI N'EST JAMAIS JOUÉ : contrats-outils.js (un outil, pas un contrôle).
 # Les sondes réécrivent des relevés JSON suivis dans campagne/ : à la fin le script LISTE ceux qui ont bougé ; les remettre (git checkout -- <fichier>) avant de
 # commiter, sauf si l'on veut vraiment les renouveler.
 # Tout le corps est dans une fonction : bash lit un script au fur et à mesure, et le modifier pendant qu'il tourne le fait dérailler.
@@ -32,18 +34,16 @@ lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout "$DEL
   if [ $code -ne 0 ]; then echo "$s" | grep -E "✗|ÉCHEC|Error" | grep -vE '^[[:space:]]*[0-9]+ ✓' | head -3 | cut -c1-220 | sed 's/^/    /' | tee -a "$J"; ko=$((ko+1)); fi; }
 sonde(){ local niv="$1"; shift; [ "$niv" = C ] && [ -z "$COMPLET" ] && return 0; lance "$@"; }
 PC=mac; TEL=iphone
+duo(){ local tel="$1" nom="$2"; shift 2; sonde E "$nom mac" "$@" mac; sonde "$tel" "$nom iphone" "$@" iphone; }
+duon(){ local tel="$1" nom="$2"; shift 2; sonde E "$nom mac jour" "$@" mac; sonde "$tel" "$nom iphone nuit" "$@" iphone nuit; sonde C "$nom mac nuit" "$@" mac nuit; sonde C "$nom iphone jour" "$@" iphone; }
 
-# Sondes qui se jouent par profil, sans nuit : ordinateur puis téléphone.
-for x in atelier debut fiche-taches parcours-a parcours-b parcours-c recontrole-d renouvellement roles visite-comprise; do
-  for p in $PC $TEL; do sonde E "contrats $x $p" node $S/contrats-$x.js $p; done
-done
+# Sondes qui se jouent par profil, sans nuit : ordinateur, puis téléphone (courtes : le téléphone est dans le passage essentiel ; les parcours longs seulement sous COMPLET=1).
+for x in atelier debut fiche-taches recontrole-d renouvellement roles visite-comprise; do duo E "contrats $x" node $S/contrats-$x.js; done
+for x in parcours-a parcours-b parcours-c; do duo C "contrats $x" node $S/contrats-$x.js; done
 # Sondes qui prennent « nuit » : ordinateur de jour, téléphone de nuit (et l'autre moitié sous COMPLET=1).
-for x in fiche-barre recontrole-a recontrole-b recontrole-c recontrole-e mise-en-page; do
-  sonde E "contrats $x mac jour" node $S/contrats-$x.js mac
-  sonde E "contrats $x iphone nuit" node $S/contrats-$x.js iphone nuit
-  sonde C "contrats $x mac nuit" node $S/contrats-$x.js mac nuit
-  sonde C "contrats $x iphone jour" node $S/contrats-$x.js iphone
-done
+duon E "contrats fiche-barre" node $S/contrats-fiche-barre.js
+duon E "contrats mise-en-page" node $S/contrats-mise-en-page.js
+for x in recontrole-a recontrole-b recontrole-c recontrole-e; do duon C "contrats $x" node $S/contrats-$x.js; done
 for p in ipad android windows petit mac720; do
   sonde C "contrats mise-en-page $p jour" node $S/contrats-mise-en-page.js $p
   sonde C "contrats mise-en-page $p nuit" node $S/contrats-mise-en-page.js $p nuit
