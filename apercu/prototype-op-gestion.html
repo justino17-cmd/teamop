@@ -214,7 +214,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
-  body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
+  body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -4521,6 +4521,8 @@ function toast(msg, action){ // action : { lib, fn }
   // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
   // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
+  // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
