@@ -8,7 +8,7 @@ const { L, v, ouvrirComme, toast, fin } = require('./droits-commun.js');
   await L.aller(c.p, 'equipe');
   const ouvrir = async k => { await c.p.evaluate(x => { fermerPanneau(); eqFiche(x); const d = document.querySelector('details.eqx-det'); if (d) d.open = true; }, k); await L.calme(c.p, 400); };
   // sa propre fiche : tout est désactivé, et elle le dit
-  await ouvrir('a2'); let s = await c.p.evaluate(() => { const z = document.querySelector('#calque .panneau'); const I = [...z.querySelectorAll('input[data-eqd], input[data-eqs], input[data-eqt]')]; return { n:I.length, off:I.filter(i => i.disabled).length, phrase:/Tu ne peux pas régler tes propres droits : c’est une autre personne qui le fait\./.test(z.textContent), profil:!z.querySelector('select[data-eqprof]') }; }); n++;
+  await ouvrir('a2'); let s = await c.p.evaluate(() => { const z = document.querySelector('#calque .panneau'); const I = [...z.querySelectorAll('input[data-eqd], input[data-eqs], input[data-eqt]')]; return { n:I.length, off:I.filter(i => i.disabled).length, phrase:/Tu ne peux pas régler tes propres droits : c’est une autre personne qui le fait\./.test(z.textContent.replace(/[\u00a0\u202f]/g, ' ')), profil:!z.querySelector('select[data-eqprof]') }; }); n++;
   v('sa propre fiche : cases, droits à part et « Travaille sur le terrain » désactivés ; la phrase le dit ; pas de choix de profil', s.n > 20 && s.off === s.n && s.phrase && s.profil, s);
   // la fiche de Marc (administrateur) : figée
   await ouvrir('marc'); s = await c.p.evaluate(() => { const z = document.querySelector('#calque .panneau'); const I = [...z.querySelectorAll('input[data-eqd], input[data-eqs], input[data-eqt]')]; return { n:I.length, off:I.filter(i => i.disabled).length }; }); n++;
@@ -16,7 +16,7 @@ const { L, v, ouvrirComme, toast, fin } = require('./droits-commun.js');
   // la fiche de Sophie : réglable… mais jamais au-delà de ce qu'Alix a elle-même
   await ouvrir('sm');
   const g1 = await c.p.evaluate(() => { const i = document.querySelector('input[data-eqd="sm|stock|c"]'); const avant = eqDe('sm').droits.cats.stock.c; i.checked = true; i.dispatchEvent(new Event('change', { bubbles:true })); return { off:i.disabled, avant, apres:eqDe('sm').droits.cats.stock.c, coche:i.checked }; }); await L.calme(c.p, 300); n++;
-  v('donner « Stock › Créer » (qu\'Alix n\'a pas) : refusé, la donnée ne bouge pas, la case revient', g1.off === false && g1.apres === g1.avant && g1.coche === g1.avant, g1);
+  v('donner « Stock › Créer » (qu\'Alix n\'a pas) : refusé, la donnée ne bouge pas, la case revient', g1.off === false && g1.apres === g1.avant && g1.coche === !!g1.avant, g1);
   v('… et le message dit « Tu ne peux pas donner un droit que tu n’as pas toi-même. »', (await toast(c.p)).includes('Tu ne peux pas donner un droit que tu n’as pas toi-même.'), await toast(c.p));
   await ouvrir('sm');
   const g2 = await c.p.evaluate(() => { const i = document.querySelector('input[data-eqd="sm|crm|c"]'); const avant = eqDe('sm').droits.cats.crm.c; i.click(); return { avant, apres:eqDe('sm').droits.cats.crm.c }; }); await L.calme(c.p, 400); n++;
@@ -35,6 +35,6 @@ const { L, v, ouvrirComme, toast, fin } = require('./droits-commun.js');
   const z = await d.p.evaluate(() => { const i = document.querySelector('input[data-eqd="julie|crm|c"]'); const avant = eqDe('julie').droits.cats.crm.c; const n0 = DROITS_REFUS.length; i.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true })); return { avant, apres:eqDe('julie').droits.cats.crm.c, refus:DROITS_REFUS.length - n0 }; }); n++;
   v('sans « Modifier » : un clic synthétique sur une case de droit est avalé (garde de fiche)', z.avant === z.apres && z.refus >= 1, z);
   v('aucune erreur de page', c.err.length === 0 && d.err.length === 0, [c.err.slice(0, 2), d.err.slice(0, 2)]);
-  v('population : sept situations jouées', n === 8, n);
+  v('population : sept situations jouées', n === 7, n);
   await L.fin(d); await fin();
 })().catch(e => { console.error(e); process.exit(1); });
