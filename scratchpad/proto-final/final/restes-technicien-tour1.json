@@ -1,0 +1,100 @@
+[
+ {
+  "nom": "technicien-02",
+  "defaut": "Ma journée : la 1re intervention du jour commençait sous le pli (y = 832 sur 844) à cause des cartes ajoutées par les refontes (pointage 231 px, messages du bureau, ligne Mon camion, habilitations).",
+  "etat": "corrigé",
+  "changement": "Ordre fixé par un dernier enveloppeur de vueMaJournee : bonjour, pointage COUCHÉ (même mise en page que Temps de travail ; titre réservé au lecteur d'écran sous 380 px), puce « N message(s) du bureau › » qui mène aux messages, LES INTERVENTIONS, puis messages en entier, Mon camion, habilitations, le reste. Aucun texte ni geste modifié.",
+  "preuve": "restes-technicien-1.js : iphone jour 12 ✓·0 ✗, android nuit 12 ✓, petit jour 12 ✓ (448 px pour une barre à 488 avec message + non commencé ; 332 sans message), petit nuit 12 ✓, mac 11 ✓ ; pointage commencé ou non, avec ou sans message. Mutations M1 (ordre) et M2 : 6 ✗ sur la copie mutée. Captures iphone/android/petit/mac regardées, jour et nuit. technicien-mise-en-page iphone : plus aucun ✗ du défaut 02 (avant 6), ipad 33 ✓·0 ✗."
+ },
+ {
+  "nom": "technicien-05",
+  "defaut": "Le rappel du matin se répétait sur Mes frais et Mon camion.",
+  "etat": "corrigé",
+  "changement": "rlNotifsListe(k, ailleurs) : le rappel « tu n'as pas encore commencé » ne vit que sur Ma journée ; Mes frais, la pastille et la feuille de Mon camion l'écartent.",
+  "preuve": "restes-technicien-1.js §05 (techfrais, moncamion sans rappel ; Ma journée le garde) vert sur 5 profils ; mutation M2 tombe. materiel-camion.js mesure maintenant la pastille avec un vrai message."
+ },
+ {
+  "nom": "technicien-06",
+  "defaut": "Mon camion › Il me manque une pièce : « Prévenir le bureau » se grisait sans raison quand « Combien ? » était vidé ou mis à 0.",
+  "etat": "corrigé",
+  "changement": "Le gestionnaire d'entrée crée la ligne .mat-pourquoi au moment où le bouton se grise.",
+  "preuve": "technicien-parcours-prevenir-bureau.js iphone : 24 ✓·0 ✗ (K1c réglé ; S1 et S3 étaient une sonde périmée : le souci est dans Mon camion, sonde mise à jour). Mutation M7 : 23 ✓·1 ✗ (K1c). Noter un plein / Relever le compteur / souci (envoi) : vehtemps-v5-camion.js D,E 20 ✓·0 ✗."
+ },
+ {
+  "nom": "casse 1 : liseré d'un congé refusé",
+  "defaut": "« Marc a refusé ta demande » portait le liseré vert de la réussite.",
+  "etat": "corrigé",
+  "changement": "Le liseré suit la pastille : refus rouge, « d'autres dates » ambre (pastille comprise), validé vert ; la tâche confiée (.tkx-avis) inchangée.",
+  "preuve": "restes-technicien-2.js ipad jour 15 ✓·0 ✗ et iphone nuit (couleurs relevées au pixel calculé : liseré = fond de pastille). Mutation M3 tombe. Captures ipad jour et iphone nuit regardées."
+ },
+ {
+  "nom": "casse 2 : pied du menu iPad sous 44 px",
+  "defaut": "Nouveautés 81×40 au doigt sur iPad (Jour · Nuit · Auto étaient déjà à 44 px depuis la règle client-20).",
+  "etat": "corrigé",
+  "changement": "@media (pointer:coarse){.nv-menu{min-height:44px}} — une fois pour tous les rôles.",
+  "preuve": "restes-technicien-2.js ipad : pied du menu ≥ 44 px pour sm, julie, marc ; technicien-mise-en-page ipad 33 ✓·0 ✗ (avant 12 ✗). Mutation M6 : Nouveautés 231×40 ✗."
+ },
+ {
+  "nom": "casse 3 : « C'est quoi ? » pré-rempli « Carburant »",
+  "defaut": "Un péage ou des gants partaient titrés « Carburant · … · plaque ».",
+  "etat": "corrigé",
+  "changement": "La liste commence par « Choisis dans la liste… » (non choisie) ; envoyer sans choix dit « Choisis d'abord ce que c'est… », la fenêtre reste ouverte, rien n'est créé. La plaque reste réservée à « Carburant » (vxRattacher).",
+  "preuve": "restes-technicien-2.js : 6 chemins joués (liste vide, refus, choix, titre « Péage ou parking · Péage A10 » sans plaque). Mutation M4 : 3 ✗ (liste pré-remplie, envoi parti, titre)."
+ },
+ {
+  "nom": "casse 4 : fenêtre « Il manque encore des choses »",
+  "defaut": "≈ 50 px de vide avant la liste et avant la phrase de fin.",
+  "etat": "corrigé",
+  "changement": "Classes mq-i / mq-l / mq-s : marges des <p> et <ul> remises à zéro (la colonne du panneau pose déjà 14 px).",
+  "preuve": "restes-technicien-2.js : écarts entre blocs ≤ 24 px, ipad jour et iphone nuit ; captures regardées."
+ },
+ {
+  "nom": "Mon camion « Tout est en règle » au-dessus de « Il manque à bord » (vus-par-le-chef)",
+  "defaut": "Deux phrases qui se contredisent pour qui lit vite.",
+  "etat": "corrigé",
+  "changement": "UNE constante (VH_EN_REGLE = « Papiers et entretien : en règle ») pour l'en-tête de Mon camion et la ligne de Ma journée ; avec des pièces à remettre, la ligne commence par elles et les papiers passent dessous.",
+  "preuve": "vehtemps-v5-camion.js iphone A,B,C,F : 39 ✓·0 ✗ ; materiel-camion.js : 71 ✓·0 ✗ ; sondes remises au diapason (espace insécable avant « : »). Capture de Ma journée iphone regardée."
+ },
+ {
+  "nom": "technicien-09 : cases d'un jour à 320 px (38×66)",
+  "defaut": "—",
+  "etat": "déjà décidé",
+  "changement": "Aucun",
+  "preuve": "Décision (b) du chef : cases d'information, sept colonnes."
+ },
+ {
+  "nom": "Retour qui ferme la fenêtre ET quitte l'écran",
+  "defaut": "—",
+  "etat": "déjà décidé",
+  "changement": "Aucun",
+  "preuve": "Décision (a) : voie à part."
+ },
+ {
+  "nom": "Doute : la fiche client ouverte depuis un nom montre les passages des collègues (titre, statut, résumé)",
+  "defaut": "Voulu pour un technicien ?",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun",
+  "preuve": "Question du recontrôle, pas un défaut mesurable."
+ },
+ {
+  "nom": "Doute : Karim (chef d'équipe) n'a que les six écrans de Sophie",
+  "defaut": "Conforme au menu final, à confirmer.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun",
+  "preuve": "Menu final."
+ },
+ {
+  "nom": "Sonde technicien-mise-en-page : « Réessayer » / « Fermer » recouverts au centre (iphone, 6 écrans)",
+  "defaut": "Les deux boutons de .opdz-att (écran « Ouverture du document… » du cadre des documents, pointer-events none, hors de l'écran visible) sont comptés comme cibles par la sonde, sur machine chargée.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : hors de mon périmètre (cadre des documents) ; capture de Ma journée propre.",
+  "preuve": "opdz.js : 2 boutons 120×46 et 94×46, offsetParent non nul, pointer-events none. À regarder par la voie du compositeur."
+ },
+ {
+  "nom": "Pas encore recontrôlé : la partie technicien après ces corrections",
+  "defaut": "Aucun fichier regard-technicien-recontrole ni restes-technicien-tourN-recontrole n'existe encore.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun",
+  "preuve": "Non vérifié par moi : clavier seul, lecteur d'écran, Windows au doigt, parcours de nuit sur iPad et Windows."
+ }
+]
