@@ -51,6 +51,9 @@ const seule = process.argv[2];
   if (!seule) {
     const vus = []; await fn({ voie: 'mail', depuis: 2, jusqua: 3 }, async (t, o) => { vus.push(o.label); return 'x'; }, () => {});
     if (vus.length !== 2 || !/^mail:3:/.test(vus[0]) || !/^mail:4:/.test(vus[1])) { ko++; console.log('✗ reprise { depuis:2, jusqua:3 } :', vus.join(' | ')); } else console.log('✓ reprise { depuis:2, jusqua:3 } : 2 étapes,', vus.join(' | '));
+    // Un arbre passé en argument remplace celui de la voie (deux tranches d'une même voie côte à côte).
+    let vu = ''; await fn({ voie: 'securite', depuis: 2, jusqua: 2, arbre: '/home/user/wt-autre' }, async (t2, o) => { vu = t2; return 'x'; }, () => {});
+    if (!vu.includes('Ton arbre de travail git : /home/user/wt-autre') || vu.includes('/home/user/wt-securite')) { ko++; console.log('✗ arbre en argument : la consigne ne porte pas le bon arbre'); } else console.log('✓ arbre en argument : la consigne porte /home/user/wt-autre et plus /home/user/wt-securite');
     let jete = false; try { await fn({ voie: 'inconnue' }, async () => 'x', () => {}); } catch (e) { jete = true; }
     if (!jete) { ko++; console.log('✗ une voie inconnue ne jette pas'); } else console.log('✓ une voie inconnue jette');
   }

@@ -39,4 +39,4 @@ const LONG = 'Condensateur de démarrage permanent 5 µF 450 V à fixation unive
     await L.fin(c);
   }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(2); });
+})().catch(e => { console.error(e); L.v('le parcours a pu se jouer jusqu\'au bout (' + String(e.message).split('\n')[0].slice(0, 90) + ')', false); try { L.fermer(); } catch (x) {} process.exit(L.bilan() ? 1 : 2); });   // un parcours qui plante est un parcours qui échoue : la mutation ne doit pas rester « vivante » sur un code de sortie 2

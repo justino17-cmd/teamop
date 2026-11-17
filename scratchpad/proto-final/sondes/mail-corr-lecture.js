@@ -38,11 +38,11 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   const liste = await S(c, () => { const i = R().querySelector('#suiviAssigne'); return i ? { list:i.getAttribute('list'), noms:[...R().querySelectorAll('#suiviEquipe option')].map(o => o.value), ph:i.placeholder } : null; });
   v('ordinateur-18 « Assigné à » est lié à une liste des personnes de l\'équipe (au moins trois prénoms)', !!liste && liste.list === 'suiviEquipe' && liste.noms.length >= 3 && liste.noms.includes('Sophie'), liste);
   await p.locator('#courrier-hote #suiviAssigne').click(); await p.keyboard.type('Zorro'); await p.keyboard.press('Enter'); await p.waitForTimeout(700);
-  const zorro = await S(c, () => ({ toast:(R().querySelector('#toast') || {}).innerText || '', champ:R().querySelector('#suiviAssigne').value, tache:TACHES.some(t => /Zorro/.test(t.t || '')) }));
+  const zorro = await S(c, () => ({ toast:R().querySelector('#toast').classList.contains('show') ? R().querySelector('#toast').innerText : '', champ:R().querySelector('#suiviAssigne').value, tache:TACHES.some(t => /Zorro/.test(t.t || '')) }));
   v('ordinateur-18 « Zorro » : le refus se DIT (« Personne ne s’appelle… »), le champ revient à vide, aucune tâche créée', /Personne ne s’appelle/.test(zorro.toast) && zorro.champ === '' && !zorro.tache, zorro);
   await p.waitForTimeout(2700);   // la bulle du refus s'efface avant le geste suivant
   await p.locator('#courrier-hote #suiviAssigne').click(); await p.keyboard.type('Sophie'); await p.keyboard.press('Enter'); await p.waitForTimeout(900);
-  const sophie = await S(c, () => ({ champ:R().querySelector('#suiviAssigne').value, toast:(R().querySelector('#toast') || {}).innerText || '' }));
+  const sophie = await S(c, () => ({ champ:R().querySelector('#suiviAssigne').value, toast:R().querySelector('#toast').classList.contains('show') ? R().querySelector('#toast').innerText : '' }));   // le texte d'une bulle éteinte reste dans le DOM : on ne lit que celle qui est montrée
   v('ordinateur-18 « Sophie » marche toujours (valeur gardée, pas de refus)', /Sophie/.test(sophie.champ) && !/Personne ne s’appelle/.test(sophie.toast), sophie);
 
   // ── ordinateur-12 : « Prévenir le client » après une PANNE ne parle ni d'accord ni d'installation ──

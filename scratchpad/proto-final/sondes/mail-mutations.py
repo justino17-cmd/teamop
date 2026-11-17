@@ -34,6 +34,29 @@ M = [
  ('D16 : la colonne de liste redevient trop étroite sur Windows', COURRIER, 'clamp(304px,27cqw,392px)', 'clamp(280px,27cqw,392px)', 'mail-defauts.js'),
  ('téléphone : tous les gestes du bandeau redeviennent de gros boutons (le texte repoussé sous le pli)', COURRIER, 'var plus=isPhone()&&bts.length>3,', 'var plus=false,', 'mail-telephone.js'),
 ]
+
+# ── étape 4 « corriger » (17 novembre 2026) : les défauts des relectures, remis un par un ──
+RACC = "  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(rcCible(ev))) return;\n  /* la Boîte mail a SES raccourcis (c écrire, / chercher, r répondre, j k e f…) : le prototype ne prend aucune touche qui vient d'elle */\n  if (ev.target && ev.target.closest && ev.target.closest('#courrier-hote')) return;   /* l'événement est reciblé sur la racine du module (un div DANS #courrier-hote) */"
+M += [
+ ('ordinateur-07 : le clavier du module repasse par les raccourcis du prototype (ni composedPath ni garde de l\'hôte)', PAGE, RACC, '  if (ev.metaKey || ev.ctrlKey || ev.altKey || rcSaisie(ev.target)) return;', 'mail-corr-clavier.js'),
+ ('ordinateur-04 : le bandeau « reconnu » repasse AVANT le texte (ordinateur)', COURRIER, '.opc .hband{order:6;display:flex', '.opc .hband{order:2;display:flex', 'mail-corr-lecture.js'),
+ ('telephone-01 : le bandeau « reconnu » repasse AVANT le texte (téléphone)', COURRIER, '.opc:where([data-fmt="phone"]) .hband{order:6;', '.opc:where([data-fmt="phone"]) .hband{order:2;', 'mail-corr-telephone.js:1'),
+ ('ordinateur-08 : un brouillon écrit ici est pris pour un courriel du prototype', COURRIER, 'boite:m.acct,\n      local:!m.src};', 'boite:m.acct,\n      local:false};', 'mail-corr-clavier.js'),
+ ('ordinateur-09 : « Voir tous » ne cherche que dans la boîte de réception', PAGE, 'c.rechercher(t, { partout:true })', 'c.rechercher(t)', 'mail-corr-clavier.js'),
+ ('ordinateur-12 : « Prévenir le client » après une panne parle d\'accord et d\'installation', PAGE, "else if (I && R.sujet !== 'accord') conf =", "else if (false) conf =", 'mail-corr-lecture.js'),
+ ('ordinateur-15 : l\'en-tête de la page ne suit pas le suivi', PAGE, "courrierEnteteMaj(); return Promise.resolve(courrierSuivi(m)", "return Promise.resolve(courrierSuivi(m)", 'mail-corr-lecture.js'),
+ ('ordinateur-17 : la pièce jointe redevient 61 octets illisibles', PAGE, "new Blob([pdfUnePage(p[0].replace(/\\.pdf$/i, ''), courrierPieceLignes(m, p[0]))], { type:'application/pdf' })", "new Blob(['%PDF-1.4\\n% ' + p[0] + '\\n'], { type:'application/pdf' })", 'mail-corr-lecture.js'),
+ ('ordinateur-18 : « Assigné à » ne propose plus l\'équipe', PAGE, "equipe:COLLEGUES.filter(q => q !== MOI && eqDe(q) && eqDe(q).actif).map(prenomDe), ", "", 'mail-corr-lecture.js'),
+ ('ordinateur-19 : « Réessayer » relance sans un mot', COURRIER, '  $("#list").addEventListener("click",function(e){\n    if(e.target.closest("[data-retry]")){ reessayer(); return; }', '  $("#list").addEventListener("click",function(e){\n    if(e.target.closest("[data-retry]")){ charger(false); return; }', 'mail-corr-lecture.js'),
+ ('ordinateur-01 : le nom de la catégorie recolle au nombre de la boîte', COURRIER, 'var ctxTxt=ctxLbl;', 'var ctxTxt=ctxLbl+(cl?(ctxLbl?" · ":"")+cl:"");', 'mail-corr-liste.js'),
+ ('ordinateur-02 : une boîte en panne vide les dossiers locaux (Brouillons)', COURRIER, 'ko0=dossierLocal(f)?[]:boitesEnEchec();', 'ko0=f.journal?[]:boitesEnEchec();', 'mail-corr-liste.js'),
+ ('ordinateur-20 : les catégories repartent sur une rangée qui défile (ordinateur)', COURRIER, '.opc:where([data-fmt="mac"],[data-fmt="pad"]) .catbar{flex-wrap:wrap;gap:5px}', '.opc:where([data-fmt="mac"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap;gap:5px}', 'mail-corr-liste.js'),
+ ('telephone-02 : le retour du navigateur quitte la Boîte mail', COURRIER, '    if(HIST.niv<=0||!isPhone()) return;\n    HIST.niv--;', '    return;\n    HIST.niv--;', 'mail-corr-telephone.js:1'),
+ ('telephone-06 : le pied de colonne recouvre les dossiers au téléphone', COURRIER, '.opc:where([data-fmt="mac"]) .side-foot{position:sticky;bottom:0;', '.opc .side-foot{position:sticky;bottom:0;', 'mail-corr-telephone.js:3'),
+ ('telephone-04 : « Envoyer » redevient une flèche sans mot', COURRIER, '.opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .lbl{display:inline;font-weight:600}', '.opc:where([data-fmt="phone"],[data-fmt="pad"]) .send-btn .lbl{display:none}', 'mail-corr-telephone.js:1'),
+ ('telephone-08 : l\'en-tête de la rubrique disparaît au téléphone', PAGE, '  .mbx-tete .mbx-ecrire{display:inline-flex}', '  .mbx-tete .mbx-ecrire{display:inline-flex}\n  .mbx-tete{display:none}', 'mail-corr-telephone.js:1'),
+ ('telephone-11 : les 128 px de marge reviennent sous la Boîte mail', PAGE, '  #contenu:has(.courrier-place){padding-bottom:0}', '  #contenu:has(.courrier-place){padding-bottom:128px}', 'mail-corr-telephone.js:1'),
+]
 de = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 a = int(sys.argv[2]) if len(sys.argv) > 2 else len(M)
 tmp = tempfile.mkdtemp(prefix='mutations-mail-')
@@ -50,7 +73,9 @@ for i, (nom, fic, ancien, nouveau, sonde) in enumerate(M, 1):
     if open(cible, encoding='utf-8').read() == orig: print('M%d : la mutation n\'a rien changé' % i); continue
     env = dict(os.environ, RACINE=racine, CAP=os.path.join(tmp, 'cap'))
     try:
-        r = subprocess.run(['node', os.path.join(SONDES, sonde)], cwd=DEPOT, env=env, capture_output=True, text=True, timeout=280)
+        fichier, _, partie = sonde.partition(':')
+        if partie: env['PARTIE'] = partie
+        r = subprocess.run(['node', os.path.join(SONDES, fichier)], cwd=DEPOT, env=env, capture_output=True, text=True, timeout=560)
         sortie, code = r.stdout + r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         sortie, code = (e.stdout or b'').decode() if isinstance(e.stdout, bytes) else (e.stdout or ''), 124

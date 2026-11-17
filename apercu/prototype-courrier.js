@@ -1516,6 +1516,14 @@ var CSS = `
     .opc:where([data-fmt="phone"]) .cat{height:40px;padding:0 14px;font-size:15px}
     .opc:where([data-fmt="phone"]) .cat svg{display:none}
   }
+
+  /* un téléphone tenu en paysage (390 px de haut) : le grand titre et les catégories à la ligne mangeaient toute la hauteur — aucune ligne de message ne se voyait. Titre réduit, catégories sur UNE rangée qui défile. */
+  @media (max-height:500px){
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:22px;line-height:28px}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{padding-bottom:0}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .catbar{flex-wrap:nowrap}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .cat{height:36px}
+  }
   .opc:where([data-fmt="mac"]) .cat[aria-pressed="true"] .cl{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:nowrap}
   /* ordinateur-13 : l'écran était écrit en 11–13 px, alors que Clients et Devis sont à 16 px : on monte les libellés de dossiers, de filtres, de catégories, les pastilles,
      les sous-titres et le bandeau d'erreur à 14 px au moins, et les champs et segments à 34 px de haut (souris : sous le doigt, les règles tactiles plus grandes gardent la main) */
@@ -1555,10 +1563,21 @@ var CSS = `
   .opc .hpast{margin-right:6px}
   .opc .tl{display:none}
   /* téléphone : un mot sous chaque icône de la barre du bas (comme la barre d'onglets de l'application) */
-  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;padding:0 4px;height:46px}
+  .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:52px;padding:0 4px;height:46px}
   .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) svg{width:22px;height:22px}
   .opc:where([data-fmt="phone"]) :is(.read-tools .tbtn,.selbar .sb) .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
   .opc:where([data-fmt="phone"]) .selbar .sb.dng .tl{color:var(--red-text)}
+  /* la barre de sélection au téléphone : « Tout », le nombre, quatre gestes AVEC leur mot — le nombre cède la place (il s'écrit « 2 sélec… » plutôt que de pousser un geste hors de l'écran) et, à 320 px, il ne reste que pour les lecteurs d'écran */
+  .opc:where([data-fmt="phone"]) .selbar .sc{min-width:0;flex:1 1 0;overflow:hidden;text-overflow:ellipsis}
+  @container (max-width:359px){
+    .opc:where([data-fmt="phone"]) .selbar{gap:2px;padding-left:max(4px,var(--sa-left));padding-right:max(4px,var(--sa-right))}
+    .opc:where([data-fmt="phone"]) .selbar .sb{min-width:44px;padding:0 2px}
+    .opc:where([data-fmt="phone"]) .selbar .sb .tl{font-size:10px}
+  }
+  @container (max-width:359px){ .opc:where([data-fmt="phone"]) .selbar .sc{position:absolute;left:0;top:0;width:1px;height:1px;flex:none;overflow:hidden;clip-path:inset(50%)} }
+  .opc:where([data-fmt="phone"]) #btnCompose{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;min-width:56px;height:46px;padding:0 4px}
+  .opc:where([data-fmt="phone"]) #btnCompose svg{width:22px;height:22px}
+  .opc:where([data-fmt="phone"]) #btnCompose .tl{display:block;font-size:10.5px;line-height:12px;font-weight:500;color:var(--label-2);white-space:nowrap}
   .opc .msg.sel .hpast{background:rgba(255,255,255,.24);color:#fff}
 `;
 var FEUILLE = null;
@@ -1594,7 +1613,7 @@ var MARKUP = `
       <div class="lb-titles"><span class="lb-title" id="lbTitle">Boîte de réception</span><span class="lb-sub" id="lbSub"></span></div>
       
       <button class="seltog" id="btnSelect" type="button" aria-pressed="false">Sélectionner</button>
-      <span class="slot" id="slotComposeList"><button class="tb" id="btnCompose" type="button" aria-label="Nouveau message" title="Nouveau message (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 4.25H6.75a2.5 2.5 0 0 0-2.5 2.5v10.5a2.5 2.5 0 0 0 2.5 2.5h10.5a2.5 2.5 0 0 0 2.5-2.5V12.5"/><path d="M18.1 3.4a1.95 1.95 0 0 1 2.75 2.75l-8.2 8.2-3.6.85.85-3.6Z"/></svg></button></span>
+      <span class="slot" id="slotComposeList"><button class="tb" id="btnCompose" type="button" aria-label="Nouveau message" title="Nouveau message (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 4.25H6.75a2.5 2.5 0 0 0-2.5 2.5v10.5a2.5 2.5 0 0 0 2.5 2.5h10.5a2.5 2.5 0 0 0 2.5-2.5V12.5"/><path d="M18.1 3.4a1.95 1.95 0 0 1 2.75 2.75l-8.2 8.2-3.6.85.85-3.6Z"/></svg><span class="tl" aria-hidden="true">Écrire</span></button></span>
     </div>
     <div class="slot" id="slotSpaceTop"><div class="spacebar" id="spaceBar" role="group" aria-label="Côté Perso ou côté Pro">
       <button type="button" class="sptab sp-perso" data-space="perso" aria-pressed="false">Perso <span class="spn" id="spnPerso"></span></button><button type="button" class="sptab sp-pro" data-space="pro" aria-pressed="false">Pro <span class="spn" id="spnPro"></span></button>
@@ -3567,7 +3586,7 @@ var MARKUP = `
     var m=neufs[0];
     var open=function(){ if(!msgById(m.id)) return; closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer(); if(!inScope(m)) state.scope=m.acct; state.folder="inbox"; renderAll(); selectMessage(m.id); };
     var coupe=function(t,n){ t=String(t||"").replace(/\s+/g," ").trim(); return t.length>n?t.slice(0,n-1).trim()+"…":t; };
-    toast(neufs.length>1?neufs.length+" nouveaux messages — dont celui de "+coupe(senderName(m),40):"Nouveau message de "+coupe(senderName(m),40)+" — "+coupe(m.subject,60),{label:"Ouvrir",onAct:open,info:true});
+    toast(neufs.length>1?neufs.length+" nouveaux messages — dont celui de "+coupe(senderName(m),28):"Nouveau message de "+coupe(senderName(m),26)+" — "+coupe(m.subject,34),{label:"Ouvrir",onAct:open,info:true});
     // la sonnerie de la notification est celle du système (une page ne la choisit pas) ; « Son des nouveaux mails » éteint, elle se tait
     if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){
       try{ var n=new Notification(senderName(m),{body:m.subject+"\n"+m.preview,tag:m.id,silent:!SETTINGS.son}); n.onclick=function(){ try{ window.focus(); }catch(e){} open(); n.close(); }; return true; }catch(e){} }
