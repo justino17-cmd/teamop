@@ -3731,6 +3731,32 @@ function opcMarque(){
 { let enCours = false; const obs = new MutationObserver(() => { if (enCours) return; enCours = true; try { opcMarque(); } finally { enCours = false; } });
   ['menu', 'barre', 'contenu'].forEach(id => { const e = document.getElementById(id); if (e) obs.observe(e, { childList:true, subtree:true }); });
   opcMarque(); if (OPC_APP && typeof rendre === 'function') rendre(); }
+
+/* ── OP Security : la banque et les exports se confirment sur le téléphone (double-auth, étape 3, 17 novembre 2026) ──
+   OP GESTION tient le téléphone et la fenêtre de 5 minutes : ce cadre ne fait que DEMANDER. Contrat :
+     cadre → page : { opc_sensible:{ id, cle } }  avec cle = 'compta-banque' (l'onglet Banque) ou 'compta-export' (le FEC, l'envoi au cabinet) ;
+     page → cadre : { opc_confirme:{ id, ok } }   (ok:false = annulée, expirée, refusée) ; { opc_confirme:{ expire:true } } quand les 5 minutes sont passées.
+   Ouverte SEULE (pas de page autour) : aucune garde, comme avant. Tout message reçu est contrôlé (source, forme) et ne sert que de clé de table. */
+const OPC_SENS = { attente:{}, visite:false, avant:'accueil', enCours:false, libre:false };
+const opcHote = () => { try { return window.parent !== window; } catch (e) { return false; } };
+function opcSensible(cle, suite, annule){ if (!opcHote()) return suite();
+  const id = 'c' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  OPC_SENS.attente[id] = { suite, annule, t:setTimeout(() => { const p = OPC_SENS.attente[id]; if (!p) return; delete OPC_SENS.attente[id]; toast('Confirmation annulée.'); p.annule(); }, 180000) };
+  try { parent.postMessage({ opc_sensible:{ id, cle } }, '*'); } catch (e) { const p = OPC_SENS.attente[id]; delete OPC_SENS.attente[id]; clearTimeout(p.t); p.annule(); } }
+addEventListener('message', ev => { if (!opcHote() || ev.source !== parent) return; const d = ev.data, m = d && typeof d === 'object' ? d.opc_confirme : null; if (!m || typeof m !== 'object') return;
+  if (m.expire === true) { if (OPC_SENS.visite && UI.route === 'banque') { OPC_SENS.visite = false; toast('Cinq minutes ont passé : la banque est de nouveau masquée.'); aller(OPC_SENS.avant || 'accueil'); } else OPC_SENS.visite = false; return; }
+  const p = typeof m.id === 'string' ? OPC_SENS.attente[m.id] : null; if (!p) return; clearTimeout(p.t); delete OPC_SENS.attente[m.id]; if (m.ok === true) p.suite(); else p.annule(); });
+/* l'onglet Banque : une carte « Confirmation en attente… » tant que la page n'a pas répondu — la banque ne s'écrit pas avant */
+{ const r3 = rendre; rendre = function(){ if (!opcHote()) return r3.apply(this, arguments);
+    if (UI.route !== 'banque') { OPC_SENS.avant = UI.route; OPC_SENS.visite = false; return r3.apply(this, arguments); }
+    if (OPC_SENS.visite) return r3.apply(this, arguments);
+    rendreMenu(); rendreBarre(); const c = $('#contenu');
+    c.innerHTML = '<div class="carte" data-opc="attente"><h2>Confirmation en attente…</h2><p>Confirme sur ton téléphone pour voir la banque.</p><div class="outils"><button type="button" class="btn gris" data-a="aller" data-r="accueil">Annuler</button></div></div>';
+    if (!OPC_SENS.enCours) { OPC_SENS.enCours = true; opcSensible('compta-banque', () => { OPC_SENS.enCours = false; OPC_SENS.visite = true; rendre(); }, () => { OPC_SENS.enCours = false; aller(OPC_SENS.avant || 'accueil'); }); } }; }
+/* le FEC et l'envoi au cabinet : le geste est avalé tant que la page n'a pas confirmé, puis rejoué une fois */
+addEventListener('click', ev => { if (!opcHote() || OPC_SENS.libre) return; const b = ev.target.closest && ev.target.closest('[data-a="fec-dl"],[data-a="cloturer-envoyer"],[data-a="cloturer-oct"]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+  ev.stopImmediatePropagation(); ev.preventDefault(); const sel = '[data-a="' + b.dataset.a + '"]';
+  opcSensible('compta-export', () => { OPC_SENS.libre = true; try { (b.isConnected ? b : document.querySelector(sel)).click(); } finally { OPC_SENS.libre = false; } }, () => {}); }, true);
 </script>
 
 </body>

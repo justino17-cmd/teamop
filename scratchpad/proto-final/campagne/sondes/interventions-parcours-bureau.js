@@ -75,7 +75,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await p.evaluate(() => { fermerCreation(); }); await tap('[data-creer="1"]'); await tap('#fenetre [data-cnouveau="1"]');
   const nomLong = 'Société d’exploitation des établissements Dupont-Lefèvre et fils, Saint-Jean-d’Angély';
   await p.fill('#fenetre [data-cnv="nom"]', nomLong); await p.fill('#fenetre [data-cnv="contact"]', 'Jean-Baptiste de la Tour-Maubourg'); await p.fill('#fenetre [data-cnv="tel"]', 'abc'); await p.fill('#fenetre [data-cnv="mail"]', 'pas-un-courriel'); await p.fill('#fenetre [data-cnv="adr"]', '10 rue de la gravière'); await L.calme(p, 500);
-  const ban = await ev(() => { const b = document.querySelector('#fenetre .bandeau-proto'); return b ? { texte: b.textContent.trim().slice(0, 80), affiche: getComputedStyle(b).display !== 'none' } : null; });
+  const ban = await ev(() => { const b = document.querySelector('#fenetre .bandeau-info'); return b ? { texte: b.textContent.trim().slice(0, 80), affiche: getComputedStyle(b).display !== 'none' } : null; });
   v('interventions-14 : une adresse non reconnue le dit à l’écran (le message existe mais le mode application le cache)', !!ban && ban.affiche && !!(await txt('#fenetre')).match(/pas encore reconnue/), ban);
   await tap('#fenetre [data-action="cPlusTard"]'); t = await txt('#fenetre .fen-pied');
   await L.capture(c, I.CAP + `bur-${profil}${nuit ? '-nuit' : ''}-3-nouveau-client.png`);
