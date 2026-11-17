@@ -20,7 +20,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le message est visible en mode application)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-info')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
   await L.capture(c, CAPN('1-a-chiffrer'));
   // F3 chiffrer
-  await p.fill('input[data-prix][placeholder="prix HT"]', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
+  await p.fill('input[data-prix]:placeholder-shown', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
   const tot = await ev(() => { const f = FACTURES.find(x => x.id === 'f-i1'); const ht = f.lignes.reduce((s, l) => s + (l.pu || 0) * (parseFloat(String(l.q).replace(',', '.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',', '.')) : 1), 0); return { ht: Math.round(ht * 100), tva: f.tva, pus: f.lignes.map(l => l.pu) }; });
   t = await txt(); const lire = re => { const m = t.match(re); return m ? L.cents(m[1]) : null; }, N = '([\\d\\s\\u00a0\\u202f,.]+€)';
   const htE = lire(new RegExp('Total HT\\s*' + N)), ttcE = lire(new RegExp('Total TTC\\s*' + N));
@@ -53,18 +53,20 @@ const I = require('./interventions-outils.js'), L = I.L;
   console.log('  · la ligne ajoutée :', JSON.stringify(ligne));
   v('interventions-15 : « Ajouter une ligne » : on peut NOMMER la ligne ajoutée', ligne.champs.some(x => x === 'INPUT' || x === 'TEXTAREA') && ligne.champs.filter(x => x !== 'prix').length > 0, ligne);
   v('interventions-15 : …et la retirer si on s’est trompé', ligne.suppr, ligne);
-  // 15 : la ligne libre se nomme, se chiffre, se retire ; une ligne sans nom ne part pas
+  // 15 : la ligne ajoutée se nomme, se chiffre, se retire ; une ligne sans nom ne part pas (l'écran de la facture est celui de l'étape compta-ventes)
   const grise = () => ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; });
-  await p.fill('input[data-ldes]', 'Déplacement exceptionnel'); await p.keyboard.press('Tab'); await L.calme(p, 400);
-  await p.fill('input[data-lqte]', '2'); await p.keyboard.press('Tab'); await L.calme(p, 400);
-  await p.fill('input[data-prix][placeholder="prix HT"]', '30'); await p.keyboard.press('Tab'); await L.calme(p, 400);
-  const lib = await ev(() => { const f = FACTURES.find(x => x.id === 'f-i6'); const l = f.lignes[f.lignes.length - 1]; return { d: l.d, q: l.q, pu: l.pu, ht: htDe(f) }; }); t = await txt();
-  v('interventions-15 : la ligne nommée, sa quantité et son prix sont retenus, le total suit', lib.d === 'Déplacement exceptionnel' && lib.q === '2' && lib.pu === 30, lib);
-  v('interventions-15 : la ligne nommée garde son nom dans son champ après le rendu (jamais « Ligne libre »)', (await ev(() => (document.querySelector('input[data-ldes]') || {}).value)) === 'Déplacement exceptionnel' && !/Ligne libre/.test(await txt('#contenu table.l')));
+  const lignesN = () => ev(() => document.querySelectorAll('#contenu [data-fdes]').length);
+  const n1 = await lignesN();   // la dernière ligne ajoutée (par F7) est vide : on la nomme
+  await p.fill('#contenu .dv-lg:last-child [data-fdes]', 'Déplacement exceptionnel'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  await p.fill('#contenu .dv-lg:last-child [data-fqte]', '2'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  await p.fill('#contenu .dv-lg:last-child [data-prix]', '30'); await p.keyboard.press('Tab'); await L.calme(p, 400);
+  const lib = await ev(() => { const f = FACTURES.find(x => x.id === 'f-i6'); const l = f.lignes[f.lignes.length - 1]; return { d: l.d, q: l.q, pu: l.pu }; });
+  v('interventions-15 : la ligne nommée, sa quantité et son prix sont retenus', lib.d === 'Déplacement exceptionnel' && lib.q === '2' && lib.pu === 30, lib);
+  v('interventions-15 : la ligne nommée garde son nom dans son champ après le rendu (jamais « Ligne libre »)', (await ev(() => (document.querySelector('#contenu .dv-lg:last-child [data-fdes]') || {}).value)) === 'Déplacement exceptionnel' && !/Ligne libre/.test(await txt('#contenu')));
   await tap('[data-action="ligneAjout"]'); const sansNom = await grise(); t = await txt();
-  v('interventions-15 : une ligne sans désignation grise « Aperçu et envoi » et la page le dit', sansNom === true && /n’a pas de désignation/.test(t), [sansNom, (t.match(/.{0,30}pas de désignation.{0,40}/) || [''])[0]]);
-  const n2 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length); await tap('#contenu table.l tbody tr:last-child [data-action="ligneSuppr"]'); const n3 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length);
-  v('interventions-15 : « Retirer cette ligne » retire la ligne', n3 === n2 - 1, [n2, n3]);
+  v('interventions-15 : une ligne sans désignation grise « Aperçu et envoi » et la page le dit', sansNom === true && /sans nom/.test(t), [sansNom, (t.match(/.{0,30}sans nom.{0,40}/) || [''])[0]]);
+  const n2 = await lignesN(); await tap('#contenu .dv-lg:last-child [data-action="ligneSup"]'); const n3 = await lignesN();
+  v('interventions-15 : « ✕ » retire la ligne', n3 === n2 - 1 && n2 === n1 + 1, [n1, n2, n3]);
   await L.capture(c, CAPN('4-ligne-libre'));
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
