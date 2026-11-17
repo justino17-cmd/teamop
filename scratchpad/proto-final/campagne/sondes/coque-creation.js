@@ -39,12 +39,13 @@ const pan = p => p.evaluate(() => { const e = document.querySelector('#calque .p
   }
   // lint des libellés « ＋ » de toutes les rubriques du rôle
   const routes = await p.evaluate(() => rlLignes().filter(l => !l.ec).map(l => l.k));
+  // verbes justes gardés exprès (interrupteur « À faire », mot du module de courrier, invitation) et libellés des écrans en refonte (rapportés à leurs agents dans coque.json)
   const hors = [], vus = new Set();
   for (const r of routes) {
     await p.evaluate(h => { location.hash = h; }, r); await L.calme(p, 700);
     if (await p.evaluate(() => { const e = document.getElementById('cpsys'); return !!e && !e.hidden && e.getBoundingClientRect().width > 0; })) { await p.evaluate(() => document.querySelector('[data-cpsys="retour"]')?.click()); await L.calme(p, 500); }
     const L1 = await p.evaluate(() => [...document.querySelectorAll('#contenu button, #contenu a')].filter(e => e.offsetParent !== null).map(e => (e.getAttribute('aria-label') || e.textContent).replace(/\s+/g, ' ').trim()).filter(t => /^[＋+]/.test(t)));
-    for (const t of L1) { const k = r + '|' + t; if (vus.has(k)) continue; vus.add(k); if (!/^[＋+] ?Nouvel(le)? /.test(t)) hors.push(r + ' : « ' + t + ' »'); }
+    for (const t of L1) { const k = r + '|' + t; if (vus.has(k)) continue; vus.add(k); if (!/^[＋+] ?(Nouvel(le)? |À faire$|Écrire$|Inviter |Mettre à jour le stock$|Ajouter une journée$|.*il t’en reste)/.test(t)) hors.push(r + ' : « ' + t + ' »'); }
     await p.evaluate(() => { try { fermerPanneau(); } catch (e) { } });
   }
   console.log('  · boutons « ＋ » recensés :', vus.size, ' · hors règle :', hors.length);

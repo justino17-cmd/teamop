@@ -91,6 +91,7 @@ const L = require('../lib.js');
   const fa = await R(() => ({ st:COMMANDES.find(o => o.id === 'c36').st, pa:PRODUITS.find(x => x.id === 'p18').pa, ach:ACHATS.length }));
   v('« Accepter l’écart » : commande terminée, le prix d’achat suit la facture (' + pa0 + ' → ' + fa.pa + '), la facture rejoint les achats', fa.st === 'facturee' && fa.pa === 119.2 && fa.ach === a0 + 1, fa);
   await annuler(); v('Annuler : la commande repasse à « recue » et le prix revient', await R(() => COMMANDES.find(o => o.id === 'c36').st) === 'recue' && await R(() => PRODUITS.find(x => x.id === 'p18').pa) === pa0);
+  await R(() => { fermerPanneau(); fermerMenu(); }); await attendre(200);
   await clic('.fx-ab[data-cm="rappro|c36"]'); await clic('#calque [data-cm="conteste|c36"]'); const ct = await panneau();
   v('« Contester » montre le courriel AVANT de l’envoyer (rien ne part sans accord)', /Contester la facture/.test(ct) && /Objet : Facture/.test(ct) && !/rapproch/i.test(ct) && await R(() => !COMMANDES.find(o => o.id === 'c36').contestee), ct.slice(0, 200));
   await R(() => fermerPanneau()); await R(() => { CMD_PANIER = {}; });
@@ -122,7 +123,7 @@ const L = require('../lib.js');
   await clic('[data-fx="plus"]'); const mp = await R(() => [...document.querySelectorAll('.ctx button')].map(b => NB(b.textContent)));
   v('Plus ▾ : Importer les prix d’un fournisseur, Choisir parmi les articles habituels, Voir comment les articles sont rangés par métier, Trier par', mp.length === 4 && /Importer les prix d’un fournisseur/.test(mp[0]) && /articles habituels de mon métier/.test(mp[1]) && /rangés par métier/.test(mp[2]) && /Trier par/.test(mp[3]), mp);
   await R(() => { [...document.querySelectorAll('.ctx button')][3].click(); }); await attendre(200); await R(() => { [...document.querySelectorAll('.ctx button')].find(b => /Par nom/.test(b.textContent)).click(); }); await attendre(350);
-  const tri = await R(() => { const L = [...document.querySelectorAll('.fx-arts details')].map(d => [...d.querySelectorAll('.fx-a b')].map(b => b.textContent)); return L.filter(g => g.join('|') !== [...g].sort((a, b) => prNorm(a).localeCompare(prNorm(b), 'fr')).join('|')); });
+  const tri = await R(() => { const L = [...document.querySelectorAll('.fx-arts details')].map(d => [...d.querySelectorAll('.fx-a .fo-n > b')].map(b => b.textContent)); return L.filter(g => g.join('|') !== [...g].sort((a, b) => prNorm(a).localeCompare(prNorm(b), 'fr')).join('|')); });
   v('« Trier par › Par nom » : chaque catégorie est dans l’ordre alphabétique', tri.length === 0, tri); await R(() => { PDX.tri = 'rangement'; rendre(); });
   // ── 7. Fournisseurs
   await onglet('fournisseurs');

@@ -27,5 +27,19 @@ const FERME = {
   }
   v('population : dix catégories, des routes fermées (≥ 25) et des lignes de menu perdues (≥ 12), comptées', nCats === 10 && nRoutes >= 25 && nLignes >= 12, { nCats, nRoutes, nLignes });
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 2));
-  await L.fin(c); await fin();
+  await L.fin(c);
+  // la barre d'une personne SANS l'Accueil (le Secrétariat, un terrain) est celle que ses cases composent : décocher « Voir » d'une catégorie en retire l'onglet (mutation D4 : sans ce filtre, un onglet restait pour une rubrique fermée)
+  const d = await ouvrirComme({ k:'ss', prenom:'Sam', nom:'Secretaire', pd:'secr', terrain:false, cases:Object.fromEntries(CATS.map(k => [k, k === 'admin' ? '0000' : '1111'])), sp:{} });
+  const sans = await d.p.evaluate(() => !droitVoit('accueil')); v('la personne de la seconde épreuve n\'a pas l\'Accueil (c\'est la barre composée par ses cases qui est lue)', sans, sans);
+  const lireB = () => d.p.evaluate(() => ({ lignes:rlLignes().map(x => x.k), barre:rlOnglets().map(o => o.k) }));
+  const b0 = await lireB(); let perdus = 0, fautes = [];
+  for (const cat of CATS.filter(k => k !== 'admin')) {
+    await d.p.evaluate(k => { eqDe('ss').droits.cats[k] = { v:0, c:0, m:0, s:0 }; }, cat);
+    const ap = await lireB(); perdus += b0.barre.filter(k => !ap.barre.includes(k)).length; ap.barre.filter(k => !ap.lignes.includes(k)).forEach(k => fautes.push(cat + ':' + k));
+    await d.p.evaluate(k => { eqDe('ss').droits.cats[k] = { v:1, c:1, m:1, s:1 }; }, cat);
+  }
+  v('sans l\'Accueil : aucun onglet de la barre ne mène à une rubrique que ses cases ferment', fautes.length === 0, fautes);
+  v('population : la barre de cette personne perd au moins 3 onglets au fil des neuf catégories (une barre qui ne bouge jamais ne prouve rien)', perdus >= 3, { perdus, barre:b0.barre });
+  v('aucune erreur de page (seconde épreuve)', d.err.length === 0, d.err.slice(0, 2)); await L.fin(d);
+  await fin();
 })().catch(e => { console.error(e); process.exit(1); });

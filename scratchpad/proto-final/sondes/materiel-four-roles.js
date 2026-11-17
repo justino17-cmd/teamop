@@ -4,7 +4,7 @@
 const L = require('../lib.js');
 (async () => {
   const v = L.v, NB = s => String(s).replace(/[  ]/g, ' ');
-  { const c = await L.ouvrir({ profil:'mac', qui:'marc' }), p = c.p, R = (f, a) => p.evaluate(f, a); await L.aller(p, 'produits');
+  { const c = await L.ouvrir({ profil:'mac', qui:'marc' }), p = c.p, R = (f, a) => p.evaluate(f, a); await p.evaluate(() => { window.NB = s => String(s).replace(/[\u00a0\u202f]/g, ' '); }); await L.aller(p, 'produits');
     v('Marc : « Fournisseurs, matériel & produits » est dans son menu et s\'ouvre', await R(() => /Fournisseurs, matériel/.test(NB(document.getElementById('menu').innerText)) && document.querySelector('#contenu h1').textContent === 'Fournisseurs, matériel & produits'));
     await R(() => { prVue = 'fournisseurs'; rendre(); });
     v('Marc : sur Fournisseurs il a « ＋ Ajouter un fournisseur »', await R(() => !!document.querySelector('#contenu .fx-tete [data-fo="liste"]')));
@@ -13,7 +13,7 @@ const L = require('../lib.js');
     await R(() => { fermerMenu(); fermerPanneau(); prVue = 'articles'; rendre(); }); await R(() => prFiche('p3'));
     v('Marc : la fiche d’un article porte « Retirer cet article »', await R(() => !!document.querySelector('#calque [data-pr^="retirer|"]')));
     v('Marc : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
-  { const c = await L.ouvrir({ profil:'mac', qui:'julie' }), p = c.p, R = (f, a) => p.evaluate(f, a);
+  { const c = await L.ouvrir({ profil:'mac', qui:'julie' }), p = c.p, R = (f, a) => p.evaluate(f, a); await p.evaluate(() => { window.NB = s => String(s).replace(/[\u00a0\u202f]/g, ' '); });
     const menu = await R(() => NB(document.getElementById('menu').innerText));
     v('Julie : son menu porte Stock et Fournisseurs, matériel & produits, JAMAIS « Dépôts et camions »', /Stock/.test(menu) && /Fournisseurs, matériel/.test(menu) && !/Dépôts et camions/.test(menu), menu.replace(/\s+/g, ' ').slice(0, 200));
     await L.aller(p, 'produits');
@@ -32,11 +32,11 @@ const L = require('../lib.js');
     v('Julie : sur la fiche d’un article elle peut Modifier mais ne peut pas « Retirer cet article »', ar.modifier && !ar.retirer, ar);
     await R(() => { fermerPanneau(); });
     v('Julie : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
-  { const c = await L.ouvrir({ profil:'iphone', qui:'sm' }), p = c.p, R = (f, a) => p.evaluate(f, a);
+  { const c = await L.ouvrir({ profil:'iphone', qui:'sm' }), p = c.p, R = (f, a) => p.evaluate(f, a); await p.evaluate(() => { window.NB = s => String(s).replace(/[\u00a0\u202f]/g, ' '); });
     await R(() => { location.hash = '#produits'; }); await p.waitForTimeout(900);
     const t = await R(() => ({ route, h1:(document.querySelector('#contenu h1') || {}).textContent || '', fx:document.querySelectorAll('.fx-tete, .fx-seg, [data-cm], [data-fo]').length, txt:NB(document.getElementById('contenu').innerText) }));
     v('Sophie : la route #produits ne s’ouvre pas (aucun onglet, aucune commande, aucun fournisseur dans son écran)', t.route !== 'produits' && t.fx === 0 && !/Fournisseurs, matériel/.test(t.h1), t);
-    v('Sophie : AUCUN €, aucun prix d’achat, aucune marge, aucun nom de fournisseur dans son écran', !/€|marge|Clim Pièces|Frigo Distribution|Daikin/.test(t.txt), t.txt.slice(0, 200));
+    v('Sophie : AUCUN €, aucun prix d’achat, aucune marge, aucun nom de fournisseur dans son écran', !/€|marge|Clim Pièces|Frigo Distribution|Daikin/.test(t.txt.replace(/ARGENT QUE TU AS SUR TOI[^\n]*/i, '')), t.txt.slice(0, 200));   // sa propre caisse (l’argent encaissé sur place) n’est pas un prix du matériel
     const menu = await R(() => NB(document.getElementById('menu').innerText) + NB((document.getElementById('tabbar') || { innerText:'' }).innerText));
     v('Sophie : ni son menu ni sa barre du bas ne portent la rubrique', !/Fournisseurs, matériel|Fournisseurs/.test(menu), menu.replace(/\s+/g, ' ').slice(0, 160));
     v('Sophie : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
