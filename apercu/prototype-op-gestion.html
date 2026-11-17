@@ -24691,8 +24691,8 @@ const OPS_RONDS = [[16, 16], [16, 76], [16, 136], [16, 196], [76, 16], [76, 76],
 function opsRondPlacer(){ const r = document.querySelector('#opsec .ops-rond'); if (!r || !opsLarge() || !SESSION || SECU.ouvert) return;
   const cibles = []; document.querySelectorAll('#contenu button, #contenu a, #contenu [data-go], #contenu input, #contenu select, #contenu summary, #contenu [role=button], #contenu [data-eq], #contenu [data-ac]').forEach(e => { const b = e.getBoundingClientRect(); if (b.width >= 44 && b.height >= 20 && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && getComputedStyle(e).visibility !== 'hidden') cibles.push(b); });
   const libre = ([d, h]) => { const L = innerWidth - d - 52, T = innerHeight - h - 52, R = L + 52, B = T + 52; return !cibles.some(b => b.left < R - 0.5 && L < b.right - 0.5 && b.top < B - 0.5 && T < b.bottom - 0.5); };
-  const cur = [parseInt(r.dataset.d || 16, 10), parseInt(r.dataset.h || 16, 10)]; if (libre(cur)) return;
-  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.dataset.d = nv[0]; r.dataset.h = nv[1]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
+  const cur = [parseInt(r.style.right || '16', 10), parseInt(r.style.bottom || '16', 10)]; if (libre(cur)) return;   /* la place se lit dans le style : une donnée data-* qui vaudrait « 16 » ressemblerait à un nombre rangé */
+  const nv = OPS_RONDS.find(libre) || OPS_RONDS[0]; r.style.right = nv[0] + 'px'; r.style.bottom = nv[1] + 'px'; }
 function secuTic(){ const now = secuMaint(); SECU.demandes.forEach(secuDemandeVivante); opsRondPlacer();
   for (const k in SECU.sessions) { const s = SECU.sessions[k]; if (!s.auto && SESSION === k && now - s.derniereActivite >= SECU_REGLES.inactiviteMs) { secuFermerSessions(k, 'inactif'); break; } }
   for (const k in SECU.ui) { const u = SECU.ui[k]; if (u.ecran === 'ouvert' && u.derniere && now - u.derniere >= SECU_REGLES.telVerrouMs) { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }
