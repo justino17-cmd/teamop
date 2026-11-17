@@ -93,6 +93,12 @@ button{cursor:pointer}
 .menu a .m-t,.ligne-clic .m-t{display:flex;flex-direction:column;min-width:0;gap:1px;line-height:1.2;text-align:left}
 .m-sous{display:block;font-size:12px;font-weight:500;color:var(--faible);line-height:1.25}
 .menu a.avec-sous{padding-top:5px;padding-bottom:5px}
+/* la colonne du menu défile : ses lignes ne rétrécissent JAMAIS (avec un min-height explicite, un élément flex se laisse écraser sous son contenu — « Fournisseurs, matériel & produits » tenait sur trois lignes dans une boîte de 44 px et le pied du menu en coupait la fin) · restes coque, 17 novembre 2026 */
+.menu .m-liste > *{flex:none}
+/* le gras de la ligne choisie ne change pas le retour à la ligne : un fantôme invisible, écrit en gras dans la même case, fixe la hauteur (choisie ou non, la ligne garde la même) */
+.m-n[data-t]{display:inline-grid;align-items:center;min-width:0}
+.m-n[data-t]::before{content:attr(data-t);grid-area:1/1;font-weight:650;visibility:hidden;pointer-events:none}
+.m-n[data-t] > span{grid-area:1/1}
 /* le logo est un lien (il ramène à l'écran d'ouverture) : il garde l'allure d'un logo, pas celle d'une ligne de menu */
 .menu a.logo,.tete-tel a.logo{min-height:0;padding:2px 8px 16px;border-radius:0;background:none;box-shadow:none;color:inherit;font-weight:inherit;font-size:inherit;text-decoration:none;gap:10px}
 .menu a.logo:hover{background:none}
@@ -12057,7 +12063,7 @@ function rlLigneActive(base){
 const emoLigne = c => IC[c.k] && !c.ec ? svg(c.k) : `<span class="emo" aria-hidden="true">${c.ic}</span>`;
 function rlLien(c, base){
   const on = c.ec ? (route === 'espaceclient' && EC.tab === c.k) : rlLigneActive(base) === c.k, n = rlPastille(c.k);
-  const corps = `<span class="ic" style="--c:var(--lien)">${emoLigne(c)}</span>${c.sous ? `<span class="m-t"><span class="m-n">${esc(c.l)}</span><small class="m-sous">${esc(c.sous)}</small></span>` : `<span class="m-n">${esc(c.l)}</span>`}${n ? `<span class="nb">${n}</span>` : ''}${c.fait && !enApp() ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}`;
+  const corps = `<span class="ic" style="--c:var(--lien)">${emoLigne(c)}</span>${c.sous ? `<span class="m-t"><span class="m-n" data-t="${esc(c.l)}"><span>${esc(c.l)}</span></span><small class="m-sous">${esc(c.sous)}</small></span>` : `<span class="m-n" data-t="${esc(c.l)}"><span>${esc(c.l)}</span></span>`}${n ? `<span class="nb">${n}</span>` : ''}${c.fait && !enApp() ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}`;
   if (c.ec) return `<button type="button" class="rl-mlien${on ? ' on' : ''}" data-ec="tab|${c.k}">${corps}</button>`;
   return `<a href="#${c.k}" class="${on ? 'on' : ''}${c.sous ? ' avec-sous' : ''}" ${on ? 'aria-current="page"' : ''}>${corps}</a>`;
 }
