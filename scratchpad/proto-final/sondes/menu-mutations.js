@@ -29,6 +29,8 @@ const M = [
   ['20 · « Ce que voit le client » reprend une ligne au menu du gérant', "['interventions','🧰','Interventions',1],['taches','✅','Tâches']", "['interventions','🧰','Interventions',1],['clientvoit','📱','Ce que voit le client',1],['taches','✅','Tâches']", ['ordinateur']],
   ['21 · le prototype nu perd ses « faite » (l\'échafaudage de revue)', "${c.fait && !enApp() ? '<small class=\"m-faite\" title=\"Déjà refaite\">faite</small>' : ''}", "", ['nu']],
   ['22 · le groupe « Hygiène anti-nuisibles (3D) » s\'appelle de nouveau « Métier 3D »', "const GROUPE_3D = 'Hygiène anti-nuisibles (3D)';", "const GROUPE_3D = 'Métier 3D';", ['pack3d']],
+  ['23 · le poste sous le nom redevient le nom du rôle de revue (« Patron »)', "const sousMoi = R => { const p = (typeof SESSION !== 'undefined' && SESSION ? eqDe(SESSION) : null) || (R.qui ? eqDe(R.qui) : null); return p && p.role ? p.role : (H_GENS[R.qui] || {}).role || R.l; };", "const sousMoi = R => R.l;", ['poste']],
+  ['24 · le renvoi des réglages de rendez-vous cite de nouveau une ligne de menu qui n\'existe plus', "Pour les voir : ouvre une intervention, touche « Voir le lien client », onglet", "Pour les voir : « Ce que voit le client », onglet", ['renommages']],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
