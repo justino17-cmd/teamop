@@ -1,0 +1,315 @@
+{
+ "jour": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Voir dans Tâches › 344×41",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Voir dans Tâches › 344×41",
+    "Jour 115×40",
+    "Semaine 115×40",
+    "Mois 115×40",
+    "Vue d’ensemble 119×40",
+    "Sur mesure 113×40",
+    "Carte 113×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 83×40",
+    "Lun → Sam 87×40",
+    "7 jours 57×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Voir dans Tâches › 344×41",
+    "Jour 115×40",
+    "Semaine 115×40",
+    "Mois 115×40",
+    "Vue d’ensemble 119×40",
+    "Sur mesure 113×40",
+    "Carte 113×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38",
+    "Ouvrir le lundi 28 septembre 108×40",
+    "Ouvrir le mardi 29 septembre 107×40",
+    "Ouvrir le mercredi 30 septembre 107×40",
+    "Ouvrir le jeudi 1er octobre 107×40",
+    "Ouvrir le vendredi 2 octobre 107×40",
+    "Ouvrir le lundi 5 octobre 108×40",
+    "Ouvrir le mardi 6 octobre 107×40",
+    "Ouvrir le mercredi 7 octobre 107×40",
+    "Ouvrir le jeudi 8 octobre 107×40",
+    "Ouvrir le vendredi 9 octobre 107×40",
+    "Ouvrir le lundi 12 octobre 108×40",
+    "Ouvrir le mardi 13 octobre 107×40",
+    "Ouvrir le mercredi 14 octobre 107×40",
+    "Ouvrir le jeudi 15 octobre 107×40",
+    "Ouvrir le vendredi 16 octobre 107×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "general": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Voir dans Tâches › 344×41",
+    "Jour 115×40",
+    "Semaine 115×40",
+    "Mois 115×40",
+    "Vue d’ensemble 122×40",
+    "Sur mesure 112×40",
+    "Carte 112×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Lun → Ven 83×40",
+    "Lun → Sam 87×40",
+    "7 jours 57×40",
+    "SMSophie 99×38",
+    "KBKarim 92×38",
+    "LRLéa 77×38",
+    "TLTom 82×38",
+    "?Non assigné 136×38"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Voir dans Tâches › 344×41",
+    "Jour 115×40",
+    "Semaine 115×40",
+    "Mois 115×40",
+    "Vue d’ensemble 119×40",
+    "Sur mesure 113×40",
+    "Carte 113×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "Par personne 152×22",
+    "Par date 152×22",
+    "Moins de colonnes 108×22",
+    "Plus de colonnes 108×22"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [
+    "OP GESTION : revenir à l’écran d’ouvertu 249×38",
+    "Jour 115×40",
+    "Semaine 115×40",
+    "Mois 115×40",
+    "Vue d’ensemble 119×40",
+    "Sur mesure 113×40",
+    "Carte 113×40",
+    "Précédent 40×40",
+    "Suivant 40×40",
+    "1 30×30",
+    "2 30×30",
+    "3 30×30",
+    "! 30×30",
+    "Sophie 86×40",
+    "Karim 80×40",
+    "Tom 70×40",
+    "Rapprocher 40×40",
+    "Éloigner 40×40",
+    "Recentrer sur la journée 40×40",
+    "Plein écran 40×40"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 175,
+     "h": 46,
+     "droite": 191
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 175,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ }
+}

@@ -1,0 +1,2093 @@
+{
+ "profil": "mac",
+ "nuit": false,
+ "RES": [
+  {
+   "vue": "jour",
+   "lib": "Rendez-vous en ligne",
+   "data": "data-rrouvrir=1",
+   "l": 207,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Rendez-vous en ligne",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "＋ Nouvelle intervention",
+   "data": "data-creer=1",
+   "l": 224,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "fenetre",
+    "fenTitre"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "Nouvelle intervention",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "✅2 tâches pour toi aujourd’huide ta liste Tâches",
+   "data": "",
+   "l": 1114,
+   "h": 44,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Jour",
+   "data": "data-plvue=jour",
+   "l": 65,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Semaine",
+   "data": "data-plvue=semaine",
+   "l": 94,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Mois",
+   "data": "data-plvue=mois",
+   "l": 67,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Vue d’ensemble",
+   "data": "data-plvue=general",
+   "l": 147,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Sur mesure",
+   "data": "data-plvue=multi",
+   "l": 114,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Carte",
+   "data": "data-plvue=carte",
+   "l": 71,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Précédent",
+   "data": "data-plnav=-1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Suivant",
+   "data": "data-plnav=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "SMSophie",
+   "data": "data-masque=sm",
+   "l": 99,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "KBKarim",
+   "data": "data-masque=kb",
+   "l": 92,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "LRLéa",
+   "data": "data-masque=lr",
+   "l": 77,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "TLTom",
+   "data": "data-masque=tl",
+   "l": 82,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "?Non assigné",
+   "data": "data-masque=",
+   "l": 136,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "9interventions sur la période",
+   "data": "data-kpi=int",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Interventions sur la période · Aujourd’hui · samedi 31 octobre",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "3à planifier",
+   "data": "data-kpi=plan",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "À planifier",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "1en retard",
+   "data": "data-kpi=retard",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "En retard",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "1absent",
+   "data": "data-kpi=abs",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Absences",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "11 hde travail prévu",
+   "data": "data-kpi=temps",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Travail prévu · Aujourd’hui · samedi 31 octobre",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "08:30 à 09:30, Dépannage climatisation, Restaurant Le Vieux Port, En c",
+   "data": "data-int=i1",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i1",
+   "h1": "Dépannage climatisation",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "14:00 à 15:30, Mise en service pompe à chaleur, M. et Mme Durand, Plan",
+   "data": "data-int=i2",
+   "l": 205,
+   "h": 141,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu"
+   ],
+   "hash": "#inter-x-i2",
+   "h1": "Mise en service pompe à chaleur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "16:00 à 17:00, Dépannage pompe à chaleur atelier, Garage Rochefort Aut",
+   "data": "data-int=i16",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i16",
+   "h1": "Dépannage pompe à chaleur atelier",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Réunion d’équipe, 11:00 à 12:00",
+   "data": "data-bur=b1",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": "Réunion d’équipe · 11:00 – 12:00 · Karim BenaliRetirer"
+  },
+  {
+   "vue": "jour",
+   "lib": "09:00 à 10:30, Récupération du fluide d’un ancien split, Copropriété L",
+   "data": "data-int=i3",
+   "l": 205,
+   "h": 141,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i3",
+   "h1": "Récupération du fluide d’un ancien split",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "15:00 à 16:00, Entretien chauffe-eau thermodynamique, Cabinet dentaire",
+   "data": "data-int=i4",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i4",
+   "h1": "Entretien chauffe-eau thermodynamique",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "07:30 à 08:30, Contrôle d’étanchéité, Mme Roux, Terminée",
+   "data": "data-int=i6",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i6",
+   "h1": "Contrôle d’étanchéité",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "Camion au garage. 13:00 à 15:00, Remplacement condensateur, Camping Le",
+   "data": "data-int=i7",
+   "l": 205,
+   "h": 189,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i7",
+   "h1": "Remplacement condensateur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "10:00 à 11:00, Entretien chaudière granulés, Hôtel de la Plage, À plan",
+   "data": "data-int=i5",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i5",
+   "h1": "Entretien chaudière granulés",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "jour",
+   "lib": "11:30 à 12:30, Urgent — plus de chauffage, Mme Roux, À planifier",
+   "data": "data-int=i17",
+   "l": 205,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i17",
+   "h1": "Urgent — plus de chauffage",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Rendez-vous en ligne",
+   "data": "data-rrouvrir=1",
+   "l": 207,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Rendez-vous en ligne",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "＋ Nouvelle intervention",
+   "data": "data-creer=1",
+   "l": 224,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "fenetre",
+    "fenTitre"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "Nouvelle intervention",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "✅2 tâches pour toi aujourd’huide ta liste Tâches",
+   "data": "",
+   "l": 1114,
+   "h": 44,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Jour",
+   "data": "data-plvue=jour",
+   "l": 65,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Semaine",
+   "data": "data-plvue=semaine",
+   "l": 94,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Mois",
+   "data": "data-plvue=mois",
+   "l": 67,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Vue d’ensemble",
+   "data": "data-plvue=general",
+   "l": 150,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Sur mesure",
+   "data": "data-plvue=multi",
+   "l": 114,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Carte",
+   "data": "data-plvue=carte",
+   "l": 71,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Précédent",
+   "data": "data-plnav=-1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Suivant",
+   "data": "data-plnav=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Lun → Ven",
+   "data": "data-pljours=5",
+   "l": 109,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "Lun → Sam",
+   "data": "data-pljours=6",
+   "l": 113,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "7 jours",
+   "data": "data-pljours=7",
+   "l": 80,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "SMSophie",
+   "data": "data-masque=sm",
+   "l": 99,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "KBKarim",
+   "data": "data-masque=kb",
+   "l": 92,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "LRLéa",
+   "data": "data-masque=lr",
+   "l": 77,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "TLTom",
+   "data": "data-masque=tl",
+   "l": 82,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "?Non assigné",
+   "data": "data-masque=",
+   "l": 136,
+   "h": 38,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "15interventions sur la période",
+   "data": "data-kpi=int",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Interventions sur la période · Semaine du 26 oct. au 31 oct.",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "3à planifier",
+   "data": "data-kpi=plan",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "À planifier",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "1en retard",
+   "data": "data-kpi=retard",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "En retard",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "1absent",
+   "data": "data-kpi=abs",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Absences",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "19 hde travail prévu",
+   "data": "data-kpi=temps",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Travail prévu · Semaine du 26 oct. au 31 oct.",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "LUN 26",
+   "data": "data-voirjour=2026-10-26",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "MAR 27",
+   "data": "data-voirjour=2026-10-27",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "MER 28",
+   "data": "data-voirjour=2026-10-28",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "JEU 29",
+   "data": "data-voirjour=2026-10-29",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "VEN 30",
+   "data": "data-voirjour=2026-10-30",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "SAM 31 · auj.",
+   "data": "data-voirjour=2026-10-31",
+   "l": 162,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "09:00 – 10:30✓ faitEntretien climatisation — 6 cassettesHôtel de la Pl",
+   "data": "data-int=i20",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i20",
+   "h1": "Entretien climatisation — 6 cassettes",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "13:30 – 15:00✓ faitRéglage pompe à chaleurM. et Mme Durand",
+   "data": "data-int=i24",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i24",
+   "h1": "Réglage pompe à chaleur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "08:30 – 09:30Dépannage climatisationRestaurant Le Vieux Port",
+   "data": "data-int=i1",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i1",
+   "h1": "Dépannage climatisation",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "14:00 – 15:30Mise en service pompe à chaleurM. et Mme Durand",
+   "data": "data-int=i2",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu"
+   ],
+   "hash": "#inter-x-i2",
+   "h1": "Mise en service pompe à chaleur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "16:00 – 17:00Dépannage pompe à chaleur atelierGarage Rochefort Auto",
+   "data": "data-int=i16",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i16",
+   "h1": "Dépannage pompe à chaleur atelier",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "14:00 – 15:00✓ faitDépannage — fuite d’eauCamping Les Pins",
+   "data": "data-int=i21",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i21",
+   "h1": "Dépannage — fuite d’eau",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "09:00 – 10:00✓ faitEntretien climatisation — 6 cassettesHôtel de la Pl",
+   "data": "data-int=i25",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i25",
+   "h1": "Entretien climatisation — 6 cassettes",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "09:00 – 10:30retardRécupération du fluide d’un ancien splitCopropriété",
+   "data": "data-int=i3",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i3",
+   "h1": "Récupération du fluide d’un ancien split",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "15:00 – 16:00Entretien chauffe-eau thermodynamiqueCabinet dentaire Mar",
+   "data": "data-int=i4",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i4",
+   "h1": "Entretien chauffe-eau thermodynamique",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "10:30 – 11:30✓ faitContrôle chauffe-eauCabinet dentaire Martin",
+   "data": "data-int=i23",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i23",
+   "h1": "Contrôle chauffe-eau",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "08:00 – 10:00✓ faitContrat — visite 2 sur 4Copropriété Les Mimosas",
+   "data": "data-int=i22",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i22",
+   "h1": "Contrat — visite 2 sur 4",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "07:30 – 08:30✓ faitContrôle d’étanchéitéMme Roux",
+   "data": "data-int=i6",
+   "l": 149,
+   "h": 113,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i6",
+   "h1": "Contrôle d’étanchéité",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "13:00 – 15:00Remplacement condensateurCamping Les Pins",
+   "data": "data-int=i7",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i7",
+   "h1": "Remplacement condensateur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "10:00 – 11:00Entretien chaudière granulésHôtel de la Plage",
+   "data": "data-int=i5",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i5",
+   "h1": "Entretien chaudière granulés",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "general",
+   "lib": "11:30 – 12:30Urgent — plus de chauffageMme Roux",
+   "data": "data-int=i17",
+   "l": 149,
+   "h": 93,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i17",
+   "h1": "Urgent — plus de chauffage",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Rendez-vous en ligne",
+   "data": "data-rrouvrir=1",
+   "l": 207,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Rendez-vous en ligne",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "＋ Nouvelle intervention",
+   "data": "data-creer=1",
+   "l": 224,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "fenetre",
+    "fenTitre"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "Nouvelle intervention",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "✅2 tâches pour toi aujourd’huide ta liste Tâches",
+   "data": "",
+   "l": 1114,
+   "h": 44,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Jour",
+   "data": "data-plvue=jour",
+   "l": 65,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Semaine",
+   "data": "data-plvue=semaine",
+   "l": 94,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Mois",
+   "data": "data-plvue=mois",
+   "l": 67,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Vue d’ensemble",
+   "data": "data-plvue=general",
+   "l": 147,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Sur mesure",
+   "data": "data-plvue=multi",
+   "l": 116,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Carte",
+   "data": "data-plvue=carte",
+   "l": 71,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Précédent",
+   "data": "data-plnav=-1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Suivant",
+   "data": "data-plnav=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Quels jours ?sam 31, lun 2▾",
+   "data": "data-mpop=dates",
+   "l": 178,
+   "h": 60,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Par personne",
+   "data": "data-mgrp=personne",
+   "l": 111,
+   "h": 22,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Par date",
+   "data": "data-mgrp=jour",
+   "l": 76,
+   "h": 22,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Moins de colonnes",
+   "data": "data-mpas=-1",
+   "l": 30,
+   "h": 22,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Plus de colonnes",
+   "data": "data-mpas=1",
+   "l": 30,
+   "h": 22,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "PersonnesSMKBLRTL?▾",
+   "data": "data-mpop=qui",
+   "l": 162,
+   "h": 60,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "★Mes vues2 enregistrées▾",
+   "data": "data-mpop=vues",
+   "l": 183,
+   "h": 60,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "12interventions sur la période",
+   "data": "data-kpi=int",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Interventions sur la période · 2 dates · 5 personnes",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "3à planifier",
+   "data": "data-kpi=plan",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "À planifier",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "1en retard",
+   "data": "data-kpi=retard",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "En retard",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "1absent",
+   "data": "data-kpi=abs",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Absences",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "16 h 30de travail prévu",
+   "data": "data-kpi=temps",
+   "l": 216,
+   "h": 90,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Travail prévu · 2 dates · 5 personnes",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Aujourd’hui · samedi 31 octobre3 · 3 h 30",
+   "data": "data-voirjour=2026-10-31",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "lundi 2 novembre1 · 1 h 30",
+   "data": "data-voirjour=2026-11-02",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Aujourd’hui · samedi 31 octobre2 · 2 h 30",
+   "data": "data-voirjour=2026-10-31",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "lundi 2 novembre1 · 3 h",
+   "data": "data-voirjour=2026-11-02",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "08:30 à 09:30, Dépannage climatisation, Restaurant Le Vieux Port, En c",
+   "data": "data-int=i1",
+   "l": 259,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i1",
+   "h1": "Dépannage climatisation",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "14:00 à 15:30, Mise en service pompe à chaleur, M. et Mme Durand, Plan",
+   "data": "data-int=i2",
+   "l": 259,
+   "h": 111,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu"
+   ],
+   "hash": "#inter-x-i2",
+   "h1": "Mise en service pompe à chaleur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "16:00 à 17:00, Dépannage pompe à chaleur atelier, Garage Rochefort Aut",
+   "data": "data-int=i16",
+   "l": 259,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i16",
+   "h1": "Dépannage pompe à chaleur atelier",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "14:30 à 16:00, Dépannage — fuite d’eau, Camping Les Pins, Planifiée",
+   "data": "data-int=i9",
+   "l": 259,
+   "h": 111,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i9",
+   "h1": "Dépannage — fuite d’eau",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Réunion d’équipe, 11:00 à 12:00",
+   "data": "data-bur=b1",
+   "l": 258,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": "Réunion d’équipe · 11:00 – 12:00 · Karim BenaliRetirer"
+  },
+  {
+   "vue": "multi",
+   "lib": "09:00 à 10:30, Récupération du fluide d’un ancien split, Copropriété L",
+   "data": "data-int=i3",
+   "l": 258,
+   "h": 111,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i3",
+   "h1": "Récupération du fluide d’un ancien split",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "15:00 à 16:00, Entretien chauffe-eau thermodynamique, Cabinet dentaire",
+   "data": "data-int=i4",
+   "l": 258,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i4",
+   "h1": "Entretien chauffe-eau thermodynamique",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "09:00 à 12:00, Installation d’un split mural, Mme Roux, Planifiée",
+   "data": "data-int=i8",
+   "l": 259,
+   "h": 225,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i8",
+   "h1": "Installation d’un split mural",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Aujourd’hui · samedi 31 octobreAbsente · Congé payé",
+   "data": "data-voirjour=2026-10-31",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "lundi 2 novembreAbsente · Congé payé",
+   "data": "data-voirjour=2026-11-02",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Aujourd’hui · samedi 31 octobre2 · 3 h",
+   "data": "data-voirjour=2026-10-31",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "lundi 2 novembrelibre",
+   "data": "data-voirjour=2026-11-02",
+   "l": 268,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "07:30 à 08:30, Contrôle d’étanchéité, Mme Roux, Terminée",
+   "data": "data-int=i6",
+   "l": 258,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i6",
+   "h1": "Contrôle d’étanchéité",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Camion au garage. 13:00 à 15:00, Remplacement condensateur, Camping Le",
+   "data": "data-int=i7",
+   "l": 258,
+   "h": 149,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i7",
+   "h1": "Remplacement condensateur",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "Aujourd’hui · samedi 31 octobre2 · 2 h",
+   "data": "data-voirjour=2026-10-31",
+   "l": 535,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "lundi 2 novembre1 · 1 h",
+   "data": "data-voirjour=2026-11-02",
+   "l": 535,
+   "h": 58,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "10:00 à 11:00, Entretien chaudière granulés, Hôtel de la Plage, À plan",
+   "data": "data-int=i5",
+   "l": 526,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i5",
+   "h1": "Entretien chaudière granulés",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "11:30 à 12:30, Urgent — plus de chauffage, Mme Roux, À planifier",
+   "data": "data-int=i17",
+   "l": 526,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu",
+    "volets"
+   ],
+   "hash": "#inter-x-i17",
+   "h1": "Urgent — plus de chauffage",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "multi",
+   "lib": "16:30 à 17:30, Dépannage climatisation, Mme Roux, À planifier",
+   "data": "data-int=i10",
+   "l": 526,
+   "h": 73,
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "contenu"
+   ],
+   "hash": "#inter-x-i10",
+   "h1": "Dépannage climatisation",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  }
+ ],
+ "err": []
+}
