@@ -135,6 +135,32 @@
       "preuve": "Reproduit 2 fois (t28-histo.js : Marc ; t29-histo2.js : Karim : 3 lignes après C contre 2 avant) ; code : secuTraiter (ligne 25567) écrit secuHisto(..., 'approuvee') à l'approbation, et cnxPremierValider (ligne 26045) en écrit une autre. Pour l'activation du premier téléphone, une seule ligne : le défaut n'existe qu'avec un téléphone déjà actif.",
       "ou": "apercu/prototype-op-gestion.html lignes 25567 et 26045",
       "correction": "Dans cnxPremierValider, n'écrire la ligne que si aucune ligne « approuvee » n'a été écrite dans la même connexion (marque posée par secuTraiter), ou retirer l'écriture quand la personne vient d'être approuvée par le nombre."
+    },
+    {
+      "n": "tout-10",
+      "gravite": "bloquant",
+      "ecran": "Comptabilité › Paie › sous-onglets « Fiches de paie », « Salariés », « Charges et déclarations » (garde S7 paie-fiches)",
+      "role": "gérant",
+      "profils": "mac jour, windows nuit",
+      "etapes": "Gérant connecté, téléphone activé ; attendre plus de 5 minutes après la connexion (ou « Faire avancer l'horloge : +5 minutes ») → Comptabilité → Paie → toucher « Fiches de paie », puis « Salariés », puis « Charges et déclarations ».",
+      "attendu": "Spécification § 6.1 et § 6 en tête : « La garde se pose dans la fonction qui MONTRE… un second chemin (menu, recherche, raccourci) ne la contourne pas » ; S7 = voir les fiches de paie (les salaires de chacun) demande la confirmation sur le téléphone.",
+      "constate": "Aucune fenêtre de confirmation, et les salaires s'affichent : « Fiches de paie » 31 montants en euros (une fiche par personne), « Salariés » 12 (salaire de base de chacun), « Charges et déclarations » 10 (18 318,91 € de salaires bruts, charges). La garde n'est posée que sur le bouton « Voir et valider les fiches » (paieAller('fiches')) : les sous-onglets du haut sont un second chemin ouvert.",
+      "preuve": "Reproduit 2 fois (t31-paie.js mac jour ; t32-paie2.js windows nuit : « conf: false » aux trois onglets avec la fenêtre fermée, nombres de montants relevés) ; code : secuGarde('paie-fiches', …) n'existe qu'en tête de paieAller (ligne 13239, « if (o === 'fiches' && !secuGarde(…)) ») ; les boutons [data-cx=\"sec|fiches\"], [data-cx=\"sec|salaries\"], [data-cx=\"sec|charges\"] n'y passent pas.",
+      "ou": "apercu/prototype-op-gestion.html, vue Comptabilité (CX_NAV, cxGroupe 'paie', écouteur data-cx=\"sec|…\") et paieAller",
+      "correction": "Garder à la porte qui MONTRE : dans l'écouteur de data-cx=\"sec|fiches\" / \"sec|salaries\" / \"sec|charges\" (et dans la fonction qui rend ces vues), appeler secuGarde('paie-fiches', rejouer) en première instruction ; mutation à ajouter à la sonde : retirer cette ligne doit faire tomber un contrôle."
+    },
+    {
+      "n": "tout-11",
+      "gravite": "bloquant",
+      "ecran": "Comptabilité (page principale) › Trésorerie › Banque, et Pilotage › Clôture du mois › « Envoyer › » (gardes S5 compta-banque, S6 compta-export)",
+      "role": "gérant",
+      "profils": "mac jour, windows nuit",
+      "etapes": "Gérant connecté, fenêtre de 5 minutes écoulée → Comptabilité → Trésorerie → « Banque » ; puis Pilotage → « Clôture du mois » → « Envoyer › ».",
+      "attendu": "§ 6.1 S5 : « Comptabilité › onglet « Banque » (relevé, rapprochement) : cadre ET la vue de la page principale si elle existe (cxGroupe › « Banque ») » ; S6 : exporter la comptabilité et l'envoi à l'expert-comptable. La confirmation sur le téléphone est demandée.",
+      "constate": "Banque : aucune fenêtre, le relevé « Crédit Agricole ····4521 » et ses lignes (VIR SEPA M DURAND JEAN +300,00 €, COMMISSIONS CB OCTOBRE −5,94 €, 30 montants) s'affichent. « Envoyer › » ouvre le panneau « Envoyer octobre à ton expert-comptable » sans confirmation. À l'inverse, le même onglet « Banque » dans le cadre « Ouvrir dans la Comptabilité » (prototype-comptabilite.html) DEMANDE bien la confirmation : la même information est gardée d'un côté et ouverte de l'autre.",
+      "preuve": "Reproduit 2 fois (t35-banque.js mac jour ; t37-envoi.js windows nuit ; t36-cadre.js montre le cadre qui demande la confirmation) ; code : 'compta-banque' et 'compta-export' n'apparaissent que dans SECU_GESTES et SECU_CADRE_CLES (lignes 25927-26001), jamais dans un secuGarde() de la page principale.",
+      "ou": "apercu/prototype-op-gestion.html, vue Comptabilité (onglets sec|banque, onglet|banque, bouton Envoyer ›)",
+      "correction": "Poser secuGarde('compta-banque', …) à l'ouverture de sec|banque / onglet|banque et secuGarde('compta-export', …) à « Envoyer › », comme pour le cadre ; ajouter les deux portes à la liste « portes » de SECU_GESTES et au recensement de la sonde."
     }
   ],
   "arbre": "relu sur l'arbre fusionné au 17/11/2026 vers 13 h 20 (après 578847ec) ; les numéros de ligne sont ceux de ce moment",
