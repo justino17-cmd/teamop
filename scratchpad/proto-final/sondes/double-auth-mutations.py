@@ -51,6 +51,7 @@ M = [
  (69, '« Faire avancer l’horloge » n’avance rien', 'demo', [("SECU.decalage += (parseInt(b.dataset.m, 10) || 0) * 60000;", "SECU.decalage += 0;")]),
  (70, '« Activer tous les téléphones d’un coup » ne touche que Marc', 'demo', [("if (!c.tel && p.actif) { secuTelCreer(p.k, secuNomAppareil(p.k), SECU_DEPART.pin);", "if (!c.tel && p.actif && p.k === 'marc') { secuTelCreer(p.k, secuNomAppareil(p.k), SECU_DEPART.pin);")]),
  (71, 'un téléphone révoqué ne s’efface plus à la lecture suivante', 'telephone', [("function opsSynchro(k){ const c = secuCompte(k), u = secuUi(k); if (u.tel === (c.tel || null)) return u;", "function opsSynchro(k){ const c = secuCompte(k), u = secuUi(k); return u;")]),
+ (72, 'une seconde porte pose SESSION sans passer par sessionOuvrir', 'auto', [("cnxCharger(() => { sessionOuvrir(p.k); toast(texte ||", "cnxCharger(() => { SESSION = p.k; sessionOuvrir(p.k); toast(texte ||")]),
  (66, 'le téléphone n’est plus ouvert d’office aux grands écrans', 'structure', [("SECU.ouvert = innerWidth >= 1100; opsDemo(); opsDessiner(); secuTicDemarrer(); }", "SECU.ouvert = false; opsDemo(); opsDessiner(); secuTicDemarrer(); }")]),
 ]
 

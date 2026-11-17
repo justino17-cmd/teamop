@@ -24035,7 +24035,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-form input{min-height:48px;border-radius:12px;border:1px solid #3a4f78;background:#13213a;color:#eef3fb;font:inherit;font-size:16px;padding:0 12px}
 .ops-roue{width:30px;height:30px;border:3px solid #7aa2ff;border-right-color:transparent;border-radius:50%;animation:cnTourne .8s linear infinite}
 .ops-barre{flex:none;display:flex;align-items:center;gap:6px;padding:4px 10px 8px 14px;border-bottom:1px solid #1b2840;white-space:nowrap}
-.ops-barre b{font-size:14px}.ops-barre em{font-style:normal;font-size:11.5px;color:#8fe0ad;margin-right:auto;overflow:hidden;text-overflow:ellipsis}.ops-barre em.hl{color:#ffb36b}.ops-barre .ops-lien{padding:0 4px;flex:none}
+.ops-bt{display:flex;flex-direction:column;margin-right:auto;min-width:0;line-height:1.2}   /* « En ligne » sous le nom : côte à côte, il était coupé en « En… » à 276 px */
+.ops-barre b{font-size:14px}.ops-barre em{font-style:normal;font-size:11.5px;color:#8fe0ad}.ops-barre em.hl{color:#ffb36b}.ops-barre .ops-lien{padding:0 4px;flex:none}
 .ops-defile{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 14px 18px;display:flex;flex-direction:column;gap:10px}
 .ops-carte,.ops-compte,.ops-code,.ops-act{border-radius:16px;border:1px solid #24365a;background:#13213a;padding:12px;display:flex;flex-direction:column;gap:8px}
 .ops-carte.rouge{border:2px solid #ff8f95;background:#2a1219}
@@ -24104,6 +24105,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
 .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
 .cn-col .ops-pastille{max-width:420px}
+#cnx .cn-expl,#cnx .sec-etapes p,#cnx .sec-demo-note{text-wrap:pretty}   /* pas de mot orphelin (« clé. » seul sur sa ligne) */
 #cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
 @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
 </style>`);
@@ -24305,7 +24307,7 @@ function opsEcran(k){ const c = secuCompte(k), u = opsSynchro(k), p = eqDe(k), n
     const act = c.histo.slice(0, 5).map(h => `<li><span>${secuHHMM(h.ts)} · ${esc(h.appareil)}</span><small>${esc(h.adresse)} — ${esc(opsRaisonResultat[h.resultat] || h.resultat)}</small></li>`).join('');
     if (u.supprimer) return tete + `<div class="ops-centre">${opsCadenas()}<h1>Supprimer le compte ?</h1><p class="ops-conf">Supprimer le compte de ce téléphone ? Tu ne pourras plus te connecter avec cet appareil tant qu’un administrateur ne t’aura pas donné un nouveau téléphone.</p></div>
       <div class="ops-bas"><button type="button" class="ops-btn danger" data-ops="supprimer-ok">Supprimer</button><button type="button" class="ops-btn ghost" data-ops="supprimer-non">Annuler</button></div>`;
-    return tete + `<div class="ops-barre"><span class="ops-mini">${opsLogo(true)}</span><b>OP GESTION</b><em class="${SECU.horsLigne ? 'hl' : ''}">${SECU.horsLigne ? 'Hors ligne' : 'En ligne'}</em><button type="button" class="ops-lien" data-ops="verrouiller">Verrouiller</button></div>
+    return tete + `<div class="ops-barre"><span class="ops-mini">${opsLogo(true)}</span><span class="ops-bt"><b>OP GESTION</b><em class="${SECU.horsLigne ? 'hl' : ''}">${SECU.horsLigne ? 'Hors ligne' : 'En ligne'}</em></span><button type="button" class="ops-lien" data-ops="verrouiller">Verrouiller</button></div>
       <div class="ops-defile">${retour}${vivantes.map(d => opsCarte(d, u)).join('')}${SECU.horsLigne ? '<p class="ops-note">Hors ligne : aucune demande ne se charge. Le code à 6 chiffres reste valable.</p>' : ''}
       <section class="ops-compte" aria-label="Compte OP GESTION"><b>OP GESTION · ${esc(ENTREPRISE.nom)}</b><span>${esc(eqNom(p))} · ${esc(cnxLogin(p))}</span></section>
       <section class="ops-code" aria-label="Code à 6 chiffres"><h2>Code à 6 chiffres (si l’ordinateur le demande)</h2>
