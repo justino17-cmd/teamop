@@ -13,7 +13,8 @@
   "rotation et redimensionnement : mac 1440 → 1180 → 1024 → 900 → 1440 ; ipad portrait → paysage → 1024 → 900 → 1440, avec et sans l'aperçu plein écran ouvert",
   "débordement dans la colonne des étapes avec des textes longs : petit (320), android, iphone, ipad",
   "double clic sur « Créer » : mac, windows, ipad ; menu de l'éditeur (supprimer, dupliquer) : iphone, mac ; devis sans client ; mode Auto qui passe au sombre pendant l'ouverture (iphone : blanc → bleu nuit) ; atelier absent (404 puis Réessayer) ; rôles : gérant, secrétariat (devis et contrat complets, 18 ✓ chacun), techniciens (aucun bouton, forcer par le code refusé avec un mot)",
-  "gestes du devis (iphone et mac) : recherche de client (accents, majuscules, ville, sans résultat, « + 4 autres clients » = 8 − 4), catalogue (recherche, filtres, « Mon matériel »), quantités +/−, option (non comptée), monter, descendre, retirer, « Ranger par catégorie », « Garder dans mon matériel » (gardé après fermeture) : 26 contrôles justes sur 27"
+  "gestes du devis (iphone et mac) : recherche de client (accents, majuscules, ville, sans résultat, « + 4 autres clients » = 8 − 4), catalogue (recherche, filtres, « Mon matériel »), quantités +/−, option (non comptée), monter, descendre, retirer, « Ranger par catégorie », « Garder dans mon matériel » (gardé après fermeture) : 26 contrôles justes sur 27",
+  "clavier seul (windows, mac nuit) : ouverture par Entrée, focus à l'ouverture sur la recherche, ordre de Tab (14 étapes), indicateur de focus visible sur chaque élément, Entrée sur un client, Espace sur un article, 90 Tab sans sortir du compositeur, Échap : 8 contrôles justes, 2 défauts (une cause : la confirmation)"
  ],
  "defauts": [
   {
@@ -193,6 +194,26 @@
    "preuve": "chips.js : « pastille Main-d'œuvre → 0 article », « Entretien → 0 », « Déplacement → 0 », « catalogue envoyé par OP GESTION : 25 articles, aucune main-d'œuvre ni déplacement » ; lignes-gestes.js : « filtre Main-d'œuvre : 0 article(s) » sur mac ET iphone ; capture chips-mac-jour-vide.png",
    "ou": "apercu/prototype-op-gestion.html:20947-20948 (opdDonnees : le catalogue n'est que PRODUITS vendables) ; scratchpad/proto-final/atelier/page.source:5221 (les cinq pastilles sont fixes) et :4989 (vvCatDe)",
    "correction": "Ajouter au catalogue envoyé les prestations du prototype (Main-d'œuvre à l'heure, Déplacement par zone, Entretien annuel, Mise en service) avec leur catégorie, et ne montrer une pastille que si elle a au moins un article ; sinon un message qui dit « Aucun article dans cette catégorie »"
+  },
+  {
+   "n": "tout-10",
+   "gravite": "gênant",
+   "ecran": "Composer un devis / un contrat > confirmation « Abandonner ce devis ? » (Échap ou ‹ OP GESTION avec du contenu)",
+   "role": "gérant (Marc), au clavier",
+   "profils": [
+    "windows jour",
+    "mac nuit"
+   ],
+   "etapes": [
+    "Au clavier : ouvrir « Composer un devis » (Entrée), écrire un objet",
+    "Échap : la confirmation « Abandonner ce devis ? » paraît, le focus est sur « Continuer »",
+    "Tab pour aller sur « Abandonner », puis Entrée"
+   ],
+   "attendu": "Tab passe de « Continuer » à « Abandonner » ; Entrée abandonne",
+   "constate": "Tab ne déplace pas le focus : il reste sur « Continuer » (Maj+Tab aussi). Entrée referme alors la confirmation (comme « Continuer ») et rend le focus au compositeur : on ne peut pas abandonner sans la souris",
+   "preuve": "clavier-confirm.js (windows) : « Échap → focus Continuer data-r=0 ; Tab → focus Continuer data-r=0 ; Entrée → dialogue false, focus « 3 Matériel et prestations » » ; clavier.js windows jour ET mac nuit : « Tab puis Entrée dans la confirmation : atelier fermé = false »",
+   "ou": "scratchpad/proto-final/atelier/page.source:3456 (ouvrirFenetre, f.touche : la branche Tab n'écarte pas la confirmation, alors que la branche Échap, 3455, regarde .voile:not(.fen-v)) : le piège de focus de la fenêtre remet le focus au premier élément du compositeur, puis le piège de la confirmation (2791) le ramène sur « Continuer »",
+   "correction": "Dans f.touche, ne rien faire sur Tab quand une confirmation est ouverte : if(document.querySelector('.voile:not(.fen-v)')) return; comme pour Échap"
   }
  ]
 }
