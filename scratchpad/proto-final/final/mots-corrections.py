@@ -108,6 +108,15 @@ def exemples_en_champ(s):
     s, a = re.subn(r'placeholder="Ex\. ?: ', 'placeholder="ex. ', s); s, b = re.subn(r'placeholder="Ex\. ', 'placeholder="ex. ', s)
     return s, a + b
 
+def efface_vers_supprime(s):
+    # « effacer » et « supprimer » disaient la même chose : on garde « supprimer » (« effacer une signature » reste : on gomme un dessin)
+    import re
+    n = 0
+    for motif, rempl in [(r"Rien ne s’y efface", "Rien ne s’y supprime"), (r"[Rr]ien ne s’efface", lambda m: m.group(0)[0] + "ien ne se supprime"), (r"ni modifier ni effacer", "ni modifier ni supprimer"),
+                         (r"pas en effaçant", "pas en supprimant"), (r"n’est effacé\b", "n’est supprimé"), (r"a été effacé de (ce|cet)\b", r"a été supprimé de \1")]:
+        s, k = re.subn(motif, rempl, s); n += k
+    return s, n
+
 def par_mail(s):
     import re
     s, k = re.subn(r"\bpar mail\b", "par e-mail", s); return s, k
@@ -115,6 +124,8 @@ c('page', 'Temps de travail › Valider', "data-tt=\"areg\">Voir À régler ›<
 c('page', 'Comptabilité › Par intervention', "Aucune pièce ni achat pour cette intervention. Dans la vraie version, la main-d’œuvre (heures pointées) s’ajoutera ici.", "Aucune pièce ni achat pour cette intervention.", "« Dans la vraie version… » : une promesse de développeur lue par un utilisateur", 1)
 c('atelier', 'Devis › champ', 'placeholder="Ex. : pose d’une prise dédiée', 'placeholder="ex. pose d’une prise dédiée', "une seule façon d’écrire un exemple dans un champ", 1)
 c('atelier', 'Devis › champ', 'placeholder="Par exemple : Merci de votre confiance', 'placeholder="ex. Merci de votre confiance', "idem", 1)
+c('page', 'Planning › absence', "toast(`${tech(a.tech).nom} pendant son absence, et « Non assigné » pour réaffecter.`)", "toast(`Planning de ${tech(a.tech).nom} pendant son absence, avec la colonne « Non assigné » pour réaffecter.`)", "un début de phrase sans sujet : « Léa Roux pendant son absence, et… »", 1)
+c('page', 'Absences › Télécharger le PDF', 'data-nom="Absences ${titre}.pdf"', 'data-nom="Absences ${String(titre).replace(/^Du /, \'du \')}.pdf"', "un nom de fichier n’a pas de majuscule au milieu : « Absences du 2 nov. au 15 nov. 2026.pdf »", 1)
 
 def appliquer():
     lus = {}; res = []; manques = []
@@ -132,6 +143,8 @@ def appliquer():
     p = os.path.join(RACINE, FICHIERS['page']); s = lus.get(p) or open(p, encoding='utf-8').read(); s, n = jours_phrases(s); lus[p] = s
     pe = os.path.join(RACINE, FICHIERS['page']); se = lus.get(pe) or open(pe, encoding='utf-8').read(); se, ke = exemples_en_champ(se); lus[pe] = se
     res.append({ 'ecran': 'Tous les champs › exemple', 'avant': '« Ex. : entretien climatisation » / « Ex. rappeler M. Durand »', 'apres': '« ex. entretien climatisation » / « ex. rappeler M. Durand »', 'raison': 'une seule façon d’écrire un exemple dans un champ', 'fichier': FICHIERS['page'], 'etat': 'appliqué (%d)' % ke if ke else 'déjà' })
+    se2, kf = efface_vers_supprime(lus[pe]); lus[pe] = se2
+    res.append({ 'ecran': 'Historique, Comptabilité, Sécurité › « efface »', 'avant': '« Rien ne s’y efface ni ne s’y modifie », « pas en effaçant », « effacé de ce téléphone »', 'apres': '« Rien ne s’y supprime ni ne s’y modifie », « pas en supprimant », « supprimé de ce téléphone »', 'raison': 'un seul mot pour faire disparaître : supprimer', 'fichier': FICHIERS['page'], 'etat': 'appliqué (%d)' % kf if kf else 'déjà' })
     pc0 = os.path.join(RACINE, FICHIERS['compta']); sc0 = lus.get(pc0) or open(pc0, encoding='utf-8').read(); sc0, k0 = par_mail(sc0); lus[pc0] = sc0
     res.append({ 'ecran': 'Comptabilité (cadre) › reçu par mail', 'avant': '« reçue par mail »', 'apres': '« reçue par e-mail »', 'raison': 'un seul mot : e-mail', 'fichier': FICHIERS['compta'], 'etat': 'appliqué (%d)' % k0 if k0 else 'déjà' })
     for cle in ('page', 'courrier'):
