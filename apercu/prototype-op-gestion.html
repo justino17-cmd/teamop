@@ -214,7 +214,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
-  body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
+  body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -245,6 +245,10 @@ body.dp-ouvert #sortie-carte{z-index:300}
 .cpsys-attente{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 @media (max-width:520px){.cpsys-barre b{display:none}.cpsys-barre{justify-content:space-between}}
 @media (pointer:coarse){.cpsys-barre button{min-height:44px}}
+.cpsys-barre .cpsys-menu{display:none;align-items:center;gap:7px}.cpsys-barre .cpsys-menu svg{width:18px;height:18px}
+@media (max-width:760px){.cpsys-barre .cpsys-menu{display:inline-flex;min-height:44px}}
+/* trois boutons dans la barre à 320 px : marges et écarts resserrés pour que « Factures » ne sorte pas */
+@media (max-width:400px){.cpsys-barre{gap:6px}.cpsys-barre button{padding:0 10px;font-size:13.5px}}
 /* L'atelier de devis et de contrats (prototype-documents.html), plein écran. « hidden » garde la LARGEUR (visibility, pas display:none) : un cadre à 0 px
    se croit un téléphone et l'atelier se refermait à la première ouverture. L'encoche du HAUT est réservée ICI (la barre de l'atelier ne la lit pas) ; le bas et les côtés, l'atelier les lit lui-même (env() y est la valeur de l'appareil dans le cadre : les réserver aussi ici les compterait deux fois). */
 #opdz{position:fixed;inset:0;z-index:9100;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc);padding-top:env(safe-area-inset-top,0px)}
@@ -608,6 +612,8 @@ html .fx-acmd{padding:18px 20px}
 html .fx-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin-bottom:6px}html .fx-ch h3{margin:0 0 2px;font-size:20px}
 html .fx-pan{padding:14px 0 6px;border-top:1px solid var(--trait)}html .fx-pan:first-of-type{border-top:0}
 html .fx-pt{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}html .fx-pt>b{font-size:17px;overflow-wrap:anywhere}
+/* l'en-tête a la MÊME forme sur les trois onglets (titre, puis boutons dessous) : « ＋ Ajouter un article » est plus court que « ＋ Ajouter un fournisseur » et tenait à côté du titre, ce qui faisait SAUTER la barre d'onglets de 58 px en changeant d'onglet */
+html #contenu .tete.fx-tete{flex-wrap:wrap;row-gap:12px}html .fx-tete>div:first-child{flex:1 1 100%;min-width:0}html .fx-tete .actions{flex:1 1 100%}
 @media (min-width:761px){html .fx-pt{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}}   /* sur ordinateur le nom du fournisseur et sa phrase tiennent sur une ligne : la première ligne à commander remonte de 24 px */
 html .fx-pl{display:flex;align-items:flex-start;gap:14px;padding:10px 0}
 html .fx-pl>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}html .fx-pl>.fo-n>b{font-size:16px;overflow-wrap:anywhere}html .fx-pl .gris{overflow-wrap:anywhere}
@@ -650,6 +656,7 @@ html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
 html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
+html .fo-depot{flex:none}   /* la feuille est une colonne flex : la zone « Choisir le fichier » (min-height 64) se laissait écraser à 64 px sous son propre texte, et le trait pointillé coupait le titre */
 html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
 html .fx-lg .pdx-tel{display:flex;gap:8px;align-items:center;flex:none;width:min(62%,300px)}html .fx-lg .pdx-tel .saisie{flex:1 1 0;width:auto;min-width:0}
 html .fx-jours{display:inline-flex;align-items:center;gap:8px;flex:none}html .fx-jours .saisie{width:112px}
@@ -668,7 +675,7 @@ html .fx-dir{align-items:center}
 html .fx-voir .cmd-pre{white-space:pre-wrap;overflow-wrap:anywhere}
 html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html .fx-etape>b{font-size:16px}
 @media (max-width:760px){
-  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .fx-tete>div:first-child{flex:1 1 100%}
+  html #contenu .tete.fx-tete{flex-wrap:wrap;align-items:flex-start;gap:12px 8px}html .fx-tete>div:first-child{flex:1 1 100%}
   html .fx-tete .actions{flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:8px}
   html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){flex:1 1 0;min-width:0;min-height:48px;white-space:normal;line-height:1.2}
   html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{flex:none!important;width:46px!important;min-width:46px!important;min-height:48px;padding:0;font-size:0}   /* !important : la règle générale des en-têtes (ligne ~1208) donne à tout .btn « flex:1 1 auto; min-width:0 » et rétrécissait ces deux boutons à 38 px sur un écran de 320 */
@@ -688,6 +695,9 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-grille{grid-template-columns:minmax(0,1fr)}
   html .fx-el>.fo-n{flex:1 1 100%}
 }
+@media (min-width:761px) and (max-width:980px){   /* iPad portrait : le menu latéral laisse ~490 px, le tableau des commandes terminées (518 px de colonnes fixes) y écrasait le fournisseur à 0 px — même forme qu'au téléphone */
+  html .fx-te{display:none}html .fx-tr{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}html .fx-tr>b{grid-column:1;grid-row:1}html .fx-tf{grid-column:1;grid-row:2}html .fx-tm{grid-column:1;grid-row:3}html .fx-td{grid-column:1;grid-row:4}html .fx-tr .st{grid-column:2;grid-row:1;justify-self:end;text-align:right}
+}
 @media (max-width:520px){
   /* le bon de commande à l'écran (le fac-similé du PDF) : quatre colonnes de 60 px ne tiennent pas, la désignation passait sur huit lignes ; chaque ligne devient un petit bloc (désignation, puis quantité · prix · total) */
   html .bc-t thead{display:none}html .bc-t,html .bc-t tbody{display:block}html .bc-t tr{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--trait)}
@@ -695,6 +705,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 }
 @media (max-width:400px){
   /* un écran de 320 : le nom de la commande ne peut pas partager sa ligne avec la pastille (4 lignes de 127 px) ; la pastille passe dessous */
+  html .fx-a .ms-ic{display:none}   /* l'icône de catégorie (décorative) ne vaut pas 52 px sur 360 : le nom et la référence passaient de 140 à 192 px */
   html .fx-lm{flex-wrap:wrap;gap:6px 10px}html .fx-lm>.fo-n{flex:1 1 100%}html .fx-lm .fo-dr{max-width:100%;flex:none;align-items:flex-start;text-align:left}
   /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
@@ -4518,6 +4529,11 @@ function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); 
 function toast(msg, action){ // action : { lib, fn }
   let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
   t.innerHTML = `<span>${msg}</span>`; [].concat(action || []).forEach(ac => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ac.lib; b.onclick = () => { t.classList.remove('on'); ac.fn(); }; t.appendChild(b); });
+  // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
+  // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
+  try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
+  // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -4599,7 +4615,7 @@ function voirFichierLocal(url, nom){
   const b = BLOBS_LOCAUX.get(url), type = (b && b.type) || '', n = nom || (b && b.name) || 'Fichier';
   ouvrirPanneau(`<h2>${esc(n)}</h2>${/^image\//.test(type) ? `<img class="vfl-img" src="${esc(url)}" alt="${esc(n)}">` : '<p class="gris">Ce fichier ne s’affiche pas dans cette page : enregistre-le sur ton appareil pour l’ouvrir.</p>'}<div class="actions"><button type="button" class="btn" data-sortie="enregistrer" data-u="${esc(url)}" data-n="${esc(n)}">Enregistrer sur cet appareil</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
 }
-document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
+document.addEventListener('click', ev => { const a = ev.target.closest && ev.target.closest('a[href^="blob:"]:not([download])'); if (!a) return; ev.preventDefault(); voirFichierLocal(a.getAttribute('href')); });
 const trouve = id => INTS.find(o => o.id === id) || BUREAU.find(o => o.id === id);
 const estBloc = i => BUREAU.includes(i);
 function poser(i, tid, d, h, dur){
@@ -8197,8 +8213,8 @@ function cpFec(){
 }
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
-  const nom = cpFecNom(), data = new Blob([CP.fecEnvoye || cpFec()], { type:'text/plain' });
-  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom) });
+  const nom = cpFecNom(), txt = CP.fecEnvoye || cpFec(), data = new Blob([txt], { type:'text/plain' });
+  await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom), texte:txt });   // « texte » : dans un cadre sans pont, le début du fichier s'affiche à copier
 }
 async function cpSceller(){
   CP.fecEnvoye = cpFec(); CP.empreinte = null;
@@ -8362,6 +8378,7 @@ function ouvrirPanneau(html, large){
   { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
   const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
+  { const z = document.getElementById('cpsys'), v = document.querySelector('#calque .voile'); if (z && !z.hidden && v) v.style.zIndex = '9100'; }   // un panneau ouvert pendant la Comptabilité plein écran (z-index 9000) restait dessous, invisible
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
 
@@ -13820,7 +13837,7 @@ document.addEventListener('click', ev => {
   if (!but.length) return;   // rien d'automatique dans la sélection : « Fait » termine d'un clic, comme avant
   ev.stopPropagation(); ev.preventDefault();
   const C = [...new Set(L.map(tCat))], R = C.length === 1 ? T_ROUTES[C[0]] || null : null;
-  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} toute${but.length > 1 ? 's' : ''} seule${but.length > 1 ? 's' : ''} quand le geste est fait dans l’application. Dis ce qui s’est passé : ça s’écrit dans l’Historique.</span>
+  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} d’elle${but.length > 1 ? 's-mêmes' : '-même'} quand le travail est fait dans l’application (une relance envoyée, une intervention planifiée…). Tu l’as fait autrement, par téléphone ou sur place ? Dis ce qui s’est passé : ${but.length > 1 ? 'elles sont terminées' : 'elle est terminée'} et ça s’écrit dans l’Historique.</span>
     <div class="tkx-lot-l">${but.map(x => `<span class="tkx-lot-t">${esc(x.t)}</span>`).join('')}</div>
     <div class="t-gestes tkx-lot-g"><button type="button" class="btn" data-tkxlot="J’ai appelé">📞 J’ai appelé</button><button type="button" class="btn gris" data-tkxlot="J’ai envoyé un message en dehors de l’application">✉ J’ai envoyé un message ailleurs</button>${R ? `<button type="button" class="btn gris" data-tkxlotouvrir="${R[0]}">${R[2]} Ouvrir dans ${R[1]} pour le faire</button>` : ''}</div>`);
 }, true);
@@ -23150,11 +23167,11 @@ immChap('produits', 'produits', 'Fournisseurs, matériel & produits', 'Les produ
   'Cette catégorie réunit ce que ton équipe commande : les commandes aux fournisseurs, les articles avec leur prix, et les fournisseurs eux-mêmes. Je te montre comment passer une commande et la recevoir.', [
   { c:'[data-vis="four-onglets"]', t:'Trois onglets, une seule catégorie', p:'En haut, trois onglets. Commandes, pour acheter et suivre. Articles, avec tes 29 articles et leurs prix. Et Fournisseurs, avec les 5 chez qui tu achètes. Le gros bouton noir change avec l’onglet.' },
   { c:'[data-vis="four-commander"]', t:'Ce qu’il faut commander', p:'La carte « À commander » range ce qui est bientôt fini par fournisseur, avec la quantité déjà calculée sur ce que tu utilises. Chaque ligne se règle d’un toucher : plus, moins, ou retirer.' },
-  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite.' },
-  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Je passe sur l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.',
-    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },
+  { c:'[data-vis="four-photo"]', t:'Photographier une facture', p:'Le bouton appareil photo lit une facture de fournisseur : les quantités entrent en stock, les prix d’achat se mettent à jour, et une hausse se voit tout de suite. Je passe maintenant sur l’onglet Articles.',
+    jouer:() => { immStockRegler(); immClic('[data-pr="vue|articles"]'); } },   /* la cible de l'étape suivante n'existe qu'une fois l'onglet ouvert : c'est le geste de l'étape d'AVANT qui l'ouvre */
+  { c:'[data-vis="four-articles"]', t:'Les articles', p:'Voici l’onglet Articles. Une recherche, un filtre, et la liste rangée par catégorie : chaque ligne montre le prix de vente et la marge.' },
   { c:'[data-pr^="nouveau|"]', t:'Ajouter un article', p:'Pour ajouter un article, je touche « Ajouter un article ». Un formulaire s’ouvre, et l’application va remplir presque tout toute seule.',
-    jouer:() => { immStockRegler(); immClic('[data-pr^="nouveau|"]'); } },
+    jouer:() => immClic('[data-pr^="nouveau|"]') },   /* pas de immStockRegler ici : il remet l'onglet sur Commandes, et la liste où l'article doit apparaître n'existerait plus */
   { c:'#calque .panneau', t:'Il se range tout seul', p:'Je tape le nom : siphon de condensats. L’application le range toute seule dans la bonne catégorie, avec le fournisseur habituel. Je mets 4 euros à l’achat : elle propose 8 euros à la vente, avec la marge de la catégorie.',
     jouer:() => { immEcrire('#pr-nom', 'Siphon de condensats'); immStockPlus(() => { immEcrire('#pr-pa', '4'); immStockPlus(() => immClic('[data-pdx^="prop|"]'), 250); }, 250); } },
   { c:'[data-pr="garder|"]', t:'Les protections de l’application', p:'Avant d’enregistrer, l’application te protège : elle prévient d’un doublon, refuse un prix négatif, et te demande confirmation si tu vends à perte. Je touche Ajouter.',
@@ -23970,6 +23987,9 @@ function sessionOuvrir(k){ const vueVoulue = SESSION_VUE; SESSION_VUE = null; co
   const f = z.querySelector('iframe'), ret = z.querySelector('[data-cpsys="retour"]'), quo = z.querySelector('[data-cpsys="quotidien"]'), t = z.querySelector('.cpsys-barre b'), seul = ROLE === 'compta';
   if (neuf && f && MODE_APP && !/app=1/.test(f.getAttribute('src') || '')) f.src = opLiaSrc();
   if (f) f.title = 'OP COMPTABLE'; z.setAttribute('aria-label', 'OP COMPTABLE'); if (t && t.textContent !== 'OP COMPTABLE') t.textContent = 'OP COMPTABLE';
+  /* au téléphone, le bouton « Menu » du bureau reste à portée de doigt DANS la Comptabilité plein écran (décision du 17 novembre : le menu était à deux gestes, « ‹ OP GESTION » puis « Menu ») ;
+     celui de la page est dessous, recouvert. Même `data-menu` que le sien : c'est la même feuille, la même garde de droits. */
+  if (!seul && ret && !z.querySelector('.cpsys-menu')) ret.insertAdjacentHTML('afterend', '<button type="button" class="cpsys-menu" data-menu="ouvrir" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>');
   if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : (tel() ? '‹ OP GESTION' : '‹ Retourner à OP GESTION'); if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
   if (quo) { quo.hidden = seul; const lq = tel() ? 'Factures' : 'Factures et paiements'; if (quo.textContent !== lq) { quo.textContent = lq; quo.setAttribute('aria-label', 'Factures et paiements'); } }
   return v; }; }
@@ -24259,7 +24279,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .ops-form input{min-height:48px;border-radius:12px;border:1px solid #3a4f78;background:#13213a;color:#eef3fb;font:inherit;font-size:16px;padding:0 12px}
 .ops-roue{width:30px;height:30px;border:3px solid #7aa2ff;border-right-color:transparent;border-radius:50%;animation:cnTourne .8s linear infinite}
 .ops-barre{flex:none;display:flex;align-items:center;gap:6px;padding:4px 10px 8px 14px;border-bottom:1px solid #1b2840;white-space:nowrap}
-.ops-barre b{font-size:14px}.ops-barre em{font-style:normal;font-size:11.5px;color:#8fe0ad;margin-right:auto;overflow:hidden;text-overflow:ellipsis}.ops-barre em.hl{color:#ffb36b}.ops-barre .ops-lien{padding:0 4px;flex:none}
+.ops-bt{display:flex;flex-direction:column;margin-right:auto;min-width:0;line-height:1.2}   /* « En ligne » sous le nom : côte à côte, il était coupé en « En… » à 276 px */
+.ops-barre b{font-size:14px}.ops-barre em{font-style:normal;font-size:11.5px;color:#8fe0ad}.ops-barre em.hl{color:#ffb36b}.ops-barre .ops-lien{padding:0 4px;flex:none}
 .ops-defile{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 14px 18px;display:flex;flex-direction:column;gap:10px}
 .ops-carte,.ops-compte,.ops-code,.ops-act{border-radius:16px;border:1px solid #24365a;background:#13213a;padding:12px;display:flex;flex-direction:column;gap:8px}
 .ops-carte.rouge{border:2px solid #ff8f95;background:#2a1219}
@@ -24328,6 +24349,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec-css">
 .sec-demo-cases{width:min(420px,100%);margin:0 auto;padding:10px 14px;border:1px dashed var(--trait2);border-radius:14px;font-size:13.5px;display:flex;flex-direction:column;gap:2px;color:var(--encre)}
 .sec-demo-cases>b{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux)}.sec-faux{margin:0;color:var(--rouge);font-weight:600}
 .cn-col .ops-pastille{max-width:420px}
+#cnx .cn-expl,#cnx .sec-etapes p,#cnx .sec-demo-note{text-wrap:pretty}   /* pas de mot orphelin (« clé. » seul sur sa ligne) */
 #cnx .cn-lien{min-height:44px;padding:0 12px}   /* « Annuler » de la demande : 63 × 40 mesuré, une cible tactile fait 44 px au moins */
 @media (prefers-reduced-motion:reduce){.ops-roue{animation:none}.ops-anneau i{transition:none}}
 </style>`);
@@ -24529,7 +24551,7 @@ function opsEcran(k){ const c = secuCompte(k), u = opsSynchro(k), p = eqDe(k), n
     const act = c.histo.slice(0, 5).map(h => `<li><span>${secuHHMM(h.ts)} · ${esc(h.appareil)}</span><small>${esc(h.adresse)} — ${esc(opsRaisonResultat[h.resultat] || h.resultat)}</small></li>`).join('');
     if (u.supprimer) return tete + `<div class="ops-centre">${opsCadenas()}<h1>Supprimer le compte ?</h1><p class="ops-conf">Supprimer le compte de ce téléphone ? Tu ne pourras plus te connecter avec cet appareil tant qu’un administrateur ne t’aura pas donné un nouveau téléphone.</p></div>
       <div class="ops-bas"><button type="button" class="ops-btn danger" data-ops="supprimer-ok">Supprimer</button><button type="button" class="ops-btn ghost" data-ops="supprimer-non">Annuler</button></div>`;
-    return tete + `<div class="ops-barre"><span class="ops-mini">${opsLogo(true)}</span><b>OP GESTION</b><em class="${SECU.horsLigne ? 'hl' : ''}">${SECU.horsLigne ? 'Hors ligne' : 'En ligne'}</em><button type="button" class="ops-lien" data-ops="verrouiller">Verrouiller</button></div>
+    return tete + `<div class="ops-barre"><span class="ops-mini">${opsLogo(true)}</span><span class="ops-bt"><b>OP GESTION</b><em class="${SECU.horsLigne ? 'hl' : ''}">${SECU.horsLigne ? 'Hors ligne' : 'En ligne'}</em></span><button type="button" class="ops-lien" data-ops="verrouiller">Verrouiller</button></div>
       <div class="ops-defile">${retour}${vivantes.map(d => opsCarte(d, u)).join('')}${SECU.horsLigne ? '<p class="ops-note">Hors ligne : aucune demande ne se charge. Le code à 6 chiffres reste valable.</p>' : ''}
       <section class="ops-compte" aria-label="Compte OP GESTION"><b>OP GESTION · ${esc(ENTREPRISE.nom)}</b><span>${esc(eqNom(p))} · ${esc(cnxLogin(p))}</span></section>
       <section class="ops-code" aria-label="Code à 6 chiffres"><h2>Code à 6 chiffres (si l’ordinateur le demande)</h2>
@@ -25253,7 +25275,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
   html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;min-width:0;justify-content:center}
   .cpsys-barre{gap:8px!important;padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important;flex-wrap:nowrap!important}
   .cpsys-barre b{display:none!important}
-  .cpsys-barre button{min-height:40px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .cpsys-barre button{min-height:44px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
 }
 @media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
