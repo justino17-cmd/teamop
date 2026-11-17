@@ -1,0 +1,267 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "clients",
+ "etiq": "rc",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "＋ Nouveau client",
+   "data": "data-action=clientNouveau",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Clients",
+   "panneau": "Nouveau client",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 173,
+   "h": 46
+  },
+  {
+   "i": 1,
+   "lib": "Chercher un client",
+   "data": "data-cherche=1",
+   "touche": true,
+   "change": [],
+   "h1": "Clients",
+   "panneau": "",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 420,
+   "h": 46
+  },
+  {
+   "i": 2,
+   "lib": "Tous les clients",
+   "data": "data-rangc=tous",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Clients",
+   "panneau": "",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 145,
+   "h": 40
+  },
+  {
+   "i": 3,
+   "lib": "Par semaine",
+   "data": "data-rangc=semaine",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Clients",
+   "panneau": "",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 120,
+   "h": 40
+  },
+  {
+   "i": 4,
+   "lib": "Par mois",
+   "data": "data-rangc=mois",
+   "touche": true,
+   "change": [
+    "long"
+   ],
+   "h1": "Clients",
+   "panneau": "",
+   "hash": "#clients",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 94,
+   "h": 40
+  },
+  {
+   "i": 5,
+   "lib": "Cabinet dentaire MartinDr Martin · 17000 La Rochelle 114,00 ",
+   "data": "data-go=client-x-cm",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Cabinet dentaire Martin",
+   "panneau": "",
+   "hash": "#client-x-cm",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 6,
+   "lib": "Camping Les PinsM. Pineau · 17440 Aytré 175,00 €payé0,00 €à ",
+   "data": "data-go=client-x-cp",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Camping Les Pins",
+   "panneau": "",
+   "hash": "#client-x-cp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 7,
+   "lib": "Copropriété Les MimosascontratSyndic Foncia · 17000 La Roche",
+   "data": "data-go=client-x-mi",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Copropriété Les Mimosas",
+   "panneau": "",
+   "hash": "#client-x-mi",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 8,
+   "lib": "Garage Rochefort AutoM. Gaillard · 17300 Rochefort 0,00 €pay",
+   "data": "data-go=client-x-rf",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Garage Rochefort Auto",
+   "panneau": "",
+   "hash": "#client-x-rf",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 9,
+   "lib": "Hôtel de la PlagecontratMme Bernard, directrice · 17340 Chât",
+   "data": "data-go=client-x-hp",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Hôtel de la Plage",
+   "panneau": "",
+   "hash": "#client-x-hp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 10,
+   "lib": "M. et Mme DurandM. Durand · 17140 Lagord 242,00 €payé1 361,0",
+   "data": "data-go=client-x-md",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "M. et Mme Durand",
+   "panneau": "",
+   "hash": "#client-x-md",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 11,
+   "lib": "Mme Roux17440 Aytré 132,00 €payé0,00 €à recevoir02/11prochai",
+   "data": "data-go=client-x-mr",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Mme Roux",
+   "panneau": "",
+   "hash": "#client-x-mr",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  },
+  {
+   "i": 12,
+   "lib": "Restaurant Le Vieux PortMarc Durand, gérant · 17000 La Roche",
+   "data": "data-go=client-x-vp",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Restaurant Le Vieux Port",
+   "panneau": "",
+   "hash": "#client-x-vp",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 367,
+   "h": 184
+  }
+ ],
+ "err": []
+}

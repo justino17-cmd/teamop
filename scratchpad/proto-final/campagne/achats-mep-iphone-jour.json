@@ -1,6 +1,7 @@
 [
  {
   "nom": "demandes",
+  "population": 38,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -9,6 +10,7 @@
  },
  {
   "nom": "fenetre-demande",
+  "population": 16,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -17,6 +19,7 @@
  },
  {
   "nom": "fenetre-precision",
+  "population": 7,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -25,6 +28,7 @@
  },
  {
   "nom": "fenetre-refus-demande",
+  "population": 8,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -33,6 +37,7 @@
  },
  {
   "nom": "fenetre-budget",
+  "population": 4,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -41,6 +46,7 @@
  },
  {
   "nom": "fenetre-aide",
+  "population": 2,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -49,6 +55,7 @@
  },
  {
   "nom": "notes",
+  "population": 34,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -57,6 +64,7 @@
  },
  {
   "nom": "fenetre-fiche-note",
+  "population": 4,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -65,6 +73,7 @@
  },
  {
   "nom": "fenetre-sans-ticket",
+  "population": 4,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -73,6 +82,7 @@
  },
  {
   "nom": "fenetre-refus-note",
+  "population": 8,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -81,6 +91,7 @@
  },
  {
   "nom": "fenetre-tout-valider",
+  "population": 3,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -89,6 +100,7 @@
  },
  {
   "nom": "fenetre-tarif-km",
+  "population": 4,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -97,6 +109,7 @@
  },
  {
   "nom": "mes-frais",
+  "population": 10,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -105,6 +118,7 @@
  },
  {
   "nom": "fenetre-note-de-frais",
+  "population": 15,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -113,6 +127,7 @@
  },
  {
   "nom": "fenetre-ma-demande",
+  "population": 14,
   "deborde": 0,
   "petits": [],
   "champs": [],
@@ -121,6 +136,7 @@
  },
  {
   "nom": "fenetre-modifier-demande",
+  "population": 14,
   "deborde": 0,
   "petits": [],
   "champs": [],
