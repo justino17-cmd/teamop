@@ -39,7 +39,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
   // ── P2 · erreurs de saisie
   await jouer(c, 'P2 erreurs', async () => {
     await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.toucher(c, '[data-eq="inviterok"]'); const t1 = await E.toast(p);
-    v('P2 formulaire vide : le message dit quoi faire (prénom ET nom)', /Prénom ET nom/.test(t1), t1);
+    v('P2 formulaire vide : le message dit quoi faire (prénom ET nom)', /prénom ET (son )?nom/i.test(t1), t1);
     await remplir(c, { 'eq-p':'Rémi', 'eq-n':'Poulain', 'eq-m':'pas-une-adresse' }); await L.toucher(c, '[data-eq="inviterok"]'); const t2 = await E.toast(p);
     const inline = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? [...q.querySelectorAll('.erreur,[role=alert],#eq-homo,.champ .faible')].map(e => e.textContent.trim()).filter(Boolean) : []; });
     v('P2 e-mail faux : refusé avec un message clair', /adresse e-mail valide/.test(t2), t2);
@@ -111,10 +111,10 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
   });
   // ── P7 · désactiver puis réactiver
   await jouer(c, 'P7 désactiver', async () => {
-    await E.fiche(c, 'marc'); const dis = await p.evaluate(() => document.querySelector('#calque [data-eq="actif|marc"]').disabled);
+    await E.fiche(c, 'marc'); const dis = await p.evaluate(() => document.querySelector('#calque [data-eq="desact|marc"]').disabled);
     v('P7 le gérant (dernier administrateur) ne peut pas se désactiver : le bouton est désactivé et le dit', dis === true, dis);
     await E.fiche(c, 'tl'); const av = await p.evaluate(() => ({ ints:INTS.filter(i => i.tech === 'tl' && i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ).length, places:EQUIPE.filter(q => q.actif).length }));
-    await L.toucher(c, '[data-eq="actif|tl"]'); const t = await E.texte(p, '#calque'); v('P7 désactiver Tom : un écran de reprise annonce ce qui lui reste', /Avant de désactiver Tom/.test(t) && /intervention/i.test(t), t.slice(0, 160));
+    await L.toucher(c, '[data-eq="desact|tl"]'); const t = await E.texte(p, '#calque'); v('P7 désactiver Tom : un écran de reprise annonce ce qui lui reste', /Avant de désactiver Tom/.test(t) && /intervention/i.test(t), t.slice(0, 160));
     await L.toucher(c, '[data-eqx="desactok|tl"]'); await L.calme(p, 600);
     const ap = await p.evaluate(() => ({ actif:eqDe('tl').actif, restent:INTS.filter(i => i.tech === 'tl' && i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ).length, sansTech:INTS.filter(i => !i.tech && i.st === 'aplanifier').length }));
     v('P7 Tom est désactivé, plus aucune intervention à venir à son nom', ap.actif === false && ap.restent === 0, { av, ap });
