@@ -13,6 +13,8 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       toute l'application (voie « mots ») et à tenir partout (Temps de travail, Mes heures, Planning, paie).
 - [ ] **Boîte mail, bureau** — décision à soumettre à Justin (défaut ordinateur-06) : la secrétaire voit-elle la Boîte mail ?
       Recommandation du chef de chantier : oui, la boîte de l'entreprise seulement, pas la boîte personnelle du gérant.
+      (Restes mail, tour 1 : toujours une DÉCISION, rien à corriger côté code — une ligne dans `ROLES.gestion.routes` quand Justin
+      tranche ; ligne laissée non cochée exprès. Voir `final/restes-mail-tour1.json`.)
 - [ ] **Sonde `atelier-seule.js`** — elle compare la page seule « au pixel près » à la Version 11 : les corrections du
       compositeur (prix à deux décimales, aides raccourcies, prestations au catalogue) déplacent des boîtes. À re-baser sur
       l'état corrigé, en gardant la vérification « rien d'autre n'a bougé ».
