@@ -1,0 +1,119 @@
+{
+ "partie": "taches-absences",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  14
+ ],
+ "pasRegles": [
+  {
+   "n": 12,
+   "constat": "Rejoué (parcours-i I6, 10 ✓ · 1 ✗) : le « retour » du navigateur depuis une fiche de tâche quitte l'écran (on retombe sur « Absences et congés ») au lieu de fermer la fenêtre. Pas corrigé, annoncé « à soumettre à Justin » : décision de produit, pour toutes les fenêtres."
+  },
+  {
+   "n": 13,
+   "constat": "Rejoué sur iphone, petit, android, ipad : il reste exactement ces cibles sous 44 px et rien d'autre — bandes d'absence du calendrier (40×40 iphone/android, 35×40 petit, 34×40 ipad ; 2 jours : x80), barres « mois par mois » des Soldes (petit 40×75-81, ipad 38×81) et la ligne d'absence de « Mes congés » (petit 38×66). Mac et Windows : 164 ✓ · 0 ✗. Annoncé « à soumettre à Justin » (densité voulue) ; les bandes se touchent bien (jouées : la fiche s'ouvre sur petit, iphone, ipad)."
+  },
+  {
+   "n": 7,
+   "constat": "Réglé pour les flèches de période et les pastilles de personnes (plus signalées) ; ce qui reste de l'écran est le défaut 13."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "L'avis « Marc a validé / refusé ta demande » est illisible sur téléphone (texte en colonne d'un mot par ligne)",
+   "gravite": "bloquant",
+   "etapes": "Sophie (technicienne) envoie une demande de congé › Marc l'accorde (ou la refuse) › Sophie rouvre « Mes congés » : l'avis vert (ou rouge) en tête. Mesuré : texte de 12 px de large et 1 544 px de haut à 320 px (une lettre par ligne), 52 px / 431 px de haut à 360 px, 82 px / 260 px à 390 px ; correct seulement sur iPad (232 px). Même carte côté gérant quand une personne accepte les dates proposées.",
+   "constat": "Cause : `.a-avis` est une ligne flex dont le groupe de boutons `.a-avis-g` (« Voir au planning › » + « Vu », 196 px) ne rétrécit pas ; `.a-avis-c{flex:1;min-width:0}` prend le reste. Aucun écran déjà sondé n'ouvrait cet avis (il faut qu'une décision existe). Pas des corrections de la campagne : défaut déjà là, trouvé en jouant le parcours de bout en bout. Correction proposée : `.a-avis{flex-wrap:wrap}` et `.a-avis-c{flex:1 1 180px}` sous 520 px. Sonde qui tombe aujourd'hui : taches-absences-recontrole-avis.js (12 ✓ · 12 ✗ sur petit, android, iphone ; ipad vert). Captures : cap/campagne-taches-absences/rc/avis-petit-nuit.png, e1-iphone-7-sophie-apres.png."
+  },
+  {
+   "titre": "Le gérant peut poser une absence sur un samedi-dimanche seul : « 0 jour ouvré » est enregistré sans un mot",
+   "gravite": "gênant",
+   "etapes": "Absences et congés › ＋ Nouvelle absence › Tom, Congé payé, du 14 au 15 novembre › Enregistrer. L'aperçu écrit « 0 jour ouvré ✓ Aucune intervention prévue », le bouton reste actif, le message dit « Absence enregistrée » : une absence qui ne compte rien et ne change rien au planning.",
+   "constat": "La demande du technicien refuse déjà ce cas (« Ces jours ne sont pas travaillés », bouton grisé) : les deux formulaires n'ont pas la même règle. Rejoué sur mac nuit et iphone jour. Sonde : taches-absences-recontrole-saisie.js (parcours 2)."
+  },
+  {
+   "titre": "Une absence posée par le gérant sur les jours d'une demande en attente de la même personne double l'absence quand on accorde la demande",
+   "gravite": "gênant",
+   "etapes": "Calendrier › ＋ Nouvelle absence › Tom, Maladie, mardi 3 novembre › Enregistrer (la demande RTT de Tom du 3 novembre attend dans « À valider ») › « Valider » la demande de Tom. Résultat : deux absences de Tom le 3 novembre (Maladie ET RTT), le solde RTT est quand même débité. Aucun mot avant d'enregistrer ni avant d'accorder.",
+   "constat": "`anouvok` ne regarde que les absences validées (`ABSENCES`) ; la demande du technicien regarde `ABSENCES` et `DEMANDES_ABS`. Sonde : taches-absences-recontrole-saisie.js (parcours 2, 2 ✗). Rejoué sur mac nuit et iphone jour."
+  },
+  {
+   "titre": "Dans « Nouvelle demande de congé », choisir « Du » après la fin par défaut laisse « Au » en arrière",
+   "gravite": "détail",
+   "etapes": "Mes congés › Demande de congé › « Du » : 25 nov. (« Au » reste 11 nov.). Le message « La date de fin est avant la date de début » est clair et le bouton est grisé, mais un débutant doit deviner qu'il faut changer « Au » aussi.",
+   "constat": "Proposition : « Au » suit « Du » tant qu'on ne l'a pas touché. Les dates par le vrai sélecteur marchent (25 → 26 nov. : 2 jours ouvrés, la demande part avec les bonnes dates)."
+  },
+  {
+   "titre": "Le message « Ajoutée pour demain à 14 h · Annuler » reste posé sur le bas de la fiche de la tâche qu'on ouvre juste après",
+   "gravite": "détail",
+   "etapes": "iPhone › Tâches › taper « Appeler M. Martin pour la facture demain 14h », Entrée › ouvrir aussitôt la tâche (À venir) : pendant quelques secondes le message couvre « Reporter » et « Confier à ».",
+   "constat": "Capture cap/campagne-taches-absences/rc/e4-iphone-3-fiche.png. Disparaît seul ; à regarder."
+  },
+  {
+   "titre": "Calendrier au téléphone : le sélecteur de période « 2 semaines · 1 mois … 6 mois » est coupé à droite à 320 px",
+   "gravite": "détail",
+   "etapes": "petit (320 px) › Absences et congés › Calendrier : « 6 mois » n'est visible qu'en « 6 » ; la rangée défile mais rien ne le dit.",
+   "constat": "Capture rc/cal-petit-haut.png. Non vérifié : le défilement au doigt de la rangée."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "taches-absences-sonde-soldes.js",
+   "resultat": "8 ✓ · 0 ✗ (petit 286/286, android 326/326, iphone 356/356, ipad 506/506)"
+  },
+  {
+   "fichier": "taches-absences-sonde-export.js",
+   "resultat": "38 ✓ · 0 ✗ (petit, android, iphone, mac ; jour et nuit)"
+  },
+  {
+   "fichier": "taches-absences-mise-en-page.js",
+   "resultat": "mac 164 ✓ · 0 ✗ ; windows 164 ✓ · 0 ✗ ; iphone 240 ✓ · 4 ✗ ; android 240 ✓ · 4 ✗ ; ipad 238 ✓ · 6 ✗ ; petit 236 ✓ · 8 ✗ — tous les ✗ sont le défaut 13 (bandes d'absence et barres de mois), aucun autre"
+  },
+  {
+   "fichier": "taches-absences-parcours-a.js à -i.js",
+   "resultat": "A 19 ✓ · B 26 ✓ 1 ✗ (B4 : le banc était périmé, « Fait » en lot demande maintenant « Qu'as-tu fait ? » ; banc remis à jour : 27 ✓ · 0 ✗) · C 25 ✓ · D 12 ✓ · E 6 ✓ · F 3 ✓ · G 18 ✓ · H 6 ✓ · I 10 ✓ · 1 ✗ (I6 = défaut 12)"
+  },
+  {
+   "fichier": "balayage (copie de taches-absences-balayage.js, sorties hors dépôt)",
+   "resultat": "gérant mac À valider 19 gestes, Calendrier 24 gestes, gérant iphone Tâches 34 gestes (4 sans effet visible : champ de recherche, listes de choix, champ de saisie — normal), technicienne iphone Mes congés 13 gestes ; 0 erreur JavaScript partout"
+  },
+  {
+   "fichier": "taches-absences-recontrole-avis.js (neuve)",
+   "resultat": "12 ✓ · 12 ✗ : l'avis de décision illisible sur petit, android et iphone, jour et nuit"
+  },
+  {
+   "fichier": "taches-absences-recontrole-saisie.js (neuve) iphone jour, mac nuit",
+   "resultat": "14 ✓ · 2 ✗ chacun : parcours Sophie → Marc → Sophie par le vrai sélecteur de date et solde qui baisse, refus avec motif lu par Karim : verts ; absence de week-end et chevauchement avec une demande en attente : rouges"
+  },
+  {
+   "fichier": "taches-absences-recontrole-liens.js (neuve) mac, iphone nuit",
+   "resultat": "20 ✓ · 0 ✗ chacun : les 9 tâches liées (devis ×2, facture ×3, contrat, commande, interventions ×2) ouvrent leur objet et « ‹ Retour · la tâche … » ramène à Tâches"
+  },
+  {
+   "fichier": "taches-absences-recontrole-telephone.js (neuve) iphone",
+   "resultat": "7 ✓ · 0 ✗ : phrase → tâche demain 14 h, compteur « À venir » +1, confier à Julie, reporter, terminer, annuler"
+  },
+  {
+   "fichier": "mutations sur une copie de apercu/ (RACINE=/tmp/rc/rac)",
+   "resultat": "3 sur 3 tombent : date de fin du contrat retirée → H3 ✗ ; ligne aCalSem retirée → E2 ✗ ; règle ≤ 380 px des soldes retirée → soldes petit « 337 dans 286 » ✗"
+  }
+ ],
+ "doutes": [
+  "Ce qui reste hors de la règle des 44 px (défaut 13) : bandes d'absence du calendrier et barres « mois par mois » des Soldes au doigt, à confirmer par Justin comme densité voulue.",
+  "Le « retour » du téléphone ferme la fenêtre ET quitte l'écran (défaut 12) : à trancher pour tout le prototype (une entrée d'historique par fenêtre).",
+  "La pastille du menu « Tâches » affiche 1 (les retards de Marc seul) quand l'écran dit « Aujourd'hui 7 · En retard 2 » ; le chiffre est juste mais jamais expliqué (déjà signalé, toujours vrai).",
+  "Le texte « Cette tâche se termine toute seule quand le geste est fait dans l'application » (question « Qu'as-tu fait ? ») est difficile pour un débutant : à relire avec Justin.",
+  "Non vérifié : le changement de compte de mes parcours se fait dans la même page (sessionFermer / sessionOuvrir), faute de serveur ; la saisie du mot de passe n'est pas rejouée. Android et Windows n'ont pas rejoué les parcours de bout en bout (seulement la mise en page)."
+ ]
+}
