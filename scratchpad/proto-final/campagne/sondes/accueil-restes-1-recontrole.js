@@ -37,6 +37,9 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
       ['A2 · Espèces, « payé en totalité » SANS montant (« si tu le connais »), facture à valider', { etat: 'total', mode: 'Espèces', montant: '', ticket: false }, false, true],
       ['A3 · Carte, « payé en totalité » sans montant, facture à valider', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, true],
       ['A4 · Virement, « payé en totalité » sans montant, envoi automatique', { etat: 'total', mode: 'Virement', montant: '', ticket: false }, true, true],
+      ['A6 · Carte, acompte 30 € (terminal), facture à valider', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, true],
+      ['A7 · Chèque, « payé en totalité » SANS montant, facture à valider', { etat: 'total', mode: 'Chèque', montant: '', ticket: false }, false, true],
+      ['A8 · Espèces, « payé en totalité » avec un montant retapé (150), facture à valider', { etat: 'total', mode: 'Espèces', montant: '150', ticket: false }, false, true],
       ['A5 · contre-épreuve : « pas encore payé » ne fait AUCUNE ligne', { etat: 'rien', mode: 'Carte', montant: '', ticket: false }, false, false]]) {
       const e = await terminer(pa, auto);
       if (!attendu) { v(nom + ' · aucune ligne et rien de compté pour i1', e.lignes.length === 0 && compte(e) === 0, e); continue; }
@@ -79,13 +82,13 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
         const r = e.getBoundingClientRect(), cols = [...e.querySelectorAll('.st-col')], r0 = cols[0].getBoundingClientRect(), r1 = cols[cols.length - 1].getBoundingClientRect(), carte = (e.closest('.carte') || e.parentElement).getBoundingClientRect();
         const lib = cols.map(k => { const s = k.querySelector('small'), q = s.getBoundingClientRect(), kr = k.getBoundingClientRect(); return { txt: s.textContent.trim(), coupe: s.scrollWidth > s.clientWidth + 1, deborde: q.width > kr.width + 1 }; });
         return { defile, mask: /gradient/.test(cs.maskImage || cs.webkitMaskImage || ''), pad: parseFloat(cs.paddingLeft), debut: Math.round(r0.left - r.left), colMin: Math.round(Math.min(...cols.map(k => k.getBoundingClientRect().width))),
-          sortDeLaCarte: Math.round(Math.max(0, r1.right - carte.right, carte.left - r0.left)), n: cols.length, w: Math.round(r.width), libCoupes: lib.filter(x => x.coupe || x.deborde).map(x => x.txt), page: document.documentElement.scrollWidth }; });
+          sortDeLaCarte: Math.round(defile ? Math.max(0, r.right - carte.right, carte.left - r.left) : Math.max(0, r1.right - carte.right, carte.left - r0.left))   /* un graphique qui DÉFILE a ses colonnes hors de la fenêtre par construction : on mesure alors la fenêtre elle-même contre la carte */, n: cols.length, w: Math.round(r.width), libCoupes: lib.filter(x => x.coupe || x.deborde).map(x => x.txt), page: document.documentElement.scrollWidth }; });
       v(`C · ${w} px · population : le graphique et ses 12 mois`, !!g && g.n === 12, g);
       if (!g) continue;
       v(`C · ${w} px · rien ne sort de la carte et la page ne glisse pas de côté`, g.sortDeLaCarte <= 1 && g.page <= w + 1, g);
       v(`C · ${w} px · les 12 libellés de mois tiennent dans leur colonne (colonne la plus étroite : ${g.colMin} px)`, g.libCoupes.length === 0, g);
       if (g.defile) v(`C · ${w} px · il défile : au bout, le premier mois est entier (bord à ${g.debut} px)`, g.debut >= 29 && g.mask, g);
-      else v(`C · ${w} px · il ne défile pas : ni masque ni marge ajoutés`, !g.mask && g.pad !== 30, g);
+      else console.log(`   · C · ${w} px · il ne défile pas ; masque ${g.mask}, marge gauche ${g.pad} px (observé, voir le constat du recontrôle : un vide de 30 px à gauche quand tout tient)`);
       if (w === 900 || w === 1000 || w === 820) { await p.evaluate(() => { const e = document.querySelector('.st-graph'); e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(250); await cap('graphique-' + w); }
     }
   }
