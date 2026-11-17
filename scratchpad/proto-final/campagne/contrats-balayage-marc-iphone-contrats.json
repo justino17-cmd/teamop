@@ -1,0 +1,236 @@
+{
+ "profil": "iphone",
+ "qui": "marc",
+ "route": "contrats",
+ "etiq": "",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "Menu, 7 à traiter",
+   "data": "data-menu=ouvrir",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "Contrats",
+   "panneau": "Menu",
+   "hash": "#contrats",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 99,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "OP GESTION : revenir à l’écran d’ouverture",
+   "data": "data-logo=1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Bonjour Marc",
+   "panneau": "",
+   "hash": "#accueil",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 249,
+   "h": 44
+  },
+  {
+   "i": 2,
+   "lib": "Contrat rapide",
+   "data": "data-go=contrat-nouveau",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Climatisation · entretien",
+   "panneau": "",
+   "hash": "#contrat-nouveau",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 46
+  },
+  {
+   "i": 3,
+   "lib": "Composer un contrat",
+   "data": "data-opd=contrat",
+   "touche": true,
+   "change": [
+    "atelier"
+   ],
+   "h1": "Contrats",
+   "panneau": "",
+   "hash": "#contrats",
+   "toast": "",
+   "atelier": true,
+   "compta": false,
+   "sansNom": false,
+   "l": 358,
+   "h": 46
+  },
+  {
+   "i": 4,
+   "lib": "1en attente de signature",
+   "data": "data-go=contrat-x-c3",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 174,
+   "h": 104
+  },
+  {
+   "i": 5,
+   "lib": "CTR-2026-004Copropriété Les MimosasEntretien climatisation ·",
+   "data": "data-go=contrat-x-c1",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "CTR-2026-004",
+   "panneau": "",
+   "hash": "#contrat-x-c1",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 340,
+   "h": 145
+  },
+  {
+   "i": 6,
+   "lib": "CTR-2026-007Hôtel de la PlageEntretien climatisation · 12 ca",
+   "data": "data-go=contrat-x-c2",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "CTR-2026-007",
+   "panneau": "",
+   "hash": "#contrat-x-c2",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 340,
+   "h": 122
+  },
+  {
+   "i": 7,
+   "lib": "CTR-2026-011Cabinet dentaire MartinEntretien chauffe-eau the",
+   "data": "data-go=contrat-x-c3",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "CTR-2026-011",
+   "panneau": "",
+   "hash": "#contrat-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 340,
+   "h": 144
+  },
+  {
+   "i": 8,
+   "lib": "Climatisation · entretien4 prestations · prix conseillé 120 ",
+   "data": "data-modele=clim",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Climatisation · entretien",
+   "panneau": "",
+   "hash": "#contrat-nouveau",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 96
+  },
+  {
+   "i": 9,
+   "lib": "Chauffage · chaudière et entretien4 prestations · prix conse",
+   "data": "data-modele=chauffage",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Chauffage · chaudière et entretien",
+   "panneau": "",
+   "hash": "#contrat-nouveau",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 96
+  },
+  {
+   "i": 10,
+   "lib": "Plomberie · entretien des installations4 prestations · prix ",
+   "data": "data-modele=plomberie",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Plomberie · entretien des installations",
+   "panneau": "",
+   "hash": "#contrat-nouveau",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 324,
+   "h": 119
+  }
+ ],
+ "err": []
+}

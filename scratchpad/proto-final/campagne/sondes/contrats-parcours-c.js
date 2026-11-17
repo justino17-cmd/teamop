@@ -27,7 +27,7 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   v(`C3 : lieu de 130 signes sur le formulaire : la page ne glisse pas (${dform.premiere}/${dform.largeur})`, !dform.bouge, dform);
   await L.capture(c, O.CAP + `C3-lieu-long-formulaire-${profil}.png`);
   await p.fill('[data-b="prix"]', '300'); await L.toucher(c, '[data-action="creerContrat"]'); await L.calme(p, 500); const dfiche = await L.deborde(c);
-  v(`C3 : lieu de 130 signes sur la fiche : la page ne glisse pas (${dfiche.premiere}/${dfiche.largeur})`, !dfiche.bouge, dfiche);
+  v(`contrats-10 · C3 : lieu de 130 signes sur la fiche : la page ne glisse pas (${dfiche.premiere}/${dfiche.largeur})`, !dfiche.bouge, dfiche);
   await L.capture(c, O.CAP + `C3-lieu-long-fiche-${profil}.png`);
   // C4 — client sans adresse e-mail
   await ouvrirForm(); await p.evaluate(() => { CLIENTS.cp.mail = ''; }); await p.selectOption('[data-b="cli"]', 'cp'); await p.fill('[data-b="prix"]', '200');
@@ -48,7 +48,7 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   v('contrats-09 · C7 : un nouveau « Contrat rapide » repart du prix du modèle, pas de celui du contrat précédent (210 €)', f7.prix !== '210', f7);
   // C8 — taper un lieu puis changer de client : le lieu tapé est-il écrasé ?
   await ouvrirForm(); await p.fill('[data-b="lieu"]', 'Chaufferie, bâtiment B'); await p.selectOption('[data-b="cli"]', 'mi'); await L.calme(p, 300);
-  const l8 = await p.inputValue('[data-b="lieu"]'); v('contrats-10 · C8 : changer de client ne remplace pas le lieu que je viens de taper', l8 === 'Chaufferie, bâtiment B', l8);
+  const l8 = await p.inputValue('[data-b="lieu"]'); v('C8 : changer de client ne remplace pas le lieu que je viens de taper', l8 === 'Chaufferie, bâtiment B', l8);
   // C9 — quitter à moitié : « ‹ Contrats » ramène à la liste sans rien créer
   await ouvrirForm(); await p.fill('[data-b="prix"]', '333'); n = await nC(); await L.toucher(c, '.retour'); const l9 = await O.lire(p);
   v('C9 : « ‹ Contrats » en cours de saisie ramène à la liste, rien créé', /Contrats/.test(l9.h1) && (await nC()) === n, l9);
