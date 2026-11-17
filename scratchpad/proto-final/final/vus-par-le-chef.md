@@ -31,7 +31,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       « 1 compte verrouillé : Léa Roux. » (Équipe, rouge) : de jour sur Mac, la teinte posée sur le verre donne un dégradé
       gris-brun / gris-rose qui paraît terne à côté des cartes blanches. À regarder au pixel (jour et nuit, Mac et iPhone) et à
       éclaircir si le fond réel est bien grisâtre ; ne pas toucher au texte ni au bouton.
-- [ ] **Mon camion et « Ma journée » de la technicienne (materiel, vehtemps, technicien)** — iPhone et Mac, 17/11 : sous le
+- [x] (restes technicien 1 : `VH_EN_REGLE`, « Papiers et entretien : en règle » dans l'en-tête de Mon camion et la ligne de Ma journée, les pièces d'abord quand il en manque ; vehtemps-v5 39 ✓ · 0 ✗) **Mon camion et « Ma journée » de la technicienne (materiel, vehtemps, technicien)** — iPhone et Mac, 17/11 : sous le
       titre « Mon camion », la phrase verte « Tout est en règle. » est posée juste au-dessus de « Il manque à bord · 3 » ; et
       la carte de « Ma journée » dit « Mon camion — Tout est en règle — 3 articles à remettre à bord ». Les deux se
       contredisent pour quelqu'un qui lit vite : « en règle » parle des PAPIERS et de l'entretien du véhicule, pas des pièces.
@@ -106,7 +106,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       chaîne ; un fichier binaire (PDF, image) se REFAIT avec le constructeur du parent avant l'appel —
       `new window.parent.Blob([await blob.arrayBuffer()], { type })`. Sonde : dans le bac, un pont qui REFUSE tout ce qui
       n'est pas `instanceof` de sa propre fenêtre ; les trois téléchargements des cadres passent quand même.
-- [ ] **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
+- [x] (restes technicien 1 : technicien-02, 05, 06 et les quatre casses corrigés, voir final/restes-technicien-tour1.json ; sondes restes-technicien-1.js et -2.js, mutations M1 à M7 qui tombent) **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
       campagne sont tranchés, parce qu'ils ne touchent pas un dessin validé : ce sont les cartes AJOUTÉES par les refontes
       (pointage, Mon camion) qui ont poussé les interventions sous le pli.
       · **technicien-02** : sur « Ma journée », la première intervention du jour doit se voir SANS défiler sur un iPhone

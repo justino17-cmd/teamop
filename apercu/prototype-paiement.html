@@ -294,9 +294,9 @@ label.ch input,label.ch select,select.saisie{min-height:46px;border-radius:12px;
 <div class="page">
   <header class="tete">
     <div class="intro">
-      <span class="sur">Prototype · OP GESTION</span>
+      <span class="sur" id="sur-t">Prototype · OP GESTION</span>
       <h1>Paiement des factures</h1>
-      <p class="mute">Trois côtés d’un même paiement : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Le guide explique chaque bouton que tu touches, et peut te mener pas à pas dans chacun des 25 tests. Tout est simulé : aucun argent ne bouge, aucune donnée n’est réelle.</p>
+      <p class="mute" id="intro-t">Trois côtés d’un même paiement : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Le guide explique chaque bouton que tu touches, et peut te mener pas à pas dans chacun des 25 tests. Tout est simulé : aucun argent ne bouge, aucune donnée n’est réelle.</p>
     </div>
     <button type="button" class="btn" id="reset">Recommencer</button>
   </header>
@@ -318,6 +318,16 @@ label.ch input,label.ch select,select.saisie{min-height:46px;border-radius:12px;
 <div class="toast" id="toast" hidden></div>
 
 <script>
+/* 17/11 (compta-ventes-20, décision du chef) : DANS l'application (?app=1, ce que donne OP GESTION à son cadre), ce module ne montre plus son harnais d'essai : ni le ruban « Prototype »,
+   ni « Tests 0 / 25 », ni les boutons du temps (« + 1 jour », « + 1 semaine », « Jusqu'au prochain événement »), ni « Recommencer », ni « Nouvelle facture de test », ni les cadres jaunes
+   de test (« Carte de test », « Pour la démonstration »). Ses factures restent des EXEMPLES : l'écran le DIT (« Exemples · paiement en ligne »), il ne prétend pas être la Comptabilité. */
+const APP = /[?&]app=1\b/.test(location.search);
+if (APP) { document.documentElement.dataset.app = '1';
+  document.head.insertAdjacentHTML('beforeend', '<style id="opp-app">html[data-app] .b-temps,html[data-app] #b-proche,html[data-app] #b-tests,html[data-app] #reset,html[data-app] .rangee:has([data-act="nouvelle"]),html[data-app] .demo{display:none!important}</style>');
+  document.addEventListener('DOMContentLoaded', () => { const a = document.getElementById('sur-t'), b = document.getElementById('intro-t');
+    if (a) a.textContent = 'Exemples · paiement en ligne';
+    if (b) b.textContent = 'Voici comment un client paie une facture : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Ces factures sont des exemples : celles de ta Comptabilité ne s’y retrouvent pas encore. Aucun argent ne bouge.'; }); }
+
 /* ════ DONNÉES FIXES ════ */
 const ENT = { nom:'Clim Services 17', mail:'contact@climservices17.fr', iban:'FR76 1234 5678 9012 3456 7890 123', bic:'EXEMPFRPP', adr:'12 rue des Artisans, 17000 La Rochelle' };
 const NOM_MODE = { carte:'carte bancaire', carte_hors:'carte bancaire (hors Europe)', wallet:'Apple Pay', gpay:'Google Pay', sepa:'prélèvement SEPA', x3:'paiement en 3 fois', virement:'virement', cheque:'chèque', especes:'espèces' };
@@ -553,7 +563,7 @@ function vReglages(){
     <div class="carte"><h2>Ta banque</h2>
       <div class="ligne"><div class="g"><span class="petit mute">Les virements arrivent ici, directement</span><span class="iban">${ENT.iban}</span><span class="petit mute">IBAN d’exemple · BIC ${ENT.bic}</span></div></div>
       <div class="bascule"><div class="g"><b>Lire mes opérations bancaires</b><span class="petit mute">${S.banqueReliee ? 'Relié : les virements reçus sont reconnus par leur référence, la facture passe payée toute seule' : 'Sans ça, OP GESTION ne voit pas ton compte : tu touches « Reçu » sur la facture quand le virement est arrivé'}</span></div><button type="button" class="inter" role="switch" aria-checked="${S.banqueReliee}" aria-label="Lire mes opérations bancaires" data-act="banque-relier"></button></div>
-      <p class="petit mute">Dans la vraie version, ce lien passe par un prestataire agréé pour lire les comptes, avec l’accord de l’entreprise.</p></div>
+      <p class="petit mute">${APP ? 'Ce lien passe par' : 'Dans la vraie version, ce lien passe par'} un prestataire agréé pour lire les comptes, avec l’accord de l’entreprise.</p></div>
     <div class="carte"><h2>Ce que tes clients peuvent utiliser</h2>
       ${MOYENS.map(([k, l, s, ic, besoin]) => { const off = besoin && !S.relie; return `<div class="bascule"><span class="ic" aria-hidden="true">${ic}</span><div class="g"><b>${l}</b><span class="petit mute">${off ? 'Relie d’abord ton compte de paiement' : s}</span></div><button type="button" class="inter" role="switch" aria-checked="${moyenOuvert(k)}" aria-label="${l}" data-moyen="${k}" ${off ? 'disabled' : ''}></button></div>`; }).join('')}</div>
     <div class="carte"><h2>Frais et relances</h2>
