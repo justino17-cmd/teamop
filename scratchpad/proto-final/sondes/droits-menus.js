@@ -2,7 +2,7 @@
 // les adresses ouvertes et fermées, l'adresse tapée à la main et son message, la recherche « Aller à » et les raccourcis ⌘ 1-9 (qui lisent le même menu).
 // Attendus (spécification § 2.12, révisée : Julie a DIX lignes depuis que le lot Véhicules lui a ouvert « Véhicules » ; Marc 20 ; terrain 6). Chaque contrôle compte sa population.
 const { L, v, ouvrirComme, etatPersonne, toast, fin } = require('./droits-commun.js');
-const MARC = ['accueil', 'statistiques', 'historique', 'planning', 'interventions', 'taches', 'absences', 'clients', 'devis', 'contrats', 'boiteMail', 'comptabilite', 'achats', 'stock', 'produits', 'boxes', 'equipe', 'pointage', 'vehicules', 'entreprise'];
+const MARC = ['accueil', 'statistiques', 'historique', 'planning', 'interventions', 'taches', 'absences', 'clients', 'devis', 'contrats', 'boiteMail', 'comptabilite', 'achats', 'stock', 'produits', 'boxes', 'equipe', 'pointage', 'vehicules', 'entreprise', 'securite'];   // double-auth étape 3 : « Sécurité » est la 21e ligne du gérant (case « Gérer la sécurité des connexions »)
 const ATTENDU = {
   marc:{ lignes:MARC, barre:['accueil', 'planning', 'interventions', 'clients', 'comptabilite'], ouverture:'accueil' },
   julie:{ lignes:['taches', 'interventions', 'clients', 'devis', 'contrats', 'comptabilite', 'achats', 'stock', 'produits', 'vehicules'], barre:['comptabilite', 'devis', 'clients', 'taches', 'achats'], ouverture:'comptabilite' },
@@ -38,6 +38,6 @@ const egal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     v(`${qui} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
   }
-  v('population : sept personnes, des menus de 6 à 20 lignes (compté avant de conclure)', nPers === 7 && nLignes === 20 + 10 + 6 * 4 + 20, { nPers, nLignes });
+  v('population : sept personnes, des menus de 6 à 21 lignes (compté avant de conclure)', nPers === 7 && nLignes === 21 + 10 + 6 * 4 + 20, { nPers, nLignes });
   await fin();
 })().catch(e => { console.error(e); process.exit(1); });
