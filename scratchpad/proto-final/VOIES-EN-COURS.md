@@ -7,7 +7,7 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 11 h 53 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 11 h 54 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
@@ -26,7 +26,6 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | campagne compta-reste | `{voie:"campagne", cles:["compta-reste"], arbre:"/home/user/wt-t-compta-reste"}` | /home/user/wt-t-compta-reste | wf_6613e191-cd1 (tâche w3hlifa27) | 1 sur 3 |
 | campagne client | `{voie:"campagne", cles:["client"], arbre:"/home/user/wt-t-client"}` | /home/user/wt-t-client | wf_161f5d3d-d34 (tâche w2w2augv0) | 2 sur 3 |
 | campagne achats | `{voie:"campagne", cles:["achats"], arbre:"/home/user/wt-t-achats"}` | /home/user/wt-t-achats | wf_360ed1f4-c72 (tâche wungi95kj) | 1 sur 3 (RELANCÉE à 9 h 05 : la première attendait ses sondes par une boucle qui occupait un cœur entier ; règle ajoutée aux consignes) |
-| campagne equipe | `{voie:"campagne", cles:["equipe"], arbre:"/home/user/wt-t-equipe"}` | /home/user/wt-t-equipe | wf_450ca06e-2ba (tâche w8r7kndyx) | 1 sur 3 (lancée à 8 h 46) |
 
 ## Les sessions SŒURS (d'autres machines) — mode d'emploi : `workflows/SESSION-SOEUR.md`
 
@@ -55,6 +54,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 18 | session_01PfEEAJSZRMkBCbs92BLL1i | `{voie:"restes", noms:["planning"], depuis:3}` (recontrôle du tour 2) | 11 h 42 | |
 | 19 | session_01PfEEADuTZ1RBxsQwRSgovp | `{voie:"restes", noms:["artefact"], depuis:1}` (recontrôle du tour 1, puis tour 2) | 11 h 52 | |
 | 20 | session_01PfEEAF7HxjHJwxpUrQxwkF | `{voie:"restes", noms:["coque"], depuis:2}` (second tour : corriger, recontrôler) | 11 h 53 | |
+| 21 | session_01PfEEAFCKLvTVZTQZERUt9t | `{voie:"campagne", cles:["equipe"], depuis:1}` (corriger, recontrôler ; 20 défauts dont 1 bloquant ; deux décisions du chef données dans sa consigne : equipe-11, equipe-13) | 11 h 54 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
