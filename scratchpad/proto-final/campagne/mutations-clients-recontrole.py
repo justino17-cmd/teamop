@@ -11,7 +11,7 @@ BASE = {e[0]: e for e in mc.E}
 A = {
  'M9':  ('clients-recontrole-liste.js', 'mac', r'recherche « hôtel plage »'),
  'M10': ('clients-recontrole-liste.js', 'mac', r'recherche « 06\.55\.44\.33\.22 »'),
- 'M11': ('clients-recontrole-liste.js', 'mac', r'« aucun résultat » \(260 signes\) : il dit quoi faire'),
+ 'M11': ('clients-recontrole-liste.js', 'mac', r'« aucun résultat » \(260 signes sans espace\) : il dit quoi faire'),
  'M12': ('clients-recontrole-liste.js', 'iphone', r'« Par mois » : la phrase d’aide prend la largeur'),
  'M7':  ('clients-recontrole-creations.js', 'mac', r'création « avec un devis rapide »'),
  'M5':  ('clients-recontrole-creations.js', 'mac', r'création « avec une intervention »'),

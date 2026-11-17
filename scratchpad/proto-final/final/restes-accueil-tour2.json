@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "accueil-03 (casse du recontrôle) — la ligne « reçu sur place » de l'Historique dit 142,61 € quand l'Accueil, la Comptabilité et le bilan comptent 0 €",
+  "defaut": "journalPaieTerrain écrivait la ligne pour tout moyen et, pour « payé en totalité » sans montant, avec le TTC de la facture ; cpPaieTerrain (Accueil, Comptabilité, bilan) ne comptait que Espèces/Chèque avec un montant saisi : deux règles pour une même somme.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : cpPaieTerrain reprend le TTC de la facture préparée quand « payé en totalité » n'a pas de montant (Espèces/Chèque) ; ACTIONS.terminer n'écrit plus que ce que l'Accueil COMPTE (argent reçu en Espèces/Chèque pas encore sur une facture, ou encaissement de la facture déjà partie) : une seule règle, plus de recopie. Carte et virement notés sur place ne font plus de ligne « reçu sur place » tant que la facture n'est pas partie (comme au chargement : la carte passe par le terminal).",
+  "preuve": "scratchpad/proto-final/campagne/sondes/accueil-restes-1-recontrole.js : partie A+B mac 20 ✓ · 0 ✗ (avant : 12 ✓ · 4 ✗ sur A2, A3, A6, A7) ; sonde complète mac 93 ✓ · 0 ✗ ; accueil-restes-1, corrections, coherence, recontrole : 21/27/22/15 ✓ · 0 ✗."
+ },
+ {
+  "nom": "Statistiques, 700 à 760 px (et iPad portrait) : quand les 12 mois tiennent SANS défiler, marge de 30 px, fondu et « Glisse vers la droite pour les mois d'avant » restaient posés",
+  "defaut": "règles @media sur la largeur de l'écran, alors que ce qui décide du défilement est la largeur de la carte (528 px de colonnes + 30 px de marge).",
+  "etat": "corrigé",
+  "changement": "enveloppe .st-gcont (container-type:inline-size) autour du graphique et de sa légende ; marge, fondu et phrase ne s'appliquent que dans @container (max-width:557px) à l'intérieur des deux requêtes d'écran existantes ; la phrase est cachée par défaut.",
+  "preuve": "sonde accueil-restes-1-recontrole.js partie C, 15 largeurs : mac 61 ✓ · 0 ✗, ipad 33/0, iphone nuit 61/0 ; chaque largeur exige : défile ⇒ fondu + phrase + premier mois entier ; ne défile pas ⇒ ni marge, ni fondu, ni phrase (nouveau contrôle, avait tombé 0 largeur sur 700-760 avant l'enveloppe). Captures 390 et 700 px regardées (restes1-rec-vue-*)."
+ },
+ {
+  "nom": "Bilan du mois (PDF) : la tuile « Encaissé » perd son « par rapport à sept. 2026 » quand « hors X € reçus sur place » la remplace",
+  "defaut": "le 3ᵉ argument de la tuile Encaissé était soit la comparaison, soit la mention, jamais les deux (la tuile Facturé et l'écran des Statistiques gardent la comparaison). Reproduit sur le bilan (synthèse et page du mois), pas sur la tuile des Statistiques.",
+  "etat": "corrigé",
+  "changement": "les deux tuiles Encaissé du bilan (synthèse, page du mois d'octobre) disent « par rapport à sept. 2026 · hors 40 € reçus sur place ». Vu sur capture : un premier jet avait laissé un commentaire de code s'imprimer dans le bilan ; corrigé et gardé par un contrôle.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/accueil-restes-2.js (neuf) : iPhone jour 16 ✓ · 0 ✗, iPhone nuit 16/0, mac 16/0, iPad 16/0, démo et valeur longue 12 345,67 €, tuile des Statistiques et tuile du bilan ; captures restes2-bilan-*."
+ },
+ {
+  "nom": "Doute : une carte ou un virement noté sur place par le technicien doit-il s'appeler « reçu sur place » dans l'Historique ?",
+  "defaut": "le chargement dit non (la démo i21, Carte 95 €, n'a pas de ligne), Terminer disait oui ; aligné maintenant sur le chargement et sur ce que l'Accueil compte.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun changement d'écran en plus : si Justin veut voir aussi la carte et le virement dans l'Historique, c'est une ligne de plus dans cpPaieTerrain (et l'Accueil les comptera alors « reçus sur place »).",
+  "preuve": "A3 et A6 de accueil-restes-1-recontrole.js : aucune ligne, rien compté."
+ },
+ {
+  "nom": "accueil-07 — « À faire maintenant » : 17 lignes de même poids ; chiffres des Statistiques d'un mois d'avant octobre fabriqués par le prototype",
+  "defaut": "dessin de l'Accueil et données de démonstration : décisions de Justin, non touchées.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "voir restes-accueil-tour1.json"
+ },
+ {
+  "nom": "Doute (déjà décidé) : Julie s'ouvre sur la Comptabilité ; pied du menu ; vus-par-le-chef (lignes Accueil)",
+  "defaut": "déjà tranchés au tour 1 (MENU-FINAL.md) ; aucune ligne non cochée de vus-par-le-chef.md ne touche l'Accueil.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "grep de vus-par-le-chef.md : aucune ligne ouverte sur Accueil, Statistiques, Historique"
+ }
+]

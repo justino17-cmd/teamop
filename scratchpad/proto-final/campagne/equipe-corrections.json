@@ -1,0 +1,9 @@
+[
+ {"n":"equipe-01","etat":"corrigé","changement":"secuReposer refuse son propre compte (toast « Pour ton propre compte, demande à un autre administrateur. ») ; le bouton n'est plus dessiné sur sa propre fiche","preuve":"equipe-corrections.js (equipe-01)"},
+ {"n":"equipe-02","etat":"corrigé","changement":"eqxSynchro met à jour H_GENS (nom, rôle) pour toute personne de l'Équipe, bureau compris","preuve":"equipe-parcours.js P5"},
+ {"n":"equipe-03","etat":"corrigé","changement":"une seule consigne dans le formulaire d'invitation","preuve":"equipe-parcours.js P1"},
+ {"n":"equipe-04","etat":"corrigé","changement":"entVerifier : message sous le champ, aria-invalid, curseur sur le premier fautif","preuve":"equipe-parcours.js P2"},
+ {"n":"equipe-05","etat":"corrigé","changement":"habilitation de même nom refusée (renvoi à Renouveler…)","preuve":"equipe-parcours.js P6b"},
+ {"n":"equipe-06","etat":"corrigé","changement":"fin avant obtention refusée, fin passée confirmée par un second toucher","preuve":"equipe-parcours.js P6b"},
+ {"n":"equipe-07","etat":"corrigé","changement":"date vide sans « Sans date de fin » : on demande","preuve":"equipe-parcours.js P6b"}
+]

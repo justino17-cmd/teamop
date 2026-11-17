@@ -1,4 +1,5 @@
 // Espace client : TOUCHE chaque élément qui répond (recensé dans le DOM), sur plusieurs clients, et vérifie que le geste mène où il le dit.
+// (17 novembre, recontrôle : « Voir comme l'application » (data-apv) et « Revenir au mode test » (data-cnx) sont l'ÉCHAFAUDAGE du prototype nu ; les toucher faisait passer la page en mode application et tout le reste du passage tombait.)
 // node client-gestes.js [profil] [nuit]   → « N ✓ · M ✗ », sortie 1 si un contrôle tombe. Rapport : client-gestes-<profil>.json (dossier des captures).
 const O = require('./client-outils.js'), L = O.L, fs = require('fs');
 const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', clients = (process.argv[4] || 'md,hp,cm,vp,mi').split(',');
@@ -23,7 +24,7 @@ const attendu = (g, a) => {
     const c = await O.client({ profil, nuit, cli }); const p = c.p;
     for (const tab of ['accueil', 'factures', 'interventions', 'devis', 'contrats']) {
       await p.evaluate(({ cli, tab }) => { RL_CLI.cli = cli; EC.tab = tab; rendre(); }, { cli, tab }); await L.calme(p, 300);
-      const liste = (await L.gestes(p, 'body')).filter(g => (!/data-rl=|data-gd=|data-mch=|data-logo|data-menu=|data-sortie=/.test(g.data) || /data-rl=retour/.test(g.data)));
+      const liste = (await L.gestes(p, 'body')).filter(g => (!/data-rl=|data-gd=|data-mch=|data-logo|data-menu=|data-sortie=|data-apv=|data-cnx=/.test(g.data) || /data-rl=retour/.test(g.data)));
       L.v(`${cli}/${tab} : population recensée (${liste.length})`, liste.length >= 5, liste.length);
       for (const g of liste) { recenses++;
         // on retrouve l'élément par sa signature (libellé + data), jamais par son rang

@@ -1,0 +1,121 @@
+[
+ {
+  "nom": "compta-ventes-06 · tâche de relance d'une facture annulée",
+  "defaut": "La facture annulée par un avoir gardait sa tâche « Relancer le paiement… » ouverte (Tâches et fiche : « 1 tâche ouverte pour cette facture »).",
+  "etat": "corrigé",
+  "changement": "avoirOk termine les tâches de relance de la facture (tFaire, comme à l'envoi d'une relance) et le dit dans le message.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-recontrole-r2b.js 26 ✓ · 0 ✗ ; mutation (fermeture des tâches retirée) : 2 ✗"
+ },
+ {
+  "nom": "compta-ventes-06 · facture encaissée en partie puis annulée",
+  "defaut": "Avoir offert à une facture en retard encaissée en partie mais pas à une facture « partielle » ; la fiche disait « Plus rien n'est à payer » sans un mot sur les 500 € reçus.",
+  "etat": "corrigé",
+  "changement": "L'avoir est offert aussi à une facture « Payée en partie » ; la fenêtre dit « 500,00 € déjà reçus : à rembourser » ; à la création : tâche « Rembourser 500,00 € à <client> » + ligne à l'Historique ; la fiche annulée dit « À rembourser au client 500,00 € » (plus « Reste à payer ») et lie la tâche ; la fenêtre de comptabilité écrit « 500,00 € à rembourser ».",
+  "preuve": "r2b R2b-1 à R2b-5 ✓, captures r2b-mac-fiche-annulee-500.png"
+ },
+ {
+  "nom": "compta-ventes-06 · facture payée puis avoirée",
+  "defaut": "La fenêtre disait « Payée · virement » seule pour une facture payée avoirée.",
+  "etat": "corrigé",
+  "changement": "OP GESTION envoie le numéro de l'avoir ; la liste dit « Payée · virement · avoir AV-… » et le panneau « le remboursement se note à part ».",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-recontrole-r5.js 3 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Casse 3 · TVA d'une facture à la main pour un particulier",
+  "defaut": "TVA 20 % proposée et fiche « client professionnel » pour M. et Mme Durand.",
+  "etat": "corrigé",
+  "changement": "tvaDefautDe(client), UNE fonction lue par le devis, le contrat et la facture à la main ; choisir le client règle le taux ; la fiche dit « taux normal : logement neuf ou de moins de 2 ans » pour un particulier à 20 % et « taux réduit : attestation à conserver » pour un professionnel à 10 %.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-recontrole-r4.js 3 ✓ · 0 ✗ ; mutation (20 % pour tous) : 1 ✗"
+ },
+ {
+  "nom": "compta-ventes-21 · « Plus bas » et menu de la fenêtre au doigt",
+  "defaut": "« Plus bas » à 36 px (iPhone, Android, 320 px) et 14 entrées du menu à 40 px sur iPad.",
+  "etat": "corrigé",
+  "changement": "Règle (pointer:coarse) écrite APRÈS les 36 et 40 px de la souris dans prototype-comptabilite.html.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-corrections-mep.js : iphone, ipad, petit, android 28 ✓ · 0 ✗ (avant 26 ✓ · 2 ✗), windows 14 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Point 11 · colonnes d'une facture",
+  "defaut": "« Prix HT » voulait dire l'unité sur la fiche et sur le PDF, sans total de ligne.",
+  "etat": "corrigé",
+  "changement": "Fiche (lecture et modification) et PDF : Désignation · Prix unitaire HT · Qté · Total HT ; une seule fonction pour le total de ligne (totLigne), celle du total de la facture ; la quantité passe après la désignation jusqu'à 440 px ; total TTC et chiffres réduits à 320 px ; la quantité se casse avant « × » (le mot n'est plus soudé).",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes-2.js petit, iphone, android nuit : 13 ✓ · 0 ✗ (3 × 1 234,50 = 3 703,50 ; 1,5 × 29,17 = 43,76 ; total HT 3 747,26 ; aucun débordement) ; mutation (total sans quantité) : 5 ✗"
+ },
+ {
+  "nom": "Point 15 · onglets d'un espace au téléphone",
+  "defaut": "Les onglets Ventes, Achats, Paie, Trésorerie, Fiscal défilaient de côté sans indice.",
+  "etat": "corrigé",
+  "changement": "Les onglets passent à la ligne (deux lignes si besoin) et tiennent dans l'écran, 46 px chacun.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes-1.js iphone, android, petit, ipad : tous les onglets dans l'écran, 44 px ; mutation : 10 ✗"
+ },
+ {
+  "nom": "Points 16 et 17 · hauteur de la tête et de la fiche facture",
+  "defaut": "Phrase d'explication sur trois lignes ; sur la fiche d'une facture, le titre « FAC-… » à 607 px (sous le fil d'Ariane, l'encadré « Il manque… » à quatre lignes, deux liens).",
+  "etat": "corrigé",
+  "changement": "Au téléphone seulement : la phrase tient sur une ligne (le reste derrière « Comment ça marche ? ») ; fiche : plus de fil d'Ariane, « Il manque 3 mentions légales · Compléter » sur une ligne, « Tout le dossier de l'intervention » et « Voir dans la Comptabilité » dans la rangée d'actions. Le titre passe de 607 à 292 px sur iPhone. Sous 380 px la phrase perd ses possessifs (« Ventes, achats, trésorerie et TVA »), et « Il manque 3 mentions » perd « légales » sous 340 px : sans cela, elles se coupaient ou passaient sur deux lignes.",
+  "preuve": "compta-ventes-restes-1.js iphone, android, petit : 30 ✓ · 0 ✗ chacun (jour et nuit pour iphone), captures lues"
+ },
+ {
+  "nom": "Point 19 · porte « Comptabilité » et nom « OP COMPTABLE »",
+  "defaut": "La porte ouvre la fenêtre de la comptabilité.",
+  "etat": "déjà décidé",
+  "changement": "Rien changé (décision du chef : validé).",
+  "preuve": "Reste à soumettre à Justin : le nom « OP COMPTABLE » de la fenêtre, différent du mot du menu « Comptabilité »."
+ },
+ {
+  "nom": "Point 20 · « Paiement en ligne » en mode application",
+  "defaut": "Le module montrait son harnais d'essai (ruban « Prototype », Tests 0 / 25, + 1 jour, + 1 semaine, Jusqu'au prochain événement, Recommencer, Nouvelle facture de test, cadres jaunes, « Dans la vraie version… »).",
+  "etat": "corrigé",
+  "changement": "OP GESTION donne ?app=1 au cadre ; le harnais n'est plus montré ; le ruban devient « Exemples · paiement en ligne », la barre de l'onglet et le texte disent que ces factures sont des exemples. Contre-épreuve : sans l'application, le harnais est là.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes-3.js mac, iphone, iphone nuit : 12 ✓ · 0 ✗ ; mutation (harnais rendu) : 2 ✗"
+ },
+ {
+  "nom": "Point 20 (suite) · factures d'OP GESTION dans « Paiement en ligne »",
+  "defaut": "Le module garde ses propres factures (simulateur de 1 237 lignes, ses paiements, ses relances, sa banque, son horloge).",
+  "etat": "à soumettre à Justin",
+  "changement": "Repli prévu par le chef : l'onglet dit clairement « exemples ». Le brancher aux factures d'OP GESTION (même message que la Comptabilité, chiffres égaux au centime avec Ventes) est un chantier de la taille du module : non fait dans ce tour, pour ne pas livrer un branchement à moitié.",
+  "preuve": "—"
+ },
+ {
+  "nom": "Point 22 · un seul bouton de menu au téléphone",
+  "defaut": "Le ≡ de la fenêtre de la comptabilité doublait le « Menu » d'OP GESTION et la barre du bas ; l'heure « 05:55 » sans libellé.",
+  "etat": "corrigé",
+  "changement": "Dans le cadre, ≤ 760 px : le ≡ s'efface (la barre du bas « Plus » porte les rubriques) ; « Menu » d'OP GESTION reste (décision e) ; la puce dit « Relevé à 05:55 ». Sur tablette le ≡ reste (pas de barre du bas).",
+  "preuve": "compta-ventes-restes-1.js iphone ✓ (burger masqué, « Plus » visible, « Menu » visible), ipad ✓"
+ },
+ {
+  "nom": "Bouton « Menu » à côté de « ‹ OP GESTION »",
+  "defaut": "—",
+  "etat": "déjà décidé",
+  "changement": "Décision (e) : gardé visible, vérifié par la sonde (22).",
+  "preuve": "compta-ventes-restes-1.js iphone"
+ },
+ {
+  "nom": "Remboursement d'une facture PAYÉE puis avoirée",
+  "defaut": "Pour une facture payée entièrement, l'avoir dit « le remboursement se note à part, dans les paiements » ; aucune tâche « Rembourser » n'est créée (la décision du chef ne parle que du cas partiel).",
+  "etat": "à soumettre à Justin",
+  "changement": "Non changé : faut-il aussi créer « Rembourser X € à <client> » à l'avoir d'une facture payée ?",
+  "preuve": "—"
+ },
+ {
+  "nom": "Contrat facturé « au mois » : aucune facturation mensuelle",
+  "defaut": "Signalé par le recontrôle.",
+  "etat": "déjà décidé",
+  "changement": "Décision contrats-15 (voie contrats) : le mode « chaque mois » agit à la signature.",
+  "preuve": "hors de mes noms"
+ },
+ {
+  "nom": "Sonde parcours-g 12b (contrat « à l'an », visite) périmée",
+  "defaut": "La sonde attend qu'une visite couverte ne crée AUCUNE facture ; la voie contrats a décidé qu'une pièce hors contrat se facture seule (10,33 € HT).",
+  "etat": "déjà décidé",
+  "changement": "Non touchée : la décision de la voie contrats (une pièce hors contrat posée sur une visite comprise se facture SEULE) rend l'attente périmée ; la sonde est à adapter par la voie contrats.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/compta-ventes-parcours-g.js 7 ✓ · 1 ✗"
+ },
+ {
+  "nom": "Sonde parcours-a « prix négatif refusé »",
+  "defaut": "Elle cherchait le mot « prix » dans le refus ; le refus dit maintenant « Ce montant ne se lit pas » (lecture unique des montants).",
+  "etat": "corrigé",
+  "changement": "Sonde mise à jour (prix ou montant) ; le refus est juste.",
+  "preuve": "parcours-a : 35 ✓ · 1 ✗ avant mise à jour, la ligne corrigée est la seule qui tombait"
+ }
+]
