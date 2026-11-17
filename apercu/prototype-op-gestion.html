@@ -11420,11 +11420,11 @@ function rlLignesDe(p, coque){
    Une famille absente de la table prend la catégorie de l'écran ouvert et n'est refusée que si son verbe a la forme d'une écriture (GESTE_ECRITURE). */
 const GESTES = {
   ac:{ k:'achats', m:'transfert commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
-  action:{ m:'envoyer@ventes toutValider@ventes signerContrat@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
+  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
     c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm clientEnreg@crm',
     s:'noteSuppr@inter photoSuppr@inter pieceSuppr@inter sigEfface@inter sigCtrEfface@ventes',
     l:'vueEnregistrer vueEnregistrerOk info copierSms apercuEnvoi pdfFacture commentAuto lireContrat bilanPdf cPlusTot cPlusTard cFermer achatsAide' },
-  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach' },
+  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach fd' },
   axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
   rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
   /* administration : l'entreprise et l'équipe */
@@ -11433,7 +11433,7 @@ const GESTES = {
   eqx:{ k:'admin', c:'renouvok regajout', m:'modifok modifx modifier placeok garder fgarder profok cgarder placeplus', s:'annulinv desact desactok regsuppr', l:'kpi formation regles histo revenir choisir fchoisir mesbureau mesfiche cchoisir' },
   eqd:{ k:'admin', d:'m' }, eqs:{ k:'admin', d:'m' }, eqt:{ k:'admin', d:'m' },
   ent:{ k:'admin', m:'identok logook banqueok horairesok logoretirer', l:'completer carte lien' },
-  mabarre:{ d:'l' },
+  mabarre:{ d:'l' }, metf:{ d:'l' }, htype:{ d:'l' }, creer:{ k:'inter', d:'c' }, rdv:{ k:'planif', d:'m' }, fogarder:{ k:'stock', d:'m' },
   /* boîte mail */
   mbx:{ k:'com', c:'add addstop addpas addfin', m:'confok reco', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
   mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout', m:'reco confok', l:'cmd annonce boites' },
@@ -11477,7 +11477,7 @@ const GESTES = {
   ptx:{ k:'temps', m:'debut reprendre termineok sigok plustotok finhierok corrige validertous termine termineprop finhier finhierautre plustot plustard', l:'pause' },
   tt:{ k:'temps', c:'ajout ajoutok', m:'valider validerok validertout validerun confirmer termineok rappelsok terminer fin jourok mhconfok accepter erreur areg mhconf mhtout rappeler rappeler1', l:'abs filtre rappels jour sem nav regle paie mois releve onglet demander mhonglet mhfin' },
   ve:{ k:'temps', c:'nouveau creer', m:'pleinok kmok', l:'fiche' },
-  vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout', s:'docdel', l:'fiche onglet statut fonglet frais per csv csvflotte rdv' },
+  vh:{ k:'temps', c:'nouveau plein rdvok', m:'plan cond modif km incclos docadd docok amende sinistre fait matfait mattout', s:'docdel', l:'fiche onglet statut fonglet frais per csv csvflotte rdv cout groupe' },
   vx:{ k:'temps', c:'creerok plein', m:'faitok groupeok pleinok kmok garageok retourok condok modifok frmodok soucisok amendeok sinistreok commander km', s:'frdel docdel', l:'kmnon souci ouvrir' },
   /* devis, contrats, relevés */
   dv:{ k:'ventes', c:'nouveau creerInt ligneAj', m:'envoyer relancer signer clientRefus reponse planifier version repOui repNon acompte client', s:'supprimer ligneSup', l:'dicter focusFin pdf' },
@@ -11490,7 +11490,7 @@ const GESTES = {
   ec:{ d:'l' },
   /* gestes de soi et de l'écran : aucune case */
   gd:{ d:'l' }, imm:{ d:'l' }, nv:{ d:'l' }, mch:{ d:'l' }, menu:{ d:'l' }, mode:{ d:'l' }, tab:{ d:'l' }, go:{ d:'l' }, kpi:{ d:'l' }, kdash:{ d:'l' }, l:{ d:'l' }, vc:{ d:'l' }, vis:{ d:'l' }, oc:{ d:'l' }, tour:{ d:'l' }, taller:{ d:'l' }, voix:{ d:'l' },
-  cmpt:{ d:'l' }, cpsys:{ d:'l' }, retour:{ d:'l' }, retourva:{ d:'l' }, retourx:{ d:'l' }, pretour:{ d:'l' }, rlcli:{ d:'l' }
+  cmpt:{ k:'compta', m:'relance', d:'l' }, cmptfin:{ k:'compta', d:'m' }, cpsys:{ d:'l' }, retour:{ d:'l' }, retourva:{ d:'l' }, retourx:{ d:'l' }, pretour:{ d:'l' }, rlcli:{ d:'l' }
 };
 /* ── la phrase de chaque case : ce qu'elle change, en mots de tous les jours. Elle sert à la fiche (sous chaque case), au refus (« Ce geste n'est pas ouvert à ton compte : … ») et à l'infobulle. ── */
 const DROIT_PHRASES = {
