@@ -11021,7 +11021,7 @@ function cxDocs(){
       ttc:complet ? cpR(ttcDe(f)) : null, reste:avoir || f.st === 'payee' ? 0 : cpR(restant(f)), st:f.st === 'envoyee' ? 'aencaisser' : f.st, piece:true }); });
   ACHATS.forEach(a => { const ttc = cpTTC(a), ech = a.ech ? cxIso(a.ech) : ajoute(cxIso(a.d), 30);
     const st = a.paye ? 'payee' : a.mode === 'Note de frais' ? 'paie' : a.mode === 'Prélèvement' ? 'prelev' : ech < AUJ ? 'retard' : 'apayer';
-    L.push({ src:'ach', id:a.id, cat:cxCatAchat(a), fam:'achats', num:a.ref, tiers:a.four, objet:a.objet, d:cxIso(a.d), ech:a.paye ? null : ech, ttc, reste:a.paye ? 0 : ttc, st, piece:!!a.piece, sf:!!a.tva && a.piece !== 'facture' }); });
+    L.push({ src:'ach', id:a.id, cat:cxCatAchat(a), fam:'achats', num:a.ref, tiers:a.four, objet:a.objet, d:cxIso(a.d), ech:a.paye ? null : ech, ttc, reste:a.paye ? 0 : ttc, st, piece:!!a.piece, sf:!!a.tva && a.piece !== 'facture' && !(a.mode === 'Note de frais' && a.piece) });   /* une note de frais validée avec son ticket est justifiée : le ticket EST son justificatif (elle ne se lit pas « sans justificatif ») */ });
   NDF.filter(n => n.etat === 'attente').forEach(n => L.push({ src:'ndf', id:n.id, cat:'ndf', fam:'achats', num:'Note ' + ndfNumero(n), tiers:H_NOM(n.qui), objet:n.objet, d:n.d, ech:null, ttc:n.ttc, reste:n.ttc, st:'avalider', piece:!!n.recu }));
   CP_RELEVE.filter(r => CP.frais[r.id]).forEach(r => L.push({ src:'rel', id:r.id, cat:'frais', fam:'achats', num:'Relevé ' + r.id.toUpperCase(), tiers:'Ta banque', objet:r.lib, d:cxIso(r.d), ech:null, ttc:cpR(-r.m), reste:0, st:'payee', piece:true }));
   return L.sort((x, y) => (y.d || '9999').localeCompare(x.d || '9999'));
@@ -19885,14 +19885,14 @@ function axSuggestion() {
 }
 function axDemEnvoyer(id) {
   const g = i => document.getElementById(i);
-  const q = g('ax-q').value.trim(), brut = g('ax-n').value, n = axNum(brut), u = g('ax-u').value;
+  const q = g('ax-q').value.trim(), brut = g('ax-n').value.replace(/[.,]\s*$/, ''), n = axNum(brut), u = g('ax-u').value;
   if (!q) return toast('Dis ce qu’il faut.');
   /* un champ de type « number » avalait la virgule (« 1,5 » devenait 15 : quinze kilos au bureau) : le champ est du texte, et une valeur qu'on ne sait pas lire est REFUSÉE avec une phrase, jamais devinée (achats-01) */
   const brutNet = brut.replace(/[\s\u00a0\u202f']/g, '');
   if (!brutNet) { g('ax-n').focus(); return toast('Indique combien.'); }
   if (/^[1-9]\d{0,2}[.,]\d{3}$/.test(brutNet)) { g('ax-n').focus(); return toast('« ' + brutNet + ' » n’est pas clair : écris ' + brutNet.replace(/[.,]/, '') + ' (sans point) ou ' + String(+brutNet.replace(',', '.')).replace('.', ',') + ' (avec la virgule).'); }
   if (!isFinite(n)) { g('ax-n').focus(); return toast('Écris la quantité avec des chiffres, par exemple 1,5.'); }
-  if (!(n > 0)) { g('ax-n').focus(); return toast('Indique une quantité plus grande que zéro.'); }
+  if (!(n > 0)) { g('ax-n').focus(); return toast('Indique combien : un nombre plus grand que zéro.'); }
   if (u !== 'kg' && u !== 'L' && u !== 'm' && n % 1) { g('ax-n').focus(); return toast('En « ' + u + ' », compte en nombre entier : 2, pas ' + String(n).replace('.', ',') + '. Pour une quantité à virgule, change l’unité (kg, L, m).'); }
   if (n > 500) { const cle = q + '|' + n + '|' + u; if (axSur !== cle) { axSur = cle; return toast('Vraiment ' + axQte(n, u) + ' ? Si c’est juste, touche encore le bouton pour envoyer.'); } axSur = ''; }
   const qd = g('ax-qd').value || '', iid = g('ax-i').value, pq = g('ax-p').value.trim();
@@ -20212,7 +20212,7 @@ function axNdfNature() {
 }
 function axNdfEnvoyer(forcer) {
   const g = id => document.getElementById(id), nat = g('rn-o').value, km = nat === AX_NATURES[4], pr = g('rn-pr').value.trim(), iid = g('rn-i').value, d = g('rn-d').value || AUJ;
-  const k = km ? axNum(g('rn-km').value) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, ''), m = km ? (k > 0 ? axR2(k * AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
+  const k = km ? axNum(g('rn-km').value) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, ''), m = km ? (k > 0 ? axR2(k * AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
   /* Rien n'est choisi d'avance (restes technicien 1) : « Carburant » pré-rempli titrait « Carburant · Péage A10 · AB-123-CD » un péage ou des gants. */
   if (!nat) { const o = g('rn-o'); if (o) o.focus(); return toast('Choisis d’abord ce que c’est dans la liste : carburant, repas, péage…'); }
   /* un montant écrit avec un « € », ou qu'on ne sait pas lire, reçoit une phrase qui dit QUOI écrire : « Indique le montant payé. » devant un champ déjà rempli laissait croire à un bug (achats-11) */
@@ -24195,7 +24195,7 @@ immChap('achats', 'achats', 'Achats et frais', 'Achats et frais : décider vite,
     jouer:immAvmeJ('achats', () => immClic('.pr-vues [data-ac="onglet|notes"]')) },
   { c:'[data-axid="n1"]', t:'Le ticket se voit avant de valider', p:'Tom a avancé 16 euros 50 pour un repas de chantier. Tu vois le ticket en petit, la TVA lue dessus, et deux boutons. Je touche Valider : la note part au remboursement avec la paie de novembre.',
     jouer:immAvmeJ('achats', () => immClic('[data-ac="ndfok|n1"]')) },
-  { c:'[data-cx="sec|factures|achats|sanspiece"]', t:'Tout se relie', p:'Un bouton Annuler défait la validation. Regarde cette tuile : la dépense est déjà dans la Comptabilité, les achats sans justificatif passent de 4 à 5. Les commandes se suivent dans Produits, et les notes validées partent avec la paie.' }]);
+  { c:'[data-cx="sec|factures|achats|sanspiece"]', t:'Tout se relie', p:'Un bouton Annuler défait la validation. Regarde cette tuile : la dépense validée est déjà dans la Comptabilité, rangée avec son ticket. Les commandes se suivent dans Produits, et les notes validées partent avec la paie.' }]);
 
 immChap('vehicules', 'vehicules', 'Véhicules', 'Les véhicules : rien ne tombe sans prévenir',
   'Les véhicules de ton entreprise : une ligne par véhicule, qui dit en une phrase s’il a besoin de toi. Je te montre comment ne rien laisser passer.', [
