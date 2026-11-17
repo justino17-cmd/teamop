@@ -6,8 +6,9 @@
 const fs = require('fs'), path = require('path');
 const A = require('./artefact-commun.js'), { bac, L, v } = A;
 const SRC = f => fs.readFileSync(path.join(L.RACINE, 'apercu', f), 'utf8');
+const PROFILS = process.env.RAPIDE ? ['mac'] : ['mac', 'iphone'];   // RAPIDE=1 : les mutations n'ont besoin que d'un appareil
 (async () => {
-  for (const profil of ['mac', 'iphone']) {
+  for (const profil of PROFILS) {
     const T = `${profil}`;
     const c = await bac.ouvrir({ profil, qui: 'marc' }, {}); await A.calmer(c.p);
     const toast = () => c.p.evaluate(() => { const t = document.getElementById('toast'); return t ? t.textContent.trim() : ''; });
@@ -65,7 +66,7 @@ const SRC = f => fs.readFileSync(path.join(L.RACINE, 'apercu', f), 'utf8');
     await L.fin(c);
   }
   // un lien tel: mailto: sms: : annulé par le bac, compté ; la carte donne le numéro/l'adresse en texte sélectionnable ; rien n'annonce « appel lancé »
-  for (const profil of ['mac', 'iphone']) {
+  for (const profil of PROFILS) {
     const c = await bac.ouvrir({ profil, qui: 'marc' }, {}); await A.calmer(c.p);
     for (const [k, h, lu] of [['tel', 'tel:0546121212', '05 46 12 12 12'], ['mailto', 'mailto:cabinet@drmartin.fr', 'cabinet@drmartin.fr'], ['sms', 'sms:0600000001?&body=Bonjour', '06 00 00 00 01']]) {
       await bac.zero(c);
