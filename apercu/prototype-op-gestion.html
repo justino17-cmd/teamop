@@ -4282,8 +4282,10 @@ function crMonter(el){
   L.control.scale({ imperial:false, position:'bottomleft' }).addTo(map);
   map.attributionControl.setPrefix(false);
   if (crLV && crLV.jour === plRef && crLV.focus === crFocus) map.setView(crLV.c, crLV.z, { animate:false }); else crCadrerReel(false);
-  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; });
-  map.on('zoomend', () => crTracerReel());
+  /* le tracé se refait à CHAQUE fin de mouvement, pas seulement du zoom : l'écartement des repères se calcule sur ce qui est visible, donc un
+     recadrage sans changement de zoom (« Recentrer », une étape lointaine puis retour) laissait des repères sortis du champ au tracé empilés
+     sur leur voisin (planning-07, rejoué sur iPhone) */
+  map.on('moveend', () => { crLV = { c:map.getCenter(), z:map.getZoom(), jour:plRef, focus:crFocus }; crTracerReel(); });
   map.on('click', () => { if (crSel) crChoisir(null, true); });
   if (crReelEtat !== 'ok') {   // la première fois : une tuile doit ARRIVER, sinon on le dit et on garde le dessin
     let fini = false, erreurs = 0;
@@ -4293,8 +4295,11 @@ function crMonter(el){
   }
   crTracerReel();
 }
+/* la place prise en haut de la carte par la rangée de personnes (elle passe sur deux lignes sur un petit écran) : un repère ne doit pas s'y cacher,
+   sinon le toucher tombe sur la puce « Karim » (planning-07) */
+function crHautLibre(){ const ch = document.querySelector('#cr-carte .cr-chips'), z = document.getElementById('cr-lf'); if (!ch || !z) return 84; return Math.max(84, Math.round(ch.getBoundingClientRect().bottom - z.getBoundingClientRect().top + 26)); }
 function crCadrerReel(anim){ if (!crLf || !crLf.map) return;
-  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, 70] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
+  crLf.map.fitBounds(L.latLngBounds(crPointsJour()), { paddingTopLeft:tel() ? [30, crHautLibre()] : [50, 70], paddingBottomRight:tel() ? [60, 178] : [70, 60], maxZoom:15, animate:!!anim }); }
 /* tournées, arrêts numérotés, trajets et « à confier », posés sur la vraie carte (mêmes règles que le dessin) */
 function crTracerReel(){
   if (!crLf || !crLf.map || !crLf.el.isConnected) return;
@@ -4319,8 +4324,10 @@ function crTracerReel(){
   pins.forEach(p => { const pt = map.latLngToContainerPoint(p.ll); let X = pt.x, Y = pt.y, k = 0;
     /* un repère écarté ne se pose pas sous les boutons de la carte (rangée de personnes en haut, zoom à droite, légende en bas) :
        sinon le toucher tombe sur la puce « Karim » et filtre la carte au lieu d'ouvrir l'étape */
-    const lib = (x, y) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < ecart), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= 64 && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
-    if (!lib(X, Y)) { let trouve = false; for (k = 1; k <= 60 && !trouve; k++) { const a = k * 2.4, r = ecart * .6 + k * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny)) { X = nx; Y = ny; trouve = true; } } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
+    const lib = (x, y, e) => !places.some(q => Math.hypot(q[0] - x, q[1] - y) < e), sur = (x, y) => x >= 24 && x <= sz.x - 64 && y >= crHautLibre() && y <= sz.y - 30 && !(x > sz.x - 200 && y > sz.y - 178);
+    /* sur un petit écran la carte est étroite : si l'écart de confort ne trouve pas de place, on en essaie de plus serrés (38, 31 px) plutôt
+       que de laisser le repère sur son voisin */
+    if (!lib(X, Y, ecart)) { let trouve = false; for (const e of [...new Set([ecart, 38, 31])]) { for (let n = 1; n <= 60 && !trouve; n++) { const a = n * 2.4, r = e * .6 + n * 3, nx = pt.x + Math.cos(a) * r, ny = pt.y + Math.sin(a) * r; if (sur(nx, ny) && lib(nx, ny, e)) { X = nx; Y = ny; trouve = true; k = n; } } if (trouve) break; } if (!trouve) k = 0; }   // aucune place libre : il reste sur sa vraie place
     p.dx = X - pt.x; p.dy = Y - pt.y; places.push([X, Y]);
     if (k) { const v = map.containerPointToLatLng([X, Y]);
       L.polyline([p.ll, [v.lat, v.lng]], { color:'#1d1d1f', weight:1.2, opacity:.7, interactive:false }).addTo(g);
