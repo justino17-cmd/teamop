@@ -1,7 +1,7 @@
 {
   "lot": "mail",
   "angle": "telephone",
-  "etat": "en cours (point de sauvegarde 2) : reste le menu d'OP GESTION ouvert depuis la lecture, le paysage, et la relecture du diff",
+  "etat": "terminé : 16 défauts (voir plus bas pour le décompte), relecture du diff faite ; en attente de la capture finale de lecture avec valeurs longues",
   "couvert": [
     "iphone 390×844 (encoches 47/34 posées), android 360×740 (24/16), petit 320×568 ; jour et nuit ; toucher réel (tap), pas de clic souris",
     "liste : recherche « devis » (2 résultats), 11 messages ouverts un à un, texte du message mesuré contre le bas de la zone de lecture",
@@ -14,7 +14,9 @@
     "contraste de la liste (20 textes) et de la lecture (15 textes) à 390 px jour et nuit : calcul sur couleurs composées ; un seul texte sous 4,5 (telephone-14), confirmé au pixel",
     "envoi programmé (13 commandes du panneau : champs ≥ 16 px, boutons ≥ 44 px, pas de glissement) ; brouillon retrouvé après rechargement de la page (autosauvegarde « Brouillon enregistré », dossier Brouillons) ; compteurs de non lus qui suivent la lecture (5 → 4 lignes, 7 → 6 non lus)",
     "Voir tout (11 → 17 lignes, bandeau retiré), catégorie « Factures et reçus » reste visible dans la rangée, menu d'appui long (7 gestes de 56 px, dans l'écran), « Créer l'intervention » et « Confier » ouvrent leur fenêtre au-dessus du module (390 px, 0 glissement)",
-    "un glissement du doigt sur la liste la fait défiler (235 px, page immobile) ; le geste synthétique CDP de ma sonde ne fait pas défiler non plus la page Clients : faux défaut écarté"
+    "un glissement du doigt sur la liste la fait défiler (235 px, page immobile) ; le geste synthétique CDP de ma sonde ne fait pas défiler non plus la page Clients : faux défaut écarté",
+    "valeurs LONGUES (nom de 55 signes, adresse de 90, objet de 190 sans espace, lien de 140, pièce jointe au nom de 75, montant « 12 345 678,90 € ») à 320 jour et 390 nuit : liste, lecture, composeur : 0 élément ne dépasse, page à la largeur du profil (8 ✓ 0 ✗, p14.js)",
+    "Menu d'OP GESTION ouvert depuis la lecture : passe au-dessus du module ; Clients puis retour par Menu › Boîte mail : le message ouvert est gardé (2 ✓, p15.js) ; paysage 844×390 : composeur correct, liste sous le pli (telephone-15)"
   ],
   "faux_defauts_ecartes": [
     "« Annuler l'envoi » mesure 132×39 : la zone tactile réelle fait 47 px (::before inset −4 px, l. 1409) — pas un défaut",
@@ -247,9 +249,61 @@
       "preuve": "deux mesures qui concordent : calcul sur les couleurs composées (p10.js : .hpast = 3,86) et pixels de la capture liste-iphone.png (fond 255,238,214 ; encre la plus sombre 184,98,0 → 3,86). Code : .opc .hpast.ton-o{background:rgba(255,149,0,.16);color:var(--flag-edge)} (copie, bloc « Copie de travail du prototype »).",
       "ou": "apercu/prototype-courrier.js : .hpast.ton-o",
       "correction": "Texte #6b3a00 sur fond #fde7c4 comme .sgchip.sv-aTraiter (l. 614, 7,8:1) pour la jour ; garder la teinte actuelle de nuit (6,78:1). Rejouer p10.js : 0 texte sous 4,5 de jour comme de nuit."
+    },
+    {
+      "n": "telephone-15",
+      "gravite": "détail",
+      "ecran": "Boîte mail › iPhone tenu en paysage (844×390)",
+      "role": "marc (gérant)",
+      "profils": [
+        "iphone"
+      ],
+      "etapes": "Ouvrir la Boîte mail sur iPhone, tourner l'appareil.",
+      "attendu": "Le module tient dans la fenêtre (liste de messages visible) ou la page défile simplement.",
+      "constate": "Au-delà de 760 px le prototype prend sa mise en page d'ordinateur (menu latéral de 258 px, titre « Boîte mail »). L'hôte garde sa hauteur MINIMALE de 360 px et part à y = 129 : il finit à 489 pour une fenêtre de 390 ; sur l'écran on ne voit que « Boîtes », « Boîte de réception », la recherche, les catégories et le bandeau rouge : aucune ligne de message sans faire défiler la page (hauteur de page 537). Le composeur, lui, tient (champ de 92 px, Envoyer visible).",
+      "preuve": "p13.js sc. paysage : hote [284,129,532,360], ih 390, sh 537 ; capture z-paysage-liste-iphone.png. Code : courrierCaler : const haut = Math.max(360, Math.round(bas - r0.top - …)) (apercu/prototype-op-gestion.html ≈ l. 17730). Un seul passage (iphone) : preuve par le code pour les autres profils.",
+      "ou": "apercu/prototype-op-gestion.html : courrierCaler",
+      "correction": "En paysage (hauteur < 500 px), masquer la tête de page « Clients et ventes / Boîte mail / 7 messages à traiter » et laisser l'hôte prendre toute la hauteur restante (plancher 240 px) ; ou fixer le plancher à la hauteur utile."
+    },
+    {
+      "n": "telephone-16",
+      "gravite": "détail",
+      "ecran": "Boîte mail › bulle « Nouveau message de … — Ouvrir » (arrivée d'un courriel)",
+      "role": "marc (gérant)",
+      "profils": [
+        "petit",
+        "iphone"
+      ],
+      "etapes": "Boîte mail ouverte ; un courriel arrive avec un expéditeur et un objet longs (injecté par MAILS.unshift + courrierRafraichir()).",
+      "attendu": "Une bulle de 2 à 3 lignes au plus, qui ne cache pas le message qu'on lit ou qu'on écrit.",
+      "constate": "Le nom et l'OBJET entiers sont écrits dans la bulle : à 320 px elle fait 13 lignes (≈ 330 px sur 568, plus de la moitié de l'écran, par-dessus la lecture) ; à 390 px (nuit), 9 lignes posées sur le texte du message qu'on est en train d'écrire. Elle porte la coche verte d'une réussite pour un simple avis. Le défaut vient du module d'origine (opcourrier.js l. 3310) : non corrigé dans la copie.",
+      "preuve": "captures aa-long-lecture-petit.png, aa-long-liste-petit.png, aa-long-composeur-iphone-nuit.png ; code : toast(\"Nouveau message de \"+senderName(m)+\" — \"+m.subject, …) (apercu/prototype-courrier.js l. 3475), aucune coupe.",
+      "ou": "apercu/prototype-courrier.js l. 3475",
+      "correction": "Couper l'objet à 60 signes (…) et limiter la bulle à 3 lignes (line-clamp) ; icône d'enveloppe plutôt que la coche."
     }
   ],
-  "diff": "à compléter : relecture du diff en cours",
+  "diff": {
+    "methode": "diff opcourrier.js apercu/prototype-courrier.js (113 blocs, 411 lignes changées) lu en entier, chaque écart rapproché du plan BOITE-MAIL.md",
+    "ecarts_voulus_et_justes": [
+      "D01 (e.preventDefault sur « r »), D02 (model.intro placé avant la signature, curseur après l'intro), D05 (mot « Envoyer » sur ordinateur seulement : voir telephone-04), D06 (« Dans 1 minute » retiré), D07 (refus avec icône d'alerte et champ marqué : mesuré, le champ À est pris et encadré de rouge au téléphone), D08 (SIGNER:false : « Faire signer » caché, mesuré caché au téléphone), D10 (titre « Répondre »), D11 (menu contextuel borné : 7 gestes de 56 px dans l'écran), D12 (pas de réponse à un indésirable), D13 (avertissement en tête du panneau d'envoi programmé, sans objet ici car la source programme côté serveur : « avert »:false mesuré), D14 (120 lignes + « Afficher la suite », mise à jour douce de la sélection : compteurs relus, 5 → 4 non lues, 7 → 6)",
+      "D03/D04 : mots des catégories toujours écrits (mesuré), compteurs par catégorie retirés, bandeau « n messages non lus rangés dans d'autres catégories · Voir tout » (11 → 17 lignes)",
+      "horloge de l'hôte : les 26 Date.now() de l'original sont tous passés par maintenant() (grep : plus qu'un seul, dans maintenant())"
+    ],
+    "ecarts_qui_posent_probleme": [
+      "règle .opc .side-foot{position:sticky…} ajoutée pour D16 sans borner au format ordinateur → recouvre les dossiers au téléphone (telephone-06)",
+      "etatVide n'applique pas le .replace d'adresse de la bannière → adresse écrite deux fois (telephone-07)",
+      ".hpast.ton-o : contraste 3,86 de jour (telephone-14)",
+      "renderReading : hoteHtml(m) est ajouté à la ligne de catégorie, donc AVANT le corps du message (telephone-01)"
+    ],
+    "controles_sans_trouvaille": [
+      "aucune fonction déclarée deux fois dans la copie en plus de l'original (setKind existe deux fois dans les deux fichiers, dans deux portées distinctes) ; un seul écouteur visibilitychange ; un seul écouteur scroll sur #listScroll ; aucun gestionnaire touch ajouté (l'appui long est celui de l'original)",
+      "le menu « Répondre, transférer… » de la barre de lecture garde Répondre à tous, Transférer, Marquer non lu, Classer en indésirable : rien n'est perdu par le retrait de ces gestes du menu contextuel",
+      "regression d'un comportement d'origine : aucune trouvée côté téléphone ; « Marquer comme non lu » ne désélectionne plus que sur téléphone (voulu, D16)"
+    ],
+    "non_corrige_et_herite_du_module": [
+      "bulle « Nouveau message de … » sans coupe (telephone-16) ; bouton ✕ de pièce jointe à 26 px (telephone-03) ; pas de glissement sur une ligne (telephone-13) ; aucune gestion de visualViewport (clavier)"
+    ]
+  },
   "non_verifie": [
     "Safari et iOS réels : clavier virtuel (visualViewport), glisser depuis le bord, appui long au doigt réel, sélecteur de date ; émulation Chromium seulement. Aucune gestion de visualViewport dans le module (grep) : à regarder sur un vrai iPhone"
   ]
