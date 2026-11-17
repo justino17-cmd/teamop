@@ -6,9 +6,9 @@ const lum = ([r, g, b]) => { const f = x => { x /= 255; return x <= .03928 ? x /
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
 const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/).filter(Boolean).slice(0, 3).map(Number);
 (async () => {
-  // PARTIE=1 : iphone, 2 : android + petit (la lecture de chaque message prend du temps) ; sans PARTIE : tout, dans l'ordre
+  // PARTIE=4 : iphone jour seul (les mutations) ; 1 : iphone, 2 : android + petit (la lecture de chaque message prend du temps) ; sans PARTIE : tout, dans l'ordre
   const PARTIE = process.env.PARTIE || '0', TOUT = [['iphone', false], ['iphone', true], ['android', false], ['petit', false], ['petit', true]];
-  for (const [pr, nuit] of PARTIE === '3' ? [] : PARTIE === '1' ? TOUT.slice(0, 2) : PARTIE === '2' ? TOUT.slice(2) : TOUT) {
+  for (const [pr, nuit] of PARTIE === '3' ? [] : PARTIE === '4' ? TOUT.slice(0, 1) : PARTIE === '1' ? TOUT.slice(0, 2) : PARTIE === '2' ? TOUT.slice(2) : TOUT) {
     const etiq = pr + (nuit ? ' nuit' : ' jour');
     let c = await entrer({ profil:pr, nuit }), p = c.p;
     // ── telephone-08 : l'en-tête de la rubrique, comme Clients et Devis ──
@@ -73,7 +73,7 @@ const rgb = t => (/rgba?\(([^)]+)\)/.exec(t) || [0, '0,0,0'])[1].split(/[ ,/]+/)
     await fin(c);
   }
 
-  if (PARTIE === '1' || PARTIE === '2') return sortie();
+  if (PARTIE === '1' || PARTIE === '2' || PARTIE === '4') return sortie();
   // ── telephone-06 / -10 : la colonne « Mes boîtes mail » — le pied ne recouvre aucun dossier ; titres entiers à 320 ──
   for (const [pr, nuit] of [['iphone', false], ['iphone', true], ['android', true], ['petit', false]]) {
     const c = await entrer({ profil:pr, nuit }), p = c.p;
