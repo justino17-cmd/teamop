@@ -1595,7 +1595,7 @@ var CSS = `
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .large-title{font-size:20px;line-height:24px}
   }
   /* téléphone tenu en paysage ET court (Android 740×360, petit 568×320) : le grand titre, la recherche et les catégories occupaient toute la place visible au-dessus de la barre d'onglets
-     de l'hôte — la première chose vue était « aucun courriel ». Le titre passe dans la barre (comme quand la liste défile : .lb-titles), « Boîtes » n'y garde que sa flèche pour lui laisser la place ;
+     de l'hôte — la première chose vue était « aucun e-mail ». Le titre passe dans la barre (comme quand la liste défile : .lb-titles), « Boîtes » n'y garde que sa flèche pour lui laisser la place ;
      l'iPhone 844×390 (plus haut) garde son grand titre. */
   @media (max-height:380px){
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lt{display:none}
@@ -1882,8 +1882,8 @@ var MARKUP = `
     {id:"archive",name:"Archive",            icon:"archive"},
     {id:"junk",   name:"Courrier indésirable", icon:"junk"},
     {id:"trash",  name:"Corbeille",          icon:"trash"},
-    // Dossier VIRTUEL d'une recherche « partout » (la fiche d'un client : « Voir tous ses courriels ») : reçus, envoyés et archivés ensemble. Jamais dans la colonne, jamais rangé : il s'éteint avec la recherche.
-    {id:"tout",   name:"Tous les courriels", icon:"inbox",   cache:true},
+    // Dossier VIRTUEL d'une recherche « partout » (la fiche d'un client : « Voir tous ses e-mails ») : reçus, envoyés et archivés ensemble. Jamais dans la colonne, jamais rangé : il s'éteint avec la recherche.
+    {id:"tout",   name:"Tous les e-mails", icon:"inbox",   cache:true},
     // Le SUIVI d'une demande (seulement si la source le déclare) : des dossiers intelligents, lus sur l'état de suivi du message — jamais des dossiers de la boîte
     {id:"s_atraiter",name:"À traiter",        icon:"clock",   suivi:true, smart:true},
     {id:"s_encours", name:"En cours",         icon:"tray2",   suivi:true, smart:true},
@@ -2529,7 +2529,7 @@ var MARKUP = `
     if(state.multi){ var vis=msgs.map(function(m){return m.id;}); state.multi=state.multi.filter(function(id){ return vis.indexOf(id)>=0; }); }
     // Liste à sélection (listbox) : un seul arrêt de tabulation (la ligne sélectionnée, sinon la première), flèches / Origine / Fin pour naviguer.
     var stop=msgs.some(function(m){ return m.id===state.selected; })?state.selected:msgs[0].id, multi=viewAccounts()>1, TC=threadCounts();
-    // D14 : une boîte d'un an a des milliers de courriels ; la liste entière redessinée à chaque clic coûtait 0,6 s. On n'écrit que les premières lignes
+    // D14 : une boîte d'un an a des milliers d’e-mails ; la liste entière redessinée à chaque clic coûtait 0,6 s. On n'écrit que les premières lignes
     // (120), le reste vient en défilant (ou par « Afficher la suite ») ; la ligne choisie est toujours dans la page.
     var cleL=[state.folder,state.scope,state.cat,state.query,state.filter].join("|"); if(cleL!==cleListe){ cleListe=cleL; state.lim=LIGNES; }
     var lim=Math.max(state.lim||LIGNES,1), reste=msgs.length-lim;
@@ -2755,7 +2755,7 @@ var MARKUP = `
     var b; try{ b=HOTE.lecture(horsModule(m)); }catch(e){ return ""; } if(!b) return "";
     var liens=(b.liens||[]).map(function(l){ return '<button type="button" class="lnk" data-hote="'+H(l.id)+'">'+H(l.lib)+'<span class="chv" aria-hidden="true">'+I.chevR+'</span></button>'; }).join("");
     var bts=(b.actions||[]).map(function(a){ return '<button type="button" class="btn'+(a.primaire?' primary':'')+'" data-hote="'+H(a.id)+'"'+(a.inactif?' disabled aria-disabled="true" title="'+H(a.aide||"")+'"':'')+'>'+H(a.lib)+'</button>'; });
-    /* sur un téléphone, cinq gros boutons repoussaient le TEXTE du courriel sous le pli : on garde les deux premiers gestes (le principal d'abord) et on range les autres sous « Autres gestes » */
+    /* sur un téléphone, cinq gros boutons repoussaient le TEXTE de l’e-mail sous le pli : on garde les deux premiers gestes (le principal d'abord) et on range les autres sous « Autres gestes » */
     var plus=isPhone()&&bts.length>3, acts=bts.length?'<div class="hacts">'+(plus?bts.slice(0,2):bts).join("")+'</div>'+(plus?'<details class="hplus"><summary>Autres gestes ('+(bts.length-2)+')</summary><div class="hacts">'+bts.slice(2).join("")+'</div></details>':""):"";
     return '<section class="hband'+(b.urgent?' urgent':'')+'" aria-label="'+H(b.kicker||"Ce que l’application a compris")+'">'+
       (b.kicker?'<span class="hk">'+H(b.kicker)+'</span>':'')+(b.titre?'<b class="ht">'+H(b.titre)+'</b>':'')+(b.detail?'<span class="hd">'+H(b.detail)+'</span>':'')+
@@ -2939,7 +2939,7 @@ var MARKUP = `
   }
   /* (20 octobre 2026, Justin : « quand je vais en bas ça me remonte direct en haut ») : redessiner la liste (un relevé toutes les minutes) la remettait en haut — elle garde
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
-  // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun courriel ».
+  // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun e-mail ».
   // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
   var COURT=false;
   function listeCourtePlier(){
@@ -3063,7 +3063,7 @@ var MARKUP = `
     return d; }
   // Ce que le module donne à l'hôte d'un message : des copies simples, jamais l'objet interne
   function horsModule(m){ var o={id:m.src&&m.sid!=null?m.sid:m.id,dossier:m.folder,de:m.from?{nom:senderName(m),email:emailOf(m)}:null,a:m.to||"",objet:m.subject||"",date:tsOf(m),lu:!!m.read,pj:(m.att||[]).map(function(a,i){ return {nom:a.name,taille:a.size,type:a.kind,i:i}; }),boite:m.acct,
-      local:!m.src};   /* écrit ICI (brouillon, envoi programmé) : son identifiant est celui du module, il ne désigne aucun message de la source — l'hôte ne le cherche pas dans ses propres courriels (une pastille « Client » sur un brouillon pour une adresse inconnue) */
+      local:!m.src};   /* écrit ICI (brouillon, envoi programmé) : son identifiant est celui du module, il ne désigne aucun message de la source — l'hôte ne le cherche pas dans ses propres e-mails (une pastille « Client » sur un brouillon pour une adresse inconnue) */
     Object.defineProperty(o,"corps",{enumerable:true,get:function(){ return bodyText(m); }}); return o; }
   // « Re: Re: Re: Rendez-vous » s'écrit « Re: Rendez-vous » en tête de lecture (la ligne d'objet réelle n'est pas modifiée)
   function objetPropre(s){ s=String(s||""); var p=/^\s*((?:re|tr|fwd?|fw)\s*(?:\[\d+\])?\s*:\s*)+/i.exec(s); return p?(/^\s*(tr|fwd?|fw)/i.test(p[0])?"Tr: ":"Re: ")+s.slice(p[0].length):s; }
