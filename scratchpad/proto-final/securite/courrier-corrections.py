@@ -7,6 +7,7 @@ import os, sys, shutil, subprocess
 ICI = os.path.dirname(os.path.abspath(__file__))
 DEPOT = os.path.abspath(os.path.join(ICI, '..', '..', '..'))
 COPIE = os.environ.get('OPG_COPIE', '/tmp/opg-courrier-copie')
+SANS = [x for x in os.environ.get('OPG_SANS', '').split(',') if x]   # contre-épreuve : « sans courrier-01 » → la copie garde CE défaut, la sonde correspondante doit retomber (le .diff n'est alors pas écrit)
 APERCU = os.path.join(DEPOT, 'apercu')
 
 # (page, libellé, ancien, nouveau, nombre d'occurrences attendu)
@@ -70,11 +71,13 @@ def main():
         os.symlink(os.path.join(APERCU, e), os.path.join(COPIE, 'apercu', e))
     textes = {p: lire(os.path.join(APERCU, p)) for p in pages}
     for page, lib, ancien, nouveau, n in CORRECTIFS:
+        if any(lib.startswith(x) for x in SANS): print('— laissé tel quel :', lib); continue
         k = textes[page].count(ancien)
         if k != n:
             print('✗ %s : « %s » trouvé %d fois, attendu %d' % (lib, ancien[:70], k, n)); sys.exit(1)
         textes[page] = textes[page].replace(ancien, nouveau); print('✓', lib, '(%d)' % k)
     for p, t in textes.items(): open(os.path.join(COPIE, 'apercu', p), 'w', encoding='utf8').write(t)
+    if SANS: print('copie avec défauts remis :', COPIE); return
     # le diff (git apply le rejoue depuis la racine du dépôt)
     sortie = []
     for p in pages:

