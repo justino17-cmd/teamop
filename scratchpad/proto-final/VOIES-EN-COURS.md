@@ -14,7 +14,6 @@ sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
 | vehtemps, relecture gérant | `{voie:"vehtemps", depuis:5, jusqua:5}` | /home/user/wt-c-vehicules-temps | wf_9f5e34e3-a03 (tâche wnzrthpgv) | étape 6 sur 9, SEULE (lancée à 10 h 55). DÈS QU'ELLE A RENDU : lancer `{voie:"vehtemps", depuis:7}` (corriger puis recontrôler) dans /home/user/wt-c-vehicules-temps — le correcteur prend la seconde relecture en route |
-| vehtemps, relecture salarié | `{voie:"vehtemps", depuis:6, jusqua:6, arbre:"/home/user/wt-menu"}` | /home/user/wt-menu | wf_80477770-68b (tâche wi8wd4hu9) | étape 7 sur 9, SEULE, côte à côte (lancée à 10 h 55). Rien à lancer à sa fin |
 | guide | `{voie:"guide"}` | /home/user/wt-guide | wf_289bd7da-b70 (tâche w0u4m2s3r) | 1 sur 4 (lancée à 9 h 45, sans attendre la fin de l'étape 5 de vehtemps, en recette : le chemin le plus long) |
 | securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | restes (interventions) | `{voie:"restes", noms:["interventions"], arbre:"/home/user/wt-t-interventions", tours:1}` | /home/user/wt-t-interventions | wf_a3784188-c7f (tâche wj94wa354) | 1 sur 2 (lancée à 10 h 31, UN tour) |
@@ -55,6 +54,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 23 | session_01PfEEAEbusuhCyEHjC2Kj8A | `{voie:"campagne", cles:["achats"], depuis:1}` (corriger, recontrôler ; 13 défauts dont 1 bloquant : la virgule avalée ; cinq décisions du chef données dans sa consigne) | 11 h 58 | |
 | 24 | session_01PfEEAGGKUWWuaWr9RUDWGg | `{voie:"restes", noms:["entreprise"], tours:1}` (le recontrôle du lot a rendu à 12 h : 11 réglés sur 13, une casse gênante ; décision du chef : « Voir » seul sur la Boîte mail = lecture seule) | 12 h 01 | |
 | 25 | session_01PfEEAJdV1V3V9mH9kzT2vm | `{voie:"materiel", depuis:8}` (recontrôle adverse : 27 corrigés sur 29, technicien-11 à 14 à vérifier) — CHEMIN LE PLUS LONG | 12 h 03 | |
+| 26 | session_01PfEEAHX8VDxaNpXNdvLovo | `{voie:"vehtemps", depuis:7}` (corriger, recontrôler ; relecture salarié rendue : 12 défauts dont 1 bloquant ; la relecture gérant finit ici) — CHEMIN LE PLUS LONG | 12 h 03 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
