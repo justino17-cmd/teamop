@@ -1,0 +1,1140 @@
+{
+ "profil": "iphone",
+ "qui": "kb",
+ "nuit": true,
+ "sortie": {
+  "inter-x-i3": [
+   {
+    "i": 0,
+    "lib": "Menu",
+    "data": "data-menu=ouvrir",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Menu",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 99,
+    "h": 44
+   },
+   {
+    "i": 1,
+    "lib": "OP GESTION : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 249,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "‹ Retour",
+    "data": "data-retour=1",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 62,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Copropriété Les Mimosas ›",
+    "data": "data-go=client-x-mi",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Copropriété Les Mimosas",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 358,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Y aller",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 169,
+    "h": 46
+   },
+   {
+    "i": 5,
+    "lib": "Appeler",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 181,
+    "h": 46
+   },
+   {
+    "i": 6,
+    "lib": "Ce que j’ai trouvé",
+    "data": "data-champ=trouve data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 324,
+    "h": 104
+   },
+   {
+    "i": 7,
+    "lib": "ex. 2,4",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 8,
+    "lib": "R32-2219 · 3 kg · camionR32-2207 · 6 kg · atelierR410-1180 ·",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 9,
+    "lib": "12 splits",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 324,
+    "h": 46
+   },
+   {
+    "i": 10,
+    "lib": "Prélever sur la bouteille",
+    "data": "data-sx=fprel|i3",
+    "touche": true,
+    "change": [
+     "toast"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "Écris combien de kilos tu as chargés.",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 221,
+    "h": 46
+   },
+   {
+    "i": 11,
+    "lib": "ex. 1,8",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 12,
+    "lib": "REC-0003 · 2,1 kg",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 13,
+    "lib": "Noter la récupération",
+    "data": "data-sx=frec|i3",
+    "touche": true,
+    "change": [
+     "toast"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "Écris combien de kilos tu as récupérés.",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 203,
+    "h": 46
+   },
+   {
+    "i": 14,
+    "lib": "Registre des fluides",
+    "data": "data-sx=fluides",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Registre des fluides",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 193,
+    "h": 46
+   },
+   {
+    "i": 15,
+    "lib": "ex. 2,4",
+    "data": "data-releve=Charge de fluide data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 16,
+    "lib": "ex. 12",
+    "data": "data-releve=Soufflage data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 17,
+    "lib": "ex. 24",
+    "data": "data-releve=Reprise data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 18,
+    "lib": "Chercher dans le stock…",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 128,
+    "h": 46
+   },
+   {
+    "i": 19,
+    "lib": "Qté",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 84,
+    "h": 46
+   },
+   {
+    "i": 20,
+    "lib": "Ajouter",
+    "data": "data-action=pieceAjout data-id=i3",
+    "touche": true,
+    "change": [
+     "toast"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "Tape le nom d’une pièce ou d’un produit.",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 96,
+    "h": 46
+   },
+   {
+    "i": 21,
+    "lib": "Il me manque une pièce",
+    "data": "data-pdx=pm|i3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Il me manque une pièce",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 222,
+    "h": 46
+   },
+   {
+    "i": 22,
+    "lib": "on",
+    "data": "data-ctrl=Alimentation électrique data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 23,
+    "lib": "on",
+    "data": "data-ctrl=Ventilateur extérieur data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 24,
+    "lib": "on",
+    "data": "data-ctrl=Recherche de fuite data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 25,
+    "lib": "on",
+    "data": "data-ctrl=Contrôle de la charge data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 26,
+    "lib": "on",
+    "data": "data-ctrl=Nettoyage des filtres data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 27,
+    "lib": "on",
+    "data": "data-ctrl=Essai de fonctionnement data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 28,
+    "lib": "Ce que nous avons fait",
+    "data": "data-champ=compte data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 324,
+    "h": 104
+   },
+   {
+    "i": 29,
+    "lib": "09:00",
+    "data": "data-champ=debut data-id=i3 data-dt=time",
+    "touche": false,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 26,
+    "h": 46
+   },
+   {
+    "i": 30,
+    "lib": "Arrivée : 09:00",
+    "data": "data-dtpour=1",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 48
+   },
+   {
+    "i": 31,
+    "lib": "10:30",
+    "data": "data-champ=fin data-id=i3 data-dt=time",
+    "touche": false,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 26,
+    "h": 46
+   },
+   {
+    "i": 32,
+    "lib": "Départ : 10:30",
+    "data": "data-dtpour=1",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 157,
+    "h": 48
+   },
+   {
+    "i": 33,
+    "lib": "Syndic Foncia",
+    "data": "data-champ=signeNom data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 324,
+    "h": 46
+   },
+   {
+    "i": 34,
+    "lib": "Effacer la signature",
+    "data": "data-action=sigEfface data-id=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 150,
+    "h": 44
+   },
+   {
+    "i": 35,
+    "lib": "on",
+    "data": "data-absent=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 36,
+    "lib": "rien",
+    "data": "data-paie=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 37,
+    "lib": "total",
+    "data": "data-paie=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 38,
+    "lib": "acompte",
+    "data": "data-paie=i3",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 39,
+    "lib": "on",
+    "data": "data-paiepromis=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 40,
+    "lib": "on",
+    "data": "data-suite=entretien data-id=i3",
+    "touche": true,
+    "change": [],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 24,
+    "h": 24
+   },
+   {
+    "i": 41,
+    "lib": "Je ne peux pas finir",
+    "data": "data-action=pasFini data-id=i3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Je ne peux pas finir",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 332,
+    "h": 52
+   },
+   {
+    "i": 42,
+    "lib": "Terminer",
+    "data": "data-action=terminer data-id=i3",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "Il manque encore des choses",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 332,
+    "h": 52
+   },
+   {
+    "i": 43,
+    "lib": "Ma journée",
+    "data": "data-tab=majournee",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 44,
+    "lib": "Mes frais",
+    "data": "data-tab=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 45,
+    "lib": "Mes heures",
+    "data": "data-tab=mesheures",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 46,
+    "lib": "Mes tâches",
+    "data": "data-tab=taches",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 47,
+    "lib": "Mon camion",
+    "data": "data-tab=moncamion",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   }
+  ],
+  "majournee": [
+   {
+    "i": 0,
+    "lib": "Menu",
+    "data": "data-menu=ouvrir",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "Menu",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 99,
+    "h": 44
+   },
+   {
+    "i": 1,
+    "lib": "OP GESTION : revenir à l’écran d’ouverture",
+    "data": "data-logo=1",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 249,
+    "h": 44
+   },
+   {
+    "i": 2,
+    "lib": "Pause",
+    "data": "data-ptx=pause|kb",
+    "touche": true,
+    "change": [
+     "toast",
+     "long"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "Pause commencée à 10:40. Touche « Je reprends » à ton retour.",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 86,
+    "h": 44
+   },
+   {
+    "i": 3,
+    "lib": "Je termine",
+    "data": "data-ptx=termine|kb",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "Terminer ma journée",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 121,
+    "h": 44
+   },
+   {
+    "i": 4,
+    "lib": "Mon camionContrôle technique dans 12 jours3 articles à remet",
+    "data": "data-go=moncamion",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 358,
+    "h": 96
+   },
+   {
+    "i": 5,
+    "lib": "Voir ma formation ›",
+    "data": "data-eqx=mesfiche|kb",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "Karim Benali",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 161,
+    "h": 44
+   },
+   {
+    "i": 6,
+    "lib": "Commencer",
+    "data": "data-rl=go|inter-x-i3",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Récupération du fluide d’un ancien split",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i3",
+    "sansNom": false,
+    "l": 114,
+    "h": 44
+   },
+   {
+    "i": 7,
+    "lib": "Y aller",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 73,
+    "h": 44
+   },
+   {
+    "i": 8,
+    "lib": "Appeler",
+    "data": "",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 84,
+    "h": 44
+   },
+   {
+    "i": 9,
+    "lib": "Commencer",
+    "data": "data-rl=go|inter-x-i4",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Entretien chauffe-eau thermodynamique",
+    "panneau": "",
+    "toast": "",
+    "hash": "#inter-x-i4",
+    "sansNom": false,
+    "l": 114,
+    "h": 44
+   },
+   {
+    "i": 10,
+    "lib": "＋ Nouvelle tâche",
+    "data": "data-tkxajout=1",
+    "touche": true,
+    "change": [],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 324,
+    "h": 45
+   },
+   {
+    "i": 11,
+    "lib": "Toutes mes tâches",
+    "data": "data-go=taches",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 150,
+    "h": 44
+   },
+   {
+    "i": 12,
+    "lib": "＋ Nouvelle note de frais",
+    "data": "data-rl=ndf",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "Ce que tu as payé de ta poche",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 228,
+    "h": 46
+   },
+   {
+    "i": 13,
+    "lib": "Voir mes frais",
+    "data": "data-go=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 146,
+    "h": 46
+   },
+   {
+    "i": 14,
+    "lib": "＋ Demande d’achat",
+    "data": "data-axa=dem",
+    "touche": true,
+    "change": [
+     "panneau",
+     "calque",
+     "longCalque"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "Il me faut…",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 194,
+    "h": 46
+   },
+   {
+    "i": 15,
+    "lib": "Mes demandes",
+    "data": "data-go=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 157,
+    "h": 46
+   },
+   {
+    "i": 16,
+    "lib": "Ma journée",
+    "data": "data-tab=majournee",
+    "touche": true,
+    "change": [
+     "long"
+    ],
+    "h1": "Bonjour Karim",
+    "panneau": "",
+    "toast": "",
+    "hash": "#majournee",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 17,
+    "lib": "Mes frais",
+    "data": "data-tab=techfrais",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes frais",
+    "panneau": "",
+    "toast": "",
+    "hash": "#techfrais",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 18,
+    "lib": "Mes heures",
+    "data": "data-tab=mesheures",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes heures",
+    "panneau": "",
+    "toast": "",
+    "hash": "#mesheures",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 19,
+    "lib": "Mes tâches",
+    "data": "data-tab=taches",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mes tâches",
+    "panneau": "",
+    "toast": "",
+    "hash": "#taches",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   },
+   {
+    "i": 20,
+    "lib": "Mon camion",
+    "data": "data-tab=moncamion",
+    "touche": true,
+    "change": [
+     "hash",
+     "h1",
+     "long",
+     "url"
+    ],
+    "h1": "Mon camion",
+    "panneau": "",
+    "toast": "",
+    "hash": "#moncamion",
+    "sansNom": false,
+    "l": 69,
+    "h": 48
+   }
+  ]
+ },
+ "err": []
+}

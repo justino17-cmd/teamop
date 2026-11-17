@@ -93,6 +93,12 @@ button{cursor:pointer}
 .menu a .m-t,.ligne-clic .m-t{display:flex;flex-direction:column;min-width:0;gap:1px;line-height:1.2;text-align:left}
 .m-sous{display:block;font-size:12px;font-weight:500;color:var(--faible);line-height:1.25}
 .menu a.avec-sous{padding-top:5px;padding-bottom:5px}
+/* la colonne du menu défile : ses lignes ne rétrécissent JAMAIS (avec un min-height explicite, un élément flex se laisse écraser sous son contenu — « Fournisseurs, matériel & produits » tenait sur trois lignes dans une boîte de 44 px et le pied du menu en coupait la fin) · restes coque, 17 novembre 2026 */
+.menu .m-liste > *{flex:none}
+/* le gras de la ligne choisie ne change pas le retour à la ligne : un fantôme invisible, écrit en gras dans la même case, fixe la hauteur (choisie ou non, la ligne garde la même) */
+.m-n[data-t]{display:inline-grid;align-items:center;min-width:0}
+.m-n[data-t]::before{content:attr(data-t);grid-area:1/1;font-weight:650;visibility:hidden;pointer-events:none}
+.m-n[data-t] > span{grid-area:1/1}
 /* le logo est un lien (il ramène à l'écran d'ouverture) : il garde l'allure d'un logo, pas celle d'une ligne de menu */
 .menu a.logo,.tete-tel a.logo{min-height:0;padding:2px 8px 16px;border-radius:0;background:none;box-shadow:none;color:inherit;font-weight:inherit;font-size:inherit;text-decoration:none;gap:10px}
 .menu a.logo:hover{background:none}
@@ -2061,6 +2067,10 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .gd-bulle.mini .gd-x{order:2}
 .rl-app{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 .rl-app + .rl-az{margin-left:0}
+/* « Voir comme l'application » (17 novembre 2026) : même pastille que « Apprendre », sans pousser la rangée à droite */
+.rl-voir{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
+@media (pointer:coarse){.rl-voir{min-height:44px}}
+.mch-b ~ .rl-voir{margin-left:0}
 .gd-ap{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:14px 16px;border-radius:16px;border:1px solid var(--trait);background:var(--surf)}
 .gd-ap-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .gd-ap-t > div{display:flex;flex-direction:column;gap:2px;flex:1 1 200px;min-width:0}.gd-ap-t b{font-size:16px}
@@ -2074,7 +2084,7 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .gd-ap-l .btn{min-width:44px;justify-content:center}
 .gd-ap-bientot{background:var(--surf-in);border-style:dashed}
 .gd-ap-bientot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
-@media (max-width:760px){ .rl-app{margin-left:0;flex:1 1 auto;justify-content:center} .rl-app + .rl-az{flex:1 1 auto;justify-content:center} }
+@media (max-width:760px){ .rl-app{margin-left:0;flex:1 1 auto;justify-content:center} .rl-app + .rl-az{flex:1 1 auto;justify-content:center} .rl-voir{flex:1 1 auto;justify-content:center} }
 .pr-hausse{font-size:12.5px;font-weight:650;color:var(--orange)}.lien.rouge{color:var(--rouge)}
 @media (max-width:760px){.fo-pied{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:2px -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px))}
   .fo-outils{grid-template-columns:1fr 1fr;gap:8px}.fo-t{flex-direction:column;align-items:flex-start;gap:8px;min-height:0;padding:12px}.fo-t .gris{display:none}.fo-t b{font-size:15px;line-height:1.25}.fo-ic{width:34px;height:34px;font-size:18px;border-radius:10px}.fo-bienvenue .actions{width:100%}.fo-cks{grid-template-columns:1fr}}
@@ -8534,7 +8544,7 @@ function lireHash(){
   lireHash.deja = true;
   if (r === 'client' && p !== param) ongletClient = 'histo'; // un autre client s'ouvre sur son historique
   if (estGrise(r || 'accueil') && !(typeof RETOUR !== 'undefined' && RETOUR)) {   // par un lien (RETOUR posé), une catégorie déjà faite s'ouvre
- if (lireHash.deja2) toast(catTard(r) ? 'Catégorie prévue pour la fin — grisée pour l’instant.' : 'Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; history.replaceState(null, '', '#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
+ if (lireHash.deja2) toast(catTard(r) ? 'Catégorie prévue pour la fin — grisée pour l’instant.' : 'Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; histRemplacer('#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
   lireHash.deja2 = true;
   if (r === 'comptabilite' && !cpSysteme && cpProg !== 'comptabilite' && rlPermis('comptabilite')) { cpSysteme = true; if (route !== 'comptabilite') cpSysDe = route; } cpProg = null; route = r || 'accueil'; param = p || null; docPleinFermer(); fermerPanneau();   /* le plein écran d'un PDF ne survit pas à un changement d'écran (retour, glissement, lien) · 13 novembre 2026 */ fermerMenu(); rendre();
   document.getElementById('contenu').classList.remove('vue-entre'); void document.getElementById('contenu').offsetWidth; document.getElementById('contenu').classList.add('vue-entre');
@@ -11089,8 +11099,8 @@ document.addEventListener('change', ev => {
   Object.assign(BASE, { facture:'comptabilite', factures:'comptabilite', encaissements:'comptabilite' });
   IC.comptabilite = '<circle cx="12" cy="12" r="8.6"/><path d="M15.2 9.1a3.7 3.7 0 1 0 0 5.8M7.4 11h5.4M7.4 13.2h5.4"/>';
 })();
-vueFactures = function(){ cpSysteme = false; CP.onglet = 'factures'; CX.cat = 'clients'; CX.st = 'tous'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
-vueEncaissements = function(){ cpSysteme = false; CP.onglet = 'paiements'; route = 'comptabilite'; history.replaceState(null, '', '#comptabilite'); return vueComptabilite(); };
+vueFactures = function(){ cpSysteme = false; CP.onglet = 'factures'; CX.cat = 'clients'; CX.st = 'tous'; route = 'comptabilite'; histRemplacer('#comptabilite'); return vueComptabilite(); };
+vueEncaissements = function(){ cpSysteme = false; CP.onglet = 'paiements'; route = 'comptabilite'; histRemplacer('#comptabilite'); return vueComptabilite(); };
 ACTIONS.nouvelleFacture = () => cxNouvelleFacture();
 /* une facture client s'ouvre en page : on dit où l'on est */
 (() => { const f0 = vueFacture; vueFacture = function(id){ const h = f0.apply(this, arguments), f = FACTURES.find(o => o.id === id); if (!f) return h;
@@ -12095,7 +12105,7 @@ function rlBande(){
     <span class="rl-t">Tester en tant que</span>
     <div class="rl-seg" role="group" aria-label="Rôle">${Object.entries(ROLES).map(([k, r]) => `<button type="button" data-rl="role|${k}" aria-pressed="${RL_ACTIF && ROLE === k}"><span aria-hidden="true">${r.ic}</span><span class="rl-l">${r.court || r.l}</span></button>`).join('')}</div>
     ${ROLE === 'client' ? `<label class="rl-cli"><span class="rl-sr">Quel client</span><select class="saisie" data-rlcli="1">${Object.entries(CLIENTS).map(([k, c]) => `<option value="${k}" ${RL_CLI.cli === k ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>` : `<span class="rl-qui">${RL_ACTIF ? esc(R.qui ? H_NOM(R.qui) : '') : 'Choisis qui tu es : tout s’ouvre'}</span>`}
-    <button type="button" class="mch-b" data-mch="ouvrir" title="Changer les métiers de l’entreprise, pour essayer">Métiers <b>${PACKS_ENT.length}</b></button><button type="button" class="rl-az" data-rl="parcours">De A à Z <b>${faits}/${et.length}</b></button></div>`;
+    <button type="button" class="mch-b" data-mch="ouvrir" title="Changer les métiers de l’entreprise, pour essayer">Métiers <b>${PACKS_ENT.length}</b></button>${enApp() ? '' : '<button type="button" class="rl-voir" data-apv="1" title="Voir le prototype comme l’application : l’écran de connexion, sans cette bande"><span aria-hidden="true">📱</span> Voir comme l’application</button>'}<button type="button" class="rl-az" data-rl="parcours">De A à Z <b>${faits}/${et.length}</b></button></div>`;
 }
 
 /* ─── les menus du rôle ─── */
@@ -12146,7 +12156,7 @@ function rlLigneActive(base){
 const emoLigne = c => IC[c.k] && !c.ec ? svg(c.k) : `<span class="emo" aria-hidden="true">${c.ic}</span>`;
 function rlLien(c, base){
   const on = c.ec ? (route === 'espaceclient' && EC.tab === c.k) : rlLigneActive(base) === c.k, n = rlPastille(c.k);
-  const corps = `<span class="ic" style="--c:var(--lien)">${emoLigne(c)}</span>${c.sous ? `<span class="m-t"><span class="m-n">${esc(c.l)}</span><small class="m-sous">${esc(c.sous)}</small></span>` : `<span class="m-n">${esc(c.l)}</span>`}${n ? `<span class="nb">${n}</span>` : ''}${c.fait && !enApp() ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}`;
+  const corps = `<span class="ic" style="--c:var(--lien)">${emoLigne(c)}</span>${c.sous ? `<span class="m-t"><span class="m-n" data-t="${esc(c.l)}"><span>${esc(c.l)}</span></span><small class="m-sous">${esc(c.sous)}</small></span>` : `<span class="m-n" data-t="${esc(c.l)}"><span>${esc(c.l)}</span></span>`}${n ? `<span class="nb">${n}</span>` : ''}${c.fait && !enApp() ? '<small class="m-faite" title="Déjà refaite">faite</small>' : ''}`;
   if (c.ec) return `<button type="button" class="rl-mlien${on ? ' on' : ''}" data-ec="tab|${c.k}">${corps}</button>`;
   return `<a href="#${c.k}" class="${on ? 'on' : ''}${c.sous ? ' avec-sous' : ''}" ${on ? 'aria-current="page"' : ''}>${corps}</a>`;
 }
@@ -12259,7 +12269,7 @@ function feuilleMenu(){
   if (RL_ACTIF && !RETOUR) RETOUR = RL_PASSE;
   if (RL_ACTIF) {
     const R = ROLES[ROLE];
-    if (!rlPermis(route) || (ROLE === 'tech' && route === 'inter' && (INTS.find(i => i.id === param) || {}).tech !== R.qui) || (ROLE === 'tech' && route === 'clientvoit' && (INTS.find(i => i.id === voirInt) || {}).tech !== R.qui)) { rlRefus(route, param); route = R.accueil || 'accueil'; param = null; history.replaceState(null, '', '#' + route); }
+    if (!rlPermis(route) || (ROLE === 'tech' && route === 'inter' && (INTS.find(i => i.id === param) || {}).tech !== R.qui) || (ROLE === 'tech' && route === 'clientvoit' && (INTS.find(i => i.id === voirInt) || {}).tech !== R.qui)) { rlRefus(route, param); route = R.accueil || 'accueil'; param = null; histRemplacer('#' + route); }
   }
   const v = r0.apply(this, arguments), base = BASE[route] || route;
   const c = document.getElementById('contenu');
@@ -21488,7 +21498,7 @@ function cbTypeChoix(){
 
 /* ─ la vue ─ */
 function vueCarteBox(){
-  if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; history.replaceState(null, '', '#carteBox'); }
+  if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; histRemplacer('#carteBox'); }
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c], pro = rgProchain(c).d, act = d3Activite(der), sel = d3Sel && P.find(p => p.id === d3Sel), R = cbReleve && cbReleve.cli === c ? cbReleve : null, ro = cbRO();
   const att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))), neuves = P.filter(p => cbEtat(c, p.id) == null).length;
   if (cbFiltre !== 'tout' || cbZone) { /* un filtre qui ne montre rien se dit */ }
@@ -22460,7 +22470,7 @@ function opdOuvrir(faire, o){
 function opdFermer(motif){
   const z = document.getElementById('opdz'); if (!z || z.hidden) return; clearTimeout(OPDZ.tAtt); OPDZ.file = [];
   z.hidden = true; document.body.style.overflow = OPDZ.overflow || '';
-  if (motif === 'role') toast('Ton rôle n’a pas accès aux documents sur mesure.'); else if (motif === 'absent') toast('Le document n’a pas pu s’ouvrir.');
+  if (motif === 'role') toast('Ton rôle n’a pas accès aux documents sur mesure.'); else if (motif === 'absent') toast('Le document n’a pas pu s’ouvrir.'); else if (motif === 'supprime') toast('Brouillon supprimé');   // le cadre de l'atelier est rangé aussitôt : sa propre infobulle ne se verrait pas
   const de = OPDZ.depart; OPDZ.depart = '';
   if (OPDZ.sale) { OPDZ.sale = false; opdRedessiner(); }
   if (de) { const e = document.querySelector(de) || document.querySelector('#contenu h1'); if (e) { if (!e.matches('button,a,[tabindex]')) e.tabIndex = -1; e.focus({ preventScroll:true }); } }   // le focus revient au bouton d'origine APRÈS le rendu : on mémorise un sélecteur, jamais l'élément (le rendu le remplace)
@@ -22488,7 +22498,7 @@ addEventListener('message', ev => {
     }
     if (opdA(d, 'opd_docs') !== undefined) opdDocsRecus(opdA(d, 'opd_docs'));
     if (opdA(d, 'opd_client') !== undefined) opdClientRecu(opdA(d, 'opd_client'));
-    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
+    const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' || m === 'supprime' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
   } catch (e) { console.error('opd', e); }
 });
 /* le bouton Retour de l'atelier : le mécanisme COMMUN des calques (CAL_GENRES, « atelier ») pose et consomme son entrée d'historique ; un Retour traité DANS l'atelier (cadre) ne touche pas à la nôtre */
@@ -22897,7 +22907,7 @@ new MutationObserver(L => { for (const m of L) m.addedNodes.forEach(n => { if (n
 let metiersEtat = null;
 function metiersSync(){
   if (METIERS_3D.includes(route) && !metiersA3d()) {   // une adresse tapée à la main : retour à l'accueil, avec un mot
-    route = 'accueil'; param = null; history.replaceState(null, '', '#accueil');
+    route = 'accueil'; param = null; histRemplacer('#accueil');
     toast('Cet écran est celui du métier 3D (hygiène anti-nuisibles) : il n’existe pas dans ton entreprise. Retour à l’accueil.'); }
   const cle = PACKS_ENT.join('|'); if (cle === metiersEtat) return; metiersEtat = cle;
   metiersGroupe3d(); prCatalogueMaj();
@@ -23566,7 +23576,7 @@ immChap('comptabilite', 'comptabilite', 'Comptabilité', 'La comptabilité : ell
   { c:'#contenu .cx-liste', t:'Toutes les factures clients', p:'Dans « Ventes », les factures et les avoirs : pour chacune, le client, l’échéance, le montant, et où elle en est : payée, à encaisser ou en retard. Les filtres du haut trient la liste. J’ouvre la facture des Durand, en retard.', jouer:() => immClic('[data-cx="doc|fac|f128"]') },
   { c:'#contenu .carte:has([data-payer])', t:'Encaisser un paiement', p:'Voici la fiche de la facture. Pour encaisser, je choisis le moyen de paiement : carte, virement, chèque ou espèces, ou un paiement en partie. Je touche « Carte » : dans cette démonstration, le client vient de payer.', jouer:() => immClic('[data-payer="f128|Carte"]') },
   { c:'#contenu .carte:has(.etapes)', t:'Payée, et rangée toute seule', p:'La facture est payée. Le paiement est rangé dans la comptabilité, la tâche de relance se termine, et chaque geste laisse sa ligne dans l’Historique. Rien à ressaisir. Passons aux achats.',
-    jouer:() => { immDccFermer(); cpSysteme = false; route = 'comptabilite'; param = null; history.replaceState(null, '', '#comptabilite'); rendre(); immClic('[data-cx="grp|achats"]'); } },
+    jouer:() => { immDccFermer(); cpSysteme = false; route = 'comptabilite'; param = null; histRemplacer('#comptabilite'); rendre(); immClic('[data-cx="grp|achats"]'); } },
   { c:'#contenu .cx-liste', t:'Tes achats et tes frais', p:'Dans « Achats et frais », tout ce que tu paies : le matériel, les véhicules, les frais généraux et les notes de frais de l’équipe. Chaque ligne dit si elle est à valider, à payer ou en retard, et s’il manque une facture.', jouer:() => { immClic('[data-cx="grp|tresorerie"]'); immClic('[data-cx="sec|banque"]'); } },
   { c:'#contenu .grille2 > .col:last-child > .carte:first-child', t:'La banque, expliquée', p:'Voici la banque. Le solde de la banque et celui de ta comptabilité sont côte à côte, et l’écart est dit en une phrase : ici, trois lignes du relevé restent à expliquer. Pour chacune, le logiciel propose la bonne réponse.', jouer:() => immClic('[data-cx="grp|fiscal"]') },
   { c:'#contenu .grille2 > .col:first-child > .carte:first-child', t:'La TVA se calcule seule', p:'La TVA du mois est calculée toute seule, sur ce que les clients ont payé : la TVA collectée, moins la TVA récupérée sur tes achats, donne ce que tu dois verser le mois suivant. Tu la vérifies avec ton expert-comptable avant de la déclarer.', jouer:() => { immClic('[data-cx="grp|pilotage"]'); immClic('[data-cx="sec|cloture"]'); } },
@@ -23995,7 +24005,7 @@ const immRolesToutes = () => { fermerPanneau(); const t = document.getElementByI
 const immRolesAvant = (cle, k, fait, va) => { const g = IMM_CHAPS[cle].gestes[k], c0 = g.c; g.c = function(){ if (!fait()) { immRolesToutes(); va(); } return c0.apply(this, arguments); }; };
 /* on change d’écran sur place : l’adresse est posée SANS événement (un seul dessin, pas deux), et l’écran est là tout de suite. Un champ d’heure ou de date naît à pleine largeur, puis rétrécit à 1 pixel en glissant
    (transition de largeur) : la page déborde de 193 px pendant quelques images. On le cache tout de suite, sans glissement. */
-const immRolesNav = h => { fermerPanneau(); history.replaceState(null, '', '#' + h); lireHash(); if (typeof dtAmeliorer === 'function') dtAmeliorer(); document.querySelectorAll('input.dt-cache').forEach(e => { e.style.transition = 'none'; }); immRolesCalme(); };
+const immRolesNav = h => { fermerPanneau(); histRemplacer('#' + h); lireHash(); if (typeof dtAmeliorer === 'function') dtAmeliorer(); document.querySelectorAll('input.dt-cache').forEach(e => { e.style.transition = 'none'; }); immRolesCalme(); };
 const immRolesEcran = (cle, k, h) => immRolesAvant(cle, k, () => route === h, () => immRolesNav(h));
 const immRolesOnglet = (cle, k, tab) => immRolesAvant(cle, k, () => EC.tab === tab, () => immClic('#contenu [data-ec="tab|' + tab + '"]'));
 /* un écran que la personne n’a pas le droit d’ouvrir : on essaie par l’adresse, comme elle le ferait, et le logiciel refuse */
@@ -24359,7 +24369,38 @@ document.addEventListener('contextmenu', ev => { if (ev.defaultPrevented || !rcB
    Quand la page tourne dans la coque (mobile/fabriquer.js pose `window.OPG_MODE_APP`) ou avec `?app=1`, tout l'échafaudage du
    prototype disparaît : la bande « Tester en tant que », les pastilles « faite », les mentions « Prototype ». L'utilisateur est
    le patron. Le prototype publié (sans le drapeau) garde tout : c'est lui qui sert à éprouver. */
-var MODE_APP = !!window.OPG_MODE_APP || /[?&]app=1\b/.test(location.search) || /[?&]lien=[a-z0-9-]+/.test(location.search) || /^#lien-[a-z0-9-]+$/.test(location.hash);
+/* ── « Voir comme l'application » · 17 novembre 2026 ──
+   Dans un artefact, `?app=1` ne passe pas : seul un « #nom » passe. Le visiteur reste donc en mode REVUE (la bande « Tester en tant que ») et ne voit
+   jamais l'écran de connexion, OP Security, le guide de la première connexion. La bande porte un bouton qui pose l'adresse `#lien-<entreprise>` (que la
+   page sait déjà lire) ET un drapeau de session, puis recharge. L'un OU l'autre suffit : un cadre qui refuse le rangement garde le `#lien-`, un cadre qui
+   garde le rangement mais perd l'adresse au rechargement garde le drapeau. Rien de tout cela n'existe dans la coque (`OPG_MODE_APP`) ni avec `?app=1`. */
+const APP_VOIR_CLE = 'opg_proto_voir_app';
+function appDrapeau(){ try { return sessionStorage.getItem(APP_VOIR_CLE) === '1'; } catch (e) { return false; } }
+function appDrapeauPoser(oui){ try { if (oui) sessionStorage.setItem(APP_VOIR_CLE, '1'); else sessionStorage.removeItem(APP_VOIR_CLE); return true; } catch (e) { return false; } }
+function appRecharger(){ try { location.reload(); return true; } catch (e) { return false; } }   /* une fonction à part : la sonde la remplace pour jouer un rechargement refusé */
+var MODE_APP = !!window.OPG_MODE_APP || /[?&]app=1\b/.test(location.search) || /[?&]lien=[a-z0-9-]+/.test(location.search) || /^#lien-[a-z0-9-]+$/.test(location.hash) || appDrapeau();
+/* entré par le bouton (et non par la coque ni par ?app=1) : seul cas où l'écran de connexion propose de revenir au mode test. Lu ICI, avant que le démarrage réécrive l'adresse. */
+var APP_PAR_BOUTON = MODE_APP && !window.OPG_MODE_APP && !/[?&](app|lien)=/.test(location.search) && (appDrapeau() || /^#lien-[a-z0-9-]+$/.test(location.hash));
+/* l'historique d'un cadre à origine opaque refuse replaceState : l'adresse n'est qu'un rappel, l'écran, lui, a déjà changé — un refus ne l'arrête jamais */
+function histRemplacer(h){ try { history.replaceState(null, '', h); } catch (e) {} }
+/* le message dit où l'on est : sur l'écran de connexion, sous le formulaire ; ailleurs, en bulle */
+function appDire(t){ if (document.getElementById('cn-err')) cnxDire(t); else toast(t); }
+function appAdresse(h){ try { history.replaceState(null, '', location.pathname + location.search + h); return true; } catch (e) { try { location.hash = h.replace(/^#/, ''); return true; } catch (e2) { return false; } } }
+/* vers = true : « Voir comme l'application » ; vers = false : « Revenir au mode test ». On pose, on recharge, et si la page est encore là une seconde et demie
+   plus tard (rechargement refusé ou sans effet), on le DIT et on remet les choses comme elles étaient : un rechargement manuel ne doit pas faire entrer
+   dans un mode que le bouton avait déclaré impossible. `beforeunload` et `pagehide` disent qu'un rechargement a bien démarré (une page lente ne se défait pas). */
+function appBasculer(vers){
+  const avantHash = location.hash, avantDrapeau = appDrapeau();
+  const rangee = appDrapeauPoser(vers), place = appAdresse(vers ? '#lien-' + ESPACE_SLUG : '');
+  const pose = vers ? (rangee || place) : (!appDrapeau() && !/^#lien-/.test(location.hash));
+  const echec = () => { appDrapeauPoser(avantDrapeau); appAdresse(avantHash);
+    appDire(vers ? 'Impossible ici : ouvre l’adresse de la page en la terminant par #lien-' + ESPACE_SLUG + '.' : 'Impossible ici : ouvre l’adresse de la page, sans rien après le « # ».'); };
+  if (!pose) return echec();
+  let parti = false; const part = () => { parti = true; }; addEventListener('beforeunload', part, { once:true }); addEventListener('pagehide', part, { once:true });
+  if (!appRecharger()) return echec();
+  setTimeout(() => { if (!parti) echec(); }, 1500);
+}
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-apv]'); if (!b) return; ev.preventDefault(); appBasculer(true); });
 if (MODE_APP) {
   document.documentElement.dataset.app = '1'; document.title = 'OP GESTION';
   document.head.insertAdjacentHTML('beforeend', `<style id="mode-app">
@@ -24626,6 +24667,8 @@ const cnxTete = () => `<span class="cn-logo" style="display:block;overflow:hidde
 function cnxVider(){ if (SESSION) return; ['menu', 'contenu', 'barre-bas'].forEach(i => { const e = document.getElementById(i); if (e) e.innerHTML = ''; });
   const z = document.getElementById('cpsys'); if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } }   /* avant la connexion, ou après « Se déconnecter », rien de l'écran de la personne d'avant ne reste dans la page (« Bonjour Marc », montants) · coque-01 */
 (() => { const r0 = rendre; rendre = function(){ if (typeof MODE_APP !== 'undefined' && MODE_APP && !SESSION && document.getElementById('cnx')) { cnxVider(); return; } return r0.apply(this, arguments); }; })();   /* « Se déconnecter » change d'écran PAR une transition : le dessin de l'écran du gérant arrivait APRÈS le vidage, derrière la connexion — tant que personne n'est connecté, rien ne se dessine */
+/* « Revenir au mode test » : seulement quand on est entré par « Voir comme l'application » (jamais dans la coque, ni avec ?app=1) */
+const cnxTestLien = seul => APP_PAR_BOUTON ? (seul ? '<div class="cn-bas">' : '') + '<button type="button" class="cn-lien" data-cnx="test">Revenir au mode test</button>' + (seul ? '</div>' : '') : '';
 function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.remove(); cnxVider();
   /* le guide des nouveautés passe au-dessus de tout (il doit couvrir la Comptabilité plein écran) : si la session se ferme pendant qu'il est ouvert
      (lien d'une autre entreprise ouvert du dehors, compte désactivé), il restait posé SUR l'écran de connexion et bloquait la saisie. On le retire
@@ -24639,7 +24682,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
       <p class="cn-err" id="cn-err" role="alert">${esc(err || '')}</p>
       <button type="submit" class="btn plein">Continuer</button>
     </form>
-    <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p></div></div>`);
+    <p class="cn-expl" style="text-align:center;font-size:13px">Pas de lien ? Demande-le à l’administrateur de ton entreprise : il le trouve dans Équipe.</p>${cnxTestLien(true)}</div></div>`);
     const l = document.getElementById('cn-lien'); if (l && !tel() && !window.Capacitor) { l.focus(); if (l.value) l.select(); } return; }   /* un lien refusé reste dans le champ, sélectionné : la personne le corrige au lieu de le recoller en entier */
   document.body.insertAdjacentHTML('beforeend', `<div id="cnx" role="dialog" aria-modal="true" aria-label="Connexion à OP GESTION"><div class="cn-col">${cnxTete()}
     <span class="cn-pastille"><span>✓ ${esc(ENTREPRISE.nom)} · lien vérifié</span></span>
@@ -24651,7 +24694,7 @@ function cnxMontrer(err, ident, doux, lien){ document.getElementById('cnx')?.rem
       <p class="cn-err" id="cn-err" role="alert"${doux ? ' style="color:var(--doux)"' : ''}>${esc(err || '')}</p>
       <button type="submit" class="btn plein">Se connecter</button>
     </form>${cnxPastilleTel()}${cnxDemoCases()}
-    <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button><button type="button" class="cn-lien" data-cnx="quitter">Changer d’entreprise</button></div></div></div>`);
+    <div class="cn-bas"><button type="button" class="cn-lien" data-cnx="oubli">Mot de passe oublié ?</button><button type="button" class="cn-lien" data-cnx="quitter">Changer d’entreprise</button>${cnxTestLien()}</div></div></div>`);
   SECU.pc = { ecran:'connexion', k:null, demandeId:null }; opsMonter(); opsDessiner(true); cnxFauxMaj();
   const m = document.getElementById('cn-id'); if (m && !tel() && !window.Capacitor) (m.value ? document.getElementById('cn-mdp') : m).focus(); }
 const cnxDire = t => { const e = document.getElementById('cn-err'); if (!e) return; e.style.color = ''; e.textContent = ''; requestAnimationFrame(() => { e.textContent = t; }); };
@@ -25748,6 +25791,7 @@ document.addEventListener('click', ev => { const b = ev.target.closest && ev.tar
   else if (a === 'comme') { ev.stopPropagation(); secuVoirComme(x); }
   else if (a === 'moncompte') { ev.stopPropagation(); fermerMenu(); secuMonCompte(); }
   else if (a === 'montel') { ev.stopPropagation(); fermerMenu(); opsMonter(); opsOuvrir(); }
+  else if (a === 'test') { ev.stopPropagation(); appBasculer(false); }
 });
 /* ── plusieurs fenêtres sur Mac · 13 novembre 2026 ──
    Justin : « sur Mac, qu'on puisse ouvrir d'autres catégories en clic droit dans une autre fenêtre, sans que ça relance

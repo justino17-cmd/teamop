@@ -22,14 +22,16 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
         if (!a || !l) return null;
         const r = a.getBoundingClientRect(), z = l.getBoundingClientRect(), hc = a.getBoundingClientRect().height;
         a.classList.remove('on'); const hn = a.getBoundingClientRect().height; a.classList.add('on');
-        return { href: a.getAttribute('href'), texte: a.textContent.replace(/\s+/g, ' ').trim(), hc: Math.round(hc * 10) / 10, hn: Math.round(hn * 10) / 10,
+        // le texte tient DANS sa ligne : la ligne rétrécie sous son contenu (flex) passait inaperçue, la hauteur de la boîte restait à 44 px pendant que trois lignes de texte en sortaient
+        const t = a.querySelector('.m-n') || a, rt = t.getBoundingClientRect(), tient = rt.top >= r.top - 0.5 && rt.bottom <= r.bottom + 0.5;
+        return { tient, href: a.getAttribute('href'), texte: a.textContent.replace(/\s+/g, ' ').trim(), hc: Math.round(hc * 10) / 10, hn: Math.round(hn * 10) / 10,
           entiere: r.top >= z.top - 0.5 && r.bottom <= z.bottom + 0.5, dedans: [Math.round(r.top - z.top), Math.round(z.bottom - r.bottom)], liste: [Math.round(z.height), l.scrollHeight] };
       }, h);
       if (!m) { v(qui + ' : ' + h + ' : une ligne est allumée', false); continue; }
       vus.push(m.href);
-      const bon = Math.abs(m.hc - m.hn) < 0.6 && m.entiere;
+      const bon = Math.abs(m.hc - m.hn) < 0.6 && m.entiere && m.tient;
       if (bon) ok++;
-      v(qui + ' ' + PROFIL + ' : « ' + m.texte + ' » (' + h + ') : même hauteur choisie ou non (' + m.hc + ' / ' + m.hn + ' px) et entière dans la liste (' + m.dedans.join(' / ') + ' px)', bon, m);
+      v(qui + ' ' + PROFIL + ' : « ' + m.texte + ' » (' + h + ') : même hauteur choisie ou non (' + m.hc + ' / ' + m.hn + ' px) et son texte dans sa ligne, et entière dans la liste (' + m.dedans.join(' / ') + ' px)', bon, m);
     }
     v(qui + ' : population — ' + vus.length + ' entrées jouées', vus.length >= 3);
     await p.screenshot({ path: CAP + `menu-choisie-${PROFIL}-${qui}.png` });

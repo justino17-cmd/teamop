@@ -1827,11 +1827,19 @@ VUES.fec = () => {
     <div class="defile"><table class="t" style="font-size:12px"><thead><tr>${FEC_COLS.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${L.slice(0, 40).map(x => `<tr>${x.map((v, i) => `<td class="${[11, 12].includes(i) ? 'n' : ''} ${[2, 4, 6].includes(i) ? 'mono' : ''}" style="white-space:nowrap">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <p class="mute petit">Les 40 premières lignes sur ${L.length}.</p>`;
 };
+/* « dans un artefact » = la page principale (celle qui nous contient) est elle-même dans un cadre : window.top n'est ni nous ni notre parent */
+const dansArtefact = () => { try { return window.parent !== window && window.parent !== window.top; } catch (e) { return true; } };
 async function fecTelecharger(){
   const txt = [FEC_COLS.join('|'), ...fecLignes().map(x => x.join('|'))].join('\r\n'); UI.fecFait = true;
   /* window.claude n'est promis que dans la page du HAUT : la comptabilité vit dans un cadre, elle passe par celui du parent (même origine), sans jamais supposer qu'il existe */
   let dl = null; try { const cl = window.claude || (window.parent !== window ? window.parent.claude : null); dl = cl && cl.use ? await cl.use('downloads') : null; } catch (e) { dl = null; }
   const msg = $('#fec-msg');
+  /* Hors artefact (la page principale est la fenêtre du haut : la coque, un onglet), un lien de téléchargement marche ; dans un cadre verrouillé il ne ferait rien, et on ne l'annonce pas. 17 novembre 2026 */
+  if (!dl && !dansArtefact()) {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type:'text/plain' })); a.download = fecNom(); a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      if (msg) msg.innerHTML = `<div class="info">Téléchargement demandé : « ${esc(fecNom())} ». S’il ne démarre pas, ton navigateur le bloque ici.</div>`; }
+    catch (e) { if (msg) msg.innerHTML = `<div class="erreur">Le téléchargement n’a pas abouti ici.</div>`; }
+    parcoursVerifier(); return; }
   if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici : voici seulement le début du fichier (${fecLignes().length} lignes en tout).</div><pre class="fec-apercu mono" tabindex="0" role="region" aria-label="Début du fichier des écritures">${esc(txt.slice(0, 4000))}</pre>`; parcoursVerifier(); return; }
   try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }
   catch (e) { if (msg) msg.innerHTML = `<div class="${e && e.code === 'declined' ? 'info' : 'erreur'}">${e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n’a pas abouti ici.'}</div>`; }
