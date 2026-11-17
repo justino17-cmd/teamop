@@ -64,7 +64,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       const c = await ouvrirSm(profil, nuit); await L.aller(c.p, 'majournee');
       const l = await ev(c, () => ({ n:document.querySelectorAll('#contenu .vh-ligne-cam').length, tous:document.querySelectorAll('#contenu [data-go="moncamion"]').length, ancien:!!document.querySelector('.vx-cam'), mv:/Mon véhicule/.test(document.getElementById('contenu').textContent), txt:((document.querySelector('.vh-ligne-cam') || {}).textContent || '').replace(/\s+/g, ' ').trim(), bxl:!!document.querySelector('.bxl-jour'), h:Math.round((document.querySelector('.vh-ligne-cam') || { getBoundingClientRect:() => ({ height:0 }) }).getBoundingClientRect().height) }));
       v(nom + ' · Ma journée : UNE ligne « Mon camion » (pas deux raccourcis, pas de carte « Mon véhicule »)', l.n === 1 && l.tous === 1 && !l.ancien && !l.mv && !l.bxl, l);
-      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= 90, l);
+      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= (c.largeur >= 390 ? 90 : 110), l);   // 360 et 320 px : le texte passe sur trois lignes à côté de la pastille, jamais une carte de 300 px
       const cas = [
         ['contrôle dans 12 jours', () => { vehDe('veh1').ct = jour(12); }, /Contrôle technique dans 12 jours/, /st-o/],
         ['en retard', () => { vehDe('veh1').ct = jour(-3); }, /Contrôle technique en retard de 3 jours/, /st-r/],

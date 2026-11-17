@@ -23,7 +23,7 @@ const rect = (c, sel) => c.p.evaluate(s => { const e = document.querySelector(s)
     v('le départ est déclaré dans UN objet (SECU_DEPART) et il dit la même chose', d.depart.tel === 'kb,lr' && d.depart.verr === 'lr', d.depart);
     v('la case « Rester connecté » n’existe plus sur l’écran de connexion', !d.resteCase, d);
     v('l’encadré « Démonstration » est sous la carte de connexion, le téléphone est monté', d.cases && d.ouvert, d);
-    const pr = await c.p.evaluate(() => ({ l:Object.keys(localStorage), s:Object.keys(sessionStorage) })); v('le rangement ne tient que le lien de l’entreprise (aucune clé de session ni de mot de passe)', pr.l.concat(pr.s).every(k => /^opg_proto_(espace|mode|barre|vues)$/.test(k)), pr);
+    const pr = await c.p.evaluate(() => ({ l:Object.keys(localStorage), s:Object.keys(sessionStorage) })); v('le rangement ne tient que le lien de l’entreprise (aucune clé de session ni de mot de passe)', pr.l.concat(pr.s).every(k => /^opg_proto_(espace|mode|barre|vues|atelier)$/.test(k)), pr);
     v('aucune erreur JavaScript au démarrage', c.err.length === 0, c.err.slice(0, 2)); await L.fin(c); }
 
   console.log('\n── 2. les profils : ' + PROFILS.join(', ') + ' · ' + jn + ' ──');
