@@ -236,6 +236,22 @@ PERDU si la machine est rendue — le résumé donné à Justin est dans la conv
 le chantier « relier OP Security à OP GESTION » démarre sur une COPIE D'ESSAI (jumeau local : vrai serveur isolé, page bêta,
 application de téléphone du kit), marche par marche selon le plan, chaque marche testée et attaquée ; aucune mise en ligne.
 
+⛔ **PRÉCISION DE JUSTIN, 17 NOVEMBRE, 14 H 45 (dictée) — CE QU'IL ATTEND D'OP SECURITY.** Mot pour mot : « On veut que
+l'application Security, comme tu as pu voir, qui a été créée, que tu la testes, que tu la vérifies, et je veux que cette application
+oblige de se connecter avec son compte OP GESTION. Pour être sûr que déjà, au niveau de la sécurité, c'est bien des comptes qui sont
+actifs sur OP GESTION pour la double authentification, et en même temps pour la sécurité plus forte, étant donné qu'il y a des
+données quand même plus conséquentes. Un peu comme Microsoft avec leur système de boîte mail pour la double authentification. Sauf
+que là, je veux que ça soit notre propre système, à notre sécurité. Et je veux que tu cherches la moindre faille, il ne faut pas
+qu'il y en ait une. » Ce que ça fixe pour le chantier : (1) **l'application du téléphone demande le compte OP GESTION** (entreprise,
+identifiant, mot de passe, vérifiés PAR LE SERVEUR) ; (2) **seul un compte ACTIF** s'y relie, et un compte désactivé ou supprimé
+perd OP Security tout de suite ; (3) le kit, lui, s'active aujourd'hui par un code affiché à l'écran, sans demander le compte : à
+changer — et à NE PAS affaiblir : mot de passe du compte ET code d'activation remis par un administrateur (un mot de passe volé ne
+doit pas suffire à activer le téléphone d'un pirate ; c'est sa décision n° 3 d'INTEGRATION.md) ; (4) la chasse aux failles est sans
+fin de tour : chaque correction est ré-attaquée, et on lui dit honnêtement qu'« aucune faille » ne se promet pas (sa décision n° 8 :
+ne pas promettre 100 %) — l'objectif est « aucune faille connue non corrigée », plus un test d'intrusion indépendant avant un
+premier client. Dit à Justin le 17 : son dépôt est PUBLIC (tout le code du serveur se lit) ; recommandation de le passer en privé ;
+sans réponse de sa part, le code de la liaison reste hors du dépôt.
+
 **ÉTAT À 12 H 20 (machine ; 13 h 20 en France) — 34 SESSIONS SŒURS, DEUX VOIES ENCORE ICI.** Justin, à 12 h 55 (heure française) :
 « Ok fait un maximum de saison sœur que tu fermera quand elle auront fini » → chaque sœur qui a rendu (« SŒUR n : ») reçoit sa voie
 suivante (`send_message` : « VOIE SUIVANTE : <args> ») ou est FERMÉE (`archive_session`) s'il n'y a plus rien pour elle. Annoncé à
