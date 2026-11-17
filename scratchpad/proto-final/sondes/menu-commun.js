@@ -9,7 +9,7 @@ exports.ATTENDU = {
     ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits', 'Dépôts et camions']], ['Personnel', ['Équipe', 'Temps de travail', 'Véhicules', 'Mon entreprise', 'Sécurité']]],   // double-auth étape 3 : « Sécurité » (case « Gérer la sécurité des connexions ») est la 21e ligne du gérant
   julie:[['Travail', ['Mes tâches', 'Interventions']], ['Clients et ventes', ['Clients', 'Devis', 'Contrats']], ['Argent', ['Comptabilité', 'Achats et frais']], ['Matériel', ['Stock', 'Fournisseurs, matériel & produits']], ['Personnel', ['Véhicules']]],   // + Personnel › Véhicules : le bureau voit les véhicules (VEHICULES-TEMPS.md § 11, recommandation) ; + Matériel : le bureau voit Stock et Fournisseurs (MATERIEL.md § 4, étape 2)
   sm:[['', ['Ma journée', 'Mes tâches', 'Mes frais', 'Mes heures', 'Mon camion', 'Mes congés']]],
-  client:[['', ['Accueil', 'Mes factures', 'Mes interventions', 'Mes devis', 'Mon contrat']]]
+  client:[]   // décision du chef du 17/11 (client-14) : UNE navigation par appareil. À l'ordinateur ce sont les onglets de la page : le menu de gauche du client ne répète plus les cinq entrées (il porte sa carte et « Une question ? »)
 };
 // la route de chaque ligne (les routes ne changent pas), par rôle
 exports.ROUTES = {

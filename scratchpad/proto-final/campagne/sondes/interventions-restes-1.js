@@ -15,6 +15,8 @@ const I = require('./interventions-outils.js'), L = I.L;
   const c = await L.ouvrir({ profil, qui: 'marc', nuit }); const p = c.p, v = L.v; const tap = s => L.toucher(c, s, { delai: 4000 }); const txt = async z => (await I.texte(p, z)).replace(/[\u00a0\u202f]/g, ' '); const ev = (f, a) => p.evaluate(f, a);
   const CAPN = n => I.CAP + `restes1-${profil}${nuit ? '-nuit' : ''}-${n}.png`;
   const sec = async (nom, f) => { if (filtre && !filtre.test(nom)) return; console.log('\n── ' + nom); try { await f(); } catch (e) { v(nom + ' : la section ne plante pas', false, String(e.message).slice(0, 240)); } };
+  // une capture qui montre CE QU'ON CHERCHE : la bulle d'annonce retirée, le bloc ramené au milieu de l'écran
+  const voir = async (sel, n) => { await ev(z => { const t = document.getElementById('toast'); if (t) t.classList.remove('on'); const e = [...document.querySelectorAll(z)].find(x => x.offsetParent !== null); if (e) e.scrollIntoView({ block: 'center' }); }, sel); await L.calme(p, 450); await L.capture(c, CAPN(n)); };
   const MOTS_FAUX = /Paiement sur place|Payé en totalité|Acompte versé|Pas encore payé|la facture lui sera envoyée|la facture partira/i;
   if (process.env.CONTRE) { const k = process.env.CONTRE; console.log('  · CONTRE-ÉPREUVE :', k);
     if (k === 'garantie') await p.evaluate(() => { window.enGarantie = () => false; });
@@ -33,15 +35,15 @@ const I = require('./interventions-outils.js'), L = I.L;
     v('A avant Terminer : la technicienne lit « Garantie : rien à encaisser, aucune facture »', /Garantie : rien à encaisser, aucune facture/.test(t), (t.match(/Paiement[\s\S]{0,160}/) || [''])[0]);
     v('A avant Terminer : ni « Payé en totalité », ni « Acompte versé », ni « la facture lui sera envoyée »', !MOTS_FAUX.test(t), (t.match(MOTS_FAUX) || [''])[0]);
     v('A avant Terminer : plus de choix de paiement (aucun bouton radio « paie »)', (await p.locator('input[name="paie"]').count()) === 0);
-    await L.capture(c, CAPN('a1-garantie-avant'));
+    await voir('.carte', 'a1-garantie-avant-0'); await voir('.carte:has(.info.petit b)', 'a1-garantie-avant');
     await tap('[data-action="terminer"]'); await L.calme(p, 500); t = await txt();
     v('A après Terminer : la fiche dit « Garantie : rien à encaisser, aucune facture » et « Sans facture »', /Garantie : rien à encaisser, aucune facture/.test(t) && /Sans facture/.test(t), (t.match(/Facturation[\s\S]{0,200}/) || [''])[0]);
     v('A après Terminer : ni « Paiement sur place » ni « Pas encore payé » ni « la facture lui sera envoyée »', !MOTS_FAUX.test(t), (t.match(MOTS_FAUX) || [''])[0]);
-    await L.capture(c, CAPN('a2-garantie-apres-tech'));
+    await voir('.fin-c:has(.paie-bloc)', 'a2-garantie-apres-tech');
     // le bureau relit la même fiche
     await I.devenir(c, 'marc', 'inter-x-' + g.id); t = await txt();
     v('A le bureau : même fiche, mêmes mots', /Garantie : rien à encaisser, aucune facture/.test(t) && !MOTS_FAUX.test(t), (t.match(MOTS_FAUX) || [''])[0] || (t.match(/Facturation[\s\S]{0,160}/) || [''])[0]);
-    await L.capture(c, CAPN('a3-garantie-apres-bureau'));
+    await voir('.fin-c:has(.paie-bloc)', 'a3-garantie-apres-bureau');
     // contre-population : une intervention NON garantie garde son bloc de paiement
     await I.devenir(c, 'tl', 'inter-x-i7'); t = await txt(); v('A contre-épreuve : une intervention normale garde « Paiement sur place »', /paiement sur place/i.test(t) && !/Garantie : rien à encaisser/.test(t));
   });
@@ -69,7 +71,7 @@ const I = require('./interventions-outils.js'), L = I.L;
     v('B Terminer : une intervention « à planifier » est créée pour un autre passage, titre générique', !!n.ven && n.ven.st === 'aplanifier' && /Un autre passage/.test(n.ven.titre) && !/ventilateur/i.test(n.ven.titre), n.ven);
     v('B …et aucun entretien annuel n’est posé après ce dépannage', !n.ent, n.ent);
     v('B la fiche terminée : « Suites à donner » dit « Un autre passage » et pas « ventilateur »', /Un autre passage/.test(t) && !/Remplacer le ventilateur/.test(t), (t.match(/Suites à donner[\s\S]{0,200}/) || [''])[0]);
-    await L.capture(c, CAPN('b2-fiche-terminee'));
+    await voir('.fin-c:has(.fin-a) + .fin-c, .fin3 .fin-c:last-child', 'b2-fiche-terminee');
     await I.devenir(c, 'marc', 'clientvoit'); await ev(() => { voirInt = 'i9'; modeClient = 'web'; rendre(); }); t = await txt('#contenu .client-web');
     const suite = x => (x.match(/La suite[\s\S]{0,170}?(?=\n(FACTURE|Facture|Le technicien|Le client)|$)/i) || [''])[0];
     v('B le client lit « Un autre passage est nécessaire » dans « La suite » (pas « ventilateur »)', /Un autre passage est nécessaire/.test(suite(t)) && !/ventilateur/i.test(suite(t)), suite(t));

@@ -1,0 +1,183 @@
+{
+ "partie": "Clients",
+ "date": "2026-11-17",
+ "regles": [
+  1,
+  2,
+  3,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  13,
+  14,
+  16
+ ],
+ "pasRegles": [
+  {
+   "n": "clients-18",
+   "constat": "Réglé pour le scénario écrit (numéro tapé « 06.55.44.33.22 » ou « +33 6 55 44 33 22 » → Mme Roux, enregistrée en 06). Mais la correction ne ramène à « 06… » que ce qu'on TAPE : un client dont le téléphone est ENREGISTRÉ en « +33 6 12 98 76 54 » (ce que le formulaire garde tel quel) n'est retrouvé par AUCUNE écriture, pas même celle qu'on vient de lui donner (voir casse 1)."
+  },
+  {
+   "n": "clients-04",
+   "constat": "Non touché, soumis à Justin (nom seul suffit pour un client créé avec une intervention) : clients-creer.js 34 ✓ · 1 ✗ (ordinateur), 36 ✓ · 1 ✗ (iPhone), le seul ✗ est cette décision."
+  },
+  {
+   "n": "clients-11",
+   "constat": "Non touché, soumis à Justin : aucun bouton « ＋ Ajouter un appareil » ni modifier / supprimer dans l'onglet Appareils."
+  },
+  {
+   "n": "clients-12",
+   "constat": "Non touché, soumis à Justin : e-mail ET téléphone vidés s'enregistrent sans un mot (clients-modifier.js 19 ✓ · 2 ✗ ordinateur, 21 ✓ · 2 ✗ iPhone)."
+  },
+  {
+   "n": "clients-15",
+   "constat": "Non touché, soumis à Justin : la saisie non enregistrée de l'onglet Infos est perdue en quittant l'onglet."
+  },
+  {
+   "n": "clients-17",
+   "constat": "Non touché, soumis à Justin : la case d'Équipe « supprimer un client » n'a aucun geste derrière (ni Supprimer ni Archiver)."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Un client dont le téléphone est enregistré en « +33 … » est introuvable à la recherche, même tapé à l'identique",
+   "gravite": "gênant",
+   "etapes": "Clients › ＋ Nouveau client › Avec un devis › Nom « Lemoine », prénom « Sophie », téléphone « +33 6 12 98 76 54 », adresse à Rochefort › Préparer le devis. Puis Clients › chercher « +33 6 12 98 76 54 », puis « 06 12 98 76 54 », « 0612987654 », « +33612987654 ». Idem en changeant le téléphone d'un client existant en « +33 5 46 11 22 44 » dans Infos.",
+   "constat": "Les quatre écritures rendent « Aucun client ne correspond » (parcours P1, 4 ✗ + 1 rappel ; P2 : « +33 5 46 11 22 44 » tapé tel quel, introuvable). Cause : clients-18 a normalisé la saisie (« +33 6… » → « 06… ») mais compare toujours aux chiffres BRUTS du client (« 33612987654 »). Le formulaire garde « +33 … » tel quel (cfTelFmt ne reformate que les « 0… »). Conséquence voisine, lue dans le code et non rejouée : cfDoublonDe compare aussi les chiffres bruts, donc « 06 12 98 76 54 » et « +33 6 12 98 76 54 » ne se voient pas comme le même client. Rejoué sur ordinateur, iPhone jour et iPhone nuit (mêmes 6 ✗). Correction : normaliser aussi le téléphone du client (« +33 »/« 0033 » → « 0 ») dans la recherche et dans la détection de doublon, ou à l'enregistrement."
+  },
+  {
+   "titre": "Renommer un particulier laisse l'ancien nom dans « Contact » : la fiche et la liste montrent deux noms",
+   "gravite": "gênant",
+   "etapes": "Clients › Mme Roux › Infos › Nom : « Mme Rouxel-Delacroix » › Enregistrer. Regarder l'en-tête de la fiche, le champ Contact, puis la carte du client dans la liste.",
+   "constat": "L'en-tête dit « Mme Rouxel-Delacroix » puis, dessous, « Mme Roux · 06 55 44 33 22 · 14 rue Gambetta… » ; le champ Contact garde « Mme Roux » ; la carte de la liste écrit « Mme Roux · 17440 Aytré » sous le nouveau nom (capture fiche-renommee-mac.png, fiche-nom-long-iphone-nuit.png). Pour un particulier, nom et contact sont la même personne (le formulaire de création les fait égaux) : l'ancien nom reste comme s'il y avait deux personnes. Introduit par clients-06 (le champ Nom). Rejoué mac, iPhone jour et nuit. Correction : pour un particulier, suivre le nom dans le contact quand ils étaient égaux (ou ne pas montrer Contact)."
+  },
+  {
+   "titre": "Les autres façons de créer un client n'ont pas reçu la correction clients-05 : la carte les place au dépôt",
+   "gravite": "gênant",
+   "etapes": "Composer un devis (atelier) avec un nouveau client à « 4 rue du Port, 17300 Rochefort » ; ou devis xylophage avec un nouveau client à la même adresse ; ou Boîte mail › courriel d'un inconnu › « C'est un client » (adresse écrite « Rochefort (adresse à compléter) »). Puis lui créer une intervention et ouvrir la carte des tournées.",
+   "constat": "clients-05 a posé la position pour « Avec une intervention » et « Avec un devis » seulement. Rejoué (clients-recontrole-creations.js) : client né dans l'atelier → ni point ni secteur (null, null) ; devis xylophage → secteur « Sud » mais pas de point ; la carte les range au dépôt ([46.1585,-1.1517], « Position inconnue : la carte la place au dépôt ») alors que l'adresse est reconnue (Rochefort, 38 km). Courriel « C'est un client » : quatre chemins écrivent « <ville> (adresse à compléter) » sans poser point ni secteur — lu dans le code (lignes 10323, 19271, 19279, 19359) et simulé, PAS rejoué par l'interface de la Boîte mail. Même classe de défaut que clients-05, la correction a visé deux chemins sur six. Correction : une seule décision, lire geoDeAdresse(adr) dans crPos quand CR_GEO manque (ou une fonction commune « poser la position d'un client » appelée par toutes les créations)."
+  },
+  {
+   "titre": "« ＋ Nouveau client » ouvre un panneau sans aucun bouton pour qui a « créer un client » mais ni « créer une intervention » ni « créer un devis »",
+   "gravite": "gênant",
+   "etapes": "Équipe : donner à Julie la case « créer un client » sans « créer une intervention » ni « créer un devis » (rejoué en posant ses droits : crm c=1, inter c=0, ventes c=0). Se connecter en Julie › Clients › ＋ Nouveau client.",
+   "constat": "Le panneau « Nouveau client » affiche sa phrase (« on prépare son premier travail : une intervention à planifier, ou un devis à lui envoyer… ») et AUCUN geste : les deux boutons sont masqués par les droits, il ne reste que ✕ (captures droits-panneau-mac.png ; sonde : « boutons visibles : ✕ » sur ordinateur et iPhone). Une impasse sans un mot d'explication. Correction : ne pas proposer « ＋ Nouveau client » sans l'un des deux gestes, ou dire « Ton rôle ne permet de créer ni intervention ni devis : demande à Marc. »."
+  },
+  {
+   "titre": "Pendant une recherche en « Par mois » ou « Par semaine », deux rangements ont l'air choisis en même temps",
+   "gravite": "détail",
+   "etapes": "Clients › Par mois › taper « durand » dans la recherche. Idem « Par semaine ».",
+   "constat": "« Tous les clients » ET « Par mois » sont enfoncés (aria-pressed vrai sur les deux ; captures liste-mois-recherche-mac.png, liste-mois-recherche-iphone.png). Rejoué ordinateur, Windows, iPad et iPhone jour/nuit : 2 ✗ à chaque passage. Défaut d'avant, non causé par les corrections (vueClients : aria-pressed = rangClients===k || (chercheClient && k==='tous')). Correction : pendant une recherche, ne marquer que « Tous les clients »."
+  },
+  {
+   "titre": "Le refus de doublon de nom (clients-06) laisse passer « Restaurant  Le Vieux Port » avec deux espaces",
+   "gravite": "détail",
+   "etapes": "Clients › Mme Roux › Infos › Nom : « Restaurant  Le Vieux Port » (deux espaces entre Restaurant et Le) › Enregistrer.",
+   "constat": "« Fiche de Restaurant Le Vieux Port enregistrée » : deux clients au même nom à l'affichage. Les variantes de casse, d'accent et de tiret sont refusées (« hôtel DE la plage », « HOTEL de la PLAGE », « restaurant le vieux-port »). Cause : clientEnreg compare sansAccent() sans replier les espaces multiples (cfDoublonDe, lui, les replie). Rejoué ordinateur et iPhone. Correction : replier les espaces dans la comparaison."
+  },
+  {
+   "titre": "Renommer un client ne renomme pas les titres de ses tâches",
+   "gravite": "détail",
+   "etapes": "Renommer Mme Roux (casse 2) puis ouvrir Accueil ou Tâches.",
+   "constat": "« Planifier le dépannage climatisation de Mme Roux » reste écrit avec l'ancien nom (titre de tâche écrit en dur, lien.cli = mr) ; la passe sur les 36 vues le retrouve sur 9 d'entre elles (Accueil, Tâches, et les vues qui retombent sur l'Accueil). Le nom du client vit dans CLIENTS pour tout le reste (liste, devis, factures, interventions, atelier : relus et justes). Correction : à l'enregistrement du nom, remplacer l'ancien nom dans les titres des tâches liées à ce client."
+  },
+  {
+   "titre": "« Annuler » (Ctrl/Cmd + Z) après « nouveau client + intervention » retire l'intervention mais laisse le client",
+   "gravite": "détail",
+   "etapes": "Clients › ＋ Nouveau client › Avec une intervention › remplir › Plus tard › Créer l'intervention. Puis Ctrl/Cmd + Z.",
+   "constat": "Le message dit « Annulé : retour à l'état d'avant » ; l'intervention disparaît, le client créé en même temps reste dans la liste, sans historique ni passage. Rejoué ordinateur et iPhone. Correction : la pile d'annulation emporte aussi le client créé, ou le message le dit."
+  },
+  {
+   "titre": "« aucun résultat » renvoie vers un bouton « ＋ Nouveau client » que la personne n'a pas",
+   "gravite": "détail",
+   "etapes": "Se connecter en Julie sans la case « créer un client » › Clients › chercher « zzzz ».",
+   "constat": "« Vérifie l'orthographe, ou touche « ＋ Nouveau client » pour l'ajouter » (phrase ajoutée par clients-02) alors que le bouton est masqué et que le bandeau dit « Tu peux regarder cet écran, pas le modifier » (capture droits-sans-creer-mac.png). Rejoué ordinateur et iPhone. Correction : ne dire cette moitié de phrase que si le bouton existe."
+  },
+  {
+   "titre": "Suggestions d'adresse : trois propositions sur cinq font 42 px, sous le plancher de 44 px du doigt",
+   "gravite": "détail",
+   "etapes": "Clients › ＋ Nouveau client › Avec une intervention › Adresse : « rue », sur iPhone, iPad ou Android.",
+   "constat": "Hauteurs 44, 44, 42, 42, 42 (iPhone jour et nuit, Android nuit) ; 42 sur les cinq à l'iPad ; tout bon à 320 px (propositions sur deux lignes). Le CSS fixe min-height:42px sur .adr-sug button. Correction : 44 px."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "clients-liste.js (iPhone)",
+   "resultat": "54 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-corriges.js (ordinateur ; iPhone)",
+   "resultat": "23 ✓ · 0 ✗ ; 23 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-creer.js (ordinateur ; iPhone)",
+   "resultat": "34 ✓ · 1 ✗ ; 36 ✓ · 1 ✗ (le ✗ est clients-04, soumis à Justin)"
+  },
+  {
+   "fichier": "clients-fiche.js (ordinateur ; iPhone)",
+   "resultat": "107 ✓ · 0 ✗ ; 107 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-gestes.js (ordinateur ; iPhone)",
+   "resultat": "29 ✓ · 0 ✗ ; 29 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-modifier.js (ordinateur ; iPhone)",
+   "resultat": "19 ✓ · 2 ✗ ; 21 ✓ · 2 ✗ (les ✗ sont clients-12 et clients-17, soumis à Justin)"
+  },
+  {
+   "fichier": "clients-roles.js (ordinateur ; iPhone)",
+   "resultat": "23 ✓ · 0 ✗ ; 23 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-croise.js (ordinateur)",
+   "resultat": "11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-clavier.js (Windows)",
+   "resultat": "8 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "clients-balayage.js : liste (ordinateur 13 gestes, iPhone 15) ; fiche du Vieux Port : Infos (27 / 29 gestes), Contrats (20), Appareils (19), Historique (iPhone 24)",
+   "resultat": "0 erreur JavaScript, tous les gestes touchés, aucun sans nom, aucune cible sous 44 px sur iPhone ; les « RIEN » sont Appeler / E-mail (liens tel: et mailto:), les champs de saisie, la recherche, et « ＋ Nouvelle intervention » dont la fenêtre n'est pas lue par ce relevé (ouverte et jouée par clients-recontrole-parcours.js)"
+  },
+  {
+   "fichier": "clients-recontrole-liste.js (ordinateur, Windows, iPad nuit, iPhone jour et nuit)",
+   "resultat": "42 ✓ · 2 ✗ à 44 ✓ · 2 ✗ selon le profil ; les 2 ✗ = casse 5 (deux rangements enfoncés)"
+  },
+  {
+   "fichier": "clients-recontrole-fiche.js (ordinateur, iPhone nuit)",
+   "resultat": "27 ✓ · 4 ✗ ; les 4 ✗ = casses 2, 6, 7 (+ le doublon de nom)"
+  },
+  {
+   "fichier": "clients-recontrole-creations.js (ordinateur, iPhone)",
+   "resultat": "10 ✓ · 4 ✗ ; les 4 ✗ = casses 3 et 8"
+  },
+  {
+   "fichier": "clients-recontrole-parcours.js (ordinateur ; iPhone jour ; iPhone nuit)",
+   "resultat": "28 ✓ · 6 ✗ ; 30 ✓ · 6 ✗ ; 30 ✓ · 6 ✗ — les 6 ✗ = casse 1"
+  },
+  {
+   "fichier": "clients-recontrole-petits.js (ordinateur, iPhone jour et nuit, iPad, Android nuit, 320 px)",
+   "resultat": "16 ✓ · 0 ✗ ; 20 ✓ · 1 ✗ ; 20 ✓ · 1 ✗ ; 20 ✓ · 1 ✗ ; 20 ✓ · 1 ✗ ; 21 ✓ · 0 ✗ — le ✗ est la casse 10 (42 px)"
+  },
+  {
+   "fichier": "clients-recontrole-droits.js (ordinateur, iPhone)",
+   "resultat": "2 ✓ · 2 ✗ ; les 2 ✗ = casses 4 et 9"
+  },
+  {
+   "fichier": "mutations-clients-recontrole.py (12 défauts remis sur une copie : M5, M7, M8, M9, M10, M11, M12, M13, M14, M15, M16, M17)",
+   "resultat": "12 sur 12 tombent sur le contrôle qui les garde (M11 une fois le motif de la contre-épreuve corrigé : mon premier lancement visait « 260 signes » au lieu de « 260 signes sans espace » et ne trouvait aucune ligne)"
+  }
+ ],
+ "doutes": [
+  "Les cinq décisions déjà soumises restent ouvertes : clients-04 (exiger une adresse et un téléphone ou un e-mail pour un client créé avec une intervention ?), clients-11 (ajouter / modifier / retirer un appareil dans la fiche ?), clients-12 (refuser ou seulement prévenir quand téléphone ET e-mail sont vidés ?), clients-15 (avertir avant de perdre une saisie non enregistrée ?), clients-17 (retirer la case « supprimer un client » ou ajouter « Archiver ce client » ?).",
+  "Quel format de téléphone voulez-vous garder ? Le formulaire conserve ce qu'on tape (« +33 6 … » reste « +33 6 … »). Le plus simple pour la recherche, les doublons et l'affichage : tout ramener à « 06 12 34 56 78 » à l'enregistrement, et ne garder « +33… » que pour les numéros étrangers.",
+  "Un client créé avec une intervention puis annulé (Ctrl/Cmd + Z) : faut-il qu'il disparaisse aussi, ou le garder comme une fiche vide ?",
+  "Qui peut « créer un client » sans pouvoir créer ni intervention ni devis ? Si c'est voulu (un rôle de simple saisie), il faut un troisième chemin pour créer le client seul ; sinon la case « créer un client » devrait supposer l'une des deux autres.",
+  "Non vérifié par l'interface : les quatre créations de client depuis la Boîte mail (« C'est un client », rendez-vous, etc.) : lues dans le code, simulées, pas jouées sur un vrai courriel ; et la fenêtre « Composer un devis » : l'arrivée du client est simulée par le message de l'atelier (opdClientRecu), pas jouée dans le cadre."
+ ]
+}

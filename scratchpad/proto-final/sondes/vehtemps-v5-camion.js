@@ -2,7 +2,7 @@
 // A · la structure : surtitre « Renault Trafic L2H1 · GH-482-KL », une phrase d'état, la carte « Le camion » (trois boutons aux mots exacts, sans émoji, 44 px), posée AVANT la liste de ce qui manque,
 //     plus de « Messages du bureau » en double ni de ligne « Ton camion est au garage. » à part (le fait n'est écrit qu'UNE fois) ;
 // B · la phrase d'état suit le véhicule (en règle, contrôle dans 12 jours, en retard, souci, garage + remplaçant, hors service, papiers manquants) — la MÊME source que la liste du gérant ;
-// C · « Ma journée » : UNE ligne « Mon camion » (plus de carte « Mon véhicule », plus de doublon), elle dit l'état ET ce qu'il faut remettre à bord, et ouvre l'écran Camion ;
+// C · « Ma journée » : UNE ligne « Mon camion » (plus de carte « Mon véhicule », plus de doublon), elle dit l'état ET ce qui manque à bord, et ouvre l'écran Camion ;
 // D · les gestes comptés au toucher depuis la barre du bas : un plein (3, sans défiler), le compteur (3), un souci (4) — et ce qu'ils ÉCRIVENT ;
 // F · les autres techniciens (Karim, Tom, Léa) : leur camion à eux ;
 // E · mise en page : aucun débordement latéral, cibles ≥ 44 px, plein visible sans défiler sur 390 × 844, valeurs longues ; zéro erreur JavaScript.
@@ -64,7 +64,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       const c = await ouvrirSm(profil, nuit); await L.aller(c.p, 'majournee');
       const l = await ev(c, () => ({ n:document.querySelectorAll('#contenu .vh-ligne-cam').length, tous:document.querySelectorAll('#contenu [data-go="moncamion"]').length, ancien:!!document.querySelector('.vx-cam'), mv:/Mon véhicule/.test(document.getElementById('contenu').textContent), txt:((document.querySelector('.vh-ligne-cam') || {}).textContent || '').replace(/\s+/g, ' ').trim(), bxl:!!document.querySelector('.bxl-jour'), h:Math.round((document.querySelector('.vh-ligne-cam') || { getBoundingClientRect:() => ({ height:0 }) }).getBoundingClientRect().height) }));
       v(nom + ' · Ma journée : UNE ligne « Mon camion » (pas deux raccourcis, pas de carte « Mon véhicule »)', l.n === 1 && l.tous === 1 && !l.ancien && !l.mv && !l.bxl, l);
-      v(nom + ' · …elle dit l\'état et ce qu\'il faut remettre à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles à remettre à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= (c.largeur >= 390 ? 100 : 120), l);   // 360 et 320 px : le texte passe sur trois lignes à côté de la pastille, jamais une carte de 300 px
+      v(nom + ' · …elle dit l\'état et ce qui manque à bord, en une ligne de la largeur de l\'écran (' + l.h + ' px)', /^Mon camion\s*3 articles manquent à bord\s*Papiers et entretien : en règle\s*›?$/.test(l.txt) && l.h <= (c.largeur >= 390 ? 100 : 120), l);   // 360 et 320 px : le texte passe sur trois lignes à côté de la pastille, jamais une carte de 300 px
       const cas = [
         ['contrôle dans 12 jours', () => { vehDe('veh1').ct = jour(12); }, /Contrôle technique dans 12 jours/, /st-o/],
         ['en retard', () => { vehDe('veh1').ct = jour(-3); }, /Contrôle technique en retard de 3 jours/, /st-r/],
@@ -73,7 +73,7 @@ const EMOJI = /\p{Extended_Pictographic}/u;
         ['hors service', () => { const x = vehDe('veh1'); x.statut = 'hs'; x.immo = null; }, /Ne roule plus/, /st-o/],
         ['retour en règle', () => { const x = vehDe('veh1'); x.statut = 'service'; }, /Papiers et entretien : en règle/, /st-o/]];
       for (const [lib, f, re, cl] of cas) { await refaire(c, f); const r = await ev(c, () => { const b = document.querySelector('.vh-ligne-cam'); return { t:b ? b.textContent.replace(/\s+/g, ' ').trim() : '', p:b ? b.querySelector('.st').className : '' }; }); v(nom + ' · la ligne de Ma journée : ' + lib, re.test(r.t) && cl.test(r.p), r); }
-      // sans rien à remettre à bord, la ligne le dit : « papiers et entretien : en règle » seul
+      // sans rien qui manque à bord, la ligne le dit : « papiers et entretien : en règle » seul
       await ev(c, () => { window.__lm = window.lieuManques; window.lieuManques = () => []; window.__att = MVTS_ATT.splice(0); vehDe('veh1').statut = 'service'; rendre(); }); await L.calme(c.p, 300);
       const z = await ev(c, () => { const b = document.querySelector('.vh-ligne-cam'); window.lieuManques = window.__lm; MVTS_ATT.push(...window.__att); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; });
       v(nom + ' · …et quand rien ne manque à bord : « Papiers et entretien : en règle » seul, sans deuxième ligne', /^Mon camion\s*Papiers et entretien : en règle\s*›?$/.test(z), z);

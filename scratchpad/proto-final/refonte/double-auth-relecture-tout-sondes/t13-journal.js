@@ -7,6 +7,6 @@ const D=require('/home/user/wt-soeur/scratchpad/proto-final/sondes/double-auth-c
  await D.confirmer; 
  await L.aller(c.p,'historique'); await c.p.waitForTimeout(900);
  await R.fermeTel(c); const b=await c.p.$('#contenu button:has-text("Sécurité"), #contenu [data-hf="securite"]'); if(b) await b.click(); await c.p.waitForTimeout(600);
- await R.cap(c,'journal-securite'); log((await R.txt(c,'#contenu')).slice(1100,2200));
+ await R.cap(c,'journal-securite'); log((await R.txt(c,'#contenu')).slice(900,1700));
  await L.fermer();
 })().catch(e=>{console.log('EXC',e);process.exit(1)});
