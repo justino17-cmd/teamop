@@ -102,7 +102,9 @@ const PROFILS = process.env.RAPIDE ? ['mac'] : ['mac', 'iphone'];   // RAPIDE=1 
   v('population : les pages sont lues', SRC('prototype-op-gestion.html').length > 1e6 && SRC('prototype-courrier.js').length > 3e5);
   v(`prototype-op-gestion.html : UNE seule fabrique de lien « download » (${comptes('prototype-op-gestion.html')})`, comptes('prototype-op-gestion.html') === 1);
   v(`prototype-courrier.js : UNE seule fabrique de lien « download » (${comptes('prototype-courrier.js')})`, comptes('prototype-courrier.js') === 1);
-  v(`prototype-comptabilite.html : aucun lien « download »`, comptes('prototype-comptabilite.html') === 0);
+  // la Comptabilité (cadre) a UNE fabrique, et elle n'est atteinte que HORS artefact (restes tour 1) : `dansArtefact()` la garde, par indexOf (temps linéaire)
+  { const t = SRC('prototype-comptabilite.html').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' '), g = t.indexOf('if (!dl && !dansArtefact())'), d = t.indexOf('.download', g < 0 ? 0 : g);
+    v(`prototype-comptabilite.html : UNE seule fabrique de lien « download » (${comptes('prototype-comptabilite.html')}), gardée par dansArtefact() (garde trouvée : ${g >= 0}, écart ${d - g})`, comptes('prototype-comptabilite.html') === 1 && g > 0 && d > g && d - g < 400); }
   { const c = await bac.ouvrir({ profil: 'mac', qui: 'marc' }, {}); await A.calmer(c.p);
     // le CSV du coût des véhicules et celui des frais d'un véhicule, par leurs vraies fonctions
     await bac.zero(c); await c.p.evaluate(() => vhCsvFlotte()); await c.p.waitForTimeout(500); let e = await bac.etat(c);

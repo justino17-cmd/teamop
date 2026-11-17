@@ -58,7 +58,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   const rangee = () => p.evaluate(() => [...document.querySelectorAll('#contenu .opd-l')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
   await L.toucher(c, '.seg [data-dvf="tous"]');
   let R = await rangee();
-  v('Tous : le devis composé est dans « Composés dans l\'atelier » (1 ligne de plus)', R.length === avant.liste + 1, R);
+  v('Tous : le devis composé est dans « Devis composés » (1 ligne de plus)', R.length === avant.liste + 1, R);
   const ligne = R.find(t => /D-2026-0\d\d/.test(t)) || '';
   v('la ligne dit numéro, client, objet (sans le client répété), date, TTC et état', /D-2026-042/.test(ligne) && /Hôtel de la Plage/.test(ligne) && /Remplacement de deux anodes/.test(ligne) && !/ — Hôtel/.test(ligne) && /préparé le 31\/10/.test(ligne) && L.cents(await p.locator('#contenu .opd-l .dv-m b').first().textContent()) === attendu && /À envoyer/.test(ligne), ligne);   // mêmes mots que les autres devis (tout-11)
   const k1 = await p.evaluate(() => [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => ({ b: k.querySelector('b').textContent, s: k.querySelector('span').textContent })));
@@ -99,7 +99,7 @@ const nb = t => parseInt(String(t).replace(/\s/g, '').match(/^\d+/)[0], 10);
   // ── rechargement : la liste est là AU PREMIER RENDU, avant toute réponse de l'atelier ──
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1200);
   await L.aller(p, 'devis'); await L.toucher(c, '.seg [data-dvf="tous"]');
-  const apres = await p.evaluate(() => ({ lignes: document.querySelectorAll('#contenu .opd-l').length, cadre: !!document.getElementById('opdz') }));
+  const apres = await p.evaluate(() => ({ lignes: document.querySelectorAll('#contenu .opd-l').length, cadre: (() => { const z = document.getElementById('opdz'); return !!z && !z.hidden; })() }));   // le cadre existe dès le démarrage (caché : bouton Retour, 17 novembre) — ce qui compte est qu'il ne soit pas OUVERT
   v('après rechargement : la ligne est là sans avoir ouvert l\'atelier (copie rangée côté hôte)', apres.lignes === 1 && apres.cadre === false, apres);
   const f4 = await A.ouvrirAtelier(c, 'devis', null); await f4.locator('[data-fen-x]').first().click(); await p.waitForTimeout(800);
   const apres2 = await p.evaluate(() => document.querySelectorAll('#contenu .opd-l').length);

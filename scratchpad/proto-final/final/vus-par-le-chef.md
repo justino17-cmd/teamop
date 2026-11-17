@@ -31,13 +31,13 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       « 1 compte verrouillé : Léa Roux. » (Équipe, rouge) : de jour sur Mac, la teinte posée sur le verre donne un dégradé
       gris-brun / gris-rose qui paraît terne à côté des cartes blanches. À regarder au pixel (jour et nuit, Mac et iPhone) et à
       éclaircir si le fond réel est bien grisâtre ; ne pas toucher au texte ni au bouton.
-- [ ] **Mon camion et « Ma journée » de la technicienne (materiel, vehtemps, technicien)** — iPhone et Mac, 17/11 : sous le
+- [x] (restes technicien 1 : `VH_EN_REGLE`, « Papiers et entretien : en règle » dans l'en-tête de Mon camion et la ligne de Ma journée, les pièces d'abord quand il en manque ; vehtemps-v5 39 ✓ · 0 ✗) **Mon camion et « Ma journée » de la technicienne (materiel, vehtemps, technicien)** — iPhone et Mac, 17/11 : sous le
       titre « Mon camion », la phrase verte « Tout est en règle. » est posée juste au-dessus de « Il manque à bord · 3 » ; et
       la carte de « Ma journée » dit « Mon camion — Tout est en règle — 3 articles à remettre à bord ». Les deux se
       contredisent pour quelqu'un qui lit vite : « en règle » parle des PAPIERS et de l'entretien du véhicule, pas des pièces.
       Dire ce qui est en règle (« Papiers et entretien : en règle ») ou, s'il manque des pièces, commencer par elles
       (« 3 articles à remettre à bord · papiers en règle »). Une seule fonction pour les deux endroits.
-- [ ] **Décisions du chef du 17/11, 8 h 55, à APPLIQUER (compositeur, devis-atelier, contrats, mots)** — (h) le mot « atelier »
+- [ ] (restes contrats, tour 1 : (h) fait sur la page principale et (i) fait pour les contrats, rapides et composés ; (j) numéro de devis et les autres voies : à finir par elles) **Décisions du chef du 17/11, 8 h 55, à APPLIQUER (compositeur, devis-atelier, contrats, mots)** — (h) le mot « atelier »
       ne désigne que le LIEU (le dépôt, dans Matériel). À l'écran, l'endroit où l'on compose un devis ou un contrat ne s'appelle
       plus « l'atelier » : « Composés dans l'atelier » → « Devis composés » ; « Ouverture de l'atelier… » → « Ouverture du
       devis… » (ou « du contrat… ») ; « Composer un devis ouvre l'atelier : … » → « Composer un devis ouvre ton devis en
@@ -45,10 +45,10 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       TOUS les textes d'écran (page principale, `atelier/page.source`, guide, visite parlée, aides, recherche) sans toucher aux
       phrases du dépôt (« J'ai pris à l'atelier »). (i) Un contrat affiche son prix HT et TTC. (j) Supprimer un brouillon de
       devis ne rend pas son numéro.
-- [ ] **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
+- [x] (restes planning, tour 2 : appliqué et joué au navigateur sur 7 profils — `final/restes-planning-tour2.json`, sonde `campagne/sondes/restes-planning-2.js` S2 ; « à planifier » et « en retard » restent ceux de toute l'équipe, dit sur l'écran) **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
       personnes affichées (Sophie masquée : plus « 9 interventions · 11 h » pour 6 cartes) et le disent quand un filtre est
       posé. Rien d'autre ne bouge sur cet écran validé.
-- [ ] **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
+- [x] (restes contrats, tour 1 : tout appliqué et joué au navigateur — `final/restes-contrats-tour1.json`, sonde `campagne/sondes/restes-contrats-1.js`) **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
       Justin » sont TRANCHÉS (son mandat : « fais tout ce qu'il y a à faire, il faut que tout fonctionne »), sauf mention :
       · **contrats-06** : le PDF que le client lit et signe ne porte plus « Modèle de démonstration, à faire relire avant tout
         usage » : son pied = les coordonnées de l'entreprise. L'avertissement reste, mais côté ENTREPRISE seulement : sous la
@@ -80,7 +80,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       blanc ; de nuit les deux sont deux pilules bleu nuit presque pareilles (`--fill:#2c3d63` contre `--surf2` + filet).
       Recommandation : de nuit, le principal en clair (`--fill:#e9eef8; --on-fill:#0b1426`), le miroir exact du jour — une
       ligne de jetons, à essayer sur tous les écrans avant d'adopter (`--fill` sert aussi ailleurs : le recenser).
-- [ ] **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
+- [x] (artefact, restes tour 1 : commits efb2eed et 1e42f89 ; sonde artefact-voir-app.js 125 ✓ · 0 ✗, 17 mutations sur 17 ; les deux casses du recontrôle corrigées aussi ; voir `final/restes-artefact-tour1.json`) **Dans l'artefact, le mode application n'est pas atteignable — À CONSTRUIRE (artefact)** — décision du chef du 17/11,
       9 h 15. L'artefact s'ouvre en mode REVUE (la bande « Tester en tant que ») : c'est voulu, Justin y passe d'un rôle à
       l'autre d'un toucher. Mais tout ce qui n'existe qu'en mode APPLICATION (écran de connexion, OP Security, guide à la
       première connexion, aucun échafaudage) lui est invisible : `?app=1` ne passe pas dans un artefact, seul un `#nom` passe.
@@ -106,7 +106,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       chaîne ; un fichier binaire (PDF, image) se REFAIT avec le constructeur du parent avant l'appel —
       `new window.parent.Blob([await blob.arrayBuffer()], { type })`. Sonde : dans le bac, un pont qui REFUSE tout ce qui
       n'est pas `instanceof` de sa propre fenêtre ; les trois téléchargements des cadres passent quand même.
-- [ ] **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
+- [x] (restes technicien 1 : technicien-02, 05, 06 et les quatre casses corrigés, voir final/restes-technicien-tour1.json ; sondes restes-technicien-1.js et -2.js, mutations M1 à M7 qui tombent) **Technicien — décisions du chef du 17/11, 9 h 30, à APPLIQUER (technicien)** : les deux points « à soumettre » de la
       campagne sont tranchés, parce qu'ils ne touchent pas un dessin validé : ce sont les cartes AJOUTÉES par les refontes
       (pointage, Mon camion) qui ont poussé les interventions sous le pli.
       · **technicien-02** : sur « Ma journée », la première intervention du jour doit se voir SANS défiler sur un iPhone
@@ -125,3 +125,53 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         un péage ou des gants (le titre du message reprend ce qui est tapé, la plaque seulement pour un plein) ; la fenêtre
         « Il manque encore des choses » sans grands vides. technicien-06 (« Prévenir le bureau » grisé sans raison, Mon
         camion) : à corriger aussi s'il se reproduit encore sur la tête.
+- [ ] **Comptabilité, ventes — décisions du chef du 17/11, 9 h 50, à APPLIQUER (compta-ventes)** : Justin a dit « Comptabilité,
+      ça c'est bon » : on ne redessine pas l'écran. Mais ce qui est FAUX, trompeur ou d'échafaudage se corrige :
+      · **11** : sur la fiche d'une facture ET sur son PDF, trois colonnes « Prix unitaire HT · Qté · Total HT » (une seule
+        fonction pour le total de ligne, celle du total de la facture). « Prix HT » qui veut dire tantôt l'unité, tantôt la
+        ligne, n'est pas acceptable sur une facture.
+      · **15** : au téléphone, les onglets d'un espace (Ventes : … « Comptes clients », « Contrats » ; Trésorerie : …
+        « Paiement en ligne ») ne défilent plus de côté sans indice : ils tiennent sur l'écran (deux lignes s'il le faut).
+        Règle du dépôt : une destination qu'on ne voit pas n'existe pas.
+      · **16** et **17** : au téléphone seulement, gagner de la hauteur SANS redessiner — la phrase d'explication sur une
+        ligne (le reste derrière « Comment ça marche ? »), et sur la fiche d'une facture : plus de fil d'Ariane (la pastille
+        Retour suffit), l'encadré « Il manque sur cette facture… » sur une ligne avec son lien, « Voir dans la Comptabilité »
+        dans la rangée d'actions. Attendu : le titre « FAC-… » dans le premier écran d'un iPhone.
+      · **19** : NE RIEN CHANGER (la porte « Comptabilité » ouvre la fenêtre de la comptabilité : validé). Reste « à
+        soumettre » : le nom « OP COMPTABLE » de la fenêtre, différent du mot du menu.
+      · **20** : en mode application, « Paiement en ligne » ne montre plus son harnais d'essai (bandeau « PROTOTYPE »,
+        « Tests 0 / 25 », « + 1 jour », « + 1 semaine », « Jusqu'au prochain événement », « Recommencer », « Nouvelle facture
+        de test », « dans la vraie version… »). Et il montre les factures d'OP GESTION (même message que la Comptabilité,
+        `opc_ventes` ; un paiement revient par `opc_paiement`). Si ce branchement ne peut pas être fini PROPREMENT (sondes
+        vertes, chiffres égaux au centime avec Ventes), l'onglet dit clairement « Exemples » et on le note « à soumettre ».
+      · **22** : au téléphone, un seul bouton de menu par barre visible : le ≡ de la fenêtre de la comptabilité s'efface
+        (sa barre du bas « Plus » porte déjà son menu) ; l'heure « 05:55 » est libellée (« Relevé à 05:55 ») ou retirée.
+      · Recontrôle (`campagne/compta-ventes-recontrole.json`) : une facture annulée par un avoir FERME ses tâches de relance ;
+        une facture encaissée en partie puis annulée dit « 500,00 € déjà reçus : à rembourser » et crée la tâche
+        « Rembourser 500,00 € à <client> » (une ligne à l'Historique) ; une facture payée puis annulée se lit « Payée · avoir
+        AV-… » dans la fenêtre ; une facture faite à la main prend la TVA par la MÊME fonction que le devis (un particulier
+        n'est jamais étiqueté « client professionnel ») ; « Plus bas » et le menu de la fenêtre à 44 px au doigt, iPad compris.
+- [x] (chef de chantier, 17/11 à 10 h 30, corrigé par lui-même) **Les treize polices du compositeur avaient disparu (securite, compositeur)**
+      — la correction S18 de l'audit de sécurité avait retiré la feuille de polices Google de `atelier/page.source` : les treize
+      polices proposées retombaient sur deux polices de l'appareil, donc choisir une police ne changeait plus rien, sur un écran
+      validé par Justin. DÉCISION : dans le prototype la feuille RESTE (remise dans `page.source`, page refabriquée), et la
+      politique de contenu de CETTE page admet ses deux hôtes (`fabriquer.sh` : fonts.googleapis.com pour la feuille,
+      fonts.gstatic.com pour les fichiers). La règle de S18 vaut pour la VRAIE application : les polices s'y serviront depuis
+      notre serveur (à redire à Justin dans la liste des doutes). La garde `sondes/securite-statique.js` tient l'état décidé
+      (49 ✓ · 0 ✗ ; trois mutations tombent : un troisième hôte, les polices dans une autre page, deux feuilles).
+      ⛔ Ne pas la re-retirer : le recontrôle de la sécurité doit lire cette ligne.
+- [ ] **Interventions — décisions du chef du 17/11, 10 h 35, à APPLIQUER (interventions)** :
+      · **16** : à la fin d'une intervention, une case générique pour TOUS les clients : « Un autre passage est nécessaire
+        (le bureau prépare le devis) » ; « Entretien annuel » n'est cochée d'office que pour un Entretien, une Mise en service
+        ou une Installation — jamais après un dépannage ni une garantie (sinon chaque dépannage crée un entretien dans un an).
+      · **Garantie** : avant comme après « Terminer », la fiche (technicienne et bureau) dit « Garantie : rien à encaisser,
+        aucune facture » à la place du bloc « Paiement sur place » ; plus de « Payé en totalité », d'« Acompte versé » ni de
+        « la facture lui sera envoyée ».
+      · **05** : la note « ton compte ne peut pas créer, demande à Marc » ne s'écrit sur AUCUN écran de terrain du technicien
+        (Ma journée, sa fiche d'intervention) ; la campagne Technicien l'a retirée de quatre écrans : vérifier la fiche.
+      · **iPad** : le filtre « Toutes » de la liste se voit sans défiler (libellés plus courts ou retour à la ligne, comme au
+        téléphone) ; règle du dépôt : ce qu'on ne voit pas n'existe pas.
+      · Détails du recontrôle : « Voir dans Tâches › » et la case « Seulement les techniciens du secteur » à 44 px au doigt ;
+        au téléphone « Date à fixer » en gras à la place du tiret ; un relevé n'accepte qu'un nombre (avec virgule) ; un
+        téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
+        forfait de création.

@@ -8,6 +8,8 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   const c = await L.ouvrir({ profil:'iphone', qui:'sm' }), p = c.p, v = L.v;
   const R = (f, a) => p.evaluate(f, a), T = (s, o) => L.toucher(c, s, o), txt = s => p.evaluate(s2 => { const e = document.querySelector(s2); return e ? (e.textContent || '').replace(/[\s\u00a0\u202f]+/g, ' ').trim() : null; }, s);   // l'écran met une espace insécable avant « : » et « ? » : on les lit comme des espaces
   const PH = () => p.evaluate(photo());
+  // 17 novembre (restes technicien 1) : le rappel du matin ne vit plus que sur Ma journée ; la pastille de Mon camion se mesure donc avec un VRAI message du bureau
+  await R(() => { NOTIFS.push({ k: rlQui(), txt: 'Marc a validé ta demande de matériel.', d: AUJ, h: '09:50' }); });
   await L.aller(p, 'moncamion');
   // ── 1. la structure (l'essentiel, sans défiler) ──
   const S = await R(() => { const q = s => document.querySelector(s), vis = e => !!e && e.offsetParent !== null; const sig = [...document.querySelectorAll('#contenu button, #contenu input')].filter(vis);
@@ -21,7 +23,7 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
       avant:manque ? sig.filter(e => e.getBoundingClientRect().top < manque.querySelector('.mc-l').getBoundingClientRect().top).length : 99,
       bordPlie:q('.mc-bord') && q('.mc-bord').getAttribute('aria-expanded'), envois:[...document.querySelectorAll('#contenu .mc-liste')].filter(e => /Mes envois/.test(e.textContent)).length, etats:[...document.querySelectorAll('.mc-l .st')].map(e => e.textContent.trim()) }; });
   // 17 novembre : le chantier Véhicules dit l'ÉTAT du camion sous le titre (« Tout est en règle. », « Ton camion est au garage… ») et le véhicule au-dessus (« RENAULT TRAFIC · plaque »)
-  v('titre « Mon camion », une seule phrase d\'état du véhicule dessous (« Tout est en règle. »)', S.h1 === 'Mon camion' && /^(Tout est en règle\.|Ton camion|Ce camion|Ton souci|.* est .*Le bureau s’en occupe\.)/.test(S.sous), S);
+  v('titre « Mon camion », une seule phrase d\'état du véhicule dessous (« Papiers et entretien : en règle. »)', S.h1 === 'Mon camion' && /^(Papiers et entretien\s: en règle\.|Ton camion|Ce camion|Ton souci|.* est .*Le bureau s’en occupe\.)/.test(S.sous), S);
   v('la longue phrase d’avant a disparu', !S.ancienne);
   v('la carte « Messages du bureau » n’est plus un bloc : une pastille « 1 message du bureau › »', !S.carteMsg && /^1 message du bureau ›$/.test(S.msg || ''), [S.carteMsg, S.msg]);
   v('champ « Chercher une pièce » présent (data-vis camion-cherche)', S.cherche);

@@ -1,0 +1,130 @@
+[
+ {
+  "nom": "demandes",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-demandes-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-demande-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-precision",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-precision-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-demande-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-budget",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-budget-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-aide",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-aide-petit-nuit.png"
+ },
+ {
+  "nom": "notes",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-notes-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-fiche-note",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-fiche-note-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-sans-ticket",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-sans-ticket-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-refus-note",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-refus-note-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-tout-valider",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tout-valider-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-tarif-km",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-tarif-km-petit-nuit.png"
+ },
+ {
+  "nom": "mes-frais",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-mes-frais-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-note-de-frais",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-note-de-frais-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-ma-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-ma-demande-petit-nuit.png"
+ },
+ {
+  "nom": "fenetre-modifier-demande",
+  "deborde": 0,
+  "petits": [],
+  "champs": [],
+  "ecrases": [],
+  "capture": "/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-achats/mep-fenetre-modifier-demande-petit-nuit.png"
+ }
+]

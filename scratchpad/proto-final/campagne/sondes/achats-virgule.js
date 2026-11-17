@@ -10,7 +10,7 @@ const { L, ouvrirAchats, toast, panneau } = require('./achats-outils.js'), v = L
     await p.click('#ax-n', { clickCount: 3 }); await p.keyboard.press('Control+A'); await p.keyboard.type(t);
     const val = await p.inputValue('#ax-n');
     console.log('  tapé « ' + t + ' » → le champ contient « ' + val + ' »');
-    v('V1 « ' + t + ' » tapé avec une virgule n’est pas lu comme ' + t.replace(',', ''), val !== t.replace(',', ''), val);
+    v('achats-01 « ' + t + ' » tapé avec une virgule n’est pas lu comme ' + t.replace(',', ''), val !== t.replace(',', ''), val);
   }
-  await L.fin(c); L.bilan() ; await L.fermer(); process.exit(0);
+  const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
