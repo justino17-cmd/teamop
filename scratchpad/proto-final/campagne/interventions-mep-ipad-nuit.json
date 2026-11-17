@@ -209,9 +209,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    " 699×40"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -457,7 +455,7 @@
   },
   "bas": {
    "barreHaut": 1180,
-   "dernierBas": 355,
+   "dernierBas": 287,
    "fixes": []
   }
  },

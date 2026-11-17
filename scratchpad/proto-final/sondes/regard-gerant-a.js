@@ -123,5 +123,23 @@ const RVB = t => { const m = String(t).match(/[\d.]+/g); if (!m) return null; co
     v('tâches iphone : le menu « Équipe » est trouvé (population)', !!r, r);
     if (r) { v('tâches iphone : le mot tient à côté de la flèche native (≈ 14 px dans la boîte) avec 4 px d\'air', r.texte + 18 <= r.dispo, r); }
     await L.fin(c); }
+  // 10. ABSENCES, calendrier : le nom du mois colle à droite de la colonne des noms (250 px). À 208 px il passait 42 px SOUS elle et « Octobre 2026 » se lisait « re 2026 ».
+  if (sec('10')) { for (const profil of ['ipad', 'mac', 'windows', 'iphone', 'android']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await L.aller(c.p, 'absences'); await c.p.evaluate(() => document.querySelector('[data-aonglet=calendrier]').click()); await L.calme(c.p, 900);
+    const r = await c.p.evaluate(() => { const nn = [...document.querySelectorAll('.ac-nom')].find(e => e.offsetParent), ems = [...document.querySelectorAll('.ac-mo em')].filter(e => e.offsetParent); if (!nn || !ems.length) return null; const bord = nn.getBoundingClientRect().right;
+      return { bord: Math.round(bord), mois: ems.map(e => ({ t: e.textContent, gauche: Math.round(e.getBoundingClientRect().left) })) }; });
+    v(`absences calendrier ${profil} : la colonne des noms et les mois sont trouvés (population)`, !!r && r.mois.length >= 1, r);
+    if (r) for (const m of r.mois) v(`absences calendrier ${profil} : « ${m.t} » commence à droite de la colonne des noms (${m.gauche} ≥ ${r.bord})`, m.gauche >= r.bord - 1, r);
+    await L.fin(c); } }
+  // 11. INTERVENTIONS, liste vide : « Rien ici. » seul laissait un débutant sans piste. La liste dit pourquoi (par filtre) et, quand on peut en créer une, propose le geste.
+  if (sec('11')) { for (const profil of ['mac', 'iphone']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await L.aller(c.p, 'interventions'); await c.p.evaluate(() => { INTS.length = 0; rendre(); }); await L.calme(c.p, 500);
+    for (const [f, creer] of [['auj', true], ['avenir', true], ['plan', false], ['fait', false], ['tout', true]]) {
+      await c.p.evaluate(x => document.querySelector(`[data-filtreint=${x}]`).click(), f); await L.calme(c.p, 400);
+      const r = await c.p.evaluate(() => { const e = [...document.querySelectorAll('#contenu .t-vide')].find(x => x.offsetParent); return e ? { titre: (e.querySelector('b') || {}).textContent, aide: (e.querySelector('span') || {}).textContent, bouton: !!e.querySelector('[data-creer]'), brut: /Rien ici\./.test(document.getElementById('contenu').textContent) } : null; });
+      v(`interventions ${profil} vide « ${f} » : un état vide complet est affiché (population)`, !!r && !!r.titre && !!r.aide, r);
+      if (r) { v(`interventions ${profil} vide « ${f} » : plus de « Rien ici. » nu`, !r.brut, r); v(`interventions ${profil} vide « ${f} » : ${creer ? 'le geste « Nouvelle intervention » est proposé' : 'pas de bouton de création (rien à créer ici)'}`, r.bouton === creer, r); }
+    }
+    await L.fin(c); } }
   await L.fermer(); const ko = L.bilan(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
