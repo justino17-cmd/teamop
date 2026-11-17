@@ -44,8 +44,10 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 - **Matériel** : Stock · Fournisseurs, matériel & produits — DÉCIDÉ le 16 novembre (mandat de Justin, `refonte/MATERIEL.md` § 4) et
   appliqué par le lot Matériel : le bureau prépare les commandes, il voit donc le stock et les fournisseurs ; il n'a PAS
   « Dépôts et camions ». Les sondes du menu attendent ce groupe chez le bureau.
+- **Personnel** : Véhicules seul — ouvert au bureau par le lot Véhicules (VEHICULES-TEMPS § 11, sans réponse de Justin ; un groupe d'une seule ligne, seule exception à la règle).
 - Pied : Jour / Nuit / Auto · Nouveautés · Se déconnecter
 - Barre : Comptabilité · Devis · Clients · Tâches · Achats (5 onglets, pas 6 ; pas d'émoji dans un libellé)
+- ⛔ **17 novembre 2026, étape 5 de la voie entreprise : ce menu SE DÉDUIT des cases d'Équipe** (`droitVoit`, `ROUTE_DROIT`) — le Secrétariat a donc DIX lignes (les sept validées, Stock et Fournisseurs, Véhicules), le Responsable les vingt du gérant en lecture. Voir `refonte/MON-ENTREPRISE-ET-DROITS.md` § 8.
 - Au téléphone, le bureau ouvre sur la Comptabilité en plein écran : le bouton « Menu » (trois traits et le mot) y reste
   visible à côté de « ‹ OP GESTION », comme sur tous les écrans — DÉCIDÉ le 17 novembre (le menu était à deux gestes).
 - Le logo « OP GESTION » ramène à l'écran d'ouverture du rôle, pour tous les rôles.
@@ -98,7 +100,7 @@ Les clés (`accueil`, `boxes`, `achats`…) restent : favoris, barre personnalis
 ## NON appliqué — soumis à Justin (16 novembre, sans réponse à ce jour)
 1. Une ligne « Factures » au menu (porte vers Comptabilité › Factures) : contredit « une seule catégorie au menu » (7 novembre).
 2. Un écran « Mon entreprise » (fiche légale, logo, horaires, rendez-vous en ligne, boîtes mail) : écran neuf.
-3. Le menu de chaque personne déduit de ses cases « Voir » dans Équipe (responsable ≠ secrétariat) : aujourd'hui les deux ont le menu « bureau ».
+3. ✅ Le menu de chaque personne déduit de ses cases « Voir » dans Équipe (responsable ≠ secrétariat) : FAIT le 17 novembre 2026 (étape 5), et les cases Créer / Modifier / Supprimer agissent aussi.
 
 ## Constats de la lecture du code à vérifier pendant la campagne de tests (annoncés bloquants, non contre-vérifiés)
 - Un client créé à la main n'a pas de position : la carte des tournées le place au dépôt et Waze/Plans y envoient le technicien.
