@@ -104,6 +104,12 @@ une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à
   d'examen (§ 8 du kit, `kit/store/PUBLICATION.md`). ⛔ Tout cela touche `server/` et le site : la PRODUCTION. Rien ne se fait
   sans une phrase de Justin dans CETTE conversation ; `demo.teamop.fr` n'existe pas à ma connaissance. À lui dire à la fin, dans
   la liste des doutes : « l'autre conversation attend ces cinq points du serveur ; tu me dis si je les prépare, et quand ».
+- **Troisième message de la même conversation (17 novembre, 1 h 08)** — une DONNÉE : l'application du téléphone s'appelle
+  désormais **« OP Security »** (identifiant `fr.teamop.security` ; l'ancien nom « Team OP Authenticator » et
+  `fr.teamop.authenticator` ne servent plus) ; logo : un cadenas blanc marqué « OP », « SECURITY » dessous, fond bleu marine
+  (#3f74e0 vers #0d2463), version nuit sur fond noir ; fichiers dans `kit/mobile/resources/` du kit mis à jour. Rien ne change
+  côté serveur (routes `/api/authenticator/*`). → La voie `double-auth` de `voies.js` dit « OP Security » ; AVANT de la lancer,
+  rafraîchir la copie locale du kit (`/home/user/kit-2fa/`) par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
 
 **ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
 matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au
