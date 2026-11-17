@@ -7,18 +7,18 @@ champ `label` : `voie:N:nom` → l'étape N est celle qui a été interrompue, d
 `scriptPath: scratchpad/proto-final/workflows/voies.js`, avec les arguments de la ligne plus `depuis`.
 Relever la machine : `(setsid nohup /home/user/suivi-machine.sh >/dev/null 2>&1 &)`.
 
-État au 17 novembre, 10 h 21 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
+État au 17 novembre, 10 h 29 (heure de la machine ; +1 h en France) — vingt-deux voies (la charge suit les QUATRE navigateurs, pas le nombre de voies : 6 à 8 quand les quatre
 places sont prises, ce qui est le cas en continu à vingt-deux voies ; ne pas dépasser vingt-deux, et chercher une boucle d'attente
 sans pause — `ps -eo pcpu,args --sort=-pcpu | head` — si la charge dépasse 9) :
 
 | Voie | Arguments | Arbre | Dernier lancement (run) | Étape au dernier relevé (8 h 10) |
 |---|---|---|---|---|
-| materiel, relecture bureau | `{voie:"materiel", depuis:5, jusqua:5}` | /home/user/wt-c-materiel | wf_55c0b805-ea3 (tâche wa9qi3dra) | étape 6 sur 9, SEULE (lancée à 9 h 45) |
-| materiel, relecture technicien | `{voie:"materiel", depuis:6, jusqua:6, arbre:"/home/user/wt-restes"}` | /home/user/wt-restes | wf_3985ff31-51c (tâche wh56p34r4) | étape 7 sur 9, SEULE, côte à côte avec la précédente (lancée à 9 h 45). QUAND LES DEUX ONT RENDU : lancer `{voie:"materiel", depuis:7}` (corriger, recontrôler) dans /home/user/wt-c-materiel |
+| materiel, corriger puis recontrôler | `{voie:"materiel", depuis:7}` | /home/user/wt-c-materiel | wf_42285f3e-2fe (tâche wutru118r) | 8 sur 9 (corriger), lancée à 10 h 29 sur les 19 défauts de la relecture « bureau » (rendue à 10 h 27 : 11 gênants, 8 détails) ; la relecture « technicien » tourne encore à côté, le correcteur la prend dès qu'elle arrive |
+| materiel, relecture technicien | `{voie:"materiel", depuis:6, jusqua:6, arbre:"/home/user/wt-restes"}` | /home/user/wt-restes | wf_3985ff31-51c (tâche wh56p34r4) | étape 7 sur 9, SEULE (lancée à 9 h 45). Rien à lancer à sa fin : le correcteur lit son fichier |
 | vehtemps | `{voie:"vehtemps"}` | /home/user/wt-c-vehicules-temps | wf_2b1326f9-4dc (tâche wkzibxa6z) | 5 sur 9 (Mon camion véhicule, voisins, recette) |
 | guide | `{voie:"guide"}` | /home/user/wt-guide | wf_289bd7da-b70 (tâche w0u4m2s3r) | 1 sur 4 (lancée à 9 h 45, sans attendre la fin de l'étape 5 de vehtemps, en recette : le chemin le plus long) |
-| entreprise | `{voie:"entreprise", depuis:7}` | /home/user/wt-entreprise | wf_978c2840-ce4 (tâche w2pmu5xlg) | 8 sur 8 (recontrôler), lancée à 10 h 21 : l'étape 7 avait rendu ses 13 corrections à 6 h 35 puis l'agent rejouait toutes les sondes en boucle depuis 3 h 40, et tuait celles des autres par motif (arrêté par le chef) |
-| securite | `{voie:"securite"}` | /home/user/wt-securite | wf_c59af0fe-bf3 (tâche wx9juj4s7) | 7 sur 8 (corriger : 17 failles confirmées) |
+| entreprise | `{voie:"entreprise", depuis:7}` | /home/user/wt-entreprise | wf_78db34a7-62b (tâche wbfz3zapz) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée (ne rejoue plus les sondes de tous les lots) |
+| securite | `{voie:"securite", depuis:7}` | /home/user/wt-securite | wf_ddbf05bc-b79 (tâche wkrvtuozl) | 8 sur 8 (recontrôler), RELANCÉE à 10 h 29 avec la consigne allégée ; les 18 failles sont corrigées (`securite/corrections.json`) ; les polices du compositeur sont REMISES par décision du chef |
 | double-auth | `{voie:"double-auth"}` | /home/user/wt-double-auth | wf_f90564b0-275 (tâche w4dugueuh) | 3 sur 6 |
 | restes (artefact) | `{voie:"restes", noms:["artefact"], arbre:"/home/user/wt-artefact"}` | /home/user/wt-artefact | wf_23f6a788-f10 (tâche w4gmon24x) | 1 sur 4 (lancée à 9 h 15 : bouton « Voir comme l'application », fichiers nés dans un cadre, deux casses du recontrôle) |
 | retour | `{voie:"retour"}` | /home/user/wt-retour | wf_a81c7b71-04c (tâche wbja7hic2) | 1 sur 2 |
