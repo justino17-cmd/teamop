@@ -45,6 +45,12 @@ for f in clients-croise clients-corriges clients-roles clients-recontrole-droits
   fi
 done
 
+# Les restes du tour 1 (17 novembre) : les décisions du chef et les casses du recontrôle ; le gérant seul (la case « archiver un client » n'est pas au secrétariat) ; les créations par la Boîte mail et « Composer un devis ».
+lance "clients-restes PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/clients-restes.js"
+lance "clients-restes PROFIL=iphone QUI=marc NUIT=1" PROFIL=iphone QUI=marc NUIT=1 node "$S/clients-restes.js"
+lance "clients-restes-creations PROFIL=mac" PROFIL=mac node "$S/clients-restes-creations.js"
+if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/clients-restes.js"; done; for p in android petit; do lance "clients-restes PROFIL=$p QUI=marc NUIT=1" PROFIL=$p QUI=marc NUIT=1 node "$S/clients-restes.js"; done; fi
+
 # Le clavier n'existe que sur ordinateur : mac et windows.
 lance "clients-clavier PROFIL=mac" PROFIL=mac node "$S/clients-clavier.js"
 lance "clients-clavier PROFIL=windows" PROFIL=windows node "$S/clients-clavier.js"

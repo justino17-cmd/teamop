@@ -48,12 +48,12 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   // ── nom très long, HTML ──
   const LONG = 'Établissements Dupont-Lefebvre & Associés de la Grande Région Atlantique SARL — Division climatisation et chauffage';
   await infos('mr'); await champ('nom', LONG); t = await enreg(); const el = await entete();
-  v('nom de ' + LONG.length + ' signes : enregistré et affiché en entier (h1 = ' + (el && el.h1.length) + ' signes)', el && el.h1 === LONG, el);
+  v('nom de ' + LONG.length + ' signes : enregistré, coupé à 80 signes par la toilette des fiches, affiché sans glisser (h1 = ' + (el && el.h1.length) + ' signes)', el && el.h1.length <= 80 && LONG.startsWith(el.h1.trim()), el);   /* la toilette de toute fiche client (cliNet, sécurité) garde 80 signes au nom : un début EXACT, jamais un nom déformé */
   let d = await L.deborde(c); v('nom très long : la fiche ne glisse pas de côté', d.bouge === 0, d);
   await p.evaluate(() => window.scrollTo(0, 0)); await L.calme(p, 300); await L.capture(c, CAP + 'fiche-nom-long-' + ETQ + '.png');
   await L.aller(p, 'clients'); d = await L.deborde(c); v('nom très long : la liste ne glisse pas de côté', d.bouge === 0, d); await L.capture(c, CAP + 'liste-nom-long-' + ETQ + '.png');
   await infos('mr'); await champ('nom', '<b id="zzn">Gras</b> & "co"'); t = await enreg(); const h = await p.evaluate(() => ({ zz: !!document.getElementById('zzn'), h1: document.querySelector('#contenu h1').textContent }));
-  v('nom avec du HTML : affiché tel quel, rien n’est interprété (« ' + h.h1 + ' »)', !h.zz && /<b id="zzn">/.test(h.h1), h);
+  v('nom avec du HTML : rien n’est interprété, les chevrons sont retirés (« ' + h.h1 + ' »)', !h.zz && !/[<>]/.test(h.h1) && /Gras/.test(h.h1), h);   /* rien n'est interprété ET les chevrons sont retirés à l'entrée (cliNet) */
   await p.evaluate(() => { CLIENTS.mr.nom = 'Mme Roux'; });
   // ── adresse : la carte suit ──
   const g0 = await geo('mr'); console.log('  · Mme Roux au départ : ' + JSON.stringify(g0));

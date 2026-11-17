@@ -27,7 +27,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await champ('adr', '3 rue de Rochefort, 17300 Rochefort'); await champ('acces', 'Code du portail : 4567. Chien gentil.'); await enreg();
   v('modification valide : « Fiche de Mme Roux enregistrée. »', /Fiche de Mme Roux enregistrée/.test(await t()), await t());
   const apres = await p.evaluate(() => ({ h: (document.querySelector('.tete-client .gris') || {}).textContent, mail: (document.querySelector('.tete-client a[href^="mailto:"]') || {}).href, geo: CR_GEO.mr, sect: SECT_CLI.mr, c: CLIENTS.mr }));
-  v('l’en-tête de la fiche montre le nouveau téléphone et la nouvelle adresse', /06 55 44 33 99/.test(apres.h) && /Rochefort/.test(apres.h), apres.h);
+  v('l’en-tête de la fiche montre le nouveau téléphone et la nouvelle adresse', /06\s55\s44\s33\s99/.test(apres.h) && /Rochefort/.test(apres.h), apres.h);
   v('le bouton « E-mail » écrit à la nouvelle adresse', /roux\.lefevre@mail\.fr/.test(apres.mail), apres.mail);
   v('clients-07 : changer l’adresse de Mme Roux d’Aytré à Rochefort déplace aussi son point sur la carte des tournées (CR_GEO ' + JSON.stringify(apres.geo) + ', secteur ' + apres.sect + ')', !!apres.geo && Math.abs(apres.geo[0] - 45.9378) < 0.05, { geo: apres.geo, sect: apres.sect });
   await L.aller(p, 'clients'); await p.evaluate(() => { chercheClient = ''; }); await p.fill('[data-cherche]', '06 55 44 33 99'); await L.calme(p, 250);
