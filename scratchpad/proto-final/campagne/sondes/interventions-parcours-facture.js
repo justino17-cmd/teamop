@@ -5,6 +5,8 @@ const I = require('./interventions-outils.js'), L = I.L;
 (async () => {
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit';
   const c = await L.ouvrir({ profil, qui: 'sm', nuit }); const p = c.p, v = L.v; const tap = s => L.toucher(c, s, { delai: 4000 }); const txt = z => I.texte(p, z); const ev = (f, a) => p.evaluate(f, a);
+  // contre-épreuve de interventions-14 : CONTRE=1 rend visible le bandeau que le mode application cache — le contrôle doit alors PASSER
+  if (process.env.CONTRE === '1') await p.addStyleTag({ content: 'html[data-app] .bandeau-proto{display:flex!important}' });
   const CAPN = n => I.CAP + `fact-${profil}${nuit ? '-nuit' : ''}-${n}.png`; let e, t;
   // la technicienne termine (la fiche est remplie d'un coup : le geste « Terminer » est le vrai)
   await L.aller(p, 'inter-x-i1');
@@ -15,7 +17,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   console.log('  · lignes préparées :', JSON.stringify(f0 && f0.lignes), '· TVA', f0 && f0.tva);
   await I.devenir(c, 'marc', 'facture-x-f-i1'); t = await txt();
   const dis = await ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; });
-  v('F2 une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi', dis === true && /sans prix/.test(t), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
+  v('interventions-14 : une ligne sans prix : « Aperçu et envoi » est grisé, et la page dit pourquoi (le bandeau existe mais le mode application le cache)', dis === true && await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .bandeau-proto')].find(e => /sans prix/.test(e.textContent)); return !!b && getComputedStyle(b).display !== 'none'; }), [dis, (t.match(/.{0,20}sans prix.{0,60}/) || [''])[0]]);
   await L.capture(c, CAPN('1-a-chiffrer'));
   // F3 chiffrer
   await p.fill('input[data-prix][placeholder="prix HT"]', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
@@ -49,8 +51,8 @@ const I = require('./interventions-outils.js'), L = I.L;
   await L.aller(p, 'inter-x-i6'); await tap('[data-action="prepFacture"]'); await L.aller(p, 'facture-x-f-i6'); const nb0 = await ev(() => document.querySelectorAll('#contenu table.l tbody tr').length);
   await tap('[data-action="ligneAjout"]'); const ligne = await ev(() => { const r = [...document.querySelectorAll('#contenu table.l tbody tr')].slice(-1)[0]; return { texte: r.innerText.replace(/\s+/g, ' ').trim(), champs: [...r.querySelectorAll('input,textarea,select')].map(x => x.dataset.prix !== undefined ? 'prix' : x.tagName), suppr: !!r.querySelector('button, [data-action*="Sup"], [data-action*="Retir"]'), n: document.querySelectorAll('#contenu table.l tbody tr').length }; });
   console.log('  · la ligne ajoutée :', JSON.stringify(ligne));
-  v('F7 « Ajouter une ligne » : on peut NOMMER la ligne ajoutée', ligne.champs.some(x => x === 'INPUT' || x === 'TEXTAREA') && ligne.champs.filter(x => x !== 'prix').length > 0, ligne);
-  v('F7 …et la retirer si on s’est trompé', ligne.suppr, ligne);
+  v('interventions-15 : « Ajouter une ligne » : on peut NOMMER la ligne ajoutée', ligne.champs.some(x => x === 'INPUT' || x === 'TEXTAREA') && ligne.champs.filter(x => x !== 'prix').length > 0, ligne);
+  v('interventions-15 : …et la retirer si on s’est trompé', ligne.suppr, ligne);
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('PLANTÉ', e.message); try { await L.fermer(); } catch (x) {} process.exit(2); });

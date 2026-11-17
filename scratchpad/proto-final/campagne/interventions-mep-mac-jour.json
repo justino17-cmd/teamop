@@ -1,0 +1,28 @@
+[
+ {
+  "n": "longues-fiche-bureau",
+  "dep": {
+   "largeur": 1440,
+   "premiere": 1440,
+   "seconde": 1440,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [
+    "Société d’exploitation des établissement 1128×32",
+    "＋ Nouvelle tâche 141×34",
+    "Retirer la photo Avant 30×30",
+    "Retirer la photo Roulement usé 30×30",
+    "Retirer la photo Photo de l’unité extéri 30×30"
+   ],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 900,
+   "dernierBas": 852,
+   "fixes": []
+  }
+ }
+]

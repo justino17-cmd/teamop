@@ -10,12 +10,15 @@ const ECRANS = {
 const signature = p => p.evaluate(() => { const s = JSON.stringify([FACTURES, ENCAISSEMENTS, ACHATS, CP.depots, CP.chq, CP.remis, CONTRATS, INTS.length, typeof TACHES !== 'undefined' ? TACHES.length : 0]); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return s.length + ':' + h; });
 (async () => {
   const profil = process.argv[2] || 'mac', qui = process.argv[3] || 'marc', noms = process.argv.slice(4).length ? process.argv.slice(4) : Object.keys(ECRANS);
-  const c = await L.ouvrir({ profil, qui, hash: 'accueil' }), p = c.p; const sorties = {}, sortie = path.join(__dirname, '..', `balayage-compta-ventes-${qui}-${profil}.json`);
+  const c = await L.ouvrir({ profil, qui, hash: 'accueil' }), p = c.p; const sorties = {}, sortie = path.join(__dirname, '..', `balayage-compta-ventes-${qui}-${profil}${process.env.SUFFIXE ? '-' + process.env.SUFFIXE : ''}.json`);   // SUFFIXE : une reprise d'un seul écran ne remplace pas le fichier des autres
   const neuf = async () => { await X.O.neuf(c, 'comptabilite'); };
   const prep = async e => { await X.compta(c, e.onglet, { cat: e.cat }); };
   for (const nom of noms) {
     const e = ECRANS[nom]; if (!e) { console.log('écran inconnu', nom); continue; }
-    await neuf(); await prep(e); const liste = await X.marquer(p, '#contenu'); console.log(`\n== ${qui}-${profil}-${nom} : ${liste.length} gestes recensés`); const lignes = []; let sale = false;
+    await neuf(); await prep(e); let liste = await X.marquer(p, '#contenu');
+    /* la barre d'espaces, les onglets, « Comment ça marche ? » et « ＋ Ajouter » sont les MÊMES sur tous les écrans : touchés une fois (premier écran), pas huit
+       (le recensement complet de la barre est dans le rapport de l'écran « ensemble »). Les touches qui changent d'écran sont gardées si elles sortent de la barre. */
+    if (noms.indexOf(nom) > 0 && !process.env.TOUT) liste = liste.filter(g => !/data-cx=grp\||data-cp=aide|data-cx=nouveau|data-cx=sec\|(ensemble|cloture|dossiers|fventes|clients|contrats|fachats|ndf|fournisseurs|paiements|banque|caisse|enligne|tva|ecritures|balance|grandlivre|resultat|envoi|normes|archives)$/.test(g.data)); console.log(`\n== ${qui}-${profil}-${nom} : ${liste.length} gestes recensés`); const lignes = []; let sale = false;
     const sig0 = await signature(p);
     for (const g of liste) {
       if (sale) { await neuf(); sale = false; }

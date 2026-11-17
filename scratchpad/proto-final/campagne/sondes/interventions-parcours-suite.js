@@ -21,14 +21,14 @@ const I = require('./interventions-outils.js'), L = I.L;
   await L.capture(c, CAPN('2-a-reprendre'));
   // Ma journée après coup
   await L.aller(p, 'majournee'); t = await txt('#contenu .rl-jour'); const carte = (t.match(/14:00[\s\S]{0,260}/) || [''])[0]; console.log('  · Ma journée, carte « reprise » :', JSON.stringify(carte.replace(/\n/g, ' | ')));
-  v('S1 Ma journée : l’intervention reprise n’invite plus à « Commencer » comme si de rien n’était', !/Commencer/.test(await p.locator('[data-rl="go|inter-x-i2"]').first().innerText()), carte);
+  v('interventions-01 : Ma journée n’invite pas à « Commencer » une intervention « À reprendre »', !/Commencer/.test(await p.locator('[data-rl="go|inter-x-i2"]').first().innerText()), carte);
   // le bureau
   await I.devenir(c, 'marc', 'interventions'); await tap('[data-filtreint="plan"]'); t = await txt('#contenu table.l'); v('S1 le bureau voit le retour dans « À planifier »', /Retour — pièce à commander/.test(t), t.slice(0, 200));
   await L.aller(p, 'inter-x-i2'); t = await txt(); v('S1 la fiche vue du bureau dit « À reprendre » avec la raison et le mot', /À reprendre · Pièce à commander/.test(t) && /Sanicondens/.test(t), t.slice(0, 200));
   // « Ce que voit le client » ne propose que les terminées et l'en cours (i1) : le cas « à reprendre » se joue donc sur i1
   await I.devenir(c, 'sm', 'inter-x-i1'); await tap('[data-action="pasFini"]'); await tap('[data-action="envoiePb"]'); await L.calme(p, 400);
   await I.devenir(c, 'marc', 'clientvoit'); await ev(() => { voirInt = 'i1'; rendre(); }); t = await txt(); const etatI1 = await ev(() => fiche('i1').etat);
-  v('S1 (i1 à reprendre) « Ce que voit le client » ne dit pas « terminé »', etatI1 === 'reprendre' && /Intervention à reprendre/.test(t) && !/Intervention terminée/.test(t), [etatI1, t.slice(0, 160)]);
+  v('S1 (i1 à reprendre) « Ce que voit le client » ne dit pas « terminé »', etatI1 === 'reprendre' && /Intervention à reprendre/i.test(t) && !/Intervention terminée/i.test(t), [etatI1, t.slice(0, 160)]);
   v('S1 …et ne propose pas d’envoyer un compte rendu', !/Envoyer par e-mail/.test(t));
   await ev(() => { fiche('i1').etat = 'encours'; INTS.find(o => o.id === 'i1').st = 'encours'; INTS = INTS.filter(o => o.id !== 'n-ret-i1'); });
   // reprendre la fiche (technicienne)
@@ -46,8 +46,9 @@ const I = require('./interventions-outils.js'), L = I.L;
   t = await txt(); v('S2 la fiche terminée dit « Sans facture »', /Sans facture/.test(t), (t.match(/Facturation[\s\S]{0,160}/) || [''])[0]);
   await L.capture(c, CAPN('3-garantie-terminee'));
   await I.devenir(c, 'marc', 'clientvoit'); await ev(i => { voirInt = i; modeClient = 'web'; rendre(); }, g.id); t = await txt('#contenu .client-web');
-  v('S2 le client d’une garantie ne lit pas « une facture vous est envoyée »', !/Elle vous est envoyée après vérification/.test(t), (t.match(/FACTURE[\s\S]{0,90}/i) || [''])[0]);
+  v('interventions-02 : le client d’une garantie ne lit pas « une facture vous est envoyée »', !/Elle vous est envoyée après vérification/.test(t), (t.match(/FACTURE[\s\S]{0,90}/i) || [''])[0]);
   await L.capture(c, CAPN('4-garantie-client'));
+  await ev(i => { modeClient = 'pdf'; rendre(); }, g.id); { const pied = await txt('.pdf .pdf-pied'); v('interventions-02 : le pied du compte rendu d’une garantie ne promet pas une facture « envoyée à part »', !/facture vous est envoyée à part/.test(pied), pied.slice(0, 120)); }
   // ── S3 les envois (intervention terminée i6, tech Tom)
   await L.aller(p, 'inter-x-i6'); await tap('[data-action="envoiMail"]'); e = await L.etat(p); t = await txt('#calque .panneau'); v('S3 « Envoyer par e-mail » montre le message tel qu’il part', /Envoyer par e-mail/.test(e.panneau) && /Objet/.test(t) && /\.pdf/.test(t), t.slice(0, 120));
   await tap('[data-action="envoiMailOk"]'); e = await L.etat(p); v('S3 « Envoyer » confirme', /envoy|parti/i.test(e.toast), e.toast);
@@ -56,18 +57,25 @@ const I = require('./interventions-outils.js'), L = I.L;
   // voir le PDF / le lien client depuis la fiche
   await tap('[data-voirclient="i6|pdf"]'); await L.calme(p, 500); e = await L.etat(p); console.log('  · « Voir le PDF » :', JSON.stringify({ h1: e.h1, hash: e.hash, panneau: e.panneau }));
   v('S3 « Voir le PDF » montre le compte rendu', await ev(() => !!document.querySelector('.pdf')), e);
+  { const titre = await ev(() => { const h = document.querySelector('.pdf .pdf-tete h4'); return h ? h.textContent.trim() : null; }); v('interventions-04 : le titre du compte rendu PDF est « Compte rendu d’intervention »', /Compte rendu d’intervention/i.test(titre || ''), titre); }
   await L.capture(c, CAPN('5-voir-pdf')); await p.keyboard.press('Escape'); await L.calme(p, 300);
   await L.aller(p, 'inter-x-i6'); await tap('[data-voirclient="i6|ordi"]'); e = await L.etat(p); v('S3 « Voir le lien client » mène à « Ce que voit le client »', /clientvoit/.test(e.hash) && /Ce que voit le client/.test(e.h1), e);
   // le menu déroulant des interventions, et les trois vues
   const opts = await ev(() => [...document.querySelectorAll('[data-voirint] option')].map(o => o.textContent)); console.log('  · interventions proposées au choix :', opts.length); v('S3 le choix d’intervention propose les terminées et l’en cours', opts.length >= 8, opts.length);
+  v('S3 chaque choix d’intervention se distingue des autres', new Set(opts).size === opts.length, opts.filter((o, k) => opts.indexOf(o) !== k));
   for (const k of ['pdf', 'web', 'ordi']) { await tap(`[data-vc="${k}"]`); v(`S3 vue « ${k} » : aucune erreur, du contenu`, (await txt('#contenu')).length > 400); }
   await tap('[data-vc="web"]'); await tap('.client-web [data-action="info"]'); e = await L.etat(p); console.log('  · « Payer en ligne » (prototype) :', JSON.stringify(e.toast));
+  // ── S5 le client n'était pas sur place : pas de signature, compte rendu par e-mail (i9, à Sophie)
+  await I.devenir(c, 'sm', 'inter-x-i9'); { const coche = await ev(() => { const e = document.querySelector('input[data-suite="entretien"]'); return e ? e.checked : null; }); v('interventions-16 : après un dépannage, « Entretien annuel » n’est pas cochée d’office (et un autre passage peut être demandé pour tout client)', coche === false && (await ev(() => !!document.querySelector('input[data-suite="ventilo"]'))), { entretienCochee: coche }); }
+  await tap('[data-absent="i9"]'); t = await txt();
+  v('S5 « Client pas sur place » : la zone de signature disparaît et la page l’explique', !(await ev(() => !!document.getElementById('signe'))) && /compte rendu lui est envoyé par e-mail, sans signature/.test(t), (t.match(/Le client n’était pas sur place[\s\S]{0,80}/) || [''])[0]);
+  const m5 = await ev(() => manque(fiche('i9'))); v('S5 …et la signature n’est plus exigée', !m5.some(m => /signature/.test(m)), m5);
   // ── S4 le client choisit la date du 2ᵉ passage depuis « Ce que voit le client » : ce que le BUREAU lit à l'écran ensuite
   await I.devenir(c, 'sm', 'inter-x-i1'); await ev(() => { const F = fiche('i1'), i = INTS.find(o => o.id === 'i1'); tousControles(F).forEach(k => F.coches[k] = true); F.compte = 'Ventilateur à remplacer.'; F.signature = 'signee'; F.suite = { ventilo: true, entretien: false }; });
   await tap('[data-action="terminer"]'); await L.calme(p, 500); await I.devenir(c, 'marc', 'clientvoit'); await ev(() => { voirInt = 'i1'; modeClient = 'web'; rendre(); });
   const ok1 = await tap('.client-web [data-rdv="1"]'); await tap('.client-web [data-rdvc]:not([data-rdvc="rappel"])'); await tap('.client-web [data-rdvok="1"]'); t = await txt('#contenu');
   console.log('  · après la confirmation du client :', JSON.stringify((t.match(/Dans le prototype[\s\S]{0,160}/) || ['(rien)'])[0].replace(/\n/g, ' ')));
-  v('S4 l’écran du bureau ne parle pas de « prototype » (reste d’échafaudage)', ok1 && !/prototype/i.test(t), (t.match(/.{0,30}prototype.{0,60}/i) || [''])[0]);
+  v('interventions-07 : l’écran du bureau ne parle pas de « prototype » (reste d’échafaudage)', ok1 && !/prototype/i.test(t), (t.match(/.{0,30}prototype.{0,60}/i) || [''])[0]);
   await L.capture(c, CAPN('6-rdv-confirme'));
   console.log('  · erreurs de page :', c.err.length, c.err.slice(0, 3)); v('aucune erreur JavaScript pendant tout le parcours', c.err.length === 0, c.err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);

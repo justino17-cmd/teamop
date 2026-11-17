@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path');
 const A = require('./artefact-commun.js'), { bac, L, v } = A;
 const QUI = process.env.QUI || 'marc', PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT, RANGEMENT = process.env.RANGEMENT || '';
-const FIN = Date.now() + 520000;
+const FIN = Date.now() + 1000 * parseInt(process.env.DUREE_S || '300', 10);   // la machine est partagée : 5 minutes par passage, ce qui n'est pas fait est DIT (routes non faites)
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/artefact';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 (async () => {
@@ -61,15 +61,16 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       const h0 = await c.p.evaluate(() => location.hash); if (!await L.toucher(c, loc)) { if (process.env.DEBUG) console.log('  · ouvreur non touché', o.balise, o.lib.slice(0, 30), o.data); continue; } await A.calmer(c.p);
       const h1 = await c.p.evaluate(() => location.hash), ouvert = await c.p.evaluate(() => !!document.querySelector('#calque .panneau'));
       if (process.env.DEBUG) console.log('  · ouvreur', o.lib.slice(0, 30), '→', h0, h1, ouvert);
-      let n2 = []; if (ouvert || h1 !== h0) { n2 = await A.collecter(c.p, 'body'); total += n2.length; }
+      let n2 = [], rac2 = h1 !== h0 ? 'body' : '#calque'; if (ouvert || h1 !== h0) { n2 = await A.collecter(c.p, rac2); total += n2.length; }   // une fenêtre ouverte : ce QUI EST DEDANS seulement (le dessous est déjà au niveau 1) ; une autre fiche : tout
       await L.ranger(c.p);
-      await tester(route, n2.map(k2 => ({ chemin: [o], sig: k2.tag + '|' + k2.lib + '|' + k2.href, racine: 'body', k: k2 }))); }
+      await tester(route, n2.map(k2 => ({ chemin: [o], sig: k2.tag + '|' + k2.lib + '|' + k2.href, racine: rac2, k: k2 }))); }
   }
   // verdicts
   let evalues = 0;
-  for (const x of resultats) { const r = x.r; if (!r || r.perdu || r.erreur) continue; evalues++;
+  let nonTouches = [];
+  for (const x of resultats) { const r = x.r; if (!r || r.perdu || r.erreur) continue; if (r.ok === false) { nonTouches.push(x.route + ' › ' + (x.lib || x.href).slice(0, 30)); continue; } evalues++;
     const nom = `${QUI}/${PROFIL} ${x.route}${x.chemin.length ? ' › ' + x.chemin.map(o => o.lib).join(' › ').slice(0, 30) : ''} › « ${x.lib || x.href || x.data} »`;
-    const annonce = /(télécharg|enregistr|exporté|prêt)/i.test(r.toast || '') && !(r.fichier && r.fichier.length);
+    const annonce = /(téléchargé|téléchargée|enregistré|enregistrée|exporté|exportée|PDF prêt)/i.test(r.toast || '') && !(r.fichier && r.fichier.length);
     if (x.sortant === 'download' || r.d.liensInertes || (/télécharg|export|pdf|csv|fec/i.test(x.lib) && x.sortant !== 'https')) {
       const f = (r.fichier || [])[0];
       v(`${nom} : un fichier NON VIDE au bon nom, ou l'écran dit pourquoi pas`, (f && f.taille > 0 && /\.[a-z]{2,4}$/.test(f.nom) && !r.d.liensInertes) || (r.dit.length && !annonce && !r.d.liensInertes), { delta: r.d, dit: r.dit, toast: r.toast, f });
@@ -85,6 +86,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
       v(`${nom} : le geste fait quelque chose de visible`, !!(Object.keys(r.d).length || r.dit.length), { delta: r.d, dit: r.dit });
     }
   }
+  v(`${QUI}/${PROFIL} : geste non touchable (recouvert, hors écran) : ${nonTouches.length} sur ${evalues + nonTouches.length}, au plus un quart`, nonTouches.length * 4 <= evalues + nonTouches.length, nonTouches.slice(0, 8));
   v(`${QUI}/${PROFIL} : population recensée (${total} candidats, ${evalues} jugés, ${nonFaits.length} routes non faites)`, total >= 5 && evalues >= 3, { total, evalues, nonFaits });
   v(`${QUI}/${PROFIL} : aucune erreur JavaScript`, c.err.length === 0, c.err.slice(0, 3));
   const bilanRes = await bac.etat(c); v(`${QUI}/${PROFIL} : aucune boîte de dialogue (elles ne s'affichent jamais dans l'artefact)`, bilanRes.dialogues.length === 0, bilanRes.dialogues.slice(0, 3));

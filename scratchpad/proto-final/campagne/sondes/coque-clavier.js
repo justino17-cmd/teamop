@@ -107,8 +107,9 @@ let apres_;
   // précédent / suivant
   const [ra, rb] = await p.evaluate(() => rcRubriques().filter(r => r.k !== 'comptabilite').slice(0, 2).map(r => [r.k, r.l]));   // deux écrans que CETTE personne a au menu
   await L.aller(p, ra[0]); await L.aller(p, rb[0]); await k(CMD + '+[');
-  v(CMD + ' + [ revient à l’écran d’avant (' + ra[1] + ')', (await h1(p)).toLowerCase().includes(ra[1].toLowerCase().slice(0, 6)), await h1(p));
-  await k(CMD + '+]'); v(CMD + ' + ] avance (' + rb[1] + ')', (await h1(p)).toLowerCase().includes(rb[1].toLowerCase().slice(0, 6)), await h1(p));
+  const hash = () => p.evaluate(() => location.hash);   // on lit l'adresse : le titre d'« Accueil » est « Bonjour Marc »
+  v(CMD + ' + [ revient à l’écran d’avant (' + ra[1] + ')', (await hash(p)).includes(ra[0]), await hash(p));
+  await k(CMD + '+]'); v(CMD + ' + ] avance (' + rb[1] + ')', (await hash(p)).includes(rb[0]), await hash(p));
   // annuler le dernier geste quand il n'y a rien à annuler
   const av = await L.etat(p); await k(CMD + '+z'); const ap = await L.etat(p);
   console.log('  · Ctrl/Cmd+Z sans rien à annuler → changements :', L.change(av, ap).join(',') || 'aucun', '| toast :', ap.toast);

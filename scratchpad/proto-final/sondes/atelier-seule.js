@@ -6,10 +6,10 @@ const fs = require('fs'), path = require('path'), cp = require('child_process');
 const TMP = process.env.TMP_SEULE || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/racine-seule';
 const DEPOT = path.join(__dirname, '..', '..', '..');
 fs.mkdirSync(path.join(TMP, 'apercu'), { recursive: true }); fs.mkdirSync(path.join(TMP, 'x', 'y', 'z'), { recursive: true });
-// POINT DE RÉFÉRENCE : l'état de la source APRÈS les corrections du compositeur (commit 52c1a8f : prix à deux décimales, aides raccourcies, prestations au catalogue, champs « Délai/Paiement » sur deux lignes),
+// POINT DE RÉFÉRENCE : l'état de la source APRÈS les corrections du compositeur (commit ec8aafd : prix à deux décimales, aides raccourcies, prestations au catalogue, champs « Délai/Paiement » sur deux lignes, blancs entre crochets dans la bibliothèque de clauses — avancé au tour 1 des restes),
 // pas l'état d'avant le mode « dans OP GESTION » (629da64) — celui-là faisait tomber 12 contrôles sur des écarts VOULUS. Ce que la sonde garde reste « rien d'autre n'a bougé » : un écart nouveau, lui, tombe.
 // ORIGINE=<commit> la rejoue contre un autre point (ex. 629da64) ; ORIGINE_CAP=<fichier> contre une copie gardée.
-const REF = process.env.ORIGINE || '52c1a8f';
+const REF = process.env.ORIGINE || 'ec8aafd';
 const orig = process.env.ORIGINE_CAP && fs.existsSync(process.env.ORIGINE_CAP) ? fs.readFileSync(process.env.ORIGINE_CAP, 'utf8') : cp.execSync('git show ' + REF + ':scratchpad/proto-final/atelier/page.source', { cwd: DEPOT, maxBuffer: 1 << 28 }).toString();
 const gabarit = s => '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' + s + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-origine.html'), gabarit(orig));

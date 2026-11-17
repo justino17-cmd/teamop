@@ -28,6 +28,20 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
     v(`M5 « ${a} » du menu mène à l’écran qui porte ce nom`, ok && TITRE[a].test(h), { h, ok });
     v(`M5b après « ${a} », le menu est refermé`, !(await p.evaluate(() => !!document.querySelector('#calque .panneau'))));
   }
+  // ── A : Jour / Nuit / Auto et Nouveautés (le pied du menu) ──
+  const ouvrirMenu = async () => { if (tel) { await L.aller(p, 'majournee'); await L.toucher(c, '[data-menu="ouvrir"]'); await L.calme(p, 300); } };
+  for (const [lib, attendu] of [['Nuit', 'nuit'], ['Jour', 'jour']]) {
+    await ouvrirMenu();
+    await p.evaluate(l => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === l); e && e.click(); }, lib); await L.calme(p, 400);
+    v(`A1 « ${lib} » dans le pied du menu change l’apparence (data-mode = ${attendu})`, (await p.evaluate(() => document.documentElement.dataset.mode)) === attendu, await p.evaluate(() => document.documentElement.dataset.mode));
+  }
+  await ouvrirMenu(); await p.evaluate(() => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === 'Auto'); e && e.click(); }); await L.calme(p, 300);
+  v('A2 « Auto » est coché ensuite (aria-pressed)', await p.evaluate(() => { const e = [...document.querySelectorAll('[data-modetheme]')].find(b => b.textContent.trim() === 'Auto'); return !!e && e.getAttribute('aria-pressed') === 'true'; }));
+  await ouvrirMenu();
+  await p.evaluate(() => { const e = [...document.querySelectorAll('button, a')].find(b => b.textContent.replace(/\s+/g, ' ').trim().startsWith('Nouveautés')); e && e.click(); }); await L.calme(p, 600);
+  v('A3 « Nouveautés » ouvre le guide des nouveautés', await p.evaluate(() => { const e = document.getElementById('nv'); return !!e && e.offsetParent !== null || (!!e && getComputedStyle(e).display !== 'none'); }), await txt(p, '#nv'));
+  await L.capture(c, CAP + `nouveautes-${qui}-${profil}-${J}.png`);
+  await p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(p, 300);
   // ── B : la barre du bas ──
   if (tel) {
     await L.aller(p, 'majournee');
@@ -70,13 +84,16 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   // ── J : « Ma journée » — commencer sa journée, les messages du bureau, itinéraire, appel ──
   await L.aller(p, 'majournee');
   const avantMsg = await txt(p, '#contenu');
-  v('J1 avant de commencer : « Tu n’as pas encore commencé » et un message du bureau qui le rappelle', /pas encore commencé/.test(avantMsg), avantMsg.slice(0, 200));
-  await L.toucher(c, '[data-ptx^="debut"]'); await L.calme(p, 500);
-  const apresMsg = await txt(p, '#contenu');
-  console.log('   après « Je commence ma journée » :', apresMsg.slice(0, 380));
-  v('J2 après « Je commence ma journée » : la carte dit « commencée à … »', /commenc[ée]+e? à \d/.test(apresMsg) || /Journée en cours|en cours depuis/i.test(apresMsg), apresMsg.slice(0, 200));
-  v('J3 après avoir commencé, le rappel « tu n’as pas encore commencé ta journée » ne reste pas affiché (message périmé)', !/pas encore commencé/.test(apresMsg), apresMsg.slice(0, 260));
-  await L.capture(c, CAP + `journee-commencee-${qui}-${profil}-${J}.png`);
+  const pasCommence = /Tu n’as pas encore commencé/.test(avantMsg);   // Sophie n'a pas commencé, Karim si : on ne rejoue « commencer » que pour qui n'a pas commencé
+  if (pasCommence) {
+    v('J1 avant de commencer : un message du bureau rappelle de commencer', /pas encore commencé ta journée/.test(avantMsg), avantMsg.slice(0, 200));
+    await L.toucher(c, '[data-ptx^="debut"]'); await L.calme(p, 500);
+    const apresMsg = await txt(p, '#contenu');
+    console.log('   après « Je commence ma journée » :', apresMsg.slice(0, 380));
+    v('J2 après « Je commence ma journée » : la carte dit « commencée à … »', /commenc[ée]+e? à \d/i.test(apresMsg) || /Journée en cours|en cours depuis/i.test(apresMsg), apresMsg.slice(0, 200));
+    v('J3 après avoir commencé, le rappel « tu n’as pas encore commencé ta journée » ne reste pas affiché (message périmé)', !/pas encore commencé/.test(apresMsg), apresMsg.slice(0, 260));
+    await L.capture(c, CAP + `journee-commencee-${qui}-${profil}-${J}.png`);
+  } else console.log('   (journée déjà commencée : J1 à J3 ne se jouent pas pour', qui + ')');
   const liens = await p.evaluate(() => [...document.querySelectorAll('#contenu .rl-int a')].map(a => ({ t: a.textContent.trim(), h: a.getAttribute('href') })));
   v('J4 chaque intervention a « Y aller » avec une adresse non vide', liens.filter(l => l.t === 'Y aller').length >= 1 && liens.filter(l => l.t === 'Y aller').every(l => !/destination=$/.test(l.h)), liens);
   v('J5 « Appeler » est un lien tel: valide', liens.filter(l => l.t === 'Appeler').every(l => /^tel:\+?[\d]{6,}/.test(l.h.replace(/[\s.]/g, ''))), liens.filter(l => l.t === 'Appeler'));

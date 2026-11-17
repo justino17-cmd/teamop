@@ -74,6 +74,7 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   // F8 : le gérant voit-il ces notes dans « Achats et frais » ?
   const total = await nb();
   await devenir(p, 'marc', 'achats');
+  await p.evaluate(() => { const b = document.querySelector('[data-ac="onglet|notes"]'); b && b.click(); }); await L.calme(p, 500);   // les notes de frais sont dans le second onglet « Frais » d'Achats et frais
   const achats = await txt(p);
   v('F8a le gérant arrive sur Achats et frais', /Achats et frais|Achats/.test(await txt(p, '#contenu h1')), await txt(p, '#contenu h1'));
   v('F8b la note de 6,50 € de Sophie y est (nom, objet, montant)', /Sophie/.test(achats) && /6,50/.test(achats), achats.slice(0, 300));
