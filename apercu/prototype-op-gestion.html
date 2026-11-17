@@ -360,7 +360,9 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
     #contenu .t-haut{gap:6px}#contenu .t-haut .seg{padding:2px;gap:0}#contenu .t-haut .seg button{padding:0 6px;font-size:13.5px}
   .tkx-cherche{flex:1 1 0;min-width:0}
   #contenu .tkx-resume{padding:6px 10px;font-size:14px}#contenu .tkx-resume .tkx-retard-p{padding:0 12px}.tkx-pills{flex:1 1 100%}.tkx-pill{padding:0 10px;font-size:14px;flex:1 1 auto;justify-content:center}
-  .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
+  .tkx-rang{flex:0 0 118px;order:0}.tkx-pills{order:1}
+  /* 320 px : trois pastilles de filtre à 14 px ne tiennent pas sur une ligne, la dernière passait seule en pleine largeur ; à 13 px, trois colonnes égales (regard-technicien-a) */
+  @media (max-width:350px){.tkx-pills{flex-wrap:nowrap}.tkx-pill{flex:1 1 0;min-width:0;padding:0 4px;font-size:13px;gap:4px;white-space:nowrap}}.tkx-rang-l{display:none}.tkx-rang .saisie{width:100%;font-size:14px;padding-left:10px;padding-right:4px}
   .tkx-s{grid-template-columns:auto minmax(0,1fr)}.tkx-s-g{flex:1 1 100%}.tkx-s-g .btn{flex:1}
   .tkx-s-ch label{flex:1 1 100%;justify-content:space-between}.tkx-s-ch .saisie{flex:1 1 auto}
   .tkx-s-haut .btn{flex:1 1 100%}
@@ -3359,6 +3361,8 @@ body.ac-glisse .ac-x{pointer-events:none}
 .at-t{display:flex;flex-direction:column;gap:5px;padding:14px 16px;border-radius:18px;background:var(--carte-fond);border:1px solid var(--trait)}
 .at-t small{font-size:13px;color:var(--doux);font-weight:650}.at-t b{font-size:24px;font-variant-numeric:tabular-nums}.at-t b span{font-size:13px;font-weight:600;color:var(--doux)}
 .at-d{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}.at-dt{justify-content:space-between;flex-wrap:wrap;gap:8px}
+/* la règle de la liste du gérant (.a-dem-t>span:nth-child(2){flex:1}) étirait la pastille d'état sur toute la ligne : elle garde sa largeur et se range à droite de l'étiquette du type */
+.a-dem-t.at-dt>.st:nth-child(2){flex:0 1 auto;display:inline-flex;flex-direction:row;align-items:center}
 .ad-demi button[disabled]{opacity:.4;cursor:not-allowed}
 @media (max-width:760px){.at-soldes{gap:8px}.at-t{padding:12px}.at-t b{font-size:20px}.at-t b span{display:block;font-size:12.5px;margin-top:1px}.a-comme .seg{width:100%}}
 /* ══ Au doigt : aucune commande sous 44 px (les hauteurs réduites plus haut sont celles de la souris) ══ */
@@ -6833,7 +6837,7 @@ function tPanneau(x){
   x = x || { t:'', qui:(tQui !== 'tous' ? tQui : 'marc'), d:AUJ, h:null, urgent:false, rep:null, lien:null, note:'' };
   const raccourcis = [['Demain', 1], ['Lundi', ((8 - new Date(AUJ + 'T12:00:00').getDay()) % 7) || 7], ['Dans une semaine', 7]];
   ouvrirPanneau(`<h2>${neuf ? 'Nouvelle tâche' : 'Modifier la tâche'}</h2>
-    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="Ex. rappeler M. Durand pour son devis"></label>
+    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="Ex. rappeler M. Durand"></label>
     <div class="deux-champs"><label class="champ">Pour qui<select id="tk-qui">${T_GENS.map(k => `<option value="${k}" ${x.qui === k ? 'selected' : ''}>${tNom(k)}</option>`).join('')}</select></label>
       <label class="champ">Répéter<select id="tk-rep"><option value="">Jamais</option><option value="semaine" ${x.rep === 'semaine' ? 'selected' : ''}>Chaque semaine</option><option value="mois" ${x.rep === 'mois' ? 'selected' : ''}>Chaque mois</option></select></label></div>
     <div class="deux-champs"><label class="champ">Pour quand<input id="tk-d" type="date" value="${x.d || ''}"></label><label class="champ">Heure (facultatif)<input id="tk-h" type="time" step="300" value="${x.h || ''}"></label></div>
@@ -7372,7 +7376,7 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
         return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]), ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
       return `<div class="acm-sem">${cells}${bandes}</div>`; }).join('');
-    return `<div class="carte acm"><h4 class="acm-t">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
+    return `<div class="carte acm"><h4 class="acm-t${blocs.length === 1 ? ' rl-sr' : ''}">${b.titre}</h4><div class="acm-tete">${entete}</div><div class="acm-sems">${rangs}</div></div>`; }).join('');
 }
 function aCalFin(ctrl, seul, corps, J){ const lecture = aLecture(), souris = matchMedia('(hover:hover) and (pointer:fine)').matches, dep = aDeplCible();
   const aide = seul ? (lecture ? '' : aCalSeulTete(aCalQui, J)) : `<div class="ac-aide"><span aria-hidden="true">👆</span><span>Une <b>case par jour</b> et par personne. Coche <b>une ou plusieurs personnes</b> en haut pour les comparer ; touche <b>un nom</b> pour n’afficher que son calendrier. Sur une absence : ${souris ? '<b>clic</b> pour le détail, <b>clic droit</b> pour les actions (valider, refuser, déplacer…), ou <b>glisse-la</b> pour la déplacer' : '<b>touche</b> pour le détail, <b>appui long</b> pour les actions (valider, refuser, déplacer…), appui long puis glisse pour la déplacer'}.</span></div>`;
@@ -12538,7 +12542,7 @@ function vueMaJournee(){
     return `<div class="rl-int ${fini ? 'fini' : ''}"><div class="rl-int-h"><b>${i.h}</b><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></div>
       <div class="rl-int-c"><b>${esc(c.nom)}</b><span>${esc(i.titre)}</span><span class="gris petit">${esc(c.adr)}</span>${i.motif ? `<span class="rl-motif">« ${esc(i.motif)} »</span>` : ''}${fini ? `<span class="gris petit">Terminée · ${F.absent ? 'client absent' : 'signée par ' + esc(F.signeNom)} · ${esc(paiementTexte(F.paiement))}</span>` : ''}</div>
       <div class="actions">${fini ? `<button type="button" class="btn gris petit" data-rl="go|inter-x-${i.id}">Revoir</button>` : i.st === 'reprendre' ? `<button type="button" class="btn gris petit" data-rl="go|inter-x-${i.id}">Voir</button>` : `<button type="button" class="btn petit" data-rl="go|inter-x-${i.id}">${i.st === 'encours' ? 'Continuer' : 'Commencer'}</button><a class="btn gris petit" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener">Y aller</a>${c.tel ? `<a class="btn gris petit" href="${lienTel(c.tel)}">Appeler</a>` : ''}`}</div></div>`; };
-  return `<div class="tete"><div><span class="surtitre">${jlong(AUJ)}</span><h1>Bonjour ${esc(p)}</h1><span class="gris">${auj.length} intervention${auj.length > 1 ? 's' : ''} aujourd’hui${auj.filter(i => i.st === 'fait').length ? ' · ' + auj.filter(i => i.st === 'fait').length + ' terminée' + (auj.filter(i => i.st === 'fait').length > 1 ? 's' : '') : ''}.</span></div></div>
+  return `<div class="tete"><div><span class="surtitre">${jlong(AUJ)}</span><h1>Bonjour ${esc(p)}</h1><span class="gris">${auj.length ? auj.length + ' intervention' + (auj.length > 1 ? 's' : '') : 'Aucune intervention'} aujourd’hui${auj.filter(i => i.st === 'fait').length ? ' · ' + auj.filter(i => i.st === 'fait').length + ' terminée' + (auj.filter(i => i.st === 'fait').length > 1 ? 's' : '') : ''}.</span></div></div>
   ${rlNotifsCarte(moi)}<div class="rl-jour">${auj.map(carte).join('') || '<div class="carte gris">Rien de prévu aujourd’hui.</div>'}</div>
   <div class="grille2"><div class="col">
     <div class="carte"><h3>L’argent que tu as sur toi · ${eur(tot)}</h3>${chez.length ? chez.map(e => `<div class="ligne"><span>${esc(CLIENTS[e.cli].nom)}<br><span class="gris petit">${e.mode.toLowerCase()} · reçu le ${e.d}</span></span><b>${eur(e.ttc)}</b></div>`).join('') + `<div class="actions" style="margin-top:8px"><button type="button" class="btn gris petit" data-rl="remis">Je l’ai remis au bureau</button></div><span class="gris petit">Les espèces et les chèques sont suivis jusqu’à la banque : le bureau voit ce que tu as, et ce que tu lui as remis.</span>` : '<span class="gris petit">Rien : tout ce que tu as encaissé est remis au bureau.</span>'}</div>
@@ -14447,7 +14451,7 @@ vueTaches = function(){
   } else if (tkxRang === 'personne' && !perso) corps = tkxCorpsPersonne(L);
   else if (tkxRang === 'heure' && tOnglet === 'auj' && L.length) corps = `<h3 class="t-sep">Dans l’ordre de la journée</h3><div class="carte t-liste">${L.slice().sort((a, b) => (a.h || '99:99').localeCompare(b.h || '99:99') || tkxTrier(a, b)).map(tLigne).join('')}</div>`;
   else corps = tkxCorpsSujet(L);
-  if (!L.length) corps = tOnglet === 'faites' ? `<div class="t-vide"><b>Aucune tâche faite</b></div>` : (tCherche || tkxFiltre.retard || tkxFiltre.urgent || tkxFiltre.sansdate) ? `<div class="t-vide"><b>Aucune tâche ne correspond</b><span>Enlève un filtre ou efface la recherche.</span></div>`
+  if (!L.length) corps = tOnglet === 'faites' ? `<div class="t-vide"><b>Aucune tâche faite</b><span>Ce que tu coches comme fait se range ici.</span></div>` : (tCherche || tkxFiltre.retard || tkxFiltre.urgent || tkxFiltre.sansdate) ? `<div class="t-vide"><b>Aucune tâche ne correspond</b><span>Enlève un filtre ou efface la recherche.</span></div>`
     : tOnglet === 'auj' ? `<div class="t-vide"><b>Rien pour aujourd’hui</b><span>Tout est fait. Les prochaines tâches sont dans « À venir ».</span></div>` : `<div class="t-vide"><b>Rien de prévu</b><span>Ajoute une tâche ci-dessus.</span></div>`;
   const nRet = base.filter(tkxEnRetard).length, nUrg = base.filter(x => x.urgent && !x.fait).length, nSans = base.filter(x => !x.d && !x.fait).length;
   const pastille = (k, l, n) => `<button type="button" class="tkx-pill" data-tkxfiltre="${k}" aria-pressed="${tkxFiltre[k]}">${l} <span class="t-nb ${k === 'retard' && n ? 'rouge' : ''}">${n}</span></button>`;
