@@ -1,0 +1,799 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-interventions": {
+   "recenses": 19,
+   "touches": 16,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "＋ Nouvelle intervention",
+     "data": "data-creer=1",
+     "touche": true,
+     "change": [],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 224,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "✅2 tâches pour toi aujourd’huide ta liste Tâches",
+     "data": "",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 1114,
+     "h": 44
+    },
+    {
+     "i": 2,
+     "lib": "Commander 2 condensateurs 5 µFen retard · se termine quand l",
+     "data": "data-tici=t2",
+     "touche": false,
+     "change": [],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 1114,
+     "h": 66
+    },
+    {
+     "i": 3,
+     "lib": "Planifier le dépannage climatisation de Mme Rouxaujourd’hui ",
+     "data": "data-tici=t14",
+     "touche": false,
+     "change": [],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 1114,
+     "h": 66
+    },
+    {
+     "i": 4,
+     "lib": "Voir dans Tâches ›",
+     "data": "",
+     "touche": false,
+     "change": [],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 1114,
+     "h": 41
+    },
+    {
+     "i": 5,
+     "lib": "Aujourd’hui · 9",
+     "data": "data-filtreint=auj",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 140,
+     "h": 40
+    },
+    {
+     "i": 6,
+     "lib": "À venir · 8",
+     "data": "data-filtreint=avenir",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 104,
+     "h": 40
+    },
+    {
+     "i": 7,
+     "lib": "À planifier · 3",
+     "data": "data-filtreint=plan",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 127,
+     "h": 40
+    },
+    {
+     "i": 8,
+     "lib": "Terminées · 8",
+     "data": "data-filtreint=fait",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 129,
+     "h": 40
+    },
+    {
+     "i": 9,
+     "lib": "Toutes · 24",
+     "data": "data-filtreint=tout",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 112,
+     "h": 40
+    },
+    {
+     "i": 10,
+     "lib": "SAM 31 · 07:30Contrôle d’étanchéitéEntretien · 1 hMme RouxTL",
+     "data": "data-go=inter-x-i6",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 11,
+     "lib": "SAM 31 · 08:30Dépannage climatisationDépannage · 1 hRestaura",
+     "data": "data-go=inter-x-i1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Dépannage climatisation",
+     "panneau": "",
+     "hash": "#inter-x-i1",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 12,
+     "lib": "SAM 31 · 09:00Récupération du fluide d’un ancien splitDépann",
+     "data": "data-go=inter-x-i3",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Récupération du fluide d’un ancien split",
+     "panneau": "",
+     "hash": "#inter-x-i3",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 13,
+     "lib": "Date à fixerEntretien chaudière granulésEntretien · 1 hHôtel",
+     "data": "data-go=inter-x-i5",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 14,
+     "lib": "Date à fixerUrgent — plus de chauffageDépannage · 1 hMme Rou",
+     "data": "data-go=inter-x-i17",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Urgent — plus de chauffage",
+     "panneau": "",
+     "hash": "#inter-x-i17",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 15,
+     "lib": "SAM 31 · 13:00Remplacement condensateurDépannage · 2 hCampin",
+     "data": "data-go=inter-x-i7",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Remplacement condensateur",
+     "panneau": "",
+     "hash": "#inter-x-i7",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 16,
+     "lib": "SAM 31 · 14:00Mise en service pompe à chaleurMise en service",
+     "data": "data-go=inter-x-i2",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Mise en service pompe à chaleur",
+     "panneau": "",
+     "hash": "#inter-x-i2",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 17,
+     "lib": "SAM 31 · 15:00Entretien chauffe-eau thermodynamiqueEntretien",
+     "data": "data-go=inter-x-i4",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Entretien chauffe-eau thermodynamique",
+     "panneau": "",
+     "hash": "#inter-x-i4",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 71
+    },
+    {
+     "i": 18,
+     "lib": "SAM 31 · 16:00Dépannage pompe à chaleur atelierDépannage · 1",
+     "data": "data-go=inter-x-i16",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Dépannage pompe à chaleur atelier",
+     "panneau": "",
+     "hash": "#inter-x-i16",
+     "toast": "",
+     "sansNom": false,
+     "l": 1110,
+     "h": 70
+    }
+   ]
+  },
+  "marc-mac-inter-x-i5": {
+   "recenses": 12,
+   "touches": 11,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "‹ Retour",
+     "data": "data-retour=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 62,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "Hôtel de la Plage ›",
+     "data": "data-go=client-x-hp",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "Hôtel de la Plage",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 469,
+     "h": 32
+    },
+    {
+     "i": 2,
+     "lib": "Appeler le client",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 165,
+     "h": 46
+    },
+    {
+     "i": 3,
+     "lib": "＋ Nouvelle tâche",
+     "data": "data-tkxnouv=inter|i5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "Nouvelle tâche",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 141,
+     "h": 34
+    },
+    {
+     "i": 4,
+     "lib": "Prendre dans la réserve",
+     "data": "data-bxl=prendre|d-hp|i5",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "Sortir du stock",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 192,
+     "h": 40
+    },
+    {
+     "i": 5,
+     "lib": "2026-11-02",
+     "data": "data-dt=date",
+     "touche": false,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 26,
+     "h": 46
+    },
+    {
+     "i": 6,
+     "lib": "Jour : lun. 2 nov.",
+     "data": "data-dtpour=1",
+     "touche": true,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 48
+    },
+    {
+     "i": 7,
+     "lib": "07:3008:0008:3009:0009:3010:0010:3011:0011:3012:0012:3013:00",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 172,
+     "h": 46
+    },
+    {
+     "i": 8,
+     "lib": "30 min1 h1 h 302 h3 h4 h",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 394,
+     "h": 46
+    },
+    {
+     "i": 9,
+     "lib": "Sophie Martin · 1 intervention le lundi 2 novembreKarim Bena",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "",
+     "sansNom": false,
+     "l": 394,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Planifier",
+     "data": "data-rl=placer|i5",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Entretien chaudière granulés",
+     "panneau": "",
+     "hash": "#inter-x-i5",
+     "toast": "Planifiée lundi 2 novembre à 10:00 avec Sophie : elle apparaît dans sa journée.",
+     "sansNom": false,
+     "l": 101,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Voir au planning",
+     "data": "data-rl=auplanning|i5",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "toast",
+      "long",
+      "url"
+     ],
+     "h1": "Planning",
+     "panneau": "",
+     "hash": "#planning",
+     "toast": "Glisse la carte qui clignote sur un technicien.",
+     "sansNom": false,
+     "l": 165,
+     "h": 46
+    }
+   ]
+  },
+  "marc-mac-inter-x-i6": {
+   "recenses": 15,
+   "touches": 15,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "‹ Retour",
+     "data": "data-retour=1",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Interventions",
+     "panneau": "",
+     "hash": "#interventions",
+     "toast": "",
+     "sansNom": false,
+     "l": 62,
+     "h": 44
+    },
+    {
+     "i": 1,
+     "lib": "Mme Roux ›",
+     "data": "data-go=client-x-mr",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Mme Roux",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 390,
+     "h": 32
+    },
+    {
+     "i": 2,
+     "lib": "✎ Modifier",
+     "data": "data-action=modifInt data-id=i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Modifier l’intervention",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 121,
+     "h": 46
+    },
+    {
+     "i": 3,
+     "lib": "Y aller",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 88,
+     "h": 46
+    },
+    {
+     "i": 4,
+     "lib": "Appeler",
+     "data": "",
+     "touche": true,
+     "change": [],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 100,
+     "h": 46
+    },
+    {
+     "i": 5,
+     "lib": "＋ Nouvelle tâche",
+     "data": "data-tkxnouv=inter|i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Nouvelle tâche",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 141,
+     "h": 34
+    },
+    {
+     "i": 6,
+     "lib": "✉️ Renvoyer par e-mail",
+     "data": "data-action=envoiMail data-id=i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Envoyer par e-mail",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 323,
+     "h": 46
+    },
+    {
+     "i": 7,
+     "lib": "💬 Envoyer aussi par SMS",
+     "data": "data-action=envoiSms data-id=i6",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Envoyer par SMS",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 323,
+     "h": 46
+    },
+    {
+     "i": 8,
+     "lib": "Voir le PDF",
+     "data": "data-voirclient=i6|pdf",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "✕‹ Retour07:30 – 08:301 h · samedi 31 octobre Contrôle d’étanchéité Mme Roux14 rue Gambetta, 17440 A",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 44
+    },
+    {
+     "i": 9,
+     "lib": "Voir le lien client",
+     "data": "data-voirclient=i6|ordi",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Ce que voit le client",
+     "panneau": "",
+     "hash": "#clientvoit",
+     "toast": "",
+     "sansNom": false,
+     "l": 127,
+     "h": 44
+    },
+    {
+     "i": 10,
+     "lib": "Préparer la facture",
+     "data": "data-action=prepFacture data-id=i6",
+     "touche": true,
+     "change": [
+      "toast",
+      "long"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "Facture préparée à partir de l’intervention.",
+     "sansNom": false,
+     "l": 323,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Voir la suite au planning",
+     "data": "data-fichepl=i6",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "Planning",
+     "panneau": "",
+     "hash": "#planning",
+     "toast": "",
+     "sansNom": false,
+     "l": 323,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "⤢ Voir en grand",
+     "data": "data-pdfplein=1",
+     "touche": true,
+     "change": [],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 159,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "⤓ Télécharger le PDF",
+     "data": "data-pdfdl=1",
+     "touche": true,
+     "change": [
+      "toast"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "",
+     "hash": "#inter-x-i6",
+     "toast": "« Compte rendu Mme Roux.pdf » : téléchargement demandé. S’il ne démarre pas, ton navigateur le bloqu",
+     "sansNom": false,
+     "l": 200,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "✉ Envoyer par e-mail",
+     "data": "data-pdfmail=1",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Contrôle d’étanchéité",
+     "panneau": "Envoyer le PDF",
+     "hash": "#inter-x-i6",
+     "toast": "",
+     "sansNom": false,
+     "l": 202,
+     "h": 46
+    }
+   ]
+  }
+ },
+ "err": []
+}

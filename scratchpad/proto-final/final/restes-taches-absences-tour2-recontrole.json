@@ -1,0 +1,47 @@
+{
+ "noms": ["taches-absences", "menu"],
+ "regles": [
+  "« Modifier les dates » refuse un week-end seul (message « Ces jours ne sont pas travaillés », « Enregistrer » grisé) : rejoué, vrai aussi par le glisser à la souris sur un samedi et par « Déplacer » puis toucher un samedi (refus, rien ne bouge, le mode déplacer se ferme, aucune classe de glisser ne reste)",
+  "« Modifier les dates » refuse les jours d'une demande en attente de la même personne : rejoué par l'écran, par l'appel direct, par le glisser réel (message « accorde-la ou refuse-la d'abord ») ; le geste normal (jour ouvré libre) marche toujours et « Annuler » rend la barre à son vendredi",
+  "« Proposer d'autres dates » refuse un week-end seul (message, bouton grisé, envoi forcé sans écriture) : rejoué, captures relues",
+  "« Au » suit « Du » dans les trois formulaires du gérant, par le VRAI sélecteur de date (clic bouton, clic jour : input puis change) ; un « Au » choisi à la main n'est plus déplacé ; le bouton de date est repeint",
+  "touchcancel : un appui long annulé par le système n'avale plus le toucher suivant ; un appui long ordinaire avale toujours SON clic de relâcher et seulement lui ; un touchcancel avant les 550 ms n'ouvre rien",
+  "Les gestes qui doivent toujours marcher marchent : vendredi-lundi (2 jours ouvrés), un seul jour « matin seulement » (une demi-journée, « Enregistrer » pose bien « matin »), un jour férié seul refusé",
+  "Un technicien (rôle) ne voit aucune porte de gestion (nouvelle absence, valider, modifier, supprimer) et un glisser à la souris sur une barre ne déplace rien"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Le glisser ne prévient pas qu'un samedi ou une demande en attente sera refusé (le refus ne vient qu'au lâcher)",
+   "gravite": "mineur",
+   "etapes": "Calendrier, souris : saisir une absence d'un jour (vendredi) et la tenir au-dessus du samedi, ou au-dessus d'un jour où la même personne a une demande en attente.",
+   "constat": "La case visée se colore comme une cible valide et l'étiquette flottante dit seulement « Congé payé · 7 nov. (+1 j) » ; seul le chevauchement d'une AUTRE absence passe en rouge (ac-cible-non + phrase). Au lâcher, le refus est juste (message « Ces jours ne sont pas travaillés : rien n'a bougé. », barre revenue, rien ne reste en cours : 29 ✓ du recontrôle), mais l'écran laisse espérer un succès. Piste : aGlisseSuivre lit `autre || !aJours(...) || attente` pour poser ac-cible-non et la phrase, comme aAppliquer. Captures : restes2-recontrole-glisser-pendant-mac-jour.png et restes2-recontrole-glisser-refus-mac-nuit.png."
+  },
+  {
+   "titre": "« La date de fin est avant la date de début » ne grise pas le bouton d'enregistrement (Nouvelle absence, Proposer d'autres dates, Modifier les dates)",
+   "gravite": "mineur",
+   "etapes": "Ouvrir l'un des trois formulaires, choisir une date de fin à la main, puis un début plus tard : le message d'erreur s'affiche, « Enregistrer » / « Envoyer la proposition à … » reste actif.",
+   "constat": "Les trois aperçus (aApercu, aApercuModif, aApercuDates) font `return` sur ce cas AVANT la ligne `btn.disabled = …` que le correcteur a posée pour le week-end et la demande en attente : le bouton garde l'état de l'étape d'avant (actif si l'étape d'avant était valide). Le clic reste sans effet (toast « La date de fin est avant… »), donc aucune donnée fausse ; mais le message dit non et le bouton dit oui, ce que la même correction a justement supprimé pour les deux autres refus. Rejoué sur mac jour et nuit, petit écran nuit. Piste : poser `btn.disabled = true` dans la branche. Capture : restes2-recontrole-fin-avant-debut-petit-nuit.png (message ambre, bouton « Envoyer la proposition » plein)."
+  }
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-1-recontrole.js", "resultat": "17 ✓ · 0 ✗ (rejouée telle quelle)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-1.js", "resultat": "29 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-saisie.js", "resultat": "16 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-avis.js", "resultat": "24 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/taches-absences-recontrole-liens.js", "resultat": "20 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/sondes/menu-recontrole.js", "resultat": "137 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-2-recontrole.js (NOUVELLE : glisser réel, mode Déplacer, sélecteur réel, gestes qui doivent marcher, rôle technicien, touchcancel)", "resultat": "29 ✓ · 3 ✗ — les 3 ✗ sont le défaut « fin avant début : bouton actif » ci-dessus (ax-, am-, et le contrôle de l'état de Modifier les dates). Contre-épreuve : 4 mutations de la page (week-end retiré d'aAppliquer, demande en attente retirée, « touche » retiré de « Au », `aDepl = null` retiré du refus week-end) tombent chacune sur le contrôle visé : 24 ✓ · 8 ✗ (A, trois mutations) et 25 ✓ · 7 ✗ (B)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-2-recontrole-captures.js (NOUVELLE : captures du refus du glisser, Modifier les dates week-end Android nuit / iPad jour, fin avant début petit écran nuit)", "resultat": "4 ✓ · 3 ✗ (les 3 ✗ : « Nouvelle absence », fin avant début, bouton actif, mac jour, mac nuit, petit nuit — même défaut) ; captures relues : le refus et les panneaux week-end sont lisibles, dans la largeur, boutons grisés"},
+  { "fichier": "scratchpad/proto-final/sondes/menu-telephone.js", "resultat": "ÉCARTÉE : 3 ✗ par profil (liste du rôle, pied de la feuille, « Mon compte ») ; la sonde attend l'ancien menu — la page a depuis reçu Mon entreprise, Sécurité, Boîte mail et la carte « Mon compte » dans le pied (lots d'autres voies). Pas un défaut de ce lot : sonde à remettre à jour par la voie menu" }
+ ],
+ "doutes": [
+  "touchcancel : non prouvé sur appareil réel (la sonde rejoue l'événement). Si un Android produit quand même un clic au relâcher d'un appui long annulé, ce clic tomberait sur la feuille « Ma barre » ; à regarder sur un vrai téléphone",
+  "Un message de la page posé pendant la Comptabilité plein écran serait sous elle (pile IFRAME mesurée sur un message forcé) ; aucun geste réel n'en pose aujourd'hui, à revoir si un geste de la Comptabilité demande un message à la page",
+  "Pastille « Tâches » (1) contre l'écran « Aujourd'hui 7 · En retard 2 » : le chiffre est juste (retards de Marc seul) mais jamais expliqué ; décision de Justin",
+  "Au téléphone, la Comptabilité plein écran porte deux boutons à trois traits (« Menu » de la page et ≡ d'OP COMPTABLE) : un débutant peut hésiter ; décision de Justin",
+  "L'écouteur « data-axok » (Modifier les dates, enregistrer) n'a pas de garde `aLecture()` : un technicien ne peut pas ouvrir le panneau (menu et glisser gardés), seul un geste forcé depuis la console atteindrait aAppliquer. Lu dans le code, non rejoué ; sans effet par l'écran",
+  "Le glisser se rejoue à la souris uniquement ; le glisser au doigt (appui long) n'a pas été rejoué : aAppliquer est le même chemin, mais le geste tactile lui-même n'est pas prouvé par ce recontrôle"
+ ]
+}
