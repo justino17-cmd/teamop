@@ -245,7 +245,7 @@ body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sino
 .opdz-att[hidden]{display:none}
 .opdz-att-c{display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:420px}
 .opdz-att-c b{font-size:18px}
-.opd-liste .opd-t{margin:6px 0 4px;padding:0 12px}      /* le titre s'aligne sur le numéro des lignes (12 px de rembourrage, comme elles), pas sur le bord de la carte */.opd-nr{color:var(--orange)}
+.opd-liste .opd-t{margin:6px 0 4px;padding:0 12px}@media (max-width:1250px){.opd-liste .opd-t{padding:0 8px}}      /* le titre s'aligne sur le numéro des lignes (12 px de rembourrage, 8 px quand la ligne se resserre : le palier de .dv-l), pas sur le bord de la carte */.opd-nr{color:var(--orange)}
 .opd-cl{text-align:left}
 
 .gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}

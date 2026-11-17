@@ -24,7 +24,7 @@ const aides = f => f.evaluate(() => { const vis = e => e.getBoundingClientRect()
 (async () => {
   const c = await L.ouvrir({ profil: pr, nuit, qui: 'marc' }), p = c.p, W = c.largeur, une = W < 1032; console.log('── ' + tag + (une ? ' (une colonne)' : ' (deux colonnes)'));
   const devis = async () => { await L.aller(p, 'devis'); const f = await A.ouvrirAtelier(c, 'devis', null); await L.calme(p, 1000);
-    await clic(c, f, '[data-vv="client"][data-id="vp"]'); await f.locator('#vv-objet').fill('Remplacement du ventilateur extérieur'); for (const r of ['VE-DK-35', 'EL-ALL', 'MO-H']) await clic(c, f, `[data-vv="art-add"][data-id="${r}"]`); await L.calme(p, 600); return f; };
+    await clic(c, f, '[data-vv="client"][data-id="vp"]'); await f.locator('#vv-objet').fill('Remplacement du ventilateur extérieur'); for (const r of ['VE-DK-35', 'EL-ALL', 'MO-H']) if (await f.locator(`[data-vv="art-add"][data-id="${r}"]`).count()) await clic(c, f, `[data-vv="art-add"][data-id="${r}"]`); await L.calme(p, 600); return f; };
   const quitter = async f => { await p.keyboard.press('Escape'); await p.waitForTimeout(500); if (await f.locator('.dialogue').count()) { await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(900); } };
   // ── tout-04 : textes d'aide — devis (étape Conditions) puis contrat (étape Articles) ────────────────────────────────────────────────────
   let f = await devis(); await ouvrirEtapes(f, ['client', 'objet', 'matos', 'cond']); await L.calme(p, 500);
@@ -44,6 +44,8 @@ const aides = f => f.evaluate(() => { const vis = e => e.getBoundingClientRect()
     return { n: L2.length, sw: F.scrollWidth, cw: F.clientWidth, dehors: L2.flatMap(li => [...li.querySelectorAll('.vv-l-a .bt')].filter(b => b.getBoundingClientRect().right > R.right - Math.min(pad, 10) + 0.5).map(b => (b.getAttribute('aria-label') || b.textContent).trim().slice(0, 30) + ' ' + Math.round(b.getBoundingClientRect().right) + ' > ' + Math.round(R.right))) }; });
   v(`${tag} · contrat : ${rangees.n} articles, aucun bouton « Modifier le texte · ↑ · ↓ · ✕ » ne dépasse la colonne (${rangees.dehors.length} dehors)`, rangees.n >= 3 && rangees.dehors.length === 0, rangees);
   v(`${tag} · contrat : la colonne des étapes ne défile pas de côté (${rangees.sw} ≤ ${rangees.cw})`, rangees.sw <= rangees.cw + 1, rangees);
+  if (W >= 360) { const lignes = await f.evaluate(() => [...document.querySelectorAll('#vv-lig li.vv-a .vv-l-a')].map(r => new Set([...r.querySelectorAll('.bt')].map(b => Math.round(b.getBoundingClientRect().top))).size));
+    v(`${tag} · contrat : « Modifier le texte · ↑ · ↓ · ✕ » tiennent sur UNE ligne dans chacun des ${lignes.length} articles (lignes : ${[...new Set(lignes)].join(',')})`, lignes.length >= 3 && lignes.every(n => n === 1), lignes); }
   await f.locator('#vv-lig li.vv-a').nth(1).evaluate(e => e.scrollIntoView({ block: 'center' })); await L.calme(p, 300); await L.capture(c, CAP + tag + '-articles.png'); await quitter(f);
   // ── tout-01 : l'aperçu au téléphone — il s'ouvre lisible ; « Ajuster » montre la page entière ; le choix de la personne est respecté ──────────
   if (une) {

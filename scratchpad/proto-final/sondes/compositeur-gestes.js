@@ -112,6 +112,7 @@ const fermee = p => p.evaluate(() => { const z = document.getElementById('opdz')
     v(`${tag} ${type} · le menu « ⋯ » de l'éditeur est là (${c.largeur} px) pour un brouillon`, vis, null);
     await clic(c, f, '#b-plus'); await p.waitForTimeout(350);
     const items = await f.evaluate(() => [...document.querySelectorAll('.menu button, [role="menu"] button, .pop button')].map(b => b.textContent.trim()).filter(Boolean));
+    await L.capture(c, CAP + tag + '-menu-' + type + '.png');
     v(`${tag} ${type} · le menu propose « Supprimer ce brouillon »`, items.some(t => /Supprimer ce brouillon/.test(t)), items);
     if (!c.doigt && c.largeur > 760) v(`${tag} ${type} · à l'ordinateur le menu ne répète pas ce que la barre montre déjà (${items.length} geste)`, items.length === 1, items);
     await f.locator('button', { hasText: 'Supprimer ce brouillon' }).first().click(); await p.waitForTimeout(450);
