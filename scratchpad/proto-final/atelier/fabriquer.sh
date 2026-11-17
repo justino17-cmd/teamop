@@ -13,6 +13,8 @@ const sc=[...s.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].ma
 if(!sc.length){ console.error("✗ aucun script dans la source"); process.exit(1) }
 for(const x of sc){ try{ new Function(x) }catch(e){ console.error("✗ la source ne compile pas : "+e.message); process.exit(1) } }
 ' "$SRC"
-printf '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' > "$CIBLE.tmp"
+# la politique de contenu et celle du référent (S10 de l'audit de sécurité) : la même que celle des trois pages voisines ; une variable entre guillemets doubles, parce qu'elle porte des apostrophes
+POLITIQUE="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+printf '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="%s"><meta name="referrer" content="same-origin"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' "$POLITIQUE" > "$CIBLE.tmp"
 cat "$SRC" >> "$CIBLE.tmp"; printf '\n</body>\n</html>\n' >> "$CIBLE.tmp"
 mv "$CIBLE.tmp" "$CIBLE"; echo "✓ $CIBLE ($(wc -c < "$CIBLE") octets)"

@@ -22,7 +22,7 @@ exports.du = p => p.evaluate(() => Math.round(FACTURES.filter(f => ['envoyee', '
 exports.fiche = async (c, id) => { await c.p.evaluate(i => aller('facture-x-' + i), id); await L.calme(c.p, 450); };
 // ouvre le cadre plein écran par le menu, comme le fait une vraie personne
 exports.cadreOuvert = async c => { const cible = await c.p.evaluate(() => { const v = e => e && e.offsetParent !== null && e.getBoundingClientRect().width > 0; return v(document.querySelector('#menu a[href="#comptabilite"]')) ? '#menu a[href="#comptabilite"]' : '[data-tab="comptabilite"]'; });
-  await L.toucher(c, cible); await c.p.waitForTimeout(1500); return L.cadre(c.p); };   // ordinateur : le menu ; téléphone : l'onglet « Comptabilité » de la barre du bas
+  await L.toucher(c, cible); await c.p.waitForTimeout(1500); return L.cadre(c.p, /prototype-comptabilite\.html/); };   // (le cadre des documents est préchargé : on vise la Comptabilité) ordinateur : le menu ; téléphone : l'onglet « Comptabilité » de la barre du bas
 // remplit un champ d'une fenêtre ouverte
 exports.saisir = async (c, sel, val) => { const l = c.p.locator(sel).first(); await l.fill(String(val)); };
 exports.toasts = p => p.evaluate(() => { const t = document.getElementById('toast'); return t && !t.hidden ? t.textContent.replace(/\s+/g, ' ').trim() : ''; });

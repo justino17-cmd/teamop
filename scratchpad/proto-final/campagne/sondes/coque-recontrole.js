@@ -152,7 +152,8 @@ const ESPACE = { ok: 0 };
       v('C ' + nom + ' : N, C, D, A, ? et Ctrl+K n’ouvrent rien derrière lui et le focus ne part pas dans une fenêtre cachée', der2.devant && !der2.fen && !der2.panneau && !der2.pal && !der2.foc, der2);
       await p.keyboard.press('Escape'); await p.waitForTimeout(400);
       v('C ' + nom + ' : Échap le ferme, et rend les raccourcis (N ouvre « Nouvelle intervention »)', await p.evaluate(s => !document.querySelector(s), sel) && (await p.keyboard.press('n'), await p.waitForTimeout(500), await p.evaluate(() => !!document.querySelector('.fen-voile'))));
-      await p.evaluate(() => { try { closeModal && closeModal(); } catch (e) {} document.querySelectorAll('.fen-voile').forEach(e => e.remove()); });
+      // on ferme PAR LE GESTE (Échap) : retirer la fenêtre du DOM laissait l'état de création en route, et aller() la redessinait
+      await p.keyboard.press('Escape'); await p.waitForTimeout(500);
     }
     // visionneuse de justificatif : ouverte par cxVoir (compta) — on cherche une pièce
     const vis = await p.evaluate(() => { try { aller('comptabilite'); } catch (e) {} return typeof cxVoir === 'function'; });

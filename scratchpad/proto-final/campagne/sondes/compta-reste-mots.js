@@ -8,7 +8,7 @@ const ECHAF = /prototype|vraie version|pour l.essai|d.exemple|fictif|fictive|sim
   for (const [o, nom] of X.ONGLETS) {
     await X.compta(c, o); await L.calme(p, 400); const t = await X.texte(p); sortie[o] = t;
     const m = [...new Set((t.match(new RegExp('[^.\\n]*(' + ECHAF.source + ')[^.\\n]*', 'gi')) || []).map(s => s.trim().slice(0, 160)))];
-    L.v(`mots · ${nom} : aucun reste d'échafaudage`, m.length === 0, m);
+    L.v(`compta-reste-07 · mots · ${nom} : aucun reste d'échafaudage`, m.length === 0, m);
   }
   fs.writeFileSync(`${__dirname}/../mots-compta-reste.json`, JSON.stringify(sortie, null, 1));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
