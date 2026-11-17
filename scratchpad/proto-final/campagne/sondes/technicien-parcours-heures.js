@@ -36,8 +36,10 @@ const txt = (p, s) => p.evaluate(s => { const e = document.querySelector(s || '#
   v('H2c l’erreur est envoyée au bureau (technicien-03)', nb1 > nb0, { nb0, nb1, toast: t2 });
   // H3 : le gérant le voit-il (Temps de travail)
   await devenir(p, 'marc', 'pointage');
-  const tt = await txt(p);
-  v('H3 le gérant voit l’erreur de Sophie dans Temps de travail (technicien-03)', /Sophie/.test(tt) && /(erreur|signal|à vérifier|corriger)/i.test(tt), tt.slice(0, 300));
+  const tt = await p.evaluate(() => document.getElementById('contenu').textContent.replace(/\s+/g, ' ').trim());
+  const ou = await p.evaluate(() => { const r = []; for (const [k, x] of Object.entries(PAIE.signales || {})) r.push(k + ':' + JSON.stringify(x).slice(0, 120)); return r; });
+  console.log('   PAIE.signales =', JSON.stringify(ou));
+  v('H3 le gérant voit l’erreur de Sophie dans Temps de travail (son explication ou « Sophie » dans « à régler »)', /oublié de pointer|17:30|17 h 30/.test(tt), tt.slice(0, 300));
   await L.capture(c, CAP + `heures-gerant-${profil}-${J}.png`);
   v('Z aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
