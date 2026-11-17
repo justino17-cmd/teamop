@@ -13,6 +13,8 @@ const { L, ouvrirAchats, CAP } = require('./achats-outils.js'), v = L.v;
   await E(() => { const b = document.querySelector('[data-ac^="transfert|' + 'X' + '"]'); });
   await p.evaluate(id => document.querySelector('[data-ac="transfert|' + id + '"]').scrollIntoView({ block: 'center' }), cible[0]); await L.calme(p, 300);
   await L.toucher(c, '[data-ac="transfert|' + cible[0] + '"]'); await L.calme(p, 500);
+  const ph = await p.evaluate(() => { const i = document.querySelector('#calque .panneau .info'); return i ? i.textContent.replace(/\s+/g, ' ').trim() : ''; });
+  if (cible[2]) v('13 (achats-13) la question du camion au garage nomme le camion et la quantité : « ' + ph + ' »', /^Le camion de .+ est au garage\. Mettre quand même [\d\u00a0\u202f ,]+ \S+ dedans \?$/.test(ph), ph);
   if (/au garage/.test(await p.evaluate(() => (document.querySelector('#calque .panneau') || {}).textContent || ''))) { await L.toucher(c, '[data-ac^="transfertok"]'); await L.calme(p, 700); }
   const m = await E(() => { const t = document.getElementById('toast'), pan = document.querySelector('#calque .panneau'), r = e => { const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
     const bts = pan ? [...pan.querySelectorAll('button')].filter(b => b.offsetParent).map(b => [b.textContent.trim().slice(0, 30), r(b)]) : [];

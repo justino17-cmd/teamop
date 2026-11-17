@@ -20,9 +20,9 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   await p.evaluate(() => ACTIONS.finContratOk({ dataset: { id: 'c1' } })); await L.calme(p, 300);
   const k2 = await O.creerSigner(c, { modele: 'clim', cli: 'mi', freq: 4, prix: 1200, fact: 'visite', lieu: 'la clim' });
   v('A le nouveau contrat de « mi » est créé et signé', !!k2, k2);
-  const ap = await p.evaluate(id => { const k = CONTRATS.find(x => x.id === id), tit = n => `Contrat — visite ${n} sur 4`; return { faites: ctrFaites(k), a: CONTRATS.find(x => x.id === 'c1').st, mesVisites: INTS.filter(i => ctrDeVisite(i) === k).map(i => i.id + ':' + i.st + ':' + i.d), doublons: [1, 2, 3, 4].map(n => INTS.filter(i => i.cli === 'mi' && i.titre === tit(n) && i.st !== 'annulee').length) }; }, k2 && k2.id);
+  const ap = await p.evaluate(id => { const k = CONTRATS.find(x => x.id === id), tit = n => `Contrat — visite ${n} sur 4`; return { faites: ctrFaites(k), a: CONTRATS.find(x => x.id === 'c1').st, mesVisites: INTS.filter(i => ctrDeVisite(i) === k).map(i => i.id + ':' + i.st + ':' + i.d), doublons: [1, 2, 3, 4].map(n => INTS.filter(i => i.cli === 'mi' && i.titre === tit(n) && i.st !== 'annulee' && ctrDeVisite(i) === k).length), anciennes: INTS.filter(i => i.cli === 'mi' && /^Contrat — visite/.test(i.titre) && ctrDeVisite(i) && ctrDeVisite(i).id === 'c1').map(i => i.id + ':' + i.st), passees: INTS.filter(i => ctrDeVisite(i) === k && i.st !== 'fait' && i.d < AUJ).map(i => i.id + ':' + i.d) }; }, k2 && k2.id);
   v('A le nouveau contrat n’hérite pas des visites FAITES de l’ancien : 0 sur 4 faites', ap.faites === 0, ap);
-  v('A une seule visite par rang au planning pour ce client (pas de visite 2 en double, ni dans le passé)', ap.doublons.every(n => n === 1), ap.doublons);
+  v('A le nouveau contrat a UNE visite par rang, aucune dans le passé ; les visites de l’ancien restent à l’ancien (terminé)', ap.doublons.every(n => n === 1) && ap.passees.length === 0 && ap.anciennes.includes("i22:fait"), ap);   // i22 : la visite 2 FAITE de c1 reste à c1
   if (k2) { await L.aller(p, 'contrat-x-' + k2.id); const t = await txt(p); v('A la fiche du nouveau contrat dit « 0 sur 4 faites »', /0 sur 4 faites/.test(t), t.slice(0, 240)); }
 
   // ───────────── B : visites sorties du planning ─────────────
@@ -48,6 +48,7 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
     bruts[prix] = await p.evaluate(n => ({ cree: CONTRATS.length > n, prix: CONTRATS.length > n ? CONTRATS[CONTRATS.length - 1].prix : null, toast: (document.getElementById('toast') || {}).textContent || '', nan: /NaN|Infinity/.test(document.getElementById('contenu').textContent) }), n0); bruts[prix].err = c.err.length - e0; }
   v('C un prix 0, négatif, vide ou non numérique ne crée pas un contrat', ['0', '-50', 'abc', ''].every(k => !bruts[k].cree), bruts);
   v('C aucun « NaN » à l’écran (aperçu du contrat) ni erreur sur ces essais (prix saisi « abc »)', Object.values(bruts).every(b => !b.nan && b.err === 0), bruts);
+  v('C un prix à trois décimales (« 1000.005 ») se range en centimes : deux décimales au plus', bruts['1000.005'].cree && Math.abs(bruts['1000.005'].prix * 100 - Math.round(bruts['1000.005'].prix * 100)) < 1e-6, bruts['1000.005']);
   console.log('  · prix 99999999 / 1000.005 :', JSON.stringify([bruts['99999999'], bruts['1000.005']]));
   await L.fin(c);
 
@@ -63,7 +64,7 @@ const txt = (p, z) => p.evaluate(z => ((document.querySelector(z || '#contenu') 
   }
   v('D aucune écriture négative, « NaN » ou erreur pour une fin à −16, −1, 0, +1, +2 jours', Object.values(jours).every(j => !j.neg && !j.nan && j.err === 0), jours);
   v('D la veille : « échu depuis 1 jour » (singulier) quelque part', jours.veille.mots.some(m => /échu depuis 1 jour\b/.test(m) || /échu depuis 1 j\b/.test(m)), jours.veille);
-  v('D le lendemain : « dans 1 jour » au singulier, jamais « 1 jours »', !jours.demain.mots.some(m => /1 jours/.test(m)), jours.demain);
+  v('D le lendemain : « dans 1 jour » au singulier, jamais « 1 jours »', !jours.demain.mots.some(m => /(^|[^0-9])1 jours/.test(m)), jours.demain);
   await L.fin(c);
 
   // ───────────── E : le technicien (sm) ─────────────

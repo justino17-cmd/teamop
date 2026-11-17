@@ -12,21 +12,23 @@ const att = (p, f, ms) => L.attendre(p, f, ms || 6000);
   await L.toucher(c, bouton); await L.calme(p, 800);
   v('le rôle Client ouvre l’espace client', await att(p, () => /Accueil|Bonjour|espace/i.test((document.querySelector('#contenu h1') || {}).textContent || '') || document.body.classList.contains('rl-client') || !!document.querySelector('#contenu .ec-seg, #contenu .ec-l, #contenu [data-ec]')));
   await p.screenshot({ path: CAP + `client-accueil-${PROFIL}.png` });
-  const lignes = TEL ? null : await p.evaluate(() => [...document.querySelectorAll('#menu .rl-mlien')].map(b => b.textContent.trim()));
-  const attendu = ['Accueil', 'Mes factures', 'Mes interventions', 'Mes devis', 'Mon contrat'];
-  if (!TEL) {
-    v('menu du client : ' + JSON.stringify(lignes), JSON.stringify(lignes.map(t => t.replace(/\d+$/, '').replace(/^[^A-Za-zÀ-ÿ]+/, ''))) === JSON.stringify(attendu), lignes);
-    for (const t of attendu) { const b = p.locator('#menu .rl-mlien', { hasText: t }).first(); await L.toucher(c, b); await L.calme(p, 400);
-      const on = await p.evaluate(() => (document.querySelector('#menu .rl-mlien.on') || {}).textContent || ''); const seg = await p.evaluate(() => (document.querySelector('#contenu [aria-selected="true"]') || {}).textContent || '');
-      v('menu client › « ' + t + ' » : ligne allumée « ' + on.trim() + ' », onglet « ' + seg.trim() + ' »', on.includes(t) && (seg === '' || seg.toLowerCase().includes(t.replace('Mes ', '').replace('Mon ', '').replace(/s$/, '').slice(0, 5).toLowerCase()) || t === 'Accueil'), { on, seg }); }
+  const attendu = ['Accueil', 'Factures', 'Interventions', 'Devis', 'Contrat'];   // les mêmes mots et le même ordre partout (client-14)
+  if (!TEL) {   // UNE navigation par appareil : à l'ordinateur ce sont les onglets de la page ; le menu de gauche ne répète pas les cinq entrées
+    const lignes = await p.evaluate(() => [...document.querySelectorAll('#menu .rl-mlien')].length);
+    v('menu du client : plus de ligne répétée (les onglets de la page sont la navigation)', lignes === 0, lignes);
+    const onglets = await p.evaluate(() => [...document.querySelectorAll('#contenu .ec-seg button')].map(b => b.textContent.replace(/\s*·.*$/, '').trim()));
+    v('onglets de la page du client : ' + onglets.join(' · '), onglets.join('|') === attendu.join('|'), onglets);
+    for (const t of attendu) { await L.toucher(c, p.locator('#contenu .ec-seg button', { hasText: t }).first()); await L.calme(p, 400);
+      const seg = await p.evaluate(() => (document.querySelector('#contenu .ec-seg [aria-selected="true"]') || {}).textContent || '');
+      v('onglet client › « ' + t + ' » allumé (« ' + seg.trim() + ' »)', seg.includes(t), seg); }
   } else {
     const onglets = await p.evaluate(() => [...document.querySelectorAll('#barre-bas .opg-tab .t-n')].map(b => b.textContent.trim()));
-    v('barre du client : Accueil · Factures · Devis · Interventions · Contrat', onglets.join('|') === 'Accueil|Factures|Devis|Interventions|Contrat', onglets);
+    v('barre du client : Accueil · Factures · Interventions · Devis · Contrat', onglets.join('|') === attendu.join('|'), onglets);
     for (const t of onglets) { await L.toucher(c, p.locator('#barre-bas .opg-tab', { hasText: t }).first()); await L.calme(p, 400);
       const on = await p.evaluate(() => (document.querySelector('#barre-bas .opg-tab.on .t-n') || {}).textContent || ''); v('barre client › « ' + t + ' » allumée (« ' + on + ' »)', on === t); }
     await L.toucher(c, '.tt-menu'); await L.calme(p, 400);
     const f = await p.evaluate(() => [...document.querySelectorAll('#calque .fm-liste .ligne-clic b')].map(b => b.textContent.trim()));
-    v('feuille Menu du client : ' + f.join(' · '), f.join('|') === attendu.join('|'), f);
+    v('feuille Menu du client : plus les cinq destinations (la barre du bas est sa seule navigation)', f.length === 0, f);
     await p.screenshot({ path: CAP + `client-feuille-${PROFIL}.png` }); await L.ranger(p);
   }
   // le logo ramène à l'accueil du client

@@ -35,9 +35,9 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
     for (const [nom, pa, auto, attendu] of [
       ['A1 · Chèque, acompte 40,50 €, facture à valider', { etat: 'acompte', mode: 'Chèque', montant: '40,50', ticket: false }, false, true],
       ['A2 · Espèces, « payé en totalité » SANS montant (« si tu le connais »), facture à valider', { etat: 'total', mode: 'Espèces', montant: '', ticket: false }, false, true],
-      ['A3 · Carte, « payé en totalité » sans montant, facture à valider (la carte passe par le terminal, pas de « reçu sur place » : aucune ligne, rien compté — comme au chargement)', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, false],
+      ['A3 · Carte, « payé en totalité » sans montant, facture à valider (décision du chef, 17/11 : le moyen ne change pas la règle — une ligne, comptée, comme pour les espèces)', { etat: 'total', mode: 'Carte', montant: '', ticket: false }, false, true],
       ['A4 · Virement, « payé en totalité » sans montant, envoi automatique', { etat: 'total', mode: 'Virement', montant: '', ticket: false }, true, true],
-      ['A6 · Carte, acompte 30 € (terminal), facture à valider : aucune ligne, rien compté', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, false],
+      ['A6 · Carte, acompte 30 € (terminal), facture à valider : une ligne, comptée (même règle que les espèces)', { etat: 'acompte', mode: 'Carte', montant: '30', ticket: true }, false, true],
       ['A7 · Chèque, « payé en totalité » SANS montant, facture à valider', { etat: 'total', mode: 'Chèque', montant: '', ticket: false }, false, true],
       ['A8 · Espèces, « payé en totalité » avec un montant retapé (150), facture à valider', { etat: 'total', mode: 'Espèces', montant: '150', ticket: false }, false, true],
       ['A5 · contre-épreuve : « pas encore payé » ne fait AUCUNE ligne', { etat: 'rien', mode: 'Carte', montant: '', ticket: false }, false, false]]) {
