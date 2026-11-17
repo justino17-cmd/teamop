@@ -63,6 +63,8 @@ const tache = (p, id) => p.evaluate(id => { const x = TACHES.find(o => o.id === 
   v('B4 : « Annuler » vide la sélection et ferme la barre', await p.evaluate(() => !document.querySelector('.t-selbarre') && tSel.size === 0));
   await p.evaluate(() => { document.querySelector('[data-tsel=t3]').click(); document.querySelector('[data-tsel=t13]').click(); }); await L.calme(p, 300);
   await p.evaluate(() => document.querySelector('[data-tsfait]').click()); await L.calme(p, 500);
+  // une tâche qui se termine toute seule (relance de facture…) fait d'abord demander « Qu'as-tu fait ? » (recontrôle du 17 novembre : le banc attendait la fin immédiate)
+  if (await p.evaluate(() => !!document.querySelector('#calque [data-tkxlot]'))) { await p.evaluate(() => document.querySelector('#calque [data-tkxlot]').click()); await L.calme(p, 500); }
   const fl = await p.evaluate(() => [TACHES.find(x => x.id === 't3').fait, TACHES.find(x => x.id === 't13').fait, (document.getElementById('toast') || {}).textContent]);
   v('B4 : « ✓ Fait » termine les deux choisies', !!fl[0] && !!fl[1], fl);
   console.log('toast lot :', fl[2]);
