@@ -2048,9 +2048,9 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 @media (min-width:761px) and (max-width:1000px){.cx-bal,.cx-gl-l,.cx-crow,.cx-centete,.cx-krow,.cx-ktete,.paie-r{min-width:640px}.cx-liste,.paie-liste{overflow-x:auto}}
 /* un tableau qui défile le DIT : un fondu du côté où il reste de la place (« DÉBIT CRÉDIT SOLDE DÉBITEUR CR… » se lisait comme une page cassée, compta-reste-11) ;
    les classes sont posées par defileRepere(), seulement quand le tableau déborde vraiment */
-.cx-liste.d-plus-droite,.paie-liste.d-plus-droite{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
-.cx-liste.d-plus-gauche,.paie-liste.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px);mask-image:linear-gradient(to right,transparent,#000 44px)}
-.cx-liste.d-plus-droite.d-plus-gauche,.paie-liste.d-plus-droite.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+.cx-liste.d-plus-droite,.paie-liste.d-plus-droite,.tableau.d-plus-droite{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
+.cx-liste.d-plus-gauche,.paie-liste.d-plus-gauche,.tableau.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px);mask-image:linear-gradient(to right,transparent,#000 44px)}
+.cx-liste.d-plus-droite.d-plus-gauche,.paie-liste.d-plus-droite.d-plus-gauche,.tableau.d-plus-droite.d-plus-gauche{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
 /* ══ Le test guidé (8 novembre 2026) : l'ombre, la lumière sur la cible, la bulle ══ */
 .gd-spot{position:fixed;z-index:100001;border-radius:14px;pointer-events:none;box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 3px #4f8cff,0 0 22px 4px rgba(79,140,255,.65);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease;animation:gd-pouls 1.6s ease-in-out infinite}
 @keyframes gd-pouls{50%{box-shadow:0 0 0 9999px rgba(6,10,18,.58),0 0 0 5px #4f8cff,0 0 30px 8px rgba(79,140,255,.75)}}
@@ -5686,9 +5686,9 @@ function bilanPdf(){
      et disait 3 045,00 € là où les deux autres écrans disaient 3 085,00 € (compta-reste-10) */
   const E = cpEncOct(), tot = cpR(E.reduce((s,e)=>s+e.ttc,0)), tv = cpTva(), terrain = cpPaieTerrain(), htTot = cpR(tv.taux.reduce((s,x)=>s+x.ht,0));
   return `<div class="pdf" data-nom="Bilan des encaissements octobre 2026.pdf" data-a="${esc(CP_EXPERT.mail)}" data-objet="Bilan des encaissements d’octobre 2026 — ${esc(ENTREPRISE.nom)}" data-corps="${esc(`Bonjour,\n\nVoici le bilan des encaissements d’octobre 2026.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`)}"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Bilan des encaissements</h4>Octobre 2026<br>édité le 31/10/2026</div></div>
-    <h6>Synthèse</h6><table><tbody><tr><td>Chiffre d’affaires encaissé HT</td><td style="text-align:right">${eur(htTot)}</td></tr>${tv.taux.map(x => `<tr><td>TVA collectée à ${String(x.t).replace('.', ',')} % (base ${eur(x.ht)})</td><td style="text-align:right">${eur(x.tva)}</td></tr>`).join('')}<tr><td><b>Total encaissé TTC</b></td><td style="text-align:right"><b>${eur(tot)}</b></td></tr>${terrain.length ? `<tr><td class="gris">dont reçus sur place, pas encore sur une facture</td><td style="text-align:right">${eur(cpR(terrain.reduce((s,e)=>s+e.ttc,0)))}</td></tr>` : ''}</tbody></table>
-    <h6>Par moyen de paiement</h6><table><tbody>${['Carte','Virement','Chèque','Espèces'].map(m=>`<tr><td>${m}</td><td style="text-align:right">${eur(E.filter(e=>e.mode===m).reduce((s,e)=>s+e.ttc,0))}</td></tr>`).join('')}</tbody></table>
-    <h6>Détail · ${E.length} paiements</h6><table><thead><tr><th>Date</th><th>Client</th><th>Facture</th><th>Moyen</th><th style="text-align:right">TTC</th></tr></thead><tbody>${E.map(e=>`<tr><td>${e.d}</td><td>${esc(CLIENTS[e.cli].nom)}</td><td>${e.virtuel ? 'reçu sur place' : e.fac}</td><td>${e.mode}</td><td style="text-align:right">${eur(e.ttc)}</td></tr>`).join('')}</tbody></table>
+    <h6>Synthèse</h6><table><tbody><tr><td>Chiffre d’affaires encaissé HT</td><td style="text-align:right;white-space:nowrap">${eur(htTot)}</td></tr>${tv.taux.map(x => `<tr><td>TVA collectée à ${String(x.t).replace('.', ',')} % (base ${eur(x.ht)})</td><td style="text-align:right;white-space:nowrap">${eur(x.tva)}</td></tr>`).join('')}<tr><td><b>Total encaissé TTC</b></td><td style="text-align:right;white-space:nowrap"><b>${eur(tot)}</b></td></tr>${terrain.length ? `<tr><td style="color:#5a6578">dont reçus sur place, pas encore sur une facture</td><td style="text-align:right;white-space:nowrap">${eur(cpR(terrain.reduce((s,e)=>s+e.ttc,0)))}</td></tr>` : ''}</tbody></table>
+    <h6>Par moyen de paiement</h6><table><tbody>${['Carte','Virement','Chèque','Espèces'].map(m=>`<tr><td>${m}</td><td style="text-align:right;white-space:nowrap">${eur(E.filter(e=>e.mode===m).reduce((s,e)=>s+e.ttc,0))}</td></tr>`).join('')}</tbody></table>
+    <h6>Détail · ${E.length} paiements</h6><table><thead><tr><th>Date</th><th>Client</th><th>Facture</th><th>Moyen</th><th style="text-align:right">TTC</th></tr></thead><tbody>${E.map(e=>`<tr><td style="white-space:nowrap">${e.d}</td><td>${esc(CLIENTS[e.cli].nom)}</td><td>${e.virtuel ? 'reçu sur place' : e.fac}</td><td style="white-space:nowrap">${e.mode}</td><td style="text-align:right;white-space:nowrap">${eur(e.ttc)}</td></tr>`).join('')}</tbody></table>
     <div class="pdf-pied">Document de suivi, à transmettre à l’expert-comptable.${terrain.length ? ' Les sommes reçues sur place seront rattachées à leur facture quand elle sera émise.' : ''}</div></div>`;
 }
 
@@ -11391,6 +11391,10 @@ function cxMentionsManquantes(){
 }
 const CX_ETATS = { non:['À régler', 'st-r'], att:['À surveiller', 'st-o'], avenir:['À préparer', 'st-b'], ok:['En règle', 'st-v'], auto:['Fait par OP GESTION', 'st-p'], info:['Bon à savoir', 'st-g'] };
 const cxVerifies = conf => conf.filter(c => c.v);
+/* les points qui ont un verdict (en règle, à régler, à surveiller) : UNE population pour le grand chiffre, la pastille de Pilotage et les pastilles de la page « Aux normes ».
+   Avant, le grand chiffre ne comptait que les points vérifiés tout seuls (13) pendant que les pastilles comptaient aussi deux points à surveiller que le logiciel ne
+   peut pas vérifier (14) : « 0 sur 13 » à côté de « 6 à régler · 8 à surveiller » (compta-reste-13). */
+const cxSuivis = conf => conf.filter(c => c.s === 'ok' || c.s === 'non' || c.s === 'att');
 const CX_GROUPES_CONF = [['factures', 'Tes factures', '🧾'], ['efacture', 'La facture électronique', '📡'], ['argent', 'Ton argent', '💶'], ['achats', 'Tes achats', '📦'], ['tva', 'La TVA', '📒'], ['archives', 'Tes archives', '🗄️'], ['entreprise', 'Ton entreprise', '🏢']];
 function cxPdfTexte(f){ return f ? pdfFacture(f).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : ''; }
 /* ce que la facture IMPRIME vraiment : on fabrique le PDF d'une facture pro et d'une facture de particulier, et on y cherche
@@ -11516,14 +11520,14 @@ function cxVueTableau(K, D, DD, conf){
     const t = T.filter(x => CX_A_TRAITER.includes(x.st)), rt = t.filter(x => x.st === 'retard'), tot = cpR(T.reduce((s, x) => s + (x.ttc || 0), 0));
     return `<button type="button" class="cx-tuile" data-cx="cat|${c.k}"><span class="cx-ti" aria-hidden="true">${c.ic}</span><span class="cx-tc"><b>${c.l}</b><span class="gris petit">${T.length} pièce${T.length > 1 ? 's' : ''} · ${eur(Math.abs(tot))} TTC</span>
       ${t.length ? `<span class="cx-tt${rt.length ? ' rt' : ''}">${t.length} à traiter${rt.length ? ' · ' + rt.length + ' en retard' : ''}</span>` : '<span class="cx-tt ok">À jour</span>'}</span><span class="cx-chev" aria-hidden="true">›</span></button>`; }).join('');
-  const ok = cxVerifies(conf).filter(c => c.s === 'ok').length, nc = conf.filter(c => c.s === 'non').length;
+  const ok = cxSuivis(conf).filter(c => c.s === 'ok').length, nc = conf.filter(c => c.s === 'non').length;
   return `<div class="kpis cx-kpis">
     <button type="button" class="kpi" data-cx="sec|fventes|ventes"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${K.facOct.length} facture${K.facOct.length > 1 ? 's' : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|paiements"><b style="color:var(--vert)">${eur(K.encTTC)}</b><span>encaissé en octobre (TTC)${K.terrain.length ? ` <i class="cp-k">+ ${eur(cpR(K.terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|fachats|achats"><b>${eur(K.charges)}</b><span>dépenses d’octobre (TVA récupérable exclue), payées ou non</span></button>
     <button type="button" class="kpi" data-cx="sec|resultat"><b style="color:${K.resultat < 0 ? 'var(--rouge)' : 'inherit'}">${eur(K.resultat)}</b><span>résultat provisoire d’octobre : facturé moins dépenses, ${PAIE.compta ? 'salaires et charges sociales compris' : 'sans salaires ni charges sociales'}</span></button>
     <button type="button" class="kpi" data-cx="sec|banque"><b>${eur(K.treso)}</b><span>trésorerie · banque ${eur(K.soldeBq)}${K.enRoute ? ' + en route ' + eur(K.enRoute) : ''}${K.enMain ? ' + en main ' + eur(K.enMain) : ''}</span></button>
-    <button type="button" class="kpi" data-cx="sec|normes"><b style="color:${nc ? 'var(--rouge)' : 'var(--vert)'}">${ok} / ${cxVerifies(conf).length}</b><span>points de conformité vérifiés en règle${nc ? ' · ' + nc + ' à régler' : ''}</span></button></div>
+    <button type="button" class="kpi" data-cx="sec|normes"><b style="color:${nc ? 'var(--rouge)' : 'var(--vert)'}">${ok} / ${cxSuivis(conf).length}</b><span>points de conformité en règle${nc ? ' · ' + nc + ' à régler' : ''}</span></button></div>
   <div class="carte cx-afaire"><div class="cx-t"><h3>À faire · ${L.length}</h3><span class="gris petit">Le plus urgent en haut. Chaque ligne mène là où ça se règle.</span></div>
     ${L.map(([p, ic, t, d, m, bl, at]) => `<div class="cx-af ${cl[p]}"><span class="cx-ti" aria-hidden="true">${ic}</span><span class="cx-tc"><b>${t}</b>${d ? `<span class="gris petit">${d}</span>` : ''}</span>${m != null ? `<b class="cx-af-m">${eur(m)}</b>` : '<span></span>'}<button type="button" class="btn ${p < 2 ? '' : 'gris '}petit" ${at}>${bl}</button></div>`).join('')}</div>
   <div class="carte"><div class="cx-t"><h3>Tes pièces, par catégorie</h3><span class="actions"><button type="button" class="lien" data-cx="sec|fventes|ventes">Factures et avoirs ›</button><button type="button" class="lien" data-cx="sec|fachats|achats">Tous les achats ›</button></span></div>
@@ -11583,11 +11587,11 @@ function cxReleveFour(k){
 
 /* ─── Conformité · le contrôle « aux normes » ─── */
 function cxVueNormes(conf){
-  const n = s => conf.filter(c => c.s === s).length, V = cxVerifies(conf), compte = V.length, ok = V.filter(c => c.s === 'ok').length, pc = Math.round(ok / compte * 100);
+  const n = s => conf.filter(c => c.s === s).length, V = cxSuivis(conf), compte = V.length, ok = V.filter(c => c.s === 'ok').length, pc = Math.round(ok / compte * 100);
   const ligne = c => { const e = CX_ETATS[c.s]; return `<div class="cx-norme cx-n-${c.s}" data-k="${c.k}"><span class="st ${e[1]}">${e[0]}</span><span class="cx-tc"><b>${c.t}</b><span class="gris petit">${c.d}</span>${c.ref ? `<span class="cx-ref">${esc(c.ref)}</span>` : ''}</span>${c.act ? `<button type="button" class="btn ${c.s === 'non' ? '' : 'gris '}petit" ${c.act[1]}>${c.act[0]}</button>` : '<span></span>'}</div>`; };
-  return `<div class="carte cx-score"><div class="cx-score-g"><b class="${n('non') ? 'neg' : 'pos'}">${ok} sur ${compte}</b><span>points vérifiés sur tes données sont en règle</span><span class="cx-barre cx-barre-l" aria-hidden="true"><i style="width:${pc}%"></i></span></div>
+  return `<div class="carte cx-score"><div class="cx-score-g"><b class="${n('non') ? 'neg' : 'pos'}">${ok} sur ${compte}</b><span>points suivis sont en règle</span><span class="cx-barre cx-barre-l" aria-hidden="true"><i style="width:${pc}%"></i></span></div>
       <div class="cx-score-d">${[['non', 'à régler'], ['att', 'à surveiller'], ['avenir', 'à préparer'], ['auto', 'faits par OP GESTION']].map(([s, l]) => `<span class="st ${CX_ETATS[s][1]}">${n(s)} ${l}</span>`).join('')}</div>
-      <span class="gris petit">Les points « en règle », « à régler » et « à surveiller » se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats). « Fait par OP GESTION » : c’est le logiciel qui le garantit, il n’y a rien à vérifier de ton côté. Les références des textes t’aident à t’y retrouver ; ton expert-comptable reste celui qui valide.</span></div>
+      <span class="gris petit">Les points « en règle », « à régler » et « à surveiller » sont comptés ensemble : la plupart se vérifient tout seuls sur tes données (fiche, factures et leur PDF, banque, caisse, achats), les autres demandent ton attention. « Fait par OP GESTION » : c’est le logiciel qui le garantit, il n’y a rien à vérifier de ton côté. Les références des textes t’aident à t’y retrouver ; ton expert-comptable reste celui qui valide.</span></div>
     ${CX_GROUPES_CONF.map(([g, t, ic]) => { const G = conf.filter(c => c.g === g); return G.length ? `<div class="carte cx-normes"><h3 class="cx-ng"><span class="cx-ng-i" aria-hidden="true">${ic}</span><span>${t}</span></h3>${G.map(ligne).join('')}</div>` : ''; }).join('')}`;
 }
 function cxVueArchives(K, D){
@@ -11713,7 +11717,7 @@ function cxJustifDoc(type, id){   // { titre, html, vraie }
 }
 function cxJustifMini(type, id){
   const J = cxJustifDoc(type, id); if (!J) return '';
-  return `<button type="button" class="cx-jmini" data-cx="justif|${type}|${id}" aria-label="Voir en grand : ${esc(J.titre)}"><span class="cx-jmini-doc">${J.html}</span><span class="cx-jmini-voir">Voir en grand</span></button>${J.vraie ? '' : '<span class="gris mini">Aperçu fictif (données de démonstration) : dans la vraie version, c’est la photo prise par la personne.</span>'}`;
+  return `<button type="button" class="cx-jmini" data-cx="justif|${type}|${id}" aria-label="Voir en grand : ${esc(J.titre)}"><span class="cx-jmini-doc">${J.html}</span><span class="cx-jmini-voir">Voir en grand</span></button>${J.vraie ? '' : '<span class="gris mini">Aperçu de la pièce, sans photo : celle prise par la personne s’affiche ici dès qu’elle est ajoutée.</span>'}`;
 }
 function cxJustifLigne(a){
   const L = a.piece === 'facture' ? ['📎', a.just || 'Facture', 'Facture', 'st-v'] : a.piece === 'ticket' ? ['🧾', a.just || 'Ticket de carte', 'Ticket seul', 'st-o'] : a.piece === 'autre' ? ['📄', a.just || 'Échéancier', 'Échéancier', 'st-b'] : null;
@@ -11725,7 +11729,7 @@ function cxVoir(type, id){
   const J = cxJustifDoc(type, id); if (!J) return;
   document.getElementById('cx-vis')?.remove();
   const z = document.createElement('div'); z.id = 'cx-vis'; z.className = 'cx-vis'; z.setAttribute('role', 'dialog'); z.setAttribute('aria-modal', 'true'); z.setAttribute('aria-label', J.titre);
-  z.innerHTML = `<div class="cx-vis-barre"><b>${esc(J.titre)}</b><button type="button" class="cx-vis-x" data-cxvis="1" aria-label="Fermer">✕</button></div><div class="cx-vis-fond" data-cxvis="1"><div class="cx-vis-doc">${J.html}</div>${J.vraie ? '' : '<span class="cx-vis-note">Aperçu fictif : dans la vraie version, c’est la photo prise par la personne.</span>'}</div>`;
+  z.innerHTML = `<div class="cx-vis-barre"><b>${esc(J.titre)}</b><button type="button" class="cx-vis-x" data-cxvis="1" aria-label="Fermer">✕</button></div><div class="cx-vis-fond" data-cxvis="1"><div class="cx-vis-doc">${J.html}</div>${J.vraie ? '' : '<span class="cx-vis-note">Aperçu de la pièce, sans photo : celle prise par la personne s’affiche ici dès qu’elle est ajoutée.</span>'}</div>`;
   document.body.appendChild(z); z.querySelector('.cx-vis-x').focus();
 }
 const cxVoirFermer = () => document.getElementById('cx-vis')?.remove();
@@ -12285,8 +12289,8 @@ addEventListener('resize', () => menuRepere());
 function defileRepere(l){ const reste = l.scrollWidth - l.clientWidth;
   l.classList.toggle('d-plus-droite', reste > 4 && l.scrollLeft < reste - 4); l.classList.toggle('d-plus-gauche', reste > 4 && l.scrollLeft > 4); }
 let defileAttente = 0;
-function defileRepereTout(){ if (defileAttente) return; defileAttente = requestAnimationFrame(() => { defileAttente = 0; document.querySelectorAll('.cx-liste, .paie-liste').forEach(defileRepere); }); }
-document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && (t.classList.contains('cx-liste') || t.classList.contains('paie-liste'))) defileRepere(t); }, true);
+function defileRepereTout(){ if (defileAttente) return; defileAttente = requestAnimationFrame(() => { defileAttente = 0; document.querySelectorAll('.cx-liste, .paie-liste, .tableau').forEach(defileRepere); }); }
+document.addEventListener('scroll', e => { const t = e.target; if (t && t.classList && (t.classList.contains('cx-liste') || t.classList.contains('paie-liste') || t.classList.contains('tableau'))) defileRepere(t); }, true);
 addEventListener('resize', defileRepereTout);
 { const c = document.getElementById('contenu'); if (c && window.MutationObserver) new MutationObserver(defileRepereTout).observe(c, { childList:true, subtree:true }); defileRepereTout(); }
 /* ── la barre du bas ── */
