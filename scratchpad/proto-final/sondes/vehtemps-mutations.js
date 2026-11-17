@@ -6,8 +6,8 @@ const fs = require('fs'), path = require('path'), cp = require('child_process');
 const REPO = path.join(__dirname, '..', '..', '..'), PAGE = path.join(REPO, 'apercu', 'prototype-op-gestion.html');
 const TMP = process.env.MUT_DIR || '/tmp/mutations-vehtemps';
 const SRC = fs.readFileSync(PAGE, 'utf8');
-const G = 'gestes', S = 'structure', J = 'journee', SA = 'salarie', K = 'g56', V1 = 'liste', V2 = 'fiche', V3 = 'vgestes', V4 = 'visites', F4 = 'feuilles4', G4 = 'gestes4', T4 = 'table4';   // V1 à V4 : l'étape 3 (Véhicules, la liste et la fiche) ; F4, G4, T4 : l'étape 4 (les feuilles)   // V1 à V4 : l'étape 3 (Véhicules, la liste et la fiche)
-const FICHIER = { gestes:'vehtemps-t1-gestes.js', structure:'vehtemps-t1-structure.js', journee:'vehtemps-t5-journee.js', salarie:'vehtemps-t6-salarie.js', g56:'vehtemps-t56-gestes.js', liste:'vehtemps-v1-liste.js', fiche:'vehtemps-v2-fiche.js', vgestes:'vehtemps-v3-gestes.js', visites:'vehtemps-v4-visites.js', feuilles4:'vehtemps-v4-feuilles.js', gestes4:'vehtemps-v4-gestes.js', table4:'vehtemps-v4-table.js' };
+const G = 'gestes', S = 'structure', J = 'journee', SA = 'salarie', K = 'g56', V1 = 'liste', V2 = 'fiche', V3 = 'vgestes', V4 = 'visites', F4 = 'feuilles4', G4 = 'gestes4', T4 = 'table4', C5 = 'camion5', N5 = 'voisins5', I5 = 'visites5';   // C5, N5, I5 : l'étape 5 (Mon camion, les écrans voisins, les visites)   // V1 à V4 : l'étape 3 (Véhicules, la liste et la fiche) ; F4, G4, T4 : l'étape 4 (les feuilles)   // V1 à V4 : l'étape 3 (Véhicules, la liste et la fiche)
+const FICHIER = { gestes:'vehtemps-t1-gestes.js', structure:'vehtemps-t1-structure.js', journee:'vehtemps-t5-journee.js', salarie:'vehtemps-t6-salarie.js', g56:'vehtemps-t56-gestes.js', liste:'vehtemps-v1-liste.js', fiche:'vehtemps-v2-fiche.js', vgestes:'vehtemps-v3-gestes.js', visites:'vehtemps-v4-visites.js', feuilles4:'vehtemps-v4-feuilles.js', gestes4:'vehtemps-v4-gestes.js', table4:'vehtemps-v4-table.js', camion5:'vehtemps-v5-camion.js', voisins5:'vehtemps-v5-voisins.js', visites5:'vehtemps-v5-visites.js' };
 const M = [
   ['1 · « Terminer à… » écrit l\'heure qu\'il est au lieu de la fin d\'habitude (et la garde de l\'heure proposée tombe)', [
     ["act:'terminer|' + p.id + '|' + f.h }", "act:'terminer|' + p.id + '|' + hNow() }"],
@@ -92,6 +92,24 @@ const M = [
   ["75 · le technicien voit la liste des véhicules de l'entreprise dans son plein (il peut noter sur le camion d'un autre)", [["un = !!v && (ROLE === 'tech' || liste.length === 1);", "un = false;"]], [G4], { PROFILS:'mac', SEULS:'C' }],
  ["76 · la feuille qui monte dépasse 90 % de l'écran (la règle de hauteur saute)", [["@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}", "@media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:99vh}}"]], [F4], { PROFILS:'petit', NUIT:'0', SEULES:'rdv,plein' }],
  ["77 · la paire de champs d'un détail replié reste ouverte (hidden perd contre display:grid)", [[".deux-champs[hidden]{display:none}", ""]], [G4], { PROFILS:'mac', SEULS:'A' }],
+
+  /* ── étape 5 : Mon camion (partie véhicule), les écrans voisins, les visites ── */
+  ["78 · la carte « Le camion » disparaît de Mon camion (le plein, le compteur et le souci ne se notent plus)", [["<div id=\"mc-vehicule\" data-vis=\"camion-vehicule\">${V ? vhCamionBloc(V) : ''}</div>", "<div id=\"mc-vehicule\" data-vis=\"camion-vehicule\"></div>"]], [C5], { PROFILS:'iphone', SEULS:'A,E' }],
+  ["79 · la carte « Le camion » repasse APRÈS la liste de ce qui manque (le plein redevient hors écran)", [["    <div id=\"mc-vehicule\" data-vis=\"camion-vehicule\">${V ? vhCamionBloc(V) : ''}</div>\n", ""], ["${E.length ? `<div class=\"carte mc-liste\"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}\n    </div>`;", "${E.length ? `<div class=\"carte mc-liste\"><h3>Mes envois · ${E.length}</h3>${E.map(sxLigneEnvoi).join('')}</div>` : ''}\n    <div id=\"mc-vehicule\" data-vis=\"camion-vehicule\">${V ? vhCamionBloc(V) : ''}</div></div>`;"]], [C5], { PROFILS:'iphone', SEULS:'A,E' }],
+  ["80 · la phrase d'état de Mon camion ne dit plus le souci signalé (elle reste « en règle »)", [["  if (v.souci) return { t:'Ton souci est signalé : le bureau est prévenu.', c:'ve-ot' };\n", ""]], [C5], { PROFILS:'iphone', SEULS:'B' }],
+  ["81 · le camion au garage ne dit plus quel véhicule le technicien prend", [["+ (im.remplacement ? ' Tu prends : ' + im.remplacement + '.' : '')", ""]], [C5], { PROFILS:'iphone', SEULS:'B' }],
+  ["82 · le technicien n'a plus « le bureau s'en occupe » : on lui laisse croire qu'il doit régler l'échéance", [["vhSujet(E.e) + ' est ' + vhQuand(E.e) + '. Le bureau s’en occupe.'", "vhSujet(E.e) + ' est ' + vhQuand(E.e) + '.'"]], [C5], { PROFILS:'iphone', SEULS:'B' }],
+  ["83 · le troisième bouton de la carte retrouve son ancien libellé « Signaler un souci »", [["data-vx=\"souci|${v.id}\">Un souci avec le camion</button>", "data-vx=\"souci|${v.id}\">Signaler un souci</button>"]], [C5], { PROFILS:'iphone', SEULS:'A' }],
+  ["84 · Ma journée montre DEUX lignes « Mon camion » (le doublon d'avant)", [["return l ? h.replace('<div class=\"rl-jour\">', l + '<div class=\"rl-jour\">') : h;", "return l ? h.replace('<div class=\"rl-jour\">', l + l + '<div class=\"rl-jour\">') : h;"]], [C5], { PROFILS:'iphone', SEULS:'C' }],
+  ["85 · la ligne de Ma journée peint un souci en orange au lieu de rouge", [["if (v.souci) { etat = 'souci signalé au bureau'; cl = 'st-r'; }", "if (v.souci) { etat = 'souci signalé au bureau'; cl = 'st-o'; }"]], [C5], { PROFILS:'iphone', SEULS:'C' }],
+  ["86 · l'Accueil recompte une échéance que sa tâche urgente dit déjà (le dédoublonnage saute)", [["r.e.bouton && !(r.e.k === 'souci' ? urg.some(x => x.id === r.v.souci.tache) : r.e.e && couvre(vxCleTache(r.v, r.e.e)))", "r.e.bouton"]], [N5], { PROFILS:'mac', SEULS:'A' }],
+  ["87 · l'Accueil propose « Temps de travail » à qui n'a pas le droit de l'ouvrir", [["if (typeof droitVoit === 'function' && droitVoit('pointage')) {", "if (typeof droitVoit === 'function' && true) {"]], [N5], { PROFILS:'mac', SEULS:'A2' }],
+  ["88 · la ligne « Véhicules » de l'Accueil n'ouvre plus l'onglet « À faire »", [["if (k === 'vh') VH.onglet = x; else if (k === 'tt')", "if (k === 'vh') VH.onglet = 'tous'; else if (k === 'tt')"]], [N5], { PROFILS:'mac', SEULS:'A' }],
+  ["89 · la fiche d'Équipe dit de nouveau « pointées » (aux deux endroits où elle est écrite)", [["</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>", "</b>pointées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>", 2]], [N5], { PROFILS:'mac', SEULS:'B' }],
+  ["90 · « Ses heures › » d'Équipe ouvre l'onglet « Semaine » au lieu du Mois de la personne", [["ptOnglet = 'mois'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ttMoisPers(x), 80);", "ptOnglet = 'semaine'; ptSem = 0; TT.garder = true; aller('pointage'); if (x && PT_GENS.includes(x)) setTimeout(() => ptFicheJour(x, AUJ), 80);"]], [N5], { PROFILS:'mac', SEULS:'B' }],
+  ["91 · le guide des nouveautés ne parle plus de Véhicules et Temps de travail", [["  ['vehicules', '🚐', 'Véhicules et Temps de travail, refaits', 'Une rangée par véhicule qui dit s’il a besoin de toi. Temps de travail : ce qu’il faut régler, d’un coup d’œil. Ton camion et tes heures, au même endroit.'],\n", ""]], [N5], { PROFILS:'mac', SEULS:'E' }],
+  ["92 · la visite du technicien vise de nouveau .paie-conf (un bloc qui n'existe plus : elle se bloque sans bruit)", [["{ c:'.tt-pret', t:'Ses heures et sa paie',", "{ c:'.paie-conf', t:'Ses heures et sa paie',"]], [I5], { CHAPS:'tech' }],
+  ["93 · la visite du technicien navigue vers Mes heures une étape trop tôt (l'index du chapitre n'a pas suivi l'étape insérée)", [["immRolesEcran('tech', 11, 'mesheures'); immRolesEcran('tech', 12, 'techfrais');", "immRolesEcran('tech', 10, 'mesheures'); immRolesEcran('tech', 11, 'techfrais');"]], [I5], { CHAPS:'tech' }],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
@@ -104,9 +122,9 @@ for (const [nom, paires, sondes, env] of M) {
   if (filtre && !nom.includes(filtre)) continue;
   if (+process.env.MIN && parseInt(nom, 10) < +process.env.MIN) continue;   // MIN=17 : seulement les mutations de l'étape 2
   let page = SRC;
-  for (const [ancien, neuf] of paires) { const c = page.split(ancien).length - 1;
-    if (c !== 1) { console.log(`✗ « ${nom} » : ${c} occurrence(s) du texte visé, 1 attendue — la mutation est mal visée, rien n'est joué\n   ${ancien.slice(0, 90)}`); process.exit(2); }
-    page = page.replace(ancien, () => neuf); }
+  for (const [ancien, neuf, attendu] of paires) { const c = page.split(ancien).length - 1;
+    if (c !== (attendu || 1)) { console.log(`✗ « ${nom} » : ${c} occurrence(s) du texte visé, ${attendu || 1} attendue(s) — la mutation est mal visée, rien n'est joué\n   ${ancien.slice(0, 90)}`); process.exit(2); }
+    page = page.split(ancien).join(neuf); }
   if (process.env.DRY) { console.log('✓ visée juste :', nom); continue; }
   const R = racine('m', page); if (page === SRC) { console.log('✗ la copie est identique à la page : ' + nom); process.exit(2); }
   let tombe = false, detail = '';
