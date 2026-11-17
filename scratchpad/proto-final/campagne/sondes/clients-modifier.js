@@ -12,7 +12,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await ouvrirInfos('mr');
   const champs = await p.evaluate(() => [...document.querySelectorAll('#contenu [data-ci]')].map(e => e.dataset.ci + (e.tagName === 'SELECT' ? ':select' : '')));
   console.log('  · champs de l’onglet Infos : ' + champs.join(', '));
-  v('population : l’onglet Infos porte six champs (contact, téléphone, e-mail, type, adresse, accès)', champs.length === 6, champs);
+  v('population : l’onglet Infos porte sept champs (nom, contact, téléphone, e-mail, type, adresse, accès)', champs.length === 7, champs);
   v('clients-06 : on peut corriger le NOM (ou la raison sociale) d’un client — une faute de frappe à la création ne se rattrape sinon pas', champs.some(x => /^nom/.test(x)), champs);
   v('clients-17 : l’onglet Infos permet de supprimer ou d’archiver un client (la case d’Équipe promet « supprimer un client »)', await p.evaluate(() => !!document.querySelector('#contenu [data-action*="clientSuppr"], #contenu [data-action*="clientArch"]')) , null);
   // refus

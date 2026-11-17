@@ -1,0 +1,79 @@
+[
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 7 / casse « iPad portrait, Carte des tournées : le dernier repère de Sophie (Rochefort) est CACHÉ sous les boutons « Auto · Jour · Nuit » et le toucher y change le fond de carte »",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html, crTracerReel : le rectangle de chaque groupe de boutons de la carte (fonds, zoom, rangée de personnes, note « carte indisponible ») est mesuré sur la page ; un repère dont la VRAIE place tombe dessous (marge de 17 px = son rayon) est écarté en spirale comme un repère qui en gêne un autre, et la spirale n'en choisit aucune place sous un bouton. Avant, seul un repère déjà écarté évitait le coin bas-droit.",
+  "preuve": "planning-marqueurs.js ipad : 9/9 (avant 8/9, « i16 couvert par BUTTON ») ; planning-recontrole.js ipad R12 : 10 ✓ · 0 ✗ ; mac, windows, mac720, iphone (jour et nuit), android, petit : R12 0 ✗ ; mutation 12b (condition retirée) : la sonde ipad tombe ; capture relue restes-carte-ipad (R12-carte-ipad.png) : le « 3 » de Rochefort est entier, au-dessus des boutons"
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse « la bulle « 54 min · 41 km » est peinte PAR-DESSUS les repères d'urgence (iPhone, jour et nuit) »",
+  "etat": "corrigé",
+  "changement": "crTracerReel : les bulles de trajet quittent le calque des repères (calque Leaflet à elles, z-index 590 sous celui des repères) ET ne se posent plus qu'après eux : on essaie le milieu du trajet, puis 8 autres points (40/60 %, 30/70 %, 20/80 %, 12/88 %), à l'intérieur de la carte, hors des boutons, à plus d'un repère (losange d'urgence compris : 33 px verticaux, demi-largeur + 22) ; si tout le trajet est pris, la bulle s'efface (le temps et les km restent dits dans la liste des étapes). Avant, une bulle posée plus bas que le repère d'une urgence le recouvrait (Leaflet range un calque par hauteur à l'écran) : 722 et 1 047 px² cachés sur iPhone.",
+  "preuve": "planning-recontrole.js R12 (nouveau) : mac 20 ✓ · 0 ✗ avec R7b et R13, iphone 20 ✓ (R5 : 1 ✗ de ma sonde, corrigée ensuite), iphone nuit 10 ✓ · 0 ✗, ipad 23 ✓ · 0 ✗, android, petit, windows, mac720 : 0 ✗ ; 0 recouvrement bulle/repère à l'ouverture ET après cinq zooms sur chaque profil ; mutation 12a (la bulle se pose au milieu sans regarder) : tombe ; captures relues : restes-carte-iphone.png, restes-carte-iphone-nuit.png, restes-carte-android-nuit.png, restes-carte-petit.png, R12-carte-mac.png, R12-carte-ipad.png (bulle entière, losanges entiers). Sur un téléphone de 320 à 360 px la carte fait 290 px : la bulle (130 px) n'y trouve pas de place entre neuf repères et s'efface ; le temps de route est dans la liste (contrôle R12)."
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse « Adresse dont la RUE porte le nom d'une autre commune : le client est posé au mauvais endroit (jusqu'à 38 km) et les liens « Y aller avec » y envoient le technicien »",
+  "etat": "corrigé",
+  "changement": "nouvelle fonction communeDe(adr) : la commune est celle qui SUIT le code postal, sinon le dernier morceau après la virgule, sinon la dernière commune nommée dans l'adresse (« 12 Route de La Rochelle Rochefort »), et seulement à défaut la recherche d'avant. geoDeAdresse ET reconnaitre (« Repérée : … · N km ») passent toutes deux par elle : une seule décision.",
+  "preuve": "planning-recontrole.js mac R1 : 23 ✓ · 0 ✗ (avant 20 ✓ · 2 ✗), avec quatre adresses de ce type (« 12 Route de La Rochelle, 17300 Rochefort », « 3 Rue de Rochefort, 17230 Marans », la même sans virgule ni code postal, « 4 Avenue de Rochefort 17000 La Rochelle ») ; onze adresses ordinaires inchangées ; mutation 01c (recherche partout dans l'adresse) : tombe"
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse « Carte réelle : après un zoom, passer au jour suivant laisse la vue où elle était — les étapes du nouveau jour sont hors de l'écran » (soumise à Justin par le recontrôleur : « peut-être voulu »)",
+  "etat": "corrigé",
+  "changement": "Ce n'était pas voulu : le code recadre déjà à chaque changement de jour (crLV mémorise le jour de la vue), mais le dernier « moveend » de l'ancienne carte (le zoom qui finit de s'animer pendant que « Suivant » change la date) écrivait le NOUVEAU jour avec l'ANCIEN cadrage, et le montage de la carte suivante reprenait ce cadrage comme valable (mesuré : crLV.jour = nouveau jour, z = 12,75 déjà au montage). crMonter prend désormais le jour et la personne de la carte au montage (jourCarte, focusCarte) et l'ancienne carte cesse d'écouter avant d'être retirée. Un zoom fait à la main sur le jour courant est toujours respecté tant qu'on y reste.",
+  "preuve": "planning-recontrole.js mac R7b : 3 ✓ · 0 ✗ (avant 2 jours à repères hors cadre ; zoom 12,8 gardé ; maintenant 15, 13,5, 15, 15, 12,3, 13,8 selon l'étendue du jour, 0 repère hors cadre) ; mutation 07e (jour du moment) : tombe ; le mécanisme mesuré par une sonde de trace (monter jour=… LV=… z=…)"
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse « Une intervention TERMINÉE montre le curseur « main qui attrape » mais ne bouge pas, et rien ne le dit »",
+  "etat": "corrigé",
+  "changement": "Trois choses : curseur « pointer » sur .pc.fait (elle s'ouvre, elle ne se déplace pas) ; un glissement de plus de 8 px sur une intervention terminée dit une fois « Une intervention terminée ne se déplace pas. » ; et le relâcher de ce glissement ne clique plus la colonne dessous (sans cela, le relâcher ouvrait le menu « Créer ici » et remplaçait la vue : trouvé en jouant le geste avec la vraie souris, la carte disparaissait du DOM).",
+  "preuve": "planning-recontrole.js mac R13 (nouveau) : 7 ✓ · 0 ✗ (curseur pointer sur une terminée, grab sur une à venir, aucun fantôme, message dit, heure/personne/état inchangés, une seule carte, un clic simple n'affiche pas le message) ; windows et mac720 : 0 ✗ ; mutations 13a (curseur), 13b (message), 13c (bloque) : tombent"
+ },
+ {
+  "nom": "planning",
+  "defaut": "casse « « Voir dans Tâches › » mesure 41 px de haut au doigt »",
+  "etat": "corrigé",
+  "changement": ".t-ici-tout : display:flex, min-height:44px (le lien reste pleine largeur).",
+  "preuve": "planning-recontrole.js R5 complété : le lien est ouvert, mesuré et touché pour de vrai sur chaque vue qui l'a (la Carte n'a pas cette carte) : iphone, petit, ipad, android 0 ✗ ; mutation 05e (display:block) : tombe"
+ },
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 11 (planning-11) « Réglé seulement en partie » : une carte DÉJÀ à moitié visible n'est pas ramenée par le focus (Tab réel, iPhone et iPad : carte i22 à x = 21 pour une colonne qui finit à 167, 146 px sur 157 cachés) ; à 320 px les cartes se posent à 156 px pour une colonne qui finit à 167",
+  "etat": "corrigé",
+  "changement": "scroll-padding ne joue que pour ce qui est hors champ (rejoué : Chromium ne ramène pas une carte partiellement visible). Un écouteur focusin sur le conteneur de la Vue d'ensemble ramène la carte focalisée à droite de la colonne des noms d'un geste (scrollBy de r.left − bord de la colonne − 4 px) ; il ne touche ni la colonne des noms elle-même ni une carte hors de la Vue d'ensemble.",
+  "preuve": "planning-recontrole.js R11 : iphone 5 ✓ · 0 ✗ et petit 5 ✓ · 0 ✗ (avant 4 ✓ · 1 ✗) ; R14 (nouveau : chaque carte est mise à moitié sous la colonne PUIS focalisée, 5 à 6 réellement à moitié cachées sur iPad et iPhone) : ipad, iphone, petit, mac 0 ✗ ; mutation 14 (écouteur neutralisé) : tombe. Reste, DÉCIDÉ comme densité voulue : à 320 px une carte de jour (162 px) ne tient jamais en entier à côté de la colonne de 150 px (i20 coupée de 28 px à droite)."
+ },
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 4 (planning-04) : les chiffres « interventions » et « travail prévu » du bandeau comptent toute l'équipe même quand des personnes sont masquées (« 9 interventions » et « 11 h » pour 6 cartes ; Sur mesure, Sophie seule : « 12 » pour 4 cartes)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : écran validé par Justin, le recontrôleur et le correcteur l'ont laissé ouvert exprès. Recommandation inchangée : suivre les personnes affichées et le dire (« Chiffres des personnes affichées »).",
+  "preuve": "rejoué par le recontrôleur (planning-parcours2 P10, mac : 3 ✗) ; non rejoué par moi, aucune modification"
+ },
+ {
+  "nom": "planning",
+  "defaut": "pasRegles 9 (planning-09) : au téléphone, la première page n'est pas l'emploi du temps (carte « tâches pour toi », deux rangées d'onglets, la date, les puces, les chiffres et le paragraphe d'aide avant la grille ; aucune intervention au premier regard)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : dessin validé. Recommandation : replier la carte « tâches pour toi » et le paragraphe d'aide au téléphone.",
+  "preuve": "rejoué sur iPhone par le recontrôleur (capture) ; non modifié"
+ },
+ {
+  "nom": "planning",
+  "defaut": "doutes du recontrôle : « Ordre proposé » absent du prototype ; vue Mois « 216 interventions · 334 h 15 » qui mélange passé réel et prévu ; Vue d'ensemble à 320 px, une carte de jour jamais entière à côté de la colonne",
+  "etat": "à soumettre à Justin",
+  "changement": "rien. « Ordre proposé » est une fonctionnalité à ajouter si Justin l'attend (la tournée est ordonnée par heure, avec « Confier à … » et le plus proche) ; le total du mois ajoute à INTS les passages de l'historique généré (cohérent avec la grille) mais le mot « interventions » mélange passé et prévu ; la densité de la Vue d'ensemble à 320 px est celle voulue.",
+  "preuve": "vérifiés par le recontrôleur (doutes du planning-recontrole.json) ; rien de neuf de mon côté"
+ },
+ {
+  "nom": "planning",
+  "defaut": "décisions (a) à (f) du chef de chantier ; lignes non cochées de vus-par-le-chef.md qui touchent le planning",
+  "etat": "déjà décidé",
+  "changement": "(a) Retour qui ferme la fenêtre ET quitte l'écran : voie « retour », non touché ; (b) cases du calendrier des absences et barres des soldes sous 44 px : pas du planning ; (c) Boîte mail à deux boîtes, (d) menu du bureau avec le groupe Matériel, (e) bouton Menu dans Comptabilité en plein écran, (f) texte « Rendez-vous en ligne » : aucune ne touche le planning, aucune sonde du planning ne les refuse. vus-par-le-chef.md : aucune ligne non cochée ne vise le planning (les lignes ouvertes sont Stock › Articles au téléphone, le format des heures « 8 h 05 » — voie « mots » — et la Boîte mail à la secrétaire) ; rien à cocher.",
+  "preuve": "relu : REPRISE.md (décisions du chef de chantier), vus-par-le-chef.md, MENU-FINAL.md"
+ }
+]

@@ -5,7 +5,7 @@
     "gravite": "haute",
     "portee": "les deux (prototype : à corriger maintenant ; vraie application : le serveur borne aussi ces textes, le gabarit échappe par défaut)",
     "ou": "apercu/prototype-op-gestion.html : vueAccueil() (≈ ligne 5606, `<b>${a.t}</b>` et `${a.s}` sans esc) ; les textes naissent dans ml:tache et mbxConfier (« Répondre : » + objet, « Confier »), et dans les trois créations de client qui recopient le NOM D'EXPÉDITEUR (ml:nvdevis ≈ 10193, mbx:cestclient ≈ 19167, mbx:confcren ≈ 19175, mbxConfier-suite ≈ 19255 : `nom:m.de.nom`). Le gabarit d'« À faire maintenant » écrit aussi des noms de clients et de techniciens (CLIENTS[..].nom, tech(..).nom) dans a.t et a.s. Regroupe courrier-01, courrier-04 et injection-07.",
-    "etapes": "1. Aucun compte requis : l'attaquant écrit un courriel à l'adresse de la boîte, objet « Panne <img src=x onerror=…> » (ou nom d'affichage de l'expéditeur piégé). 2. Une personne de l'entreprise touche « En faire une tâche » / « Confier à quelqu'un » (courriel d'objet piégé) ou « C'est un client » / « Créer le client et son devis » (nom d'expéditeur piégé) : deux gestes ordinaires, proposés par le bandeau « OP GESTION a reconnu ». 3. N'importe qui ouvre l'Accueil pendant que la tâche est due, ou qu'une facture du client est en retard ou un contrat attend sa signature : la balise est créée et son onerror s'exécute chez le gérant, le secrétariat ET les techniciens. Rejoué le 17 novembre sur la tête 73d0a71 (courrier-gestes.js : 19 ✓ · 2 ✗ ; 36 sorties à l'Accueil, 58 exécutions, trois rôles).",
+    "etapes": "1. Aucun compte requis : l'attaquant écrit un courriel à l'adresse de la boîte, objet « Panne <img src=x onerror=…> » (ou nom d'affichage de l'expéditeur piégé). 2. Une personne de l'entreprise touche « En faire une tâche » / « Confier à quelqu'un » (courriel d'objet piégé) ou « C'est un client » / « Créer le client et son devis » (nom d'expéditeur piégé) : deux gestes ordinaires, proposés par le bandeau « OP GESTION a reconnu ». 3. N'importe qui ouvre l'Accueil pendant que la tâche est due, ou qu'une facture du client est en retard ou un contrat attend sa signature : la balise est créée et son onerror s'exécute chez le gérant, le secrétariat ET les techniciens. Rejoué le 17 novembre sur la tête 73d0a71 (courrier-gestes.js : 19 ✓ · 2 ✗ ; 36 sorties, 58 exécutions, trois rôles). Correctif rejoué sur une copie de la tête actuelle (courrier-corrections.py) : 21 ✓ · 0 ✗, 0 exécution.",
     "correction": "1) esc(a.t) et esc(a.s) dans le gabarit d'« À faire maintenant » (une ligne ; aucune des lignes de a.t/a.s ne porte de balisage voulu : vhAccueil retire déjà les balises). 2) À l'entrée : une fonction mailNom() (liste de ce qui est permis, 80 signes, sans < > \" ni formule en tête, sans caractères de contrôle ni d'inversion de sens) appliquée aux quatre créations de client et à dvAccepter (par:m.de.nom) ; courrier-corrections.diff › courrier-01, 04a à 04e (régénéré le 17 novembre sur la tête 73d0a71 par courrier-corrections.py : s'applique, git apply --check). 3) Un banc : une charge dans l'objet et le nom d'expéditeur de chaque courriel de test, chaque bouton du bandeau touché, 60 écrans revisités, zéro sortie (courrier-gestes.js)."
   },
   {
@@ -32,7 +32,7 @@
     "gravite": "moyenne",
     "portee": "les deux (vraie application : fichiers servis depuis un autre domaine, Content-Type fixé par le serveur, nosniff, attachment)",
     "ou": "apercu/prototype-op-gestion.html : vxDocAjouter() (≈ 18150 : le type du fichier n'est pas vérifié, l'adresse blob: garde le type choisi par l'expéditeur) et le rendu des papiers (≈ 18551 : `/^image/.test(d.type)` laisse passer image/svg+xml, lien `target=\"_blank\"`). L'intercepteur de clic blob: (voirFichierLocal) ne voit pas le clic du milieu (événement auxclick) ni le menu contextuel.",
-    "etapes": "1. Quelqu'un fait parvenir un fichier .svg à une personne qui l'ajoute à la fiche d'un véhicule (faux « attestation » reçu d'un assureur ou d'un garage ; accept=\"image/*\" laisse passer image/svg+xml). 2. La personne touche la miniature : le clic simple est intercepté (image en <img>, inerte) ; mais un clic du milieu ou « Ouvrir dans un nouvel onglet » ouvre le blob COMME DOCUMENT, avec l'origine de l'application : le script lit tout le rangement et peut écrire le « passage de fenêtre » (opg_proto_fenetre) — voir acces-03, écartée dans RAPPORT.md. Rejoué le 17 novembre sur la tête actuelle (contre-verif-fichiers.js : clic du milieu → onglet blob:, titre « PWN », origine de l'application, clés du rangement lues ; témoin : le clic simple n'ouvre rien).",
+    "etapes": "1. Quelqu'un fait parvenir un fichier .svg à une personne qui l'ajoute à la fiche d'un véhicule (faux « attestation » reçu d'un assureur ou d'un garage ; accept=\"image/*\" laisse passer image/svg+xml). 2. La personne touche la miniature : le clic simple est intercepté (image en <img>, inerte) ; mais un clic du milieu ou « Ouvrir dans un nouvel onglet » ouvre le blob COMME DOCUMENT, avec l'origine de l'application : le script lit tout le rangement et peut appeler les fonctions de la page (le « passage de fenêtre » opg_proto_fenetre ne lui apporte rien de plus : voir acces-03 dans RAPPORT.md). Rejoué le 17 novembre sur la tête actuelle (contre-verif-fichiers.js : clic du milieu → onglet blob:, titre « PWN », origine de l'application, clés du rangement lues ; témoin : le clic simple n'ouvre rien).",
     "correction": "À la porte : dans vxDocAjouter, refuser tout type hors PNG, JPEG, GIF, WebP, HEIC et PDF (liste de ce qui est permis, le type vient de l'expéditeur) avec un message qui dit pourquoi ; au rendu, `/^image\\/(png|jpe?g|gif|webp)$/` à la place de `/^image/`. Les deux lignes de ponts-corrections.diff › ponts-01 (le reste de ce .diff est périmé : à régénérer). Contre-épreuve : un PNG et un PDF passent encore, un SVG est refusé."
   },
   {
@@ -41,8 +41,8 @@
     "gravite": "moyenne",
     "portee": "les deux (le rattachement par le numéro : à corriger maintenant ; l'authenticité de l'expéditeur : le serveur)",
     "ou": "apercu/prototype-op-gestion.html : mlLire() (≈ 10132) rattache un devis, une facture ou une commande à un courriel par le NUMÉRO écrit dans le texte, sans regarder qui écrit ; le bandeau (courrierBandeau ≈ 19001-19004) en déduit les gestes ; ml:accord appelle dvAccepter(…, {par:m.de.nom}) ; mbx:annonce écrit f.annonce.",
-    "etapes": "1. Depuis n'importe quelle adresse : « Nous validons votre devis D-2026-031. » (ou « Virement effectué pour FAC-2026-0144 »). 2. Le bandeau dit « Accord sur un devis » et propose « Noter l'accord du devis ». 3. Un toucher : devis « accepté, signé par <le nom de l'inconnu> », une intervention et 14 tâches de plus ; ou facture « paiement annoncé ». Rejoué le 17 novembre (courrier-confiance.js : 4 ✓ · 5 ✗ ; le courriel du vrai client, lui, garde ses gestes).",
-    "correction": "mlLire ne rattache un devis ou une facture que si l'expéditeur est le CLIENT de ce document (o.cli === cli), une commande que si l'expéditeur est un fournisseur connu ; une confirmation écrite (« Tu confirmes que Jean Dupond a validé D-2026-031 ? ») avant tout geste qui touche à l'argent. Pas corrigeable ici : une adresse falsifiée reste crue (règle R-C3 du cahier des charges : le serveur donne l'authenticité de l'expéditeur, l'écran ne propose aucun geste d'argent quand elle vaut « non »). courrier-corrections.diff › courrier-03."
+    "etapes": "1. Depuis n'importe quelle adresse : « Nous validons votre devis D-2026-031. » (ou « Virement effectué pour FAC-2026-0144 »). 2. Le bandeau dit « Accord sur un devis » et propose « Noter l'accord du devis ». 3. Un toucher : devis « accepté, signé par <le nom de l'inconnu> », une intervention et 14 tâches de plus ; ou facture « paiement annoncé ». Rejoué le 17 novembre (courrier-confiance.js : 4 ✓ · 5 ✗ ; le courriel du vrai client, lui, garde ses gestes). Correctif rejoué sur une copie de la tête actuelle : 9 ✓ · 0 ✗.",
+    "correction": "mlLire ne rattache un devis ou une facture que si l'expéditeur est le CLIENT de ce document (o.cli === cli), une commande que si l'expéditeur est un fournisseur connu ; une confirmation écrite (« Tu confirmes que Jean Dupond a validé D-2026-031 ? ») avant tout geste qui touche à l'argent. Pas corrigeable ici : une adresse falsifiée reste crue (règle R18 du cahier des charges, dans RAPPORT.md : le serveur donne l'authenticité de l'expéditeur, l'écran ne propose aucun geste d'argent quand elle vaut « non »). courrier-corrections.diff › courrier-03."
   },
   {
     "n": "S06",
@@ -73,15 +73,24 @@
   },
   {
     "n": "S09",
+    "titre": "Le nom d'un fichier déposé dans « Recevoir les fiches du cabinet » s'écrit brut dans le message de l'import : du code dans un nom de fichier s'exécute chez la personne qui fait la paie",
+    "gravite": "moyenne",
+    "portee": "les deux (vraie application : nom de fichier assaini à l'enregistrement ET à l'affichage)",
+    "ou": "apercu/prototype-op-gestion.html : gestionnaire de dépôt des fiches de paie (≈ 12698-12702 : `perdu.push(f.name)` puis `toast(`… sans nom reconnu : ${perdu.join(', ')}`)`, toast() écrivant en innerHTML). C'était le constat injection-08, non rejoué par l'auditeur ; rejoué ici.",
+    "etapes": "1. Un tiers (cabinet de paie, expéditeur d'une pièce jointe) produit un fichier dont le NOM porte du balisage (un nom de fichier accepte < > \" ' sur macOS et Linux). 2. La personne dépose le fichier dans Paie › « Recevoir les fiches du cabinet » ; aucun salarié ne porte ce nom : « 1 sans nom reconnu : <nom> ». 3. Le message écrit le nom en HTML : la balise est créée, onerror s'exécute chez la personne qui gère la paie. Le fichier n'est pas ouvert : seul son nom compte. Rejoué le 17 novembre (contre-verif-fichiers.js : 1 balise, 1 exécution).",
+    "correction": "esc() sur chaque nom repris dans le message (`perdu.map(esc).join(', ')`, une ligne) ; plus largement tout nom de fichier venu d'ailleurs est du TEXTE (règle R13 du cahier des charges, dans RAPPORT.md : une seule fonction d'entrée, liste de ce qui est permis, et échappement à la sortie)."
+  },
+  {
+    "n": "S10",
     "titre": "Aucune des quatre pages n'a de politique de contenu ni de politique de référent : un code qui s'exécute dans la page peut envoyer à n'importe quel serveur tout ce que l'appareil range, par six canaux",
     "gravite": "moyenne",
     "portee": "les deux (prototype : balise <meta> ; vraie application : en-têtes posés par Caddy, voir les règles)",
     "ou": "<head> de apercu/prototype-op-gestion.html, prototype-comptabilite.html, prototype-paiement.html et prototype-documents.html (cette dernière est FABRIQUÉE : l'en-tête s'écrit dans scratchpad/proto-final/atelier/page.source puis bash scratchpad/proto-final/atelier/fabriquer.sh).",
-    "etapes": "Quelqu'un réussit à faire exécuter un script dans la page (S01 à S08 : un prénom, l'objet d'un courriel, le nom d'un expéditeur…). Sans politique, rien ne le freine : un « attaquant » sur un autre port reçoit, par fetch POST, image, sendBeacon, WebSocket, script chargé de chez lui et préchargement de lien, le rangement entier (3 289 octets contenant le devis composé) à chaque rendu. Rejoué le 17 novembre (dependances-csp.js sur les pages actuelles : 16 ✓ · 7 ✗ : référent + six canaux, 16 fois chacun ; usage normal : 0 violation sur 37 écrans, carte, atelier, PDF, Comptabilité, courrier, paiement).",
+    "etapes": "Quelqu'un réussit à faire exécuter un script dans la page (S01 à S09 : un prénom, l'objet d'un courriel, le nom d'un expéditeur…). Sans politique, rien ne le freine : un « attaquant » sur un autre port reçoit, par fetch POST, image, sendBeacon, WebSocket, script chargé de chez lui et préchargement de lien, le rangement entier (3 289 octets contenant le devis composé) à chaque rendu. Rejoué le 17 novembre (dependances-csp.js sur les pages actuelles : 16 ✓ · 7 ✗ : référent + six canaux, 16 fois chacun ; usage normal : 0 violation sur 37 écrans, carte, atelier, PDF, Comptabilité, courrier, paiement). Niveau « inline » rejoué sur une copie de la tête actuelle : 23 ✓ · 0 ✗ (aucun des six canaux ne reçoit rien ; reste la navigation du haut de page, que la politique ne bloque pas).",
     "correction": "dependances-corrections.diff (git apply --check passe sur la tête qu'a vue l'auditeur ; à rejouer sur la tête actuelle) pose, juste après <meta charset>, une politique stricte (default-src 'none', connect-src 'self' + les deux serveurs de tuiles, object-src 'none', base-uri 'none', form-action 'none') et <meta name=\"referrer\" content=\"same-origin\">. NIVEAU « inline » (script en ligne toléré : le script injecté s'exécute mais ne peut RIEN envoyer, zéro maintenance) recommandé maintenant ; niveau « hash » (le gestionnaire injecté ne s'exécute même pas, mais chaque retouche d'un script change l'empreinte et éteint la page tant qu'on ne relance pas dependances-empreintes.py --ecrire) à l'étape de publication. ⚠ À ESSAYER DANS L'ARTEFACT publié (claude.ai) avant d'adopter : je n'ai pas pu (voir RAPPORT, ce qui n'a pas été vérifié). Ne ferme pas la navigation du haut de page (location.href = …)."
   },
   {
-    "n": "S10",
+    "n": "S11",
     "titre": "L'import d'un fichier de prix n'a aucune borne : prix de 10²³ €, désignation de 100 000 signes, 20 000 lignes = 28 secondes d'écran gelé",
     "gravite": "faible",
     "portee": "les deux",
@@ -90,16 +99,16 @@
     "correction": "propre(texte, n) (sans balise ni formule, borné : désignation 200, référence 40), prix ≤ 1 000 000 €, 5 000 lignes au plus avec un message qui dit pourquoi, import par lots ; courrier-corrections.diff › courrier-06a, 06b."
   },
   {
-    "n": "S11",
+    "n": "S12",
     "titre": "toast() écrit son message en innerHTML : tout texte saisi qu'un message de confirmation reprend devient du code (cas rejoué : le nom de la plateforme agréée)",
     "gravite": "faible",
     "portee": "les deux",
     "ou": "apercu/prototype-op-gestion.html : toast(msg, action) (≈ 4552, `t.innerHTML = \\`<span>${msg}</span>\\``) ; appel rejoué : toast(`Plateforme enregistrée : ${n}.`) (cxPlateforme/plateformeok). Même modèle dans prototype-paiement.html (messages à textes fixes : rien de saisi n'y arrive). prototype-comptabilite.html écrit en textContent.",
-    "etapes": "Comptabilité › Conformité › Aux normes › « Choisir ma plateforme » › nom = ¤n1¤\"'><img src=x onerror=…› Enregistrer : le message écrit le nom en HTML, la balise naît, onerror s'exécute. C'est un AUTO-PIÉGEAGE (l'auteur voit son propre message) : la gravité vient de la classe — une centaine de messages citent un nom de personne, de client ou de fichier — dont la source est déjà S01, S03 et S08. Rejoué le 17 novembre (contre-verif-injection.js).",
+    "etapes": "Comptabilité › Conformité › Aux normes › « Choisir ma plateforme » › nom = ¤n1¤\"'><img src=x onerror=…› Enregistrer : le message écrit le nom en HTML, la balise naît, onerror s'exécute. C'est un AUTO-PIÉGEAGE (l'auteur voit son propre message) : la gravité vient de la classe — une centaine de messages citent un nom de personne, de client ou de fichier — dont la source est déjà S01, S03, S08 et S09. Rejoué le 17 novembre (contre-verif-injection.js).",
     "correction": "Corriger d'abord l'appel : esc(n). NE PAS changer toast() en textContent d'un bloc : la plupart des 175 appels passent déjà par esc() ET écrivent du balisage voulu (<b>…</b>) : un textContent les afficherait doublement échappés. La correction de fond est à la source des noms (S03) ; si l'on veut une seconde barrière : toastHtml() pour les messages qui portent du balisage voulu et toast() en textContent pour les autres, appel par appel."
   },
   {
-    "n": "S12",
+    "n": "S13",
     "titre": "La Comptabilité ouverte seule accepte le message de rôle (patron + paie) de n'importe quelle fenêtre, et ouvre la Paie par son adresse",
     "gravite": "faible",
     "portee": "les deux (vraie application : le rôle ne se décide JAMAIS par un message ; OP COMPTABLE authentifie sa propre page)",
@@ -108,16 +117,16 @@
     "correction": "En tête de l'écouteur : `if (ev.source !== window.parent) return;` (comme l'atelier : ouverte seule, parent === window, aucun message accepté). opcPaieOuverte() : `return CMPT.role === 'patron' || CMPT.paie === true;` — DÉCISION DE JUSTIN : la page seule montre la Paie pour la revue (?seul=1 est déjà prévu pour la montrer exprès)."
   },
   {
-    "n": "S13",
+    "n": "S14",
     "titre": "Dans l'espace client simulé, un client qui tape l'adresse du contrat d'un AUTRE client le lit en entier ; les gestes de l'espace client (payer, signer, compte rendu) ne vérifient pas non plus que le document est le sien",
     "gravite": "faible",
     "portee": "les deux (vraie application : chaque ressource d'un client est vérifiée contre son compte par le serveur à CHAQUE requête)",
-    "ou": "apercu/prototype-op-gestion.html : vueSigner(id) (≈ 5531 : le contrat se cherche par identifiant sans comparer k.cli à RL_CLI.cli quand ROLE === 'client') ; gestionnaires data-ec « payer », « signer », « cr », « fpdf » (≈ 12337-12350, identifiant reçu tel quel). Les adresses #facture-x- #inter-x- #devis-x- ramènent déjà à l'espace du client (routes permises : espaceclient et signer seulement).",
+    "ou": "apercu/prototype-op-gestion.html : vueSigner(id) (≈ 5531 : le contrat se cherche par identifiant sans comparer k.cli à RL_CLI.cli quand ROLE === 'client') ; gestionnaires data-ec « payer », « signer », « cr », « fpdf » (≈ 12337-12350, identifiant reçu tel quel). Les adresses #facture-x- #inter-x- #devis-x- ramènent à l'espace du client (routes permises du rôle : espaceclient et signer seulement, relu dans ROLES.client) : lu, non prouvé par une sonde dont la population manque (voir RAPPORT).",
     "etapes": "« Tester en tant que Client » › Restaurant Le Vieux Port ; dans la barre d'adresse : #signer-x-c1 (contrat de la Copropriété Les Mimosas) : titre, prix (1 400,00 € HT) et « Lire le contrat en entier » s'affichent. Rejoué le 17 novembre (contre-verif-acces.js D : titre et prix lus). Limite : le « client » du prototype est un rôle simulé par le relecteur ; aucun vrai client n'y entre.",
     "correction": "En tête de vueSigner : `if (RL_ACTIF && ROLE === 'client' && k.cli !== RL_CLI.cli) return vueEspaceClient();` et le même contrôle (le document appartient à RL_CLI.cli) au début de chaque gestionnaire data-ec qui reçoit un identifiant."
   },
   {
-    "n": "S14",
+    "n": "S15",
     "titre": "Un lien du corps d'un courriel peut se LIRE comme un autre site : lettres cyrilliques (« аррӏе.com » s'écrit comme apple.com) et identifiants dans l'adresse (https://impots.gouv.fr@evil.example/)",
     "gravite": "faible",
     "portee": "les deux (le module est le même dans la vraie application : opcourrier.js, à reporter par qui le modifie — non touché ici)",
@@ -126,7 +135,7 @@
     "correction": "adresseVue(u) : le texte du lien est la forme réelle (punycode, xn--…) quand l'hôte n'est pas en lettres latines ; un lien avec identifiants n'est pas rendu cliquable (courrier-corrections.diff › courrier-07, 07b, 07c). À reporter dans opcourrier.js seulement sur la décision de Justin."
   },
   {
-    "n": "S15",
+    "n": "S16",
     "titre": "Les scripts tiers chargés au vol (Leaflet, MapLibre, html2canvas, plugin) n'ont aucune empreinte d'intégrité",
     "gravite": "faible",
     "portee": "les deux (vraie application : bibliothèques servies par le site avec empreinte, script-src 'self')",
@@ -135,21 +144,21 @@
     "correction": "Ajouter integrity + crossOrigin='anonymous'. Les SIX empreintes de ponts.json ont été RECALCULÉES ici le 17 novembre sur les fichiers servis (curl, openssl sha384) : toutes identiques — leaflet.min.js sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO ; leaflet.min.css sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb ; maplibre-gl.min.js sha384-KKgyz2mG25bKJ1O2PyqTJPlAF8Kw2BpDmsLTNBXslICOBvhTAyF5F0XhLWF2ZovY ; maplibre-gl.min.css sha384-K282sW/zFjTkrjR/+yr1H+gCukuy4OEYrkXRybV88g7pk+kZZYpNV6SAV59NcgFg ; leaflet-maplibre-gl.js (unpkg 0.0.22) sha384-4CB9Vtol9LN6lGgBCvmPLbUEZwilrqIvPieSRurgAXAB7FVJaLS9n8WyAIA5wjQ+ ; html2canvas.min.js sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H. À essayer carte ouverte (le navigateur de la machine n'a pas de WebGL : un refus d'empreinte se verrait seulement sur un appareil)."
   },
   {
-    "n": "S16",
+    "n": "S17",
     "titre": "Coque mobile : la garde de ?auto= croit que « localhost » veut dire « les sondes » (vraie dans les deux coques), la sauvegarde automatique d'Android emporte le rangement, le FileProvider désigne toute la mémoire externe",
     "gravite": "faible",
     "portee": "prototype (coque mobile/) ; vraie application : aucune route de connexion sans secret, quel que soit l'hôte ; aucun secret dans le rangement de l'appareil",
     "ou": "apercu/prototype-op-gestion.html : secuAutoPermis (≈ 24780 : `['127.0.0.1','localhost','[::1]','::1'].includes(loc.hostname)` — Capacitor sert la coque sur capacitor://localhost et https://localhost) ; mobile/android/app/src/main/AndroidManifest.xml:5 (android:allowBackup=\"true\") ; mobile/android/app/src/main/res/xml/file_paths.xml:3-4 (external-path path=\".\") ; mobile/android/app/build.gradle:21 (minifyEnabled false). Regroupe ponts-04, ponts-06 et ponts-07.",
     "etapes": "Aucun chemin n'envoie aujourd'hui un « ?auto= » dans l'adresse de la coque (pas de lien profond Android, le schéma iOS opgestion:// ne passe que le nom de l'entreprise filtré) et le rangement ne contient que des données fictives : aucun attaquant n'a la main aujourd'hui. C'est un défaut LATENT : le jour où la coque charge une adresse venue du dehors, ?auto=marc ouvre la session du gérant sans téléphone ; le jour où la coque porte un jeton, la sauvegarde cloud l'emporte. Rejoué le 17 novembre (ponts-coque.js : 14 ✓ · 5 ✗).",
-    "correction": "`const secuAutoPermis = loc => { loc = loc || {}; if (window.OPG_MODE_APP) return false; … }` (fabriquer.js pose déjà OPG_MODE_APP dans la coque) ; android:allowBackup=\"false\" ; file_paths.xml réduit à `<cache-path name=\"partage\" path=\"partage/\" />` ; minifyEnabled true avec les règles de Capacitor avant toute soumission. Rien de cela n'est urgent : à faire en même temps que S15."
+    "correction": "`const secuAutoPermis = loc => { loc = loc || {}; if (window.OPG_MODE_APP) return false; … }` (fabriquer.js pose déjà OPG_MODE_APP dans la coque) ; android:allowBackup=\"false\" ; file_paths.xml réduit à `<cache-path name=\"partage\" path=\"partage/\" />` ; minifyEnabled true avec les règles de Capacitor avant toute soumission. Rien de cela n'est urgent : à faire en même temps que S16."
   },
   {
-    "n": "S17",
+    "n": "S18",
     "titre": "L'atelier de documents demande 13 familles de polices à Google à chaque ouverture : l'adresse IP et le navigateur de chaque personne vont chez un tiers",
     "gravite": "faible",
     "portee": "les deux (vraie application : aucune police ni feuille tierce, font-src 'self')",
     "ou": "scratchpad/proto-final/atelier/page.source ligne 3 (source de apercu/prototype-documents.html, qui est FABRIQUÉE par bash scratchpad/proto-final/atelier/fabriquer.sh) : <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Inter…\">.",
     "etapes": "Ouvrir Devis › « Nouveau devis » : le cadre de l'atelier demande la feuille de polices avant que la personne choisisse une police : adresse IP, navigateur, langue et origine de l'application (Referer) partent chez Google. Rejoué le 17 novembre (dependances-reseau.js : 1 requête vers fonts.googleapis.com, 11 ✓ · 1 ✗). Dans le prototype (équipe du projet, données fictives) l'enjeu est faible ; pour la vraie application c'est un transfert de données vers un tiers hors de l'entreprise : [à vérifier par Nina ou l'agent juriste : le risque RGPD des polices chargées à distance est écrit de mémoire par l'auditeur, non relu à la source].",
-    "correction": "Servir les polices depuis le site (fichiers woff2 des 13 familles dans apercu/polices/, déclarés par @font-face) et retirer le <link> : les fichiers sont à fabriquer. À défaut — DÉCISION DE JUSTIN, elle change l'aspect des documents — retirer simplement le <link> : les familles retombent sur la police du système et l'atelier s'ouvre et exporte quand même. ⚠ Si S09 est adoptée, la politique de contenu bloque cette feuille : les deux se décident ensemble. Corriger page.source puis relancer fabriquer.sh."
+    "correction": "Servir les polices depuis le site (fichiers woff2 des 13 familles dans apercu/polices/, déclarés par @font-face) et retirer le <link> : les fichiers sont à fabriquer. À défaut — DÉCISION DE JUSTIN, elle change l'aspect des documents — retirer simplement le <link> : les familles retombent sur la police du système et l'atelier s'ouvre et exporte quand même. ⚠ Si S10 est adoptée, la politique de contenu bloque cette feuille : les deux se décident ensemble. Corriger page.source puis relancer fabriquer.sh."
   }
 ]

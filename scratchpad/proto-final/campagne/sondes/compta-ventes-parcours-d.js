@@ -61,7 +61,7 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   L.v('« Retour » rouvre le cadre de la Comptabilité', st2.route === 'comptabilite' && st2.cadre, st2);
   // ── 3. payer ici → payé là-bas ──
   await p.evaluate(() => { cpSysteme = false; rendre(); }); await X.fiche(c, 'f144'); await L.toucher(c, '[data-payer="f144|Carte"]'); await p.waitForTimeout(400);
-  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p);
+  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p, /prototype-comptabilite\.html/);
   await f.evaluate(() => aller('ventes')); await p.waitForTimeout(900); cad = await lire(f);
   L.v('payée dans OP GESTION par carte : le cadre dit « Payée · carte » sur FAC-2026-0144', /Payée.*carte/i.test(cad.lignes['FAC-2026-0144'] || ''), cad.lignes['FAC-2026-0144']);
   const du2 = (await X.du(p)) / 100, kp2 = (cad.kpi.find(k => /Reste à encaisser/.test(k)) || '');
@@ -76,7 +76,7 @@ const etatHote = f => (f.st === 'payee' ? 'Payée' : f.st === 'retard' ? 'En ret
   await X.fiche(c, 'fz1'); await L.toucher(c, '[data-action="apercuEnvoi"]'); await L.toucher(c, '#calque [data-action="envoyer"]'); await p.waitForTimeout(500);
   const num = (await X.donnees(p)).F.find(x => x.id === 'fz1').num;
   L.v('la facture neuve prend le numéro attendu (le suivant)', num === 'FAC-2026-0' + nouv, { num, nouv });
-  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p);
+  await p.evaluate(() => { cpSysteme = true; cpSysDe = 'accueil'; aller('comptabilite'); }); await p.waitForTimeout(1500); f = L.cadre(p, /prototype-comptabilite\.html/);
   await f.evaluate(() => aller('ventes')); await p.waitForTimeout(900); cad = await lire(f);
   L.v('la facture neuve est dans le cadre, « À encaisser », 240,00 € TTC', !!cad.lignes[num] && /À encaisser/.test(cad.lignes[num]) && /240,00/.test(cad.lignes[num]), cad.lignes[num]);
   // ── 5. le retour ──

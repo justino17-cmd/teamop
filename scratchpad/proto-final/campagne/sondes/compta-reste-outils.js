@@ -5,7 +5,9 @@ const V = require('./compta-ventes-outils.js');
 const L = V.L;
 exports.L = L; exports.V = V; exports.O = V.O;
 exports.CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/campagne-compta-reste/';
-for (const k of ['marquer', 'neuf', 'lire', 'diff', 'doigtsReel', 'texte', 'panneau', 'compta', 'saisir', 'toasts', 'cadreOuvert']) exports[k] = V[k];
+for (const k of ['marquer', 'neuf', 'lire', 'diff', 'doigtsReel', 'texte', 'panneau', 'saisir', 'toasts', 'cadreOuvert']) exports[k] = V[k];
+// ouvre l'onglet, REMONTE la page (une capture prise page défilée montre le pied d'un écran, pas son début) et attend le calme
+exports.compta = async (c, onglet, o) => { await V.compta(c, onglet, o); await c.p.evaluate(() => window.scrollTo(0, 0)); await L.calme(c.p, 250); };
 // les onglets de ma partie, dans l'ordre du menu de la Comptabilité (CX_NAV d'OP GESTION)
 exports.ONGLETS = [
   ['fachats', 'Achats › Factures & dépenses', 'achats'], ['ndf', 'Achats › Notes de frais', 'achats'], ['fournisseurs', 'Achats › Comptes fournisseurs', 'achats'],
@@ -14,3 +16,6 @@ exports.ONGLETS = [
   ['tva', 'Fiscal › TVA', 'fiscal'], ['ecritures', 'Fiscal › Journal', 'fiscal'], ['balance', 'Fiscal › Balance', 'fiscal'], ['grandlivre', 'Fiscal › Grand livre', 'fiscal'], ['resultat', 'Fiscal › Résultat', 'fiscal'], ['envoi', 'Fiscal › Envoi au comptable', 'fiscal'],
   ['normes', 'Conformité › Aux normes', 'conformite'], ['archives', 'Conformité › Archives & exports', 'conformite'],
   ['cloture', 'Pilotage › Clôture du mois', 'pilotage']];
+
+// ouvre le cadre « OP COMPTABLE » par le menu, comme une personne, et rend SON cadre (il y a aussi le cadre caché de l'atelier de devis : le premier trouvé n'est pas toujours le bon)
+exports.cadreCompta = async c => { await V.cadreOuvert(c); await c.p.waitForTimeout(1500); const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (f) await f.waitForFunction(() => typeof UI !== 'undefined' && typeof nbAVerifier === 'function', null, { timeout: 15000 }).catch(() => {}); return f; };

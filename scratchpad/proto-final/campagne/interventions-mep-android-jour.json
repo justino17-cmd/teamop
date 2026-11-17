@@ -9,9 +9,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 314×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -33,9 +31,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 314×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -195,7 +191,7 @@
   },
   "bas": {
    "barreHaut": 644,
-   "dernierBas": 4440,
+   "dernierBas": 1579,
    "fixes": [
     "barre-bas"
    ]
@@ -217,7 +213,7 @@
   },
   "bas": {
    "barreHaut": 644,
-   "dernierBas": 4455,
+   "dernierBas": 1579,
    "fixes": [
     "barre-bas"
    ]
@@ -239,7 +235,7 @@
   },
   "bas": {
    "barreHaut": 644,
-   "dernierBas": 4501,
+   "dernierBas": 1575,
    "fixes": [
     "barre-bas"
    ]
@@ -343,11 +339,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "⤓ Télécharger 147×40",
-    "✉ Envoyer 123×40",
-    "Fermer 42×42"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
@@ -561,8 +553,8 @@
   "n": "longues-fiche-bureau",
   "dep": {
    "largeur": 360,
-   "premiere": 528,
-   "seconde": 528,
+   "premiere": 360,
+   "seconde": 360,
    "bouge": 0,
    "coupable": ""
   },
@@ -572,8 +564,8 @@
    "ecrases": []
   },
   "bas": {
-   "barreHaut": 990,
-   "dernierBas": 958,
+   "barreHaut": 644,
+   "dernierBas": 612,
    "fixes": [
     "barre-bas"
    ]
@@ -589,9 +581,7 @@
    "coupable": ""
   },
   "d": {
-   "petits": [
-    "Voir dans Tâches › 314×41"
-   ],
+   "petits": [],
    "champs": [],
    "ecrases": []
   },
