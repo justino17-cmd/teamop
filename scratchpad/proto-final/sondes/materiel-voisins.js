@@ -88,6 +88,17 @@ const L = require('../lib.js');
   const N = await R(() => { const i = INTS[INTS.length - 1]; return { n:INTS.length, prevues:i.prevues, art:i.prevues && i.prevues[0] ? (PRODUITS.find(x => x.id === i.prevues[0].pid) || {}).nom : null }; });
   v('« Créer l\'intervention » enregistre la pièce AVEC son article (pid) : ' + JSON.stringify(N.prevues) + ' (' + n0 + ' → ' + N.n + ' interventions)', N.n === n0 + 1 && N.prevues && N.prevues.length === 1 && N.prevues[0].nom === choisi && !!N.prevues[0].pid && N.art === choisi, N);
   await R(() => { INTS.pop(); rendre(); });
+  // ───────── la recherche du menu (⌘K) propose aussi les ARTICLES : « R32 » → « Fluide R32 · 7,5 kg · atelier 5, Sophie 2,5 » → sa fiche
+  await L.aller(p, 'accueil'); await R(() => palOuvrir()); await L.calme(p, 300); await p.fill('#pal-q', 'r32'); await L.calme(p, 300);
+  const P1 = await R(() => ({ groupes:[...document.querySelectorAll('#pal .pal-g')].map(e => e.textContent), lignes:[...document.querySelectorAll('#pal .pal-i')].map(e => ({ nom:e.querySelector('b').textContent, d:(e.querySelector('small') || {}).textContent || '' })) }));
+  v('population : taper « r32 » dans la recherche du menu trouve un groupe « Articles » (' + P1.lignes.length + ' lignes)', P1.groupes.includes('Articles') && P1.lignes.some(l => /R32/.test(l.nom)), P1);
+  const art32 = P1.lignes.find(l => /R32/.test(l.nom));
+  v('la ligne dit combien et où, sans aucun prix : « ' + (art32 && art32.nom) + ' · ' + (art32 && art32.d) + ' »', !!art32 && /\d.*kg/.test(art32.d) && /atelier \d/i.test(art32.d) && !/€/.test(art32.d), art32);
+  await R(() => { const b = [...document.querySelectorAll('#pal .pal-i')].find(e => /R32/.test(e.textContent)); b.click(); }); await L.calme(p, 500);
+  v('la choisir ouvre la fiche de l\'article', /R32/.test(await R(() => (document.querySelector('#calque .panneau h2') || {}).textContent || '')), await R(() => (document.querySelector('#calque .panneau') || {}).innerText));
+  await L.ranger(p); await R(() => palOuvrir()); await L.calme(p, 250);
+  v('sans frappe, la recherche ne noie pas les rubriques sous 29 articles (le groupe « Articles » attend une frappe)', !(await R(() => [...document.querySelectorAll('#pal .pal-g')].some(e => e.textContent === 'Articles'))));
+  await R(() => palFermer(true));
   v('aucune erreur de page (gérant)', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
 

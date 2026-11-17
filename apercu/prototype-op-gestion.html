@@ -691,6 +691,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-photo .fx-lib{display:none}html .fx-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
   html .fx-tete .actions>.fx-photo:first-child{margin-left:auto}
   html .fx-seg{display:flex;width:100%}html .fx-seg button{flex:1 1 auto;min-width:0;padding:0 8px;font-size:14.5px}
+@media (max-width:340px){html .fx-seg button{padding:0 2px!important;gap:2px!important;font-size:12.5px!important}html .fx-seg .pr-nb{min-width:16px;padding:0 3px;font-size:11px}}   /* 320 px (iPhone SE) : « Commandes 6 », « Articles 29 » et « Fournisseurs 5 » tiennent dans leur bouton sans que le compteur touche le mot du voisin (le contenu dépassait de 4 px) */
   html .fx-acmd{padding:14px 14px}
   html #contenu:has(>.fx-seg){gap:10px}html .fx-arts .groupe{padding:8px 12px 2px}   /* téléphone : l'écart entre les rangées de l'en-tête et le titre de groupe se resserrent — la première ligne d'article remonte de ~25 px */
   /* l'en-tête de « À commander » tient sur UNE rangée (le titre et sa phrase à gauche, « Tout préparer » à droite) : la première ligne à commander remonte de ~55 px, sur un écran où chaque ligne compte */
@@ -24073,6 +24074,8 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (rlPermis('comptabilite') && peut('ventes', 'c')) E.push({ g:'Faire', l:'Nouvelle facture', ic:'＋', fn:() => cpSysFacture() });
   if (rlPermis('clients')) {
     Object.entries(CLIENTS).forEach(([id, c]) => E.push({ g:'Clients', l:c.nom, ic:'🏢', d:(c.adr || '').split(',').pop().trim(), m:[c.contact, c.tel, c.mail, c.adr].join(' '), fn:() => aller('client-x-' + id) })); }
+  /* les ARTICLES : « R32 » propose « Fluide R32 · 7,5 kg · atelier 5, Sophie 2,5 » et ouvre sa fiche (spec Matériel § 9.9). Jamais un prix dans la ligne : la fiche décide de ce qu'on y voit. */
+  if (rlPermis('stock')) PRODUITS.filter(x => !x.retire).forEach(x => E.push({ g:'Articles', l:x.nom, ic:svg(msIcCat(x)), d:sxQte(x.q, x) + ' · ' + (msLieuxDe(x).slice(0, 3).map(([k, v]) => sxLieuCourt(lieu(k)) + ' ' + prNum(v)).join(', ') || 'nulle part'), m:[x.ref, x.four].join(' '), fn:() => prFiche(x.id) }));
   E.push({ g:'Affichage', l:'Mode jour', ic:'☀️', fn:() => rcMode('jour') }, { g:'Affichage', l:'Mode nuit', ic:'🌙', fn:() => rcMode('nuit') }, { g:'Affichage', l:'Mode automatique (suit l’appareil)', ic:'🌗', fn:() => rcMode('auto') },
     ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Mon compte', ic:'👤', m:'mot de passe téléphone connexions appareils sécurité profil', fn:() => secuMonCompte() }] : []),
     ...(typeof MODE_APP !== 'undefined' && MODE_APP ? [{ g:'Compte', l:'Se déconnecter', ic:'🚪', m:'déconnexion quitter fermer la session', fn:() => sessionFermer() }] : []),   /* hors du mode application il n'y a pas de compte : « Se déconnecter » menait à un écran de lien sans issue */
@@ -24085,7 +24088,7 @@ function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
   document.body.insertAdjacentHTML('beforeend', `<div id="pal" role="dialog" aria-modal="true" aria-label="Rechercher ou aller à"><div class="pal-b"><div class="pal-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pal-q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Une rubrique, un client, une action…" aria-label="Rechercher ou aller à" aria-controls="pal-l"><kbd>Échap</kbd></div><div class="pal-l" id="pal-l" role="listbox"></div></div></div>`);
   palDessiner(); document.getElementById('pal-q').focus(); }
 function palFermer(rendreFocus){ const z = document.getElementById('pal'); if (z) z.remove(); const av = PAL && PAL.avant; PAL = null; if (rendreFocus && av && av.isConnected && av.focus) av.focus(); }
-function palFiltre(){ const q = rcSansAccent(PAL.q).trim(); if (!q) return PAL.E.filter(e => e.g !== 'Clients');
+function palFiltre(){ const q = rcSansAccent(PAL.q).trim(); if (!q) return PAL.E.filter(e => e.g !== 'Clients' && e.g !== 'Articles');
   const mots = q.split(/\s+/); return PAL.E.filter(e => { const t = rcSansAccent(e.l + ' ' + (e.m || '') + ' ' + e.g); return mots.every(m => t.includes(m)); })
     .sort((a, b) => (rcSansAccent(b.l).startsWith(q) ? 1 : 0) - (rcSansAccent(a.l).startsWith(q) ? 1 : 0)); }
 function palDessiner(){ const L = palFiltre(); PAL.L = L; PAL.i = Math.max(0, Math.min(PAL.i, L.length - 1)); let g = '';
