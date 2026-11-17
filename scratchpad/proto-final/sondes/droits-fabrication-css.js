@@ -12,7 +12,7 @@ const fs = require('fs'), { execSync } = require('child_process');
     document.getElementById('droits-css') || droitsMaj();
     Object.entries(GESTES).forEach(([fam, E]) => ['c', 'm', 's'].forEach(x => Object.keys(GESTES_TJ[fam][x]).forEach(verbe => { const cat = GESTES_TJ[fam][x][verbe] || E.k; if (!cat) return;
       const b = document.createElement('button'); b.setAttribute('data-' + fam, verbe + '|essai'); b.type = 'button'; b.textContent = fam + verbe; document.body.appendChild(b); const cache = getComputedStyle(b).display === 'none'; b.remove(); nRegles++;
-      if (!peut(cat, x, p)) { if (cache) nCaches++; else faux.push(fam + '|' + verbe + ' visible'); } else if (cache) faux.push(fam + '|' + verbe + ' caché alors que permis'); }));
+      if (!peut(cat, x, p)) { if (cache) nCaches++; else faux.push(fam + '|' + verbe + ' visible'); } else if (cache) faux.push(fam + '|' + verbe + ' caché alors que permis'); })));
     // la lecture n'est jamais cachée
     [['go', 'planning'], ['onglet', 'x'], ['ac', 'onglet'], ['cx', 'fiche'], ['eq', 'fiche'], ['vh', 'fiche'], ['mat', 'bord']].forEach(([f, verbe]) => { const b = document.createElement('button'); b.setAttribute('data-' + f, verbe + '|x'); document.body.appendChild(b); if (getComputedStyle(b).display !== 'none') nLecture++; else faux.push('lecture cachée : ' + f + '|' + verbe); b.remove(); });
     return { nRegles, nCaches, nLecture, faux:faux.slice(0, 15), taille:(document.getElementById('droits-css') || {}).textContent.length }; });
