@@ -214,7 +214,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
-  body:has(.fen-voile) #toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:300}}   /* une fenêtre est ouverte : sa barre « Annuler / Créer » est en bas, la bulle passe en haut au lieu de la couvrir */
+  body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -245,6 +245,10 @@ body.dp-ouvert #sortie-carte{z-index:300}
 .cpsys-attente{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 @media (max-width:520px){.cpsys-barre b{display:none}.cpsys-barre{justify-content:space-between}}
 @media (pointer:coarse){.cpsys-barre button{min-height:44px}}
+.cpsys-barre .cpsys-menu{display:none;align-items:center;gap:7px}.cpsys-barre .cpsys-menu svg{width:18px;height:18px}
+@media (max-width:760px){.cpsys-barre .cpsys-menu{display:inline-flex;min-height:44px}}
+/* trois boutons dans la barre à 320 px : marges et écarts resserrés pour que « Factures » ne sorte pas */
+@media (max-width:400px){.cpsys-barre{gap:6px}.cpsys-barre button{padding:0 10px;font-size:13.5px}}
 /* L'atelier de devis et de contrats (prototype-documents.html), plein écran. « hidden » garde la LARGEUR (visibility, pas display:none) : un cadre à 0 px
    se croit un téléphone et l'atelier se refermait à la première ouverture. L'encoche du HAUT est réservée ICI (la barre de l'atelier ne la lit pas) ; le bas et les côtés, l'atelier les lit lui-même (env() y est la valeur de l'appareil dans le cadre : les réserver aussi ici les compterait deux fois). */
 #opdz{position:fixed;inset:0;z-index:9100;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc);padding-top:env(safe-area-inset-top,0px)}
@@ -4528,6 +4532,8 @@ function toast(msg, action){ // action : { lib, fn }
   // une seule bulle à la fois : la Boîte mail a la sienne (dans son module) ; une bulle simple du module (« Pièce téléchargée… ») laisse la place à celle-ci
   // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
+  // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -8372,6 +8378,7 @@ function ouvrirPanneau(html, large){
   { const to = document.getElementById('toast'); if (to && to.classList.contains('on') && !document.querySelector('#calque .panneau') && Date.now() - (to._t0 || 0) > 400) to.classList.remove('on'); }
   const av = document.activeElement, saisie = av && /^(INPUT|TEXTAREA|SELECT)$/.test(av.tagName) && av.closest('#calque .panneau');   // un panneau redessiné pendant la saisie ne vole pas le curseur
   document.getElementById('calque').innerHTML = `<div class="voile" data-ferme="1"><div class="panneau ${large?'large':''}" role="dialog" aria-modal="true"><button type="button" class="x" data-ferme="1" aria-label="Fermer">✕</button>${html}</div></div>`;
+  { const z = document.getElementById('cpsys'), v = document.querySelector('#calque .voile'); if (z && !z.hidden && v) v.style.zIndex = '9100'; }   // un panneau ouvert pendant la Comptabilité plein écran (z-index 9000) restait dessous, invisible
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 function fermerPanneau(){ document.getElementById('calque').innerHTML = ''; }
 
@@ -13830,7 +13837,7 @@ document.addEventListener('click', ev => {
   if (!but.length) return;   // rien d'automatique dans la sélection : « Fait » termine d'un clic, comme avant
   ev.stopPropagation(); ev.preventDefault();
   const C = [...new Set(L.map(tCat))], R = C.length === 1 ? T_ROUTES[C[0]] || null : null;
-  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} toute${but.length > 1 ? 's' : ''} seule${but.length > 1 ? 's' : ''} quand le geste est fait dans l’application. Dis ce qui s’est passé : ça s’écrit dans l’Historique.</span>
+  ouvrirPanneau(`<span class="tkx-lot" hidden></span><h2>Qu’as-tu fait ?</h2><span class="gris">${but.length > 1 ? but.length + ' de ces tâches se terminent' : 'Cette tâche se termine'} d’elle${but.length > 1 ? 's-mêmes' : '-même'} quand le travail est fait dans l’application (une relance envoyée, une intervention planifiée…). Tu l’as fait autrement, par téléphone ou sur place ? Dis ce qui s’est passé : ${but.length > 1 ? 'elles sont terminées' : 'elle est terminée'} et ça s’écrit dans l’Historique.</span>
     <div class="tkx-lot-l">${but.map(x => `<span class="tkx-lot-t">${esc(x.t)}</span>`).join('')}</div>
     <div class="t-gestes tkx-lot-g"><button type="button" class="btn" data-tkxlot="J’ai appelé">📞 J’ai appelé</button><button type="button" class="btn gris" data-tkxlot="J’ai envoyé un message en dehors de l’application">✉ J’ai envoyé un message ailleurs</button>${R ? `<button type="button" class="btn gris" data-tkxlotouvrir="${R[0]}">${R[2]} Ouvrir dans ${R[1]} pour le faire</button>` : ''}</div>`);
 }, true);
@@ -23980,6 +23987,9 @@ function sessionOuvrir(k){ const vueVoulue = SESSION_VUE; SESSION_VUE = null; co
   const f = z.querySelector('iframe'), ret = z.querySelector('[data-cpsys="retour"]'), quo = z.querySelector('[data-cpsys="quotidien"]'), t = z.querySelector('.cpsys-barre b'), seul = ROLE === 'compta';
   if (neuf && f && MODE_APP && !/app=1/.test(f.getAttribute('src') || '')) f.src = opLiaSrc();
   if (f) f.title = 'OP COMPTABLE'; z.setAttribute('aria-label', 'OP COMPTABLE'); if (t && t.textContent !== 'OP COMPTABLE') t.textContent = 'OP COMPTABLE';
+  /* au téléphone, le bouton « Menu » du bureau reste à portée de doigt DANS la Comptabilité plein écran (décision du 17 novembre : le menu était à deux gestes, « ‹ OP GESTION » puis « Menu ») ;
+     celui de la page est dessous, recouvert. Même `data-menu` que le sien : c'est la même feuille, la même garde de droits. */
+  if (!seul && ret && !z.querySelector('.cpsys-menu')) ret.insertAdjacentHTML('afterend', '<button type="button" class="cpsys-menu" data-menu="ouvrir" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>');
   if (ret) { const l = seul ? (MODE_APP ? 'Se déconnecter' : '‹ Revenir au compte de Marc') : (tel() ? '‹ OP GESTION' : '‹ Retourner à OP GESTION'); if (ret.textContent !== l) { ret.textContent = l; ret.setAttribute('aria-label', l.replace('‹ ', '')); } }
   if (quo) { quo.hidden = seul; const lq = tel() ? 'Factures' : 'Factures et paiements'; if (quo.textContent !== lq) { quo.textContent = lq; quo.setAttribute('aria-label', 'Factures et paiements'); } }
   return v; }; }
@@ -25265,7 +25275,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-iphone2">
   html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]) .btn{min-height:46px;padding:0 10px;font-size:14.5px;white-space:nowrap;min-width:0;justify-content:center}
   .cpsys-barre{gap:8px!important;padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important;flex-wrap:nowrap!important}
   .cpsys-barre b{display:none!important}
-  .cpsys-barre button{min-height:40px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .cpsys-barre button{min-height:44px!important;padding:0 10px!important;font-size:13.5px!important;letter-spacing:0;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .cpsys-barre button[data-cpsys="quotidien"]{margin-left:auto}
 }
 @media (max-width:340px){ html[data-app] #contenu .tete .actions:has(> [data-rrouvrir]){grid-template-columns:1fr} }
