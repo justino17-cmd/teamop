@@ -183,6 +183,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .champ input,.champ select,.champ textarea,.saisie{min-height:46px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:10px 12px;font-size:16px;font-weight:400;width:100%}
 .champ textarea{min-height:104px;resize:vertical;line-height:1.45}
 .deux-champs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:760px){ html #contenu .tete.cl-tete{flex-wrap:wrap;align-items:flex-start;gap:8px}html .cl-tete>div:first-child{flex:1 1 100%}   /* la feuille de #contenu impose « nowrap » aux en-têtes : la phrase d'aide se coinçait à 170 px à côté du bouton (clients-03) */
+  .deux-champs.ci-champs{grid-template-columns:minmax(0,1fr)} }   /* contact et e-mail se lisent en entier (clients-13) */
 .trois-champs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media (max-width:520px){.trois-champs{grid-template-columns:1fr 1fr}}
 .ligne{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--trait)}
@@ -737,9 +739,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 /* ── pointage ── */
 /* la semaine compte 7 jours (le samedi et le dimanche sont dans la paie) ; le tableau garde sa largeur propre et défile s'il le faut */
 /* ce style est inséré avant la feuille de l'écran : on gagne par la spécificité, pas par l'ordre */
-.pt-grille .pt-r{grid-template-columns:150px repeat(7,minmax(72px,1fr)) 104px 84px;min-width:1010px}
-.pt-grille .pt-j{position:relative}
-.pt-grille .pt-r>.pt-j:nth-child(n+7):nth-child(-n+8):not(.pt-abs):not(.pt-ouv){background:color-mix(in srgb,var(--surf2) 55%,transparent)}
 .pt-entete span:nth-child(7),.pt-entete span:nth-child(8){opacity:.7}
 .ptx-carte .btn,.ptx-prop .btn,.ptx-oubli .btn,#calque .panneau .btn{min-height:44px!important}
 /* la carte du salarié */
@@ -760,7 +759,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 .vx-seg{align-self:flex-start}
 .vx-ajout{cursor:pointer;min-height:44px}
 .vx-mini{display:block;width:44px;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--trait2);flex:none}.vx-mini img{width:100%;height:100%;object-fit:cover;display:block}
-.vx-souci,.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.vx-immo{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .vx-alerte{display:flex;flex-direction:column;gap:8px}
 .vx-pl{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding-bottom:10px}.vx-pl small{font-size:14px;color:var(--doux);font-weight:550}.vx-pl b{font-size:20px;min-height:36px;display:flex;align-items:center}
 .vx-gar{font-weight:700}.vx-gar-b{align-self:flex-start;margin-bottom:6px}
@@ -1495,20 +1494,9 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .ve-mat{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 12px}
 .ve-c .fo-stats i{font-style:normal}
 @media (max-width:760px){.ve-mat{grid-template-columns:1fr 1fr}}
-.pt-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pt-nav b{font-size:16px}
-.pt-grille{padding:6px 10px;overflow-x:auto}
-.pt-r{display:grid;grid-template-columns:170px repeat(5,minmax(86px,1fr)) 112px 92px;gap:6px;align-items:stretch;border-bottom:1px solid var(--trait);padding:8px 0;min-width:840px}
-.pt-grille .pt-r:last-child{border-bottom:0}.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
-.pt-qui{display:flex;flex-direction:column;justify-content:center;text-align:left;background:none;border:0;color:var(--encre);font:inherit;cursor:pointer;padding:4px;border-radius:10px}
-.pt-j{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--trait);background:var(--surf2);border-radius:10px;padding:6px 8px;color:var(--encre);font:inherit;cursor:pointer;min-height:52px}
-@media (hover:hover){.pt-j:hover,.pt-qui:hover{background:var(--survol)}}
-.pt-j span{font-size:12px;color:var(--doux)}.pt-j b{font-size:14.5px;font-variant-numeric:tabular-nums}
-.pt-abs{background:color-mix(in srgb,var(--violet) 12%,transparent)}.pt-ouv{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,transparent)}.pt-manque{border-style:dashed;border-color:var(--rouge)}
-.pt-tot{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-variant-numeric:tabular-nums}.pt-val{display:flex;align-items:center;justify-content:flex-end}
-.pt-al{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;padding:0 4px}
+.pt-entete{font-size:12.5px;font-weight:650;color:var(--doux);text-transform:capitalize;padding:6px 0}
 .pt-paie{padding:6px 14px}.pt-p{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:8px;padding:11px 2px;border-bottom:1px solid var(--trait);align-items:center;font-variant-numeric:tabular-nums}.pt-paie .pt-p:last-child{border-bottom:0}
-@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}.pt-r{grid-template-columns:118px repeat(5,minmax(80px,1fr)) 100px 86px;min-width:780px}}
-.pt-alertes{display:flex;flex-direction:column;padding:14px 16px}
+@media (max-width:760px){.pt-p{grid-template-columns:minmax(0,1.25fr) repeat(4,minmax(0,1fr));font-size:13px;gap:6px}}
 .pt-frais{display:flex;gap:12px;align-items:center;padding:12px 16px}.pt-frais .fo-n{flex:1}
 .eq-av{width:40px;height:40px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800;color:#fff;background:color-mix(in srgb,var(--c) 82%,#000);text-shadow:0 1px 1px rgba(0,0,0,.25)}.eq-av.grand{width:52px;height:52px;font-size:17px}
 .eq-tete{display:flex;align-items:center;gap:12px;margin:2px 0 6px}.eq-tete h2{margin:0}
@@ -5420,13 +5408,18 @@ function vueClientsSemaine(){
   ${J.map(d => { const L = INTS.filter(i => i.d === d && i.st !== 'annulee').sort((a,b2)=>a.h.localeCompare(b2.h)); return L.length ? `<div class="carte" style="padding:12px 16px"><h3 style="margin-bottom:6px">${jlong(d)}${d===AUJ?' · aujourd’hui':''}</h3>${L.map(i => `<button type="button" class="ligne-clic cs-l" style="margin-bottom:6px" data-go="client-x-${i.cli}"><span style="display:flex;gap:12px;align-items:center;min-width:0"><b style="font-variant-numeric:tabular-nums;min-width:48px">${i.h}</b><span style="min-width:0"><b>${esc(CLIENTS[i.cli].nom)}</b><br><span class="gris petit">${esc(i.titre)} · ${tech(i.tech).nom}</span></span></span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span></button>`).join('')}</div>` : ''; }).join('') || '<div class="carte gris">Aucune intervention cette semaine.</div>'}`;
 }
 function vueClients(){
-  const cq = sansAccent(chercheClient.trim()).replace(/\s+/g, ' '), cqt = cq.replace(/\s/g, ''); const L = Object.entries(CLIENTS).filter(([k,c]) => k !== '__nv' && (!cq || sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' ')).includes(cq) || (/^[\d ]+$/.test(cq) && String(c.tel || '').replace(/\s/g, '').includes(cqt)))).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const cq = sansAccent(chercheClient.trim()).replace(/\s+/g, ' '), mots = cq.split(' ').filter(Boolean);
+  /* un numéro se tape avec des espaces, des points, des tirets, « +33 » collé d'un courriel : on compare les CHIFFRES seuls, « +33 6… » ramené à « 06… » (clients-18) */
+  let cqt = /^[\d\s.+()]+$/.test(cq) ? cq.replace(/\D/g, '') : ''; if (cqt && /^(\+|00)/.test(cq)) cqt = cqt.replace(/^(?:0033|33)/, '0'); if (cqt.length < 4) cqt = '';
+  /* « hôtel plage » retrouve « Hôtel de la Plage » : chaque mot doit se trouver quelque part, dans l'ordre qu'on veut (clients-01) */
+  const L = Object.entries(CLIENTS).filter(([k,c]) => { if (k === '__nv') return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
+    return mots.every(m => botte.includes(m)) || (cqt && String(c.tel || '').replace(/\D/g, '').includes(cqt)); }).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
   const seg = `<div class="seg" role="group" aria-label="Ranger les clients">${[['tous','Tous les clients'],['semaine','Par semaine'],['mois','Par mois']].map(([k,l])=>`<button type="button" data-rangc="${k}" aria-pressed="${rangClients===k||(chercheClient&&k==='tous')}">${l}</button>`).join('')}</div>`;
-  if (!chercheClient && rangClients !== 'tous') return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1><span class="gris">${rangClients==='mois'?'Rangés par mois : qui, combien d’interventions, ce qui est payé et ce qui reste à payer.':'Une semaine, jour par jour : retrouve un client par la date de son passage.'}</span></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
+  if (!chercheClient && rangClients !== 'tous') return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1><span class="gris">${rangClients==='mois'?'Rangés par mois : qui, combien d’interventions, ce qui est payé et ce qui reste à payer.':'Une semaine, jour par jour : retrouve un client par la date de son passage.'}</span></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
     <input class="saisie" placeholder="Chercher un client…" value="" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}${rangClients==='mois'?vueClientsMois():vueClientsSemaine()}`;
-  return `<div class="tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
+  return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1></div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
   <input class="saisie" placeholder="Chercher un client…" value="${esc(chercheClient)}" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}
-  ${L.length ? '' : `<div class="carte gris">Aucun client ne correspond à « ${esc(chercheClient.trim())} ».</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
+  ${L.length ? '' : `<div class="carte gris" style="overflow-wrap:anywhere">Aucun client ne correspond à « ${esc(chercheClient.trim())} ». Vérifie l’orthographe, ou touche « ＋ Nouveau client » pour l’ajouter.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
     return `<button type="button" class="carte client-carte" data-go="client-x-${k}"><span style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:17px">${esc(c.nom)}</b>${ctr?'<span class="st st-v">contrat</span>':''}</span><span class="gris petit">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc((c.adr || '').split(',').pop().trim())].filter(Boolean).join(' · ')}</span>
       <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; }).join('')}</div>`;
 }
@@ -5446,10 +5439,10 @@ function vueClient(k){
   let corps = '';
   if (ongletClient === 'histo') corps = `<div class="tl">${histoClient(k).map(h=>`<button type="button" ${h.go?`data-go="${h.go}"`:'disabled'}><span class="faible mini" style="text-align:right">${jcourt(h.d)}/${h.d.slice(2,4)}</span><span class="pt" style="background:${h.c}"></span><span><b>${esc(h.t)}</b><br><span class="gris petit">${esc(h.s)}</span></span><span class="gris mini${h.droite ? '' : ' tl-vide'}" style="white-space:nowrap">${h.droite}${h.go?' ›':(h.droite ? ' · ' : '') + 'archive'}</span></button>`).join('')}</div>`;
   if (ongletClient === 'factures') corps = `<div class="tableau"><table class="l"><thead><tr><th>N°</th><th class="l-obj">Objet</th><th class="n">TTC</th><th>État</th></tr></thead><tbody>${F.map(f=>`<tr class="clic" data-go="facture-x-${f.id}"><td class="mono">${f.num}<span class="l-sous">${esc(f.objet)}</span></td><td class="l-obj">${esc(f.objet)}</td><td class="n">${eur(ttcDe(f))}</td><td><span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span></td></tr>`).join('') || '<tr><td colspan="4" class="gris">Aucune facture.</td></tr>'}</tbody></table></div>${ancien > .5 ? `<div class="gris petit" style="margin-top:10px">« Payé depuis le début » compte ${eur(paye)} : ${eur(ancien)} viennent de règlements anciens ou de paiements rangés dans la Comptabilité, dont la facture n’est pas dans cette liste.</div>` : ''}`;
-  if (ongletClient === 'appareils') corps = (c.appareils.length ? '' : '<div class="gris">Aucun appareil enregistré pour l’instant.</div>') + c.appareils.map((a,n)=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span>${k==='vp'&&n===1?'<br><span class="st st-r" style="margin-top:6px">3 pannes du ventilateur en 14 mois</span>':''}</span><span class="gris petit">${INTS.filter(i => i.cli === k && i.st !== 'annulee').length} passages</span></div>`).join('');
+  if (ongletClient === 'appareils') corps = (c.appareils.length ? '' : '<div class="gris">Aucun appareil enregistré pour l’instant.</div>') + c.appareils.map((a,n)=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span>${k==='vp'&&n===1?'<br><span class="st st-r" style="margin-top:6px">3 pannes du ventilateur en 14 mois</span>':''}</span></div>`).join('');   /* le chiffre était celui du CLIENT entier, collé à chaque appareil : faux, retiré (clients-10) */
   if (ongletClient === 'contrats') corps = ctrs.map(x=>`<button type="button" class="ligne-clic" data-go="contrat-x-${x.id}"><span><b>${x.num} · ${esc(x.titre)}</b><br><span class="gris petit">${x.freq} visite${x.freq>1?'s':''} par an · ${eur(x.prix)} HT / an</span></span><span class="st ${x.st==='signe'?'st-v':'st-b'}">${x.st==='signe'?'signé':'en attente'}</span></button>`).join('') + `<button type="button" class="btn gris" data-action="contratPour" data-cli="${k}" style="margin-top:10px">Proposer un contrat d’entretien</button>` + (rlPermis('contrats') ? `<button type="button" class="btn" data-opd="contrat" data-cli="${k}" style="margin-top:10px">Composer un contrat</button>` : '');
   if (ongletClient === 'docs') corps = [...INTS.filter(i=>i.cli===k&&(i.st==='fait'||fiche(i.id).etat==='bureau')).map(i=>`<div class="ligne"><span>📄 Compte rendu du ${jcourt(i.d)} · ${esc(i.titre)}</span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>`), ...F.filter(f=>f.st!=='avalider').map(f=>`<div class="ligne"><span>🧾 Facture ${f.num}</span><button type="button" class="lien" data-go="facture-x-${f.id}">Voir</button></div>`), ...ctrs.filter(x=>x.st==='signe').map(x=>`<div class="ligne"><span>✍️ Contrat ${x.num} signé le ${x.signe}</span><button type="button" class="lien" data-go="contrat-x-${x.id}">Voir</button></div>`)].join('') || '<span class="gris">Aucun document.</span>';
-  if (ongletClient === 'infos') corps = `<div class="deux-champs"><label class="champ">Contact<input data-ci="contact" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>`;
+  if (ongletClient === 'infos') corps = `<label class="champ" style="margin-bottom:10px">${c.type==='pro'?'Raison sociale':'Nom'}<input data-ci="nom" value="${esc(c.nom)}" autocomplete="off"></label><div class="deux-champs ci-champs"><label class="champ">Contact<input data-ci="contact" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>`;
   /* « Enregistrer » de cette fiche CHANGE un client déjà là : c'est la case « Modifier » qui l'ouvre (la case « Créer » n'ouvre que « Nouveau client »). Sans elle, les champs se figent et la phrase le dit (relecture « tout-05 ») */
   if (ongletClient === 'infos' && !peut('crm', 'm')) corps = corps.replace(/<(input|select|textarea) data-ci=/g, '<$1 disabled data-ci=').replace(/<span class="gris petit">Rien n’est gardé[^<]*<\/span>/, `<span class="gris petit">Tu peux regarder cette fiche ; pour la changer, demande à ${esc(droitPremierAdmin())}.</span>`);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
@@ -5498,7 +5491,7 @@ function vueContrats(){
 }
 function vueContratNouveau(){
   const B = BROUILLON, Mo = MODELES[B.modele];
-  return `<button type="button" class="lien retour" data-go="contrats">‹ Contrats</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${Mo.nom}</h1></div></div>
+  return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button><div class="tete"><div><span class="surtitre">Nouveau contrat</span><h1>${Mo.nom}</h1></div></div>
   <div class="grille2"><div class="carte" style="display:flex;flex-direction:column;gap:12px">
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
@@ -7973,7 +7966,8 @@ function dvnCreer(){
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
     CLIENTS[cli] = { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] };
-    if (r) SECT_CLI[cli] = r.secteur; journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
+    if (r) SECT_CLI[cli] = r.secteur; { const g = geoDeAdresse(f.adr); if (g) CR_GEO[cli] = g; }   /* comme pour le client créé avec une intervention : la carte des tournées le place (clients-05) */
+    journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
   const zone = f.nv ? ((reconnaitre(f.adr) || {}).zone || 1) : ({ hp:2, cp:1, mr:1 }[cli] || 1);
   const lignes = m.map(l => l[0] === 'Déplacement' ? ['Déplacement', 1, TARIFS.zone[zone]] : l.slice());
@@ -11695,7 +11689,8 @@ const GESTES = {
   axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
   rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
   /* administration : l'entreprise et l'équipe */
-  cnx:{ d:'l' }, eqprof:{ k:'admin', d:'m' },
+  cnx:{ d:'l' }, sec2:{ d:'l' }, sec3:{ d:'l' },   /* la sécurité : « Mon compte » est ouvert à tous, et chaque geste d'un administrateur lit SA case (secuPeut) dans la fonction qui écrit */
+  eqprof:{ k:'admin', d:'m' },
   eq:{ k:'admin', c:'inviter inviterok renouv habajout habok', m:'relancer mdp actif', l:'fiche filtre planning heures conges' },
   eqx:{ k:'admin', c:'renouvok regajout', m:'modifok modifx modifier placeok garder fgarder profok cgarder placeplus', s:'annulinv desact desactok regsuppr', l:'kpi formation regles histo revenir choisir fchoisir mesbureau mesfiche cchoisir' },
   eqd:{ k:'admin', d:'m' }, eqs:{ k:'admin', d:'m' }, eqt:{ k:'admin', d:'m' },
@@ -12838,8 +12833,8 @@ function paieBulletinDoc(k, ym){
 /* ─── l'espace « Paie » de la Comptabilité ─── */
 CX_NAV.splice(3, 0, ['paie', 'Paie', '💶', [['paiemois', 'Le mois'], ['fiches', 'Fiches de paie'], ['salaries', 'Salariés'], ['charges', 'Charges et déclarations']]]);
 const paieOk = (o, m) => `<div class="ok-bloc petit">✓ ${m}</div>`;
-/* confirmer SES heures : un geste du salarié sur SES heures, jamais celui d'un écran de comptabilité. « Mes heures » l'appelle directement : passer par un bouton data-paie
-   le ferait lire comme un geste de Comptabilité › Paie, que la garde des droits refuse à un compte de terrain (relevé à la recette de l'étape 5 : « Je confirme mes heures » refusé à Sophie). */
+/* confirmer SES heures : UNE définition, appelée par le bouton de la comptabilité (data-paie « confirme ») ET par « Mes heures » (« Je confirme mes heures », « Confirmer quand même »). « Mes heures » ne passe PAS par un bouton data-paie caché : la garde des droits lit
+   ce bouton comme un geste de Comptabilité › Paie et le refusait à un compte de terrain (relevé à la recette de l'étape 5, avant que GESTES_SOI ne laisse le salarié confirmer SA ligne) — un écran de salarié ne dépend pas de la case d'un écran du bureau. */
 function paieConfirmer(k){ PAIE.confirmes[k] = { le:'31/10 · ' + hNow() }; delete PAIE.signales[k]; rendre(); return toast('Merci : tes heures sont confirmées, le bureau le voit.'); }
 function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
@@ -13349,7 +13344,7 @@ function rendreCreation_(){
   syncBrouillon();
   const c = cliCrea(), b = brouillon(), sect = secteurCrea(), rep = CREA.nouveau ? reconnaitre(CREA.nv.adr) : null, k = CREA.nouveau ? null : CREA.cli;
   const aContrat = !!CONTRATS.find(x => x.cli === k && x.st === 'signe'), aDevis = !!devisOk(k);
-  const sugs = CREA.nouveau && CREA.sug && CREA.nv.adr.length >= 3 ? ADRESSES.filter(a => sansAccent(a).includes(sansAccent(CREA.nv.adr).trim().split(' ').slice(-1)[0] || '')).slice(0, 5) : [];
+  const sugs = CREA.nouveau && CREA.sug && CREA.nv.adr.length >= 3 ? ADRESSES.filter(a => { const q = sansAccent(CREA.nv.adr).replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean), A = sansAccent(a).replace(/,/g, ' '); return q.every(m => A.includes(m)) && sansAccent(a) !== sansAccent(CREA.nv.adr).trim(); }).slice(0, 5)   /* chaque mot tapé, pas seulement le dernier ; et plus rien une fois l'adresse complète (clients-16) */ : [];
   const etape1 = `<section class="carte"><div class="ni-etape"><b>1</b><h2>Le client</h2></div>
     <div class="seg" role="group" aria-label="Client" style="width:auto;margin-bottom:10px"><button type="button" data-cnouveau="0" aria-pressed="${!CREA.nouveau}">Client existant</button><button type="button" data-cnouveau="1" aria-pressed="${CREA.nouveau}">＋ Nouveau client</button></div>
     ${CREA.nouveau ? `<div class="seg" role="group" aria-label="Type de client" style="width:auto;margin-bottom:10px"><button type="button" data-cnvtype="part" aria-pressed="${CREA.nv.type==='part'}">Particulier</button><button type="button" data-cnvtype="pro" aria-pressed="${CREA.nv.type==='pro'}">Professionnel</button></div>
@@ -13753,14 +13748,19 @@ document.addEventListener('click', ev => { const b = ev.target.closest('[data-ts
 /* ══ lot « interventions-clients » ══ */
 /* [3] fiche client › Infos : enregistrer */
 ACTIONS.clientEnreg = function(b){ const c = CLIENTS[b.dataset.cli]; if (!c) return; const v = k => ((document.querySelector('[data-ci="' + k + '"]') || {}).value || '').trim();
+  if (!v('nom')) return toast('Indique le nom du client.');
+  if (sansAccent(v('nom')) !== sansAccent(c.nom) && Object.entries(CLIENTS).some(([kk, x]) => kk !== '__nv' && kk !== b.dataset.cli && sansAccent(x.nom) === sansAccent(v('nom')))) return toast('Un autre client porte déjà ce nom : « ' + esc(v('nom')) + ' ».');
   if (!v('contact')) return toast('Indique le contact du client.');
   if (v('mail') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('mail'))) return toast('L’adresse e-mail est à vérifier.');
   if (!cfTelOk(v('tel'))) return toast('Le numéro de téléphone est à vérifier : des chiffres, avec éventuellement des espaces ou un +.');
-  Object.assign(c, { contact:v('contact'), tel:cfTelFmt(v('tel')), mail:v('mail'), type:v('type') === 'part' ? 'part' : 'pro', adr:v('adr'), acces:v('acces') });
-  journalAjout('marc', 'client', 'a modifié la fiche du client', { t:'client', id:b.dataset.cli, lib:c.nom, cli:b.dataset.cli }, { det:'coordonnées et consignes' });
+  const adrAvant = c.adr, nomAvant = c.nom;
+  Object.assign(c, { nom:v('nom'), contact:v('contact'), tel:cfTelFmt(v('tel')), mail:v('mail'), type:v('type') === 'part' ? 'part' : 'pro', adr:v('adr'), acces:v('acces') });
+  /* une nouvelle adresse déplace aussi le point de la carte des tournées et le secteur : sinon le technicien est envoyé à l'ancienne (clients-07) */
+  if (c.adr !== adrAvant) { const kk = b.dataset.cli, g = geoDeAdresse(c.adr), rec = reconnaitre(c.adr); if (g) CR_GEO[kk] = g; else delete CR_GEO[kk]; if (rec) SECT_CLI[kk] = rec.secteur; else delete SECT_CLI[kk]; }
+  journalAjout('marc', 'client', 'a modifié la fiche du client', { t:'client', id:b.dataset.cli, lib:c.nom, cli:b.dataset.cli }, { det:c.nom !== nomAvant ? 'nom, coordonnées et consignes' : 'coordonnées et consignes' });
   rendre(); toast('Fiche de ' + esc(c.nom) + ' enregistrée.'); };
 /* [4] « ＋ Client » : un client se crée avec son premier travail, par l'un des deux formulaires qui existent déjà */
-ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Un client se crée avec son premier travail. Choisis par quoi commencer : son adresse et ses coordonnées se remplissent dans ce formulaire.</p>
+ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Pour ajouter un client, on prépare son premier travail : une intervention à planifier, ou un devis à lui envoyer. Tu rentres ses coordonnées dans la fenêtre qui s’ouvre.</p>
   <div class="actions"><button type="button" class="btn" data-action="clientNvInt">Avec une intervention</button><button type="button" class="btn gris" data-action="clientNvDevis">Avec un devis</button></div>`); };
 ACTIONS.clientNvInt = function(){ fermerPanneau(); ouvrirCreation({}); if (CREA) { CREA.nouveau = true; if (['devis', 'contrat'].includes(CREA.fact)) CREA.fact = 'temps'; rendreCreation(); } };
 ACTIONS.clientNvDevis = function(){ fermerPanneau(); DVN_F = { nv:true, cli:'', type:'part', nom:'', prenom:'', tel:'', mail:'', adr:'', objet:'', modele:0, err:'' }; dvNouveau(); };
@@ -24059,9 +24059,10 @@ function rcChampRecherche(){ return [...document.querySelectorAll('#contenu inpu
 let PAL = null;
 /* les mots qu'on tape pour trouver une rubrique dont le nom ne les contient pas (« réglages », « logo », « siret » → Mon entreprise ; « demande » → Achats et frais) */
 const PAL_MOTS = { entreprise:'réglages paramètres logo siret tva iban horaires tarif adresse', achats:'demandes demande matériel notes de frais', securite:'sécurité connexion connexions téléphone nombre verrouillé verrou pirate inhabituelle mot de passe',
-  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture',
+  pointage:'heures pointage pointer horaires journée de travail', boiteMail:'courrier mail email e-mail message messages écrire', comptabilite:'banque trésorerie tva paie salaires facture paiement écriture relance impayé impayés imprimer export exporter',
   equipe:'utilisateur utilisateurs technicien techniciens salarié salariés employé mot de passe droits permissions inviter', produits:'commande commandes bons de commande matériel articles', stock:'produits matériel inventaire',
-  planning:'rendez-vous rdv agenda', absences:'congés vacances arrêt maladie' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
+  planning:'rendez-vous rdv agenda calendrier', absences:'congés vacances arrêt maladie',
+  vehicules:'véhicule voiture camion camionnette essence carburant plein entretien', interventions:'rapport photo photos chantier passage', clients:'contact téléphone coordonnées adresse' };   /* « heures », « courrier », « technicien »… : neuf mots courants sur quarante-sept ne menaient nulle part (campagne, coque-03) · 17 novembre 2026 */
 function palEntrees(){ const R = rcRubriques(), E = [];
   R.forEach((r, n) => E.push({ g:'Aller à', l:r.l, ic:r.ic, d:n < 9 ? RC_CMD + ' ' + (n + 1) : '', m:PAL_MOTS[r.k] || '', fn:() => cpSysAllerRubrique(r.k) }));
   /* Factures et paiements ne sont pas au menu (tout passe par Comptabilité) : la recherche y mène quand même, et Se déconnecter s'y trouve · 13 novembre 2026 */
@@ -24081,7 +24082,7 @@ function palEntrees(){ const R = rcRubriques(), E = [];
   if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof immLancer === 'function') E.push({ g:'Aide', l:'Découvrir l’application (visite parlée)', ic:'🎧', fn:() => immLancer(0) }); if (typeof MODE_APP !== 'undefined' && MODE_APP && typeof nvOuvrir === 'function') E.push({ g:'Aide', l:'Nouveautés de cette version', ic:'✨', fn:() => nvOuvrir() });
   return E; }
 function rcMode(k){ const b = document.querySelector(`[data-modetheme="${k}"]`); if (b) b.click(); }
-function palOuvrir(){ if (PAL || !rcBureau()) return; fermerMenu();
+function palOuvrir(){ if (PAL || !rcBureau() || rcDevant()) return; fermerMenu();
   PAL = { E:palEntrees(), q:'', i:0, avant:document.activeElement };
   document.body.insertAdjacentHTML('beforeend', `<div id="pal" role="dialog" aria-modal="true" aria-label="Rechercher ou aller à"><div class="pal-b"><div class="pal-c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pal-q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Une rubrique, un client, une action…" aria-label="Rechercher ou aller à" aria-controls="pal-l"><kbd>Échap</kbd></div><div class="pal-l" id="pal-l" role="listbox"></div></div></div>`);
   palDessiner(); document.getElementById('pal-q').focus(); }
@@ -24107,7 +24108,10 @@ const RC_LISTE = [
 const RC_CREER_OK = { 'Nouvelle intervention':() => rcInterOk(), 'Nouveau devis':() => rcCreerOk(RC_CREER.find(c => c.nom === 'devis')), 'Nouveau client':() => rcCreerOk(RC_CREER.find(c => c.nom === 'client')), 'Nouvelle tâche':() => rcCreerOk(RC_CREER.find(c => c.nom === 'tache')) };
 function rcAide(){ ouvrirPanneau(`<h2>Raccourcis clavier et gestes</h2><p class="mini" style="margin:0">Un raccourci d’une seule touche ne se déclenche jamais pendant que tu écris dans un champ.</p>${RC_LISTE.map(([t, L]) => [t, t === 'Créer' ? L.filter(([l]) => !RC_CREER_OK[l] || RC_CREER_OK[l]()) : L]).filter(([t, L]) => L.length && (t !== 'Trackpad' || MAC)).map(([t, L]) => `<div class="rc-t">${t}</div><div class="rc-g">${L.map(([l, K]) => `<div class="rc-l"><span>${esc(l)}</span><span>${K.map(k => `<kbd>${esc(k)}</kbd>`).join('')}</span></div>`).join('')}</div>`).join('')}`, true); }
 /* ce que la barre de menus du Mac (ou un raccourci) déclenche par son nom */
-function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; const R = rcRubriques();
+/* ce qui couvre TOUT l'écran et passe devant les fenêtres : le guide des nouveautés, le document en grand, la pièce jointe du client. Derrière eux, une touche (N, D, C, A, ?, Ctrl+K) ouvrait
+   une fenêtre qu'on ne voyait pas, et le focus partait dedans : les touches suivantes s'y écrivaient sans rien montrer · campagne coque, recontrôle, 17 novembre 2026 */
+const rcDevant = () => !!document.querySelector('#nv:not(.part), #docplein, #cx-vis');
+function opgRaccourci(nom){ if (!rcBureau() || document.getElementById('cnx')) return false; if (rcDevant()) return false; const R = rcRubriques();
   if (nom === 'palette') { PAL ? palFermer(true) : palOuvrir(); return true; }
   if (nom === 'aide') { palFermer(false); rcAide(); return true; }
   if (nom === 'precedent') { history.back(); return true; }
@@ -24126,6 +24130,7 @@ document.addEventListener('keydown', ev => { if (!rcBureau() || ev.isComposing |
     if (k === 'Tab') { ev.preventDefault(); return; }
     if (cmd && !ev.shiftKey && !ev.altKey && k.toLowerCase() === 'k') { ev.preventDefault(); palFermer(true); }
     return; }
+  if (rcDevant()) return;   /* Échap et la fermeture restent à leurs propres gestionnaires */
   if (cmd && !ev.altKey && !ev.shiftKey) {
     if (k.toLowerCase() === 'k') { ev.preventDefault(); opgRaccourci('palette'); return; }
     if (/^[1-9]$/.test(k)) { if (opgRaccourci('rubrique' + k)) ev.preventDefault(); return; }
@@ -25254,7 +25259,10 @@ function secuVoirComme(k){ const p = eqDe(k); if (!p || !p.actif || !secuPeut())
 function secuBande(){ let z = document.querySelector('.sec-bande'); const k = SESSION;
   if (!SECU.vraie || !k || k === SECU.vraie) { if (z) z.remove(); document.documentElement.classList.remove('sec-voir'); return; }
   const p = eqDe(k), h = `<span class="sec-bande-t">Tu vois l’application comme <b>${esc(p.prenom)}</b>.</span><button type="button" class="sec-bande-b" data-sec2="revenir">Revenir à mon compte</button>`;
-  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); }
+  if (!z) { document.body.insertAdjacentHTML('afterbegin', `<div class="sec-bande" role="status">${h}</div>`); z = document.querySelector('.sec-bande'); } else z.innerHTML = h; document.documentElement.classList.add('sec-voir'); secuBandeMesure(); }
+/* la bande peut tenir sur deux lignes (téléphone, encoche) : la page part SOUS elle, de sa hauteur réelle */
+function secuBandeMesure(){ const z = document.querySelector('.sec-bande'); if (z) document.documentElement.style.setProperty('--sec-bande-h', Math.ceil(z.getBoundingClientRect().height) + 'px'); }
+addEventListener('resize', () => secuBandeMesure());
 function secuRevenir(){ const v = SECU.vraie; SECU.vraie = null; const s = v && SECU.sessions[v]; secuBande();
   if (s && secuSessionVive(s)) { sessionOuvrir(v); aller('equipe'); } else sessionFermer('inactif'); }
 const secuSessionVive = s => secuMaint() - s.derniereActivite < SECU_REGLES.inactiviteMs;
@@ -25323,20 +25331,20 @@ document.addEventListener('change', ev => { if (ev.target.id !== 'sec-verif') re
    Ce qui n'est PAS gardé, et pourquoi : l'IBAN que l'entreprise imprime sur ses propres factures et devis (une consigne de paiement faite pour être lue par ses clients), l'IBAN de « Mon espace client »,
    les virements de l'atelier de documents (il n'y fait que lire), et toute lecture sans effet (le planning, une intervention). */
 const SECU_GESTES = {
-  'banque-ouvrir':{ phrase:'voir ton IBAN et ta banque', portes:['entPanBanque', 'data-ent="carte|banque"'] },
-  'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'data-ent="banqueok"'] },
-  'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'data-ac="virement"'] },
-  'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'data-ac="virok"'] },
+  'banque-ouvrir':{ phrase:'voir ton IBAN et ta banque', portes:['entPanBanque', 'ent=carte|banque'] },
+  'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'ent=banqueok'] },
+  'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'ac=virement'] },
+  'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'ac=virok'] },
   'compta-banque':{ phrase:'voir la banque de la comptabilité', portes:['opc_sensible'] },
   'compta-export':{ phrase:'exporter la comptabilité', portes:['opc_sensible'] },
-  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'data-paie="voirfiches"'] },
-  'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'data-paie="envoyer"', 'data-pt="export"'] },
-  'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'data-paie="comptabiliser"'] },
-  'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'data-eqx="profok'] },
-  'equipe-inviter':{ phrase:'inviter ou réactiver quelqu’un', alt:{ repose:'reposer un mot de passe' }, portes:['data-eq="inviterok"', 'data-eq="actif"', 'secuReposer'] },
-  'equipe-retirer':{ phrase:'désactiver le compte de {prenom}', portes:['eqxDepart', 'data-eq="actif"'] },
+  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'paie=voirfiches'] },
+  'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'paie=envoyer', 'pt=export'] },
+  'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'paie=comptabiliser'] },
+  'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'eqx=profok'] },
+  'equipe-inviter':{ phrase:'inviter ou réactiver quelqu’un', alt:{ repose:'reposer un mot de passe' }, portes:['eq=inviterok', 'eq=actif', 'secuReposer'] },
+  'equipe-retirer':{ phrase:'désactiver le compte de {prenom}', portes:['eqxDepart', 'eq=actif'] },
   'equipe-telephone':{ phrase:'donner un nouveau téléphone à {prenom}', alt:{ dev:'déverrouiller le compte de {prenom}', deco:'déconnecter {prenom} partout' }, portes:['secuNouveauTelephone', 'secuDeverrouiller', 'secuDeconnecter'] },
-  'voir-comme':{ phrase:'voir l’application comme {prenom}', portes:['secuVoirComme', 'data-cnx="comme'] } };
+  'voir-comme':{ phrase:'voir l’application comme {prenom}', portes:['secuVoirComme', 'cnx=comme'] } };
 const secuPhrase = (cle, o) => { const G = SECU_GESTES[cle] || {}; o = o || {}; let t = (o.v && G.alt && G.alt[o.v]) || G.phrase || 'faire cette action'; const p = o.k && eqDe(o.k); return t.replace('{prenom}', p ? p.prenom : 'cette personne'); };
 /* la confirmation (ou la connexion approuvée, qui compte déjà pour une) ouvre une fenêtre de 5 minutes pour TOUS les gestes sensibles de CETTE personne : elle ne se prolonge PAS quand on s'en sert */
 const secuFenetreValide = k => { const t = SECU.confirmeA[k]; return !!t && secuMaint() - t < SECU_REGLES.confirmationMs; };
@@ -25392,7 +25400,7 @@ window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || !SECU.conf
 const hintIban = i => { const s = String(i || '').replace(/\s/g, ''); if (!s) return ''; if (!secuMasqueActif()) return i; return s.slice(0, 2) + '•• •••• •••• ' + s.slice(-4); };
 function secuIbanSurveille(){ const f = document.getElementById('en-iban'); if (!f || !secuMasqueActif()) return; const k = secuQui(); if (!k || secuFenetreValide(k) || f.dataset.masque) return;
   const stock = String(ENTREPRISE.iban || '').replace(/\s/g, ''), P = f.closest('.panneau');
-  if (stock && f.value.replace(/\s/g, '') === stock) { f.value = hintIban(ENTREPRISE.iban); f.dataset.masque = '1'; toast('Cinq minutes ont passé : ton IBAN est de nouveau masqué.'); }
+  if (stock && f.value.replace(/\s/g, '') === stock) { f.value = hintIban(ENTREPRISE.iban); f.defaultValue = f.value; f.dataset.masque = '1';   /* defaultValue : l'attribut value porte aussi l'IBAN entier, il ne doit plus rester dans le DOM */ toast('Cinq minutes ont passé : ton IBAN est de nouveau masqué.'); }
   f.dataset.masque = f.dataset.masque || '0';
   if (P && !P.querySelector('.sec-expire-pan')) P.querySelector('.surtitre').insertAdjacentHTML('afterend', '<div class="info sec-expire-pan" role="status">La confirmation a expiré : elle sera redemandée à l’enregistrement.</div>'); }
 /* ── la fenêtre de 5 minutes se surveille à la seconde (l'horloge de démonstration l'avance) ── */
@@ -25456,10 +25464,11 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-conf-c{width:min(420px,100%);max-height:100%;overflow:auto;background:var(--feuille,var(--surf));color:var(--encre);border:1px solid var(--trait);border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
 .sec-conf-c h2{margin:0}.sec-conf-c p{margin:0}.sec-conf-act{display:flex;gap:8px;flex-wrap:wrap}.sec-conf-act .btn{min-height:48px}
 @media (max-width:760px){#sec-conf{place-items:end center;padding:0}.sec-conf-c{width:100%;border-radius:26px 26px 0 0;padding-bottom:max(20px,env(safe-area-inset-bottom))}}
-.sec-bande{position:fixed;top:0;left:0;right:0;height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:10px 14px;padding:0 12px;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px;overflow:hidden}
-.sec-bande-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec-bande{position:fixed;top:0;left:0;right:0;min-height:44px;z-index:100001;display:flex;align-items:center;justify-content:center;gap:4px 12px;padding:env(safe-area-inset-top,0) 12px 0;box-sizing:border-box;background:#8f1d2e;color:#fff;font-size:14px}   /* la phrase se lit en entier : elle passe à la ligne, la bande grandit (la page descend d'autant : --sec-bande-h) */
+.sec-bande-t{min-width:0;white-space:normal;line-height:1.25;padding:6px 0}
 .sec-bande-b{flex:none;min-height:44px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
-html.sec-voir body{padding-top:44px}
+html.sec-voir body{padding-top:var(--sec-bande-h,44px)}
+@media (max-width:420px){.sec-provmdp{font-size:19px;padding:12px}}
 .cn-compte,.cn-tel,.cn-quit{min-height:44px}.cn-tel{justify-content:center}.cn-quit{justify-content:center;margin-bottom:0}.sec-adr{overflow-wrap:anywhere}.sec-tab td.sec-adr{min-width:9.5em}
 @media (min-width:1100px){.cn-tel{display:none}}
 </style>`);
@@ -25727,7 +25736,7 @@ function nvRendre(){ const z = document.getElementById('nv'); if (!z || !NV) ret
     <div class="nv-pied"><div class="nv-points-nav" aria-hidden="true">${P.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
       <div class="nv-boutons">${i ? '<button type="button" class="btn gris" data-nv="avant">Précédent</button>' : '<button type="button" class="btn gris" data-nv="fermer">Passer</button>'}<button type="button" class="btn" data-nv="${fin ? 'fermer' : 'apres'}">${fin ? 'C’est parti' : 'Suivant'}</button></div></div>`;
   z.querySelector('.nv-corps').scrollTop = 0; const b = z.querySelector('.nv-boutons .btn:not(.gris)'); if (b && innerWidth > 760) b.focus({ preventScroll:true }); }
-function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); document.getElementById('nv')?.remove();
+function nvOuvrir(){ if (!SESSION) return false; fermerPanneau(); fermerMenu(); if (PAL) palFermer(false); document.getElementById('nv')?.remove();
   NV = { pages:nvPages(), i:0 };
   document.body.insertAdjacentHTML('beforeend', `<div id="nv" role="dialog" aria-modal="true" aria-labelledby="nv-titre"><div class="nv-feuille"></div></div>`);
   nvRendre(); return true; }

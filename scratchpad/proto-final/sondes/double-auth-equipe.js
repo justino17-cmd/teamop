@@ -5,12 +5,13 @@ const S = require('./double-auth-commun.js'), L = S.L, v = L.v;
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/double-auth/';
 const fiche = (c, k) => c.p.evaluate(k => { fermerPanneau(); eqFiche(k); }, k).then(() => c.p.waitForTimeout(450));
 const html = c => c.p.evaluate(() => (document.querySelector('#calque .panneau') || {}).innerHTML || '');
-const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau') || {}).textContent || '').replace(/[\u00a0\u202f]/g, ' ').replace(/\s+/g, ' ').trim());
+// innerText (ce que l'œil lit, avec ses séparations), espaces ordinaires ; les majuscules du surtitre sont celles de la feuille de style
+const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau') || {}).innerText || '').replace(/[\u00a0\u202f]/g, ' ').replace(/\s+/g, ' ').trim());
 (async () => {
-  const c = await L.ouvrir({ qui:'marc', profil:'mac' });
+  const c = await L.ouvrir({ qui:'marc', profil:'mac', requete:'?app=1&auto=marc&tel=1' });   // ?tel=1 monte le téléphone et le bloc « Démonstration » (la confirmation reste accordée d'office : ?auto=)
   console.log('\n── 1. la carte et le bandeau ──');
   await L.aller(c.p, 'equipe');
-  const e1 = await c.p.evaluate(() => ({ cartes:[...document.querySelectorAll('#contenu .eq-c')].map(x => ({ nom:x.querySelector('.fo-n b').textContent, st:[...x.querySelectorAll('.bx-t .st')].map(s => s.textContent), puces:x.querySelector('.eq-puces').textContent })), bandeau:(document.querySelector('#contenu .sec-bandeau') || {}).textContent || '' }));
+  const e1 = await c.p.evaluate(() => ({ cartes:[...document.querySelectorAll('#contenu .eq-c')].map(x => ({ nom:x.querySelector('.fo-n b').textContent, st:[...x.querySelectorAll('.bx-t .st')].map(s => s.textContent), puces:x.querySelector('.eq-puces').textContent })), bandeau:((document.querySelector('#contenu .sec-bandeau') || {}).innerText || '').replace(/[\u00a0\u202f]/g, ' ') }));
   const par = nom => e1.cartes.find(x => x.nom === nom);
   v('population : 6 cartes', e1.cartes.length === 6, e1.cartes.length);
   v('Léa (verrouillée) porte la pastille « Verrouillé », Julie, Sophie, Tom « Téléphone à activer », Karim sa puce « 📱 Android de Karim »', par('Léa Roux').st.includes('Verrouillé') && ['Julie Petit', 'Sophie Martin', 'Tom Leroy'].every(n => par(n).st.includes('Téléphone à activer')) && /📱 Android de Karim/.test(par('Karim Benali').puces) && !par('Karim Benali').st.includes('Téléphone à activer'), e1.cartes.map(x => x.nom + ':' + x.st.join('/')));
@@ -28,14 +29,14 @@ const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau')
   v('population : 6 fiches ouvertes', vues === 6, vues);
   v('aucune des 6 fiches ne contient un mot de passe (provisoire ni choisi), ni « Bienvenue17 »', fuites === 0, fuites);
   await fiche(c, 'kb'); let t = await txt(c), h = await html(c);
-  v('fiche de Karim : « Connexion », lien, identifiant, « Personnel, choisi par Karim. », « Android de Karim · activé le … », « Dernière connexion »', /Connexion/.test(t) && /Lien de l’entreprise/.test(t) && /Identifiant karim/.test(t) && /Personnel, choisi par Karim\./.test(t) && /Android de Karim · activé le \d\d\/\d\d\/\d{4}/.test(t) && /Dernière connexion/.test(t), t.slice(0, 300));
+  v('fiche de Karim : « Connexion », lien, identifiant, « Personnel, choisi par Karim. », « Android de Karim · activé le … », « Dernière connexion »', /Connexion/i.test(t) && /Lien de l’entreprise/.test(t) && /Identifiant karim/.test(t) && /Personnel, choisi par Karim\./.test(t) && /Android de Karim · activé le \d\d\/\d\d\/\d{4}/.test(t) && /Dernière connexion/.test(t), t.slice(0, 300));
   v('ses boutons : « Copier le lien et l’identifiant », « Nouveau téléphone », « Déconnecter partout », « Reposer un mot de passe provisoire », « Ouvrir l’application comme Karim »', ['Copier le lien et l’identifiant', 'Nouveau téléphone', 'Déconnecter partout', 'Reposer un mot de passe provisoire', 'Ouvrir l’application comme Karim'].every(b => t.includes(b)) && !/Déverrouiller/.test(t.replace(/Déverrouiller le/, '')), t.slice(-240));
   v('le texte à copier ne contient AUCUN mot de passe (« je te le remets en main propre »)', await c.p.evaluate(() => { const b = document.querySelector('[data-cnx="copier"]'); return /3\. Ton mot de passe provisoire : je te le remets en main propre\./.test(b.dataset.t) && /4\. Installe OP Security sur ton téléphone/.test(b.dataset.t) && !/Bienvenue17/.test(b.dataset.t) && !(SECU.comptes.kb.demoClair && b.dataset.t.includes(SECU.comptes.kb.demoClair)); }));
   await fiche(c, 'sm'); t = await txt(c);
   v('fiche de Sophie (pas encore choisi) : « Provisoire : à lui remettre en main propre. », « Sophie le change à sa première connexion. », « À activer à sa première connexion »', /Provisoire : à lui remettre en main propre\./.test(t) && /Sophie le change à sa première connexion\./.test(t) && /À activer à sa première connexion/.test(t), t.slice(0, 260));
   await fiche(c, 'lr'); t = await txt(c);
   v('fiche de Léa : « Verrouillé depuis hier à 18:02 (bloquée depuis son téléphone) », « Déverrouiller » EN PREMIER, avant « Nouveau téléphone »', /Verrouillé depuis hier à 18:02 \(bloquée depuis son téléphone\)/.test(t) && t.indexOf('Déverrouiller') > -1 && t.indexOf('Déverrouiller') < t.indexOf('Nouveau téléphone'), t.slice(0, 240));
-  v('« Envoyer un lien de mot de passe » est GRISÉ (compte verrouillé), avec la raison', await c.p.evaluate(() => { const b = document.querySelector('[data-eq^="mdp"]'); return !!b && b.disabled && /Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne\./.test(document.querySelector('#calque .panneau').textContent); }));
+  v('« Envoyer un lien de mot de passe » est GRISÉ (compte verrouillé), avec la raison', await c.p.evaluate(() => { const b = document.querySelector('[data-eq^="mdp"]'); return !!b && b.disabled && /Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne\./.test(document.querySelector('#calque .panneau').textContent.replace(/[\u00a0\u202f]/g, ' ')); }));
   await fiche(c, 'marc'); t = await txt(c);
   v('sur SA propre fiche (Marc) : ni « Nouveau téléphone », ni « Déverrouiller », ni « Déconnecter partout », ni « Ouvrir comme » ; la phrase « Pour ton propre compte, demande à un autre administrateur. »', !/Nouveau téléphone|Déconnecter partout|Ouvrir l’application comme/.test(t) && /Pour ton propre compte, demande à un autre administrateur\./.test(t), t.slice(0, 260));
 
@@ -61,7 +62,7 @@ const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau')
   v('« Remets ce mot de passe à Karim en main propre, après avoir vérifié son identité. » + « Valable 72 heures (jusqu’au JJ/MM à HH:MM). Il ne sera plus affiché. »', /Remets ce mot de passe à Karim en main propre, après avoir vérifié son identité\./.test(t) && /Valable 72 heures \(jusqu’au \d\d\/\d\d à \d\d:\d\d\)\. Il ne sera plus affiché\./.test(t));
   const prov = await c.p.evaluate(() => (document.querySelector('[data-sec="provisoire"]') || {}).textContent || '');
   v('le mot de passe est affiché UNE fois : 18 signes en groupes de 6, sélectionnable, AUCUN bouton « Copier »', /^[A-Za-z2-9]{6}-[A-Za-z2-9]{6}-[A-Za-z2-9]{6}$/.test(prov) && !/Copier/.test(t) && await c.p.evaluate(() => getComputedStyle(document.querySelector('[data-sec="provisoire"]')).userSelect !== 'none'), prov.length);
-  v('il n’est dans AUCUNE data- ni dans un toast (le clair vit dans le texte du panneau et dans le bloc « Démonstration »)', await c.p.evaluate(p => { const toutes = [...document.querySelectorAll('*')].flatMap(e => [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.value)); return !toutes.some(x => x.includes(p)) && !(document.getElementById('toast') || {}).textContent.includes(p); }, prov));
+  v('il n’est dans AUCUNE data- ni dans un toast (le clair vit dans le texte du panneau et dans le bloc « Démonstration »)', await c.p.evaluate(p => { const toutes = [...document.querySelectorAll('*')].flatMap(e => [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.value)); return !toutes.some(x => x.includes(p)) && !((document.getElementById('toast') || {}).textContent || '').includes(p); }, prov));
   v('le téléphone de Karim, à sa prochaine lecture, dit « Ce téléphone n’est plus autorisé… »', /Ce téléphone n’est plus autorisé \(un nouveau téléphone a été activé, ou ton compte a été réinitialisé\)\. Le compte a été effacé de cet appareil\./.test(String(ap.ui).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')), String(ap.ui).replace(/<[^>]*>/g, ' ').slice(-200));
   v('le bloc « Démonstration » lit le nouveau provisoire de Karim (son seul autre endroit)', await c.p.evaluate(p => { const e = document.querySelector('[data-sec-prov="karim"]'); return !!e && e.textContent.trim() === p; }, prov));
   await c.p.evaluate(() => document.querySelector('[data-sec2="prov-ok"]').click()); await c.p.waitForTimeout(400);
@@ -70,14 +71,14 @@ const txt = c => c.p.evaluate(() => ((document.querySelector('#calque .panneau')
 
   console.log('\n── 4. « Déverrouiller » Léa ──');
   await c.p.evaluate(() => { secuReconnaitre('lr', { id:'ici', nom:'Chrome · Linux', adresse:'203.0.113.42' }); });
-  await fiche(c, 'lr'); const lt = await c.p.evaluate(() => ({ tel:SECU.comptes.lr.tel, pw:SECU.comptes.lr.demoClair, app:SECU.comptes.lr.appareils.length }));
+  await fiche(c, 'lr'); const lt = await c.p.evaluate(() => ({ tel:JSON.stringify({ n:SECU.comptes.lr.tel.nom, a:SECU.comptes.lr.tel.activeLe, p:SECU.comptes.lr.tel.pinEmp }), pw:SECU.comptes.lr.demoClair, app:SECU.comptes.lr.appareils.length }));
   v('population : Léa a un appareil reconnu avant le geste (pour prouver qu’il est oublié)', lt.app === 1, lt.app);
   await c.p.evaluate(() => document.querySelector('[data-sec2="deverrouiller|lr"]').click()); await c.p.waitForTimeout(500); t = await txt(c);
   v('le panneau : « Déverrouiller le compte de Léa », « Léa a bloqué une connexion depuis son téléphone : quelqu’un connaissait peut-être son mot de passe. Pour la protéger, son mot de passe est remplacé. »', /Déverrouiller le compte de Léa/.test(t) && /Léa a bloqué une connexion depuis son téléphone : quelqu’un connaissait peut-être son mot de passe\. Pour la protéger, son mot de passe est remplacé\./.test(t) && /J’ai vérifié l’identité de Léa en personne/.test(t), t.slice(0, 380));
   await c.p.evaluate(() => { document.getElementById('sec-verif').click(); }); await c.p.waitForTimeout(150);
   v('un administrateur ne se déverrouille pas lui-même : secuDeverrouiller(\'marc\') refuse, même case cochée et même verrou posé', await c.p.evaluate(() => { SECU.comptes.marc.verrou = { le:secuMaint(), par:'telephone', jusqua:null, n:1 }; const r = secuDeverrouiller('marc'); const encore = !!SECU.comptes.marc.verrou; SECU.comptes.marc.verrou = null; return r === false && encore; }));
   await c.p.evaluate(() => document.getElementById('sec-tel-ok').click()); await c.p.waitForTimeout(600);
-  const dv = await c.p.evaluate(() => { const x = SECU.comptes.lr; return { verrou:x.verrou, tel:x.tel, prov:x.prov, emp:x.empreinte, app:x.appareils.length, echecs:x.echecs }; });
+  const dv = await c.p.evaluate(() => { const x = SECU.comptes.lr; return { verrou:x.verrou, tel:JSON.stringify({ n:x.tel.nom, a:x.tel.activeLe, p:x.tel.pinEmp }), prov:x.prov, emp:x.empreinte, app:x.appareils.length, echecs:x.echecs }; });
   v('verrou levé, compteur d’échecs à zéro, son téléphone RESTE LE MÊME', dv.verrou === null && dv.echecs === 0 && dv.tel === lt.tel);
   v('nouveau mot de passe provisoire (celui que connaissait le pirate ne marche plus), appareils reconnus oubliés (sa prochaine connexion sera rouge)', !!dv.prov && dv.emp === null && await c.p.evaluate(m => !secuMdpJuste(SECU.comptes.lr, m), lt.pw) && dv.app === 0);
   t = await txt(c);
