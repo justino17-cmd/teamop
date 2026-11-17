@@ -96,8 +96,14 @@
    "android",
    "petit"
   ],
-  "detail": "PLACEHOLDER"
+  "detail": "Balayage (un geste par page neuve, recensé depuis le DOM) : gérant sur mac, 6 écrans (liste, fiches en cours / planifiée / à planifier / terminée / en retard) 180 recensés / 168 touchés ; technicienne sur iPhone, 3 écrans (Ma journée, 2 fiches) 114 / 110 ; les 16 non touchés sont des champs date/heure masqués (leur bouton est touché) et un bloc replié. 9 parcours : (A) technicienne de A à Z sur iPhone (40 ✓ 0 ✗) et Android de nuit (43 ✓ 0 ✗) ; (B) bureau : filtres, création (client existant, nouveau client, forfait absurde, « plus tard », annuler, double toucher), modifier, historique, intervention visible chez le technicien (38 ✓ 4 ✗ : défauts 03, 08, 12, 14) ; (C) suite : « Je ne peux pas finir », garantie jusqu’au client, client absent, envois e-mail / SMS, prise de rendez-vous du client (32 ✓ 6 ✗ : défauts 01, 02, 04, 07, 16) ; (D) facture au retour : chiffrer, TVA, envoi, acompte déduit, reste à payer côté client, au centime (13 ✓ 3 ✗ : 14 et 15 ; contre-épreuve CONTRE=1 : 14 ✓ 2 ✗, le contrôle 14 passe) ; (E) rôles (gérant, secrétariat, chef d’équipe, 2 techniciens ; Commencer ; Planifier ; rechargement) (15 ✓ 2 ✗ : défaut 05) ; (F) « ‹ Retour » après un retour du navigateur (3 ✓) ; (G) espace client › Interventions (9 ✓) ; (H) valeurs longues (client de 80 signes, titre de 90, pièces interminables, 12 345,67 L, compte rendu de 700 signes) sur 6 écrans ; (I) mise en page des 30 écrans sur 12 profils jour/nuit : iphone 201+198 ✓, android 198+198, petit 193+196, ipad 197+197, mac 142+142, windows 142+142 (2 146 contrôles, tous les ✗ sont les défauts 06, 09, 10, 11, 13 ou la mesure simple « Voir dans Tâches › » 41 px, non retenue). Environ 2 400 vérifications. Captures regardées : liste, fiches, création, Ma journée, fiche technicienne (jour et nuit), « Je ne peux pas finir », PDF en grand, lien client, valeurs longues. Les numéros de ligne de ce rapport sont ceux du 17 novembre au soir ; ils bougent à chaque fusion, chercher par nom de fonction."
  },
+ "fauxDefautsEcartes": [
+  "Le bouton « ‹ Retour » d’une fiche a changé de mécanisme pendant la campagne (le commit « Bouton Retour 1/2 » : `.rl-retour`, plus `[data-retour]`) : trois « défauts » relevés avec l’ancien sélecteur étaient des erreurs de sonde ; rejoué avec le bon, « Retour » ramène à la liste, après un retour du navigateur aussi.",
+  "Le message « Cette page n’est pas dans ton espace. » vu après un changement de personne dans la page venait de la sonde (la page d’avant, « Ma journée », rendue pour la personne suivante) : le helper `devenir` remet maintenant l’accueil avant la session.",
+  "Une fenêtre de création ou un PDF plein écran laissés ouverts recouvraient les écrans suivants de la mise en page : la sonde les ferme avant chaque écran.",
+  "« Ce que voit le client » : l’intervention « à reprendre » dit bien « Intervention à reprendre » (le titre est en capitales à l’écran : l’expression de la sonde était sensible à la casse)."
+ ],
  "nonCouvert": [
   "La caméra et la galerie d’un vrai téléphone : une photo est posée par setInputFiles (un PNG), jamais prise au doigt ; la signature est tracée à la souris (page.mouse), pas au doigt sur un vrai écran.",
   "Le téléchargement réel d’un PDF, l’envoi réel d’un e-mail ou d’un SMS (le prototype n’a pas de serveur) : seuls le texte, la fenêtre, le message et l’état sont contrôlés.",
@@ -141,7 +147,7 @@
    "attendu": "La carte de l’intervention dit « À reprendre » et propose « Voir » ou « Reprendre la fiche » ; jamais « Commencer », puisqu’elle est déjà commencée et arrêtée.",
    "constate": "La pastille dit « À reprendre » et le bouton dit toujours « Commencer » (avec « Y aller » et « Appeler »), comme une intervention neuve. Un tap ouvre l’écran « À reprendre », pas le début d’une intervention.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-suite.js : « interventions-01 : Ma journée n’invite pas à « Commencer » une intervention « À reprendre » » ✗ (rejoué 2 fois, même texte de carte relevé)",
-   "ou": "apercu/prototype-op-gestion.html:12019 (vueMaJournee : `i.st === 'encours' ? 'Continuer' : 'Commencer'`) ; l’écouteur « Commencer » (ligne ~22580) ignore déjà un statut autre que « planifiée »",
+   "ou": "apercu/prototype-op-gestion.html:12063 (vueMaJournee : `i.st === 'encours' ? 'Continuer' : 'Commencer'`) ; l’écouteur « Commencer » (« [11] » de la fin du fichier) ignore déjà un statut autre que « planifiée »",
    "correction": "Dans la carte : si `i.st === 'reprendre'`, bouton gris « Voir » (data-rl=\"go|inter-x-id\") et ni « Y aller » ni « Appeler » ; pour « encours » garder « Continuer ».",
    "decision": "corriger"
   },
@@ -157,7 +163,7 @@
    "attendu": "Une garantie n’a aucune facture (la fiche dit « Sans facture », la création dit « Pas de facture »). Le client doit lire qu’il n’y a rien à payer, jamais qu’une facture arrive.",
    "constate": "La page du client dit « FACTURE — Elle vous est envoyée après vérification. », et le pied du PDF dit « Il ne vaut pas facture : la facture vous est envoyée à part. » Le client attend une facture qui ne viendra pas (ou croit devoir payer).",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-suite.js : « interventions-02 » ✗ ×2 (page du client et pied du PDF), rejoué 2 fois",
-   "ou": "apercu/prototype-op-gestion.html:5121 (vueClientVoit, bloc Facture) et :5096 (pied de compteRenduPdf)",
+   "ou": "apercu/prototype-op-gestion.html:5131 (vueClientVoit, bloc Facture) et :5106 (pied de compteRenduPdf)",
    "correction": "Si `i.fact && i.fact.mode === 'garantie'` : bloc Facture = « Aucune facture : cette intervention est prise en charge. » ; pied du PDF = « Compte rendu d’intervention. Intervention prise en charge : aucune facture ne vous sera envoyée. »",
    "decision": "corriger"
   },
@@ -173,7 +179,7 @@
    "attendu": "Comme la fiche client (« Le numéro de téléphone est à vérifier », « L’adresse e-mail est à vérifier »), la création d’un client refuse un téléphone ou un e-mail impossibles et le dit.",
    "constate": "Le client est créé avec tel « abc » et mail « pas-un-courriel », sans un mot. Ensuite « Appeler » compose « abc », le SMS et le compte rendu par e-mail ne partent nulle part, et le client est enregistré tel quel.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-bureau.js : « interventions-03 » ✗ (rejoué 2 fois ; la fiche créée est relue : {tel:\"abc\", mail:\"pas-un-courriel\"})",
-   "ou": "apercu/prototype-op-gestion.html:13253 (ACTIONS_CREA.cCreer : aucun contrôle avant `CLIENTS[k] = …`) ; le contrôle existe déjà dans ACTIONS.clientEnreg (:13543, cfTelOk et l’expression de l’e-mail)",
+   "ou": "apercu/prototype-op-gestion.html:13297 (ACTIONS_CREA.cCreer : aucun contrôle avant `CLIENTS[k] = …`) ; le contrôle existe déjà dans ACTIONS.clientEnreg (:13587, cfTelOk et l’expression de l’e-mail)",
    "correction": "Dans cCreer, avant de créer le client : le même contrôle que clientEnreg (cfTelOk + expression de l’e-mail, champs facultatifs mais justes s’ils sont remplis), toast « Le numéro de téléphone est à vérifier… », et focus sur le champ.",
    "decision": "corriger"
   },
@@ -189,8 +195,8 @@
    "etapes": "Fiche d’une intervention terminée › « Voir le PDF » (ou « Voir en grand »).",
    "attendu": "Le haut du document porte son titre : « Compte rendu d’intervention », avec son numéro CR-2026-xxx.",
    "constate": "Le titre en haut à droite est « Ce que nous avons fait » (clim ; « Bilan du passage », « Constat et traitement », « Travaux réalisés » selon le métier), c’est-à-dire le nom de la section, qui revient juste en dessous. Le mot « Compte rendu d’intervention » n’apparaît qu’en petit, dans le pied de page.",
-   "preuve": "Captures mep-client-voit-plein-iphone-jour.png et le texte relevé (txt-fiche-fait.txt : « Ce que nous avons fait / N° CR-2026-006 »)",
-   "ou": "apercu/prototype-op-gestion.html:5085 (compteRenduPdf : `<h4>${MOT_COMPTE[F.metier]}</h4>`) ; MOT_COMPTE :3801",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-suite.js : « interventions-04 » ✗ (titre lu : « Ce que nous avons fait ») ; captures mep-client-voit-plein-iphone-jour.png",
+   "ou": "apercu/prototype-op-gestion.html:5095 (compteRenduPdf : `<h4>${MOT_COMPTE[F.metier]}</h4>`) ; MOT_COMPTE :3809",
    "correction": "Titre fixe « Compte rendu d’intervention » dans le `<h4>` ; MOT_COMPTE reste le titre de la section « Ce que nous avons fait ». Même mot dans le titre du PDF téléchargé.",
    "decision": "corriger"
   },
@@ -207,7 +213,7 @@
    "attendu": "Rien : un technicien n’a pas à créer d’intervention, et Ma journée propose elle-même « ＋ Nouvelle note de frais » et « ＋ Demande d’achat ».",
    "constate": "En bas des deux écrans : « Dans cette rubrique, ton compte ne peut pas créer. Pour changer ça, demande à Marc. » Elle contredit les boutons « ＋ » juste au-dessus et fait croire à un manque de droits sur l’écran de terrain.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-roles.js : « interventions-05 » ✗ pour sm ET tl, sur Ma journée ET sur la fiche (4 relevés) ; captures mep-tech-fiche-iphone-nuit.png, mep-longues-journee-iphone-jour.png",
-   "ou": "apercu/prototype-op-gestion.html:11731 (droitsNote, la phrase « ton compte ne peut pas … » ligne ~11743)",
+   "ou": "apercu/prototype-op-gestion.html:11775 (droitsNote, la phrase « ton compte ne peut pas … » ligne ~11787)",
    "correction": "Ne pas poser la note sur Ma journée ni sur la fiche de terrain d’un technicien (ou la limiter aux écrans où « Créer » existe vraiment : la liste des Interventions, les Clients…).",
    "decision": "corriger",
    "zone": "refonte (droits d’Équipe)"
@@ -224,7 +230,7 @@
    "attendu": "Le nom, l’adresse et la pastille tiennent lisiblement, quitte à passer sous le nom.",
    "constate": "L’adresse « 12 quai Valin, 17000 La Rochelle · secteur La Rochelle » est comprimée à 86 px de large sur 5 lignes, parce que la pastille garde sa largeur à droite : texte écrasé.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-mise-en-page.js petit nuit : « creation/petit/nuit : aucun texte écrasé » ✗ (et creation-forfait) ; capture mep-creation-petit-nuit.png",
-   "ou": "apercu/prototype-op-gestion.html:2809 (.cli-l) et le balisage de la liste :13054 (data-ccli)",
+   "ou": "apercu/prototype-op-gestion.html:2817 (.cli-l) et le balisage de la liste :13201 (data-ccli)",
    "correction": "`.cli-l{flex-wrap:wrap}` et, sous 400 px, la pastille passe à la ligne (`flex:1 0 100%`), ou le texte prend `min-width:0;flex:1 1 160px`.",
    "decision": "corriger"
   },
@@ -240,25 +246,25 @@
    "attendu": "L’écran du bureau montre ce que le client verra, sans commentaire de maquette.",
    "constate": "Sous la confirmation du client : « Dans le prototype, côté bureau : le rendez-vous est déjà posé au planning le lundi 9 novembre à 13:30, chez Sophie Martin… » avec « Voir au planning » et « Recommencer » : reste d’échafaudage dans le mode application.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-suite.js : « interventions-07 » ✗ (rejoué 2 fois)",
-   "ou": "apercu/prototype-op-gestion.html:5183 (blocRdv, `<div class=\"rdv-proto\"><b>Dans le prototype, côté bureau :`)",
+   "ou": "apercu/prototype-op-gestion.html:5193 (blocRdv, `<div class=\"rdv-proto\"><b>Dans le prototype, côté bureau :`)",
    "correction": "En mode application (`enApp()`), retirer la phrase « Dans le prototype… » (garder « Voir au planning ») et le bouton « Recommencer ».",
    "decision": "corriger"
   },
   {
    "n": "interventions-08",
    "gravite": "détail",
-   "ecran": "Ce que voit le client › choix de l’intervention",
+   "ecran": "Fenêtre « Nouvelle intervention » › liste des clients",
    "role": "gérant, secrétariat",
    "profils": [
     "mac",
     "iphone"
    ],
-   "etapes": "Fiche terminée › « Voir le lien client » › ouvrir la liste « Intervention ».",
-   "attendu": "Chaque choix se distingue : « 31/10 · Hôtel de la Plage · Entretien climatisation ».",
-   "constate": "Les choix sont « 31/10 · Hôtel de la Plage » et « 16/10 · Hôtel de la Plage » ; dès qu’un client a deux interventions le même jour (garantie après entretien…), on ne sait plus laquelle on regarde. L’intervention en cours dit « · en cours (aperçu) » même quand elle est « à reprendre ».",
-   "preuve": "Relevé de la liste des options (txt-client-voit-tel.txt) et sonde interventions-parcours-suite.js (S2 : deux « 31/10 · Hôtel de la Plage »)",
-   "ou": "apercu/prototype-op-gestion.html:5098 (vueClientVoit, `data-voirint`)",
-   "correction": "Ajouter le titre : `${jcourt(o.d)} · ${nom} · ${o.titre}` ; remplacer « en cours (aperçu) » par l’état réel.",
+   "etapes": "＋ Nouvelle intervention › « Client existant » › lire la ligne « Garage Rochefort Auto ».",
+   "attendu": "Un client hors des secteurs de l’entreprise le dit en mots (« secteur à définir ») ou ne montre rien ; jamais un tiret.",
+   "constate": "La ligne dit « 27 av. Charles de Gaulle, 17300 Rochefort · secteur — » : le tiret se lit comme une valeur manquante, et pour ce client l’option « Seulement les techniciens du secteur » n’apparaît pas, sans explication.",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-bureau.js : « interventions-08 » ✗ ; relevé txt-creation.txt",
+   "ou": "apercu/prototype-op-gestion.html:13201 (rendreCreation, liste des clients : `secteur ${SECT_CLI[kk] || '—'}`)",
+   "correction": "Écrire « hors secteur » (ou ne rien écrire) à la place du tiret, et dire au technicien du bureau pourquoi le filtre par secteur n’est pas proposé.",
    "decision": "corriger"
   },
   {
@@ -272,8 +278,8 @@
    "etapes": "Ajouter une pièce de quantité « 12 345,67 L » au nom long › regarder la ligne.",
    "attendu": "La quantité reste sur une ligne, le nom passe à la ligne si besoin.",
    "constate": "La quantité se coupe en trois lignes (« 12 / 345,67 / L ») à côté de « Retirer » : le nom prend la place.",
-   "preuve": "mep-longues-fiche-bureau-mac-jour.png (capture relue)",
-   "ou": "apercu/prototype-op-gestion.html:5020 (vueFiche, ligne de pièce : `<span>nom</span><span><b>q</b><button>Retirer</button></span>`)",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-mise-en-page.js : « interventions-09 : la quantité « 12 345,67 L » tient sur une ligne » ; capture mep-longues-fiche-bureau-mac-jour.png (relue)",
+   "ou": "apercu/prototype-op-gestion.html:5030 (vueFiche, ligne de pièce : `<span>nom</span><span><b>q</b><button>Retirer</button></span>`)",
    "correction": "`white-space:nowrap` sur la quantité, `min-width:0;flex:1` sur le nom.",
    "decision": "corriger"
   },
@@ -292,7 +298,7 @@
    "attendu": "Boutons de 44 px au moins ; sur un téléphone la page est lisible (pincer pour agrandir au minimum).",
    "constate": "Boutons de 40 px de haut (Télécharger 81×40, Envoyer 81×40, croix 42×42 ou 20×42 à 320 px) ; la feuille A4 est réduite à la largeur de l’écran : texte d’environ 6 px, illisible sans zoom, alors que le bouton dit « en grand ».",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-mise-en-page.js : « client-voit-plein » ✗ sur iphone jour, iphone nuit, android, ipad, petit ; capture mep-client-voit-plein-iphone-jour.png",
-   "ou": "apercu/prototype-op-gestion.html:2523 (`.dp-gestes .btn{min-height:40px}`) et docPlein (:~5800)",
+   "ou": "apercu/prototype-op-gestion.html:2531 (`.dp-gestes .btn{min-height:40px}`) et docPlein (:~5800)",
    "correction": "`min-height:44px` sous `(pointer:coarse)`, croix 44×44 ; au téléphone, laisser défiler/pincer la feuille à 100 % de sa largeur plutôt que la réduire.",
    "decision": "corriger",
    "zone": "documents (PDF plein écran)"
@@ -308,8 +314,8 @@
    "etapes": "Voir le lien client sur téléphone, 360 à 390 px : lire la dernière ligne.",
    "attendu": "Le numéro de téléphone reste d’un bloc.",
    "constate": "« Une question ? 05 / 46 00 00 17 » : le numéro se coupe entre deux lignes sur la page que reçoit le client.",
-   "preuve": "mep-client-voit-tel-iphone-jour.png (capture relue)",
-   "ou": "apercu/prototype-op-gestion.html:5123 (vueClientVoit, dernière ligne)",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-mise-en-page.js iphone : « client-voit-tel/iphone : interventions-11 » ✗ ({lignes:2}) ; capture mep-client-voit-tel-iphone-jour.png",
+   "ou": "apercu/prototype-op-gestion.html:5133 (vueClientVoit, dernière ligne)",
    "correction": "Envelopper le numéro dans un `<span style=\"white-space:nowrap\">` (et le rendre cliquable `tel:`).",
    "decision": "corriger"
   },
@@ -325,8 +331,8 @@
    "etapes": "Interventions › « Aujourd’hui » : lire « Entretien chaudière granulés » (Hôtel de la Plage), puis ouvrir sa fiche.",
    "attendu": "Une intervention « À planifier » est présentée de la même façon dans la liste et sur sa fiche.",
    "constate": "La liste donne « SAM 31 · 10:00 · Non assigné · À planifier » ; la fiche dit « À planifier : pas encore de date ni de technicien ». Même contradiction pour « Urgent — plus de chauffage » (11:30). Seules les demandes venues du client affichent « Date à fixer ».",
-   "preuve": "txt-liste.txt et txt-fiche-aplanifier.txt ; code :4993",
-   "ou": "apercu/prototype-op-gestion.html:4993 (vueInterventions : `i.origine === 'client' && i.st === 'aplanifier'`)",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-bureau.js : « interventions-12 » ✗ (liste : « SAM 31 · 10:00 … Non assigné » ; fiche : « pas encore de date ni de technicien ») ; code :5003",
+   "ou": "apercu/prototype-op-gestion.html:5003 (vueInterventions : `i.origine === 'client' && i.st === 'aplanifier'`)",
    "correction": "Pour tout `st === 'aplanifier'` afficher « Date à fixer » (ou « Proposée samedi 31 · 10:00 » si la date est une proposition), dans la liste et sur la fiche.",
    "decision": "corriger"
   },
@@ -342,7 +348,7 @@
    "attendu": "Rond de 44 × 44 px.",
    "constate": "La croix mesure 41 × 44 px : elle se rétrécit quand le titre « Nouvelle intervention » passe sur deux lignes.",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-mise-en-page.js petit nuit : « cibles au doigt ≥ 44 px » ✗ (creation, creation-nouveau-client, creation-forfait)",
-   "ou": "apercu/prototype-op-gestion.html:2792 (`.x-fen`)",
+   "ou": "apercu/prototype-op-gestion.html:2800 (`.x-fen`)",
    "correction": "`.x-fen{flex-shrink:0}`.",
    "decision": "corriger"
   },
@@ -358,10 +364,10 @@
    "attendu": "(a) Le bouton « Aperçu et envoi » est grisé : la page dit « 1 ligne sans prix — chiffre-la ci-dessous pour pouvoir envoyer ». (b) « Adresse pas encore reconnue : choisis-la dans la liste, ou vérifie la commune. »",
    "constate": "Ces deux messages existent mais sont masqués : ils portent la classe d’échafaudage `.bandeau-proto`, que le mode application cache en entier. Le bouton est grisé sans raison écrite (seule la case de prix s’entoure d’orange), et l’adresse inconnue est acceptée sans un mot (le technicien n’aura aucune position sur la carte). Même défaut au devis (ligne sans prix).",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-facture.js « interventions-14 » ✗ ; interventions-parcours-bureau.js « interventions-14 » ✗ ; CONTRE-ÉPREUVE : avec CONTRE=1 (le bandeau rendu visible) le contrôle PASSE — il vise bien cette règle",
-   "ou": "apercu/prototype-op-gestion.html:23971 (`html[data-app] .m-faite, html[data-app] .bandeau-proto, … {display:none!important}`) ; messages fonctionnels :5322 (facture), :7763 (devis), :13156 (adresse) ; :13639 règle `bd.style.display` (inutile tant que la règle masque)",
+   "ou": "apercu/prototype-op-gestion.html:24033 (`html[data-app] .m-faite, html[data-app] .bandeau-proto, … {display:none!important}`) ; messages fonctionnels :5332 (facture), :7775 (devis), :13200 (adresse) ; :13683 règle `bd.style.display` (inutile tant que la règle masque)",
    "correction": "Renommer en `.bandeau-info` (nouvelle classe, même style) ces trois messages fonctionnels ; `.bandeau-proto` reste réservé aux phrases de revue. Ajouter le mot dans la sonde du menu des mots d’échafaudage.",
    "decision": "corriger",
-   "zone": "aussi devis (atelier) pour la ligne :7763"
+   "zone": "aussi devis (atelier) pour la ligne :7775"
   },
   {
    "n": "interventions-15",
@@ -375,7 +381,7 @@
    "attendu": "La ligne ajoutée se nomme (désignation, quantité) et se retire si on s’est trompé.",
    "constate": "Une ligne « Ligne libre ×1 » apparaît : seul le prix est saisissable, on ne peut ni la nommer ni la supprimer ; une facture partirait au client avec « Ligne libre ». (C’est l’indice « Ligne libre » de MENU-FINAL, confirmé.)",
    "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-facture.js : « interventions-15 » ✗ ×2 (la ligne ajoutée n’a que le champ prix et aucun bouton)",
-   "ou": "apercu/prototype-op-gestion.html:8531 (ACTIONS.ligneAjout : `{ d:'Ligne libre', q:'1', pu:null }`) ; la ligne :5326 (vueFacture) n’écrit la désignation qu’en texte",
+   "ou": "apercu/prototype-op-gestion.html:8572 (ACTIONS.ligneAjout : `{ d:'Ligne libre', q:'1', pu:null }`) ; le tableau de vueFacture n’écrit la désignation qu’en texte",
    "correction": "Pour une ligne `libre:true` : champ texte « Désignation » (aria-label), champ « Qté », et bouton « Retirer cette ligne » ; refuser l’envoi tant qu’une ligne libre est sans nom.",
    "decision": "corriger",
    "zone": "facture (compta-ventes) — mais c’est la facture préparée au retour de l’intervention"
@@ -391,11 +397,12 @@
    "etapes": "Ouvrir une intervention chez un client autre que le Vieux Port (ex. Durand) › lire « Prochain rendez-vous ».",
    "attendu": "Le technicien peut dire qu’un autre passage est nécessaire, pour tout client, et choisir un entretien annuel seulement quand il a un sens.",
    "constate": "La case « Remplacer le ventilateur — 2ᵉ passage · le bureau prépare le devis » n’existe que pour UN client de démonstration (`i.cli==='vp'`) ; pour tous les autres il ne reste que « Entretien annuel », cochée d’office, même après un dépannage : chaque dépannage crée un « Entretien annuel à planifier » dans un an si la technicienne n’y pense pas.",
-   "preuve": "Lecture du code (:5036, :4977) et du texte de la fiche (txt-tech-fiche-planifiee.txt) ; « R… » : balayage sm iphone (case data-suite=entretien cochée par défaut)",
-   "ou": "apercu/prototype-op-gestion.html:5036 (`i.cli==='vp'` en dur) et :4977 (`suite:{ entretien:i.type !== 'Contrat' }`)",
+   "preuve": "scratchpad/proto-final/campagne/sondes/interventions-parcours-suite.js : « interventions-16 » ✗ (case « Entretien annuel » cochée sur la fiche d’un dépannage, i9 de Sophie : {entretienCochee:true}) ; mesure des états par défaut : i2, i9, i16 = {entretien:true}, la case « Remplacer le ventilateur » seulement sur i1 (client vp)",
+   "ou": "apercu/prototype-op-gestion.html:5046 (`i.cli==='vp'` en dur) et :4987 (`suite:{ entretien:i.type !== 'Contrat' }`)",
    "correction": "Case générique « Un autre passage est nécessaire (le bureau prépare le devis) » pour tous les clients ; « Entretien annuel » cochée d’office pour « Entretien », « Mise en service » et « Installation » seulement.",
    "decision": "soumettre",
    "recommandation": "Décision de produit : quelles suites le technicien peut-il déclencher ? Recommandation : une case générique « Autre passage » + « Entretien annuel » proposé, jamais coché d’office après un dépannage."
   }
- ]
+ ],
+ "contreEpreuve": "interventions-14 : CONTRE=1 node …/interventions-parcours-facture.js rend le bandeau visible par une règle ajoutée dans la page : le contrôle passe (14 ✓ 2 ✗, le 14 n’est plus dans les ✗). Les autres contrôles tombent sur le vrai défaut (le texte relevé est dans le « constaté »)."
 }

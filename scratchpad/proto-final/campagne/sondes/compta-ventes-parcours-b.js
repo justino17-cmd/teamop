@@ -62,6 +62,7 @@ const cts = n => Math.round(n * 100);
   L.v('compta-ventes-08b · « Paiement reçu » : « 1 114,00 » (supérieur au reste de 114,00) est refusé, jamais enregistré comme 1,00 €', /dépasse/.test(t) && (await X.donnees(p)).F.find(x => x.id === 'f143').recu === 0, t);
   if ((await X.donnees(p)).F.find(x => x.id === 'f143').recu !== 0) { /* le défaut 08b a écrit un faux paiement : on repart d'une page neuve pour ne pas fausser la suite */ await X.O.neuf(c, 'comptabilite'); await X.fiche(c, 'f128'); await L.toucher(c, '[data-payer="f128|Carte"]'); await X.compta(c, 'paiements'); await L.toucher(c, '[data-action="ajoutEnc"]'); await p.selectOption('#e-f', 'f143'); await p.waitForTimeout(200); }
   L.v('choisir une autre facture remet le montant au reste dû de CETTE facture (114,00)', /114,00/.test(await p.evaluate(() => document.getElementById('e-v').value)), await p.evaluate(() => document.getElementById('e-v').value));
+  await p.evaluate(() => { document.getElementById('e-v').value = '114,00'; });   // le « 1 114,00 » refusé reste dans le champ : on le remet au reste dû
   await p.evaluate(() => { document.getElementById('e-d').value = '2026-11-05'; document.getElementById('e-d').dispatchEvent(new Event('change', { bubbles: true })); });
   await L.toucher(c, '#calque [data-action="ajoutEncOk"]'); t = await X.toasts(p);
   L.v('un paiement daté dans le futur est refusé et dit pourquoi', /futur/.test(t) && (await X.donnees(p)).F.find(x => x.id === 'f143').st === 'envoyee', t);

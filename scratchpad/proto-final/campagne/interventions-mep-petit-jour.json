@@ -1,0 +1,178 @@
+[
+ {
+  "n": "client-voit-pdf",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 436,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-plein",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 597,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-tel",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "client-voit-ordi",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-tech",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-bureau",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-fiche-fait",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ },
+ {
+  "n": "longues-client-voit",
+  "dep": {
+   "largeur": 320,
+   "premiere": 320,
+   "seconde": 320,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "d": {
+   "petits": [],
+   "champs": [],
+   "ecrases": []
+  },
+  "bas": {
+   "barreHaut": 488,
+   "dernierBas": 440,
+   "fixes": [
+    "barre-bas"
+   ]
+  }
+ }
+]
