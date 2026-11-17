@@ -1,0 +1,63 @@
+{
+ "lot": "vehtemps",
+ "angle": "gerant (marc) puis bureau (julie) — mac, windows, ipad, jour et nuit, mode application",
+ "couvert": [
+  "Véhicules : liste (4 véhicules), fiche À faire / Papiers / Dépenses (Trafic), feuilles coûts, nouveau véhicule, plein, rendez-vous, renouvellement groupé, remettre en service, compteur, conducteur, modifier, garage, matériel, amende, accident, document, dépense (mac jour)",
+  "Temps de travail : Aujourd’hui, Semaine, Mois, ajouter une journée, rappels, la règle, terminer la journée, feuille de semaine, fiche d’une journée (mac jour)"
+ ],
+ "doutes": [],
+ "defauts": [
+  {
+   "n": "gerant-01",
+   "gravite": "détail",
+   "ecran": "Véhicules › fiche › À faire › Matériel (feuille « Matériel de sécurité »)",
+   "role": "marc",
+   "profils": "mac jour (code : tous)",
+   "etapes": "Véhicules › Renault Trafic › « Noter le contrôle du matériel ».",
+   "attendu": "« Il manque : Constat amiable » puis, séparé, le lien « Les commander ».",
+   "constate": "Le texte et le lien se touchent : « Il manque : Constat amiableLes commander » (capture f-materiel-mac-jour.png).",
+   "preuve": "apercu/prototype-op-gestion.html l. 18895 : <b>…</b><button class=\"lien\"> sans espace ni marge, dans un .info qui n’est pas en colonne.",
+   "ou": "vhMatPanel",
+   "correction": "Mettre le lien sous la phrase (display:block ou colonne gap 8 px) comme le bloc « .vh-alerte » du garage."
+  },
+  {
+   "n": "gerant-02",
+   "gravite": "détail",
+   "ecran": "Véhicules › liste › rangées « En règle »",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Véhicules › onglet Tous.",
+   "attendu": "Une échéance dite une fois (spécification § 3.2 : « les rangées individuelles ne répètent plus cette assurance, elles passent à la 2e échéance »).",
+   "constate": "L’assurance du 11 décembre (41 jours) est écrite trois fois : rangée « Les 4 véhicules », puis « La prochaine échéance est l’assurance, dans 41 jours » sous le Trafic ET sous le Berlingo.",
+   "preuve": "vhEtat (l. ~18690) : `prochaine = E.sort(n)[0]` est calculé sur TOUTES les échéances, groupe compris ; seul `prop` retire l’assurance du groupe.",
+   "ou": "vhEtat",
+   "correction": "Pour une rangée dont l’assurance est dans un groupe, dire « La prochaine échéance est la révision, dans 62 jours » (première échéance hors groupe)."
+  },
+  {
+   "n": "gerant-03",
+   "gravite": "gênant",
+   "ecran": "Temps de travail › Semaine (grille)",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Temps de travail › Semaine, ligne Karim Benali, colonne du jour (sam. 31).",
+   "attendu": "Une journée en cours dit qu’elle est en cours (« au travail depuis 08:05 »), pas « 0h00 ».",
+   "constate": "Karim est au travail depuis 08:05 (Aujourd’hui le dit) mais sa case du jour affiche « 0h00 · 08:05–… ».",
+   "preuve": "ttCase (l. 17512) : seule une journée ouverte d’un jour PASSÉ (ptOuvert) devient « n’a pas terminé » ; une journée ouverte d’aujourd’hui tombe dans la branche `P` et affiche ptH(m)=0h00.",
+   "ou": "ttCase",
+   "correction": "Si la journée est ouverte et date d’aujourd’hui : « en cours » + « depuis 08:05 », jamais 0h00 (et le total de la semaine ne le compte pas encore : le dire)."
+  },
+  {
+   "n": "gerant-04",
+   "gravite": "détail",
+   "ecran": "Temps de travail › Semaine (grille)",
+   "role": "marc",
+   "profils": "mac jour",
+   "etapes": "Temps de travail › Semaine, ligne Léa Roux.",
+   "attendu": "« Congé payé » sur les jours ouvrés seulement (comme la Paie : `getDay() % 6`).",
+   "constate": "Léa (congé jusqu’au mardi 3 novembre) a « Congé payé » aussi samedi 31 et dimanche 1er, alors que la rangée de Julie montre « — » ces jours-là.",
+   "preuve": "ttCase : `else if (a)` ne regarde pas le jour de la semaine ; paieVariables compte les absences avec `dObj(d).getDay() % 6`.",
+   "ou": "ttCase",
+   "correction": "Pour sam. et dim., afficher « — » même en congé (ou « week-end »)."
+  }
+ ]
+}
