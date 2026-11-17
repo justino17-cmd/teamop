@@ -35,7 +35,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   v('population : la page connaît au moins 15 vues', routes.length >= 15, routes.length);
   const reste = [];
   for (const r of routes) { await L.aller(p, r); const tx = await p.evaluate(() => document.getElementById('contenu').innerText);
-    const fr = L.cadre(p); let tf = ''; if (fr) { try { tf = await fr.evaluate(() => document.body.innerText); } catch (e) {} }
+    const fr = L.cadre(p); let tf = ''; if (fr) { try { tf = await fr.evaluate(() => { const b = document.body.cloneNode(true); b.querySelectorAll('script,style').forEach(x => x.remove()); return b.innerText || b.textContent; }); } catch (e) {}   /* un cadre caché rend innerText = textContent : le TEXTE de ses scripts (les clients du semis de la Comptabilité) passait pour de l'affichage */ }
     for (const [nom, tt] of [['page', tx], ['cadre', tf]]) { const m = tt.match(/.{0,40}\bMme Roux(?!el)\b.{0,40}/g); if (m) reste.push(r + '/' + nom + ' : ' + m.slice(0, 2).join(' ¦ ').replace(/\s+/g, ' ')); } }
   console.log('  · rubriques qui montrent encore « Mme Roux » : ' + (reste.length ? '\n    ' + reste.join('\n    ') : 'aucune'));
   v('aucune rubrique du menu ne montre encore l’ancien nom du client (' + reste.length + ')', reste.length === 0, reste);

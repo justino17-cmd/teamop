@@ -41,10 +41,10 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const mails = (src.match(/adr:R\.ville \? R\.ville \+ ' \(adresse à compléter\)'/g) || []).length;
   console.log('  · ' + mails + ' chemins « e-mail → nouveau client » écrivent « <ville> (adresse à compléter) » sans poser point ni secteur');
   // ce que la carte fait d'un client sans point : au dépôt
-  const e5 = await p.evaluate(() => { const k = 'zmail'; CLIENTS[k] = { nom: 'E-mail', type: 'part', contact: 'E-mail', tel: '', mail: 'c@d.fr', adr: 'Rochefort (adresse à compléter)', acces: '', depuis: '2026', appareils: [] }; return { reconnu: reconnaitre(CLIENTS[k].adr), geo: geoDeAdresse(CLIENTS[k].adr), g: CR_GEO[k] || null }; });
+  const e5 = await p.evaluate(() => { const k = 'zmail'; CLIENTS[k] = { nom: 'E-mail', type: 'part', contact: 'E-mail', tel: '', mail: 'c@d.fr', adr: 'Rochefort (adresse à compléter)', acces: '', depuis: '2026', appareils: [] }; clientFinir(k); return { reconnu: reconnaitre(CLIENTS[k].adr), geo: geoDeAdresse(CLIENTS[k].adr), g: CR_GEO[k] || null }; });
   console.log('  · « Rochefort (adresse à compléter) » : reconnu=' + JSON.stringify(e5.reconnu) + ' geo=' + JSON.stringify(e5.geo) + ' posé=' + JSON.stringify(e5.g));
   v('une adresse « Rochefort (adresse à compléter) » est reconnue (le point existe) : donc le client d’un e-mail pourrait être placé', !!e5.geo, e5);
-  v('mais aucune carte ne le place : CR_GEO vide pour un client créé depuis un e-mail (' + JSON.stringify(e5.g) + ')', !!e5.g, e5);
+  v('et la fonction commune des créations (clientFinir, appelée par les quatre chemins de l’e-mail) le place : CR_GEO posé (' + JSON.stringify(e5.g) + ') — la création jouée par la Boîte mail est dans clients-restes-creations.js', !!e5.g, e5);
   // la carte : où va le client dont le point manque ?
   const ou = await p.evaluate(() => { const o = {}; for (const k of ['atelier1', 'zmail']) { if (!CLIENTS[k]) continue; const r = crPos({ i: { cli: k } }); o[k] = { au_depot: r === CR_DEPOT }; } return o; });
   console.log('  · position sur la carte des tournées : ' + JSON.stringify(ou));
