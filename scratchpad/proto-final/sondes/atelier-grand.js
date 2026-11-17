@@ -77,7 +77,9 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
     if (!deux) { await clic('[data-vv="grand"]'); await L.calme(p, 600); }
     const taille = async () => (await geo(f)).feuille;
     const zbtn = z => `[data-vv="zoom"][data-v="${z}"]`;
-    const f0 = await taille(); v(`${tag} · le réglage de taille existe (4 choix) et « Ajuster » est choisi d'office`, (await f.locator('[data-vv="zoom"]:visible').count()) === 4 && (await f.locator(zbtn('ajuster') + ':visible').getAttribute('aria-pressed')) === 'true', f0);
+    // à l'ordinateur « Ajuster » est choisi d'office ; au téléphone l'aperçu s'ouvre sur 100 % (texte lisible, tout-01 du lot compositeur) et « Ajuster » est à un toucher
+    let f0 = await taille(); v(`${tag} · le réglage de taille existe (4 choix) et ${deux ? '« Ajuster »' : '« 100 % »'} est choisi d'office`, (await f.locator('[data-vv="zoom"]:visible').count()) === 4 && (await f.locator(zbtn(deux ? 'ajuster' : 1) + ':visible').getAttribute('aria-pressed')) === 'true', f0);
+    if (!deux) { v(`${tag} · à l'ouverture la page fait 794 px (100 %)`, Math.abs(f0.w - 794) <= 2, f0); await clic(zbtn('ajuster') + ':visible'); await L.calme(p, 400); f0 = await taille(); }
     if (deux) v(`${tag} · « Ajuster » : la page prend la largeur de sa colonne (${f0.w} px dans ${g.colPage.w - 64})`, Math.abs(f0.w - Math.min(1.25 * 794, g.colPage.w - 64)) <= 3, [f0.w, g.colPage.w]);
     else { const zone = await f.evaluate(() => { const c = document.querySelector('.vv-grand-c'); const s = getComputedStyle(c); return c.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight); }); v(`${tag} · « Ajuster » : la page entière tient dans la largeur de l'écran (${f0.w} px dans ${zone})`, Math.abs(f0.w - Math.min(1.25 * 794, zone)) <= 3, [f0.w, zone]); }
     const lib = await f.locator(zbtn('ajuster') + ':visible').textContent(); v(`${tag} · le bouton dit le pourcentage obtenu : « ${lib.trim()} »`, /^Ajuster · \d+ %$/.test(lib.trim()), lib);

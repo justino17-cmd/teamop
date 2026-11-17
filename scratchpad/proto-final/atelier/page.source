@@ -4093,12 +4093,14 @@ ACTIONS['contrat-vierge']=()=>ouvrirVierge(false,'contrat');
 function revelerContrat(d){ if(S.tactile&&d&&d.type==='contrat') setTimeout(()=>{ if(D()===d&&!FEN) ouvrirFormatFeuille('contrat') },320) }
 
 /* ═══ 9c. PASSE 3 — L'IA : la capacité « sample » de claude.ai quand elle existe ; sinon la page le DIT et ne fait pas semblant ═══ */
+/* window.claude n'est promis que dans la page du HAUT : l'atelier vit dans un cadre, il passe donc par celui du parent (même origine), sans jamais supposer qu'il existe */
+function claudeHote(){ try{ if(window.claude&&typeof window.claude.use==='function') return window.claude; if(window.parent!==window&&window.parent.claude&&typeof window.parent.claude.use==='function') return window.parent.claude }catch(e){} return null }
 const IA={etat:'attente',raison:'',fn:null,prom:null,ctl:null,enCours:false,cible:null,creation:null,derniere:null,stop:false};
 const iaDispo=()=>IA.etat==='attente'||IA.etat==='dispo';
 const CACHEES=['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'];   // « cache la fonction pour cette vue »
 function iaInit(){
-  if(!(window.claude&&typeof window.claude.use==='function')){ IA.etat='absent'; return }
-  IA.prom=Promise.resolve().then(()=>window.claude.use('sample')).then(f=>{ IA.fn=typeof f==='function'?f:null; IA.etat=IA.fn?'dispo':'absent' },()=>{ IA.etat='absent' }).then(()=>iaMajUI());
+  const cl=claudeHote(); if(!cl){ IA.etat='absent'; return }
+  IA.prom=Promise.resolve().then(()=>cl.use('sample')).then(f=>{ IA.fn=typeof f==='function'?f:null; IA.etat=IA.fn?'dispo':'absent' },()=>{ IA.etat='absent' }).then(()=>iaMajUI());
 }
 function iaMarquerAbsent(code){ IA.etat='absent'; IA.raison=code==='not_granted'?'refuse':'absent'; iaMajUI() }
 const iaErr=e=>e&&typeof e==='object'&&e.code?e:{code:'upstream_error',message:String(e&&e.message||e)};
@@ -7577,7 +7579,7 @@ function pdfBandeau(titre,sous,fraction,annulable){
 const pdfTaille=o=>o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':Math.max(1,Math.round(o/1024))+' Ko';
 /* l'enregistrement : « status:saved » ou rien — on n'annonce JAMAIS un PDF téléchargé sans cette réponse */
 async function pdfEnregistrer(blob,nom){
-  let dl=null; try{ dl=(window.claude&&typeof window.claude.use==='function')?await window.claude.use('downloads'):null }catch(e){ dl=null }
+  let dl=null; try{ const cl=claudeHote(); dl=cl?await cl.use('downloads'):null }catch(e){ dl=null }
   if(dl&&typeof dl.save==='function'){
     try{ const r=await dl.save({filename:nom,data:blob});
       if(r&&r.status==='saved'){ toast('PDF enregistré : '+nom+' ('+pdfTaille(blob.size)+')'); return 'saved' }

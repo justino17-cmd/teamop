@@ -1,0 +1,127 @@
+{
+ "lot": "mail",
+ "date": "2026-11-17",
+ "regles": [
+  "chef-01",
+  "ordinateur-01",
+  "ordinateur-02",
+  "ordinateur-03",
+  "ordinateur-04",
+  "ordinateur-05",
+  "ordinateur-07",
+  "ordinateur-08",
+  "ordinateur-09",
+  "ordinateur-10",
+  "ordinateur-11",
+  "ordinateur-12",
+  "ordinateur-13",
+  "ordinateur-14",
+  "ordinateur-15",
+  "ordinateur-16",
+  "ordinateur-17",
+  "ordinateur-18",
+  "ordinateur-19",
+  "ordinateur-20",
+  "telephone-01",
+  "telephone-02",
+  "telephone-03",
+  "telephone-04",
+  "telephone-05",
+  "telephone-06",
+  "telephone-07",
+  "telephone-08",
+  "telephone-09",
+  "telephone-10",
+  "telephone-11",
+  "telephone-12",
+  "telephone-14",
+  "telephone-16"
+ ],
+ "pasRegles": [
+  {
+   "n": "telephone-15",
+   "constat": "Partiellement réglé. iPhone tenu en paysage (844×390) : l'hôte tient bien dans l'écran (352 px, 22→374) et l'en-tête de rubrique est masqué, mais la liste n'y montre AUCUNE ligne de message en entier : grand titre « Boîte de réception », champ de recherche, six catégories et l'encart « 2 messages non lus rangés ailleurs » prennent tout, il reste une demi-ligne (nom et objet de Claire Fontaine, texte coupé par la barre du bas). Mesuré : 0 ligne entière visible (sonde mail-recontrole-tel.js, section paysage) ; capture rc-tel-paysage.png. La lecture d'un message, elle, est bonne (rc-tel-paysage-lecture.png). Défaut de détail : un téléphone en paysage est rare, mais la phrase « une ligne de message se voit » est vraie seulement pour une demi-ligne."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Titre « Nouveau message » coupé dans la feuille d'écriture sur téléphone (« Nouveau messa… », « Nouveau me… », « Nouve… »)",
+   "gravite": "gênant à 360 et 320 px, détail à 390 px",
+   "etapes": "Boîte mail sur iPhone 390 / Android 360 / petit 320, toucher « ＋ Écrire » (ou Écrire en bas de la liste) ; lire le titre de la feuille entre Annuler, l'horloge et Envoyer.",
+   "constat": "Depuis que « Envoyer » s'écrit en toutes lettres (telephone-04 / ordinateur-16), le titre .sheet-title .t-main n'a plus que 141 px (iPhone), 111 px (Android) et 71 px (320 px) pour un texte de 144 px : il est coupé par une ellipse (scrollWidth 144 > clientWidth). Le correcteur n'a mesuré que le non-chevauchement des trois éléments, pas que le titre tienne. Captures rc-tel-composeur-iphone-nuit.png, rc-titre-feuille-petit.png. Pistes (pas faites, je ne modifie aucune page) : titre « Message » sur téléphone, ou « Annuler » en croix, ou l'horloge sous le titre."
+  },
+  {
+   "titre": "Une bulle posée en haut de l'écran couvre le titre d'une fenêtre ouverte (téléphone)",
+   "gravite": "détail",
+   "etapes": "iPhone, Boîte mail, ouvrir « Climatisation chambre 214 en panne », « Créer l'intervention » : la fenêtre « Nouvelle intervention » s'ouvre et la bulle « Intervention préremplie… » s'écrit par-dessus « 1 Le client » pendant ~2,5 s.",
+   "constat": "La règle neuve body:has(.fen-voile) #toast{top:…} (telephone-12) règle le cas « la bulle couvre Annuler / Créer » en déplaçant la bulle sur le haut, où elle couvre l'intitulé de la première étape et frôle le ✕ de fermeture ; elle vaut pour TOUTES les fenêtres du prototype au téléphone, pas seulement celle-là. Capture rc-creer-int-iphone.png. Acceptable (la bulle s'efface seule, rien n'est caché pour toujours) mais à regarder."
+  },
+  {
+   "titre": "Deux bulles s'empilent et la plus récente est à moitié cachée",
+   "gravite": "détail",
+   "etapes": "iPhone nuit, ouvrir la facture du fournisseur, toucher la pièce jointe (bulle « Pièce téléchargée… »), puis tout de suite « Rapprocher » → « Accepter l'écart ».",
+   "constat": "La bulle « Commande BC-2026-036 terminée : facture comparée et rangée dans les achats. Annuler » est partiellement recouverte par la bulle « Pièce téléchargée » encore à l'écran (capture rc-B5-apres-iphone-nuit.png) : le bouton Annuler se voit, le début de la phrase non. Pas de file d'attente des bulles."
+  },
+  {
+   "titre": "Vocabulaire des numéros : « COMMANDE 2026-036 » dans le panneau, « BC-2026-036 » partout ailleurs",
+   "gravite": "détail",
+   "etapes": "Boîte mail, facture FA-CDA-10-552 du fournisseur : le sujet du courriel dit « commande BC-2026-036 », le panneau « Comparer avec la facture » s'intitule « COMMANDE 2026-036 · FACTURE FA-CDA-10-552 », la bulle qui suit dit « Commande BC-2026-036 terminée ».",
+   "constat": "Le même document porte deux écritures dans la même suite de gestes. Vient du lot Matériel (numéros), pas des corrections de la Boîte mail ; a rendu périmée l'attente de la sonde mail-reconnaissance.js (« BC-2026-036 ») : c'est son seul ✗ (69 ✓ · 1 ✗). À trancher : garder « BC- » ou le retirer partout."
+  },
+  {
+   "titre": "À 1280×720 la liste ne montre que deux courriels entiers à l'ouverture (catégories sur deux rangées)",
+   "gravite": "détail",
+   "etapes": "Fenêtre 1280×720 (portable), Boîte mail, regarder la liste sans rien toucher.",
+   "constat": "Grand titre + recherche + six catégories sur deux rangées (77 px, ordinateur-20) + encart « 2 messages non lus rangés ailleurs » + 108 px par ligne : 2 lignes entières et une troisième coupée sur 474 px de liste (rc-ordi-mac720-jour.png, etat-mac720.png). Le correcteur a gagné la lisibilité des catégories, il en a payé une ligne de message. À 1440×900 et 1366×768 : 4 lignes. Pas un défaut franc ; à dire."
+  },
+  {
+   "titre": "Sondes du correcteur à jour de ce que d'autres lots ont changé",
+   "gravite": "détail (outillage)",
+   "etapes": "bash scratchpad/proto-final/sondes/mail-tout.sh ; python3 scratchpad/proto-final/sondes/mail-mutations.py",
+   "constat": "mail-tout.sh : 458 ✓ · 1 ✗ (reconnaissance, voir ci-dessus). mail-mutations.py : la mutation M18 (« la Boîte mail est ouverte à tous les rôles ») ne trouvait plus son motif depuis le lot Droits (rlPermis finit maintenant sur droitVoit(r)) : elle était muette sans le dire. J'ai remplacé son motif (ROLES.compta.routes.includes(r) : droitVoit(r);) et vérifié qu'elle MORD (mail-roles.js : 4 ✗ avec la mutation). 42 mutations, 1 seule à motif invalide ; jouées par moi : M18, M40 (telephone-04), M42 (telephone-11), toutes mordent ; plus une mutation de ma sonde (Voir tous sans partout:true) : mord (1 ✗)."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "mail-tout.sh (20 sondes du correcteur, rejouées telles quelles)",
+   "resultat": "458 ✓ · 1 ✗ — defauts 28, montage 85, persistance 9, reconnaissance 69 ✓ 1 ✗ (attente « BC- » périmée), gestes 25, telephone 40, theme 18, liens 11, roles 15, perf 6, absent 7, visite 5, kit 4, corr-liste 21, corr-lecture 22, corr-clavier 24, corr-telephone 19+27+23"
+  },
+  {
+   "fichier": "mail-recontrole-ordi.js (écrite par moi, mesures à part)",
+   "resultat": "60 ✓ · 0 ✗ (PARTIE=1 : mac, windows, mac720 et ipad, jour et nuit) + 7 ✓ · 0 ✗ (PARTIE=2 : 62 touches réelles dans recherche, À, objet, corps ; Ctrl K ; raccourcis de Clients) + 21 ✓ · 0 ✗ (PARTIE=3 : brouillon, « Voir tous » depuis 4 fiches client, boîtes connectées avec une adresse de 70 signes, rôles Julie/Sophie/Karim)"
+  },
+  {
+   "fichier": "mail-recontrole-tel.js",
+   "resultat": "22 ✓ · 0 ✗ (iphone jour et nuit) + 22 ✓ · 0 ✗ (android nuit, 320 px) + 20 ✓ · 1 ✗ (historique du navigateur, paysage, iPad, en-têtes comparés à Clients et Devis ; le ✗ est telephone-15, voir pasRegles)"
+  },
+  {
+   "fichier": "mail-recontrole-reste.js",
+   "resultat": "14 ✓ · 0 ✗ (suivi, assigné, panne et reconnexion jusqu'à « Terminer », mots, sélection) + 3 ✓ (titre de la liste défilée) + 20 ✓ · 3 ✗ (téléphone : confier, créer l'intervention, bulle, contraste des pastilles hors ligne sélectionnée, panne totale à 320 px ; les 3 ✗ sont le titre coupé de la feuille d'écriture)"
+  },
+  {
+   "fichier": "mail-recontrole-parcours.js",
+   "resultat": "A (Mme Bernard : intervention → prévenir → envoyer → Envoyés, historique, planning) 10 ✓ · B (facture fournisseur sur iPhone de nuit : PDF, rapprocher, accepter l'écart) 6 ✓ · C (inconnue qui demande un devis, Windows de nuit : client + devis créés, réponse rapide envoyée) 8 ✓ — 0 ✗ ; les 3 parcours vont au bout sans erreur JavaScript"
+  },
+  {
+   "fichier": "mail-recontrole-fin.js",
+   "resultat": "12 ✓ · 0 ✗ (boîte en panne et dossiers locaux, photo jointe JPEG, « Pourquoi ce rangement », « Ranger ailleurs », pied de la colonne des boîtes au téléphone)"
+  },
+  {
+   "fichier": "menu-renommages 18 ✓, menu-echafaudage 9 ✓, menu-routes 100 ✓, droits-ponts 9 ✓ (sondes voisines qui nomment la Boîte mail)",
+   "resultat": "136 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "contrôles de sauvegarde (compiler-pages, verifier-syntaxe, test-835, 836, 837, 1008, 2994, verif-secrets)",
+   "resultat": "tous code 0 ; 844 ✓, 307 ✓, 122 ✓, 54 ✓, 15 ✓ ; 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Décision restante (ordinateur-06) : la secrétaire de gestion (Julie) voit-elle la Boîte mail ? Le plan dit oui, les rôles actuels disent non (je l'ai rejoué : elle est ramenée à sa comptabilité, aucun module monté). Une ligne à changer quand tu tranches.",
+  "Décision restante (telephone-13) : glisser une ligne pour archiver ou supprimer, comme Mail d'iOS ? Le module d'origine ne le fait pas non plus ; c'est une fonction à décider, pas un défaut.",
+  "Un mot sous chaque icône des barres du bas (telephone-05) est un choix réversible en une règle : les débutants y gagnent, Mail d'iOS n'en met pas. À regarder sur ton iPhone.",
+  "Le titre « Nouveau message » est coupé sur les petits téléphones depuis que « Envoyer » s'écrit : à arbitrer (titre plus court, ou « Annuler » en croix). Je n'ai pas touché aux pages.",
+  "Sur téléphone, « Écrire » est proposé deux fois (grand bouton noir en haut de la rubrique et icône en bas de la liste) : voulu pour la cohérence avec Clients et Devis, mais c'est un doublon.",
+  "Pastille « Nouveau contact » sur une ligne sélectionnée, de nuit : texte blanc sur bleu éclairci à environ 3,4:1 en 11,5 px (calcul, non vu sur un appareil) : sous 4,5:1, d'un détail du module d'origine, pas des corrections.",
+  "Non vérifié : Safari, Windows et Android réels (profils émulés dans Chromium : taille, agent, encoches, toucher) ; le clavier virtuel d'un téléphone (il réduit la fenêtre : la place de la liste en paysage et pendant l'écriture n'est pas mesurée) ; le comportement du retour du navigateur sur un iPhone réel (geste de bord) ; les polices du système (le rendu utilise celles de l'image)."
+ ]
+}

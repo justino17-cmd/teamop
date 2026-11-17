@@ -122,6 +122,19 @@ une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à
   connexion réelle et le socle, proposer, attaquer la proposition) avant d'écrire une ligne. Le dépôt est PUBLIC : lui demander
   avant d'y pousser le kit. Ce qui se fait sans attendre, sous le mandat du prototype : la voie `double-auth` (le prototype
   reproduit le comportement, téléphone simulé).
+- **JUSTIN, 17 NOVEMBRE (1 h 40 machine), DANS CETTE CONVERSATION : « oui reprends OP Security ».** → L'étude est FAITE
+  (workflow `wf_030e3b52-275`, 21 agents, lecture seule, tout HORS du dépôt public dans `/home/user/op-security/` : `etude/`
+  six lectures de la production, `propositions/` trois architectures, `critiques/` neuf attaques, `PLAN.md` 480 lignes révisé
+  après `PLAN-critique.md`). Conclusion : brancher le kit sur l'écran de connexion ne protégerait rien (la connexion se juge
+  dans la page ; le serveur ne connaît que l'entreprise et sa clé) ; il faut que le serveur refuse de servir sans un
+  « laissez-passer » gagné par le mot de passe vérifié côté serveur puis le nombre tapé sur le téléphone. **86 jours de travail
+  (75 à 105), douze marches, huit décisions (D1 à D8)** ; quatre mois pour son entreprise, cinq ou plus pour un premier client.
+  Le plan lui est PRÉSENTÉ dans un document privé : « Plan OP Security », https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt
+  (sans le détail des failles). **EN ATTENTE DE LUI** : son accord sur le plan, D1 et D2 en priorité, si le kit peut aller
+  dans le dépôt public, s'il veut le dossier technique dans une page privée (il n'est que sur le disque de la machine).
+  Ce qui peut commencer sans lui : la marche 1 (mesures en lecture seule), la voie `double-auth` du prototype (en cours), la
+  recompilation de l'application Android dans un dossier propre. RIEN sur `server/`, `app.html`, la Tour ni le site sans sa
+  phrase pour cette mise en ligne.
 
 **ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
 matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au
@@ -151,6 +164,25 @@ retouche de `voies.js`) ; `preparer-publication.sh` (la page sans squelette + la
 Voies ajoutées à `voies.js` : `artefact` (2 étapes), `retour` (2), `guide` (4), `final-rejeu { familles, arbre }` (2),
 `final-regard { role, rubriques?, suffixe?, arbre }` (2), `final-parcours { arbre }` (2), `final-mots { arbre }` (1),
 `final-rapport { arbre }` (1).
+
+**VERSION 63 DE L'ARTEFACT PUBLIÉE LE 17 NOVEMBRE À 3 H 50 (heure de la machine ; 4 h 50 en France)** — version d'ÉTAPE, pages
+du commit `88d42e0` (fichiers figés avant publication, cinq fichiers dont `prototype-courrier.js`, que la Boîte mail charge).
+Ce qu'elle porte de FINI et corrigé : le compositeur de devis et de contrats en grand (14 défauts sur 14 corrigés), la Boîte
+mail d'origine (37 défauts traités : 35 corrigés, 2 à soumettre ; deux boîtes connectées, plus de bandeau de panne), le menu
+final, le Stock, le Temps de travail (gérant et salarié). Ce qu'elle porte EN CHANTIER (à ne pas juger encore) : Dépôts et
+camions et Véhicules (construits, pas encore relus), Fournisseurs (en construction), Mon entreprise (construit) et les droits
+d'Équipe (en cours), la double authentification (pas encore visible). Vérifié par le chef de chantier AVANT de publier, sur ces
+pages-là : bancs du dépôt verts ; fumée `sondes/fumee-routes.js` (chaque rubrique du menu s'ouvre, sans erreur, sans glissement) :
+gérant mac 81 ✓, gérant iphone 81 ✓, bureau mac et iphone 82 ✓, technicienne iphone et mac 50 ✓, 0 ✗ ; `tout-rejouer.sh bancs
+atelier mail` : 55 lignes, 47 vertes, 8 rouges, toutes des SONDES PÉRIMÉES par des corrections voulues et regardées une à une
+(catalogue 31 articles depuis que la main-d'œuvre et le déplacement sont des articles ; aperçu du téléphone à 100 % ; pastille
+« Accepté » ; page seule comparée au pixel à la Version 11 ; numéro de commande affiché « 2026-036 » sans « BC- ») ; captures
+regardées : compositeur (Mac, iPad, iPhone, aperçu), boîte mail (Mac, iPhone), Dépôts et camions, Véhicules, Mon entreprise.
+⚠️ Dans l'artefact, les téléchargements de la Boîte mail (pièce jointe) et l'export des frais d'un véhicule ne marchent pas
+encore (voie `artefact`). Ce que le chef a vu et qui reste à corriger : `final/vus-par-le-chef.md`.
+⚠️ Pour republier, l'outil exige d'avoir LISTÉ les fichiers de l'artefact dans la session (action list, scope files) : sinon
+il refuse de remplacer `prototype-documents.html` et `prototype-comptabilite.html`. Pousser sans fusionner dans le dépôt
+principal (des sondes y lisent les pages) : `/home/user/pousser-chef.sh` (fusion dans l'arbre à part `/home/user/wt-chef`).
 
 **QUATRIÈME REDÉMARRAGE (17 novembre, 2 h 46)** — après 3 h 23 de marche. ⚠️ CE N'EST PAS LA CHARGE : le relevé des dernières
 minutes dit charge 3 à 4, 2,5 Go de mémoire sur 16, quatre navigateurs. Le noyau change à chaque fois (fc-v470, v509, v553) :
