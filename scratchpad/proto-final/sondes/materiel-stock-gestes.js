@@ -142,7 +142,8 @@ const L = require('../lib.js');
   await p2.evaluate(() => { matGOuvrir('sortir', { pid:'p27' }); MAT.G.pour = 'perdu'; MAT.G.texte = 'cassé'; matGVue(); });
   await p2.waitForTimeout(250); await p2.evaluate(() => document.querySelector('#calque [data-ms="genvoyer"]').click()); await p2.waitForTimeout(400);
   const att1 = await p2.evaluate(() => MVTS_ATT.length), qb1 = await p2.evaluate(() => PRODUITS.map(x => x.q).join()), tj = await p2.evaluate(() => (document.getElementById('toast') || {}).textContent || '');
-  v('bureau : sortir passe par l\'accord du gérant (« Envoyé au gérant »), le stock ne bouge pas', att1 === att0 + 1 && qb1 === qb0 && /Envoyé au gérant/.test(tj), [att0, att1, tj]);
+  // la règle des cases d'Équipe (17 novembre) : une personne qui a « Stock › Créer » applique SA sortie tout de suite (msPoser), le bureau l'a ; sans la case, la sortie attendrait l'accord du gérant (« Envoyé au gérant »)
+  v('bureau : sa propre sortie s\'applique tout de suite (sa case « Stock › Créer »), rien n\'attend le gérant, et « Annuler » reste proposé', att1 === att0 && qb1 !== qb0 && /Sorti/.test(tj) && /Annuler/.test(tj), [att0, att1, tj]);
   await L.fin(c2);
   // le technicien n'a pas la rubrique Stock
   const c3 = await L.ouvrir({ profil, qui:'sm' }); await c3.p.evaluate(() => { location.hash = '#stock'; }); await c3.p.waitForTimeout(700);
