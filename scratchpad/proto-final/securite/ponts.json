@@ -1,0 +1,172 @@
+{
+ "angle": "ponts — les ponts entre pages (postMessage), le rangement de l'appareil, les fichiers choisis, la coque mobile",
+ "date": "2026-11-17",
+ "page": "apercu/prototype-op-gestion.html (tête 98ae627) et ses trois cadres : prototype-comptabilite.html, prototype-paiement.html, prototype-documents.html ; module prototype-courrier.js ; coque mobile/",
+ "etat": "étape 3 sur 8 TERMINÉE. 8 failles prouvées (1 haute, 5 moyennes, 2 faibles), contre-épreuve rejouée sur une COPIE corrigée (les pages n'ont pas été touchées), correctif prêt en un fichier .diff.",
+ "modeleDeMenace": "Un prototype n'a pas de serveur : tout ce que la page contient, qui ouvre la console le lit. On ne rapporte donc que ce qu'obtient quelqu'un qui passe par un fichier qu'on lui fait choisir, une page d'une autre origine qui insère un cadre, le rangement de l'appareil ou la coque. Les failles « prototype » se corrigent maintenant ; les « vraie application » sont des règles que seul le serveur garantira.",
+ "couvert": {
+  "ecouteursMessage": "Les quatre écouteurs 'message' et les 11 envois postMessage(…, '*'). OP GESTION : trois écouteurs, TOUS filtrés sur event.source (cadre Comptabilité, cadre « Comptabilité » plein écran, cadre atelier) ; l'atelier filtre sur HOTE (= window.parent) ; la Comptabilité n'a AUCUN contrôle (déjà rapporté : acces-13, injection-04, rejoué ici, A3) ; le module de paiement n'écrit ni n'écoute rien (aucun postMessage, aucun stockage, aucune adresse lue). Rejoué (ponts-messages.js, 15 ✓ · 0 ✗ avant correction) : onze messages forgés par une AUTRE origine (opc_paiement 99 999 €, opc_ouvrir, opc_relance, opd_client, opd_docs, opd_fermer…) vers l'application insérée dans un cadre : 0 effet (aucun client créé, aucun document ajouté, aucun paiement, mode inchangé) ; témoin : le même message venu du vrai cadre agit. Données hostiles envoyées par l'hôte à l'atelier (500+ clients, __proto__, constructor, balisage dans nom/adresse/IBAN/article, 5 Mo de texte, NaN, -1, 1e99, tableaux, null) : plafonds tenus (≤ 500 clients, ≤ 400 articles), 0 pollution de Object.prototype, 0 exécution. Factures hostiles envoyées par l'hôte à la Comptabilité (nom de client et objet en balisage dans l'adresse « liaison » : 30 rubriques parcourues, 0 exécution ; éléments nuls, sélecteur piégé : la page vit encore).",
+  "rangement": "Toutes les clés (localStorage 4 à 9 selon l'usage, sessionStorage 0, cookies 0, window.name vide, IndexedDB proto_courrier_<rôle>_fichiers) : opg_proto_{vues,mode,barre,atelier,espace,fenetre}, opg_prvue, opg_proto_nv_vu_<personne>, documents-sur-mesure-opg-{v1,vierge,entreprise,catalogue,composition-*,groupes,sections-v1}, proto_courrier_<rôle>, opc_mode, opc_*, cmpt_hero_replie. Aucun mot de passe, PIN, clé, nombre de connexion ni code n'est écrit nulle part (le prototype garde le nom de l'entreprise seul : l'acces-04 n'est plus vrai sur cette tête). Les valeurs malformées : 21 clés posées avant le chargement à 15 valeurs (vide, null, '{', [], {}, chaîne, 1e999, true, __proto__/constructor, types faux, balisage, JSON d'atelier faux, 3 Mo, 40 000 niveaux d'imbrication) : l'application, l'atelier, la Comptabilité et la Boîte mail s'ouvrent, 0 erreur, 0 exécution, 0 pollution (ponts-poison.js, 16 ✓ · 0 ✗ avec son témoin).",
+  "personneSuivante": "Après « Se déconnecter » : les documents composés (devis, contrats, coordonnées de clients, entreprise) et les brouillons de courrier RESTENT dans le rangement (ponts-stockage.js) ; mais la personne suivante ne les lit pas par l'écran : l'atelier ouvert par son adresse sans session est une page blanche, une technicienne qui se connecte n'en voit rien sur ses 11 écrans ni dans la palette (ponts-suivant.js).",
+  "fichiers": "Tous les endroits où un fichier choisi devient une adresse blob: ou data: : 8 lecteurs de photo/ticket (FileReader → data:, inertes en <img> et en fond CSS), 9 blob: d'images et de PDF, dont DEUX s'ouvrent en document dans l'origine de l'application (ponts-01, ponts-02) ; le module de courrier force le type application/pdf sur son visualiseur (aucun script d'une pièce jointe n'atteint la page) ; le logo accepte image/svg+xml mais n'est jamais ouvert comme document.",
+  "coque": "mobile/ : capacitor.config.json (pas de server.url, pas d'allowNavigation, allowMixedContent false), Info.plist (aucune exception de transport ; schéma opgestion:// dont l'entreprise est filtrée sur lettres ASCII, chiffres et tirets avant d'entrer dans du JavaScript, ≤ 60 caractères ; pont opgFenetre limité à {a:'titre'|'fenetre'}, titre ≤ 60), projet Xcode (debug.xcconfig, qui pose CAPACITOR_DEBUG, n'est lié à AUCUNE configuration Release), AndroidManifest (une seule activité exportée, aucun filtre d'intention hors le lancement, pas de trafic en clair), file_paths.xml, build.gradle, fabriquer.js, .gitignore (clés de signature et www/ ignorés). ponts-coque.js : 13 ✓ · 5 ✗ avant correction."
+ },
+ "chiffres": {
+  "sondes": [
+   "ponts-stockage.js",
+   "ponts-suivant.js",
+   "ponts-poison.js",
+   "ponts-messages.js",
+   "ponts-fichiers.js",
+   "ponts-cadres.js",
+   "ponts-coque.js"
+  ],
+  "ponts-messages": "15 ✓ · 0 ✗",
+  "ponts-poison": "16 ✓ · 0 ✗ (témoin + 15 valeurs)",
+  "ponts-coque": "13 ✓ · 5 ✗",
+  "ponts-cadres": "4 ✓ · 3 ✗"
+ },
+ "dejaRapporte": [
+  "acces-13 / injection-04 : l'écouteur 'message' de la Comptabilité n'a aucun contrôle de source ni d'origine (rejoué ici, ponts-messages A3 : une page d'une autre origine qui insère la Comptabilité lui fait prendre « patron + paie »). Je ne le recompte pas ; la correction proposée (ev.source === window.parent) reste la bonne.",
+  "acces-03 : « qui modifie une clé du rangement devient la personne qu'il veut » — ponts-01 en fait une chaîne qui part d'un FICHIER (preuve : session « marc / patron » obtenue)."
+ ],
+ "failles": [
+  {
+   "n": "ponts-01",
+   "titre": "Un SVG choisi comme « carte grise » ou « attestation d'assurance » (Véhicules › Papiers) s'exécute dans l'origine de l'application quand on ouvre sa miniature — et la chaîne mène à une session de gérant sans mot de passe",
+   "gravite": "haute",
+   "qui": "n'importe qui qui fait parvenir un fichier à une personne qui l'ajoute à la fiche d'un véhicule (un faux « attestation d'assurance.svg » reçu par courriel, un garage, un assureur) ; la case « Photo ou fichier » accepte accept=\"image/*\", donc image/svg+xml. Aucune autre action que d'ajouter le fichier puis de toucher sa miniature.",
+   "obtient": "l'exécution de son script avec l'origine de l'application : lecture de tout le rangement (documents composés, brouillons de courrier, noms de clients), écriture de toutes les clés — et, par le « passage de fenêtre » (acces-03), l'ouverture de l'application en GÉRANT (session « marc », rôle « patron ») sans mot de passe ni téléphone, quel que soit le rôle de la personne qui a ouvert la miniature. Dans la vraie application, la même faille serait un XSS stocké par fichier téléversé.",
+   "etapes": "1. Véhicules › fiche d'un véhicule › Papiers › « Ajouter un document » › choisir un fichier .svg contenant <svg xmlns=… onload=\"…\"> › « Ajouter le document ». 2. Toucher la miniature : elle est un lien <a href=\"blob:…\" target=\"_blank\"> et le SVG s'ouvre COMME DOCUMENT, avec l'origine de la page (une image dans <img> n'exécute rien, un document, si). 3. Le script écrit opg_proto_espace et opg_proto_fenetre {k:'marc'} puis recharge l'application : elle s'ouvre en gérant.",
+   "preuve": "ponts-fichiers.js : « 1. un SVG … n'exécute pas son script » ✗ → pwn {o:'http://127.0.0.1:…', cles:[…]} ; « 1b. … PAS une session de gérant » ✗ → {\"session\":\"marc\",\"role\":\"patron\"}. Captures : cap/ponts/fichier-svg-onglet.png, fichier-svg-chaine-gerant.png. Sur la copie corrigée : ✓ (voir contreEpreuve).",
+   "ou": "prototype-op-gestion.html : vxDocAjouter (:17627, le type du fichier n'est pas vérifié, l'adresse blob: garde le type choisi par l'expéditeur) et vhPapiers (:18026, « /^image/.test(d.type) » laisse passer image/svg+xml) ; le champ accept=\"image/*,application/pdf\" (:18094) n'est qu'un indice du sélecteur, pas un contrôle.",
+   "correction": "Dans vxDocAjouter, refuser tout type hors PNG, JPEG, GIF, WebP, HEIC et PDF : « if (!/^(image\\/(png|jpe?g|gif|webp|heic|heif)|application\\/pdf)$/.test(f.type || '')) return toast('Ce type de fichier n’est pas accepté : choisis une photo (PNG, JPEG) ou un PDF.'); » ; et dans vhPapiers remplacer « /^image/ » par « /^image\\/(png|jpe?g|gif|webp)$/ ». Règle générale : jamais d'ouverture en document d'un fichier dont le type vient de l'expéditeur ; le module de courrier le fait déjà (Blob forcé en application/pdf). Voir ponts-corrections.diff.",
+   "portee": "les deux (vraie application : les fichiers téléversés se servent depuis un domaine à part, avec Content-Type fixé par le serveur, X-Content-Type-Options: nosniff et Content-Disposition: attachment ; jamais depuis l'origine de l'application)"
+  },
+  {
+   "n": "ponts-02",
+   "titre": "Une « fiche de paie » déposée en HTML s'exécute dans l'origine de l'application quand on l'ouvre (le champ n'accepte que des PDF… à l'écran seulement)",
+   "gravite": "moyenne",
+   "qui": "quiconque produit un fichier que la personne dépose comme fiche de paie : le « cabinet de paie » (tiers), une pièce jointe piégée, un fichier glissé sur le champ (accept=\"application/pdf\" ne s'applique pas à un dépôt par glisser-déposer ni au choix « tous les fichiers »)",
+   "obtient": "la même chose que ponts-01 : un script dans l'origine de l'application (rangement lisible et modifiable, chaîne vers la session du gérant). Il faut que la personne dépose le fichier, le nomme (ou qu'il porte) le nom d'un salarié, et ouvre la fiche : trois gestes, d'où « moyenne ».",
+   "etapes": "Paie › « Recevoir les fiches du cabinet » › déposer Sophie Martin.html (contenu <script>…</script>) › ouvrir la fiche de Sophie : paieBulletinVoir(k) fait window.open(blob:…, '_blank', 'noopener') ; le blob garde le type text/html et l'origine de la page.",
+   "preuve": "ponts-fichiers.js : « 2. un fichier HTML déposé comme fiche de paie n'exécute pas son script » ✗ → {\"pwn\":{\"o\":\"http://127.0.0.1:…\",\"cles\":[\"opg_proto_espace\",\"opg_proto_fenetre\",\"opg_secret_essai\"]}} ; témoin : un vrai PDF est rangé normalement.",
+   "ou": "prototype-op-gestion.html : le gestionnaire de dépôt (:12268-12271, « URL.createObjectURL(f) » sans vérifier f.type) et paieBulletinVoir (:12275-12277).",
+   "correction": "En tête de la boucle « F.forEach(f => { » : « if (f.type !== 'application/pdf') { perdu.push(f.name); return; } » (le fichier est alors compté parmi ceux « sans nom reconnu »). Un fichier nommé .pdf mais rempli de HTML garde le type application/pdf : il s'ouvre dans la visionneuse PDF, inerte.",
+   "portee": "les deux (vraie application : une pièce reçue d'un tiers est un contenu non fiable ; le serveur re-type et sert en téléchargement)"
+  },
+  {
+   "n": "ponts-03",
+   "titre": "Une page d'une autre origine qui insère l'atelier de devis reçoit la liste des documents de la personne : l'atelier prend n'importe quelle page parente pour son hôte et lui écrit avec '*'",
+   "gravite": "moyenne",
+   "qui": "n'importe quel site qui ouvre le prototype dans un cadre (aucun en-tête frame-ancestors : le site est servi par GitHub Pages, qui n'en pose pas) ; la personne n'a qu'à visiter ce site pendant que l'application est installée sur son navigateur",
+   "obtient": "opd_docs : pour chaque devis et contrat composé, son nom (objet du devis), son numéro, le nom du client, l'identifiant du client, le montant TTC, la date. Dans la vraie application, la même mécanique enverrait la liste des devis d'une entreprise à un site tiers. LIMITE DE LA PREUVE : mesuré dans le Chromium de Playwright, dont les arguments par défaut DÉSACTIVENT le partitionnement du stockage tiers (« ThirdPartyStoragePartitioning » dans la liste de --disable-features) ; Chrome actuel, Safari et Firefox partitionnent ou bloquent le stockage d'un cadre tiers, donc le cadre y ouvrirait un rangement vide. La faille de code ne dépend pas de ce partitionnement (l'hôte n'est jamais vérifié) ; la fuite, si.",
+   "etapes": "1. Composer un devis dans l'application (origine A). 2. Depuis une page d'origine B : <iframe src=\"A/apercu/prototype-documents.html?app=1\"> et écouter 'message'. 3. L'atelier, qui prend window.parent pour son hôte (HOTE, :1739), envoie opd_pret puis opd_docs avec la liste, à B.",
+   "preuve": "ponts-cadres.js : « 2. la page d'une autre origine … ne reçoit pas le devis » ✗ → {\"opd_docs\":[{\"nom\":\"Devis ZXQ-FUITE-9921 — Hôtel de la Plage\",\"numero\":\"D-2026-042\",\"client\":\"Hôtel de la Plage\",\"ttc\":7680,…}]} ; témoin : la même insertion depuis la même origine reçoit le devis. Sur la copie corrigée (envois adressés à l'origine) : ✓.",
+   "ou": "prototype-documents.html : HOTE (:1739), opdPoster (:7627, « HOTE.postMessage(m,'*') »), opdRecevoir (:7692, filtre sur la seule source) ; mêmes envois '*' dans prototype-op-gestion.html (6 sites) et prototype-comptabilite.html (3 sites).",
+   "correction": "Adresser chaque postMessage à l'origine de la page : « const OPG_CIBLE = location.origin === 'null' ? '*' : location.origin; » (le bac à sable de l'artefact claude.ai n'a pas d'origine : « null » reste en « * ») puis remplacer « , '*') » par « , OPG_CIBLE) » dans les trois pages ; côté réception, ajouter « || (ev.origin !== location.origin && location.origin !== 'null') » au refus. Voir ponts-corrections.diff.",
+   "portee": "les deux (vraie application : en-tête CSP frame-ancestors 'self' et X-Frame-Options: SAMEORIGIN sur toutes les pages ; targetOrigin explicite partout ; une page insérée n'obéit qu'à un parent dont l'origine est vérifiée)"
+  },
+  {
+   "n": "ponts-04",
+   "titre": "La garde de ?auto=<personne> (session sans mot de passe ni téléphone) croit que « localhost » veut dire « les sondes » : elle est vraie dans la coque iOS et Android",
+   "gravite": "faible",
+   "qui": "personne aujourd'hui : aucun chemin ne met un « ?auto= » dans l'adresse de la coque (pas de lien profond Android, le schéma iOS opgestion:// ne passe que le nom de l'entreprise). La garde est cependant la seule chose qui sépare un lien de la session du gérant, et elle ne tient pas.",
+   "obtient": "le jour où l'application charge une adresse venue du dehors (lien universel, server.url de développement, redirection), « ?auto=marc » ouvre la session du gérant dans la coque, sans mot de passe et sans OP Security.",
+   "etapes": "secuAutoPermis(location) (:24171) rend vrai pour protocol « file: » et pour hostname 127.0.0.1, localhost, ::1. Capacitor sert la coque sur capacitor://localhost (iOS) et https://localhost (Android) : le nom d'hôte EST « localhost ».",
+   "preuve": "ponts-coque.js : la garde extraite de la page embarquée (mobile/www/index.html) rend { ios:true, android:true, site:false } ; le commentaire de la ligne qui l'appelle (:24651) dit « ailleurs, il est ignoré ». Sur la copie corrigée : ✓ (faux dans la coque, vrai pour une sonde).",
+   "ou": "prototype-op-gestion.html : secuAutoPermis (:24171) ; fabriquer.js pose déjà window.OPG_MODE_APP dans la coque.",
+   "correction": "« const secuAutoPermis = loc => { loc = loc || {}; if (window.OPG_MODE_APP) return false; … » : la coque n'est jamais « en local ». Ou retirer la branche ?auto= de ce que fabriquer.js embarque.",
+   "portee": "prototype (coque) ; vraie application : aucune route de connexion sans secret, quel que soit l'hôte (R1, R3 d'acces.json)"
+  },
+  {
+   "n": "ponts-05",
+   "titre": "Les scripts tiers chargés au vol (Leaflet, MapLibre, html2canvas) n'ont aucune empreinte d'intégrité : un CDN compromis exécuterait du code dans l'application — et dans la coque",
+   "gravite": "moyenne",
+   "qui": "quiconque contrôle ou détourne cdnjs.cloudflare.com ou unpkg.com pour ces fichiers (compromission, détournement de paquet, interception sur un réseau sans TLS strict) ; le versionnage exact (leaflet 1.9.4, maplibre-gl 4.7.1, html2canvas 1.4.1, plugin 0.0.22) protège d'un changement de version, pas d'un fichier remplacé.",
+   "obtient": "l'exécution d'un script dans l'origine de la page principale (la carte des tournées) ou de l'atelier (l'export PDF), donc tout ce que contient l'application ; dans la coque, avec l'accès au pont natif de Capacitor.",
+   "etapes": "crChargerLeaflet (:4350-4358) crée des <script src> et <link> vers cdnjs et unpkg ; pdfCharger (prototype-documents.html:7438-7449) crée un <script src> vers cdnjs ; aucun attribut integrity ni crossorigin.",
+   "preuve": "ponts-coque.js : 4 scripts tiers chargés au vol dans les pages embarquées, aucun « integrity » (✗) ; sur la copie corrigée : ✓. Empreintes calculées sur les fichiers servis et recoupées avec les empreintes sha512 publiées par cdnjs (leaflet.min.js et html2canvas.min.js concordent).",
+   "ou": "prototype-op-gestion.html :4354-4358 (Leaflet, MapLibre, plugin) ; prototype-documents.html :7436-7443 (html2canvas).",
+   "correction": "Ajouter integrity + crossOrigin='anonymous' : leaflet.min.js sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO ; leaflet.min.css sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb ; maplibre-gl.min.js sha384-KKgyz2mG25bKJ1O2PyqTJPlAF8Kw2BpDmsLTNBXslICOBvhTAyF5F0XhLWF2ZovY ; maplibre-gl.min.css sha384-K282sW/zFjTkrjR/+yr1H+gCukuy4OEYrkXRybV88g7pk+kZZYpNV6SAV59NcgFg ; leaflet-maplibre-gl.js (unpkg 0.0.22) sha384-4CB9Vtol9LN6lGgBCvmPLbUEZwilrqIvPieSRurgAXAB7FVJaLS9n8WyAIA5wjQ+ ; html2canvas.min.js sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H. Mieux, pour la coque : les embarquer dans mobile/www (elle marche alors hors ligne, ce que le LISEZMOI dit ne pas marcher aujourd'hui). Voir ponts-corrections.diff.",
+   "portee": "les deux (vraie application : CSP script-src sans CDN, bibliothèques servies par le site avec empreinte)"
+  },
+  {
+   "n": "ponts-06",
+   "titre": "La sauvegarde automatique d'Android emporte le rangement de l'application (documents composés, brouillons de courrier) dans le cloud du téléphone",
+   "gravite": "moyenne",
+   "qui": "quiconque accède au compte cloud du téléphone, ou au téléphone de remplacement sur lequel la sauvegarde se restaure (le rangement revient avec ses brouillons et, demain, ses jetons)",
+   "obtient": "le localStorage et l'IndexedDB de la WebView (documents composés, coordonnées de clients et IBAN de l'entreprise des devis, brouillons de courrier ; dans la vraie application : tout ce que l'application range, jeton de session compris) hors du contrôle de l'entreprise.",
+   "etapes": "AndroidManifest.xml:5 « android:allowBackup=\"true\" » (valeur du gabarit Capacitor), aucune règle dataExtractionRules ni fullBackupContent.",
+   "preuve": "ponts-coque.js ✗ : allowBackup=\"true\", aucune règle d'extraction. Lecture de configuration : pas rejoué sur un téléphone (pas d'Android dans la session).",
+   "ou": "mobile/android/app/src/main/AndroidManifest.xml:5",
+   "correction": "android:allowBackup=\"false\" (ou, plus fin, android:dataExtractionRules pointant un xml qui exclut le domaine « sharedpref » et « database » de la WebView). Sur iOS, la sauvegarde iCloud emporte aussi Library/WebKit : la règle pour la vraie application est de ne rien ranger de secret côté appareil (jeton dans le trousseau, durée courte).",
+   "portee": "vraie application (la coque d'aujourd'hui ne contient que des données fictives) ; correction à faire maintenant pour ne pas l'oublier"
+  },
+  {
+   "n": "ponts-07",
+   "titre": "Coque Android : le FileProvider désigne toute la mémoire externe, et le code n'est pas obscurci",
+   "gravite": "faible",
+   "qui": "une autre application du téléphone à qui l'application remettrait par erreur une URI de fichier ; quiconque décompile le paquet",
+   "obtient": "un partage de fichier qui pourrait viser n'importe où dans la mémoire externe au lieu d'un dossier de l'application ; le code de la coque se lit en clair (peu de secrets : c'est un gabarit).",
+   "etapes": "res/xml/file_paths.xml : <external-path name=\"my_images\" path=\".\" /> et <cache-path path=\".\" /> (gabarit Capacitor) ; build.gradle:21 « minifyEnabled false ». Le fournisseur n'est pas exporté, ce qui limite le risque aux URI que l'application accorde elle-même.",
+   "preuve": "ponts-coque.js ✗✗ (lecture de configuration).",
+   "ou": "mobile/android/app/src/main/res/xml/file_paths.xml:3-4 ; mobile/android/app/build.gradle:21",
+   "correction": "Réduire file_paths.xml au seul dossier de partage utile (« <cache-path name=\"partage\" path=\"partage/\" /> ») ; minifyEnabled true avec les règles de proguard de Capacitor avant toute soumission.",
+   "portee": "vraie application"
+  },
+  {
+   "n": "ponts-08",
+   "titre": "La Comptabilité reçoit toutes les factures de vente DANS SON ADRESSE : 6 000 caractères pour 8 factures, 131 000 pour 200, et le nom des clients dans les journaux du serveur",
+   "gravite": "faible",
+   "qui": "ceux qui lisent les journaux d'accès du serveur ou du CDN (l'adresse complète d'une requête y est écrite), l'historique du navigateur, et un réseau qui coupe les adresses longues ; ni exploitation à distance, ni autre origine.",
+   "obtient": "des noms de clients, des numéros de facture, des montants, hors de l'application ; et une panne : au-delà d'environ 8 000 caractères (limite de Fastly, nginx et de la plupart des CDN), le cadre Comptabilité ne s'ouvre plus (414/431) alors que la même donnée passe déjà par le message opc_ventes envoyé à l'ouverture.",
+   "etapes": "opLiaSrc (:21614) écrit « prototype-comptabilite.html?app=1&liaison=<JSON de toutes les factures et encaissements> » ; la Comptabilité le relit (prototype-comptabilite.html:656). La page est servie telle quelle par teamop.fr/apercu/.",
+   "preuve": "ponts-cadres.js : « 1. l'adresse reste sous 2 000 caractères » ✗ → 6046 (8 factures) ; « 1b. à 200 factures sous 8 000 » ✗ → 131 358.",
+   "ou": "prototype-op-gestion.html : opLiaSrc (:21614) ; prototype-comptabilite.html :656",
+   "correction": "Ne passer dans l'adresse que « ?app=1&liaison=1 » (le drapeau) : le cadre dit « prêt » (opc_pret) et l'application lui envoie déjà opc_ventes à ce moment (:21594) ; la Comptabilité part alors d'un jeu vide jusqu'à ce message, ce que fait déjà opc_pret. À valider par un essai (un clignotement de chiffres à l'ouverture est possible).",
+   "portee": "les deux (vraie application : aucune donnée métier dans une adresse, jamais ; ni dans la requête, ni dans le fragment)"
+  },
+  {
+   "n": "ponts-09",
+   "titre": "« Se déconnecter » laisse sur l'appareil les devis, contrats et brouillons de courrier de la personne",
+   "gravite": "faible",
+   "qui": "la personne suivante qui ouvre l'inspecteur du navigateur, une extension, un script du même site (ponts-01, ponts-02) ; pas par l'écran : vérifié (voir verifiesSansFaille).",
+   "obtient": "devis et contrats composés (nom, numéro, client, montants, coordonnées de clients, IBAN de l'entreprise), brouillons de courrier (clé proto_courrier_<rôle>, par rôle et non par personne : deux personnes du même rôle partagent la clé).",
+   "etapes": "composer un devis dans l'atelier, écrire un brouillon dans la Boîte mail, « Se déconnecter » : documents-sur-mesure-opg-v1, opg_proto_atelier, documents-sur-mesure-opg-vierge et proto_courrier_patron sont toujours là.",
+   "preuve": "ponts-stockage.js ✗ : 4 clés (2 442 + 249 + 159 + 1 738 octets) après la déconnexion ; ponts-suivant.js : 0 de ces documents visibles par l'écran d'une technicienne ou de l'atelier ouvert seul.",
+   "ou": "prototype-op-gestion.html : sessionFermer (:23730) ne touche à aucune de ces clés ; le commentaire du module de courrier promet que « l'hôte la vide en quittant l'entreprise », ce que seule la sortie d'entreprise fait.",
+   "correction": "À la déconnexion : retirer documents-sur-mesure-opg-*, opg_proto_atelier et la clé du courrier de la personne (ou les ranger sous un identifiant de personne et ne les relire qu'avec sa session). Vraie application : rien de métier dans le rangement de l'appareil ; ce qui y est (cache hors ligne) est chiffré avec une clé liée à la session et effacé à la déconnexion.",
+   "portee": "les deux"
+  }
+ ],
+ "verifiesSansFaille": [
+  "Écouteurs d'OP GESTION (3) : filtrés sur event.source ; 11 messages forgés d'une autre origine, 0 effet, avec témoin (ponts-messages.js A1).",
+  "Atelier : réception filtrée sur HOTE, données hostiles de l'hôte (__proto__, constructor, balisage, 5 Mo, tailles, types faux) : plafonds tenus, 0 pollution, 0 exécution (B1-B3). Il ne s'ouvre pas seul : sans parent, page blanche.",
+  "Comptabilité : nom de client et objet de facture en balisage reçus de l'hôte, 30 rubriques parcourues : 0 exécution ; messages de forme fausse : la page vit encore (C1, C2).",
+  "L'application insérée dans un cadre d'une autre origine n'écrit rien à la page qui l'insère (A2).",
+  "Module de paiement : aucun postMessage, aucun stockage, aucune adresse lue ; pas de lien sortant dans les trois cadres (aucun <a href=https://…> ni location = … : un cadre ne peut pas être détourné vers un site qui recevrait les messages de l'hôte).",
+  "Rangement : valeurs malformées dans 21 clés × 15 valeurs, 0 plantage, 0 exécution, 0 pollution (ponts-poison.js) ; aucun cookie, aucun sessionStorage, window.name vide ; aucun mot de passe, PIN ou jeton rangé.",
+  "Courrier : le visionneur de pièces jointes force le type application/pdf (aucun script d'une pièce n'atteint la page) ; liens target=_blank tous en rel=noopener ; window.open(…, 'noopener') ; le schéma d'adresse iOS et le pont opgFenetre filtrent leurs entrées.",
+  "Coque : pas de server.url, pas d'allowNavigation, contenu mixte refusé, aucune exception de transport, debug.xcconfig absent des configurations Release, clés de signature ignorées par git."
+ ],
+ "reglesPourLaVraieApplication": [
+  "P1. Un fichier venu d'un tiers (pièce jointe, document de fournisseur, fiche de paie du cabinet, photo de véhicule) ne s'ouvre JAMAIS depuis l'origine de l'application : serveur d'objets sur un autre domaine, Content-Type fixé par le serveur d'après le contenu (liste blanche : PNG, JPEG, WebP, PDF), X-Content-Type-Options: nosniff, Content-Disposition: attachment pour tout le reste, SVG/HTML refusés.",
+  "P2. Toute page de l'application répond Content-Security-Policy: frame-ancestors 'self' (et X-Frame-Options: SAMEORIGIN) : une page d'une autre origine ne l'insère pas ; un cadre interne vérifie l'origine de son parent (ev.origin) autant que sa source, et tout postMessage nomme sa destination.",
+  "P3. Un message entre pages transporte une intention (« ouvre cette facture »), jamais un droit : le rôle, les droits et le fait d'avoir payé ne se lisent pas dans un message, mais dans la réponse du serveur à une requête authentifiée.",
+  "P4. Aucune donnée métier (noms, montants, numéros) dans une adresse, une requête GET, un fragment ou un nom de fenêtre : ils finissent dans les journaux, l'historique et les en-têtes Referer.",
+  "P5. Rien de secret dans le rangement de l'appareil : jeton de session dans le trousseau (iOS) ou le Keystore (Android), durée courte, effacé à la déconnexion ; le cache hors ligne est chiffré et lié à la session ; sauvegarde cloud désactivée pour le rangement de l'application (allowBackup=false, exclusion iCloud).",
+  "P6. Aucun script tiers dans la page : bibliothèques embarquées avec leur empreinte, CSP script-src 'self' ; une garde « mode développement » ne se décide jamais sur le nom d'hôte (localhost est celui de la coque) mais sur un drapeau de fabrication.",
+  "P7. Les valeurs relues du rangement (JSON, tailles, types) se revalident à chaque lecture comme un message : l'atelier le fait déjà (opdListeNet, vvMemLire), à garder pour chaque nouvelle clé."
+ ],
+ "contreEpreuve": {
+  "methode": "Les pages n'ont pas été modifiées. Les correctifs ont été posés sur une COPIE (scratchpad/copie-ponts*/, hors dépôt) puis les mêmes sondes rejouées contre elle (RACINE=<copie>). Le correctif se rejoue : scratchpad/proto-final/securite/ponts-corrections.diff (git apply).",
+  "resultats": "À COMPLÉTER"
+ },
+ "constatsDeCodeNonRejoues": [
+  "Le logo d'entreprise accepte image/svg+xml et se filtre par une liste noire de motifs (<script, on…=, javascript:, foreignObject, iframe) : inerte tant qu'il n'est lu que dans <img> et par html2canvas, mais une liste noire se contourne (entités dans le schéma) ; ne jamais l'insérer en ligne ni l'ouvrir en document (règle P1).",
+  "Le message « fiche(s) rangée(s) … sans nom reconnu : <noms de fichiers> » (toast, innerHTML) écrit des noms de fichiers bruts : déjà rapporté (injection-08).",
+  "Le « passage de fenêtre » (opg_proto_fenetre) est un jeton de session en clair dans le rangement pendant 3 à 20 secondes : déjà rapporté (acces-03).",
+  "Les pages sont servies sans aucun en-tête de sécurité (GitHub Pages) : le site vitrine lui-même ne peut pas poser frame-ancestors ; sur le VPS, Caddy le peut."
+ ]
+}

@@ -2127,6 +2127,8 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 @media (max-width:760px){.kpis-rang{display:flex;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.kpis-rang::-webkit-scrollbar{display:none}.kpis-rang .kpi{flex:0 0 132px;min-height:62px;padding:10px 12px}.kpis-rang .kpi b{font-size:20px}.kpis-rang .kpi span{font-size:13px}.pl-equipe{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.pl-equipe button{flex:none}.pl-nav{width:100%;justify-content:space-between}.pl-nav b{min-width:0}}
 .pg-g .pl-jh{position:sticky;top:0}
 .pg-tec{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--grille);position:sticky;left:0;z-index:3;background:var(--carte-fond)}
+/* la colonne des noms colle à gauche : sans cette marge, amener une carte à l'écran (clavier, lecteur d'écran, « scrollIntoView ») la posait SOUS les noms */
+.pl-defile:has(.pg-g){scroll-padding-left:172px}@media (max-width:760px){.pl-defile:has(.pg-g){scroll-padding-left:150px}}
 .pg-tec b{display:block;font-size:15px;line-height:1.2}.pg-tec small{display:block;color:var(--doux);font-size:13px}
 .pl-cel{border-top:1px solid var(--grille);border-left:1px solid var(--grille);padding:6px;display:flex;flex-direction:column;gap:6px;min-height:96px;cursor:copy}
 .pl-cel.auj{background:var(--cel-auj)}
