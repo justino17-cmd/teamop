@@ -15,7 +15,7 @@ Ce fichier tranche. Ce qui contredirait une décision explicite de Justin N'EST 
    Un rôle voit MOINS de lignes, jamais d'autres mots.
 4. Ordinateur : colonne de gauche. Téléphone : barre du bas (5 onglets au plus) + un bouton « Menu » en haut à gauche
    (trois traits ET le mot « Menu »), pour TOUS les rôles, qui ouvre la feuille « Menu » (la liste complète, puis le pied).
-   L'onglet « Plus » disparaît partout. Le bouton « Mon compte » des autres rôles se fond dans le pied de la feuille « Menu ».
+   L'onglet « Plus » disparaît partout. Le bouton « Mon compte » des autres rôles se fond dans le pied de la feuille « Menu ». (17 novembre 2026, décision du chef : « Mon compte » est depuis le NOM de la page personnelle — mot de passe, téléphone de confiance, appareils connectés —, ouverte par la ligne du PIED du menu « Prénom Nom · Mon compte » : permis au pied du menu, au pied de la feuille « Menu » et en titre de cette page ; toujours interdit comme ligne du menu, comme onglet de la barre du bas ou comme bouton d'en-tête.)
 5. Une seule table (CATS) nourrit le menu de l'ordinateur, la feuille « Menu », la recherche, la barre personnalisable
    et les raccourcis. Les menus par rôle s'en déduisent par filtre ; plus de chaînes écrites à la main par rôle.
 6. Le mode application (MODE_APP) et le prototype nu montrent le MÊME menu ; seul l'échafaudage de revue diffère.
@@ -26,7 +26,9 @@ Ce fichier tranche. Ce qui contredirait une décision explicite de Justin N'EST 
 - **Clients et ventes** : Clients · Devis · Contrats · Boîte mail
 - **Argent** : Comptabilité (avec, en petit gris sous le nom : « Factures, paiements, paie ») · Achats et frais (en petit gris : « Demandes de l’équipe » — 17 novembre 2026, voie entreprise étape 4 : une ligne qui dit ce qu'on y trouve)
 - **Matériel** : Stock · Fournisseurs, matériel & produits · Dépôts et camions
-- **Personnel** : Équipe · Temps de travail · Véhicules · Mon entreprise (17 novembre 2026, voie entreprise étape 4 : ce que le gérant règle UNE fois, ici ; le gérant seul pour l'instant, la case « L'entreprise et l'équipe » viendra à l'étape des droits)
+- **Personnel** : Équipe · Temps de travail · Véhicules · Mon entreprise (17 novembre 2026, voie entreprise étape 4 : ce que le gérant règle UNE fois, ici ; le gérant seul pour l'instant, la case « L'entreprise et l'équipe » viendra à l'étape des droits) · **Sécurité** (17 novembre 2026, double authentification : la page où le gérant règle les téléphones de confiance, verrouille ou déverrouille un compte ; le gérant seul — décision du chef, 12 h 30 : la colonne du gérant a donc VINGT ET UNE lignes)
+<!-- lignes-gerant: Accueil|Statistiques|Historique|Planning|Interventions|Tâches|Absences et congés|Clients|Devis|Contrats|Boîte mail|Comptabilité|Achats et frais|Stock|Fournisseurs, matériel & produits|Dépôts et camions|Équipe|Temps de travail|Véhicules|Mon entreprise|Sécurité -->
+(La ligne ci-dessus, en commentaire, est LUE par `sondes/menu-defilement.js` : changer le menu du gérant, c'est la changer ici, et la sonde suit sans chiffre écrit en dur.)
 - **Hygiène anti-nuisibles (3D)** — seulement si le pack 3D est pris : Registre sanitaire · Carte des box · Devis xylophage
 - Pied : Jour / Nuit / Auto · Nouveautés · (téléphone) Personnaliser la barre du bas · Se déconnecter (mode application)
 
@@ -88,7 +90,7 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 
 ## Ce qui sort du menu
 - « Ce que voit le client » : plus de ligne ; on y va par la fiche d'une intervention et la fiche client (la route reste).
-- L'onglet « Plus », le doublon « Mes tâches » en tête de la feuille, le bouton « Mon compte ».
+- L'onglet « Plus », le doublon « Mes tâches » en tête de la feuille, le bouton « Mon compte » d'en-tête (le NOM « Mon compte » revient, lui, comme titre de la page personnelle et au pied du menu : voir la règle 4).
 
 ## Échafaudage : rien de tout cela ne paraît en mode application
 Bande « Tester en tant que », pastilles « faite »/« plus tard », page « À refaire », bandeau « Prototype : rien n'est

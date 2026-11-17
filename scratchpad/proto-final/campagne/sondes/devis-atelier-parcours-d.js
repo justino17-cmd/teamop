@@ -15,7 +15,7 @@ const toast = p => p.evaluate(() => { const t = document.getElementById('toast')
   v('P6 : adresse fausse → « Adresse e-mail à vérifier », la relance ne part pas', /Adresse e-mail à vérifier/.test(t) && (await p.evaluate(() => DEVIS_REG['D-2026-031'].relances)) === 0, t);
   await p.fill('#ml-a', 'durand@mail.fr'); await L.toucher(c, '[data-mailenvoi]'); await L.calme(p, 500); t = await toast(p);
   console.log('  · toast de relance :', t);
-  v('P6-défaut-02 (détail) : le toast de relance ne se répète pas (une seule phrase « Relance envoyée »)', (t.match(/Relance envoyée/g) || []).length === 1, t);
+  v('devis-atelier-02 : le toast de relance ne se répète pas (une seule phrase « Relance envoyée »)', (t.match(/Relance envoyée/g) || []).length === 1, t);
   const x = await p.evaluate(() => { const d = DEVIS_REG['D-2026-031']; return { r: d.relances, le: d.relanceLe, tr: d.trace.slice(-1)[0], ENV: ENVOIS.length }; });
   v('P6 : relance comptée (0 → 1), notée à l’historique, une seule fois', x.r === 1 && /Relancé par/.test(x.tr[1]), x);
   const q = await O.kpis(p); await L.aller(p, 'devis'); const k1 = await O.kpis(p);
@@ -54,6 +54,13 @@ const toast = p => p.evaluate(() => { const t = document.getElementById('toast')
   await L.toucher(c, '[data-go="devis-x-D-2026-034"]'); await L.calme(p, 300); await p.goBack(); await L.calme(p, 500); e = await O.lire(p);
   v('P9 : le bouton Retour du navigateur ramène à Devis', e.h1 === 'Devis', e);
   await p.goForward(); await L.calme(p, 500); e = await O.lire(p); v('P9 : « Avancer » rouvre la fiche', /D-2026-034/.test(e.h1), e);
+  // chargement direct de la fiche (adresse tapée, appli relancée) : « ‹ Retour » mène à Devis
+  await p.evaluate(() => { location.hash = 'devis-x-D-2026-034'; }); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1200); await L.calme(p, 400);
+  await p.evaluate(() => { const b = document.querySelector('#nv [data-nv="fermer"]'); if (b) b.click(); }); await L.calme(p, 300);
+  const bt = await p.evaluate(() => { const b = document.querySelector('#contenu [data-retour], #contenu .rl-retour'); return b ? b.textContent.trim() : null; });
+  if (bt) { await p.locator('#contenu [data-retour], #contenu .rl-retour').first().click(); await L.calme(p, 500); }
+  e = await O.lire(p); v('devis-atelier-05 : « ‹ Retour » d’une fiche ouverte par son adresse mène à la liste Devis (pas à l’Accueil)', !!bt && e.h1 === 'Devis', [bt, e.h1]);
+  await L.aller(p, 'devis-x-D-2026-034');
   // voir en grand / PDF
   await L.toucher(c, '[data-pdfplein]'); await L.calme(p, 500);
   const gr = await p.evaluate(() => { const o = [...document.querySelectorAll('body *')].filter(e => getComputedStyle(e).position === 'fixed' && e.offsetParent !== null && e.getBoundingClientRect().width > innerWidth * .5 && e.querySelector && e.querySelector('.pdf, table')); return { n: o.length, cls: o.map(e => e.className || e.id).slice(0, 3), x: !!document.querySelector('.doc-barre, .pdf-plein, [data-pleinx]') }; });
