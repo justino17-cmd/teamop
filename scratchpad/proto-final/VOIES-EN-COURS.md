@@ -56,6 +56,7 @@ Les suivre : `list_sessions {children:true}`, `get_session`, `list_events`. Elle
 | 29 | session_01PfEEAGyYh9kb2dxeKW7v6z | `{voie:"restes", noms:["client"], tours:1}` (campagne client finie à 12 h 07 : 13 réglés, 2 en partie, 5 casses ; décisions du chef dans sa consigne) | 12 h 11 | |
 | 30 | session_01PfEEAJEJjn7GkJkVzqExAL | `{voie:"final-regard", role:"technicien", rubriques:["Ma journée","Mes tâches","Mes congés"], suffixe:"a"}` (les trois autres rubriques du technicien — frais, heures, camion — après leurs corrections) | 12 h 14 | |
 | 31 | session_01PfEEAHtyszBWeHthei8qkg | `{voie:"final-regard", role:"gerant", rubriques:["Stock","Fournisseurs, matériel & produits","Dépôts et camions"], suffixe:"c"}` (en même temps que le recontrôle de la sœur 25) | 12 h 14 | |
+| 32 | session_01PfEEAEFzaAtuY9Swr9Ssn1 | `{voie:"final-regard", role:"bureau", rubriques:["Mes tâches","Interventions","Clients","Devis","Contrats","Comptabilité"], suffixe:"a"}` (ce qui est propre au bureau ; Achats, Stock, Fournisseurs, Véhicules après leurs corrections) | 12 h 14 | |
 
 RESTE À OUVRIR, dès que leur partie est corrigée : regard final du gérant « c » (Stock, Fournisseurs, Dépôts et camions, Équipe, Temps de travail,
 Véhicules, Mon entreprise, Sécurité), du technicien, du bureau, du client ; rejeu des familles `guide`, `metier`, `achats`, `equipe`.
