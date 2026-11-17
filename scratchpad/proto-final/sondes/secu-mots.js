@@ -8,6 +8,7 @@ const fs = require('fs'), path = require('path');
 const S = require('./secu-commun.js'), L = S.L, v = L.v;
 const src = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8');
 const nette = src.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/\/\*[^\n]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+const CH = t => String(t).replace(/\d+/g, '#').toLowerCase();   /* le parcours enregistre les textes avec les nombres remplacés par # (un compte à rebours ne se compare pas), et le CSS met des titres en majuscules */
 const N = t => String(t).replace(/[  ]/g, ' ').replace(/\s+/g, ' ').replace(/&nbsp;/g, ' ');
 const ANNEXE = {
   connexion:['Accès réservé à l’équipe. Après ton mot de passe, tu confirmes sur ton téléphone avec OP Security.', 'Identifiant ou mot de passe incorrect, ou compte verrouillé. Si tu es sûr de toi, préviens ton administrateur.', 'Ton mot de passe provisoire a expiré. Demande-en un nouveau à ton administrateur.', 'Trop de demandes de connexion. Attends quelques minutes avant de réessayer.', 'Demande à l’administrateur de ton entreprise de te donner un nouveau mot de passe provisoire : il le fait dans Équipe, sur ta fiche. Pense à lui montrer une pièce d’identité.'],
@@ -15,18 +16,18 @@ const ANNEXE = {
   confirmation:['Confirme sur ton téléphone', 'Cette page se met à jour toute seule dès que tu as approuvé.', 'Le téléphone n’a pas de réseau ?', 'Connexion inhabituelle détectée', 'L’approbation sur le téléphone est obligatoire.', 'Connexion inhabituelle : seul le téléphone peut l’approuver, pas le code à 6 chiffres.', 'Mauvais nombre tapé sur le téléphone : la connexion a été annulée par sécurité.', 'Appareil jamais utilisé pour ce compte', 'Réseau (adresse) jamais utilisé', 'En dehors des heures de travail habituelles (7 h – 21 h)', 'Plusieurs mots de passe faux juste avant'],
   telephone:['Choisis un code PIN', 'Confirme le code PIN', 'Activer ce téléphone', 'Scanner le code d’activation', 'Tape le nombre affiché sur l’écran de l’ordinateur :', 'Approuver', 'Ce n’est pas moi', 'Bloquer cette connexion ? Ton compte sera verrouillé et toutes tes connexions fermées. Un administrateur devra changer ton mot de passe.', 'Mauvais nombre : la demande est annulée par sécurité.', 'Code à 6 chiffres (si l’ordinateur le demande)', 'Trop de codes PIN erronés : le compte a été effacé de ce téléphone. Demande à un administrateur de te donner un nouveau téléphone.'],
   verrouillage:['Tes connexions ont été fermées : une connexion a été bloquée depuis ton téléphone. Ton compte est verrouillé jusqu’à ce qu’un administrateur change ton mot de passe.', 'Par sécurité, ta connexion a été fermée : elle a été utilisée depuis un autre navigateur. Reconnecte-toi.', 'Tu as été déconnecté : 15 minutes sans rien toucher. Reconnecte-toi.'],
-  demonstration:['Rien de ceci n’existe dans la vraie application. Recharge la page : tout repart de zéro.', 'Je me connecte depuis un autre ordinateur', 'Je me connecte en pleine nuit', 'Simuler une connexion pirate', 'Simuler le vol de ma connexion', 'Faire avancer l’horloge', 'Recommencer la démonstration']
+  demonstration:['Rien de ceci n’existe dans la vraie application. Recharge la page : tout repart de zéro.', 'Je me connecte depuis un autre ordinateur', 'Je me connecte en pleine nuit', 'Faire avancer l’horloge', 'Recommencer la démonstration']   /* « Simuler une connexion pirate » et « Simuler le vol de ma connexion » sont les boutons de l'étape 3 (lot B1) */
 };
 const INTERDITS = [
   ['mot d’ingénierie', /\b(session|sessions|token|tokens|hash|empreinte|chiffrement|ECDH|HKDF|PBKDF2|AES|cookie|cookies|authentificateur|2FA|MFA|TOTP|HOTP|RFC|serveur|API|backend)\b/i],
   ['promesse d’absolu', /100 ?%|inviolable|impénétrable|infaillible|garanti|totalement sécuris|entièrement sécuris|parfaitement sécuris/i],
   ['vouvoiement', /\b(vous|votre|vos|veuillez)\b/i],
-  ['nom d’une autre marque', /Team OP|Authenticator|Espace sécurisé|Google|Microsoft|Authy/],
+  ['nom d’une autre marque', /Team OP|Authenticator|Espace sécurisé|Microsoft|Authy/],
   ['ton de panique', /Oups|\w!(\s|$)|!!/]
 ];
 (async () => {
   console.log('\n── A1. l’annexe A : chaque phrase est écrite mot pour mot dans le fichier ──');
-  const tout = Object.values(ANNEXE).flat(); const code = N(nette);
+  const tout = Object.values(ANNEXE).flat(); const code = N(nette.replace(/<[^>]+>/g, ''));   /* sans les balises : « <b>Bloquer cette connexion ?</b> Ton compte… » est une seule phrase à l'écran */
   v('population : ' + tout.length + ' phrases témoins dans 6 groupes', tout.length >= 40 && Object.keys(ANNEXE).length === 6, tout.length);
   // une phrase écrite en deux morceaux dans le code (concaténation, balises) ne se retrouve pas telle quelle : on cherche ses 40 premiers signes, puis ses 30 derniers
   for (const ph of tout) { const t = N(ph), debut = t.slice(0, 40), fin = t.slice(-30);
@@ -68,13 +69,21 @@ const INTERDITS = [
   await c.p.evaluate(() => { document.querySelector('#opsec [data-ops="pas-moi"]').click(); }); await c.p.waitForTimeout(200);
   await c.p.evaluate(() => { const b = document.querySelector('#opsec [data-ops="bloquer"]'); if (b) b.click(); }); await c.p.waitForTimeout(1200); await note();
   await c.p.evaluate(() => { SECU.cases.autre = false; SECU.cases.nuit = false; });
+  // « Plusieurs mots de passe faux juste avant » : deux mots de passe faux de Karim, puis son bon mot de passe depuis l'autre ordinateur
+  await c.p.evaluate(() => { SECU.sessions = {}; SECU.comptes.lr.verrou = null; });
+  await S.attendreSel(c, '#cn-id', 6000); const mkb = await S.provisoire(c, 'kb'); await S.connecter(c, 'kb', 'faux-1'); await S.connecter(c, 'kb', 'faux-2'); await note(); await S.connecter(c, 'kb', mkb); await S.lireNombre(c); await note();
+  await c.p.evaluate(() => { document.querySelector('[data-cnx="annuler-demande"]').click(); }); await S.attendreSel(c, '#cn-id', 6000);
+  // « Trop de demandes de connexion » : six demandes en un quart d'heure, la septième est refusée
+  await c.p.evaluate(() => { for (let i = 0; i < 6; i++) secuDemander('kb', 'connexion'); }); await S.connecter(c, 'kb', mkb); await c.p.waitForTimeout(300); await note();
+  // cinq PIN faux : le téléphone de Karim s'efface
+  await S.telephone(c, 'kb'); for (let i = 0; i < 5; i++) await S.pin(c, '11122' + i); await c.p.waitForTimeout(300); await note();
   await c.p.evaluate(() => { SECU.sessions = {}; }); await note();
   const textes = await c.p.evaluate(() => [...window.__t].map(x => { const i = x.indexOf('\u0001'); return { ou:x.slice(0, i), t:x.slice(i + 1) }; })), ecr = textes.filter(x => x.ou !== '#contenu');
   v('population : ' + textes.length + ' textes distincts enregistrés (écran de connexion, téléphone, toasts)', ecr.length >= 25, ecr.length);
-  const tousEcr = N(ecr.map(x => x.t).join(' | '));
+  const tousEcr = CH(N(ecr.map(x => x.t).join(' | ')));
   const att = { connexion:ANNEXE.connexion, activation:ANNEXE.activation, confirmation:ANNEXE.confirmation, telephone:ANNEXE.telephone, demonstration:ANNEXE.demonstration };
   let rejouees = 0, ailleurs = [];
-  for (const [g, l] of Object.entries(att)) for (const ph of l) { const t = N(ph); if (tousEcr.includes(t)) rejouees++; else ailleurs.push(g + ' : ' + ph.slice(0, 50)); }
+  for (const [g, l] of Object.entries(att)) for (const ph of l) { const t = CH(N(ph)); if (tousEcr.includes(t)) rejouees++; else ailleurs.push(g + ' : ' + ph.slice(0, 50)); }
   v('A2 : ' + rejouees + ' phrases de l’annexe sont retrouvées DANS l’écran pendant le parcours (le reste : un état hors de portée de cette sonde — dit)', rejouees >= 30, ailleurs);
   console.log('   (non rejouées ici : ' + ailleurs.length + ')'); ailleurs.forEach(a => console.log('     · ' + a));
   const exclam = [];

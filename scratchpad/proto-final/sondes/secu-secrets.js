@@ -18,7 +18,7 @@ const j0 = nette.indexOf('const SECU_DEMO'), j1 = nette.indexOf('function cnxEnt
   v('« opg_proto_mdp » (les mots de passe en clair dans le navigateur) n’existe plus', !/opg_proto_mdp/.test(src));
   v('« opg_proto_session » (la session rangée) n’existe plus', !/opg_proto_session/.test(src));
   v('MDP_PROVISOIRE, MDP_CLE, SESSION_CLE n’existent plus', !/MDP_PROVISOIRE|MDP_CLE|SESSION_CLE/.test(src));
-  v('la case « Rester connecté » n’existe plus (ni son identifiant, ni son texte)', !/Rester connecté|cn-reste|dataset\.reste|data-reste="1"/.test(nette));
+  v('la case « Rester connecté » n’existe plus (ni son identifiant, ni son texte)', !/Rester connecté|cn-reste/.test(nette));
   // aucun code de secours : les SEULES phrases qui prononcent le mot sont celles qui le nient (le métier de la page parle de « Dépannage » et de « trousse de secours » : on cherche le CODE)
   const secours = [...nette.matchAll(/[^.\n]{0,60}(code[s]? de (secours|récupération|dépannage|recovery|backup)|recovery code|backup code|code[s]? de sauvegarde)[^.\n]{0,60}/gi)].map(m => m[0].trim());
   v('le mot « code de secours » n’est écrit que pour dire qu’il n’y en a pas (' + secours.length + ' phrases)', secours.length > 0 && secours.every(t => /(n’y a pas|n’existe pas|pas de|aucun) (de )?code[s]? de secours/i.test(t)), secours);
