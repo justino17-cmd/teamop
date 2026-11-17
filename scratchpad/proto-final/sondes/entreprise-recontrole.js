@@ -259,6 +259,18 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
     await L.fin(c);
   }
 
+  // ───── CASSE 1 bis : PISTE de correction, jouée en injectant une règle dans la page de la sonde (la page du dépôt n'est PAS touchée) : scroll-padding-bottom sur la feuille
+  if (veut('casse1b')) for (const [pr, nuit] of [['iphone', false], ['petit', true]]) {
+    const c = await C.ouvrirEnt({ profil:pr, nuit }); const p = c.p; await p.addStyleTag({ content:'@media (max-width:760px){#calque .panneau.ent-pan{scroll-padding-bottom:200px}}' });
+    for (const [carte, id, val, ok] of [['ident', 'en-site', 'pas un site', 'identok'], ['banque', 'en-expmail', 'pasunmail', 'banqueok'], ['horaires', 'en-z3', 'abc', 'horairesok']]) {
+      await L.toucher(c, `[data-ent="carte|${carte}"]`); await L.calme(p, 400); await C.remplir(p, id, val); await L.toucher(c, `[data-ent="${ok}"]`); await L.calme(p, 600);
+      const r = await p.evaluate(i => { const z = document.querySelector('#calque .panneau'), f = document.getElementById(i), m = document.getElementById(i + '-err'), a = z.querySelector('.actions:last-child'), rz = z.getBoundingClientRect(), ra = a.getBoundingClientRect(), rf = f.getBoundingClientRect(), rm = m.getBoundingClientRect();
+        return { champDessus:rf.top >= rz.top - 1 && rf.bottom <= ra.top + 1, msgDessus:rm.top >= rz.top - 1 && rm.bottom <= ra.top + 1, champ:[Math.round(rf.top), Math.round(rf.bottom)], message:[Math.round(rm.top), Math.round(rm.bottom)], barreHaut:Math.round(ra.top) }; }, id);
+      v(`casse1b ${pr}${nuit ? ' nuit' : ''} ${carte} : avec scroll-padding-bottom:200px, le champ refusé ET son message se voient`, r.champDessus && r.msgDessus, r);
+      await p.evaluate(() => fermerPanneau()); }
+    await L.fin(c);
+  }
+
   // ───── CASSE 2 : les feuilles que le correcteur n'a pas mesurées (logo, métiers, lecture seule) et les tablettes (au-delà de 760 px la rangée reste dans le flux)
   if (veut('casse2')) {
     for (const [pr, nuit] of [['iphone', true], ['petit', false], ['ipad', false], ['mac720', true]]) {
@@ -290,10 +302,10 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
   // ───── CASSE 3 : la fiche réduite au SIRET (ce que tout-01 autorise) ne casse AUCUN document : pas de « undefined », de « null », de mention creuse
   if (veut('casse3')) {
     const c = await C.ouvrirEnt({ profil:'mac' }); const p = c.p; await p.evaluate(EFFACER); await p.evaluate(() => { ENTREPRISE.siret = '732 829 320 00074'; rendre(); }); await L.calme(p, 400);
-    const r = await p.evaluate(() => { const emises = FACTURES.filter(f => f.num !== '—'), mauvais = /undefined|null|NaN|\[object|capital de\s*€|RCS\s*[·—]|·\s*·|,\s*,|Assurance\s*:\s*(?:·|$)/;
+    const r = await p.evaluate(() => { const emises = FACTURES.filter(f => f.num !== '—'), mauvais = /undefined|null|NaN|\[object|capital de\s*€|RCS\s*[·—]|·\s*·|,\s*,|TVA\s*·|Assurance\s*:\s*(?:·|$)/;
       const sorties = [], bad = [];
       emises.slice(0, 40).forEach(f => { const t = cxPdfTexte(f); sorties.push(f.id); const m = t.match(mauvais); if (m) bad.push(f.id + ' : ' + m[0]); });
-      const dv = typeof DEVIS !== 'undefined' ? DEVIS.slice(0, 20) : [], dbad = [];
+      dvInit(); const dv = DV.slice(0, 20), dbad = [];
       dv.forEach(x => { try { const t = docDevis(x).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); const m = t.match(mauvais); if (m) dbad.push(x.id + ' : ' + m[0]); } catch (e) { dbad.push(x.id + ' ERREUR ' + e.message); } });
       let ctr = []; try { CONTRATS.slice(0, 10).forEach(k => { const t = pdfContrat(k).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); const m = t.match(mauvais); if (m) ctr.push(k.id + ' : ' + m[0]); }); } catch (e) { ctr.push('ERREUR ' + e.message); }
       return { nbFactures:sorties.length, bad, nbDevis:dv.length, dbad, nbContrats:CONTRATS.length, ctr, manque:entrepriseManque().length }; });
@@ -307,7 +319,10 @@ const EFFACER = () => { Object.assign(ENTREPRISE, { siret:'', tva:'', forme:'', 
   // ───── PARCOURS 1 : un gérant neuf débloque sa première facture avec le SEUL SIRET — du bandeau jusqu'à la facture partie, puis la fiche se complète et le bandeau passe au vert
   if (veut('p1')) for (const pr of ['mac', 'iphone']) {
     const c = await C.ouvrirEnt({ profil:pr }); const p = c.p; await p.evaluate(EFFACER); await L.calme(p, 400);
-    const fac = await p.evaluate(() => { const f = FACTURES.find(x => x.st === 'avalider' && lignesDe(x).every(ligneOk) && CLIENTS[x.cli] && cfMailOk(CLIENTS[x.cli].mail)); return f ? f.id : null; });
+    // la facture naît comme chez la personne : un technicien termine une intervention (le vrai geste), sans SIRET elle attend « à valider »
+    await p.evaluate(() => { reglages.auto = true; const cli = Object.keys(CLIENTS).find(k => CLIENTS[k].mail && CLIENTS[k].type === 'pro'); INTS.push({ id:'t-ent-p1', d:AUJ, h:'09:00', dur:60, tech:'sm', cli, titre:'Essai Mon entreprise', type:'Entretien', st:'planifiee', fact:{ mode:'forfait', forfait:100, tva:20, zone:1 } });
+      const F = fiche('t-ent-p1'); F.coches = Object.fromEntries(tousControles(F).map(k => [k, true])); F.signature = 'signee'; F.absent = false; F.compte = 'Entretien réalisé.'; ACTIONS.terminer({ dataset:{ id:'t-ent-p1' } }); }); await L.calme(p, 400);
+    const fac = await p.evaluate(() => { const f = FACTURES.find(x => x.int === 't-ent-p1'); return f && f.st === 'avalider' && f.num === '—' ? f.id : null; });
     v(`p1 ${pr} : population : une facture « à valider » prête à partir (lignes complètes, client joignable)`, !!fac, fac);
     // 1. avant : la facture est REFUSÉE au vrai geste, avec le bouton Compléter dans le message
     await L.aller(p, 'facture-x-' + fac); await L.calme(p, 600);
