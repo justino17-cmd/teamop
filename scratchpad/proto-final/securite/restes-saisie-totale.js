@@ -43,7 +43,8 @@ const FORMES = [
   let routes = PRINCIPALE ? await p.evaluate(() => Object.keys(vues()).filter(r => !/-x-/.test(r) && (typeof rlPermis !== 'function' || rlPermis(r)))) : ['(page)'];
   if (SEUL) routes = routes.filter(r => SEUL.split(',').includes(r));
   for (const role of ROLES) {
-    if (PRINCIPALE && role !== ROLES[0]) { try { await p.evaluate(r => rlChanger(r, { muet: true }), role); } catch (e) { continue; } await att(500); }
+    /* l'application s'ouvre en « patron » : tout AUTRE rôle demandé s'enfile par rlChanger (le premier essai ne changeait de rôle que pour le second de la liste : « --roles=tech » rejouait le patron, mêmes chiffres que lui — le signe qui ne trompe pas) */
+    if (PRINCIPALE && role !== 'patron') { try { await p.evaluate(r => rlChanger(r, { muet: true }), role); } catch (e) { continue; } await att(500); const vrai = await p.evaluate(() => (typeof ROLE !== 'undefined' ? ROLE : '?')); if (vrai !== role) console.log('  ! rôle demandé', role, '· rôle obtenu', vrai); }
     for (const r of routes) {
       if (!restFormes()) { coupe.push('formulaires : ' + r); continue; }
       console.log('  . ' + Math.round((Date.now() - T0) / 1000) + ' s · ' + r + ' · formulaires ' + ouvertures + ' · champs ' + champsRemplis + ' · validations ' + valides + ' · données changées ' + changes);
