@@ -236,6 +236,8 @@ html[data-app] #b-plus.peut-suppr{display:inline-flex}      /* à l'ordinateur, 
 .ent{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 18px;align-items:center}
 .ent-logo{--lg-fond:var(--c);--lg-texte:#fff;line-height:0}
 .ent-logo svg{width:var(--logo);height:var(--logo);display:block}
+/* les initiales du logo sont du texte DANS un SVG que la page met à l'échelle (transform, --s) : sans cette ligne Chromium garde la mise en page du texte à l'échelle d'avant (« CS » minuscule dans un coin du carré, « 17 » absent) quand on passe d'« Ajuster » à 100 % */
+svg[role="img"] text{text-rendering:geometricPrecision}
 .ent-id b{display:block;font-size:1.35em;line-height:1.2;color:var(--c);letter-spacing:-.01em}
 .ent-id span{display:block;color:var(--p-doux);font-size:.92em}
 .ent-coord{text-align:right;font-size:.88em;color:var(--p-doux);line-height:1.5}
