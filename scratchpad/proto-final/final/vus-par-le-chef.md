@@ -45,7 +45,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       TOUS les textes d'écran (page principale, `atelier/page.source`, guide, visite parlée, aides, recherche) sans toucher aux
       phrases du dépôt (« J'ai pris à l'atelier »). (i) Un contrat affiche son prix HT et TTC. (j) Supprimer un brouillon de
       devis ne rend pas son numéro.
-- [ ] **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
+- [x] (restes planning, tour 2 : appliqué et joué au navigateur sur 7 profils — `final/restes-planning-tour2.json`, sonde `campagne/sondes/restes-planning-2.js` S2 ; « à planifier » et « en retard » restent ceux de toute l'équipe, dit sur l'écran) **Décision du chef du 17/11, 8 h 55, à APPLIQUER (planning)** — (k) les chiffres du bandeau du Planning suivent les
       personnes affichées (Sophie masquée : plus « 9 interventions · 11 h » pour 6 cartes) et le disent quand un filtre est
       posé. Rien d'autre ne bouge sur cet écran validé.
 - [x] (restes contrats, tour 1 : tout appliqué et joué au navigateur — `final/restes-contrats-tour1.json`, sonde `campagne/sondes/restes-contrats-1.js`) **Contrats — décisions du chef du 17/11, 9 h, à APPLIQUER (contrats)** : les points que la campagne voulait « soumettre à
