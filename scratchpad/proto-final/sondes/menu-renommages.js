@@ -1,6 +1,11 @@
 // Les renommages : on rend CHAQUE route de chaque rôle (ordinateur et téléphone, feuille « Menu » comprise) et on cherche, dans le texte
 // AFFICHÉ (innerText, pas le code de la page), les anciens noms (MENU-FINAL.md, « Renommages »). Une route qui ne rend rien se DIT.
-const { L, ROUTES, texteVisible } = require('./menu-commun.js'), v = L.v;
+const { L, ROUTES, texteVisible: texteBrut } = require('./menu-commun.js'), v = L.v;
+// « Mon compte » est depuis le 17 novembre (décision du chef, 12 h 30 ; MENU-FINAL.md règle 4) le NOM de la page personnelle, ouverte par la ligne du PIED
+// du menu et du pied de la feuille « Menu » (« Prénom Nom · Mon compte », classe .cn-compte) : permis là, interdit partout ailleurs (ligne du menu, onglet
+// de la barre du bas, bouton d'en-tête). On lit donc le texte SANS ce bouton de pied : un « Mon compte » qui reste est l'ancien bouton, et la sonde le refuse toujours.
+const texteVisible = (p, zones) => p.evaluate(z => { const pieds = [...document.querySelectorAll('.cn-compte')], av = pieds.map(x => x.style.display); pieds.forEach(x => { x.style.display = 'none'; });   // masqué EN PLACE : innerText ne lit que ce qui se voit
+  const t = z.map(s => { const e = document.querySelector(s); return e ? e.innerText : ''; }).join('\n'); pieds.forEach((x, k) => { x.style.display = av[k]; }); return t; }, zones || ['#menu', '#contenu', '#barre-bas', '#calque']);
 const VIEUX = [[/tableau de bord/i, 'Tableau de bord'], [/\bCRM\b/, 'CRM'], [/\bBoxes\b/, 'Boxes'], [/Temps & équipe|Temps &amp; équipe/, 'Temps & équipe'], [/\bAdministration\b/, 'Administration'], [/Planification/, 'Planification'],
   [/\bCommunication\b/, 'Communication'], [/Métier 3D/, 'Métier 3D'], [/Toutes les catégories/, 'Toutes les catégories'], [/Interv\./, 'Interv.'], [/Absences (&|&amp;) congés/, 'Absences & congés'],
   [/Mes frais et demandes|Mes notes de frais/, 'Mes frais et demandes / Mes notes de frais'], [/Paiements et encaissements/, 'Paiements et encaissements'], [/Équipe et réglages/, 'Équipe et réglages'], [/Mon compte/, 'Mon compte']];

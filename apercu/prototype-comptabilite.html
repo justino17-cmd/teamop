@@ -1846,6 +1846,7 @@ async function fecTelecharger(){
     catch (e) { if (msg) msg.innerHTML = `<div class="erreur">Le téléchargement n’a pas abouti ici.</div>`; }
     parcoursVerifier(); return; }
   if (!dl) { if (msg) msg.innerHTML = `<div class="info">Le téléchargement n’est pas disponible ici : voici seulement le début du fichier (${fecLignes().length} lignes en tout).</div><pre class="fec-apercu mono" tabindex="0" role="region" aria-label="Début du fichier des écritures">${esc(txt.slice(0, 4000))}</pre>`; parcoursVerifier(); return; }
+  /* le FEC passe en CHAÎNE, jamais en Blob : une chaîne est la même dans toutes les fenêtres, un Blob né dans ce cadre n'est pas celui de la page du pont */
   try { await dl.save({ filename:fecNom(), data:txt }); toast('FEC enregistré : ' + fecNom() + '.'); }
   catch (e) { if (msg) msg.innerHTML = `<div class="${e && e.code === 'declined' ? 'info' : 'erreur'}">${e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n’a pas abouti ici.'}</div>`; }
   parcoursVerifier();
