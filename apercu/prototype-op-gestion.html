@@ -937,7 +937,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .ax-bud{padding:8px 12px;border-radius:12px;background:var(--surf-in)}
 .ax-gros,.ax-prec{padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--orange) 9%,transparent)}
 .ax-prec{background:color-mix(in srgb,var(--bleu) 9%,transparent)}
-.ax-lm{min-height:44px;text-align:left}
+.ax-lm{min-height:44px;text-align:left;margin:-12px 0;vertical-align:middle}   /* le bouton de 44 px dans une ligne de texte écartait toutes les lignes (33 px d’interligne sur iPad) : la zone reste de 44, la ligne reprend sa hauteur */
 .ax-lien{background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;display:flex;align-items:center}
 .ax-lien:hover b{text-decoration:underline;text-underline-offset:3px}
 .ax-n{align-items:flex-start}
