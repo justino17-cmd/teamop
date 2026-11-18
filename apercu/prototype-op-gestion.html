@@ -7080,6 +7080,8 @@ document.addEventListener('change', ev => { if (ev.target.dataset && ev.target.d
 /* une facture faite à la main : choisir le client règle le taux (particulier 10 %, professionnel 20 %), comme pour un devis */
 document.addEventListener('change', ev => { if (ev.target.id !== 'nf-c') return; const t = document.getElementById('nf-t'); if (!t || !ev.target.value) return; t.value = String(tvaDefautDe(ev.target.value));
   const h = document.getElementById('nf-th'); if (h) h.textContent = CLIENTS[ev.target.value].type === 'part' ? 'Particulier : 10 % (logement de plus de 2 ans, attestation à conserver). Tu peux le changer.' : 'Client professionnel : 20 %. Tu peux le changer.'; });
+/* et un taux CHOISI à la main dit sa phrase entière sous le champ : le menu ne porte plus que le libellé court */
+document.addEventListener('change', ev => { if (ev.target.id !== 'nf-t') return; const h = document.getElementById('nf-th'); if (h) h.textContent = String(ev.target.value).replace('.', ',') + ' % : ' + DV_TVA[ev.target.value] + '. Tu peux le changer.'; });
 document.addEventListener('keydown', ev => {
   const t = ev.target; if (!t.dataset || !t.dataset.tajout || ev.key !== 'Enter') return; ev.preventDefault();
   const v = t.value.trim(); if (!v) return;
@@ -8134,6 +8136,8 @@ const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
    en même temps » ; 1er novembre : « dans Tâches on sélectionne plusieurs devis, on va dans Devis, ça met la liste ». ══ */
 const DV_ETATS = { brouillon:['À envoyer','st-o'], attente:['Envoyé · sans réponse','st-b'], accepte:['Accepté','st-v'], refuse:['Refusé','st-r'], expire:['Expiré','st-g'], remplace:['Remplacé','st-g'] };
 const DV_TVA = { 20:'client professionnel, ou logement neuf', 10:'particulier, logement de plus de 2 ans (attestation simplifiée)', 5.5:'travaux d’amélioration énergétique (pompe à chaleur…)' };
+/* Dans un menu déroulant, une phrase longue est COUPÉE sur un téléphone (« 10 % · particulier, logement de p »). Le menu prend un libellé court ; la phrase entière reste sous le champ et dans la fiche. */
+const DV_TVA_COURT = { 20:'professionnel ou neuf', 10:'logement ancien', 5.5:'rénovation énergétique' };
 const DV_MODELES = [
   ['Entretien annuel', [['Entretien annuel climatisation (nettoyage, contrôle, mesures)', 1, 95], ['Déplacement', 1, 29.17]]],
   ['Dépannage', [['Diagnostic et réparation (1 h)', 1, 65], ['Déplacement', 1, 29.17]]],
@@ -11408,7 +11412,7 @@ function cxNouvelleFacture(){
     <label class="champ">Client<select class="saisie" id="nf-c"><option value="">Choisir le client…</option>${C.map(([k, c]) => `<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Objet<input class="saisie" id="nf-o" placeholder="ex. Forfait de mise en service"></label>
     <div class="cx-2"><label class="champ" style="flex:2 1 220px">Désignation<input class="saisie" id="nf-d" placeholder="ex. Mise en service d’une pompe à chaleur"></label><label class="champ" style="flex:1 1 90px">Quantité<input class="saisie" id="nf-q" inputmode="decimal" value="1"></label><label class="champ" style="flex:1 1 120px">Prix unitaire HT<input class="saisie" id="nf-p" inputmode="decimal" placeholder="0,00"></label></div>
-    <label class="champ">TVA<select class="saisie" id="nf-t">${[20, 10, 5.5].map(t => `<option value="${t}">${String(t).replace('.', ',')} % · ${esc(DV_TVA[t])}</option>`).join('')}</select><span class="gris petit" id="nf-th">Le taux se règle tout seul quand tu choisis le client ; tu peux le changer.</span></label>
+    <label class="champ">TVA<select class="saisie" id="nf-t">${[20, 10, 5.5].map(t => `<option value="${t}">${String(t).replace('.', ',')} % · ${esc(DV_TVA_COURT[t])}</option>`).join('')}</select><span class="gris petit" id="nf-th">Le taux se règle tout seul quand tu choisis le client ; tu peux le changer.</span></label>
     <span class="gris petit">Pour de la vente de matériel seul (sans pose), demande conseil à ton comptable : sa TVA se déclare à la facture, et non au paiement comme une prestation.</span>
     <div class="actions"><button type="button" class="btn" data-cx="factureok">Créer la facture</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
@@ -11546,7 +11550,7 @@ vueEncaissements = function(){ cpSysteme = false; CP.onglet = 'paiements'; route
 ACTIONS.nouvelleFacture = () => cxNouvelleFacture();
 /* une facture client s'ouvre en page : on dit où l'on est */
 (() => { const f0 = vueFacture; vueFacture = function(id){ const h = f0.apply(this, arguments), f = FACTURES.find(o => o.id === id); if (!f) return h;
-  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|fventes|${f.st === 'avoir' ? 'avoirs' : 'clients'}">Ventes · ${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span>${f.int ? `<button type="button" class="lien cx-fil-dos" data-cx="dossier|${f.int}">Tout le dossier de l’intervention ›</button>` : ''}</nav>${cxMentionsManquantes().length ? `<div class="info petit cx-mq"><span class="cx-mq-l">Il manque sur ${f.st === 'avoir' ? 'cet avoir' : 'cette facture'} : ${cxMentionsManquantes().join(', ')}.</span><span class="cx-mq-c">Il manque ${cxMentionsManquantes().length} mention${cxMentionsManquantes().length > 1 ? 's' : ''}<span class="cx-mq-s"> légale${cxMentionsManquantes().length > 1 ? 's' : ''}</span></span><button type="button" class="lien" data-cx="fiche"><span class="cx-mq-l">Compléter ma fiche légale</span><span class="cx-mq-c">Compléter</span></button></div>` : ''}` + (f.int ? h.replace('<div class="actions">', '<div class="actions"><button type="button" class="btn gris petit cx-tel-act" data-cx="dossier|' + f.int + '">Tout le dossier de l’intervention</button>') : h); }; })();
+  return `<nav class="cx-fil" aria-label="Où tu es"><button type="button" class="lien" data-cx="sec|ensemble">Comptabilité</button><span aria-hidden="true">›</span><button type="button" class="lien" data-cx="sec|fventes|${f.st === 'avoir' ? 'avoirs' : 'clients'}">Ventes · ${f.st === 'avoir' ? 'Avoirs' : 'Factures clients'}</button><span aria-hidden="true">›</span><span>${f.num === '—' ? 'Facture préparée' : esc(f.num)}</span>${f.int ? `<button type="button" class="lien cx-fil-dos" data-cx="dossier|${f.int}">Tout le dossier de l’intervention ›</button>` : ''}</nav>${cxFactureManque().length ? `<div class="info petit cx-mq"><span class="cx-mq-l">Il manque sur ${f.st === 'avoir' ? 'cet avoir' : 'cette facture'} : ${cxFactureManque().join(', ')}.</span><span class="cx-mq-c">Il manque ${cxFactureManque().length} mention${cxFactureManque().length > 1 ? 's' : ''}<span class="cx-mq-s"> légale${cxFactureManque().length > 1 ? 's' : ''}</span></span><button type="button" class="lien" data-cx="fiche"><span class="cx-mq-l">Compléter ma fiche légale</span><span class="cx-mq-c">Compléter</span></button></div>` : ''}` + (f.int ? h.replace('<div class="actions">', '<div class="actions"><button type="button" class="btn gris petit cx-tel-act" data-cx="dossier|' + f.int + '">Tout le dossier de l’intervention</button>') : h); }; })();
 /* ══ PAR INTERVENTION — 8 novembre 2026 ══
    Justin : « rassemble tout ce qui est contrats, factures, historique des paiements, par intervention ; tout ce qui doit être
    dans la comptabilité, vraiment logique et compréhensible, facile d'utilisation ; inspire-toi des meilleurs logiciels pros et
@@ -11750,6 +11754,8 @@ function cxMentionsManquantes(){
   const E = ENTREPRISE;
   return [!E.forme && 'la forme juridique', cxSociete() && !E.capital && 'le capital social', !E.rcs && 'l’immatriculation (RCS ou répertoire des métiers)', !(E.assureur && E.assurc && E.assurZone) && 'l’assurance professionnelle (assureur, coordonnées, zone)'].filter(Boolean);
 }
+/* ce que la page d'une facture dit qu'il lui manque : le SIRET d'abord (sans lui la facture ne PART pas, et il se règle dans la même carte « mentions légales »), puis les mentions légales (parcours 10, 17 novembre 2026 : la page listait « forme juridique, immatriculation, assurance » et se taisait sur le SIRET, que l'aperçu refusait ensuite) */
+const cxFactureManque = () => [...(entrepriseManque().some(m => m.k === 'siret') ? ['le SIRET'] : []), ...cxMentionsManquantes()];
 const CX_ETATS = { non:['À régler', 'st-r'], att:['À surveiller', 'st-o'], avenir:['À préparer', 'st-b'], ok:['En règle', 'st-v'], auto:['Fait par OP GESTION', 'st-p'], info:['Bon à savoir', 'st-g'] };
 const cxVerifies = conf => conf.filter(c => c.v);
 /* les points qui ont un verdict (en règle, à régler, à surveiller) : UNE population pour le grand chiffre, la pastille de Pilotage et les pastilles de la page « Aux normes ».
@@ -20756,7 +20762,10 @@ function entPanneau(html){
   const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="info petit" role="status">Tu peux regarder cette fiche ; c’est ${esc(entPremierAdmin())} qui la modifie.</div>`);
 }
 function entEffacer(){ document.querySelectorAll('#calque .erreur').forEach(e => { e.hidden = true; e.textContent = ''; }); document.querySelectorAll('#calque [aria-invalid]').forEach(e => e.removeAttribute('aria-invalid')); }
-function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = document.getElementById(id); if (e) { e.textContent = msg; e.hidden = false; } if (c) c.setAttribute('aria-invalid', 'true'); }
+/* un refus ne survit pas à la correction qui le dément (parcours 9, 17 novembre 2026) : dès que la personne retape le champ fautif, SON message et son liseré partent — avant, « Écris son prénom ET son nom » restait sous un prénom déjà écrit, jusqu'au prochain « Envoyer » */
+function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = document.getElementById(id); if (e) { e.textContent = msg; e.hidden = false; } if (c) { c.setAttribute('aria-invalid', 'true');
+  const lever = () => { c.removeEventListener('input', lever); c.removeEventListener('change', lever); c.removeAttribute('aria-invalid'); const m = document.getElementById(id + '-err'); if (m) { m.hidden = true; m.textContent = ''; } };
+  c.addEventListener('input', lever); c.addEventListener('change', lever); } }
 /* regles : [[id, valeur => message ou '']] ; rend les valeurs (rognées) ou null après avoir écrit chaque message sous son champ, mis le focus sur le premier et dit le premier en toast */
 function entVerifier(regles){
   entEffacer(); const V = {}, E = [];
