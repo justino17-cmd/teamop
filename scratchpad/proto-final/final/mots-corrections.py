@@ -97,6 +97,10 @@ c('atelier', 'Atelier › listes de pourcentages (TVA, acompte, zoom)', "const V
 c('atelier', 'Atelier › textes d’aide', "autre client'} : écris", "autre client'} : écris", "typographie : espace insécable avant « : » et « ; » dans les clauses des contrats, les aides et les états vides", 1)
 c('atelier', 'Atelier › tout le texte affiché', "boot();\n</script>", "boot();\n/* typographie française sur le texte AFFICHÉ", "la même typographie que le prototype passe sur ce que l’atelier écrit lui-même", 0)
 
+c('page', 'Équipe › carte d’une personne', "'<span class=\"st st-p\">Admin</span>'", "'<span class=\"st st-p\">Administrateur</span>'", "« Admin » est une abréviation : le mot entier tient dans la pastille à 320 px", 2)
+c('page', 'Statistiques › factures en retard', "En retard · éch. ${dAnnee(x.ech, x.d)}", "En retard · échéance ${dAnnee(x.ech, x.d)}", "« éch. » est une abréviation que personne ne dit", 1)
+c('page', 'Statistiques › factures à payer', "À payer · éch. ${dAnnee(x.ech, x.d)}", "À payer · échéance ${dAnnee(x.ech, x.d)}", "idem", 1)
+
 # jours des soldes de congés, dans une PHRASE : « 3 j aujourd’hui → 2 j après cette absence » devient « 3 jours … 2 jours … » ; les tuiles et tableaux gardent « j »
 JOURS_PHRASES = ["Solde ${d.type === 'RTT'", "Il a déjà <b>${aNb(so.att", "j par rapport à sa demande", "j disponibles`", "Solde ${a.type === 'RTT'", "Ça dépasse ton solde de", "Ça dépasse son solde de", "Solde ${"]
 def jours_phrases(s):
