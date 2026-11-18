@@ -25,7 +25,9 @@ if os.path.exists(path):
 users = d.get('users') or []
 nom = sys.argv[1].strip()
 email = sys.argv[2].strip().lower()
-h = hashlib.sha256(sys.argv[3].encode('utf-8')).hexdigest()
+# scrypt salé, même forme et mêmes paramètres que server/index.js (monMdpHacher) : `scrypt$<sel>$<dérivé>` — jamais d'empreinte affichée
+sel = secrets.token_bytes(16)
+h = 'scrypt$' + sel.hex() + '$' + hashlib.scrypt(sys.argv[3].encode('utf-8'), salt=sel, n=16384, r=8, p=1, maxmem=64*1024*1024, dklen=32).hex()
 # remplace un éventuel compte patron existant (le patron est unique), garde les collaborateurs
 users = [u for u in users if u.get('role') != 'patron' and (u.get('nom','').lower() != nom.lower())]
 users.insert(0, {'id': 'u' + secrets.token_hex(5), 'nom': nom, 'email': email, 'hash': h, 'role': 'patron', 'actif': True, 'ts': 0, 'creePar': 'set-admin.sh'})
