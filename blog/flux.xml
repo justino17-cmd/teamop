@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Mon, 16 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 18 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Contrat de nettoyage de bureaux : fréquences, contrôle, prix</title>
+<link>https://teamop.fr/blog/contrat-de-nettoyage-de-bureaux.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/contrat-de-nettoyage-de-bureaux.html</guid>
+<pubDate>Wed, 18 Nov 2026 06:00:00 GMT</pubDate>
+<description>Contrat de nettoyage de bureaux : clauses, matrice des fréquences et grille de contrôle à recopier, révision du prix calculée pas à pas, vigilance Urssaf.</description>
+<enclosure url="https://teamop.fr/blog/img/contrat-de-nettoyage-de-bureaux-couverture.webp" type="image/webp" length="18348"/>
+</item>
 <item>
 <title>Logiciel entreprise de nettoyage : planning, contrôle qualité, sites</title>
 <link>https://teamop.fr/blog/logiciel-entreprise-de-nettoyage.html</link>

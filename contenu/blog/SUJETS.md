@@ -75,7 +75,7 @@ publication.
 
 ### Semaine du 16 novembre — Nettoyage / propreté
 - [x] logiciel entreprise de nettoyage — 2026-11-16 — `logiciel-entreprise-de-nettoyage` — passages récurrents, contrôle qualité, sites multiples — /logiciel-nettoyage.html
-- [ ] contrat de nettoyage de bureaux — fréquences, cahier des charges, contrôle qualité, révision du prix — /logiciel-nettoyage.html
+- [x] contrat de nettoyage de bureaux — 2026-11-18 — `contrat-de-nettoyage-de-bureaux` — fréquences, cahier des charges, contrôle qualité, révision du prix — /logiciel-nettoyage.html
 - [ ] pointage des heures des agents de propreté — horaires décalés, plusieurs sites, durée légale — /logiciel-pointage.html
 
 ### Semaine du 23 novembre — Chauffage
