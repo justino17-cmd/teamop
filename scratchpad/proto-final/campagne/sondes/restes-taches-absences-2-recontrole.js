@@ -45,22 +45,25 @@ const plus = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDat
     let g = await pos(); if (!g || !g.cell) return { ok:false, g }; await L.calme(p, 150); g = await pos();
     await p.mouse.move(g.x, g.y); await p.mouse.down(); await p.mouse.move(g.x + 12, g.y + 2, { steps:4 });
     const g2 = await pos(); await p.mouse.move(g2.cx, g2.cy, { steps:14 }); await p.waitForTimeout(160);
-    const pendant = await p.evaluate(() => ({ glisse:document.body.classList.contains('ac-glisse'), flot:((document.querySelector('.ac-flot') || {}).innerText || '').replace(/\s+/g, ' ') }));
+    const pendant = await p.evaluate(() => ({ glisse:document.body.classList.contains('ac-glisse'), flot:((document.querySelector('.ac-flot') || {}).innerText || '').replace(/\s+/g, ' '), non:document.querySelectorAll('.ac-cible-non').length, cibles:document.querySelectorAll('.ac-cible').length }));
     await p.mouse.up(); await L.calme(p, 450); return { ok:true, vu:g2.vu, pendant }; };
   if (vis.barre) {
     const g1 = await glisser(ID, pop.sa); const e1 = await lire(ID), t1 = await toast();
     v('glisser (souris) : un jour lâché sur un SAMEDI est refusé — rien ne bouge, message « pas travaillés »', g1.ok && e1.du === ve && /pas travaill/.test(t1), { g1, e1, t1 });
     v('glisser : rien ne reste « en cours » après le refus (classe de glisser, étiquette flottante, mode déplacer)', !e1.glisse && !e1.flot && !e1.depl, e1);
     console.log('  · constat : l\'étiquette flottante AVANT de lâcher sur un samedi dit « ' + (g1.pendant && g1.pendant.flot) + ' »');
+    v('glisser PENDANT, au-dessus d\'un samedi : la case est rouge (ac-cible-non) et l\'étiquette dit « rien ne bougera » (le refus se dit avant le lâcher)', g1.pendant && g1.pendant.non > 0 && /rien ne bougera/.test(g1.pendant.flot), g1.pendant);
     await ferme();
     await p.evaluate(([T, d]) => { DEMANDES_ABS.push({ ...DEMANDES_ABS[0], id:'zz-dem-1', tech:T, du:d, au:d, demi:null, etat:'attente', fil:[] }); rendre(); }, [T, mar]); await L.calme(p, 400);
     const g2 = await glisser(ID, mar); const e2 = await lire(ID), t2 = await toast();
     v('glisser : lâché sur les jours d\'une demande en attente de la même personne → refusé, rien ne bouge, message « accorde-la ou refuse-la d\'abord »', g2.ok && e2.du === ve && /accorde-la|refuse-la/.test(t2), { g2, e2, t2 });
     v('glisser : rien ne reste en cours après ce refus non plus', !e2.glisse && !e2.flot && !e2.depl, e2);
     console.log('  · constat : l\'étiquette flottante AVANT de lâcher sur une demande en attente dit « ' + (g2.pendant && g2.pendant.flot) + ' »');
+    v('glisser PENDANT, au-dessus d\'une demande en attente : case rouge et phrase « rien ne bougera »', g2.pendant && g2.pendant.non > 0 && /rien ne bougera/.test(g2.pendant.flot), g2.pendant);
     await ferme(); await p.evaluate(() => { DEMANDES_ABS = DEMANDES_ABS.filter(x => x.id !== 'zz-dem-1'); rendre(); }); await L.calme(p, 300);
     // le geste NORMAL doit marcher : le même jour déplacé vers un jour ouvré libre, puis annulé
     const g3 = await glisser(ID, mar); const e3 = await lire(ID), t3 = await toast();
+    v('glisser PENDANT, au-dessus d\'un jour ouvré libre : aucune case rouge, aucune phrase de refus (le geste normal ne se plaint pas)', g3.pendant && g3.pendant.cibles > 0 && g3.pendant.non === 0 && !/rien ne bougera|déjà/.test(g3.pendant.flot), g3.pendant);
     v('glisser : un jour lâché sur un jour ouvré LIBRE se déplace (le geste normal marche toujours)', g3.ok && e3.du === mar && e3.au === mar, { g3, e3, t3 });
     v('glisser : le message du déplacement dit « déplacée » et propose « Annuler »', /déplacée/.test(t3) && /Annuler/.test(t3), t3);
     await p.evaluate(() => { const b = [...document.querySelectorAll('#toast button')].find(x => /Annuler/.test(x.textContent)); if (b) b.click(); }); await L.calme(p, 300);

@@ -21,14 +21,17 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 
 ## Les cartes
 
+Mise à jour du 18 novembre 2026 (relecture « tout » du guide) : phrases des cartes Comptabilité, Tâches (gérant), Ma journée et Mon camion réécrites ; la ligne « Mes demandes » et la carte Achats et frais
+s'écrivent selon la case « Créer » des achats ; le guide tient en paysage sur un téléphone (voir « Téléphone en travers » plus bas).
+
 ### Le gérant (Marc)
 
 | # | Titre | Phrase | « Voir » mène à |
 |---|---|---|---|
 | 1 | Où sont passées mes rubriques ? | Tableau de bord → Accueil · Factures et paiements → Comptabilité · Boxes → Dépôts et camions | le menu |
-| 2 | Comptabilité : tout au même endroit | Factures, paiements, achats, paie et TVA se suivent au même endroit, rangés comme chez ton comptable. | Comptabilité |
+| 2 | Comptabilité : tout au même endroit | Factures, paiements, achats, paie et TVA se retrouvent ici, rangés comme chez ton comptable. | Comptabilité |
 | 3 | Stock : où est chaque article | Tape le nom d’un article : tu vois où il est et combien il en reste. | Stock |
-| 4 | Tâches : elles arrivent seules | Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule. | Tâches |
+| 4 | Tâches : elles arrivent seules | Un devis à relancer, une facture en retard : OP GESTION te propose la tâche et la termine seule. | Tâches |
 | 5 | Équipe : qui peut faire quoi | Pour chaque personne, tu choisis ce qu’elle voit et peut faire, et son menu s’adapte tout seul. | Équipe |
 | 6 | Mon entreprise : réglée une fois | Tes mentions légales, ton logo, ta banque et tes horaires s’écrivent ici une fois, puis servent partout. | Mon entreprise |
 
@@ -36,10 +39,10 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 
 | # | Titre | Phrase | « Voir » mène à |
 |---|---|---|---|
-| 1 | Où sont passées mes rubriques ? | Factures et paiements → Comptabilité · Produits, fournisseurs, bons de commande → Fournisseurs, matériel & produits · Mes demandes → Achats et frais | le menu |
-| 2 | Comptabilité : tout au même endroit | Factures, paiements, achats et TVA se suivent au même endroit, rangés comme chez ton comptable. | Comptabilité |
+| 1 | Où sont passées mes rubriques ? | Factures et paiements → Comptabilité · Produits, fournisseurs, bons de commande → Fournisseurs, matériel & produits · Mes demandes → Achats et frais (seulement si la case « Créer » des achats est cochée ; sinon Boxes → Dépôts et camions) | le menu |
+| 2 | Comptabilité : tout au même endroit | Factures, paiements, achats et TVA se retrouvent ici, rangés comme chez ton comptable. | Comptabilité |
 | 3 | Devis : composer en grand | « Composer un devis » ouvre une grande page claire : tu remplis, tu vérifies le prix, tu envoies. | Devis (si la case « Créer » des ventes est cochée) |
-| 4 | Achats et frais : les demandes | Les demandes de matériel et les notes de frais de l’équipe sont réunies ici. | Achats et frais |
+| 4 | Achats et frais : les demandes | Les demandes de matériel et les notes de frais de l’équipe sont réunies ici. (Sans la case « Créer » des achats : Tu suis ici les demandes de matériel et les notes de frais de l’équipe.) | Achats et frais |
 | 5 | Fournisseurs, matériel & produits | Les commandes, les articles et les fournisseurs sont réunis ici, en trois parties. | Fournisseurs, matériel & produits |
 | 6 | Mes tâches : elles arrivent seules | Ce qu’on t’a confié arrive ici, et chaque tâche se termine seule quand le travail est fait. | Mes tâches |
 
@@ -48,8 +51,8 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
 | # | Titre | Phrase | « Voir » mène à |
 |---|---|---|---|
 | 1 | Où sont passées mes rubriques ? | Mes notes de frais → Mes frais · Pointage → Mes heures · Boxes → Mon camion (au téléphone : « Plus » → Menu, en haut à gauche, en première ligne) | le menu |
-| 2 | Ma journée, dans l’ordre | Tes interventions arrivent dans l’ordre : tu y vas, tu appelles, tu remplis le compte rendu, le client signe. | Ma journée |
-| 3 | Mon camion : ce qui manque | Cherche une pièce, vois ce qui manque à bord, et préviens le bureau en un geste. | Mon camion |
+| 2 | Ma journée, dans l’ordre | Touche « Je commence ma journée » : tes interventions arrivent dans l’ordre, du trajet jusqu’à la signature du client. | Ma journée |
+| 3 | Mon camion : ce qui manque | Cherche une pièce, vois ce qui manque à bord, et dis au bureau ce que tu as utilisé. | Mon camion |
 | 4 | Mes heures : un seul bouton | Tu relis tes journées et tu confirmes tes heures d’un seul bouton, en fin de mois. | Mes heures |
 | 5 | Mes frais : ticket en photo | Photographie ton ticket, ou écris la demande d’achat : le bureau te répond directement dans cet écran. | Mes frais |
 | 6 | Mes congés, sur ton téléphone | Tu vois tes jours restants, tu fais ta demande de congé, et la réponse arrive au même endroit. | Mes congés |
@@ -73,6 +76,7 @@ Ce fichier est la SOURCE des textes : `guide-mots.js` exige que chaque titre et 
   et par la recherche (« Nouveautés de cette version »).
 - **Téléphone** : une carte par écran, qu'on fait glisser (défilement natif avec accroche : le navigateur gère le doigt), des points de progression, « Plus tard » et « Suivant » (ou « C'est tout » à la dernière
   carte) sur toute la largeur, « Précédent » dès la deuxième, « Voir » en pleine largeur, tout à 44 px au moins. **Ordinateur** : une fenêtre de 540 px, mêmes cartes, flèches ← → du clavier.
+- **Téléphone en travers** (hauteur de 480 px au plus : iPhone 844 × 390, Android 640 × 360, 568 × 320) : l'icône rétrécit, l'aide s'éteint, « Voir » passe à droite du texte — la carte tient sans défiler et « Voir » se touche (`guide-paysage.js`, par `elementFromPoint`, jamais par le rectangle).
 - Jour et nuit. Mouvement réduit respecté (pas d'animation, défilement sans glissade).
 
 ## Ce qui a été corrigé en même temps
