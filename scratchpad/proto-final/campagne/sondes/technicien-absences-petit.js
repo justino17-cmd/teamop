@@ -9,7 +9,9 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const r = await p.evaluate(() => { const o = [];
     document.querySelectorAll('#contenu button, #contenu [data-go], #contenu [role=button], #contenu a, #contenu [onclick]').forEach(e => { const b = e.getBoundingClientRect(); if (!b.width) return;
       const t = (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      if (/RTT/.test(t) || b.width < 44 || b.height < 44) o.push({ t, cl: e.className, tag: e.tagName, w: Math.round(b.width), h: Math.round(b.height), data: Object.keys(e.dataset).join(','), par: e.parentElement.className }); });
+      /* ce qu'un doigt déclenche, pas le rectangle : une absence d'un jour répond sur 3 px de plus de chaque côté (pseudo-élément, restes technicien 2), donc on lit la zone qui RÉPOND au point touché (elementFromPoint sur la ligne du milieu) */
+      let w = Math.round(b.width); if (e.matches('.acm-x') && b.width < 44) { e.scrollIntoView({ block: 'center' }); const q = e.getBoundingClientRect(), y = q.top + q.height / 2; let g = 1e9, d = -1e9; for (let x = q.left - 8; x < q.right + 8; x += .5) { const h = document.elementFromPoint(x, y); if (h && e.contains(h)) { if (x < g) g = x; if (x > d) d = x; } } w = Math.round(d - g + .5); }
+      if (/RTT/.test(t) || w < 44 || b.height < 44) o.push({ t, cl: e.className, tag: e.tagName, w, h: Math.round(b.height), data: Object.keys(e.dataset).join(','), par: e.parentElement.className }); });
     return o; });
   console.log(JSON.stringify(r, null, 1).slice(0, 3000));
   const petits = r.filter(x => x.w < 44 || x.h < 44);

@@ -1,0 +1,12 @@
+{
+ "date": "2026-11-18",
+ "menu-renommages": {
+  "avant": "15 ✓ · 3 ✗ (identique avant les corrections du guide)",
+  "verdict": "la SONDE était périmée, pas la page : aucune page modifiée",
+  "raisons": [
+   "« raccourcis ⌘ 1…9 » exigeait 20 lignes et « barre personnalisable » 20 choix : « Sécurité » est entrée au menu du gérant avec la double authentification, décision du chef du 17/11 12 h 30 (vus-par-le-chef.md, ligne « Rejeu, familles menu » : « la colonne du gérant a bien VINGT ET UNE lignes »). La sonde lit désormais le commentaire « lignes-gerant » de MENU-FINAL.md, comme menu-defilement.js, sans chiffre écrit en dur.",
+   "« réglages des rendez-vous » exigeait la phrase « Pour les voir : ouvre une intervention, touche « Voir le lien client » » : la voie « mots » (commit f5d88883, 17/11) l'a retirée exprès (« deux aides du planning sans mode d'emploi de test »). Ce qui compte pour MENU-FINAL.md règle « Ce que voit le client : plus de ligne » est qu'aucune ligne de menu n'est citée : la sonde garde cela (ni « Ce que voit le client », ni « Pour les voir »)."
+  ],
+  "apres": "18 ✓ · 0 ✗"
+ }
+}

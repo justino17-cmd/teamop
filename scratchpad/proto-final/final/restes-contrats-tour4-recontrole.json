@@ -1,0 +1,60 @@
+{
+ "noms": [
+  "contrats"
+ ],
+ "regles": [
+  "Aperçu de « Composer un contrat » lu sur le prix RANGÉ : HT, TTC et prix par visite de l'aperçu = ceux de la fiche pour 6 saisies (12,345 ×4 ; 99.995 ×2 ; 10.0049 ×6 ; 1.005 ×12 ; 100.005 ×4 et ×2), sondes restes-contrats-4.js rejouées sur mac, ipad nuit, iphone : 25 ✓ · 0 ✗ chacune",
+  "Plafond de 1 000 000 € jugé sur le prix rangé : « 1000000.004 » accepté, « 1000000.006 » refusé (restes-contrats-4.js)",
+  "Compteur « HT par an, qui revient » : aucun total de 5 000 € à 4 999 999,98 € n'est coupé ni sorti de sa carte sur mac, ipad nuit, iphone nuit, android, petit nuit (320 px) ; captures kpi-123456.78-petit-nuit et kpi-99999999.99-iphone-nuit regardées (chiffre plus petit, passe à la ligne, lisible)",
+  "Tableau des Contrats replié selon la CARTE : iPad portrait (820) et téléphones en cartes lisibles (nom entier, prix et TTC dessous) ; ordinateur 1 366 à 1 700 px et iPad paysage 1 180 : tableau complet, colonne Client ≥ 125 px ; aucun tableau ne sort de sa carte, aucune page ne déborde, de 761 à 1 700 px, avec noms de 60 signes, titres de 90 signes et prix à six chiffres",
+  "Sondes des tours précédents rejouées : restes-contrats-3-recontrole.js mac 62 ✓ · 0 ✗, petit nuit 58 ✓ · 0 ✗, windows 62 ✓ · 0 ✗ ; restes-contrats-3-recontrole-liste.js 18 ✓ · 0 ✗ ; restes-contrats-1-recontrole.js 31 ✓ · 0 ✗ ; restes-contrats-2-recontrole.js 42 ✓ · 0 ✗",
+  "Autres rôles : julie (Contrats, 4 compteurs) sans erreur ni débordement ; technicienne et chef d'équipe n'ont pas la rubrique (arrivent sur Ma journée), comme décidé",
+  "Plus aucune lecture du prix brut dans l'aperçu et la création : B.prix n'est lu que par ctrCentimes (grep)",
+  "Mutations des restes (mutations-restes-contrats.py) : C25 à C29 (tour 4) mordent toutes les cinq ; au total 26 mordent, 2 survivent"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Liste des Contrats : le tableau complet revient trop tôt, « Copropriété » se coupe en plein mot sur un ordinateur dont la fenêtre fait 1 100 à 1 150 px",
+   "gravite": "mineure (fenêtre étroite de Mac ou de Windows ; les iPad, 1 180 px et plus, et la fenêtre maximisée ne sont pas touchés)",
+   "etapes": "Entrer en gérant sur les contrats de départ (Copropriété Les Mimosas), fenêtre de 1 100 px de large, menu ouvert : la carte fait 788 px, donc au-dessus du seuil de repli (760 px de carte) ; la colonne Client mesure 91 px pour un mot de 88 px plus ses marges : « Coproprié / té Les / Mimosas ». Mesuré : 1 100, 1 120 et 1 140 px coupent le mot ; 1 160 px et plus le gardent entier ; 1 080 px et moins sont repliés en cartes. Avec un nom de 60 signes (cas de la sonde) la colonne tombe à 98 px à 1 100 px et la cellule Contrat à 4-5 lignes.",
+   "constat": "Capture liste-1100-nuit regardée (nom coupé en deux, titre sur cinq lignes). Cause : le seuil @container ctrl (max-width:760px) a été choisi comme celui du téléphone ; le tableau a un min-width de 699 px, donc entre 761 et ~830 px de carte la colonne Client n'a pas la place d'un mot de onze lettres. Piste : monter le seuil de la requête de conteneur à 840 px (la colonne Client y fait ≥ 125 px), ce qui ne change rien aux iPad paysage 1 180 (carte 868) ni à l'ordinateur ; à rejouer sur restes-contrats-4-recontrole.js (A) et le balayage seed.js. Sonde restes-contrats-4-recontrole.js : A 1100 tombe tant que ce n'est pas corrigé."
+  }
+ ],
+ "nouveaux": [
+  "Aperçu de « Composer un contrat » avec « 1e999 » dans le prix : article 4 écrit « ∞ € HT par an, soit 0,00 € TTC » (ctrCentimes rend Infinity pour la forme à exposant, ctrTTC rend 0). Même rendu avant le tour 4 (Number('1e999') vaut déjà Infinity) : pas une régression ; création refusée (« trop grand »). Mineur, saisie improbable",
+  "Aperçu avec « -5 » : « −5,00 € HT, soit −6,00 € TTC » dans l'article 4 (le texte de l'aide sous le champ, lui, reste « Indique le prix hors taxes » ; la création refuse sous 1 €). Même rendu avant le tour 4 ; mineur",
+  "Aperçu avec « 1234567890123 » : l'article 4 écrit 1 234 567 890 123,00 € HT sans prévenir (le refus « trop grand » n'arrive qu'à la création) ; mineur"
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-4.js",
+   "resultat": "mac, ipad nuit, iphone : 25 ✓ · 0 ✗ chacune"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-3-recontrole.js",
+   "resultat": "mac 62 ✓ · 0 ✗, petit nuit 58 ✓ · 0 ✗, windows 62 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-3-recontrole-liste.js",
+   "resultat": "18 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-1-recontrole.js",
+   "resultat": "mac 31 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-2-recontrole.js",
+   "resultat": "mac 42 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-4-recontrole.js (NEUVE : balayage de largeur 761 à 1 700, totaux de 5 à 9 chiffres, saisies extrêmes, autres rôles)",
+   "resultat": "mac 70 ✓ · 2 ✗ (A 1100 : le défaut ci-dessus ; « 1e999 » : ∞ affiché) ; ipad nuit 37 ✓ · 1 ✗, iphone nuit 37 ✓ · 1 ✗, android 37 ✓ · 1 ✗ (« 1e999 » seul) ; petit nuit 36 ✓ · 2 ✗ (« 1e999 » et un total de 149 999 999,98 € coupé à 320 px, hors plafond réel de 1 M€ par contrat : non retenu)"
+  }
+ ],
+ "doutes": [
+  "Un total de 149 999 999,98 € (150 contrats au plafond) est encore coupé à 320 px : sans objet pour une entreprise de terrain, non corrigé",
+  "Le PDF et le courriel réels d'un contrat restent hors du prototype (à soumettre à Justin, déjà décidé au tour 4)",
+  "Deux mutations survivent dans mutations-restes-contrats.py : C19 (TTC d'un prix « abc » redit NaN, tour 3) et C23 (prix rangé 1.005 à 1,00 € au lieu de 1,01 €, tour 3) : les sondes qui les gardent (restes-contrats-2-recontrole, 3-recontrole) restent vertes sur la page réelle ; elles ne voient pas ces deux défauts remis, à resserrer au tour suivant (aucun défaut sur la page elle-même)"
+ ]
+}
