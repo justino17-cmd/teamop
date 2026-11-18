@@ -67,7 +67,8 @@ const L = require('../lib.js');
   const tt = await toast();
   v('bureau-05 : le transfert a eu lieu (' + av.at + ' → ' + ap.at + '), un brouillon de commande est né, la demande est approuvée', ap.at > av.at && ap.cmd === av.cmd + 1 && ap.etat === 'approuvee', { av, ap });
   v('bureau-05 : le toast porte « Annuler » (' + tt.slice(-40) + ')', /Annuler/.test(tt) && !!(await R(() => document.querySelector('#toast button'))), tt);
-  await R(() => [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click()); await calme(500);
+  // le transfert qui commande le reste annonce son « Annuler le transfert » DANS la feuille du brouillon (axMessageFenetre, lot Achats) ; un toast d'avant peut traîner (huit secondes) : on vise le lien de la feuille d'abord
+  await R(() => { const l = document.querySelector('#calque [data-axa="trfannul"]'); if (l) l.click(); else [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await calme(500);
   const ann = await R(() => ({ at: stkAt(PRODUITS.find(x => x.id === 'p4'), 'v4'), mv: MVTS.length, cmd: COMMANDES.length, etat: DEM_ACHAT.find(o => o.id === 'da1').etat, cn: cmdNum }));
   v('bureau-05 : Annuler remet tout comme avant (stock, journal, commande, demande en attente, numéro de brouillon)', JSON.stringify(ann) === JSON.stringify({ at: av.at, mv: av.mv, cmd: av.cmd, etat: 'attente', cn: av.cn }), { av, ann });
   await L.ranger(p);
@@ -170,6 +171,8 @@ const L = require('../lib.js');
   // ── les deux défauts de Julie (tuile et pastille sans le droit) ──
   await L.fin(c);
   const cj = await L.ouvrir({ profil, qui: 'julie' }), pj = cj.p, Rj = (f, a) => pj.evaluate(f, a);
+  // Julie voit désormais Dépôts et camions (lot Droits : la case « Voir » décide seule) : on lui FERME la rubrique pour jouer le cas « tuile vers une rubrique fermée »
+  await Rj(() => { ROUTE_DROIT.boxes.equipe = ['@securite']; });
   await L.aller(pj, 'stock'); await L.calme(pj, 400);
   const t11 = await Rj(() => ({ cam: (document.querySelector('.ms-kpis') || { children: [] }).children.length, botCam: !!document.querySelector('.ms-kpis button[data-ms="t|cam"]'), permis: rlPermis('boxes'), txt: [...document.querySelectorAll('.ms-kpis .kpi')].map(e => e.tagName + ':' + e.textContent.replace(/\s+/g, ' ').trim()) }));
   v('bureau-11 : Julie n\'a pas « Dépôts et camions » (population : ' + t11.permis + ') : la tuile « manquent dans les camions » n\'est pas un bouton', t11.permis === false && !t11.botCam && t11.cam === 3, t11);

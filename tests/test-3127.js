@@ -259,7 +259,7 @@ console.log('\n5. Les branchements');
     vrai('seul « Réessayer » (`opmMonter`) remplace le cadre : un cadre neuf, l\'ancien retiré', R.cadre() !== f1 && R.journal.filter(x => x === 'retrait').length === 1);
     R.ctx.opmDemonter();
     v('la fermeture de la séance (`opmDemonter`) vide l\'hôte, le masque et invalide le montage en cours', [h.innerHTML, h.hidden, R.ctx.OPM.etat, R.ctx.OPM.charge], ['', true, '', false]);
-    const LO = (SCRIPTS.match(/function doLogout\(\)\{[^\n]*/) || [''])[0];
+    const LO = (SCRIPTS.match(/function doLogout\(\)\{[\s\S]*?\n(?=function )/) || [''])[0];   /* le corps ENTIER : depuis le 18/11 (déconnexion côté serveur), doLogout tient sur plusieurs lignes */
     vrai('⛔ `doLogout` ferme le cadre (`opmDemonter`) AVANT de recharger : une session d\'OP MESSAGES ne reste pas ouverte, masquée, derrière une Tour fermée', LO.indexOf('opmDemonter()') > 0 && LO.indexOf('opmDemonter()') < LO.indexOf('location.reload'), LO.slice(0, 80));
   }
   console.log('\n5 ter. Un seul état OPM');

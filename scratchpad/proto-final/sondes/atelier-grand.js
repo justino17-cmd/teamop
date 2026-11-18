@@ -82,7 +82,7 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
     if (!deux) { v(`${tag} · à l'ouverture la page fait 794 px (100 %)`, Math.abs(f0.w - 794) <= 2, f0); await clic(zbtn('ajuster') + ':visible'); await L.calme(p, 400); f0 = await taille(); }
     if (deux) v(`${tag} · « Ajuster » : la page prend la largeur de sa colonne (${f0.w} px dans ${g.colPage.w - 64})`, Math.abs(f0.w - Math.min(1.25 * 794, g.colPage.w - 64)) <= 3, [f0.w, g.colPage.w]);
     else { const zone = await f.evaluate(() => { const c = document.querySelector('.vv-grand-c'); const s = getComputedStyle(c); return c.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight); }); v(`${tag} · « Ajuster » : la page entière tient dans la largeur de l'écran (${f0.w} px dans ${zone})`, Math.abs(f0.w - Math.min(1.25 * 794, zone)) <= 3, [f0.w, zone]); }
-    const lib = await f.locator(zbtn('ajuster') + ':visible').textContent(); v(`${tag} · le bouton dit le pourcentage obtenu : « ${lib.trim()} »`, /^Ajuster · \d+ %$/.test(lib.trim()), lib);
+    const lib = await f.locator(zbtn('ajuster') + ':visible').textContent(); v(`${tag} · le bouton dit le pourcentage obtenu : « ${lib.trim()} »`, /^Ajuster · \d+\u00a0%$/.test(lib.trim()), lib);
     for (const [z, k] of [[1, '100 %'], [1.5, '150 %'], [.75, '75 %']]) { await clic(zbtn(z) + ':visible'); await L.calme(p, 300); const t = await taille(); v(`${tag} · « ${k} » : la page fait ${Math.round(794 * z)} px (${t && t.w})`, t && Math.abs(t.w - 794 * z) <= 2, t); }
     await clic(zbtn(1) + ':visible'); await L.calme(p, 300);
     const gz = await geo(f); v(`${tag} · à 100 %, le texte du document est rendu à ${gz.fsRendu && gz.fsRendu.toFixed(1)} px (≥ 11,5)`, gz.fsRendu >= 11.5, [gz.fsDoc, gz.ech]);

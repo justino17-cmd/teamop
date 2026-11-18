@@ -182,6 +182,8 @@ const I = require('./interventions-outils.js'), L = I.L;
     // chiffrer la ligne puis ajouter une ligne libre
     const k0 = await ev(() => [...document.querySelectorAll('[data-prix]')].findIndex(e => e.value === '')); await p.fill(`[data-prix="${k0}"]`, '48,50'); await p.dispatchEvent(`[data-prix="${k0}"]`, 'change'); await L.calme(p, 300);
     await tap('[data-action="ligneAjout"]'); const n1 = await ev(() => document.querySelectorAll('[data-fdes]').length); const sansNom = await ev(() => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return b && b.disabled; }); v('R15 une ligne libre sans nom grise encore « Aperçu et envoi »', sansNom === true, sansNom);
+    /* l'écran reporte son redessin jusqu'à 600 ms après un doigt posé (rendreApresClic) : remplir un champ avant, c'est écrire dans un élément qui va être remplacé — la quantité « 2 » se perdait une fois sur trois (constat du recontrôle des restes, 18/11) */
+    await L.calme(p, 800);
     const kl = n1 - 1; await p.fill(`[data-fdes="${kl}"]`, 'Déplacement hors secteur'); await p.dispatchEvent(`[data-fdes="${kl}"]`, 'change'); await L.calme(p, 300); await p.fill(`[data-fqte="${kl}"]`, '2'); await p.dispatchEvent(`[data-fqte="${kl}"]`, 'change'); await L.calme(p, 300); await p.fill(`[data-prix="${kl}"]`, '25'); await p.dispatchEvent(`[data-prix="${kl}"]`, 'change'); await L.calme(p, 300); await L.attendre(p, () => [...document.querySelectorAll('.fac-lgs .dv-lg:not(.dv-lg-t) .dv-tot')].some(e => /50,00/.test(e.textContent)), 4000);
     const tot = await ev(() => { const l = document.querySelectorAll('.fac-lgs .dv-lg:not(.dv-lg-t)'); return [...l].map(x => x.querySelector('.dv-tot').textContent.replace(/\s+/g, ' ').trim()); }); console.log('  · totaux par ligne :', JSON.stringify(tot));
     v('R15 la ligne libre nommée « Déplacement hors secteur » × 2 à 25 € fait 50 € (et la 1ʳᵉ 97 €)', tot.some(x => /50,00/.test(x)) && tot.some(x => /97,00/.test(x)), tot);
@@ -254,6 +256,7 @@ const I = require('./interventions-outils.js'), L = I.L;
     await poser(`[data-fdes="${kl}"]`, '  Remise   commerciale   de   fidélité  ' + 'x'.repeat(150)); let l = await ligne(); v('R19 un nom trop long est coupé à 120 signes, espaces ramenés à un', l.d.length <= 120 && !/\s{2,}/.test(l.d), l.d.length);
     for (const [q, attendu] of [['0', false], ['-3', false], ['abc', false], ['1,5', true], ['250 mL', true], ['12 345,67 L', true]]) { await poser(`[data-fqte="${kl}"]`, q); const e = await L.etat(p); l = await ligne(); const garde = l.q === q; v(`R19 quantité « ${q} » ${attendu ? 'acceptée' : 'refusée avec un message'}`, attendu ? garde : (!garde && !!e.toast), { q: l.q, toast: e.toast }); }
     await poser(`[data-prix="${kl}"]`, '-20'); l = await ligne(); console.log('  · prix « -20 » gardé comme :', JSON.stringify(l.pu));
+    await poser(`[data-fqte="${kl}"]`, '2');   /* le total d'une ligne est plafonné aussi : 12 345,67 L × 1 234,56 € dépasserait le million, d'où ce retour à une quantité ordinaire */
     await poser(`[data-prix="${kl}"]`, '1 234,56'); l = await ligne(); v('R19 prix « 1 234,56 » lu 1234,56', Math.abs(l.pu - 1234.56) < 0.001, l.pu);
     await poser(`[data-prix="${kl}"]`, 'abc'); l = await ligne(); v('R19 prix « abc » ne devient pas un nombre', l.pu == null || isNaN(l.pu) === false && l.pu === null, l.pu);
     await poser(`[data-prix="${kl}"]`, '9999999999'); l = await ligne(); console.log('  · prix « 9999999999 » gardé comme :', JSON.stringify(l.pu)); const tot = await txt('#contenu .fac-edit'); v('R19 un prix démesuré ne casse pas la page (aucun NaN / Infinity)', !/NaN|Infinity/.test(tot), tot.slice(0, 100));
@@ -282,6 +285,7 @@ const I = require('./interventions-outils.js'), L = I.L;
 
   // ── 22 « Terminer » touché deux fois de suite (la zone non couverte par le correcteur) : une seule facture, une seule suite, pas d'erreur
   await sec('R22 double toucher sur Terminer', async () => {
+    await ev(() => { const o = INTS.find(x => x.id === 'i7'); o.st = 'planifiee'; fiche('i7').etat = 'terrain'; for (let k = FACTURES.length - 1; k >= 0; k--) if (FACTURES[k].int === 'i7') FACTURES.splice(k, 1); for (let k = INTS.length - 1; k >= 0; k--) if (/^n-ent-i7/.test(INTS[k].id)) INTS.splice(k, 1); });   /* départ propre : R19 a déjà terminé i7, et sans ça la sonde cherchait un bouton « Terminer » qui n'existe plus (« null.click ») */
     await I.devenir(c, 'tl', 'inter-x-i7'); await ev(() => { const F = fiche('i7'); tousControles(F).forEach(k => F.coches[k] = true); F.compte = 'Condensateur remplacé.'; F.signature = 'signee'; F.suite = { entretien: true }; });
     const av = await ev(() => ({ fact: FACTURES.length, ints: INTS.length }));
     await ev(() => { const b = document.querySelector('[data-action="terminer"]'); b.click(); b.click(); }); await L.calme(p, 700);
