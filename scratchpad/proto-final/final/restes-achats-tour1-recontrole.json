@@ -1,0 +1,60 @@
+{
+ "noms": [
+  "achats-10 (« un achat qui a son ticket est encore sans justificatif »)",
+  "achats-05 à 320 px (première note sous le pli)",
+  "« Réglages › » en double sur ordinateur et tablette",
+  "Tarif au kilomètre « 1.500 » accepté et devenu 1,50 €",
+  "Sonde achats-mise-en-page périmée (tarif km)",
+  "« Annuler » d'un message de Stock (sxAnnule) ne fermait pas la fenêtre ni ne rafraîchissait",
+  "Ligne vus-par-le-chef « Achats et frais — décisions du 17/11, 12 h »"
+ ],
+ "regles": [
+  "« sans justificatif » (ni facture ni ticket) et « sans facture » (la TVA) sont deux comptes distincts, chacun avec son filtre : sur les données d'origine Achats (2), liste « Sans justificatif » (2), Comptabilité (3), Fournisseurs (3) et liste « Sans facture » (3) disent le même nombre ; « ticket reçu · facture manquante » sur la ligne du gazole (achats-recontrole-comptes 5 ✓ · 0 ✗, filtres 8 combinaisons catégorie × filtre jouées au mac ET au petit en nuit : 12 ✓ · 0 ✗)",
+  "achats-05 : 320 px, la phrase sous le titre est masquée ≤ 380 px et « Comment ça marche ? » vient après la liste : atteignable, 44 px, ouvre sa fenêtre sur petit, android (et à 390 px il reste avant la liste, sous-titre affiché) : 11 ✓ · 0 ✗ chacun ; captures petit/android jour et nuit regardées (planches), rien de coupé ni d'écrasé",
+  "« Réglages › » absent sur ordinateur et tablette, présent sous 760 px (même seuil que les deux lignes de réglage) : achats-recontrole-telephone mac 14, ipad 14, petit 21 ✓ · 0 ✗",
+  "Tarif « 1.500 » refusé avec la phrase de « Combien ? », le tarif ne bouge pas, la fenêtre reste ouverte ; « 1.50 » et « 1.5 » restent lus 1,50 ; « 101 » refusé : achats-restes1-km K1, K2, K5 verts",
+  "« Annuler » d'un message de Stock ferme la fenêtre, rafraîchit et dit « Annulé : … » une seule fois (pas de double message avec la compensation d'Achats) : achats-recontrole-annuler 10 ✓ · 0 ✗, materiel-table 66 ✓ · 0 ✗ (S11)",
+  "Sondes mises à jour toutes vertes : achats-corrections mac 29 / iphone 31, achats-mise-en-page petit 120 / mac 79, entreprise-achats-lisible 142"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Après la validation d'une note de frais avec ticket, la Comptabilité annonce un « sans facture » de plus que la liste où le lien mène",
+   "gravite": "moyenne",
+   "etapes": "Gérant (Marc) → Achats › Notes de frais → « Valider » la note de Tom (« Repas, chantier de Rochefort », 16,50 €, ticket, TVA 10 %) → Comptabilité : la ligne « À faire » dit « 4 achats sans facture · 74,50 € de TVA pas récupérable » (avant : 3) → toucher « Ajouter » : la liste « Sans facture » montre 3 lignes. Même chose après « Valider sans justificatif » la note de Sophie (parking, 6 €) : 5 annoncés, 4 lignes ; et la tuile « achats sans facture » de Comptes fournisseurs reste à 3 (la note n'y est pas) alors que son clic mène à 4 lignes.",
+   "constat": "cpTva().sans (Comptabilité : À faire, Conformité, tuile) compte tout achat avec TVA qui n'a pas de FACTURE (cpDed faux), donc les notes validées avec ticket ; le filtre « sansfacture » (x.sf, cxDocs, ~l. 11207) exclut exprès ces notes (« le ticket EST son justificatif ») ; cxFournisseurs ne compte pas les notes du tout (o.sans, ~l. 11929). Trois définitions pour un même mot, alors que restes-achats-tour1.json affirme « le nombre annoncé est partout celui de la liste où le clic mène ». Vrai sur les données d'origine, faux dès le premier geste du gérant. Si la note était le seul achat sans facture, « Ajouter » mènerait à un filtre vide qui retombe silencieusement sur « Toutes » (lu dans le code, non joué). Sonde : achats-restes1-coherence.js (K3, K6, K8 tombent ; 5 ✓ · 4 ✗, puis K5 corrigé après un mauvais bouton de la sonde : 3 ✗ réels). Pistes : une seule fonction « sans facture » lue par les trois endroits (Compta, liste, Fournisseurs), ou dire à l'écran que la ligne compte aussi les notes remboursées."
+  },
+  {
+   "titre": "Le tarif au kilomètre refuse « 0,603 » (barème fiscal à trois décimales)",
+   "gravite": "faible",
+   "etapes": "Gérant → Achats › Notes de frais › Tarif au kilomètre › « Changer › » : taper 0,603 (ou 0.603, 0,631) puis Enregistrer → « Un montant a au plus deux chiffres après la virgule (1 234,56). », la fenêtre reste ouverte.",
+   "constat": "Avant la correction axNum(« 0,603 ») donnait 0,603 et était accepté ; le nouveau garde-fou passe par cxMontantRefus, dont la règle « au plus deux décimales » vaut pour des montants en euros mais pas pour un tarif au kilomètre : le barème kilométrique officiel s'écrit à trois décimales (0,603 €/km…), et c'est ce que la fenêtre invite à demander à l'expert-comptable. Le refus est clair et 0,60 passe, donc personne n'est bloqué ; la perte est de 0,003 €/km (0,5 %). Si on accepte 3 décimales, l'affichage eur() les arrondit à 2 (« 0,60 € ») : à décider avec Justin. Sonde : achats-restes1-km.js (K4)."
+  }
+ ],
+ "nouveaux": [
+  "Sur téléphone (320, 360, 390 px) et iPad portrait, arrivé par un lien (« sans justificatif », « sans facture ») dans la Comptabilité › Achats, la puce de filtre choisie est HORS de l'écran : la rangée défile (scrollLeft 0) et « Sans justificatif » (gauche 268 px, 288 de large à 320) ou « Sans facture » (gauche 385) sont plus loin que le bord. On lit donc une liste réduite à 3 lignes sans voir quel filtre est actif, et sans voir la puce qu'on vient de choisir. Existait déjà pour « Sans justificatif » (5e puce) ; la 6e puce, cible de trois liens neufs (À faire, Conformité, tuile Fournisseurs), l'aggrave et touche aussi l'iPad portrait (507 / 508 px). Pas une correction du tour 1 : un reste. Piste : amener la puce active au centre de la rangée à l'ouverture (scrollIntoView inline:'center' sur la rangée seulement) ; ou passer la rangée à la ligne sur téléphone. Sonde : achats-restes1-puce.js (7 ✗ sur 40, tous cette cause ; mac et windows sans objet, tout tient). Captures : cap/campagne-achats/restes1-filtres-vue-petit.png et -android.png.",
+  "Le pas-à-pas « Factures & dépenses » dit « Sans justificatif : les achats payés dont on n'a pas encore la facture ou le ticket. Sans justificatif, la TVA de l'achat ne se récupère pas » (tour guidé, ~l. 13734) et la tâche « Retrouver le ticket » dit « sans justificatif, la TVA ne se récupère pas » (~l. 11104) : depuis achats-10, c'est « sans facture » qui prive de la TVA ; « sans justificatif » veut dire ni facture ni ticket. Texte à aligner sur les deux mots définis."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/achats-recontrole-parcours.js (mac ; iphone nuit)", "resultat": "20 ✓ · 0 ✗ ; 20 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-recontrole-comptes.js", "resultat": "5 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-recontrole-telephone.js (petit, mac, ipad)", "resultat": "21 / 14 / 14 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-recontrole-annuler.js", "resultat": "10 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-recontrole-gestes.js, -champs.js, -captures.js (petit, android, jour et nuit)", "resultat": "17 ✓, 12 ✓, 68 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-corrections.js (mac, iphone)", "resultat": "29 / 31 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-mise-en-page.js (petit, mac)", "resultat": "120 / 79 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-roles, -gestes, -liaisons, -details, -saisies, -doublon, -toast-fenetre, -champs-virgule, -virgule, -parcours-demandes, -parcours-notes", "resultat": "9, 32, 26, 14, 17, 3, 6, 14, 3, 46, 37 ✓ · 0 ✗" },
+  { "fichier": "sondes/entreprise-achats-lisible.js ; sondes/materiel-table.js", "resultat": "142 ✓ · 0 ✗ ; 66 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/achats-restes1-filtres.js (mac ; petit nuit) — NEUVE", "resultat": "12 ✓ · 0 ✗ ; 12 ✓ · 0 ✗ (8 combinaisons catégorie × filtre chacune)" },
+  { "fichier": "campagne/sondes/achats-restes1-aide.js (petit, android, iphone) — NEUVE", "resultat": "11 ✓ · 0 ✗ chacun" },
+  { "fichier": "campagne/sondes/achats-restes1-coherence.js (mac) — NEUVE", "resultat": "5 ✓ · 3 ✗ réels (K3, K6, K8 : voir casses) ; sort en 1" },
+  { "fichier": "campagne/sondes/achats-restes1-km.js (mac) — NEUVE", "resultat": "4 ✓ · 2 ✗ (K4 réel : voir casses ; K3 « 0,6 € » refusé = comportement d'avant, voir doutes)" },
+  { "fichier": "campagne/sondes/achats-restes1-puce.js (petit, android, iphone, ipad) — NEUVE", "resultat": "33 ✓ · 7 ✗ (la puce active hors écran : voir nouveaux)" }
+ ],
+ "doutes": [
+  "Tarif au kilomètre : « 0,6 € » et « 0,60 € » (avec le signe) sont refusés par « Indique un tarif, par exemple 0,60. » — comportement d'avant le tour 1, pas une régression ; le refus est lisible mais un débutant qui écrit l'unité est renvoyé. À décider : tolérer le signe € dans les champs de montant ?",
+  "Tarif au kilomètre à trois décimales (0,603) : accepter et afficher 3 décimales, ou garder deux et le dire (« arrondis au centime ») — décision de Justin.",
+  "Deux mots pour deux choses vraies (« sans justificatif » / « sans facture ») : un débutant les lira comme des synonymes ; la ligne « ticket reçu · facture manquante » aide, mais la tuile d'Achats dit « sans justificatif » pendant que la Comptabilité dit « sans facture » pour des listes qui se recoupent (un achat sans ticket est dans les deux). À regarder avec Justin.",
+  "Pastilles de personnes (iPhone elles passent à la ligne, Android et 320 px elles défilent, « Karim » coupé au bord) : laissé à Justin par le correcteur, vu sur les captures et confirmé ; la même rangée sert de repère de défilement, il n'y a pas de défaut de débordement."
+ ]
+}

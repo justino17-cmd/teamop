@@ -1,0 +1,46 @@
+{
+ "noms": ["restes-securite-tour1 (S01 nom de client saisi et d'expéditeur, S05 commande d'un autre fournisseur, S06 FEC et CSV, S10 limites de navigation, casses de l'historique, de l'unité et de la boîte mail, doutes d'import et de saisie)"],
+ "regles": [
+  "S01 variante 1 (expéditeur d'e-mail → fiche client) : recontrole-nomclient 11 ✓ · 0 ✗ rejoué, 0 exécution, 0 balise",
+  "S01 variante 2 (nom TAPÉ, dix créations + Modifier) : recontrole-clientsaisi 8 ✓ · 0 ✗ ; restes-garde « 10 créations sur 10 passent par cliNet »",
+  "S05 (fournisseur citant la commande d'un autre) : recontrole-confiance 11 ✓ · 0 ✗ ; les noms de fournisseur ne sont pas modifiables dans le prototype, donc la comparaison stricte c.four === f.nom ne perd aucune commande légitime (relu dans le code)",
+  "S06 (FEC et CSV après espaces ou tabulation) : restes-garde, FEC d'OP GESTION et de la Comptabilité, montants jamais préfixés",
+  "Casse historique « &amp; » et double échappement d'unité : recontrole-casse 11 ✓ · 0 ✗, recontrole-casse2 5 ✓ · 0 ✗, restes-unite-entite 3 ✓ · 0 ✗",
+  "Courriel sans champ d'adresse : ne fait plus jeter mlLire (recontrole-confiance n° 5, restes-garde)",
+  "Import de prix hostile (S11) : restes-garde, 20 007 lignes en 2,5 s, bornes 200/40/20, prix aberrants ignorés",
+  "S10 : six canaux de chargement fermés, cinq canaux de navigation toujours ouverts et NOMMÉS (recontrole-sortie 12 ✓ · 0 ✗) ; liens : recontrole-liens-fuzz 9 ✓ · 0 ✗ ; lienSur, rel noopener noreferrer",
+  "Titre d'intervention (doute 'ne se reproduit pas') : restes-champs --roles=marc, 6 ✓ · 0 ✗, 0 exécution, 0 puits",
+  "PDF : pdfOctets échappe ( ) et \\ ; une unité « pièce(s) » ou un nom à parenthèse ne casse pas le flux (relu), le PDF des documents écrit en hexadécimal",
+  "Aucun gestionnaire en ligne (onclick=…${}) dans la page : une apostrophe ou un point-virgule gardés dans un nom ne sortent d'aucune chaîne JavaScript (relu : un seul onclick, sans interpolation)"
+ ],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "Un nom de client de plus de 80 signes est coupé sans prévenir (« …Réunis de Charente-Mari »)", "gravite": "faible", "etapes": "Nouveau client ou Nouveau devis › Nouveau client, nom de 90 signes → cliNet le borne à 80 (nomClientNet) ; la fiche, la liste et la bulle montrent « Charente-Mari » (captures fiche-mac-jour, fiche-android-nuit)", "constat": "Pas de refus, pas d'avertissement : la personne ne sait pas que son nom est tronqué. Défaut de forme, pas de sécurité ; à régler en relevant le plafond ou en le disant dans le formulaire (non corrigé : je ne modifie aucune page à cette étape)." }
+ ],
+ "nouveaux": [],
+ "sondes": [
+  { "fichier": "securite/restes-garde.js", "resultat": "33 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-nomclient.js", "resultat": "11 ✓ · 0 ✗ (485 s)" },
+  { "fichier": "securite/recontrole-clientsaisi.js", "resultat": "8 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-confiance.js", "resultat": "11 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-casse.js", "resultat": "11 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-casse2.js", "resultat": "5 ✓ · 0 ✗" },
+  { "fichier": "securite/restes-unite-entite.js", "resultat": "3 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-sortie.js", "resultat": "12 ✓ · 0 ✗" },
+  { "fichier": "securite/recontrole-liens-fuzz.js", "resultat": "9 ✓ · 0 ✗" },
+  { "fichier": "securite/restes-champs.js --roles=marc (la passe de tous les rôles dépasse 590 s)", "resultat": "6 ✓ · 0 ✗" },
+  { "fichier": "securite/restes-saisie-totale.js --roles=patron", "resultat": "6 ✓ · 1 ✗ : 0 exécution, 0 balise, 0 puits, 0 erreur de page ; le ✗ est le seuil de population « ≥ 15 charges retrouvées à l'écran » (12 retrouvées, 53 formulaires, 88 champs, 28 validations), pas une faille" },
+  { "fichier": "securite/restes-saisie-totale.js --roles=tech", "resultat": "6 ✓ · 1 ✗ : même seuil de population (11 retrouvées, 63 formulaires, 94 champs, 33 validations) ; 0 exécution, 0 balise, 0 puits" },
+  { "fichier": "sondes/restes-securite-tour1-recontrole.js (NOUVELLE : noms de bonne foi mais difficiles — __proto__, constructor, toString, $&, $', $1, NaN, null, [object Object], ${nom}, &amp;, 90 signes — sur 23 clients, 6 membres de l'équipe, 60+ écrans et 23 fiches)", "resultat": "10 ✓ · 0 ✗ (0 erreur de page avant et après, aucun NaN/undefined/[object de plus, « $& » non multiplié, 23 fiches ouvertes) ; ses deux premières versions donnaient des ✗ qui venaient de la sonde elle-même (un client nommé « NaN » lu comme anomalie) : corrigées" },
+  { "fichier": "sondes/restes-securite-tour1-captures.js (NOUVELLE)", "resultat": "9 captures lues (liste des clients, bulle, fiche ; mac jour, iPhone nuit, Android nuit) : « O'Brien & Fils », « Dupont &amp; Fils » (écrit tel que tapé), « $& », « __proto__ », « constructor » lisibles ; la bulle ne recouvre pas de commande utile ; seul défaut vu : le nom de 90 signes coupé à 80 (voir casses)" },
+  { "fichier": "contrôles de la sauvegarde", "resultat": "compiler-pages.js ✓ (rejoué en début de tâche)" }
+ ],
+ "doutes": [
+  "Les mutations des restes (securite/mutations-restes-securite.py) n'ont PAS été rejouées : elles modifient les pages et l'étape interdit d'y toucher. Leur résultat reste celui annoncé par le correcteur (M1 à M10 font tomber la garde).",
+  "restes-saisie-totale.js et restes-champs.js dépassent le délai de 590 s dans leur forme complète sur cette machine : le recontrôle les a jouées par rôle (patron, tech, marc). Le rôle « gestion » et « compta » n'a donc pas eu sa passe de saisie dans ce tour. Le seuil de population (15 charges retrouvées) n'est pas atteint seul sous charge : à abaisser ou à lancer en deux passes.",
+  "Le filet de toast (toastSur) laisse passer un attribut style sans url()/expression : une bulle dont l'appelant oublierait esc pourrait poser un style de position (recouvrir l'écran) sans exécuter de code. Aucun appelant connu ne l'expose ; à resserrer (retirer style) si Justin veut un filet strict.",
+  "cliNet retire les guillemets droits (\") d'un nom tapé : « Café \"Chez Léa\" » devient « Café Chez Léa », sans le dire. mailNom retire aussi un « + », « = », « @ » ou « - » de tête (un expéditeur nommé « +33 6… » perd son signe). Choix cohérent avec la neutralisation, mais visible ; à signaler à Justin.",
+  "Toujours à soumettre à Justin, non modifiés : navigation non gouvernée par la politique de contenu (location, window.open, a.click, meta refresh), frame-ancestors (impossible en balise meta, à poser côté serveur), script-src large (unsafe-inline), authenticité de l'expéditeur d'un e-mail, nettoyage à l'entrée de tout texte libre, corpsLu d'opcourrier.js (déjà décidé).",
+  "Les captures sont hors dépôt (cap/rec-secu1/) : une carte fiche à 320 px et iPad n'a pas été capturée dans ce tour."
+ ]
+}

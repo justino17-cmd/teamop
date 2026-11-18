@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "Total d'une ligne de facture : quantité aussi plafonnée (casse 1)",
+  "defaut": "9999 × 999 999,99 € donnait près de 10 milliards sans un mot : seul le prix était plafonné",
+  "etat": "corrigé",
+  "changement": "Dans la facture (prix et quantité), un total de ligne au-dessus de 1 000 000 € HT est refusé avec un message qui dit quoi baisser ; l'ancienne valeur est conservée (même plafond DV_PU_MAX que le devis).",
+  "preuve": "interventions-restes-tour2.js 16 ✓ · 0 ✗ sur iphone, iphone nuit, mac, mac nuit ; restes-recontrole E vert ; captures restes2-*-1-quantite, -2-prix regardées (jour/nuit, téléphone/Mac)"
+ },
+ {
+  "nom": "Relevé numérique : « 3 sur 18 » → 318, « 10-12 » → 1012 en silence (casse 2)",
+  "defaut": "collage de deux nombres recollé en un seul dans le compte rendu",
+  "etat": "corrigé",
+  "changement": "Deux nombres (séparés par un mot, un tiret ou une espace) sont refusés : le champ garde sa valeur d'avant et un message dit « Un seul nombre ici… ». « -5 », « 2,4 kg » et « 12 » restent acceptés.",
+  "preuve": "interventions-restes-tour2.js (6 cas) ; interventions-restes-recontrole.js D : 139 ✓ iphone"
+ },
+ {
+  "nom": "Température négative impossible à taper sur iPhone (casse 3)",
+  "defaut": "clavier decimal sans signe moins",
+  "etat": "corrigé",
+  "changement": "Les relevés en °C ouvrent le clavier texte (avec « − ») ; les autres relevés gardent le clavier décimal.",
+  "preuve": "sonde : °C = text, kg = decimal ; capture restes2-iphone-4-releve-negatif (« -5 » saisi)"
+ },
+ {
+  "nom": "Deux numéros +33 (22 chiffres) refusés (casse 4)",
+  "defaut": "règle des 20 chiffres",
+  "etat": "à soumettre à Justin",
+  "changement": "Non touché (consigne du chef)",
+  "preuve": "seul ✗ restant de la sonde restes (« doute »)"
+ },
+ {
+  "nom": "Durée « 1 h 30 » contre « 1h30 »",
+  "defaut": "duree() lue par 34 appels",
+  "etat": "à soumettre à Justin",
+  "changement": "Non touché (consigne du chef)",
+  "preuve": "-"
+ },
+ {
+  "nom": "R22 « null.click » (double toucher sur Terminer)",
+  "defaut": "la section échouait dans l'enchaînement",
+  "etat": "corrigé",
+  "changement": "Défaut de sonde : R19 terminait déjà i7 ; R22 repart d'un i7 remis à planifié (facture et suite retirées). Plus un défaut de la page : R22 seul rejoué vert sur iphone et mac.",
+  "preuve": "interventions-recontrole.js : iphone jour 132 ✓ · 0 ✗ ; mac nuit 123 ✓ · 0 ✗ ; R19+R22 iphone nuit 17 ✓"
+ }
+]

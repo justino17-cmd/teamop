@@ -1,0 +1,135 @@
+{
+ "noms": [
+  "compta-ventes (restes, tour 2) — recontrôle adverse"
+ ],
+ "regles": [
+  {
+   "nom": "compta-ventes-06 · facture encaissée en partie puis annulée : le remboursement fait est écrit partout",
+   "preuve": "restes1-rc1 : mac, petit, iPhone nuit 15 ✓ · 0 ✗ ; nouvelle restes2-rc-remb (mac, iPhone nuit) 10 ✓ · 0 ✗ : fait, remis à faire, « Annuler » de la bulle, tâche supprimée, ligne de la liste du cadre (redessinée) ; balayage de 7 écrans de l'application avant/après (accueil, tâches, clients, fiche client, comptabilité, historique, factures) : aucun « à rembourser » résiduel ; captures lues"
+  },
+  {
+   "nom": "Aperçu « La facture » (PDF) : montants et « Qté » coupés en deux lignes",
+   "preuve": "restes1-rc2 iPhone et mac 7 ✓ · 0 ✗ ; nouvelle restes2-rc-pdf (facture ordinaire, valeurs longues, réaliste, avoir, devis, compte rendu, bilan) sur petit, android, iPhone, iPad, mac : 36 ✓ · 0 ✗ chacun. Contre-épreuve : la version d'avant (git archive 35f48070^) rend 5 ✗ (montants coupés sur facture, avoir ET devis) — la sonde voit. Planche de captures à 320 px lue : montants sur une ligne partout (seule la désignation se casse, et seulement avec des prix à 7 chiffres)"
+  },
+  {
+   "nom": "Quantité « 2 h » ou « 1 000 » comptée pour 1 (facture à valider)",
+   "preuve": "restes2-1 mac, iPhone nuit, iPad, Android nuit : 15 ✓ · 0 ✗ ; le même total (200 / 220 €) se retrouve dans la fiche, l'aperçu PDF, le HT figé à l'envoi, le reste à payer, la fenêtre de l'avoir, le paiement en partie et la liste du cadre (rc-qte Q3 à Q8, 6 ✓) — MAIS voir casses[0] et casses[1]"
+  },
+  {
+   "nom": "Frise d'une facture annulée",
+   "preuve": "capture iPhone nuit lue : Préparée toute seule · Validée et envoyée · Annulée par un avoir ; E est toujours à quatre entrées, aucune ligne n'est perdue (une annulée n'a jamais montré « Ouverte »)"
+  },
+  {
+   "nom": "Mot « Prix HT » dans l'éditeur de devis",
+   "preuve": "parcours-a 36 ✓ ; nouvelle restes2-rc-dvt : l'en-tête « Prix unitaire HT · Total HT » de l'éditeur de devis tient sur une ligne et dans sa colonne à 1251, 1280, 1366 et 1440 px (9 ✓ · 0 ✗) ; sous 1250 px l'en-tête est caché par construction"
+  },
+  {
+   "nom": "Fenêtre OP COMPTABLE : phrase de démonstration",
+   "preuve": "restes-3 mac 12 ✓ ; phrase relue dans le code"
+  },
+  {
+   "nom": "Menu TVA d'une facture à la main à 320 px",
+   "preuve": "restes2-2 petit, iPhone nuit, mac 8 ✓ · 0 ✗ ; rc1 B1-B5 verts ; les libellés courts se mesurent dans le champ"
+  },
+  {
+   "nom": "sondes/droits-compta.js rouge et parcours-g 12b périmée",
+   "preuve": "droits-compta mac, iPhone nuit, iPad, petit : 8 ✓ · 0 ✗ ; parcours-g mac 8 ✓"
+  }
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Une ligne PRÉPARÉE « 2h » (main-d'œuvre) change de total, en silence, dès qu'on retape sa quantité : 108,00 € devient 216,00 €",
+   "gravite": "moyenne (argent : une facture au client doublée sans un mot)",
+   "etapes": [
+    "Facture « à valider » préparée à la fin d'une intervention facturée « au temps » : ligne « Main-d'œuvre · Qté 2h · Prix unitaire HT 108,00 · Total HT 108,00 € » (le prix est celui de la DURÉE ENTIÈRE)",
+    "Dans le champ Qté, taper « 1 » puis « 2h » (ou corriger « 2h » en « 3h »)",
+    "Le total passe à 2 × 108 = 216,00 € (3h : 324 € alors que 3 h valent 162 €)"
+   ],
+   "constat": "Avant b04097d8 une quantité à lettres comptait pour 1 : la ligne préparée restait stable (108,00 €). Maintenant la retoucher la fait changer de règle (qn posé à la saisie) alors que son prix est celui de la durée. Même chose pour la pièce « 0,5 L » à 10,33 € : 10,33 € préparée, 5,17 € dès qu'on retape « 0,5 L » — deux arithmétiques pour le MÊME texte selon son origine. La colonne s'appelle désormais « Prix unitaire HT » et contredit la ligne préparée (« 2h » · 108,00 · total 108,00). Sonde durable : campagne/sondes/compta-ventes-restes2-rc-qte.js, Q1 et Q2 rouges ; la version d'avant les rend verts. Pistes : écrire la durée dans la désignation et fixer la quantité préparée à « 1 », ou ne pas offrir la quantité d'une ligne préparée à la durée, ou donner à ces lignes un qn:1 explicite."
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "« 2h30 » et « 2 h 30 » sont acceptés et comptés pour 2, en silence (250 € attendus, 200 € écrits)",
+   "gravite": "moyenne",
+   "constat": "La quantité tapée est lue comme un nombre suivi d'une unité (≤ 10 signes) : « 2h30 » = 2 + unité « h30 ». Une durée écrite comme on la dit passe donc pour un total faux et plausible, pire qu'avant (1 × le prix, visiblement faux). « 1,5h » est juste. Sonde : rc-qte Q9 (2 ✗). Piste : refuser avec une phrase ce qui contient un second nombre après l'unité (« 2h30 → écris 2,5 »)."
+  },
+  {
+   "titre": "La tâche « Rembourser » naît AU NOM DE MARC : celui qui annule la facture (Julie, compta) ne peut pas la retrouver ni la cocher",
+   "gravite": "moyenne",
+   "constat": "avoirOk écrit qui:'marc' en dur. Julie encaisse 500 €, annule par un avoir : la fiche dit « À rembourser au client 500,00 € … Voir la tâche », mais ce lien (data-go=\"taches\") mène à SES tâches, qui ne contiennent pas celle de Marc (écran « Mes tâches » seulement : aucun filtre équipe). Le remboursement fait ne peut donc pas être écrit par elle, et depuis le tour 2 la fiche dépend UNIQUEMENT de cette tâche. Sonde : rc-julie (1 ✗). Piste : la tâche va à qui annule (ou aux deux), ou le lien ouvre la tâche d'un autre comme les avis le font (data-tmodif)."
+  },
+  {
+   "titre": "Tâche « Rembourser » supprimée : la fiche garde « À rembourser au client 500,00 € » sans aucun geste pour le noter remboursé",
+   "gravite": "faible",
+   "constat": "Supprimer la tâche (Modifier › Supprimer) laisse la fiche, la liste du cadre et le panneau à « à rembourser », et plus aucun bouton ne permet d'écrire le remboursement. Avant le tour 2 c'était la même impasse (l'écran affirmait toujours « à rembourser ») ; la correction l'a déplacée sans l'ouvrir. Piste : un geste « Marquer comme remboursé » sur la fiche qui recrée/termine la tâche."
+  },
+  {
+   "titre": "Éditeur de variantes de l'atelier (prototype-documents.html) : champ « Prix HT (€) » à côté de « Quantité », alors que tout le reste dit « Prix unitaire HT »",
+   "gravite": "faible",
+   "constat": "page.source ligne 5328 (le mot corrigé dans l'éditeur de devis d'OP GESTION n'y a pas suivi). À corriger dans scratchpad/proto-final/atelier/page.source puis fabriquer.sh, jamais dans la page."
+  },
+  {
+   "titre": "Au téléphone, les champs d'une ligne de facture à valider n'ont aucun libellé visible (« 2 h » et « 100 » côte à côte)",
+   "gravite": "faible",
+   "constat": "L'en-tête « Qté · Prix unitaire HT · Total HT » est caché sous 1250 px ; capture iPhone nuit lue : deux nombres sans mot, le débutant doit deviner lequel est la quantité. Seule la phrase « Total de la ligne : 200,00 € » aide. Piste : une étiquette fixe au-dessus de chaque champ en mode compact."
+  },
+  {
+   "titre": "Plafond de quantité différent : 1 000 000 pour une facture, 10 000 pour une ligne de devis",
+   "gravite": "faible",
+   "constat": "DV_Q_MAX = 1e4 (devis, ramené en silence avec un toast) contre nq < 1e6 (facture). À aligner ou à documenter."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes1-rc1.js",
+   "resultat": "15 ✓ · 0 ✗ (mac, petit, iPhone nuit)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes1-rc2.js",
+   "resultat": "7 ✓ · 0 ✗ (iPhone, mac)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-1.js",
+   "resultat": "15 ✓ · 0 ✗ (mac, iPhone nuit, iPad, Android nuit)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-2.js",
+   "resultat": "8 ✓ · 0 ✗ (petit, iPhone nuit, mac)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-parcours-a à j, recontrole-r1 à r5, restes-1 à 3, corrections-mep, mise-en-page",
+   "resultat": "tous à 0 ✗ sur mac (36, 28, 24, 27, 13, 26, 8, 11, 7, 23 ; 21, 4, 9, 7, 3, 3 ; 17, 13, 12 ; 14 ; 40)"
+  },
+  {
+   "fichier": "sondes/droits-compta.js",
+   "resultat": "8 ✓ · 0 ✗ (mac, iPhone nuit, iPad, petit)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-rc-pdf.js (NOUVELLE)",
+   "resultat": "36 ✓ · 0 ✗ sur petit, android, iPhone, iPad, mac ; la version d'avant : 5 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-rc-remb.js (NOUVELLE)",
+   "resultat": "10 ✓ · 0 ✗ (mac, iPhone nuit)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-rc-dvt.js (NOUVELLE)",
+   "resultat": "9 ✓ · 0 ✗ (mac, 1251 à 1440 px)"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-rc-qte.js (NOUVELLE)",
+   "resultat": "8 ✓ · 4 ✗ — ROUGE VOULU : Q1, Q2 (casses[0]) et Q9 ×2 (nouveaux[0]) ; Q3 à Q8 verts"
+  },
+  {
+   "fichier": "campagne/sondes/compta-ventes-restes2-rc-julie.js (NOUVELLE)",
+   "resultat": "1 ✓ · 1 ✗ — ROUGE VOULU (nouveaux[1])"
+  }
+ ],
+ "doutes": [
+  "Le cadre de la Comptabilité reçoit bien les données quand la tâche change, mais ne redessine sa liste qu'à son prochain rendu : sans conséquence tant que le cadre recouvre l'application (on ne peut pas cocher la tâche dessous), à surveiller si un jour un changement arrive d'ailleurs (autre appareil).",
+  "Les décisions soumises à Justin par le correcteur restent ouvertes : remboursement d'une facture payée en entier puis avoirée (tâche ou note « à part »), « Paiement en ligne » aux factures d'exemple, nom « OP COMPTABLE » contre « Comptabilité ».",
+  "Non vérifié : le rendu sur de vrais Safari iOS / Windows (conteneur Chromium seul) ; la règle `.pdf{container:pdf/inline-size}` n'a pas été éprouvée dans une impression papier ni dans le PDF téléchargé (docEnPdf)."
+ ]
+}
