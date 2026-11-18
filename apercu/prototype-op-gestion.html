@@ -3839,6 +3839,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
 /* ══ VÉHICULES — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (aucune couleur, aucun rayon, aucune ombre neufs) ══ */
 .vh-k .kpi{cursor:pointer;font:inherit}.vh-k .kpi span{overflow-wrap:break-word;line-height:1.25}.vh-ht{font-style:normal}.vh-dont{display:block;font-style:normal;margin-top:2px}
+/* au téléphone, une tuile qui porte aussi « dont l'assurance de l'année » passe seule sur sa ligne : à 360 px, trois tuiles étroites la faisaient écrire sur sept lignes */
+@media (max-width:520px){.vh-k.vh-k-dont{grid-template-columns:repeat(2,minmax(0,1fr))}.vh-k.vh-k-dont [data-vh="cout"]{grid-column:1 / -1}}
 .vh-cherche{width:100%;max-width:420px;min-height:44px}
 /* une rangée = un véhicule : avatar · nom, plaque et conducteur, phrase d'état · pastille · UN geste. La forme suit la largeur de la LISTE (conteneur), pas celle de l'écran :
    sur iPad portrait le menu latéral en prend 272 */
@@ -19289,7 +19291,7 @@ function vueVehicules(){
         : vhVide('Aucun véhicule au garage.', 'Tous tes véhicules sont en service.', '', true))}<div class="vh-aucun gris" hidden>Aucun véhicule ne correspond.</div></div>`;
   }
   return `<div class="tete vh-tete"><div><span class="surtitre">Personnel</span><h1>Véhicules</h1><span class="gris">${esc(tete)}</span></div><div class="actions">${n ? plein : ''}${nouveau && n ? nouveau : ''}</div></div>
-    ${n ? `<div class="kpis ptx-k3 vh-k">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'payés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>' + vehDontAssur())}</div>
+    ${n ? `<div class="kpis ptx-k3 vh-k${vehDontAssur() ? ' vh-k-dont' : ''}">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'payés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>' + vehDontAssur())}</div>
     <div class="seg" role="tablist" aria-label="Véhicules">${[['tous', 'Tous', ''], ['afaire', 'À faire', aF ? `<span class="t-nb rouge">${aF}</span>` : ''], ['garage', 'Au garage', gar.length ? `<span class="t-nb">${gar.length}</span>` : '']].map(([k, l, p]) => `<button type="button" role="tab" data-vh="onglet|${k}" aria-pressed="${VH.onglet === k}" aria-selected="${VH.onglet === k}">${l}${p ? ' ' + p : ''}</button>`).join('')}</div>` : ''}
     ${corps}`;
 }
