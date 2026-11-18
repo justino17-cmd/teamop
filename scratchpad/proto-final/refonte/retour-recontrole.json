@@ -1,0 +1,98 @@
+{
+ "date": "2026-11-18",
+ "couvert": [
+  "Recensement propre (sans la liste CAL_GENRES de la page) : tout ce qui est position:fixed en CSS (34 règles), les ids créés à la volée (#cnx, #opsec, #sec-conf, #cr-ftel, #opdz, #cpsys…), les overlays du module de courrier (.overlay, .menu, tiroir, composeur), les cadres (Comptabilité, paiement, atelier de documents)",
+  "Calques de la page (13 genres de CAL_GENRES) joués par retour-tout.sh sur android et mac ; panneau, fenêtre, recherche, document en grand, paiement, carte, atelier, guide, visite ; aucun défaut",
+  "Chaque bouton des 21 écrans du menu + 4 fiches, touchés un à un à la recherche d'un calque posé sans que la page le sache : 0 trouvé",
+  "Pièges de fond sur 3 profils et 4 rôles : double Retour rapide, Retour pendant l'ouverture, fenêtre dans une fenêtre, Avancer, rechargement, fenêtre fermée puis Retour, 20 ouvertures-fermetures puis UN Retour (on quitte l'écran, history.length +1 au plus), bouton de fenêtre qui mène ailleurs",
+  "Second niveau : chaque bouton à l'intérieur d'une fenêtre ouverte (58 sur iphone), y compris ceux qui mènent à un autre écran : aucune fenêtre fantôme, aucune entrée orpheline",
+  "Boîte mail : composeur, lecture, tiroir, menu des boîtes, Ajouter une boîte, sur android, iphone, ipad, mac",
+  "Cadre de la Comptabilité plein cadre : toutes les commandes de son accueil (11), panneau et tiroir du menu",
+  "OP Security (téléphone simulé et confirmation d'un geste sensible), feuille de la carte du planning, aperçu interne de l'atelier, visite guidée"
+ ],
+ "oublies": [
+  {
+   "calque": "panneaux de la Comptabilité plein cadre (Réglages, Tout traiter, Voir en clair…) : 11 commandes sur 11 du cadre",
+   "profil": "android, iphone, mac",
+   "constat": "UN Retour quitte la Comptabilité (#comptabilite → #accueil) ET le panneau reste ouvert dans le cadre : en revenant à la Comptabilité, le panneau Réglages est toujours posé. La page de la Comptabilité (prototype-comptabilite.html) n'écrit aucune entrée d'historique pour ses panneaux ; la page hôte décide d'en faire une route, pas de ses couches. Capture : android-1-compta-retour-dans-la-compta.png"
+  },
+  {
+   "calque": "tiroir du menu de la Comptabilité (téléphone, bouton ☰)",
+   "profil": "android, iphone",
+   "constat": "UN Retour quitte la Comptabilité, le tiroir reste ouvert (même cause)"
+  },
+  {
+   "calque": "OP Security : le téléphone simulé en plein écran (ouvert par l'entrée « téléphone » du menu ou un lien data-ops-ouvrir)",
+   "profil": "android, iphone (sur ordinateur c'est un volet permanent, pas un calque)",
+   "constat": "UN Retour change l'adresse (#clients → #accueil) mais le téléphone simulé reste posé par-dessus : à l'écran, rien ne se passe, l'application est cachée. Capture : android-2-opsec-apres-retour.png"
+  },
+  {
+   "calque": "confirmation OP Security d'un geste sensible (#sec-conf, feuille « Confirme sur ton téléphone »)",
+   "profil": "android, iphone, mac",
+   "constat": "UN Retour quitte l'écran (#taches → #accueil) et la confirmation reste posée sur l'écran d'arrivée ; seul le bouton « Fermer » ou Échap la ferme. Capture : android-3-confirmation-apres-retour.png"
+  },
+  {
+   "calque": "composeur et fenêtres du module de courrier (« Nouveau message », « Ajouter une boîte mail ») sur ORDINATEUR",
+   "profil": "mac",
+   "constat": "le module n'empile ses niveaux qu'au téléphone : UN Retour quitte la Boîte mail (#boiteMail → #accueil) et le composeur reste posé, il réapparaît au retour dans la Boîte mail. Sur téléphone et iPad : bon. Capture : mac-4-composeur-retour-dans-la-boite.png"
+  }
+ ],
+ "casses": [],
+ "sondes": [
+  {
+   "fichier": "retour-recontrole.js SECTION=pieges (android, iphone, mac)",
+   "resultat": "3 × 21 ✓ · 0 ✗ : double Retour, Retour pendant l'ouverture, fenêtre dans une fenêtre, Avancer, rechargement, croix puis Retour, vingt cycles puis UN Retour, bouton de fenêtre qui mène ailleurs"
+  },
+  {
+   "fichier": "retour-recontrole.js SECTION=roles (android, mac × gérant, secrétariat, technicienne, chef d'équipe)",
+   "resultat": "2 × 84 ✓ · 0 ✗ (history.length mesuré dans chaque piège : +1 au plus après vingt cycles)"
+  },
+  {
+   "fichier": "retour-recontrole.js SECTION=scan (android 0-10 et 10-21, mac 0-11 et 11-21, iphone sur les 4 fiches)",
+   "resultat": "5 exécutions × 4 ✓ · 0 ✗ : 120 + 116 + 164 + 60 + 37 boutons d'écran touchés sur les 21 écrans du menu et 4 fiches (client, intervention, devis, contrat), aucun calque inconnu de CAL_GENRES ne s'est posé"
+  },
+  {
+   "fichier": "retour-recontrole.js SECTION=cadres (android, iphone, mac)",
+   "resultat": "3 exécutions : 2 ✓ · 2 ✗ (android, iphone), 2 ✓ · 1 ✗ (mac) → les panneaux et le tiroir de la Comptabilité plein cadre"
+  },
+  {
+   "fichier": "retour-recontrole.js SECTION=autres (android, iphone, mac)",
+   "resultat": "4 ✓ · 2 ✗, 4 ✓ · 2 ✗, 4 ✓ · 1 ✗ → OP Security (téléphone simulé), confirmation OP Security ; visite et aperçu de l'atelier : ✓"
+  },
+  {
+   "fichier": "retour-recontrole.js SECTION=courrier (android, ipad, mac)",
+   "resultat": "4 ✓ · 0 ✗ (android), 4 ✓ · 0 ✗ (ipad), 3 ✓ · 1 ✗ (mac) → le composeur sur ordinateur"
+  },
+  {
+   "fichier": "retour-recontrole-b.js (android clients+taches, mac clients+taches+interventions, iphone devis+planning+absences)",
+   "resultat": "24 ✓, 6 ✓, 42 ✓ · 0 ✗ : 27 + 18 + 58 boutons DE FENÊTRE touchés (niveau 2), 28 d'entre eux mènent ailleurs et un Retour ramène sans fenêtre fantôme ; 4 empilements, un Retour en retire exactement un"
+  },
+  {
+   "fichier": "retour-recontrole-c.js (Boîte mail : android, ipad, iphone, mac)",
+   "resultat": "9 ✓, 9 ✓, 9 ✓, 6 ✓ · 1 ✗ (mac) : 28 à 29 commandes touchées par profil, trois vues (liste, lecture, composeur)"
+  },
+  {
+   "fichier": "retour-recontrole-d.js (cadre de la Comptabilité : android, mac, iphone)",
+   "resultat": "4 ✓ · 11 ✗, 4 ✓ · 9 ✗, 4 ✓ · 11 ✗ : chacune des commandes du cadre qui ouvre un panneau le laisse ouvert (11 sur 11, 9 sur 9, 11 sur 11)"
+  },
+  {
+   "fichier": "retour-recontrole-e.js (captures : android, mac)",
+   "resultat": "défauts confirmés à l'écran : captures dans le dossier hors dépôt cap/retour-recontrole/captures"
+  },
+  {
+   "fichier": "retour-tout.sh (rejeu de la voie, ESSENTIEL : android + mac)",
+   "resultat": "11 exécutions, 473 ✓ · 0 ✗, code 0 (879 s)"
+  },
+  {
+   "fichier": "fumee-routes.js",
+   "resultat": "396 ✓ · 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Menu « Principal » de la Boîte mail (ov-menu, hors pile du module) : UN Retour quitte la Boîte mail et le menu reste ouvert (android, iphone, ipad, mac). Un menu léger se ferme d'un toucher dehors ; le module le tient hors de l'historique exprès — à trancher (le recontrôle le range en doute, pas en défaut)",
+  "Feuille de la carte du planning (#cr-ftel, une tournée choisie, téléphone) : UN Retour quitte le Planning au lieu de fermer la feuille (elle se ferme avec l'écran). Un calque que la page ne connaît pas ; mineur mais contraire à la règle « Retour ferme la fenêtre, pas l'écran »",
+  "#cpsys (la Comptabilité plein cadre) est une ROUTE par décision écrite de la page : Retour la quitte comme un écran. La décision tient ; c'est ce qu'elle contient (panneaux, tiroir) qui n'est pas couvert (voir les oubliés)",
+  "Non joué faute de temps : ipad, windows et petit pour les pièges et le scan (les mêmes écrans à d'autres largeurs) ; les rôles sur iphone ; la nuit (aucun calque n'a de teinte à lui) ; le cadre prototype-paiement.html seul (il ne porte qu'une feuille « guide » et un toast, pas de panneau ; son accès par la Comptabilité plein cadre n'est pas la voie du menu) ; les fenêtres propres de l'atelier au-delà de l'aperçu",
+  "Les sondes -b, -c, -d, -e ont été ajoutées à scratchpad/proto-final/sondes/ (retour-recontrole-tout.sh les rejoue). Elles sortent en 1 tant que les cinq défauts ci-dessus existent : c'est leur rôle"
+ ]
+}
