@@ -1,0 +1,79 @@
+[
+ {
+  "nom": "compta-ventes-06 · facture encaissée en partie puis annulée : le remboursement fait n'est écrit nulle part",
+  "defaut": "Une fois la tâche « Rembourser 500,00 € » cochée, la fiche disait encore « À rembourser au client » et le cadre « à rembourser ».",
+  "etat": "corrigé",
+  "changement": "commit 35f48070 (tour 2, 1/n) : rembourseFait(f) lit la tâche remb-<id> ; la fiche dit « Remboursé au client », la ligne d'alerte « remboursés », le cadre « 500,00 € déjà reçus, remboursés au client ».",
+  "preuve": "compta-ventes-restes1-rc1.js mac, petit, iPhone nuit : 15 ✓ · 0 ✗ (A6, A7 verts) ; captures rc1-mac-fiche-apres-remboursement.png et rc1-mac-cadre-panneau-apres.png lues"
+ },
+ {
+  "nom": "Aperçu « La facture » (PDF) : montants et « Qté » coupés en deux lignes",
+  "defaut": "« Qt / é », « 155,0 / 0 € », « 3 703,50 / € » sur téléphone, iPad et ordinateur.",
+  "etat": "corrigé",
+  "changement": "commit 35f48070 : montants et colonne Qté ne se coupent plus (largeur du document, pas de l'écran).",
+  "preuve": "compta-ventes-restes1-rc2.js iphone et mac : 7 ✓ · 0 ✗ ; capture rc2-iphone-pdf-f145.png lue (155,00 € / 155,00 € / 186,00 € sur une ligne, en-tête « Prix unitaire HT · Total HT »)"
+ },
+ {
+  "nom": "Quantité « 2 h » ou « 1 000 » comptée pour 1",
+  "defaut": "« 2 h × 100 € » totalisait 100,00 €, sans un mot.",
+  "etat": "corrigé",
+  "changement": "commit b04097d8 : le nombre tapé multiplie (l.qn) ; « 0 », « -2 », « abc », vide, « 1e9 » restent refusés avec leur phrase.",
+  "preuve": "compta-ventes-restes2-1.js mac et iPhone nuit : 15 ✓ · 0 ✗ ; captures restes2-1-*-fiche.png"
+ },
+ {
+  "nom": "Frise d'une facture annulée (« Ouverte par le client ○ · Payée ○ »)",
+  "defaut": "Étapes à venir affichées sur une facture annulée.",
+  "etat": "corrigé",
+  "changement": "commit 35f48070 : la frise d'une facture annulée finit sur « Annulée par un avoir ».",
+  "preuve": "capture rc1-mac-fiche-apres-remboursement.png lue : Préparée toute seule · Validée et envoyée · Annulée par un avoir"
+ },
+ {
+  "nom": "Mot « Prix HT » dans l'éditeur de devis",
+  "defaut": "« Désignation · Qté · Prix HT · Total » alors que la facture dit « Prix unitaire HT ».",
+  "etat": "corrigé",
+  "changement": "commit b04097d8 : « Prix unitaire HT » dans l'éditeur de devis (le « Prix HT » restant est celui d'une commande fournisseur, où il est bien l'unité).",
+  "preuve": "grep + parcours-a mac 36 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Fenêtre OP COMPTABLE : mot de démonstration « Tu le déclenches à la main pour voir chaque étape »",
+  "defaut": "Phrase de démonstration dans l'application.",
+  "etat": "corrigé",
+  "changement": "la phrase est devenue « Avec le pilote, tout cela se traite sans toi. Sinon, tu le lances toi-même, étape par étape. » (commit 7d2a7645, voie « Les mots »). Le bouton « Tout traiter » reste : c'est le geste du produit sans pilote automatique.",
+  "preuve": "lecture de prototype-comptabilite.html ligne 2459 ; restes-3 mac 12 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Menu TVA d'une facture à la main à 320 px (« 10 % · particulier, logement de p »)",
+  "defaut": "Le libellé de l'option était coupé dans le menu ; la phrase d'aide ne suivait pas un taux choisi à la main (5,5 % notamment).",
+  "etat": "corrigé",
+  "changement": "DV_TVA_COURT : libellés courts dans le menu (« 20 % · professionnel ou neuf », « 10 % · logement ancien », « 5,5 % · rénovation énergétique ») ; choisir un taux écrit sa phrase entière sous le champ (« 10 % : particulier, logement de plus de 2 ans (attestation simplifiée). Tu peux le changer. »).",
+  "preuve": "campagne/sondes/compta-ventes-restes2-2.js (NOUVELLE) petit, iPhone nuit, mac : 8 ✓ · 0 ✗ ; mutation (libellés longs remis) : 3 ✗ ; r4 3 ✓ · 0 ✗, rc1 15 ✓ ; capture restes2-2-iphone-nuit-tva.png lue"
+ },
+ {
+  "nom": "sondes/droits-compta.js rouge (1 ✓ · 5 ✗) et parcours-g 12b périmée",
+  "defaut": "Deux sondes tombaient pour des raisons qui n'étaient pas des défauts de la page.",
+  "etat": "corrigé",
+  "changement": "commit b04097d8 : droits-compta attend la confirmation du téléphone avant la lecture seule ; parcours-g suit la décision contrats-15.",
+  "preuve": "droits-compta mac 8 ✓ · 0 ✗ ; parcours-g mac 8 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Remboursement d'une facture PAYÉE en entier puis avoirée : pas de tâche, alors qu'une facture payée à moitié puis annulée en reçoit une",
+  "defaut": "Asymétrie : « le remboursement se note à part, dans les paiements » (payée en entier) contre une tâche « Rembourser 500,00 € » (payée en partie).",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé : c'est une règle de gestion de l'argent (un avoir sur une facture payée peut aussi se déduire de la facture suivante du client).",
+  "preuve": "lecture de avoir()/avoirOk() ; décision : créer la même tâche « Rembourser » pour une facture payée en entier, ou garder la note « à part » ?"
+ },
+ {
+  "nom": "« Paiement en ligne » montre des factures d'exemple (téléphone simulé) dans l'application",
+  "defaut": "Les factures de l'onglet ne sont pas celles d'OP GESTION.",
+  "etat": "à soumettre à Justin",
+  "changement": "l'onglet dit « Exemples » et le harnais d'essai est caché en mode application (tour 1) ; le branchement aux vraies factures n'est pas fait (ligne 20 du chef : « à soumettre » si pas fini proprement).",
+  "preuve": "restes-3 mac et iPhone nuit 12 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Nom « OP COMPTABLE » de la fenêtre contre « Comptabilité » du menu",
+  "defaut": "Deux noms pour la même chose.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé (ligne 19 du chef : ne rien changer, à soumettre).",
+  "preuve": "capture rc1-mac-cadre-panneau-apres.png : barre « ‹ Retourner à OP GESTION · OP COMPTABLE · Factures et paiements »"
+ }
+]
