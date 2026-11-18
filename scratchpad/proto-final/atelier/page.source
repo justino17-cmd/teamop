@@ -1417,6 +1417,7 @@ html[data-app] #vue-accueil{display:none!important}
 @media (pointer:coarse){
   html[data-app] .barre .bt{min-width:44px}
   html[data-app] .nom-doc{font-size:16px}
+  html[data-app] .interr{min-height:44px}      /* les interrupteurs « PDF joint », « Lien pour accepter… », « Ce que voit le client » : la rangée entière est la cible, 38 px sur iPad */
   html[data-app] .rt::after{content:'';position:absolute;inset:-9px -11px}
   html[data-app] button.ct-date{position:relative}
   html[data-app] button.ct-date::after{content:'';position:absolute;inset:-13px -8px}
@@ -1929,12 +1930,25 @@ function nouveauContrat(o){
   if(pin) nd.identId=pin;      // absent = l'en-tête par défaut : un contrat fait sans choisir est identique à celui d'avant
   return nd;
 }
-const OPG={donnees:false,role:{devis:false,contrats:false,entreprise:false,creer:true,modifier:true},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:'',motifFin:''};
+const OPG={donnees:false,role:{devis:false,contrats:false,entreprise:false,creer:true,modifier:true},numeros:{devis:{prefixe:'D-',dernier:0},contrat:{prefixe:'CTR-',dernier:0}},ouvert:false,retenus:{},sauves:{},connus:new Set(),sigDocs:'',tFin:0,mode:'',motifFin:''};
+/* Les numéros DÉJÀ DONNÉS : le plus grand de chaque série, par préfixe. Supprimer un brouillon retire le document, pas le fait que son numéro a existé :
+   sans cette mémoire, le devis suivant reprenait D-2026-042 et un client pouvait détenir deux « 042 » (restes devis-atelier, décision j). Rangée avec les documents. */
+function numRetenusLire(o){
+  const r={}; if(!o||typeof o!=='object') return r;
+  ['devis','contrat'].forEach(t=>{ const x=o[t]; if(x&&typeof x.p==='string'&&/^[A-Za-z0-9-]{1,12}$/.test(x.p)&&Number.isInteger(x.n)&&x.n>=0&&x.n<=999999) r[t]={p:x.p,n:x.n} });
+  return r;
+}
+function numRetenir(type,numero){
+  const N=OPG.numeros[type]; if(!N||typeof numero!=='string'||numero.indexOf(N.prefixe)!==0) return; const m=/^(\d{1,6})$/.exec(numero.slice(N.prefixe.length)); if(!m) return;
+  const r=OPG.retenus[type]; if(!r||r.p!==N.prefixe||r.n<+m[1]) OPG.retenus[type]={p:N.prefixe,n:+m[1]};
+}
+function numRetenirDocs(){ if(APP) S.docs.forEach(d=>{ if(d&&(d.type==='devis'||d.type==='contrat')) numRetenir(d.type,d.meta&&d.meta.numero) }) }
 function prochainNumero(type){
   if(APP){      // la série d'OP GESTION : son préfixe, son dernier numéro, et tout ce que cet appareil a déjà composé (y compris dans un autre onglet)
     const N=OPG.numeros[type], re=new RegExp('^'+N.prefixe.replace(/[.*+?^${}()|[\]\\\-]/g,'\\$&')+'(\\d+)$'); let max=N.dernier;
     const lire=l=>{ (Array.isArray(l)?l:[]).forEach(d=>{ if(d&&d.type===type){ const m=re.exec(d.meta&&d.meta.numero||''); if(m) max=Math.max(max,+m[1]) } }) };
-    lire(S.docs); try{ const o=JSON.parse(localStorage.getItem(CLE_STOCK)||'null'); if(o) lire(o.docs) }catch(e){}
+    lire(S.docs); try{ const o=JSON.parse(localStorage.getItem(CLE_STOCK)||'null'); if(o){ lire(o.docs); const r=numRetenusLire(o.nums)[type]; if(r&&r.p===N.prefixe) max=Math.max(max,r.n) } }catch(e){}
+    const r=OPG.retenus[type]; if(r&&r.p===N.prefixe) max=Math.max(max,r.n);      // un numéro déjà DONNÉ ne se redonne jamais : le brouillon supprimé l'emporte avec lui, mais la mémoire reste
     return N.prefixe+String(max+1).padStart(3,'0');
   }
   const pre=type==='devis'?'DEV-2026-':'CTR-2026-'; let max=type==='devis'?31:13;
@@ -2519,7 +2533,7 @@ function chargerStock(){
     const bons=o.docs.filter(docValide), abimes=o.docs.filter(d=>!docValide(d)); bons.forEach(d=>normaliserDoc(d));
     if(!bons.length&&abimes.length){ mettreDeCote(t); S.alerteStock='illisible'; return false }       // rien de lisible : copie de côté, exemples chargés
     if(abimes.length){ mettreDeCote(t); S.alerteStock='abime:'+abimes.length }                      // quelques-uns : les lisibles restent, les autres sont gardés de côté
-    S.docs=bons; bons.forEach(d=>{ OPG.connus.add(d.id); OPG.sauves[d.id]=d.maj }); S.abimes=(Array.isArray(o.abimes)?o.abimes:[]).concat(abimes);
+    S.docs=bons; bons.forEach(d=>{ OPG.connus.add(d.id); OPG.sauves[d.id]=d.maj }); if(APP) OPG.retenus=numRetenusLire(o.nums); S.abimes=(Array.isArray(o.abimes)?o.abimes:[]).concat(abimes);
     if(Array.isArray(o.clients)&&o.clients.length) S.clients=APP?o.clients.filter(c=>c&&c.local===true&&typeof c.id==='string'&&RE_ID.test(c.id)&&typeof c.nom==='string'&&c.nom.trim()).slice(0,200):o.clients;      // dans OP GESTION les clients viennent du parent : on ne garde que ceux qu'on a créés ici S.logos=logosLire(o.logos); S.modeles=Array.isArray(o.modeles)?o.modeles.filter(m=>m&&m.reglages&&Array.isArray(m.blocs)):[]; S.modeles.forEach(m=>normaliserReglages(m.reglages));
     Object.assign(S.ui,o.ui||{}); if(!APP&&o.docId&&S.docs.some(d=>d.id===o.docId)){S.docId=o.docId;S.vue='editeur'}      // dans OP GESTION on ne rouvre jamais l'éditeur tout seul : on s'ouvre sur demande
     return true;
@@ -2536,8 +2550,8 @@ function adopterAutres(o,remplacer){
 }
 function sauverStock(){
   try{
-    if(APP){ try{ adopterAutres(JSON.parse(localStorage.getItem(CLE_STOCK)||'null'),false) }catch(e){} }
-    localStorage.setItem(CLE_STOCK,JSON.stringify({v:1,docs:S.docs,abimes:S.abimes,logos:logosUtiles(),clients:APP?S.clients.filter(c=>c.local):S.clients,modeles:S.modeles,ui:S.ui,docId:S.vue==='editeur'?S.docId:null})); S.stockage=true;
+    if(APP){ try{ const o=JSON.parse(localStorage.getItem(CLE_STOCK)||'null'); adopterAutres(o,false); const r=numRetenusLire(o&&o.nums); ['devis','contrat'].forEach(t=>{ const x=r[t], y=OPG.retenus[t]; if(x&&(!y||y.p!==x.p||y.n<x.n)) OPG.retenus[t]=x }) }catch(e){} numRetenirDocs() }
+    localStorage.setItem(CLE_STOCK,JSON.stringify({v:1,nums:APP?OPG.retenus:undefined,docs:S.docs,abimes:S.abimes,logos:logosUtiles(),clients:APP?S.clients.filter(c=>c.local):S.clients,modeles:S.modeles,ui:S.ui,docId:S.vue==='editeur'?S.docId:null})); S.stockage=true;
     if(APP) S.docs.forEach(d=>{ OPG.sauves[d.id]=d.maj });
   }
   catch(e){ S.stockage=false }
@@ -3234,7 +3248,7 @@ ACTIONS['ouvrir']=t=>ouvrirDoc(t.dataset.id);
 ACTIONS['menu-doc']=t=>{
   const d=S.docs.find(x=>x.id===t.dataset.id);
   ouvrirMenu(t,[{lib:'Ouvrir',ico:'eye',fn:()=>ouvrirDoc(d.id)},{lib:'Dupliquer',ico:'copy',fn:()=>{ const c=clone(d); c.id=uid('d'); c.nom=d.nom+' (copie)'; c.etat='brouillon'; c.maj=maintenant(); delete c.envois; delete c.ident; c.blocs.forEach(b=>{b.id=uid('b'); if(b.type==='signature') b.signataires.forEach(x=>{ x.trace=null; x.date='' }); if(b.lignes) b.lignes.forEach(l=>{const o=l.id;l.id=uid('l');Object.keys(c.inv).forEach(k=>{if(k.indexOf(o+':')===0){c.inv[l.id+k.slice(o.length)]=c.inv[k];delete c.inv[k]}})})}); c.meta.numero=prochainNumero(d.type); S.docs.push(c); sauverStock(); rendreAccueil(); toast('Document dupliqué') }},
-    {sep:1},{lib:'Supprimer',ico:'trash',fn:async()=>{ if(await confirmer({titre:'Supprimer ce document ?',texte:`« ${d.nom} » sera supprimé de cet appareil. Tu ne pourras pas le retrouver.`,ok:'Supprimer',danger:true})){ S.docs=S.docs.filter(x=>x.id!==d.id); sauverStock(); rendreAccueil(); toast('Document supprimé') } }}],{droite:true});
+    {sep:1},{lib:'Supprimer',ico:'trash',fn:async()=>{ if(await confirmer({titre:'Supprimer ce document ?',texte:`« ${d.nom} » sera supprimé de cet appareil. Tu ne pourras pas le retrouver.`,ok:'Supprimer',danger:true})){ if(APP) numRetenir(d.type,d.meta&&d.meta.numero); S.docs=S.docs.filter(x=>x.id!==d.id); sauverStock(); rendreAccueil(); toast('Document supprimé') } }}],{droite:true});
 };
 ACTIONS['retour']=()=>fermerDoc();
 ACTIONS['menu-inserer']=t=>{
@@ -3633,7 +3647,7 @@ function htClientVue(d,r){
       ${contrat?`<div class="ligne"><span>Pour</span><b>${esc(c?c.nom:'—')}</b></div>${valVar(d,'prix')?`<div class="ligne"><span>Prix annuel HT</span><b>${esc(valVar(d,'prix'))}</b></div>${valVar(d,'prixttc')?`<div class="ligne"><span>Prix annuel TTC</span><b>${esc(valVar(d,'prixttc'))}</b></div>`:''}`:''}${valVar(d,'debut')?`<div class="ligne"><span>À partir du</span><b>${esc(valVar(d,'debut'))}</b></div>`:''}`:`<div class="ligne"><span>Total TTC</span><b class="gros">${fmtMontant(calc.ttc)}</b></div><div class="ligne"><span>Acompte à la commande</span><b>${fmtMontant(calc.acompte)}</b></div>${d.meta.validite>0?`<div class="ligne"><span>Valable jusqu’au</span><b>${esc(fmtDate(ajouterJours(d.meta.date,d.meta.validite)))}</b></div>`:''}`}</div>
     <div class="cl-loupe"><button type="button" data-act="ap-grand" aria-pressed="${AP.grand}">${ic('zoom')}${AP.grand?'Voir la page entière':'Lire en grand'}</button></div>
     <div class="pile papier cl-pile" id="cl-pile"></div></div>
-    <div class="cl-actions">${signe?`<button type="button" class="cl-lien" data-act="ap-rejouer">Rejouer l’exemple : effacer la signature</button>`:contrat&&d.etat==='brouillon'?`<p class="cl-note">Le client ne peut signer qu’une fois le contrat envoyé : ferme l’aperçu, puis choisis « Envoyer à signer ».</p><button type="button" class="cl-btn" data-act="ap-signer" aria-disabled="true">Lire et signer</button>`:`<button type="button" class="cl-btn" data-act="ap-signer">${contrat?'Lire et signer':'Accepter et signer'}</button>`}<button type="button" class="cl-lien" data-act="pdf-telecharger" aria-label="Télécharger le PDF">${ic('download')}Télécharger le PDF</button></div></div>`;
+    <div class="cl-actions">${signe?`<button type="button" class="cl-lien" data-act="ap-rejouer">${APP?'Effacer la signature':'Rejouer l’exemple : effacer la signature'}</button>`:contrat&&d.etat==='brouillon'?`<p class="cl-note">Le client ne peut signer qu’une fois le contrat envoyé : ferme l’aperçu, puis choisis « Envoyer à signer ».</p><button type="button" class="cl-btn" data-act="ap-signer" aria-disabled="true">Lire et signer</button>`:`<button type="button" class="cl-btn" data-act="ap-signer">${contrat?'Lire et signer':'Accepter et signer'}</button>`}<button type="button" class="cl-lien" data-act="pdf-telecharger" aria-label="Télécharger le PDF">${ic('download')}Télécharger le PDF</button></div></div>`;
 }
 function rendreApercu(){
   const d=D(), corps=$('#ap-corps'); if(!d||!corps) return;
@@ -3705,7 +3719,7 @@ function poserSignatureClient(trace){
     let b=d.blocs.find(x=>x.type==='signature'); if(!b){ b=bSignature('Bon pour accord','',['Le client']); d.blocs.push(b); ajout=true }
     const s=b.signataires.find(x=>/client/i.test(x.role))||b.signataires[b.signataires.length-1]; s.trace=trace; s.date=AUJOURDHUI; d.etat='signe'; if(!d.ident) figerIdentite(d);
   },{sys:1});
-  AP.signer=false; rendreApercu(); toast(ajout?'Signé (exemple). Un bloc Signature a été ajouté au document.':'Signé (exemple) : la signature est posée dans le document.');
+  AP.signer=false; rendreApercu(); toast(ajout?(APP?'Signé. Un bloc Signature a été ajouté au document.':'Signé (exemple). Un bloc Signature a été ajouté au document.'):(APP?'Signé : la signature est posée dans le document.':'Signé (exemple) : la signature est posée dans le document.'));      // dans OP GESTION il n'y a plus de « exemple » : les autres écrans d'envoi n'en disent pas (devis-atelier-04)
 }
 ACTIONS['ap-rejouer']=()=>{
   const d=D(); muter('',()=>{ d.blocs.filter(x=>x.type==='signature').forEach(b=>b.signataires.forEach(s=>{ if(/client/i.test(s.role)){ s.trace=null; s.date='' } })); d.etat=d.type==='contrat'?'attente':'envoye'; if(!d.ident) figerIdentite(d) },{sys:1});
@@ -3752,7 +3766,7 @@ function envLibelle(){
   if(p.manque.length) return 'Il manque : '+p.manque.join(', ');
   if(p.generaux.length) return 'Corriger avant d’envoyer';
   if(!to.trim()) return 'Saisir l’e-mail du client';
-  return contrat?'Envoyer à signer (exemple)':'Envoyer (exemple)';
+  return (contrat?'Envoyer à signer':'Envoyer')+(APP?'':' (exemple)');
 }
 function envMaj(){
   const b=$('#env-go'); if(!b) return; const l=envLibelle(); b.textContent=l; const bloque=/^(Choisir|Il manque|Corriger|Saisir)/.test(l);
@@ -3773,7 +3787,7 @@ function ouvrirEnvoi(){
     <label class="interr"><input type="checkbox" id="env-lien" checked><span>${contrat?'Lien pour lire et signer sur téléphone':'Lien pour accepter et signer sur téléphone'}</span></label>
     <span class="err" id="env-pj-e" role="alert" hidden></span>
     ${contrat?`<p class="fen-note">Ta signature, enregistrée dans ton profil, est posée pour l’entreprise à l’envoi. Le client signe ensuite depuis son lien.</p>`:''}
-    <p class="fen-note exemple">Exemple : rien n’est vraiment envoyé.</p>`;
+    ${APP?'':`<p class="fen-note exemple">Exemple : rien n’est vraiment envoyé.</p>`}`;
   const f=ouvrirFenetre({titre:contrat?'Envoyer à signer':'Envoyer le devis',corps,classe:'env',sansFocus:true,
     pied:`<button type="button" class="bt contour" data-fen-x>Annuler</button><button type="button" class="bt primaire" id="env-go" data-act="env-go">Envoyer</button>`,
     onFerme:()=>{ clearTimeout(ENV.t); ENV.enCours=false }});
@@ -3800,7 +3814,7 @@ ACTIONS['env-go']=()=>{
     ENV.enCours=false;
     /* un document déjà SIGNÉ qu'on renvoie (pour copie) le reste : l'envoi ne défait pas la signature du client */
     muter('',()=>{ const signe=d.etat==='signe'; if(!signe){ d.etat=contrat?'attente':'envoye'; if(!d.ident) figerIdentite(d); if(contrat) signerEntreprise(d,AUJOURDHUI) } else if(!d.ident) figerIdentite(d); d.envois=(d.envois||[]).concat([{ts:maintenant(),to}]); if(garder){ const b=d.blocs.find(x=>x.type==='client'); if(b&&b.client&&!b.client.email) b.client.email=to } },{sys:1});
-    fermerFenetre(false); majPanneau(); toast('Envoyé (exemple) à '+to+' : rien n’est vraiment parti.');       // le panneau le sait tout de suite : l'en-tête ne se change plus
+    fermerFenetre(false); majPanneau(); toast(APP?'Envoyé à '+to+'.':'Envoyé (exemple) à '+to+' : rien n’est vraiment parti.');       // le panneau le sait tout de suite : l'en-tête ne se change plus
   },850);
 };
 
@@ -3923,7 +3937,7 @@ ACTIONS['menu-plus']=t=>{
 ACTIONS['supprimer-brouillon']=async()=>{
   const d=D(); if(!d||d.etat!=='brouillon') return;
   if(!await confirmer({titre:'Supprimer ce brouillon ?',texte:`« ${d.nom} »${d.meta&&d.meta.numero?' ('+d.meta.numero+')':''} sera supprimé. Tu ne pourras pas le retrouver.`,ok:'Supprimer',danger:true})) return;
-  const id=d.id; fermerDoc(); if(APP) OPG.connus.add(id);      // « connu » : sauverStock relit le rangement et y retrouverait ce document, qu'il ré-adopterait comme celui d'un autre onglet
+  const id=d.id; if(APP) numRetenir(d.type,d.meta&&d.meta.numero); fermerDoc(); if(APP) OPG.connus.add(id);      // « connu » : sauverStock relit le rangement et y retrouverait ce document, qu'il ré-adopterait comme celui d'un autre onglet
   S.docs=S.docs.filter(x=>x.id!==id); sauverStock(); toast('Brouillon supprimé'); OPG.motifFin='supprime';      // dans OP GESTION le cadre est rangé aussitôt : la confirmation se dit dans la page parente (opd_fermer motif « supprime »)
 };
 
