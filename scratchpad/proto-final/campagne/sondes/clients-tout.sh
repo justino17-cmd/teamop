@@ -49,6 +49,10 @@ done
 lance "clients-restes PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/clients-restes.js"
 lance "clients-restes PROFIL=iphone QUI=marc NUIT=1" PROFIL=iphone QUI=marc NUIT=1 node "$S/clients-restes.js"
 lance "clients-restes-creations PROFIL=mac" PROFIL=mac node "$S/clients-restes-creations.js"
+# Les restes du tour 2 (18 novembre) : la sonde ADVERSE du recontrôle (saisie d'Infos gardée à toutes les portes, client archivé proposé nulle part, numéro « +33 06 », Ctrl+Z, recherche d'un archivé) ; le gérant sur tout, la secrétaire sur téléphone (sans la case d'archivage : le geste n'existe pas).
+lance "clients-restes-recontrole PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/clients-restes-recontrole.js"
+lance "clients-restes-recontrole PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/clients-restes-recontrole.js"
+if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes-recontrole PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/clients-restes-recontrole.js"; done; for p in iphone android petit; do lance "clients-restes-recontrole PROFIL=$p QUI=marc NUIT=1" PROFIL=$p QUI=marc NUIT=1 node "$S/clients-restes-recontrole.js"; done; fi
 if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/clients-restes.js"; done; for p in android petit; do lance "clients-restes PROFIL=$p QUI=marc NUIT=1" PROFIL=$p QUI=marc NUIT=1 node "$S/clients-restes.js"; done; fi
 
 # Le clavier n'existe que sur ordinateur : mac et windows.

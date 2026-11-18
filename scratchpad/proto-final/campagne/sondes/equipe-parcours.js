@@ -3,6 +3,8 @@
 // On vérifie la COHÉRENCE d'un écran à l'autre (liste, compteurs, fiche, planning). Population comptée à chaque parcours. ⛔ 127.0.0.1 seulement.
 // usage : node equipe-parcours.js [mac|iphone|…]
 const E = require('./equipe-outils.js'); const { L, v } = E;
+// ce que l'écran DIT d'un refus : la bulle OU la phrase écrite sous le champ (restes équipe, tour 1 : sur téléphone la bulle ne recopie plus une phrase visible)
+const dit = async p => ((await E.toast(p)) + ' ' + (await p.evaluate(() => [...document.querySelectorAll('#calque .erreur')].filter(e => !e.hidden).map(e => e.textContent.trim()).join(' ')))).trim();
 const PROFIL = process.argv[2] || 'mac';
 const jouer = async (c, nom, fn) => { try { await fn(); } catch (e) { v(`${nom} : le parcours va jusqu'au bout`, false, String(e.message).slice(0, 200)); } };
 const kpi = (c, k) => c.p.evaluate(k => { const b = document.querySelector(`[data-eqx="kpi|${k}"] b`); return b ? b.textContent.trim() : null; }, k);
@@ -38,9 +40,9 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
   });
   // ── P2 · erreurs de saisie
   await jouer(c, 'P2 erreurs', async () => {
-    await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.toucher(c, '[data-eq="inviterok"]'); const t1 = await E.toast(p);
+    await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.toucher(c, '[data-eq="inviterok"]'); const t1 = await dit(p);
     v('P2 formulaire vide : le message dit quoi faire (prénom ET nom)', /prénom ET (son )?nom/i.test(t1), t1);
-    await remplir(c, { 'eq-p':'Rémi', 'eq-n':'Poulain', 'eq-m':'pas-une-adresse' }); await L.toucher(c, '[data-eq="inviterok"]'); const t2 = await E.toast(p);
+    await remplir(c, { 'eq-p':'Rémi', 'eq-n':'Poulain', 'eq-m':'pas-une-adresse' }); await L.toucher(c, '[data-eq="inviterok"]'); const t2 = await dit(p);
     const inline = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? [...q.querySelectorAll('.erreur,[role=alert],#eq-homo,.champ .faible')].map(e => e.textContent.trim()).filter(Boolean) : []; });
     v('P2 e-mail faux : refusé avec un message clair', /adresse e-mail valide/.test(t2), t2);
     v('equipe-04 e-mail faux : le message est AUSSI écrit sous le champ (un clavier de téléphone cache le toast)', inline.some(x => /e-mail|adresse/i.test(x)), { inline, toast:t2 });
@@ -99,7 +101,7 @@ const remplir = async (c, champs) => { for (const [id, val] of Object.entries(ch
   await jouer(c, 'P6b habilitation absurde', async () => {
     const nb = () => p.evaluate(() => eqDe('sm').habil.length); const n0 = await nb();
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eq="habajout|sm"]');
-    await L.toucher(c, '#calque [data-eq="habok|sm"]'); const t0 = await E.toast(p); v('P6b nom vide : refusé, message clair', /nom de l’habilitation/.test(t0) && (await nb()) === n0, t0);
+    await L.toucher(c, '#calque [data-eq="habok|sm"]'); const t0 = await dit(p); v('P6b nom vide : refusé, message clair', /nom de l’habilitation/.test(t0) && (await nb()) === n0, t0);
     await p.fill('#eq-hn', 'Habilitation électrique BR'); await L.toucher(c, '#calque [data-eq="habok|sm"]'); await L.calme(p, 500);
     v('equipe-05 une habilitation de MÊME nom déjà valable est refusée ou fusionnée (pas deux lignes identiques)', (await nb()) === n0, { avant:n0, apres:await nb() });
     await E.fiche(c, 'sm'); await L.toucher(c, '[data-eq="habajout|sm"]'); await p.fill('#eq-hn', 'Formation absurde'); await p.fill('#eqx-hn', '2020-01-01'); await L.toucher(c, '#calque [data-eq="habok|sm"]'); await L.calme(p, 500);
