@@ -1,5 +1,32 @@
 [
  {
+  "slug": "contrat-de-nettoyage-de-bureaux",
+  "titre": "Contrat de nettoyage de bureaux : fréquences, contrôle, prix",
+  "description": "Contrat de nettoyage de bureaux : clauses, matrice des fréquences et grille de contrôle à recopier, révision du prix calculée pas à pas, vigilance Urssaf.",
+  "date": "2026-11-18",
+  "image": "contrat-de-nettoyage-de-bureaux-couverture.webp",
+  "imageAlt": "Couverture bleu nuit du blog TEAM OP portant le titre de l’article sur le contrat de nettoyage de bureaux",
+  "photo": "A cleaning company manager in a navy blue uniform walking through a bright open-plan office with the client's office manager, both checking a printed cleaning checklist on a clipboard.",
+  "faq": [
+   {
+    "q": "Que doit contenir un contrat de nettoyage de bureaux ?",
+    "r": "Les parties, le périmètre des locaux, un cahier des charges annexé avec la matrice des fréquences, les horaires et l’accès, la fourniture des produits, le contrôle qualité, le prix, la clause de révision, les conditions de paiement, la durée et le préavis."
+   },
+   {
+    "q": "Comment réviser le prix d’un contrat de nettoyage ?",
+    "r": "Avec une clause écrite dès la signature, qui nomme un indice en rapport avec l’activité, par exemple un indice du coût du travail publié par l’INSEE, une formule et une date. L’indexation sur le SMIC est interdite par l’article L112-2 du Code monétaire et financier."
+   },
+   {
+    "q": "Quelle fréquence de nettoyage pour des bureaux ?",
+    "r": "Elle dépend de l’usage : en général, sanitaires et corbeilles à chaque jour d’ouverture, sols des bureaux une ou deux fois par semaine, vitres intérieures chaque mois, vitres extérieures chaque trimestre et sols en profondeur une fois par an. La matrice se fixe zone par zone avec le client."
+   },
+   {
+    "q": "L’attestation de vigilance est-elle obligatoire pour un contrat de nettoyage ?",
+    "r": "Oui, dès que le contrat atteint 5 000 € HT au total, même payé en plusieurs fois. Le client doit la demander à la signature, puis tous les 6 mois jusqu’à la fin du contrat. Elle se télécharge sur le site de l’Urssaf."
+   }
+  ]
+ },
+ {
   "slug": "logiciel-entreprise-de-nettoyage",
   "titre": "Logiciel entreprise de nettoyage : planning, contrôle qualité, sites",
   "description": "Logiciel entreprise de nettoyage : passages récurrents, fiche site et grille de contrôle qualité à recopier, reprise du personnel et budget pour six.",
