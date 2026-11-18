@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "retour",
+  "defaut": "Comptabilité plein cadre : UN Retour quitte la Comptabilité et le panneau (Réglages, Tout traiter, Voir en clair…) reste posé dans le cadre, il est encore là au retour (11 commandes sur 11 du cadre, android, iphone, mac)",
+  "etat": "corrigé",
+  "changement": "Le cadre DIT à la page quand il a un panneau ou son tiroir ouvert (message opc_calque, prototype-comptabilite.html) ; la page l'historise comme tout calque (nouveau genre « cadre » de CAL_GENRES) et, au Retour, lui demande de le fermer (opc_fermer_calque) : UN Retour ferme la couche et laisse la Comptabilité",
+  "preuve": "retour-recontrole-d.js android 8 ✓ · 0 ✗, iphone 8 ✓ · 0 ✗, mac 5 ✓ · 0 ✗ (avant : 11, 11, 9 ✗) ; retour-recontrole.js SECTION=cadres 4 ✓ · 0 ✗ sur 3 profils ; retour-calques GENRE=cadre (le Retour ferme la couche DANS le cadre, pas seulement côté page) ; mutations 19 et 20 tombent ; captures android et mac regardées : la Comptabilité reste, le panneau est parti"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Comptabilité plein cadre, téléphone : UN Retour quitte la Comptabilité, le tiroir du menu (☰) reste ouvert (android, iphone)",
+  "etat": "corrigé",
+  "changement": "Même message : le tiroir ouvert compte comme une couche du cadre (seulement quand le menu est vraiment un tiroir, position fixe), un Retour le ferme",
+  "preuve": "retour-recontrole-d.js android et iphone 8 ✓ · 0 ✗ (le tiroir fait partie des commandes touchées)"
+ },
+ {
+  "nom": "retour",
+  "defaut": "OP Security : le téléphone simulé en plein écran (téléphone et tablette) : UN Retour change l'adresse mais le téléphone reste posé par-dessus, l'application est cachée",
+  "etat": "corrigé",
+  "changement": "Nouveau genre « securite » de CAL_GENRES (ouvert seulement sous 1100 px : au-delà c'est un volet permanent) qui se ferme par opsFermer(), comme « Revenir à OP GESTION » ; l'observateur de la page suit aussi l'attribut data-ouvert",
+  "preuve": "retour-recontrole.js SECTION=autres android 6 ✓ · 0 ✗ (avant 4 ✓ · 2 ✗), iphone 6 ✓, mac 5 ✓ ; retour-calques GENRE=securite android et ipad ✓ ; mutation 16 tombe ; capture android regardée"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Confirmation OP Security d'un geste sensible (« Confirme sur ton téléphone ») : UN Retour quitte l'écran et la confirmation reste posée sur l'écran d'arrivée",
+  "etat": "corrigé",
+  "changement": "Nouveau genre « confirmation » : Retour = « Annuler » (secuConfFermer(true), la demande est annulée et le refus rappelé comme au bouton)",
+  "preuve": "SECTION=autres sur android, iphone, mac sans ✗ ; retour-calques GENRE=confirmation android, mac, ipad ✓ ; mutation 17 tombe ; captures android et mac regardées"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Boîte mail sur ORDINATEUR : le composeur (« Nouveau message ») et la fenêtre « Ajouter une boîte mail » ne sont pas un niveau d'historique ; UN Retour quitte la Boîte mail et le composeur réapparaît au retour",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : le message en cours d'écriture ou la fenêtre ouverte est un niveau sur TOUS les formats (histCible, écouteur popstate) ; seule la lecture d'un message reste un niveau du téléphone",
+  "preuve": "retour-recontrole.js SECTION=courrier mac 4 ✓ · 0 ✗ (avant 3 ✓ · 1 ✗), android et ipad 4 ✓ ; retour-recontrole-c.js mac, android, ipad, iphone 9 ✓ · 0 ✗ (avant 1 ✗ sur mac) ; mutation 21 tombe ; capture mac regardée"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Feuille de la carte du planning (#cr-ftel, une tournée choisie, téléphone) : UN Retour quitte le Planning au lieu de fermer la feuille (rangé en doute par le recontrôle)",
+  "etat": "corrigé",
+  "changement": "Nouveau genre « feuille » : la règle du chef (« Retour ferme la fenêtre, pas l'écran ») s'applique ; le doute de la sonde devient un contrôle qui exige le résultat",
+  "preuve": "retour-calques GENRE=feuille android ✓ (11 contrôles) ; retour-recontrole.js SECTION=autres android 7 ✓ · 0 ✗ et iphone 7 ✓ · 0 ✗ (le contrôle [feuille de la carte] exige maintenant le résultat) ; mutation 18 tombe"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Menu « Principal » de la Boîte mail (ov-menu) : UN Retour quitte la Boîte mail et le menu reste ouvert",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : le module tient ce menu léger HORS de l'historique exprès (overlayDePage l'écarte) et un menu se ferme d'un toucher dehors ; le traiter comme un niveau ferait de chaque ouverture de menu un cran d'historique. À trancher : le Retour doit-il d'abord fermer ce menu ?",
+  "preuve": "constat du recontrôle (android, iphone, ipad, mac) ; non modifié"
+ },
+ {
+  "nom": "retour",
+  "defaut": "#cpsys (la Comptabilité plein cadre) est une route : Retour la quitte comme un écran",
+  "etat": "déjà décidé",
+  "changement": "rien (décision écrite de la page, notée dans le commentaire de CAL_GENRES) ; seul son CONTENU (panneaux, tiroir) manquait, voir les deux premières entrées",
+  "preuve": "retour-calques GENRE=cadre : « Retour encore : on quitte l'écran pour celui d'avant »"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non joué par le recontrôle : ipad, windows et petit pour les pièges ; la nuit ; prototype-paiement.html seul",
+  "etat": "ne se reproduit pas",
+  "changement": "pièges rejoués sur ipad, windows et petit : aucun défaut de la page. Un seul rouge, sur ipad, venait de la SONDE (elle pressait Ctrl+K : un iPad se dit « Macintosh », son raccourci de recherche est ⌘K) : sonde corrigée. La nuit n'ajoute rien (aucun calque n'a de teinte à lui, les captures du jour montrent des fenêtres qui reprennent les couleurs de la page) ; le cadre de paiement seul ne porte qu'une feuille « guide » et un toast, pas de panneau : non joué",
+  "preuve": "retour-recontrole.js SECTION=pieges ipad 21 ✓ · 0 ✗, windows 21 ✓ · 0 ✗, petit 21 ✓ · 0 ✗"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Garde de non-régression de l'ensemble",
+  "etat": "corrigé",
+  "changement": "rejeu complet après les corrections : retour-tout.sh (android + mac) 11 exécutions, 473 ✓ · 0 ✗, code 0 ; retour-calques android toutes sortes de calques 208 ✓ · 0 ✗ dont « les 17 sortes de calques de la page sont toutes dans la sonde » ; six mutations neuves (16 à 21) tombent toutes",
+  "preuve": "retour-tout.sh, retour-calques.js, retour-mutations.js « 16 · » à « 21 · »"
+ }
+]

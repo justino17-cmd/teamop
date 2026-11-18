@@ -1,0 +1,47 @@
+{
+ "noms": ["compta-ventes (restes, tour 3) — recontrôle adverse"],
+ "regles": [
+  { "nom": "Ligne préparée « 2h » / pièce « 0,5 L » qui change de total dès qu'on retape sa quantité", "preuve": "restes2-rc-qte mac et iPhone nuit 22 ✓ · 0 ✗ ; table de lectures rc3 : « 2 h » ×65 = 130 €, « 1h30 » = 97,50 €, « 0,5 L » retapé = 10,33 € (q0/qn0)" },
+  { "nom": "« 2h30 », « 2 h 30 », « 1h15 min » comptés pour 2 / 1", "preuve": "rc3 (qteLire, 17 lectures attendues) : 2h, 2 h, 2H, 2h30, 2 h 30, 2h 30, 2h30min, 1h15 min, 0h30, 12h30, 2,5h, 1 000, 1 234,5 kg, 250 mL, 0,5 L tous justes ; 2h60, 2 x 5, h30, vide, -2, 1e9, 2h30h, 2h30m refusés (aucune valeur silencieuse) ; restes2-1 mac et iPhone nuit 15 ✓ · 0 ✗" },
+  { "nom": "Plafond de quantité unique (10 000 pour la facture comme pour le devis)", "preuve": "qteLire(10000) accepté, restes2-rc-qte Q9c vert ; le chemin du devis (dvNbSaisi) garde son plafond ramené à 10 000" },
+  { "nom": "Tâche « Rembourser » à qui annule ; « Voir la tâche » l'ouvre", "preuve": "restes3-remb mac jour Julie et Marc 10 ✓ · 0 ✗, iPhone nuit Julie 10 ✓ ; rc3-remb (nouvelle) : Julie annule, le gérant voit la tâche dans Tâches et « Voir la tâche » lui ouvre la fenêtre « Rembourser 500,00 € à M. et Mme Durand » (Pour Julie Petit) ; capture lue" },
+  { "nom": "« Noter comme remboursé » / tâche faite et remise à faire, par l'AUTRE personne", "preuve": "rc3-fait (nouvelle) mac et iPhone nuit 10 ✓ · 0 ✗ : Julie marque Fait depuis la fenêtre, la fiche dit « remboursés », la tâche est faite par julie, l'Historique écrit au nom de Julie (pas de « marc »), le gérant lit « remboursés » puis la remet à faire par la liste des Tâches, la tâche reste à Julie" },
+  { "nom": "Mots « Qté » et « Prix unitaire HT » au-dessus des champs d'une ligne de facture à valider (moins de 1250 px)", "preuve": "restes3-lignes iPhone 7 ✓, petit nuit 7 ✓, mac 4 ✓ ; rc3-largeurs (nouvelle) : 11 largeurs 320 à 1600 px dont 1249, 1250, 1251, valeurs de 1 234 567,89 € : à chaque largeur UN seul jeu de mots (en-tête OU mots, jamais les deux ni aucun), rien ne se chevauche ni ne sort de la carte, pas de défilement latéral = 22 ✓ · 0 ✗ ; captures 320 px et 1180 px lues (propres)" },
+  { "nom": "Éditeur de variantes de l'atelier : « Prix unitaire HT (€) »", "preuve": "fabriquer.sh rejoué : aucun écart avec apercu/prototype-documents.html (git status vide) ; atelier-variantes-libelle rejoué mac et iPhone : 4 ✓ · 0 ✗ ×2" }
+ ],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "Une durée tapée EN MINUTES sur la main-d'œuvre (« 90 min », « 45 mn », « 90 minutes ») se multiplie par 90 au prix de l'HEURE : 5 850,00 € au lieu de 97,50 €",
+    "gravite": "important (argent, silencieux : la fenêtre ne dit rien, la ligne affiche 5 850,00 €, le Total HT suit)",
+    "etapes": "Marc > Comptabilité > une facture préparée (« Main-d'œuvre entretien · 2 h · 65 ») > champ Qté : taper « 90 min » (ou « 45 mn ») > Tab. qteLire lit « un nombre puis son unité » : 90 × 65 = 5 850,00 €, 45 × 65 = 2 925,00 € ; « 90 minutes » idem. Le tour 3 vient d'apprendre « 2h30 » à la colonne qui compte en heures ; la façon la plus courante de dire une demi-heure, « 30 min », reste comptée comme 30 heures.",
+    "constat": "compta-ventes-restes3-rc-duree.js (mac), capture rc3-duree-90min.png : « 90 min » → Total de la ligne 5 850,00 €, Total HT 5 899,83 €. Piste : dans qteLire, une unité qui commence par « min » ou « mn » vaut nombre/60 (90 min = 1,5), ou refus avec phrase ; à ne pas appliquer aux pièces (250 mL) qui gardent leur règle, donc sur la ligne de main-d'œuvre seulement (ligne qui porte un qn d'origine « temps »)." },
+  { "titre": "Les totaux de ligne affichés ne s'additionnent pas au Total HT (jusqu'à 2 centimes d'écart) dès qu'une quantité est fractionnaire",
+    "gravite": "défaut (document remis au client ; ancien dans son principe, mais « 2h30 » et « 2,5 » le rendent courant)",
+    "etapes": "Facture à valider : une ligne « Main-d'œuvre 2 h × 65 » (130,00 €) et trois lignes « 2,5 × 10,33 € ». Chaque ligne s'affiche 25,83 € (25,825 arrondi), la somme lue à l'écran fait 207,49 € ; le Total HT affiche 207,47 € (il additionne les produits bruts 207,475), puis la TVA et le TTC (228,22 €) partent de ce HT. L'aperçu PDF, l'e-mail, l'avoir et les paiements lisent la même htDe.",
+    "constat": "compta-ventes-restes3-rc.js (mac) : « ✗ les totaux de ligne affichés s'additionnent au Total HT affiché → somme 20749, ht 20747 ». Le devis a déjà réglé exactement ce défaut (dvLigneHT : « UN SEUL total de ligne, arrondi au centime comme on l'affiche », devis-atelier-01) ; la facture garde totLigne = (pu||0)*qteDe(l) non arrondi, donc deux arithmétiques pour le même client. Piste : totLigne arrondi comme dvLigneHT (Math.round(x*100+1e-7)/100), la TVA se calcule déjà sur le HT arrondi." },
+  { "titre": "Une pièce préparée retapée avec une autre casse ou sans espace change de total : « 0,5 L » = 10,33 €, « 0,5 l » ou « 0,5L » = 5,17 €",
+    "gravite": "mineur (la règle « même texte = même total » est tenue, mais le texte est comparé caractère pour caractère)",
+    "etapes": "Facture à valider avec la pièce « Nettoyant échangeur · 0,5 L · 10,33 » > Qté : « 0,5 l » ou « 0,5L » > le total passe à 5,165 € (0,5 × 10,33), alors que c'est le même flacon.",
+    "constat": "compta-ventes-restes3-rc-duree.js : pièce « 0,5 l » → 5.165, « 0,5L » → 5.165, « 0,5 L » → 10.33. Piste : comparer à q0 sans la casse ni les espaces (normaliser les deux côtés)." }
+ ],
+ "nouveaux": [
+  "Commande fournisseur (fenêtre « Nouvelle commande », ligne 17578 d'apercu/prototype-op-gestion.html) : le champ s'appelle encore « Prix HT » à côté de la quantité, alors que c'est un prix unitaire (le total de ligne est à droite) ; même ambiguïté que celle corrigée dans la facture, le devis et l'atelier. Son total de ligne n'est pas arrondi non plus (eur(l.q * l.pu)). Hors compta-ventes : à passer à la voie achats."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/compta-ventes-restes2-rc-qte.js (mac, iPhone nuit)", "resultat": "22 ✓ · 0 ✗ ×2" },
+  { "fichier": "campagne/sondes/compta-ventes-restes2-1.js (mac, iPhone nuit)", "resultat": "15 ✓ · 0 ✗ ×2" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-remb.js (mac jour Julie, mac jour Marc, iPhone nuit Julie)", "resultat": "10 ✓ · 0 ✗ ×3" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-lignes.js (iPhone, petit nuit, mac)", "resultat": "7 ✓ · 7 ✓ · 4 ✓, 0 ✗" },
+  { "fichier": "campagne/sondes/compta-ventes-restes2-rc-julie.js, restes2-rc-remb.js", "resultat": "2 ✓ · 10 ✓, 0 ✗" },
+  { "fichier": "27 sondes plus anciennes de compta-ventes (parcours a à j, recontrole r1 à r5, restes-1 à 3, restes1-rc1/2, restes2-2, rc-dvt, rc-pdf, annulee-cadre, corrections-mep, mise-en-page)", "resultat": "toutes à 0 ✗, code de sortie 0 (parcours-a 36 ✓ … mise-en-page 40 ✓ ; restes2-rc-pdf 36 ✓)" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-rc-remb.js (neuve, mac)", "resultat": "7 ✓ · 0 ✗ : le gérant voit et ouvre la tâche de Julie" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-rc-fait.js (neuve, mac, iPhone nuit)", "resultat": "10 ✓ · 0 ✗ ×2" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-rc-largeurs.js (neuve, 11 largeurs)", "resultat": "22 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-rc.js (neuve, mac)", "resultat": "26 ✓ · 1 ✗ VOLONTAIRE : la table de lectures passe, l'addition des lignes tombe (207,49 contre 207,47) tant que totLigne n'est pas arrondi" },
+  { "fichier": "campagne/sondes/compta-ventes-restes3-rc-duree.js (neuve, mac)", "resultat": "1 ✗ VOLONTAIRE : « 90 min » vaut 5 850 € ; à relancer après correction (elle imprime aussi les lectures de la pièce « 0,5 l »)" }
+ ],
+ "doutes": [
+  "Une quantité d'unités que la ligne ne connaît pas : « 1 jour », « 1 forfait » se lisent 1 (ça va) mais « 3 forfaits » se lit 3 × le prix du forfait, et « 90 min » 90 × : le sens de l'unité tapée n'est connu que pour l'heure. Faut-il refuser toute unité inconnue sur la main-d'œuvre (une phrase) plutôt que de la multiplier ? Décision de produit.",
+  "Reportés du tour 2, non rouverts : remboursement d'une facture payée en entier puis avoirée ; « Paiement en ligne » aux factures d'exemple ; nom « OP COMPTABLE » ; cadre qui ne redessine pas sa liste si un changement arrive d'ailleurs."
+ ]
+}

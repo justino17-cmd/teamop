@@ -2,8 +2,8 @@
 # Rejoue le RECONTRÔLE ADVERSE du bouton Retour (18 novembre 2026), une exécution à la fois (un seul navigateur : la machine est partagée).
 # Cinq regards, par ordre : le premier (retour-recontrole.js) touche chaque bouton d'écran et joue les pièges ; le second (-b) descend d'un niveau dans chaque fenêtre ; le troisième (-c) parcourt
 # la Boîte mail ; le quatrième (-d) touche tout ce qui s'ouvre DANS le cadre de la Comptabilité ; le cinquième (-e) CAPTURE les défauts constatés (à regarder).
-# ⚠️ Au 18/11/2026 quatre défauts sont CONSTATÉS et non corrigés (voir refonte/retour-recontrole.json) : les exécutions concernées sortent donc en 1 — c'est leur rôle tant qu'ils existent :
-#   cadres (Comptabilité), autres (OP Security, confirmation), courrier sur ordinateur (composeur), d (panneaux du cadre).
+# ✅ Les cinq défauts constatés le 18/11/2026 (voir refonte/retour-recontrole.json) sont CORRIGÉS au tour 1 des restes (final/restes-retour-tour1.json) : cadres, autres, courrier sur ordinateur et d sortent en 0.
+#   Une exécution qui retombe en 1 est une régression : le calque concerné a perdu sa place dans CAL_GENRES, ou le cadre ne dit plus ses couches (opc_calque).
 # Journal : $CAP/retour-recontrole/resume.txt (hors dépôt).
 ICI="$(cd "$(dirname "$0")" && pwd)"; cd "$ICI/../../.." || exit 1
 CAP="${CAP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap}"; D="$CAP/retour-recontrole"; mkdir -p "$D"; : > "$D/resume.txt"
