@@ -161,6 +161,8 @@ button.kpi:hover{border-color:var(--trait2)}
 .seg button{min-height:40px;padding:0 16px;border:0;border-radius:10px;background:none;color:var(--doux);font-weight:550;font-size:15px;white-space:nowrap}
 .seg button[aria-pressed="true"]{background:var(--seg-cur);color:var(--seg-ink);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 @media (max-width:760px){.seg{display:flex;width:100%}.seg button{flex:1;padding:0 6px;font-size:14px}}
+/* à l'ordinateur, les onglets de Temps de travail et de Véhicules prennent la largeur de leurs boutons (comme Équipe, Stock, Fournisseurs) : étirée sur toute la ligne, la bande laissait 800 px de vide à droite de trois onglets tassés (restes vehtemps, vu par le chef le 17/11). Au téléphone la règle ci-dessus garde les colonnes égales. */
+@media (min-width:761px){.seg[aria-label="Temps de travail"],.seg[aria-label="Véhicules"]{align-self:flex-start}}
 .btn{min-height:46px;padding:0 18px;border:0;border-radius:999px;background:var(--fill);color:var(--on-fill);font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap;transition:transform .2s var(--ressort),opacity .2s}
 .btn:active{transform:scale(.97);opacity:.9}
 .btn.gris{background:var(--surf2);color:var(--encre);border:1px solid var(--trait)}
@@ -3818,7 +3820,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 @media (max-width:760px){.tt-pied{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;margin:0 -22px;padding:10px 22px calc(12px + env(safe-area-inset-bottom,0px));background:var(--feuille);border-top:1px solid var(--trait)}   /* au téléphone le bouton reste collé au bas de la feuille, au-dessus du clavier et de l'encoche */
 .tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
 /* ══ VÉHICULES — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (aucune couleur, aucun rayon, aucune ombre neufs) ══ */
-.vh-k .kpi{cursor:pointer;font:inherit}.vh-k .kpi span{overflow-wrap:break-word;line-height:1.25}.vh-ht{font-style:normal}
+.vh-k .kpi{cursor:pointer;font:inherit}.vh-k .kpi span{overflow-wrap:break-word;line-height:1.25}.vh-ht{font-style:normal}.vh-dont{display:block;font-style:normal;margin-top:2px}
 .vh-cherche{width:100%;max-width:420px;min-height:44px}
 /* une rangée = un véhicule : avatar · nom, plaque et conducteur, phrase d'état · pastille · UN geste. La forme suit la largeur de la LISTE (conteneur), pas celle de l'écran :
    sur iPad portrait le menu latéral en prend 272 */
@@ -6267,7 +6269,7 @@ function allerAvecRetour(h, lib, revenir){
 document.addEventListener('click', ev => {
   if (ev.target.closest('[data-retourx]')) { RETOUR = null; document.querySelectorAll('.retour-barre').forEach(x => x.remove()); return; }
   if (!ev.target.closest('[data-retourva]') || !RETOUR) return;
-  const r = RETOUR; RETOUR = null; aller(r.h || r.route); setTimeout(() => r.fn && r.fn(), 60);
+  const r = RETOUR; RETOUR = null; if (r.garde) r.garde(); aller(r.h || r.route); setTimeout(() => r.fn && r.fn(), 60);
 });
 /* ══ STATISTIQUES — refaite le 1er novembre 2026 (ordre décidé avec Justin : la première du bloc Tableau de bord)
    Une période au choix (mois, trimestre, 12 mois), comparée à la précédente ; la courbe de 12 mois ; devis, techniciens,
@@ -10368,6 +10370,9 @@ const vehEchTxt = e => { const kmDep = e.km != null && e.km < 0, km = e.km != nu
 function vehFrais(v){ const A = ACHATS.filter(a => (a.objet + ' ' + (a.just || '')).includes(v.plaque)).map(a => ({ d:a.d.includes('/') ? '2026-' + a.d.split('/').reverse().join('-') : a.d, lib:a.objet.replace(' · ' + v.plaque, ''), ht:a.ht, achat:a.id }));
   return [...v.frais.map(([d, lib, ht]) => ({ d, lib, ht })), ...A].sort((a, b) => b.d.localeCompare(a.d)); }
 const vehMois = v => vehFrais(v).filter(f => f.d.slice(0, 7) === AUJ.slice(0, 7)).reduce((s, f) => s + f.ht, 0);
+/* la part de ce chiffre qui est une prime d'assurance payée d'un bloc (renouvellement) : le chiffre du haut dit ce qui a été PAYÉ dans le mois, et nomme cette part, pour qu'une prime de l'année ne passe pas pour une dépense du mois (restes vehtemps, décision du chef du 17/11) */
+const vehAssurMois = v => vehFrais(v).filter(f => f.achat && /^Assurance/i.test(f.lib) && f.d.slice(0, 7) === AUJ.slice(0, 7)).reduce((s, f) => s + f.ht, 0);
+const vehDontAssur = () => { const a = VEHICULES.reduce((s, v) => s + vehAssurMois(v), 0); return a > 0 ? `<i class="vh-dont">dont l’assurance de l’année : ${esc(eur0(a))}</i>` : ''; };
 /* ⟦module pointage⟧ */
 /* ══ TEMPS DE TRAVAIL ══
    Chacun pointe sa journée (début, fin, pauses) ; le responsable voit la semaine de l'équipe, corrige, valide, et sort la paie du mois.
@@ -13122,7 +13127,7 @@ function paieVariables(k){
   const J = paieJoursMois(), semaines = paieLundis().map(L => { const tous = Array.from({ length:7 }, (_, i) => ajoute(L, i)).filter(d => d <= AUJ), jrs = tous.filter(d => d.slice(0, 7) === PAIE_MOIS);
     const semTot = tous.reduce((s, d) => s + ptJourMin(k, d), 0), mois = jrs.reduce((s, d) => s + ptJourMin(k, d), 0), fin = ajoute(L, 6);
     const man = (PAIE_SAL[k] || {}).mandataire, s25 = man ? 0 : Math.max(0, Math.min(semTot, 2580) - 2100), s50 = man ? 0 : Math.max(0, semTot - 2580);
-    return { L, jrs, tot:semTot, mois, s25, s50, alertes:ptAlertes(k, jrs).A, ici:fin.slice(0, 7) === PAIE_MOIS, report:fin.slice(0, 7) > PAIE_MOIS, avant:L.slice(0, 7) < PAIE_MOIS, valide:!!PT_VALIDE[k + L] }; }).filter(s => s.jrs.length);
+    return { L, jrs, tot:semTot, mois, s25, s50, alertes:ptAlertes(k, jrs).A, ici:fin.slice(0, 7) === PAIE_MOIS, report:fin.slice(0, 7) > PAIE_MOIS, avant:L.slice(0, 7) < PAIE_MOIS, valide:!!PT_VALIDE[k + L], fini:ttSemFinie(L) }; }).filter(s => s.jrs.length);
   const tot = semaines.reduce((s, w) => s + w.mois, 0), s25 = semaines.filter(w => w.ici).reduce((s, w) => s + w.s25, 0), s50 = semaines.filter(w => w.ici).reduce((s, w) => s + w.s50, 0);
   const reporte = semaines.filter(w => w.report).reduce((s, w) => s + w.s25 + w.s50, 0);
   const P = POINTAGES.filter(p => p.qui === k && p.date.slice(0, 7) === PAIE_MOIS);
@@ -13134,15 +13139,15 @@ function paieVariables(k){
   const primes = PAIE.primes[k] || [], primesM = primes.reduce((s, o) => s + (+o.m || 0), 0);
   const trace = PT_TRACE.filter(t => t.qui === k && t.date.slice(0, 7) === PAIE_MOIS);
   return { k, semaines, tot, s25, s50, reporte, nuit, weFerie, abs, nAbs:Object.values(abs).reduce((s, n) => s + n, 0), jours6, ouverts, ndf, frais, primes, primesM, trace,
-    nonValidees:semaines.filter(w => !w.valide).length, confirme:PAIE.confirmes[k], signale:PAIE.signales[k] };
+    nonValidees:semaines.filter(w => !w.valide && w.fini).length, enCours:semaines.filter(w => !w.valide && !w.fini).length, confirme:PAIE.confirmes[k], signale:PAIE.signales[k] };
 }
 const PAIE_MOIS_NOMS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const paieDe = m => (/^[aeiouyéèêh]/i.test(m) ? 'd’' : 'de ') + m;
 const paieMoisVoisin = n => PAIE_MOIS_NOMS[(+PAIE_MOIS.slice(5) - 1 + n + 12) % 12];
 /* une semaine du relevé : son total sur toute la semaine (c'est lui qui fait les heures sup.), et où ses heures sup. sont comptées */
 function paieSemLigne(w, fin){
-  const sup = w.s25 + w.s50, note = w.avant ? `avec les jours de fin ${paieMoisVoisin(-1)}` : w.report ? `se termine en ${paieMoisVoisin(1)}` : '';
-  return `<div class="paie-semaine${fin ? ' a4' : ''}"><span class="paie-sem-t">Semaine du ${esc(jCourt(w.L))}${note ? `<small class="gris">${note}</small>` : ''}</span><b class="paie-sem-n">${ptH(w.tot)}</b><span class="${sup && w.ici ? 'fo-up' : 'gris'} petit paie-sem-sup">${sup ? '+' + ptH(sup) + ' sup.' + (w.report ? ` · sur ${paieMoisVoisin(1)}` : '') : '—'}</span>${fin ? `<span class="paie-sem-a">${fin}</span>` : ''}</div>${fin && !w.valide && w.alertes.length ? `<div class="paie-al">${w.alertes.map(a => `<span class="ve-pt ve-${a.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span>${esc(a.t)}`).join('<br>')}</div>` : ''}`;
+  const sup = w.s25 + w.s50, note = w.avant ? `avec les jours de fin ${paieMoisVoisin(-1)}` : w.report ? `payée avec ${paieMoisVoisin(1)}` : '';
+  return `<div class="paie-semaine${fin ? ' a4' : ''}"><span class="paie-sem-t">Semaine du ${esc(jCourt(w.L))}${note ? `<small class="gris">${note}</small>` : ''}</span><b class="paie-sem-n">${ptH(w.tot)}</b><span class="${sup && w.ici ? 'fo-up' : 'gris'} petit paie-sem-sup">${sup ? '+' + ptH(sup) + ' en plus' : '—'}</span>${fin ? `<span class="paie-sem-a">${fin}</span>` : ''}</div>${fin && !w.valide && w.alertes.length ? `<div class="paie-al">${w.alertes.map(a => `<span class="ve-pt ve-${a.g === 'r' ? 'r' : 'o'}" aria-hidden="true"></span>${esc(a.t)}`).join('<br>')}</div>` : ''}`;
 }
 const paieAbsTxt = a => Object.entries(a).map(([t, n]) => `${n} j ${aTypeBas(t)}`).join(', ') || '—';
 /* où en est le mois : cinq étapes, chacune dit ce qui manque et où le régler */
@@ -13198,11 +13203,11 @@ function paieReleve(k, remplace){
   const v = paieVariables(k), verr = paieVerrouille(), tuile = (val, l, cl) => `<div class="kpi${cl ? ' ' + cl : ''}"><b>${val}</b><span>${l}</span></div>`;
   paieFenetre(`<span class="surtitre">Relevé de paie · ${esc(PAIE_NOM_MOIS)}</span><h2>${esc(paieNomPers(k))}</h2>
     <div class="paie-etat">${v.signale ? `<div class="info petit fo-alerte"><b>Erreur signalée le ${esc(v.signale.le)} :</b> « ${esc(v.signale.msg)} »<br><span class="actions" style="margin-top:6px"><button type="button" class="btn gris petit" data-paie="corriger|${k}">Corriger la journée</button><button type="button" class="btn gris petit" data-paie="regle|${k}">C’est réglé</button></span></div>` : v.confirme ? `<div class="ok-bloc petit">✓ ${esc(paieNomPers(k))} a confirmé ce relevé le ${esc(v.confirme.le)}.</div>` : `<div class="info petit">${esc(paieNomPers(k))} n’a pas encore confirmé ses heures.${verr ? '' : ` <button type="button" class="lien" data-paie="relancer|${k}">Lui demander</button>`}</div>`}</div>
-    <div class="kpis paie-kpis">${tuile(ptH(v.tot), 'heures travaillées')}${tuile(v.s25 ? ptH(v.s25) : '—', 'heures sup. 25 %', v.s25 ? 'kpi-up' : '')}${tuile(v.s50 ? ptH(v.s50) : '—', 'heures sup. 50 %', v.s50 ? 'kpi-up' : '')}
+    <div class="kpis paie-kpis">${tuile(ptH(v.tot), 'heures travaillées')}${tuile(v.s25 ? ptH(v.s25) : '—', 'heures en plus à 25 %', v.s25 ? 'kpi-up' : '')}${tuile(v.s50 ? ptH(v.s50) : '—', 'heures en plus à 50 %', v.s50 ? 'kpi-up' : '')}
       ${tuile(v.nuit ? ptH(v.nuit) : '—', 'de nuit (21 h – 6 h)')}${tuile(v.weFerie ? ptH(v.weFerie) : '—', 'samedi, dimanche, férié')}${tuile(v.nAbs ? v.nAbs + ' j' : '—', v.nAbs ? 'absences · ' + paieAbsTxt(v.abs) : 'absences')}${tuile(v.jours6, 'jours de plus de 6 h (paniers)')}${tuile(v.primesM + v.frais ? eur(v.primesM + v.frais) : '—', 'primes et frais')}</div>
     <div class="grille2 paie-g">
       <div class="carte paie-semaines"><h3>Semaine par semaine</h3>${v.semaines.map(w => paieSemLigne(w, w.valide ? '<span class="st st-v">Validée</span>' : verr ? '<span class="st">—</span>' : `<button type="button" class="btn gris mini-btn" data-paie="valsem|${k}|${w.L}">${w.alertes.length ? 'Valider quand même' : 'Valider'}</button>`)).join('')}
-        ${v.reporte ? `<span class="gris petit">${ptH(v.reporte)} d’heures sup. de la dernière semaine seront comptées sur ${paieMoisVoisin(1)}, le mois où elle se termine.</span>` : ''}
+        ${v.reporte ? `<span class="gris petit">${ptH(v.reporte)} d’heures en plus de la dernière semaine seront comptées sur ${paieMoisVoisin(1)}, le mois où elle se termine.</span>` : ''}
         ${v.ouverts.length ? `<div class="info petit fo-alerte">${v.ouverts.map(p => `Journée du ${esc(jlong(p.date))} restée ouverte (début ${p.debut}). <button type="button" class="lien" data-pt="clore|${p.id}">Clôturer</button>`).join('<br>')}</div>` : ''}</div>
       <div class="carte"><h3>Heures corrigées · ${v.trace.length || 'aucune'}</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune heure de ce mois n’a été modifiée.</span>'}
         <span class="gris petit">Chaque correction garde l’heure d’avant, qui l’a faite, quand et pourquoi. Le salarié la voit sur son relevé.</span></div>
@@ -13222,7 +13227,7 @@ function paieDoc(k){
   return `<div class="pdf" data-nom="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}.pdf" data-a="${esc(PAIE_CAB.mail)}" data-objet="Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(k))}"><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${esc(ENTREPRISE.nom)}</b><br>${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</div><div style="text-align:right;margin-left:auto"><b style="font-size:16px">Relevé des éléments variables de paie</b><br>${esc(PAIE_NOM_MOIS)}</div></div>
     <div class="deux"><div><h6>Salarié</h6><b>${esc(paieNomPers(k))}</b><br>${esc((H_GENS[k] || {}).role || '')}</div><div><h6>Pour</h6>${esc(PAIE_CAB.nom)}<br>${esc(PAIE_CAB.qui)}</div></div>
     <table><thead><tr><th>Élément</th><th style="text-align:right">Ce mois-ci</th></tr></thead><tbody>${L.map(([a, b]) => `<tr><td>${esc(a)}</td><td style="text-align:right">${esc(b)}</td></tr>`).join('')}</tbody></table>
-    <h6 style="margin-top:14px">Semaine par semaine</h6><table><tbody>${v.semaines.map(w => `<tr><td>Semaine du ${esc(jCourt(w.L))}${w.avant ? ` (avec fin ${paieMoisVoisin(-1)})` : ''}</td><td style="text-align:right">${ptH(w.tot)}${w.s25 + w.s50 ? ' · dont ' + ptH(w.s25 + w.s50) + ' sup.' + (w.report ? ` comptées sur ${paieMoisVoisin(1)}` : '') : ''}</td></tr>`).join('')}</tbody></table>
+    <h6 style="margin-top:14px">Semaine par semaine</h6><table><tbody>${v.semaines.map(w => `<tr><td>Semaine du ${esc(jCourt(w.L))}${w.avant ? ` (avec fin ${paieMoisVoisin(-1)})` : ''}</td><td style="text-align:right">${ptH(w.tot)}${w.s25 + w.s50 ? ' · dont ' + ptH(w.s25 + w.s50) + ' en plus' + (w.report ? ` · payée avec ${paieMoisVoisin(1)}` : '') : ''}</td></tr>`).join('')}</tbody></table>
     <div style="font-size:11px;color:#666;margin-top:4px">Heures supplémentaires décomptées par semaine civile (lundi à dimanche) ; une semaine à cheval sur deux mois les compte sur le mois où elle se termine.</div>
     ${v.trace.length ? `<h6 style="margin-top:14px">Heures corrigées</h6><table><tbody>${v.trace.map(t => `<tr><td>${esc(ptJ(t.date))} · ${t.champ === 'debut' ? 'début' : t.champ === 'fin' ? 'fin' : t.champ} ${esc(String(t.avant))} → ${esc(String(t.apres))}</td><td style="text-align:right">${esc(paieNomPers(t.par))}, le ${esc(t.le)} · « ${esc(t.motif)} »</td></tr>`).join('')}</tbody></table>` : ''}
     <div class="deux" style="margin-top:14px"><div><h6>Confirmation du salarié</h6>${v.confirme ? 'Confirmé le ' + esc(v.confirme.le) : 'Non confirmé au moment de l’envoi'}</div><div><h6>Mois</h6>${paieVerrouille() ? 'Verrouillé le ' + esc(PAIE.verrou.le) + ' · empreinte ' + esc(PAIE.verrou.emp) : 'Pas encore verrouillé'}</div></div>
@@ -13244,7 +13249,7 @@ function paieEnvoyer(){
   const V = PT_GENS.map(paieVariables);
   ouvrirPanneau(`<span class="surtitre">Paie ${esc(paieDe(PAIE_NOM_MOIS))}</span><h2>Envoyer au cabinet de paie</h2>
     <div class="carte" style="font-size:15px"><b>À :</b> ${esc(PAIE_CAB.qui)} · ${esc(PAIE_CAB.nom)} &lt;${esc(PAIE_CAB.mail)}&gt;<br><b>Objet :</b> Éléments de paie ${esc(paieDe(PAIE_NOM_MOIS))} · ${esc(ENTREPRISE.nom)}<br><br>Bonjour,<br><br>Vous trouverez ci-joint les éléments variables de paie ${esc(paieDe(PAIE_NOM_MOIS))} pour nos ${V.length} salariés : un relevé par personne et le fichier d’import. Le mois est verrouillé de notre côté.<br><br>Bien à vous,<br>${esc(ENTREPRISE.nom)}</div>
-    <h3>Pièces jointes</h3><div class="fo-bloc">${V.map(v => `<button type="button" class="fo-l" data-paie="pdf|${v.k}"><span class="fo-n"><b>📄 Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(v.k))}.pdf</b><span class="gris petit">${ptH(v.tot)}${v.s25 + v.s50 ? ' · ' + ptH(v.s25 + v.s50) + ' sup.' : ''}${v.confirme ? ' · confirmé' : ' · non confirmé'}</span></span><span class="fo-chev">›</span></button>`).join('')}
+    <h3>Pièces jointes</h3><div class="fo-bloc">${V.map(v => `<button type="button" class="fo-l" data-paie="pdf|${v.k}"><span class="fo-n"><b>📄 Relevé de paie ${esc(PAIE_NOM_MOIS)} - ${esc(paieNomPers(v.k))}.pdf</b><span class="gris petit">${ptH(v.tot)}${v.s25 + v.s50 ? ' · ' + ptH(v.s25 + v.s50) + ' en plus' : ''}${v.confirme ? ' · confirmé' : ' · non confirmé'}</span></span><span class="fo-chev">›</span></button>`).join('')}
       <button type="button" class="fo-l" data-paie="import"><span class="fo-n"><b>📊 Variables de paie ${esc(PAIE_NOM_MOIS)}.pdf</b><span class="gris petit">le fichier d’import, une ligne par salarié</span></span><span class="fo-chev">›</span></button></div>
     <label class="champ">Format du fichier d’import<select id="pa-format"><option value="standard" ${PAIE.format === 'standard' ? 'selected' : ''}>Colonnes standard (fichier tableur CSV)</option><option value="cabinet" ${PAIE.format === 'cabinet' ? 'selected' : ''}>Format demandé par le cabinet (réglé une fois avec lui)</option></select></label>
     <div class="actions"><button type="button" class="btn large" data-paie="envoiok">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, true);
@@ -13272,7 +13277,7 @@ document.addEventListener('click', ev => {
   if (a === 'valsem') { if (paieVerrouille()) return toast('Le mois est verrouillé.'); const w = paieVariables(x).semaines.find(o => o.L === y), nr = w ? w.alertes.filter(o => o.g === 'r' || o.ouvert).length : 0, ok = () => { const av1 = { ...PT_VALIDE }; PT_VALIDE[x + y] = true; journalAjout('marc', 'equipe', 'a validé la semaine de ' + paieNomPers(x) + (nr ? ' (' + nr + ' alerte' + (nr > 1 ? 's' : '') + ' du Code du travail ' + (nr > 1 ? 'ignorées' : 'ignorée') + ')' : ''), { lib:'Comptabilité › Paie' }); toast('Semaine validée pour la paie.', ptxAnnulerValid(av1, 1)); ici(); };
     if (nr) return toast(`${nr} alerte${nr > 1 ? 's' : ''} du Code du travail dans cette semaine : regarde-${nr > 1 ? 'les' : 'la'} d’abord, ou valide quand même.`, { lib:'Valider quand même', fn:ok });
     return ok(); }
-  if (a === 'validertout') { const ptxAv = { ...PT_VALIDE }; let n = 0; const G = []; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { if (w.valide) return; if (w.alertes.some(o => o.g === 'r' || o.ouvert)) { G.push(`${paieNomPers(k).split(' ')[0]} (semaine du ${jCourt(w.L)})`); return; } PT_VALIDE[k + w.L] = true; n++; })); rendre();
+  if (a === 'validertout') { const ptxAv = { ...PT_VALIDE }; let n = 0; const G = []; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { if (w.valide || !w.fini) return; if (w.alertes.some(o => o.g === 'r' || o.ouvert)) { G.push(`${paieNomPers(k).split(' ')[0]} (semaine du ${jCourt(w.L)})`); return; } PT_VALIDE[k + w.L] = true; n++; })); rendre();
     return toast(`${n} semaine${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}.${G.length ? ` À regarder d’abord, une alerte du Code du travail : ${G.join(', ')}. Ouvre leur relevé.` : ''}`, n ? ptxFinValidation(ptxAv, n) : undefined); }
   if (a === 'primeajout') { const lib = document.getElementById('pa-lib').value.trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
   if (a === 'primesuppr') { (PAIE.primes[x] || []).splice(+y, 1); return ici(); }
@@ -13468,7 +13473,7 @@ function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
 }
-const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) allerAvecRetour('comptabilite', dou, () => {}); else aller('comptabilite'); };
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') RETOUR.garde = () => { TT.garder = true; }; } else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -17835,6 +17840,8 @@ const ttJourNom = d => jlong(d).split(' ')[0];
 const ttHL = m => { const [h, mm] = ptH(m).split('h'); return h.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + 'h' + mm; };   // « 1 018h40 » : un grand total reste lisible
 const ttNoms = L => L.length < 2 ? (L[0] || '') : L.slice(0, -1).join(', ') + ' et ' + L[L.length - 1];
 const ttAv = k => { const g = H_GENS[k] || {}; return `<span class="eq-av" style="--c:${g.c || '#5b6676'}" aria-hidden="true">${esc(g.ini || (g.nom || k).split(' ').map(x => x[0]).join('').slice(0, 2))}</span>`; };
+/* une semaine se valide une fois FINIE (dimanche passé) : valider celle qui court enverrait à la paie des heures qui vont encore changer (décision du chef du 17/11, restes vehtemps) */
+const ttSemFinie = L => ajoute(L, 6) < AUJ, TT_ENCOURS = 'Semaine en cours : elle se valide une fois finie.';
 const ttFerme = () => `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer.`;
 /* un geste de la Comptabilité › Paie rejoué tel quel (même fonction, même libellé, même « Annuler ») */
 function ttViaPaie(spec){ const b = document.createElement('button'); b.type = 'button'; b.dataset.paie = spec; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); }
@@ -17844,13 +17851,14 @@ function ttEtats(){
   return PT_GENS.map(k => {
     const a = absDe(k, AUJ), P = ptJour(k, AUJ), ouv = P.find(p => !p.fin), fini = P.find(p => p.fin), prevu = prevuMin(k, AUJ);
     const etat = ouv ? (PTX.pause[ouv.id] ? 'pause' : 'travail') : fini ? 'fini' : a ? 'absent' : prevu ? 'attendu' : 'pasattendu';
-    return { k, etat, a, ouv, fini, premier:INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').map(i => i.h).sort()[0] };
+    return { k, etat, a, ouv, fini, premier:INTS.filter(i => i.tech === k && i.d === AUJ && i.st !== 'annulee').map(i => i.h).sort()[0], tourne:INTS.filter(i => i.tech === k && i.d === AUJ && (i.st === 'encours' || i.st === 'fait')).sort((a, b) => a.h.localeCompare(b.h))[0] };   /* une intervention qui a démarré ou fini sans pointage : le gérant sait quoi faire du rappel */
   });
 }
 function ttPhrase(E){
   const n = E.filter(e => e.etat === 'travail' || e.etat === 'pause').length, ab = E.filter(e => e.etat === 'absent'), att = E.filter(e => e.etat === 'attendu').length, P = [];
   if (n) P.push(ttPl(n, 'personne') + ' au travail');
   if (ab.length) P.push(ab.length + ' ' + (ab.length > 1 ? (ab.every(e => ttFem(e.k)) ? 'absentes' : 'absents') : ttFem(ab[0].k) ? 'absente' : 'absent'));
+  if (att && P.length) P.push(att + ' pas encore commencé');   /* la phrase dit ce que les chiffres dessous disent : rien n'y manque */
   return `Aujourd’hui, ${jlong(AUJ)} : ${P.length ? P.join(', ') : att ? 'personne n’a encore commencé' : 'personne n’est attendu'}.`;
 }
 
@@ -17913,7 +17921,7 @@ function ttCarteQuiEstOu(E){
     else if (e.etat === 'pause') { st = ['st-b', 'En pause']; sous = 'en pause depuis ' + PTX.pause[e.ouv.id].h; }
     else if (e.etat === 'fini') { st = ['st-g', 'Journée finie']; sous = e.fini.debut + '–' + e.fini.fin + ' · ' + ptH(ptJourMin(k, AUJ)); }
     else if (e.etat === 'absent') { st = ['st-p', 'Absent' + (ttFem(k) ? 'e' : '')]; sous = e.a.type.toLowerCase() + ' jusqu’au ' + jlong(e.a.au); clic = true; }
-    else { st = ['st-o', 'Pas encore commencé']; sous = 'devait commencer à ' + e.premier + (PTX.rappele[k] ? ' · rappel envoyé à ' + PTX.rappele[k] : ''); ges = `<button type="button" class="btn gris petit" data-tt="rappeler1|${k}">Lui rappeler</button>`; }
+    else { st = ['st-o', 'Pas encore commencé']; sous = (e.tourne ? (e.tourne.st === 'encours' ? 'Une intervention est en cours depuis ' + e.tourne.h : 'Une intervention de ' + e.tourne.h + ' est terminée') + ', rien n’est pointé' : 'devait commencer à ' + e.premier) + (PTX.rappele[k] ? ' · rappel envoyé à ' + PTX.rappele[k] : ''); ges = `<button type="button" class="btn gris petit" data-tt="rappeler1|${k}">Lui rappeler</button>`; }
     const dedans = `${ttAv(k)}<span class="fo-n"><b>${nom}</b><span class="gris petit">${esc(sous)}</span></span><span class="st ${st[0]}">${st[1]}</span>${ges}`;
     return clic ? `<button type="button" class="tt-l tt-clic" data-tt="abs|${k}" aria-label="${nom}, ${esc(sous)} : ouvrir Absences et congés">${dedans}</button>` : `<div class="tt-l${ges ? ' tt-l-b' : ''}">${dedans}</div>`; };
   const filtre = { travail:'au travail', attendu:'pas encore commencé', absent:'absent' }[TT.filtre];
@@ -17927,10 +17935,10 @@ function ttCarteQuiEstOu(E){
 
 /* ── la semaine ── */
 function ttSemEtat(L0){
-  const J = ptxJours(L0), ok = [], reste = [], vus = [];
+  const J = ptxJours(L0), ok = [], reste = [], vus = [], fini = ttSemFinie(L0);
   PT_GENS.forEach(k => { const has = POINTAGES.some(p => p.qui === k && J.includes(p.date)); if (!has) return; vus.push(k); if (PT_VALIDE[k + L0]) return;
-    const T = ptAlertes(k, J), sig = !!PAIE.signales[k] && J.includes(paieJourSignale(k)); if (T.A.length || sig) reste.push(k); else ok.push(k); });
-  return { J, ok, reste, vus, valides:vus.filter(k => PT_VALIDE[k + L0]) };
+    const T = ptAlertes(k, J), sig = !!PAIE.signales[k] && J.includes(paieJourSignale(k)); if (T.A.length || sig) reste.push(k); else if (fini) ok.push(k); });   /* semaine en cours : personne n'est « en règle à valider » */
+  return { J, ok, reste, vus, fini, valides:vus.filter(k => PT_VALIDE[k + L0]) };
 }
 /* la pastille d'une ligne : la plus pressante, et jamais deux */
 function ttPastille(k, L0, S){
@@ -17938,6 +17946,7 @@ function ttPastille(k, L0, S){
   if (ouv) return { cl:'st-r', lib:'À terminer', pts };
   if (pts) return { cl:'st-o', lib:pts === 1 ? '1 point à regarder' : pts + ' points à regarder', pts };
   if (PT_VALIDE[k + L0]) return { cl:'st-v', lib:'Validée', pts };
+  if (a && !S.fini) return { cl:'st-g', lib:'En cours', pts };
   if (a && TT.vus[k + L0]) return { cl:'st-o', lib:'À revalider', pts, valider:true };
   if (a) return { cl:'st-b', lib:'À valider', pts, valider:true };
   return null;
@@ -17964,13 +17973,13 @@ function ttCarteSemaine(L0, S){
 /* les sept jours d'une personne : LA liste de la feuille de semaine du gérant (et, plus tard, de « Mes heures » du salarié) */
 function ttJoursListe(k, L0, ouvre, opt){
   opt = opt || {};   /* « pointees » : au salarié on ne montre que les jours qui ont une heure ou une absence ; « jours » : une liste de jours choisie (les jours du mois) */
-  return (opt.jours || ptxJours(L0)).filter(d => !opt.pointees || ptJour(k, d).length || (absDe(k, d) && dObj(d).getDay() % 6)).map(d => { const a = absDe(k, d), P = ptJour(k, d)[0], pr = prevuMin(k, d), ouv = P && ptOuvert(P), cor = PT_TRACE.some(t => t.qui === k && t.date === d), futur = d > AUJ;
-    const dit = P ? P.debut + '–' + (P.fin || '…') : a ? a.type : futur ? 'pas encore' : pr ? 'pas de journée · prévu ' + ptH(pr) : 'pas de journée', fin = P ? (ouv ? 'pas terminée' : !P.fin ? 'en cours' : ptH(ptJourMin(k, d))) : '';
+  return (opt.jours || ptxJours(L0)).filter(d => !opt.pointees || ptJour(k, d).length || (absDe(k, d) && dObj(d).getDay() % 6)).map(d => { const a = dObj(d).getDay() % 6 ? absDe(k, d) : null, P = ptJour(k, d)[0], pr = prevuMin(k, d), ouv = P && ptOuvert(P), cor = PT_TRACE.some(t => t.qui === k && t.date === d), futur = d > AUJ;   /* un congé ne se compte pas le week-end : la grille, « Mes heures » et la Paie disent « — » ces jours-là, la feuille aussi */
+    const dit = P ? P.debut + '–' + (P.fin || '…') : a ? a.type : futur ? 'à venir' : pr ? 'pas de journée · prévu ' + ptH(pr) : 'pas de journée', fin = P ? (ouv ? 'pas terminée' : !P.fin ? 'en cours' : ptH(ptJourMin(k, d))) : '';
     return `<button type="button" class="fo-r tt-jr${ouv ? ' ouv' : ''}${!P && pr && !a && d < AUJ ? ' manque' : ''}" data-tt="${ouvre || 'jour'}|${k}|${d}"><span class="tt-jd">${esc(ptJ(d))}</span><span class="fo-n"><span>${esc(dit)}</span>${cor ? '<span class="gris petit">corrigée par le bureau</span>' : ''}</span><b>${fin}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('');
 }
 function ttOngletSem(){
   const L0 = ajoute(lundi(AUJ), ptSem * 7), S = ttSemEtat(L0), verr = S.J.some(paieMoisVerrou), nomsReste = S.reste.map(prenomDe), n = S.vus.length, enRegle = S.ok.length + S.valides.length;
-  const dit = !n ? 'Personne n’a pointé cette semaine.' : S.reste.length ? `${enRegle} personne${enRegle > 1 ? 's' : ''} sur ${n} ${enRegle > 1 ? 'sont' : 'est'} en règle. ${ttNoms(nomsReste)} ${S.reste.length > 1 ? 'ont' : 'a'} des points à régler.` : (S.ok.length ? 'Tout le monde est en règle.' : 'Tout est validé : les heures de la semaine sont parties à la paie.');
+  const dit = !n ? 'Personne n’a pointé cette semaine.' : !S.fini ? TT_ENCOURS + (S.reste.length ? ` ${ttNoms(nomsReste)} ${S.reste.length > 1 ? 'ont' : 'a'} des points à regarder.` : '') : S.reste.length ? `${enRegle} personne${enRegle > 1 ? 's' : ''} sur ${n} ${enRegle > 1 ? 'sont' : 'est'} en règle. ${ttNoms(nomsReste)} ${S.reste.length > 1 ? 'ont' : 'a'} des points à régler.` : (S.ok.length ? 'Tout le monde est en règle.' : 'Tout est validé : les heures de la semaine sont parties à la paie.');
   const bouton = verr ? '' : S.ok.length ? `<button type="button" class="btn gris" data-tt="valider|${L0}">${S.ok.length > 1 ? 'Valider les ' + S.ok.length + ' personnes en règle' : 'Valider la personne en règle'}</button>` : '';
   return `<div class="st-barre-per tt-barre"><div class="st-nav"><button type="button" data-tt="nav|-1" aria-label="Semaine précédente">‹</button><b>Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</b><button type="button" data-tt="nav|1" aria-label="Semaine suivante" ${ptSem >= 0 ? 'disabled' : ''}>›</button></div>${ptSem ? '<button type="button" class="lien" data-tt="nav|0">Cette semaine</button>' : ''}${bouton}</div>
     ${verr ? `<div class="info petit">${esc(ttFerme())}</div>` : `<span class="gris tt-dit">${esc(dit)}${S.ok.length ? ' Valider envoie leurs heures à la paie ; si tu changes une heure ensuite, il faudra valider de nouveau.' : ''}</span>`}
@@ -17985,12 +17994,13 @@ function ttSemainePers(k, L){
     <div class="fo-stats"><span><b>${ptH(T.tot)}</b>travaillées</span><span><b>${plus ? ptH(plus) : '—'}</b>en plus</span></div>
     ${pts.length ? `<div class="info fo-alerte petit">${pts.map(o => esc(o.t)).join('<br>')}<br><button type="button" class="lien" data-tt="regle">La règle ›</button></div>` : ''}
     <div class="fo-bloc tt-sept">${ttJoursListe(k, L)}</div>
-    ${verr ? `<div class="info petit">${esc(ttFerme())}</div>` : val ? '<div class="ok-bloc petit">✓ Cette semaine est validée pour la paie.</div>' : `<div class="actions">${enRegle ? `<button type="button" class="btn large" data-tt="validerun|${k}|${L}">Valider la semaine de ${esc(prenomDe(k))}</button>` : `<button type="button" class="btn large" data-tt="areg">Voir les points à régler</button>`}</div>${!enRegle && !ouv && !rouges ? `<button type="button" class="lien" data-tt="validerun|${k}|${L}|1">Valider quand même</button>` : ''}`}`);
+    ${verr ? `<div class="info petit">${esc(ttFerme())}</div>` : val ? '<div class="ok-bloc petit">✓ Cette semaine est validée pour la paie.</div>' : !S.fini ? `<div class="info petit">${TT_ENCOURS}</div>` : `<div class="actions">${enRegle ? `<button type="button" class="btn large" data-tt="validerun|${k}|${L}">Valider la semaine de ${esc(prenomDe(k))}</button>` : `<button type="button" class="btn large" data-tt="areg">Voir les points à régler</button>`}</div>${!enRegle && !ouv && !rouges ? `<button type="button" class="lien" data-tt="validerun|${k}|${L}|1">Valider quand même</button>` : ''}`}`);
 }
 /* valider : une personne, ou toutes celles qui sont en règle — toujours avec « Annuler » */
 function ttAnnuler(av, texte){ return { lib:'Annuler', fn:() => { ptxRestaurerValid(av); journalAjout('marc', 'equipe', 'a annulé une validation de temps de travail', { lib:'Temps de travail' }); rendre(); toast(texte); } }; }
 function ttValiderUn(k, L0, quandMeme){
   if (ptxJours(L0).some(paieMoisVerrou)) return toast(ttFerme());
+  if (!ttSemFinie(L0)) return toast(TT_ENCOURS);
   const T = ptAlertes(k, ptxJours(L0)), ouv = T.A.some(o => o.ouvert), rouges = T.A.filter(o => o.g === 'r' && !o.ouvert).length;
   if (ouv) return toast('Une journée est restée ouverte : termine-la avant de valider la semaine.');
   if (rouges && !quandMeme) return toast('Il y a des points à régler pour ' + esc(prenomDe(k)) + ' : regarde-les d’abord.');
@@ -17999,7 +18009,7 @@ function ttValiderUn(k, L0, quandMeme){
   fermerPanneau(); rendre(); toast(`Semaine de ${esc(prenomDe(k))} validée pour la paie.`, ttAnnuler(av, 'Validation annulée : la semaine de ' + esc(prenomDe(k)) + ' est à valider de nouveau.'));
 }
 function ttValiderPanneau(L0){
-  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) return toast(ttFerme()); if (!S.ok.length) return toast('Rien à valider d’un coup : tout est déjà validé, ou à régler d’abord.');
+  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) return toast(ttFerme()); if (!S.fini) return toast(TT_ENCOURS); if (!S.ok.length) return toast('Rien à valider d’un coup : tout est déjà validé, ou à régler d’abord.');
   ouvrirPanneau(`<span class="surtitre">Semaine du ${jCourt(L0)} au ${jCourt(ajoute(L0, 6))}</span><h2>Valider ${ttPl(S.ok.length, 'personne')} ?</h2>
     <div class="fo-bloc">${S.ok.map(k => `<div class="fo-r">${ttAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b></span><b>${ptH(ptAlertes(k, S.J).tot)}</b></div>`).join('')}</div>
     <span class="gris">Leurs heures partent à la paie. Si tu changes une heure ensuite, il faudra valider de nouveau.</span>
@@ -18007,7 +18017,7 @@ function ttValiderPanneau(L0){
     <div class="actions"><button type="button" class="btn large" data-tt="validerok|${L0}">Valider</button></div>`);
 }
 function ttValiderLot(L0){
-  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) { fermerPanneau(); return toast(ttFerme()); } if (!S.ok.length) { fermerPanneau(); return toast('Rien à valider : c’est déjà fait.'); }
+  const S = ttSemEtat(L0); if (S.J.some(paieMoisVerrou)) { fermerPanneau(); return toast(ttFerme()); } if (!S.fini) { fermerPanneau(); return toast(TT_ENCOURS); } if (!S.ok.length) { fermerPanneau(); return toast('Rien à valider : c’est déjà fait.'); }
   const av = ptxValiderLot(L0, S.ok); fermerPanneau(); rendre();
   toast(`${ttPl(S.ok.length, 'personne')} validée${S.ok.length > 1 ? 's' : ''} (${S.ok.map(k => esc(prenomDe(k))).join(', ')}).`, ttAnnuler(av, 'Validation annulée : ' + ttPl(S.ok.length, 'personne') + ' à valider de nouveau.'));
 }
@@ -18015,8 +18025,8 @@ function ttValiderLot(L0){
 /* ── le mois ── */
 function ttMoisBilan(V){
   const R = ttAReglerLignes(), ouverts = V.reduce((s, v) => s + v.ouverts.length, 0), sig = V.filter(v => v.signale).length, nonVal = V.filter(v => v.nonValidees).length, nonConf = V.filter(v => !v.confirme).length;
-  const bloque = (v, w) => w.alertes.some(o => o.g === 'r' || o.ouvert), aValider = V.reduce((s, v) => s + v.semaines.filter(w => !w.valide && !bloque(v, w)).length, 0);
-  return { R, ouverts, sig, nonVal, nonConf, aValider, bloques:ouverts + sig };
+  const bloque = (v, w) => w.alertes.some(o => o.g === 'r' || o.ouvert), aValider = V.reduce((s, v) => s + v.semaines.filter(w => !w.valide && w.fini && !bloque(v, w)).length, 0), enCours = V.some(v => v.enCours);
+  return { R, ouverts, sig, nonVal, nonConf, aValider, enCours, bloques:ouverts + sig };
 }
 /* les notes de frais validées partent avec la paie, hors salaire : la carte de la paie le dit, avec les mêmes chiffres que le relevé de chaque personne (paieVariables(k).frais) et un lien vers les notes (achats-03) */
 function ttFraisLigne(V){
@@ -18025,7 +18035,7 @@ function ttFraisLigne(V){
 }
 function ttOngletMois(){
   const V = PT_GENS.map(paieVariables), B = ttMoisBilan(V), verr = paieVerrouille(), plus = V.reduce((s, v) => s + v.s25 + v.s50, 0), conf = V.filter(v => v.confirme).length;
-  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
+  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`, B.enCours && 'la semaine en cours, à valider une fois finie'].filter(Boolean);
   const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
   let bouton, lien = '';
   if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
@@ -18049,7 +18059,7 @@ function ttMoisPers(k){
     <div class="fo-stats"><span><b>${ttHL(v.tot)}</b>travaillées</span><span><b>${pl ? ptH(pl) : '—'}</b>en plus</span></div>
     ${v.nuit ? `<span class="gris petit">${ptH(v.nuit)} de nuit (entre 21 h et 6 h).</span>` : ''}${v.nAbs ? `<span class="gris petit">${esc(paieAbsTxt(v.abs))} d’absence.</span>` : ''}
     <h3 class="tt-h3">Ses semaines</h3><div class="fo-bloc">${v.semaines.map(w => { const sup = w.s25 + w.s50;
-      return `<button type="button" class="fo-r tt-jr" data-tt="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.report ? 'payée avec ' + paieMoisVoisin(1) : w.avant ? 'commencée en ' + paieMoisVoisin(-1) : w.valide ? 'validée' : 'à valider'}${sup && w.ici ? ' · dont ' + ptH(sup) + ' en plus' : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>
+      return `<button type="button" class="fo-r tt-jr" data-tt="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.report ? 'payée avec ' + paieMoisVoisin(1) : w.avant ? 'commencée en ' + paieMoisVoisin(-1) : w.valide ? 'validée' : 'à valider'}${sup && w.ici ? ' · dont ' + ptH(sup) + ' en plus' : ''}${w.mois !== w.tot ? ' · dont ' + ttHL(w.mois) + ' en ' + ttMois() : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>
     <details class="tt-det"><summary>Ses journées · ${jrs.length}</summary><div class="fo-bloc">${jrs.map(d => { const P = ptJour(k, d)[0];
       return `<button type="button" class="fo-r tt-jr" data-tt="jour|${k}|${d}"><span class="tt-jd">${esc(ptJ(d))}</span><span class="fo-n"><span>${P.debut}–${P.fin || '…'}</span></span><b>${P.fin ? ptH(ptJourMin(k, d)) : 'pas terminée'}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div></details>
     <h3 class="tt-h3">Ses corrections du mois</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune heure de ce mois n’a été modifiée.</span>'}
@@ -18191,7 +18201,7 @@ function ttFicheJour(k, d){
   const sansPointage = al.some(o => /pas de pointage/.test(o.t));
   /* la demande de la personne sur CETTE journée : on la relit ici, là où on décide (avant : « Voir la journée » ne rappelait ni l'heure demandée ni la raison) */
   const sg = PAIE.signales[k] && paieJourSignale(k) === d ? PAIE.signales[k] : null, rq = sg && ptxReq(k), Cd = sg ? ttDemandeDits(k, d) : [], un = rq && ['debut', 'fin'].filter(c => rq[c]), seul = un && un.length === 1 && rq.pause == null ? rq[un[0]] : null, citeD = sg && (sg.txt || (Cd.length ? '' : sg.msg));
-  const demande = sg ? `<div class="info fo-alerte vh-alerte petit tt-demande"><b>${esc(prenom)} demande une correction${Cd.length ? ' : ' + esc(Cd.join(', ')) : ''}.</b>${citeD ? `<span class="gris">“${esc(citeD)}”</span>` : ''}${verr ? '<span>Le mois est fermé : elle sera régularisée avec le mois suivant.</span>' : P.length && rq && Object.keys(rq).length ? `<span class="tt-ges"><button type="button" class="btn petit" data-tt="accepter|${k}">${seul ? 'Accepter ' + seul : 'Accepter la correction'}</button></span>` : ''}</div>` : '';
+  const demande = sg ? `<div class="info fo-alerte vh-alerte petit tt-demande"><b>${esc(prenom)} demande une correction${Cd.length ? ' : ' + esc(Cd.join(', ')) : ''}.</b>${citeD ? `<span class="gris">“${esc(citeD)}”</span>` : ''}${verr ? '<span>Le mois est fermé : ' + (ttFem(k) ? 'elle sera régularisée' : 'il sera régularisé') + ' avec le mois suivant.</span>' : P.length && rq && Object.keys(rq).length ? `<span class="tt-ges"><button type="button" class="btn petit" data-tt="accepter|${k}">${seul ? 'Accepter ' + seul : 'Accepter la correction'}</button></span>` : ''}</div>` : '';
   const ligne = (lib, val, cl) => `<div class="fo-r tt-ch"><span class="tt-cl">${lib}</span><b class="tt-cv${cl ? ' ' + cl : ''}">${val}</b></div>`;
   const champs = P.map(p => { const passee = !p.fin && p.date < AUJ, enCours = !p.fin && !passee, id = esc(p.id), f = passee && !paieMoisVerrou(d) ? ptxFinPropose(p) : null;
     const saisie = (lib, champ, corps) => `<label class="fo-r tt-ch"><span class="tt-cl">${lib}</span>${corps}</label>`;
@@ -18870,9 +18880,9 @@ function vxModifOk(vid){
 const VX_TYPES_OK = /^(image\/(png|jpe?g|gif|webp|heic|heif)|application\/pdf)$/i;
 function vxDocAjouter(vid, k, f){
   const v = vehDe(vid); if (!v || !f) return;
-  if (!VX_TYPES_OK.test(f.type || '')) return toast('Ce fichier n’est pas accepté : une photo (JPEG, PNG, WebP, HEIC) ou un PDF suffit.'); const N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le procès-verbal de contrôle' }, av = v.docs[k] || null;
+  if (!VX_TYPES_OK.test(f.type || '')) return toast('Ce fichier n’est pas accepté : une photo (JPEG, PNG, WebP, HEIC) ou un PDF suffit.'); const N = { carte:'la carte grise', assur:'l’attestation d’assurance', ct:'le rapport du contrôle technique' }, av = v.docs[k] || null;
   v.docs[k] = { nom:f.name, type:f.type, url:URL.createObjectURL(f), d:AUJ }; const j = vxJ('a ajouté ' + N[k], v, { det:f.name });
-  foGarder(() => vxFiche(v.id)); toast(`${N[k][0].toUpperCase() + N[k].slice(1)} ajoutée pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { if (av) v.docs[k] = av; else delete v.docs[k]; vxJRetirer(j); foGarder(() => vxFiche(v.id)); } });
+  foGarder(() => vxFiche(v.id)); toast(`${N[k][0].toUpperCase() + N[k].slice(1)} ajouté${k === 'ct' ? '' : 'e'} pour ${esc(v.plaque)}.`, { lib:'Annuler', fn:() => { if (av) v.docs[k] = av; else delete v.docs[k]; vxJRetirer(j); foGarder(() => vxFiche(v.id)); } });
 }
 function vxDocRetirer(vid, k){
   const v = vehDe(vid); if (!v || !v.docs[k]) return; const d = v.docs[k], j = vxJ('a retiré un document', v, { det:d.nom }); delete v.docs[k]; foGarder(() => vxFiche(v.id));
@@ -19116,7 +19126,7 @@ const vhPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vhJM = d => jlong(d).split(' ').slice(1).join(' ');                 // « 28 octobre »
 const vhDL = d => vhJM(d) + ' ' + d.slice(0, 4);                          // « 11 décembre 2026 »
 const vhNom = v => v.marque + (v.modele ? ' ' + v.modele : '');
-const vhCourt = v => 'le ' + ((v.modele || '').split(' ')[0] || v.marque);   // « le Kangoo »
+const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^[aeiouyàâéèêîôû]/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert »
 const vhEuro2 = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }).replace(/ /g, ' ') + ' €';
 const vhSans = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const vhPren = k => k ? prenomDe(k) : '';
@@ -19136,8 +19146,10 @@ const VH_FAIT = { ct:'Noter le contrôle technique', assur:'Noter le renouvellem
 const vhRdvNote = (v, e) => (e.k === 'ct' || e.k === 'entretien') ? vxTacheOuverte(vxCleTache(v, e)) : null;
 /* le bouton d'une échéance (D11) : le geste SUIVANT dans l'ordre des choses — pas de rendez-vous noté → « Noter le rendez-vous », puis « Noter le contrôle… » ;
    une échéance pas encore à prévoir va droit au « Noter… » (rien à prendre) */
+/* cette échéance est-elle celle POUR LAQUELLE le véhicule est au garage ? Le motif noté dit laquelle : « Contrôle technique » ne couvre pas la courroie (restes vehtemps) ; un autre motif (panne, accident, autre) garde l'ancienne lecture : le garage a la main sur les deux */
+const vhEchAuGarage = (v, e) => v.statut === 'atelier' && (e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v' && (!v.immo || v.immo.motif !== 'Contrôle technique' && v.immo.motif !== 'Entretien' || v.immo.motif === (e.k === 'ct' ? 'Contrôle technique' : 'Entretien'));
 function vhBoutonEch(v, e, from){
-  if (v.statut === 'atelier' && (e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v') return null;   /* déjà chez le garagiste : il n'y a plus de rendez-vous à noter, et « Le remettre en service » est dans l'encadré du haut */
+  if (vhEchAuGarage(v, e)) return null;   /* déjà chez le garagiste : il n'y a plus de rendez-vous à noter, et « Le remettre en service » est dans l'encadré du haut */
   if ((e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v' && !vhRdvNote(v, e)) return { act:'rdv|' + v.id + '|' + e.k + '|' + from, lib:'Noter le rendez-vous' };
   return { act:'fait|' + v.id + '|' + e.k + '|' + from, lib:VH_FAIT[e.k] };
 }
@@ -19192,8 +19204,8 @@ function vueVehicules(){
   const tete = !n ? 'Tes véhicules, leurs papiers et ce qu’ils coûtent.'
     : n === 1 ? (V[0].statut === 'service' ? 'Ton véhicule est en service.' : V[0].statut === 'atelier' ? 'Ton véhicule est au garage' + (V[0].immo && V[0].immo.retour ? ' jusqu’au ' + jlong(V[0].immo.retour) : '') + '.' : 'Ton véhicule est hors service.') + (aF && V[0].statut === 'service' ? ' ' + (aF > 1 ? aF + ' choses à faire.' : 'Une chose à faire.') : '')
     : !aF && !gar.length && svc === n ? 'Tous tes véhicules sont en règle.'
-    : svc + ' véhicule' + (svc > 1 ? 's' : '') + ' sur ' + n + ' en service. ' + (gar.length === 1 ? vhCourt(gar[0].v).replace(/^le/, 'Le') + ' est au garage' + (gar[0].v.immo && gar[0].v.immo.retour ? ' jusqu’au ' + jlong(gar[0].v.immo.retour) : '') + '.'
-      : gar.length ? ttNoms(gar.map(r => vhCourt(r.v))).replace(/^le/, 'Le') + ' sont au garage.' : aF ? (aF > 1 ? aF + ' choses à faire.' : 'Une chose à faire.') : 'Tout est en règle.');
+    : svc + ' véhicule' + (svc > 1 ? 's' : '') + ' sur ' + n + ' en service. ' + (gar.length === 1 ? vhCourt(gar[0].v).replace(/^l/, 'L') + ' est au garage' + (gar[0].v.immo && gar[0].v.immo.retour ? ' jusqu’au ' + jlong(gar[0].v.immo.retour) : '') + '.'
+      : gar.length ? ttNoms(gar.map(r => vhCourt(r.v))).replace(/^l/, 'L') + ' sont au garage.' : aF ? (aF > 1 ? aF + ' choses à faire.' : 'Une chose à faire.') : 'Tout est en règle.');
   const kpi = (act, nb, lib, cls) => `<button type="button" class="kpi${cls || ''}" data-vh="${act}"><b>${nb}</b><span>${lib}</span></button>`;
   const plein = vhPeut('plein') ? '<button type="button" class="btn gris vh-b-plein" data-vh="plein|">Noter un plein</button>' : '', nouveau = vhPeut('nouveau') ? '<button type="button" class="btn vh-b-nouveau" data-vh="nouveau">＋ Nouveau véhicule</button>' : '';
   let corps;
@@ -19206,7 +19218,7 @@ function vueVehicules(){
         : vhVide('Aucun véhicule au garage.', 'Tous tes véhicules sont en service.', '', true))}<div class="vh-aucun gris" hidden>Aucun véhicule ne correspond.</div></div>`;
   }
   return `<div class="tete vh-tete"><div><span class="surtitre">Personnel</span><h1>Véhicules</h1><span class="gris">${esc(tete)}</span></div><div class="actions">${n ? plein : ''}${nouveau && n ? nouveau : ''}</div></div>
-    ${n ? `<div class="kpis ptx-k3 vh-k">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'dépensés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>')}</div>
+    ${n ? `<div class="kpis ptx-k3 vh-k">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'payés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>' + vehDontAssur())}</div>
     <div class="seg" role="tablist" aria-label="Véhicules">${[['tous', 'Tous', ''], ['afaire', 'À faire', aF ? `<span class="t-nb rouge">${aF}</span>` : ''], ['garage', 'Au garage', gar.length ? `<span class="t-nb">${gar.length}</span>` : '']].map(([k, l, p]) => `<button type="button" role="tab" data-vh="onglet|${k}" aria-pressed="${VH.onglet === k}" aria-selected="${VH.onglet === k}">${l}${p ? ' ' + p : ''}</button>`).join('')}</div>` : ''}
     ${corps}`;
 }
@@ -19259,7 +19271,7 @@ function vhAFaire(v, EC){
   const sansDate = [!v.assur.fin && 'Assurance', !v.ct && 'Contrôle technique'].filter(Boolean);
   /* « Noter le rendez-vous » (D11) n'est proposé que sur la ligne la plus urgente, la même que celle de la liste : les autres vont droit à leur « Noter… » — UN libellé par ligne, jamais deux fois le même */
   const lignes = EC.map((e, i) => { const b = i === 0 ? vhBoutonEch(v, e, 'fiche') : { act:'fait|' + v.id + '|' + e.k + '|fiche', lib:VH_FAIT[e.k] }, noir = i === 0 && e.urg !== 'v', rdv = vhRdvNote(v, e);
-    const gar = v.statut === 'atelier' && (e.k === 'ct' || e.k === 'entretien') && e.urg !== 'v', im = v.immo || {};   /* au garage : la ligne dit où en est la révision, pas « en retard de 3 jours » */
+    const gar = vhEchAuGarage(v, e), im = v.immo || {};   /* au garage : la ligne dit où en est la révision, pas « en retard de 3 jours » */
     const urg = gar ? 'o' : e.urg, quand = gar ? 'Au garage' + (im.retour ? ' jusqu’au ' + jlong(im.retour) : '') : vhQuand(e, true) + (rdv ? ' · rendez-vous le ' + jlong(rdv.d) : '');
     return `<div class="fo-r vh-ech"><span class="ve-pt ve-${urg}" aria-hidden="true"></span><span class="fo-n"><b>${esc(e.lib)}</b><span class="gris petit">${esc(vhDL(e.d))}${e.k === 'assur' ? vxContrat(v) : ''} · <span class="${urg === 'r' ? 've-rt' : urg === 'o' ? 've-ot' : ''}">${esc(quand)}</span></span></span>${vhGeste(b, noir)}</div>`; }).join('');
   const manque = sansDate.map(x => `<div class="fo-r vh-ech"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(x)}</b><span class="gris petit">Pas encore renseigné</span></span>${vhPeut('modif') ? `<button type="button" class="btn petit gris" data-vh="modif|${v.id}">Renseigner</button>` : ''}</div>`).join('');
@@ -19293,12 +19305,12 @@ function vhDepenses(v){
   const bits = []; if (c.auKm != null) bits.push(vhEuro2(c.auKm) + ' du kilomètre'); if (VX.periode !== 'mois' && c.parMois) bits.push(eur0(c.parMois) + ' par mois');
   const bilan = `${eur0(c.total)} dépensés ${sur}${bits.length ? ', soit ' + bits.join(' et ') : ''}.${c.conso != null ? ' ' + c.conso.toFixed(1).replace('.', ',') + (v.energie === 'Électrique' ? ' kWh' : ' litres') + ' aux 100 km.' : ''}`;
   const connu = vxDebut(v), vides = []; for (let k = 5; k >= 0; k--) { const d = vxMois(AUJ.slice(0, 8) + '01', -k); if (d.slice(0, 7) < connu.slice(0, 7)) vides.push(d); }
-  const liss = v.assur.prime && c.ass > 0 ? `<div class="fo-l vh-fr vh-fr-liss"><span class="fo-n"><b>Assurance</b><span class="gris petit">${esc(eur0(v.assur.prime))} par an, comptés ${esc(vxN(c.nbMois, 'mois'))} · déjà dans le total ci-dessus</span></span><b class="vh-mt">${eur(c.ass)}</b><span class="fo-chev" aria-hidden="true" style="visibility:hidden">›</span></div>` : '';
+  const liss = v.assur.prime && c.ass > 0 ? `<div class="fo-l vh-fr vh-fr-liss"><span class="fo-n"><b>Assurance</b><span class="gris petit">${esc(eur0(v.assur.prime))} par an, comptés ${esc(vxN(c.nbMois, 'mois', 'mois'))} · déjà dans le total ci-dessus</span></span><b class="vh-mt">${eur(c.ass)}</b><span class="fo-chev" aria-hidden="true" style="visibility:hidden">›</span></div>` : '';
   const lignes = F.map(f => { const k = vhCleFrais(f), origine = f.achat && f.own !== 'a' ? ' · dans les achats' : f.ndf ? ' · note de frais, en attente' : '';
     return `<button type="button" class="fo-l vh-fr" ${k ? `data-vh="frais|${v.id}|${k}"` : ''}><span class="fo-n"><b>${esc(f.lib)}</b><span class="gris petit">${esc(vhJM(f.d))}${origine}</span></span><b class="vh-mt">${eur(f.ht)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('');
   return `<div class="vh-bloc"><div class="seg vx-seg vh-per" role="group" aria-label="Période">${per.map(([k, l]) => `<button type="button" data-vh="per|${k}|${v.id}" aria-pressed="${VX.periode === k}">${l}</button>`).join('')}</div>
     <p class="vh-phrase">${esc(bilan)}</p>${vxHisto(v)}${vides.length ? `<span class="gris petit vh-vides">Avant le ${esc(vhJM(connu))}, rien n’est compté : c’est la date du premier relevé du compteur.</span>` : ''}</div>
-    <div class="vh-bloc"><h3 class="tt-h3">Les dépenses · ${F.length}</h3><div class="fo-bloc">${lignes + liss || '<div class="fo-r"><span class="fo-n gris">Aucune dépense sur cette période.</span></div>'}</div>
+    <div class="vh-bloc"><h3 class="tt-h3">Les dépenses · ${F.length + (liss ? 1 : 0)}</h3><div class="fo-bloc">${lignes + liss || '<div class="fo-r"><span class="fo-n gris">Aucune dépense sur cette période.</span></div>'}</div>
       <span class="gris petit vh-ht">Montants hors taxes : un ticket de 120 € toutes taxes comprises compte pour 100 €.</span>
       <div class="actions"><button type="button" class="btn gris petit" data-vh="csv|${v.id}">Exporter en tableau</button></div></div>`;
 }
@@ -19307,7 +19319,7 @@ function vhDepenses(v){
 function vhCoutPanel(){
   const F = vxFlotte(), rows = F.R.slice().sort((a, b) => a.c.auKm - b.c.auKm), sans = VEHICULES.filter(v => !rows.some(r => r.v === v)), max = Math.max(0.01, ...rows.map(r => r.c.auKm)), dep = VEHICULES.reduce((s, v) => s + vehMois(v), 0);
   ouvrirPanneau(`<span class="surtitre">Véhicules</span><h2>Ce que coûtent les véhicules</h2>
-    <div class="fo-stats vh-stats"><span><b>${eur0(dep)}</b>dépensés en ${ST_MOIS_L[dObj(AUJ).getMonth()]} (hors taxes)</span><span><b>${F.moy == null ? '—' : vhEuro2(F.moy)}</b>le kilomètre, en moyenne sur 12 mois</span></div>
+    <div class="fo-stats vh-stats"><span><b>${eur0(dep)}</b>payés en ${ST_MOIS_L[dObj(AUJ).getMonth()]} (hors taxes)${vehDontAssur()}</span><span><b>${F.moy == null ? '—' : vhEuro2(F.moy)}</b>le kilomètre, en moyenne sur 12 mois</span></div>
     <div class="vh-bloc"><h3 class="tt-h3">Du moins cher au plus cher au kilomètre</h3><div class="vh-rang">${rows.map(({ v, c }) => `<button type="button" class="vh-rl" data-vh="fiche|${v.id}|depenses"><span class="fo-n"><b>${esc(vhNom(v))}</b><span class="gris petit">${esc(v.plaque)}${v.conducteur ? ' · ' + esc(H_NOM(v.conducteur)) : ''}</span></span><span class="vh-rb" aria-hidden="true"><i style="width:${Math.max(4, c.auKm / max * 100)}%"></i></span><b class="vh-mt">${vhEuro2(c.auKm)}</b></button>`).join('')}
       ${sans.map(v => `<button type="button" class="vh-rl vh-rl-sans" data-vh="fiche|${v.id}|depenses"><span class="fo-n"><b>${esc(vhNom(v))}</b><span class="gris petit">${esc(v.plaque)} · pas encore assez de relevés du compteur</span></span><b class="vh-mt gris">—</b></button>`).join('')}</div>
       <span class="gris petit">Sur 12 mois, assurance comprise, pour les kilomètres relevés.</span></div>
@@ -19446,7 +19458,7 @@ function vhAccueil(){
     const L = vhLignes(), couvre = cle => urg.some(x => x.cle === cle);
     const R = L.rows.filter(r => r.e.bouton && !(r.e.k === 'souci' ? urg.some(x => vxSouciTaches(r.v.souci).includes(x.id)) : r.e.e && couvre(vxCleTache(r.v, r.e.e)))), G = L.groupes.filter(g => !couvre(vxCleGroupe(g)));
     const n = R.length + G.length;
-    if (n) { const pire = R[0] || null, sous = pire ? vhCourt(pire.v).replace(/^le /, '').replace(/^./, c => c.toUpperCase()) + ' : ' + pire.e.prec.charAt(0).toLowerCase() + pire.e.prec.slice(1) : 'Assurance des ' + G[0].vs.length + ' véhicules ' + vhQuand({ n:G[0].n });
+    if (n) { const pire = R[0] || null, sous = pire ? vhCourt(pire.v).replace(/^(le |l’)/, '').replace(/^./, c => c.toUpperCase()) + ' : ' + pire.e.prec.charAt(0).toLowerCase() + pire.e.prec.slice(1) : 'Assurance des ' + G[0].vs.length + ' véhicules ' + vhQuand({ n:G[0].n });
       A.push({ c:'var(--orange)', t:'Véhicules · ' + (n > 1 ? n + ' choses à faire' : 'une chose à faire'), s:sous, go:'vehicules', acc:'vh|afaire' }); }
   }
   if (typeof droitVoit === 'function' && droitVoit('pointage')) {
