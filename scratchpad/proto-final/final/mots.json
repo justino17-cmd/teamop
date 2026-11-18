@@ -561,6 +561,13 @@
    "fichier": "apercu/prototype-op-gestion.html"
   },
   {
+   "ecran": "Temps de travail › phrase du mois",
+   "avant": ", B.enCours && 'la semaine en cours, à valider une fois finie'].filter(Boolean);",
+   "apres": "].filter(Boolean);   /* la semaine en cours se dit dans sa propre phrase",
+   "raison": "la semaine en cours a sa propre phrase : cinq éléments dans une seule phrase dépassaient 30 mots",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
    "ecran": "Devis et contrats › fiche de l’interlocuteur",
    "avant": "ch('mail','Courriel',",
    "apres": "ch('mail','E-mail',",
@@ -937,6 +944,36 @@
    "note": "« touche » partout ; « clic droit » et « double-clic » ne se lisent que dans les aides du planning (souris)."
   },
   {
+   "chose": "dire, dans la visite parlée, qu’un geste ne part pas pour de vrai",
+   "motsTrouves": [
+    "Dans cette démonstration",
+    "l’envoi est simulé",
+    "je simule sa réponse",
+    "la voix est simulée"
+   ],
+   "motGarde": "Ici, rien ne part vraiment",
+   "note": "une seule façon, courte, sans mot de revue. Hors de la visite, la phrase honnête d’un envoi qui n’a pas lieu (« Rien n’est envoyé ici ») garde son sens."
+  },
+  {
+   "chose": "le compte qui règle les accès",
+   "motsTrouves": [
+    "Admin",
+    "administrateur"
+   ],
+   "motGarde": "Administrateur",
+   "note": "jamais « Admin » : la pastille de la fiche Équipe tient avec le mot entier à 320 px."
+  },
+  {
+   "chose": "dire une échéance",
+   "motsTrouves": [
+    "éch.",
+    "échéance",
+    "échue"
+   ],
+   "motGarde": "échéance",
+   "note": "aucune abréviation à point sauf les mois et les jours dans une date (« 16 oct. », « sam. 31/10 »), « réf. », « Tél. » d’un en-tête de document et « auj. » dans l’en-tête étroit d’un jour du planning."
+  },
+  {
    "chose": "écrire un exemple dans un champ",
    "motsTrouves": [
     "Ex. :",
@@ -1023,7 +1060,7 @@
    "ecran": "Temps de travail, Équipe, Paie",
    "texte": "41h50",
    "regle": "doute-h",
-   "pourquoi": "DOUTE À SOUMETTRE À JUSTIN : les totaux d’heures s’écrivent « 41h50 » (compact, pour les tuiles et les colonnes), alors que les heures de la journée s’écrivent « 13 h 05 » et les durées « 1 h 30 ». Un seul usage serait plus net, mais les 51 emplois de ptH tiennent dans des tuiles étroites : à décider avec lui avant de toucher la mise en page."
+   "pourquoi": "DOUTE À SOUMETTRE À JUSTIN : les totaux d’heures s’écrivent « 41h50 » (compact, pour les tuiles et les colonnes), alors que les durées s’écrivent « 1 h 30 » et que l’heure d’un rendez-vous s’écrit « 08:30 » (comme un agenda) ou « 13 h 05 » dans une phrase : trois écritures pour la même idée de temps. Un seul usage serait plus net, mais les 51 emplois de ptH tiennent dans des tuiles étroites : à décider avec lui avant de toucher la mise en page."
   },
   {
    "ecran": "Comptabilité (cadre) › en-tête du pilotage",
@@ -1037,5 +1074,57 @@
    "regle": "vouvoiement-equipe",
    "pourquoi": "phrase imprimée dans le devis que le CLIENT reçoit : elle le vouvoie, comme tout le document."
   }
- ]
+ ],
+ "passage18nov": {
+  "date": "2026-11-18",
+  "profil": "mac (ordinateur)",
+  "methode": "mots-tout.sh : mots-interdits.js relève chaque rubrique de chaque rôle par le navigateur (texte rendu, aria-label, title, placeholder, options, cadres compris ; les gestes du premier niveau ouvrent fenêtres et toasts ; l’espace client en trois niveaux), puis mots-hors-rubriques.js (connexion et guide des nouveautés) et mots-visite.js (la visite parlée, en morceaux), et applique mots-regles.js",
+  "textesDistincts": 4587,
+  "parRole": {
+   "marc": {
+    "ecrans": 21,
+    "gestes": 139,
+    "textesDistincts": 3512
+   },
+   "julie": {
+    "ecrans": 12,
+    "gestes": 76,
+    "textesDistincts": 1539
+   },
+   "sm": {
+    "ecrans": 6,
+    "gestes": 32,
+    "textesDistincts": 629
+   },
+   "kb": {
+    "ecrans": 6,
+    "gestes": 36,
+    "textesDistincts": 629
+   },
+   "client": {
+    "ecrans": 1,
+    "gestes": 30,
+    "textesDistincts": 108
+   },
+   "visite": {
+    "pas": 166,
+    "textesDistincts": 346
+   },
+   "connexion": {
+    "textesDistincts": 12
+   },
+   "guide-marc": {
+    "textesDistincts": 48
+   },
+   "guide-julie": {
+    "textesDistincts": 47
+   },
+   "guide-sm": {
+    "textesDistincts": 48
+   },
+   "guide-kb": {
+    "textesDistincts": 48
+   }
+  }
+ }
 }
