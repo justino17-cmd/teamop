@@ -5,7 +5,16 @@
 // depuis un autre rôle de la revue (technicienne) et avec un rangement/un historique adverses.
 // Population d'abord : un zéro sur du vide ne prouve rien. 127.0.0.1 seulement.
 //   PROFILS=mac,iphone JOUR=1 node restes-artefact-tour1-recontrole.js
-const P = require('./recontrole-artefact-pose.js'), { lib: L, v } = P;
+const P = require('./recontrole-artefact-pose.js'), { lib: L } = P;
+// GARDE-FOU (18 novembre 2026) : une sonde qui se fige ne prouve rien et bloque la campagne plus de 150 s. Chaque contrôle remet la pendule à zéro ;
+// si aucun ne passe en DELAI_ETAPE ms (40 s par défaut ; la plus longue attente saine, `pret`, fait 30 s au pire), on écrit un ✗ NOMMÉ (le dernier
+// contrôle passé et l'étape en cours), on rend le bilan et on sort en 1 — au lieu de laisser le délai du lanceur couper sans un mot.
+let dernier = 'démarrage', enCours = 'démarrage', t0 = Date.now(), fini = false; const DELAI = +process.env.DELAI_ETAPE || 40000;
+const etape = n => { enCours = n; t0 = Date.now(); };
+const v = (n, c, d) => { dernier = n; t0 = Date.now(); return P.v(n, c, d); };
+const garde = setInterval(async () => { if (fini || Date.now() - t0 < DELAI) return; fini = true; clearInterval(garde);
+  P.v(`BLOQUÉ plus de ${DELAI / 1000} s à l'étape « ${enCours} » (dernier contrôle passé : « ${dernier} »)`, false, {});
+  L.bilan(); try { await Promise.race([L.fermer(), new Promise(r => setTimeout(r, 3000))]); } catch (x) {} process.exit(1); }, 1000);
 const fs = require('fs'), path = require('path');
 const PROFILS = (process.env.PROFILS || 'mac,windows,ipad,iphone,android,petit').split(',');
 const CAP = process.env.CAP || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/rc-artefact1';
@@ -25,9 +34,9 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
 (async () => {
   for (const profil of PROFILS) for (const nuit of (process.env.JOUR ? [false] : [false, true])) {
     const T = `${profil}/${nuit ? 'nuit' : 'jour'}`, nomCap = `${profil}-${nuit ? 'nuit' : 'jour'}`;
-    const c = await P.ouvrir({ profil, qui: null, app: false, nuit, guide: true }, {}); await calmer(c.p);
+    etape(`${T} : ouverture de la page`); const c = await P.ouvrir({ profil, qui: null, app: false, nuit, guide: true }, {}); await calmer(c.p); c.p.setDefaultTimeout(5000);
     const W = c.largeur;
-    let e = await pret(c, 25000);
+    etape(`${T} 1 : attente de la bande`); let e = await pret(c, 25000);
     // ── 1. la bande et son bouton ──
     v(`${T} 1 : population (la bande et le bouton sont là, pas d'écran de connexion)`, e.bande && e.bouton && !e.cnx, e);
     const g = await c.p.evaluate(() => { const b = document.querySelector('.rl-bande'), bt = b.querySelector('[data-apv]'); bt.scrollIntoView({ block: 'center' });
@@ -42,7 +51,7 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
     await c.p.evaluate(() => scrollTo(0, 0)); await c.p.waitForTimeout(300);
     await c.p.screenshot({ path: path.join(CAP, nomCap + '-1-bande.png') }).catch(() => {});
     // ── 2. un toucher → l'écran de connexion ; le lien de retour ──
-    await L.toucher(c, c.p.locator('.rl-bande [data-apv]').first()); e = await pret(c, 30000);
+    etape(`${T} 2 : toucher le bouton puis attendre l'écran de connexion`); await L.toucher(c, c.p.locator('.rl-bande [data-apv]').first()); e = await pret(c, 30000);
     v(`${T} 2 : le bouton mène à l'écran de connexion (app, carte, lien de retour)`, e.app && e.cnx && e.lien && !e.bande, e);
     const k = await c.p.evaluate(() => { const l = document.getElementById('cnx-test'), r = l.getBoundingClientRect(), cn = document.getElementById('cnx');
       const cs = getComputedStyle(l), colonne = cn.querySelector('.cn-col');
@@ -62,19 +71,19 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
     // ── 3. le clavier atteint le lien ; Entrée ramène la bande (mac seulement : au doigt il n'y a pas de clavier) ──
     if (!c.doigt && !nuit) {
       // le piège de focus de la fenêtre modale (#cnx, aria-modal) boucle sur SES éléments : on note où le clavier passe, et s'il sort jamais de #cnx
-      let atteint = false; const piste = []; for (let i = 0; i < 40 && !atteint; i++) { await c.p.keyboard.press('Tab'); const a = await c.p.evaluate(() => { const x = document.activeElement; return { id: x && (x.id || x.tagName), dedans: !!(x && x.closest && x.closest('#cnx')), lien: !!(x && x.id === 'cnx-test') }; }); atteint = a.lien; piste.push(a.id + (a.dedans ? '' : '(hors #cnx)')); }
+      let atteint = false; const piste = []; for (let i = 0; i < 40 && !atteint; i++) { await c.p.keyboard.press('Tab'); etape(`${T} 3 : Tab n°${i + 1}`); const a = await c.p.evaluate(() => { const x = document.activeElement; return { id: x && (x.id || x.tagName), dedans: !!(x && x.closest && x.closest('#cnx')), lien: !!(x && x.id === 'cnx-test') }; }); atteint = a.lien; piste.push(a.id + (a.dedans ? '' : '(hors #cnx)')); }
       const sorti = piste.some(x => /hors #cnx/.test(x));
       v(`${T} 3 : Tab atteint « Revenir au mode test » (en ≤ 40 pressions) — le clavier ${sorti ? 'sort' : 'ne sort jamais'} de #cnx : ${[...new Set(piste)].join(' › ')}`, atteint, piste.slice(0, 12));
       if (atteint) { const anneau = await c.p.evaluate(() => { const s = getComputedStyle(document.activeElement); return { outline: s.outlineStyle + ' ' + s.outlineWidth, ombre: s.boxShadow.slice(0, 40) }; });
         v(`${T} 3 : le focus du lien se voit (contour ou ombre)`, (anneau.outline && !/^none/.test(anneau.outline)) || (anneau.ombre && anneau.ombre !== 'none'), anneau);
-        await c.p.keyboard.press('Enter'); e = await pret(c, 30000); v(`${T} 3 : Entrée ramène la bande (revue), plus d'écran de connexion`, e.bande && !e.cnx && !e.app, e); }
+        etape(`${T} 3 : Entrée sur le lien puis attente de la bande`); await c.p.keyboard.press('Enter'); e = await pret(c, 30000); v(`${T} 3 : Entrée ramène la bande (revue), plus d'écran de connexion`, e.bande && !e.cnx && !e.app, e); }
     } else {
-      await L.toucher(c, c.p.locator('#cnx-test').first()); e = await pret(c, 30000);
+      etape(`${T} 3 : toucher le lien puis attendre la bande`); await L.toucher(c, c.p.locator('#cnx-test').first()); e = await pret(c, 30000);
       v(`${T} 3 : le lien ramène la bande (revue), plus d'écran de connexion`, e.bande && !e.cnx && !e.app, e);
     }
     // ── 4. depuis un autre rôle de la revue (technicienne) : la bande garde son bouton, il mène à la connexion ──
     if (e.bande) {
-      const role = c.p.locator('.rl-bande [data-rl^="role|"]').nth(2);
+      etape(`${T} 4 : autre rôle`); const role = c.p.locator('.rl-bande [data-rl^="role|"]').nth(2);
       const nom = await role.textContent().catch(() => '');
       await L.toucher(c, role); await c.p.waitForTimeout(900); await calmer(c.p);
       const e4 = await lit(c.p); v(`${T} 4 : après un autre rôle (« ${nom.trim().slice(0, 18)} ») la bande et son bouton sont encore là`, e4.bande && e4.bouton, e4);
@@ -84,5 +93,5 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
     v(`${T} : aucune erreur JavaScript`, !err.length, err.slice(0, 3));
     await L.fin(c);
   }
-  const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
+  fini = true; const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('PLANTÉ', e && e.stack || e); try { await L.fermer(); } catch (x) {} process.exit(2); });
