@@ -49,7 +49,9 @@ parcours('A · communeDe : ce que la règle « code postal + commune hors liste 
   await vue(c, 'jour');
   await L.toucher(c, '[data-creer]'); await L.attendre(c.p, () => !!document.querySelector('#fenetre .fen'));
   await L.toucher(c, '.fen [data-cnouveau="1"]');
-  await c.p.fill('.fen [data-cnv="nom"]', 'Cabinet Dupuis'); await c.p.fill('.fen [data-cnv="adr"]', '12 Rue de La Rochelle, 17100 Saintes'); await L.calme(c.p, 400);
+  await c.p.fill('.fen [data-cnv="nom"]', 'Cabinet Dupuis'); await c.p.fill('.fen [data-cnv="adr"]', '12 Rue de La Rochelle, 17100 Saintes');
+  await c.p.fill('.fen [data-cnv="tel"]', '06 98 76 54 32');   // depuis le 17/11 (Clients, restes tour 1) un client neuf demande un téléphone ou un e-mail : sans lui la création est refusée, et un numéro déjà connu (celui du Vieux Port) fait dire « ce client existe peut-être déjà » : un numéro neuf
+  await L.calme(c.p, 400);
   const f = await c.p.evaluate(() => ({ info: [...document.querySelectorAll('.fen .bandeau-info')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), rep: (document.querySelector('.fen .adr-rep') || {}).textContent || null,
     zone: [...document.querySelectorAll('.fen *')].filter(e => !e.children.length && /zone|déplacement/i.test(e.textContent)).map(e => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 90)).slice(0, 6) }));
   L.v('A · le formulaire dit que l’adresse n’est pas reconnue, et ne place personne', f.info.some(x => /pas encore reconnue/.test(x)) && !f.rep, f);

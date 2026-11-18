@@ -115,7 +115,7 @@ const FORMES = [
   const min = PRINCIPALE ? { f: +arg('min-f', 40), c: +arg('min-c', 80), v: +arg('min-v', 25) } : { f: 3, c: 4, v: 1 };   /* une exécution partielle (--routes, un rôle, un budget court) abaisse ces planchers À VOIX HAUTE : le total des passes est dit dans le rapport */
   L.v(`population : ≥ ${min.f} formulaires ouverts et ≥ ${min.c} champs de texte remplis`, ouvertures >= min.f && champsRemplis >= min.c, { ouvertures, champsRemplis });
   L.v(`population : ≥ ${min.v} validations ont CHANGÉ les données (la valeur est donc rangée, puis relue)`, changes >= min.v, { valides, changes, refusees });
-  L.v('population : des charges rangées sont retrouvées (échappées) à l\'écran', vus.size >= (PRINCIPALE ? +arg('min-vues', 15) : 1), vus.size);
+  L.v('population : des charges rangées sont retrouvées (échappées) à l\'écran', vus.size >= (PRINCIPALE ? +arg('min-vues', ROLES_ARG[0] === 'tous' ? 15 : 8) : 1), vus.size);   /* un rôle SEUL retrouve 11 à 12 charges (patron 12, gérant des factures 12, technicien 11 : mesuré le 18/11) ; les 15 sont le plancher des trois rôles réunis — ce n'était pas une faille, c'était un plancher réglé pour la passe complète */
   L.v('AUCUNE exécution par une saisie (window.__hits) : ' + hits.length, hits.length === 0, [...new Set(hits)].slice(0, 8).map(lib));
   L.v('AUCUNE balise ni gestionnaire né d\'une saisie : ' + sorties.length, sorties.length === 0, sorties.slice(0, 8).map(s => lib(s.champ) + ' ▸ ' + s.sorte));
   L.v('AUCUNE écriture HTML ne reçoit une saisie brute (puits) : ' + puits.length, puits.length === 0, [...parPile.entries()].slice(0, 5).map(([k, v]) => k.slice(0, 150) + ' ← ' + v[0]));
