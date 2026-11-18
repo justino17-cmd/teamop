@@ -2745,6 +2745,26 @@ function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([.
 const monLoginTries = new Map();      // ip -> { count, reset }
 const monLock = new Map();            // ident -> { fails, until } : 5 échecs consécutifs = verrou 15 min
 const monHash = p => crypto.createHash('sha256').update(String(p)).digest('hex');
+/* ⛔ LES MOTS DE PASSE DE LA TOUR ET DES ACCÈS BÊTA SE RANGENT EN SCRYPT SALÉ (18 novembre 2026) — un SHA-256 nu se casse par dictionnaire en
+   quelques secondes si `monitor.json` ou `beta-comptes.json` fuit. Forme rangée : `scrypt$<sel hexa>$<dérivé hexa>` (module `crypto`, aucune dépendance).
+   L'ANCIEN hachage (64 hexadécimaux) reste accepté, UNE fois : `monMdpVerifier` dit alors `aReecrire`, et la porte qui vient d'accepter le réécrit.
+   Aucun mot de passe ni empreinte ne va dans un journal. Le repli `config.adminPassHash` (fichier du VPS) reste lu en ancien format. */
+const MDP_SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+const monMdpHacher = p => { const sel = crypto.randomBytes(16); return 'scrypt$' + sel.toString('hex') + '$' + crypto.scryptSync(String(p), sel, 32, MDP_SCRYPT).toString('hex'); };
+function monMdpVerifier(p, stocke) {
+  stocke = String(stocke || '');
+  try {
+    if (stocke.startsWith('scrypt$')) {
+      const [, sel, dv] = stocke.split('$');
+      if (!/^[0-9a-f]{32}$/.test(sel || '') || !/^[0-9a-f]{64}$/.test(dv || '')) return { ok: false, aReecrire: false };
+      const a = crypto.scryptSync(String(p), Buffer.from(sel, 'hex'), 32, MDP_SCRYPT);
+      return { ok: crypto.timingSafeEqual(a, Buffer.from(dv, 'hex')), aReecrire: false };
+    }
+    if (!/^[0-9a-f]{64}$/.test(stocke)) return { ok: false, aReecrire: false };
+    const ok = crypto.timingSafeEqual(Buffer.from(monHash(p), 'hex'), Buffer.from(stocke, 'hex'));
+    return { ok, aReecrire: ok };
+  } catch (e) { return { ok: false, aReecrire: false }; }
+}
 /* L'ESPACE DE TEST : les comptes de la Tour qu'il sème, et la session que rend « Se connecter comme patron / collaborateur ». Une session née ici est une
    session ordinaire (`monTokens`) — celle que ferait `/api/monitor/login`. N'existe que dans le serveur de test. */
 const essaiTour = ESSAI ? {
@@ -2752,7 +2772,7 @@ const essaiTour = ESSAI ? {
     for (const x of liste) {
       let u = monUsers.find(y => y.nom === x.nom);
       if (!u) { u = { id: 'u' + crypto.randomBytes(5).toString('hex'), nom: x.nom, email: x.email, role: x.role, actif: true, ts: Date.now(), creePar: 'espace de test' }; monUsers.push(u); }
-      u.email = x.email; u.role = x.role; u.actif = true; u.hash = monHash(x.mdp);
+      u.email = x.email; u.role = x.role; u.actif = true; u.hash = monMdpHacher(x.mdp);
     }
     monSave();
   },
@@ -2897,8 +2917,10 @@ app.post('/api/monitor/login', (req, res) => {
   let user = null;
   if (monUsers.length) {
     const u = monUsers.find(x => x.nom.toLowerCase() === ident || String(x.email || '').toLowerCase() === ident);
-    if (!u || !pass || monHash(pass) !== u.hash) { echec('identifiants'); return res.status(403).json({ error: 'nom ou mot de passe incorrect' }); }
+    const v = (u && pass) ? monMdpVerifier(pass, u.hash) : { ok: false };
+    if (!v.ok) { echec('identifiants'); return res.status(403).json({ error: 'nom ou mot de passe incorrect' }); }
     if (!u.actif) { echec('compte désactivé'); return res.status(403).json({ error: 'accès désactivé — vois avec le patron' }); }
+    if (v.aReecrire) { u.hash = monMdpHacher(pass); monSave(); }   // migration au premier login réussi
     user = u;
   } else {
     // repli : ancien mot de passe unique (config.adminPassHash) tant qu'aucun compte n'existe
@@ -3022,7 +3044,7 @@ app.post('/api/monitor/users', monPatronStrict, (req, res) => {
   // apps facultatif : sans lui, le compte n'a qu'OP GESTION. Mêmes règles que users/apps.
   let apps = null;
   if ((req.body || {}).apps !== undefined) { const l = monAppsLire((req.body || {}).apps); if (l.error) return res.status(400).json({ error: l.error }); apps = l.apps; }
-  const u = { id: 'u' + crypto.randomBytes(5).toString('hex'), nom, email, hash: monHash(pass), role: 'collaborateur', actif: true, ts: Date.now(), creePar: req.tourUser.nom };
+  const u = { id: 'u' + crypto.randomBytes(5).toString('hex'), nom, email, hash: monMdpHacher(pass), role: 'collaborateur', actif: true, ts: Date.now(), creePar: req.tourUser.nom };
   if (apps) { u.apps = apps; u.appsPar = req.tourUser.nom; u.appsTs = u.ts; }
   monUsers.push(u); monSave();
   res.json({ ok: true, user: { id: u.id, nom: u.nom, email: u.email, role: u.role, actif: true, apps: monApps(u) } });
@@ -3107,7 +3129,7 @@ app.post('/api/monitor/beta', monPatronStrict, (req, res) => {
   if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
   if (betaComptes.some(c => c.login === login && betaApps(c).includes(apps[0]))) return res.status(409).json({ error: 'cet identifiant existe déjà dans cette bêta' });
   if (betaComptes.length >= 50) return res.status(400).json({ error: 'trop d\'accès d\'essai (50 max)' });
-  const c = { id: 'b' + crypto.randomBytes(5).toString('hex'), login, nom: nom || login, chantier, apps, hash: monHash(pass), actif: true, ts: Date.now(), creePar: req.tourUser.nom };
+  const c = { id: 'b' + crypto.randomBytes(5).toString('hex'), login, nom: nom || login, chantier, apps, hash: monMdpHacher(pass), actif: true, ts: Date.now(), creePar: req.tourUser.nom };
   betaComptes.push(c); betaSave();
   res.json({ ok: true, compte: betaPublic(c) });
 });
@@ -3133,7 +3155,7 @@ app.post('/api/monitor/beta/mdp', monPatronStrict, (req, res) => {
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
   const pass = monStr((req.body || {}).pass, 200);
   if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
-  c.hash = monHash(pass); c.mdpTs = Date.now(); c.jetonDepuis = c.mdpTs; betaSave();
+  c.hash = monMdpHacher(pass); c.mdpTs = Date.now(); c.jetonDepuis = c.mdpTs; betaSave();
   monLock.delete((betaApps(c)[0] === 'gestion' ? 'bêta:' : 'bêta-' + betaApps(c)[0] + ':') + c.login);   // un accès verrouillé par des essais ratés avec l'OUBLI repart propre
   console.log('Tour :', req.tourUser.nom, 'pose un nouveau mot de passe à l\'accès bêta', c.login, '(' + betaApps(c).join('+') + ')');   // identifiant d'accès, jamais le mot de passe
   res.json({ ok: true, compte: betaPublic(c) });
@@ -3213,8 +3235,10 @@ app.post('/api/beta/login', (req, res) => {
   // ⛔ L'accès de CETTE application, et lui seul : un accès de l'autre bêta (même identifiant ou non) reçoit EXACTEMENT la réponse
   // d'un mauvais mot de passe (même code, même texte, même décompte d'échecs) — la porte ne dit pas ce qui existe ailleurs.
   const c = betaComptes.find(x => x.login === login && betaApps(x).includes(appVoulue));
-  if (!c || !pass || monHash(pass) !== c.hash) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
+  const vb = (c && pass) ? monMdpVerifier(pass, c.hash) : { ok: false };
+  if (!vb.ok) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
   if (!c.actif) { echec('accès désactivé'); return res.status(403).json({ error: 'cet accès d\'essai a été coupé depuis la Tour de contrôle' }); }
+  if (vb.aReecrire) c.hash = monMdpHacher(pass);   // migration au premier login réussi
   c.derniere = Date.now(); betaSave();
   monLock.delete(ident); monLog(ident, true, req, '');
   // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
