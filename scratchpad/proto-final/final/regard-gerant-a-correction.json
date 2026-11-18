@@ -1,0 +1,15 @@
+{
+  "voie": "final-regard", "role": "gerant", "suffixe": "a-correction", "date": "2026-11-18",
+  "page": "apercu/prototype-op-gestion.html",
+  "corriges": {
+    "A": {"avant": "320 px : Planning (6 vues) et Interventions : innerWidth/scrollWidth 340, croix de « Rendez-vous en ligne » hors ecran", "apres": "0 page elargie sur 20 ecrans x 6 profils (126 ✓), fenetres 116 ✓ 0 ✗", "cause": "summary du <details class=t-ici> : titre nowrap 223 px + icone + fleche = 323 px, le petit texte ecrase a 0", "correction": ".t-ici{min-width:0}.t-ici summary{flex-wrap:wrap}", "autres_pages_elargies": "aucune : balayage 20 ecrans x 6 profils a la largeur POSEE du profil"},
+    "B": {"avant": "colonne de texte 97-120 px, 4 a 6 lignes, lien casse", "apres": "colonne >= 200 px, lien sur 1 ligne (sous 380 px : date + montant sur la 1re ligne, texte pleine largeur dessous)"},
+    "C": {"avant": "puces orphelines en bout de ligne (en-tete d'intervention, fiche client)", "apres": "0 puce orpheline sur 3 telephones x jour/nuit x 3-4 ecrans (58 ✓ 0 ✗) ; fonction pp()/ppt() : sous 600 px les morceaux se rangent sans puce", "etendu_a": "ligne adresse/tel de la fiche a planifier, titres et sous-titres de l'historique client, lignes de taches (client, bande t-ici)"},
+    "D": {"avant": "pastille « presque plus de conges » sur 3 lignes a 390 px", "apres": "l'alerte passe sous le nom jusqu'a 430 px, deux lignes au plus (mesure 320, 360, 390)"},
+    "E": {"avant": ".pg-abs sans rembourrage", "apres": "20 px d'air de chaque cote a 1366 (jour et nuit)"},
+    "F": {"resultat": "Planning > Jour de nuit, windows et ipad, apres fin des animations + 2 trames : contenu present 6/6 sur chacun ; capture lue : correcte. La capture blanche etait l'animation d'entree lue trop tot (non reproduite une fois attendue)."}
+  },
+  "sondes": {"regard-gerant-a.js": "134 ✓ 0 ✗", "recontrole-largeur": "126 ✓ 0 ✗", "recontrole-fenetres": "116 ✓ 0 ✗", "regard-gerant-a-correction.js (nouvelle : B, C, D, E)": "58 ✓ 0 ✗", "balayage recontrole petit et iphone": "aucun ✗ nouveau contre l'avant ; stats-detail-fac « texte ecrase » disparu ; restent les faux positifs connus (leaflet, tkx-sr, bandeau t-bandeau, Menu7)", "tests/test-836.js et test-837.js (lisent la page)": "307 ✓ et 122 ✓, 0 ✗"},
+  "mutations": "mutations-regard-gerant-a-correction.py : 7 sur 7 tombent (A 9+2 ✗, B 4, C1 2, C2 4, C3 4, D 1, E 4), chacune verifiee sur UNE occurrence dans une copie",
+  "reste": ["Les sources de puces « · » dans le reste de l'application (autres rubriques que celles balayees) ne sont pas toutes passees par pp() : la sonde de correction ne couvre que les ecrans listes", "La pastille de conges garde deux lignes a 320-430 px (decision : acceptable)"]
+}
