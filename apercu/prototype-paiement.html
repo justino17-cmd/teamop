@@ -679,7 +679,7 @@ function ecranTel(){
     case 'lire': { const m = S.boite.find(x => x.id === S.msg), g = facDe(m.fid), p = m.pid && payDe(m.pid), e = etatFac(g);
       const corps = { facture:`${salut(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
         relance:`${salut(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
-        recu:`Merci ${esc(g.contact)}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
+        recu:`${salut(g.contact).replace('Bonjour', 'Merci')}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
         rejet:`${salut(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
         remboursement:`${salut(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
       const payable = ['facture', 'relance', 'rejet'].includes(m.type) && reste(g) > .005 && !['sepa', 'litige', 'annulee'].includes(e) && !g.annonce;

@@ -2785,6 +2785,9 @@ var MARKUP = `
   function suiviHtml(m){
     if(!CAP.suivi||typeof SRC.suivi!=="function"||!m.src||m.folder!=="inbox"||!m.suivi) return "";
     var s=m.suivi;
+    // « Voir seul » : le suivi se LIT (où en est la demande, qui s'en charge) mais ne s'écrit pas — changer un état ou une assignation, c'est ranger (18 novembre 2026, restes entreprise tour 2)
+    if(CAP.droits&&CAP.droits.ranger===false) return '<div class="rcat rsuivi rs-lecture" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span><span class="rs-lu">'+suiviChip(m)+'</span>'+
+      (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>';
     return '<div class="rcat rsuivi" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span>'+
       '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
       '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="'+(CAP.equipe&&CAP.equipe.length?"Choisir quelqu’un":"Personne")+'" value="'+H(s.assigne)+'"'+(CAP.equipe&&CAP.equipe.length?' list="suiviEquipe"':'')+'>'+
@@ -2797,6 +2800,7 @@ var MARKUP = `
       try{ renderSidebar(); }catch(e){} compter(); }
     if(!m||!m.suivi||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
     var s=m.suivi;
+    var lu=$(".rs-lu",el); if(lu) lu.innerHTML=suiviChip(m);   // lecture seule : la puce se repeint, rien d'autre n'existe
     $$("[data-suivi]",el).forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-suivi")===s.statut)); });
     var inp=$("#suiviAssigne",el); if(inp&&actif()!==inp) inp.value=s.assigne;
     var par=$(".rs-par",el);
@@ -2804,6 +2808,7 @@ var MARKUP = `
     if(focus){ var b=$('[data-suivi="'+focus+'"]',el); if(b) b.focus({preventScroll:true}); } }
   function changerSuivi(m,patch){
     if(!m||!m.src||!m.suivi||!CAP.suivi||typeof SRC.suivi!=="function") return;
+    if(!droit("ranger")) return;   // la garde est aussi là pour qui passerait par l'hôte ou le clavier
     var avant=m.suivi, neuf={statut:patch.statut||avant.statut,assigne:patch.assigne!==undefined?patch.assigne:avant.assigne,par:avant.par};
     if(neuf.statut===avant.statut&&neuf.assigne===avant.assigne) return;
     m.suivi=neuf; repeindreSuivi(m,patch.statut||"");   // l'état s'applique d'abord ; le serveur le confirme (ou le refuse, et l'état d'avant revient)

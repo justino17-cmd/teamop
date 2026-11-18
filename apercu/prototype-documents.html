@@ -5341,7 +5341,7 @@ function vvLigHtml(V){
     return tete+`<li class="vv-l${l.opt?' opt':''}" data-id="${esc(l.id)}">
       <div class="vv-l-t">${esc(l.des)}${l.ref?`<i>${esc(l.ref)}</i>`:''}${l.opt?`<em class="vv-opt-b">Option</em>`:''}</div>
       <div class="vv-l-c"><label class="vv-mini">Quantité<input data-vv-q data-id="${esc(l.id)}" data-fk="q:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['qb:'+l.id]!==undefined?V.erreurs['qb:'+l.id]:rawQte(l.qteM))}" autocomplete="off" aria-label="Quantité : ${nom}"${V.erreurs['q:'+l.id]?' aria-invalid="true"':''}></label><span class="vv-u">${esc(l.unite)}</span>
-        <label class="vv-mini">Prix HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:champPrix(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
+        <label class="vv-mini">Prix unitaire HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:champPrix(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
         <span class="vv-l-m" data-m="${esc(l.id)}">${esc(fmtMontant(htDeLigne(vvLigneDoc(l))))}</span></div>
       <span class="err" role="alert"${err?'':' hidden'}>${esc(err)}</span>
       <div class="vv-l-a"><label class="interr vv-opt"><input type="checkbox" role="switch" data-vv-sw="opt" data-id="${esc(l.id)}" data-fk="sw:${esc(l.id)}"${l.opt?' checked':''}><span>En option</span></label>
