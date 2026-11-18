@@ -1,12 +1,13 @@
 {
  "lot": "materiel",
  "etape": "9 sur 9 (recontrôler)",
- "etat": "brouillon poussé en cours de travail (sondes du lot encore en rejeu)",
+ "recontroleur": "session sœur 27, machine redémarrée le 18/11 à 20 h 46 ; brouillon du 17/11 repris et corrigé",
  "regles": [
   "bureau-01",
   "bureau-02",
   "bureau-03",
   "bureau-04",
+  "bureau-05",
   "bureau-06",
   "bureau-07",
   "bureau-08",
@@ -25,38 +26,76 @@
   "technicien-02",
   "technicien-03",
   "technicien-04",
+  "technicien-05",
   "technicien-06",
   "technicien-07",
   "technicien-09",
-  "technicien-10"
+  "technicien-10",
+  "technicien-11",
+  "technicien-12",
+  "technicien-13",
+  "technicien-14"
  ],
  "pasRegles": [
   {
-   "n": "bureau-05",
-   "constat": "Le transfert vers un camion au garage demande bien confirmation et le toast porte « Annuler », mais Annuler ne défait PLUS proprement : la ligne de code qui sert à tous les « Annuler » (sxAnnule) a été cassée par la correction technicien-07 (voir casse 1). La commande brouillon née du transfert reste OUVERTE à l'écran après l'annulation et peut être envoyée au fournisseur (« Commande envoyée à Frigo Distribution 17 · 152,00 € HT ») alors que le transfert est défait et que la demande est redevenue « en attente »."
-  },
-  {
-   "n": "technicien-05",
-   "constat": "Pas corrigé (laissé « à soumettre » par le correcteur). La décision du chef (12 h 05 : un seul mot, « manque à bord ») n'est pas encore appliquée : « 3 articles à remettre à bord » s'affiche toujours sur Ma journée (ligne 19019) et dans Véhicules (ligne 18843)."
-  },
-  {
-   "n": "technicien-11",
-   "constat": "Pas corrigé : le correcteur n'a lu que 10 défauts sur 14. « Je l'ai pris » hors réseau dit encore « Envoyé au bureau : Filtre à charbon × 1 » (MVTS_ATT 2 → 3, file hors ligne MAT.file = 0). Rejoué au navigateur (iphone, réseau coupé)."
-  },
-  {
-   "n": "technicien-12",
-   "constat": "Pas corrigé : « Nettoyant échangeur (0,5 L) » passe sur deux lignes à l'iPhone (213 px) et se coupe entre « (0,5 » et « L) » ; tient sur une ligne à 320 px (254 px)."
-  },
-  {
-   "n": "technicien-13",
-   "constat": "Non rejoué comme défaut à 320 px : à 320 px la première pièce qui manque est à 590 px pour une barre du bas à 488 : à vérifier par la sonde du correcteur au rejeu final (la mesure iphone, 590 sur 730, passe)."
-  },
-  {
-   "n": "technicien-14",
-   "constat": "Pas corrigé : l'invite « Chercher un article, une référence, un fournisseur » (Fournisseurs › Articles) fait 378 px pour un champ de 332 (iPhone), 302 (Android) et 262 (320 px) ; l'invite de Stock « Chercher un article… » fait 159 pour 153 à 320 px. Mesure par largeur du texte avec la police du champ."
+   "n": "technicien-08",
+   "constat": "Non traité volontairement : l'unité « u » reste l'unité générique de tout le prototype (« 1 u », « 4 u »). Décision de vocabulaire à prendre (voir doutes)."
   }
  ],
- "casses": [],
- "sondes": [],
- "doutes": []
+ "casses": [
+  {
+   "titre": "« Annuler » d'un geste de stock ne redessine plus l'écran et ne dit rien (cassé par technicien-07)",
+   "gravite": "haute (bloquant pour un parcours de tous les jours)",
+   "etapes": [
+    "Technicienne (iPhone) : Mon camion › « Je l'ai pris » sur un article qui manque › « Annuler » (dans la ligne ou dans le toast)",
+    "Gérant : Stock › « Tout accepter » (envois à accepter) › « Annuler » ; Dépôts et camions › Remplir les camions › Annuler ; Secrétaire : compter l'atelier avec un écart › Enregistrer › Ce qui a bougé › Annuler"
+   ],
+   "constat": "Les données reviennent bien en arrière (journal « a annulé », stock) mais l'écran reste figé sur l'état d'avant : la ligne dit toujours « Envoyé au bureau · en attente » avec son bouton « Annuler » (capture par-p1-iphone-j-apres-annuler.png), le bandeau « envois à accepter » ne revient pas, la carte du camion de Sophie reste « Prêt », le journal affiché garde la ligne de comptage, aucun message « Annulé : … » ne s'affiche, la feuille éventuelle ne se ferme pas. Cause : apercu/prototype-op-gestion.html, sxAnnule (ligne ~15677) : la correction technicien-07 a ajouté « // le toast parle à la personne … » en fin de ligne, AVANT « fermerPanneau(); rendre(); toast('Annulé : ' + lib + '. Le stock est revenu comme avant.'); » qui sont sur la même ligne : le commentaire les avale. Seul le lien « Annuler le transfert » de la feuille de brouillon (data-axa=trfannul) contourne le défaut (un autre lot l'a noté dans son gestionnaire). Correction : remettre fermerPanneau(); rendre(); toast(…) AVANT le commentaire (ou le commentaire sur sa propre ligne), puis retirer le contournement de trfannul pour ne pas fermer deux fois ; la sonde du lot (technicien-corrections 07) ne lisait que les données : ajouter un contrôle de l'écran après Annuler. Sondes qui le voient : sondes/materiel-recontrole-parcours.js (1, 2, 3 : 11 ✗ en tout)."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "materiel-tout.sh (famille complète, mac + iphone, 25 min)",
+   "resultat": "avant réalignement : 7 sondes à 0 ✗ sur 12 familles à ✗ ; après lecture : tout ce qui restait en ✗ est une sonde périmée (espace insécable avant le chiffre, transfert annulé par la feuille, demande couverte par l'atelier = règle bureau-04, Julie qui voit désormais Dépôts et camions, nvCarteMat retirée par le lot Guide des nouveautés) — aucune régression de page hors « Annuler »"
+  },
+  {
+   "fichier": "materiel-camion.js / materiel-gestes.js / materiel-depots-gestes.js mac",
+   "resultat": "71 ✓ · 0 ✗ / 19 ✓ · 0 ✗ / 40 ✓ · 0 ✗ après réalignement des sondes"
+  },
+  {
+   "fichier": "materiel-bureau-corrections.js mac, iphone, windows, ipad",
+   "resultat": "43 ✓ · 0 ✗ (mac, iphone après réalignement) ; windows et ipad : 1 ✗ de bureau-11 (Julie) avant réalignement, 44 et 43 ✓ sinon"
+  },
+  {
+   "fichier": "materiel-technicien-corrections.js iphone, android",
+   "resultat": "18 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "appareils / depots-appareils / stock-appareils / nuit / densité / four-appareils (mac, iphone, jour et nuit)",
+   "resultat": "0 ✗ partout (40, 50, 160, 186, 168, 198, 18, 10, 6, 133, 160, 160 ✓)"
+  },
+  {
+   "fichier": "fumee-routes.js",
+   "resultat": "396 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "materiel-recontrole-defauts.js marc mac / julie mac / sm iphone, android, petit",
+   "resultat": "36 ✓ · 0 ✗ ; 7 ✓ · 0 ✗ ; 9 ✓ · 0 ✗ chacun (tech-12 rejoué par les rectangles de « (0,5 L) » avec contre-épreuve qui voit la coupure)"
+  },
+  {
+   "fichier": "materiel-recontrole-balayage.js (marc mac jour/nuit, iphone jour/nuit, ipad ; julie iphone ; sm iphone, android, petit ; kb iphone)",
+   "resultat": "0 ✗ partout sauf sm iphone fiche-i1 : « Roulement usé » tronqué à 89/110 px sur une vignette de PHOTO (hors Matériel, légende de photo, non corrigé)"
+  },
+  {
+   "fichier": "materiel-recontrole-parcours.js 1 iphone, 2 mac, 3 mac",
+   "resultat": "6 ✓ · 3 ✗ ; 7 ✓ · 4 ✗ (2c ✓ par le lien de la feuille) ; 5 ✓ · 1 ✗ — tous les ✗ viennent de la casse « Annuler »"
+  }
+ ],
+ "doutes": [
+  "À dire à Justin : « Annuler » après un geste de stock est cassé tant que la ligne de sxAnnule n'est pas réparée (rien ne se redessine, aucun message). C'est la seule régression trouvée ; elle est due à une correction du lot.",
+  "À dire à Justin : la secrétaire (Julie) voit maintenant « Dépôts et camions » (décision « la case Voir décide seule » du lot Droits, equipe-11) alors que la spécification Matériel § 4 le lui fermait ; six sondes du lot (depots-roles, four-roles, stock-roles, roles, voisins, stock-gestes) affirment encore le contraire et sont à rebaser sur sa décision.",
+  "À trancher : l'unité « u » pour les pièces (« 1 u »), laissée telle quelle (technicien-08).",
+  "Constaté mais hors lot : la légende « Roulement usé » d'une vignette photo est coupée sur iPhone (« Rouleme… »).",
+  "Pas vérifié : mac720, windows et petit pour les sondes d'appareils (25 minutes de machine) ; ipad et android seulement pour bureau-corrections et technicien-corrections ; la sonde de mutations du lot n'a pas été rejouée ; la sonde materiel-fonctions tombe sur nvCarteMat (fonction retirée par le lot Guide des nouveautés) et doit en être débarrassée."
+ ]
 }

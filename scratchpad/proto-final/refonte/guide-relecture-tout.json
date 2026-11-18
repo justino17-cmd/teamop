@@ -1,0 +1,131 @@
+{
+ "lot": "guide",
+ "etape": "2 sur 4 (relire)",
+ "angle": "tout",
+ "arbre": "relu sur l'arbre fusionné au 18/11/2026 (tête d0f32064) ; aucune page modifiée",
+ "couvert": [
+  "(A) vérité : pour chaque carte de Marc (6), Julie (6) et Sophie (6) — Kb a les mêmes titres que Sophie —, « Voir » touché au vrai bouton après « Suivant » (mac), écran d'arrivée lu et capturé ; 0 erreur de console",
+  "(A) gestes faits de bout en bout : Stock (taper « fluide », « thermo », « zzzz » → lieu + quantité, 2 ✓) ; Tâches (relance de FAC-2026-0128 envoyée → la tâche liée disparaît, 2 ✓) ; Équipe (fiche de Sophie → droits détaillés → décocher « Voir » du stock → « Ce que Sophie voit » perd Mon camion, son menu aussi, et son guide perd la carte « Mon camion » ; 1re carte ne cite plus « Boxes ») ; Mon entreprise (mentions légales, logo, banque, horaires : tous sur l'écran) ; Mon camion (champ « Chercher une pièce », « Il manque à bord », « Il me manque une pièce » → « Prévenir le bureau ») ; Ma journée (Y aller, Appeler, Continuer → compte rendu, signature du client, Terminer) ; Mes heures (« Je confirme mes heures » → « Tu as confirmé tes heures d'octobre ») ; Mes frais et Mes congés (textes et boutons relus)",
+  "(A) anciens noms : balayage du texte de toutes les rubriques du menu de Marc, Julie, Sophie, Karim (mac) ; recherche (palette) « tableau de bord », « boxes », « factures et paiements », « pointage », « notes de frais », « mes demandes », « paramètres », « utilisateurs », « permissions » pour les trois rôles : tout retrouve la bonne rubrique",
+  "(B) lecture débutant des 18 cartes (artisan de 55 ans ; technicienne d'une main) sur captures : iphone jour et nuit (Marc, Sophie), mac et ipad (première carte, 3 rôles)",
+  "mécanique : mac, ipad, iphone, android, petit × Marc, Julie (mac, ipad, iphone), Sophie — 150 contrôles ✓ : feuille et boutons hors encoche et barre du bas, pas de débordement latéral, 4 boutons ≥ 44 px, double toucher rapide sur Suivant (carte 2, alignée), rotation avec carte conservée, 14 Tab sans sortir, bouton Retour du navigateur (ferme le guide, ne quitte pas l'application, ne rouvre pas), rechargement (ne se rouvre pas), première connexion réelle iphone (guide-premiere-connexion : 7 ✓)",
+  "paysage téléphone : sonde paysage.js (visibilité réelle de « Voir » après rotation, 6 cartes × 2 rôles × 4 profils) : 20 ✓ 28 ✗ — voir tout-01"
+ ],
+ "non_couvert": [
+  "Karim (chef d'équipe) : seulement la liste des titres (identique à Sophie), pas l'écran de chaque « Voir »",
+  "Julie « responsable » (mêmes cartes selon ses cases) non jouée ; jour/nuit de Julie et de Marc sur mac, ipad, android, petit : captures non regardées (mécanique mesurée seulement)",
+  "windows non joué (même moteur que mac) ; mutations non rejouées (aucune page modifiée)",
+  "« le bureau te répond directement dans cet écran » (carte Mes frais) : texte et rubrique « Mes demandes » relus, la réponse du bureau n'a pas été jouée de bout en bout ; relance d'un DEVIS (tâche liée) non jouée, seule la facture l'a été",
+  "pas de palette de recherche au téléphone (palOuvrir réservé à l'ordinateur) : la phrase « se rouvre par la recherche » ne vaut que sur grand écran ; rien à corriger, à savoir"
+ ],
+ "defauts": [
+  {
+   "n": "tout-01",
+   "gravite": "gênant",
+   "ecran": "Guide des nouveautés, téléphone tenu en travers",
+   "role": "tous (gérant, bureau, terrain)",
+   "profils": "iphone paysage (844×390) : « Voir » invisible ; android paysage (640×360) et petit paysage (568×320) : « Voir » coupé de 5 px ; ipad paysage : rien",
+   "etapes": "Ouvrir le guide (première connexion ou « Nouveautés ») → tourner le téléphone en paysage, ou l'ouvrir déjà en paysage → regarder la carte 2 à 6.",
+   "attendu": "Titre, phrase et bouton « Voir » entièrement visibles ou, sinon, une carte qui défile de façon visible.",
+   "constate": "Sur iPhone paysage la carte est défilante en interne (84 px cachés) : la phrase est coupée en plein milieu de la 2e ligne (« tu remplis le compte rendu… » à moitié cachée) et « Voir » est entièrement sous le pli (-32/46 px vus, elementFromPoint ne le trouve pas) ; carte 1 : 17/46 px vus. Aucun indice de défilement. Sur android et petit paysage le bas du bouton « Voir » est rogné de 5 px (41/46). Les contrôles de cible ≥ 44 px passent quand même : ils mesurent le rectangle, pas ce qui est visible.",
+   "preuve": "cap/relire-guide/paysage.js (28 ✗ sur 48) ; captures cap/relire-guide/meca/sm-iphone-paysage.png et sm-petit-paysage.png",
+   "ou": "apercu/prototype-op-gestion.html : #nv .nv-feuille / .nv-defile / .nv-carte (blocs de style du guide, vers les lignes 26740-26790) ; le palier « téléphone » de la mise en page ne tient pas compte de la hauteur",
+   "correction": "En écran bas (@media (max-height:480px)) : icône masquée, titre et phrase resserrés, « Voir » et le pied sur une même rangée, ou carte défilante avec fondu en bas ; mesurer ensuite « Voir » par elementFromPoint, pas par son rectangle."
+  },
+  {
+   "n": "tout-02",
+   "gravite": "gênant",
+   "ecran": "Guide du bureau, cartes 1 et 4 ; écran Achats et frais",
+   "role": "bureau (Julie, secrétariat)",
+   "profils": "tous",
+   "etapes": "Se connecter en Julie → guide, carte 1 : « Mes demandes → Achats et frais », carte 4 « Achats et frais : les demandes » → Voir.",
+   "attendu": "Une secrétaire qui faisait ses « demandes » sait où les faire désormais.",
+   "constate": "L'écran dit « Tu peux regarder cet écran, pas le modifier. Pour changer quelque chose, demande à Marc. » et ne porte aucun bouton de création ou de décision (seulement des filtres). La ligne « Mes demandes → Achats et frais » laisse croire qu'elle y fait ses demandes. La carte 4 reste vraie (« réunies ici ») mais renvoie vers un écran où elle ne peut rien.",
+   "preuve": "cap/relire-guide/a-julie.js (boutons de l'écran) ; voir-julie-mac-4.png",
+   "ou": "nvLignes / nvPages (rôle gestion) dans apercu/prototype-op-gestion.html, vers la ligne 26641",
+   "correction": "Écrire la ligne et la carte selon la case « Créer » d'Achats et frais : sans elle, « Mes demandes » disparaît de la carte 1 et la carte 4 devient « Achats et frais : tu suis les demandes de l'équipe » ; avec elle, garder le texte actuel."
+  },
+  {
+   "n": "tout-03",
+   "gravite": "détail",
+   "ecran": "Tâches et Historique (Marc, Julie)",
+   "role": "gérant, bureau",
+   "profils": "tous",
+   "etapes": "Guide carte 1 : « Factures et paiements → Comptabilité » → ouvrir Tâches.",
+   "attendu": "Le vieux nom n'apparaît plus nulle part.",
+   "constate": "Tâches regroupe encore ses lignes sous un intitulé « Factures et paiements » (et Historique le porte aussi) : l'ancien nom que la carte vient d'enterrer.",
+   "preuve": "cap/relire-guide/anciens.js (sortie : [taches], [historique], [comptabilite])",
+   "ou": "intitulés de groupes de Tâches (tâches « Factures et paiements ») et filtre d'Historique",
+   "correction": "Renommer ces deux intitulés « Factures » ou « Comptabilité » ; vérifier que la recherche et les sondes de Tâches qui lisent le mot sont adaptées."
+  },
+  {
+   "n": "tout-04",
+   "gravite": "détail",
+   "ecran": "Comptabilité en grand (cadre prototype-comptabilite.html)",
+   "role": "gérant, bureau",
+   "profils": "tous",
+   "etapes": "Marc : Comptabilité → « Ouvrir dans la Comptabilité » ; ou Julie : ouvrir Comptabilité.",
+   "attendu": "Après « Tableau de bord → Accueil », plus de rubrique du même nom ailleurs.",
+   "constate": "Le cadre de la Comptabilité a sa propre première entrée « Tableau de bord » (22 occurrences dans le fichier). Un lecteur de la carte 1 peut croire que l'ancien nom est revenu ou que Accueil ≠ Tableau de bord.",
+   "preuve": "cap/relire-guide/voir-julie-mac-1.png",
+   "ou": "apercu/prototype-comptabilite.html (menu latéral)",
+   "correction": "Renommer l'entrée « Vue d'ensemble » dans le cadre, ou ajouter un mot à la carte ; au minimum DIRE à Justin que le nom reste dans ce cadre."
+  },
+  {
+   "n": "tout-05",
+   "gravite": "gênant",
+   "ecran": "Guide du gérant : ce qui manque",
+   "role": "gérant",
+   "profils": "tous",
+   "etapes": "Lire les 6 cartes de Marc comme un artisan qui ouvre l'application le lundi.",
+   "attendu": "La chose qui change le plus sa journée est expliquée.",
+   "constate": "L'Accueil (ex-Tableau de bord) est la première chose qu'il voit chaque matin : « À faire maintenant » (demandes de matériel à décider, notes de frais à valider, tâches en retard, interventions de toute l'équipe). La carte 1 lui dit seulement le NOM (« → Accueil »), aucune carte ne dit ce qu'on y fait. Deux cartes (Stock, Mon entreprise) sont d'importance moindre. SPEC : Véhicules/Temps de travail déjà écartés « à échanger si Justin préfère » — Accueil n'est pas cité.",
+   "preuve": "cap/relire-guide/voir-marc-mac-1.png (Accueil)",
+   "ou": "nvPages (gérant) ; GUIDE-NOUVEAUTES.md, tableau du gérant",
+   "correction": "Proposer à Justin : remplacer « Mon entreprise » (ou « Stock ») par « Accueil : ce qui attend ta décision » — « Voir » → Accueil — phrase de 20 mots au plus sur « À faire maintenant »."
+  },
+  {
+   "n": "tout-06",
+   "gravite": "détail",
+   "ecran": "Guide du technicien, cartes 2 et 3",
+   "role": "technicien, chef d'équipe",
+   "profils": "tous",
+   "etapes": "Sophie, mac ou iphone : Ma journée → premier bloc.",
+   "attendu": "Le geste à faire en premier est dans le guide.",
+   "constate": "Ma journée s'ouvre sur « Je commence ma journée » (et le bureau lui envoie un rappel automatique si elle ne le fait pas) : la carte 2 parle de « tu y vas, tu appelles… » mais jamais de ce bouton. Dans Mon camion, le vrai changement est « J'ai utilisé chez un client / J'ai pris à l'atelier » (ça part au bureau) : la carte dit « préviens le bureau en un geste », alors que « Il me manque une pièce » ouvre un formulaire de plusieurs choix (pièce, combien, pour quand, intervention) avant « Prévenir le bureau ».",
+   "preuve": "cap/relire-guide/a-sm.js ; a-sm-camion.png ; voir-sm.txt",
+   "ou": "nvPages (technicien) cartes « journee » et « camion »",
+   "correction": "Carte 2 : « Touche « Je commence ma journée », puis tes interventions arrivent dans l'ordre. » Carte 3 : « Cherche une pièce, vois ce qui manque à bord, dis au bureau ce que tu as utilisé. »"
+  },
+  {
+   "n": "tout-07",
+   "gravite": "détail",
+   "ecran": "Guide, textes à relire deux fois",
+   "role": "gérant, bureau",
+   "profils": "tous",
+   "etapes": "Lire à voix haute les phrases des cartes Comptabilité et Tâches.",
+   "attendu": "Une phrase qui se comprend du premier coup.",
+   "constate": "« Factures, paiements, achats, paie et TVA se suivent au même endroit » : « se suivent » se lit « se succèdent » ou « se surveillent ». « Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule » : le « qui » se rattache à « tâche » seulement à la deuxième lecture. « TVA », « paie » passent ; « mentions légales » est connu des artisans.",
+   "preuve": "cap/relire-guide/dump.js (textes des 24 cartes)",
+   "ou": "nvPages, textes des cartes « compta » et « taches » ; GUIDE-NOUVEAUTES.md (source des textes, à mettre à jour avec guide-mots.js)",
+   "correction": "« Factures, paiements, achats, paie et TVA se retrouvent au même endroit, rangés comme chez ton comptable. » ; « Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, et elle se termine dès que c'est fait. » (≤ 20 mots)"
+  },
+  {
+   "n": "tout-08",
+   "gravite": "détail",
+   "ecran": "Guide, carte 1 du technicien au téléphone",
+   "role": "technicien, chef d'équipe",
+   "profils": "iphone, android, petit",
+   "etapes": "Sophie sur iphone → première carte.",
+   "attendu": "Les trois anciens noms que le technicien connaissait.",
+   "constate": "La ligne « Le bouton « Plus » → Menu » prend la place de « Boxes → Mon camion » : une technicienne qui cherchait « Boxes » n'a plus son ancien nom sur son téléphone (la carte 3 « Mon camion » l'explique sans citer « Boxes »). Les cartes 2 à 6 ont aussi un grand vide entre la phrase et « Voir » (≈ 200 px sur iphone) : sans gravité.",
+   "preuve": "cap/relire-guide/cartes/sm-iphone-nuit-1.png et -3.png",
+   "ou": "nvLignes / carte « menu » du technicien (tel:)",
+   "correction": "Mettre « Boxes → Mon camion » en deuxième ligne à la place de « Mes notes de frais → Mes frais » seulement si Justin préfère ; sinon laisser (limite de trois lignes)."
+  }
+ ],
+ "lecons_pour_les_sondes": [
+  "Un contrôle de cible ≥ 44 px lit le rectangle : sur un bouton caché sous le pli d'une carte défilante il passe au vert. Il faut aussi elementFromPoint au centre du bouton et sa part visible dans le conteneur qui défile (paysage.js).",
+  "La rotation d'un téléphone change les paliers de mise en page : toute sonde de fenêtre doit jouer le paysage, pas seulement la rotation de l'état."
+ ]
+}
