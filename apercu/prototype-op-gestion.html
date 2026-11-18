@@ -3423,6 +3423,8 @@ body.ac-glisse .ac-x{pointer-events:none}
   .acm-f{font-size:10px;letter-spacing:0;line-height:1.1}
   .acm-x{padding:0 4px 5px;font-size:11.5px}.acm-x.demi{padding-top:22px;font-size:11px}
 }
+/* une absence d'UN jour est un vrai bouton (elle ouvre la demande) et une colonne du mois ne fait que 38 px à 320 px : au doigt, la zone qui répond gagne 3 px de chaque côté, sur les cases vides voisines, qui ne sont que de l'information (restes technicien 2 ; le libellé reste coupé par .ac-bl, donc rien ne déborde) */
+@media (pointer:coarse){.acm-x[style*="--n:1;"]{overflow:visible}.acm-x[style*="--n:1;"]::after{content:"";position:absolute;top:0;bottom:0;left:-3px;right:-3px}}
 /* le technicien : ses soldes, ses demandes */
 .a-comme{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:-2px 0 14px;padding:8px 12px;border-radius:14px;border:1px dashed var(--trait2)}
 .a-comme .seg{width:auto;flex:0 1 auto}
@@ -17369,7 +17371,7 @@ function fxArticles(){
   const vide = !tous.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>Aucun article.</b><span class="gris">Choisis ceux de ton métier, ils se rangent tout seuls.</span><span class="ms-vb"><button type="button" class="btn" data-fx="habituels">Choisir parmi les articles habituels de mon métier</button><button type="button" class="btn gris" data-pr="nouveau|${PACKS_ENT[0]}|">＋ Ajouter un article</button></span></div>`
     : !L.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>${q ? `Rien trouvé pour « ${esc(q)} ».` : 'Aucun article ici.'}</b><span class="gris">${q ? 'Vérifie l’orthographe, ou ajoute-le.' : 'Change le filtre pour voir les autres.'}</span><span class="ms-vb">${q ? `<button type="button" class="btn gris" data-fx="ajouteq">＋ Ajouter « ${esc(q)} »</button>` : ''}<button type="button" class="btn gris" data-fx="toutvoir">Tout afficher</button></span></div>` : '';
   const nv = tous.filter(prVend).length;
-  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="${tel() ? (innerWidth < 340 ? 'Article, fournisseur' : 'Article, référence, fournisseur') : 'Chercher un article, une référence, un fournisseur'}" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
+  return `<div class="ms-cherche fx-cherche"${matVis('four-articles')}><input class="saisie" id="fx-q" type="search" data-prq="1" value="${esc(prQ)}" placeholder="${tel() || innerWidth < 1000 ? (innerWidth < 340 ? 'Article, fournisseur' : 'Article, référence, fournisseur') : 'Chercher un article, une référence, un fournisseur'}" aria-label="Chercher un article, une référence ou un fournisseur" autocomplete="off" enterkeyhint="search">
       <button type="button" class="btn gris fx-filtre" data-fx="filtre" aria-haspopup="menu">${esc(fxFiltreNom[f])} ▾</button>${plusMetiers}</div>
     ${bandeau}${vide || `<div class="carte dv-liste ms-liste fx-arts">${groupes}</div>`}
     ${tous.length ? `<div class="gris petit ms-pied">${pdxPl(L.length, 'article')}${L.length !== tous.length ? ' sur ' + tous.length : ''} · ${nv} que je vends · ${tous.filter(x => !prVend(x)).length} de matériel (non facturé)</div>` : ''}
