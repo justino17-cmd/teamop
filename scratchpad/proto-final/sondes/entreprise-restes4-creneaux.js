@@ -3,6 +3,7 @@
 // Avec la case Planning, l'ancien comportement reste entier (contre-épreuve : 3 options, « tenus en option » partout).
 // Usage : timeout 580 node …/entreprise-restes4-creneaux.js. Rend « N ✓ · M ✗ ». ⛔ 127.0.0.1, entreprise fictive.
 const C = require('./entreprise-commun.js'); const D = require('./droits-commun.js'); const { L, v } = C;
+const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/entreprise-restes4/';
 const FERMEES = { planif:'1000', inter:'1000', crm:'1000', ventes:'1000', compta:'1000', stock:'1000', achats:'1000', temps:'1000' };
 const cases = (o) => Object.assign({ planif:'1111', inter:'1111', crm:'1111', ventes:'1111', compta:'1111', stock:'1111', temps:'1111', com:'1111', achats:'1111', admin:'1000' }, o || {});
 (async () => {
@@ -23,6 +24,7 @@ const cases = (o) => Object.assign({ planif:'1111', inter:'1111', crm:'1111', ve
       const rep = MAILS.find(x => x.cren && x.cren.orig === m.id); let note = null;
       if (rep) { note = mlLire(rep).sujet + ' / ' + (typeof mlLire(rep).note === 'string' ? mlLire(rep).note : ''); }
       return { att0, mo0, cible, av, ap:BUREAU.filter(b => b.option).length, statut, nbProp, tenus:JSON.parse(att0).tenus, bandeau:rep ? JSON.stringify(courrierBandeau(rep)).replace(/\s+/g, ' ').slice(0, 900) : null, reponse:!!rep, note, reptenus:rep ? rep.cren.tenus : null }; });
+    try { require('fs').mkdirSync(CAP, { recursive:true }); await L.capture(c, CAP + 'creneaux-' + (tient ? 'avec' : 'sans') + '-planning.png', false); } catch (e) { console.log('  (capture : ' + e.message + ')'); }
     v(`${nom} : population (un message à « Proposer un créneau » : ${r.cible}, ${r.nbProp} créneaux proposés)`, !!r.cible && !r.sansCompose && r.nbProp >= 1, r);
     console.log('  mesure :', JSON.stringify(r));
     v(`${nom} : options au planning ${r.av} → ${r.ap}`, tient ? r.ap > r.av : r.ap === r.av, r);

@@ -1,0 +1,34 @@
+{
+ "noms": ["compta-ventes (restes, tour 5) — recontrôle adverse"],
+ "regles": [
+  { "nom": "« 90 min » sur la main-d'œuvre d'un DEVIS (quantité 1 au prix des 2 h) ne multiplie plus le prix : la désignation ne fait plus l'heure", "preuve": "compta-ventes-restes4-rc-a mac 5 ✓ · 0 ✗ et iPhone nuit 5 ✓ · 0 ✗ rejoués" },
+  { "nom": "Une seconde saisie en minutes passe (2h → 90 min → 45 min = 97,50 € puis 48,75 €), la durée s'écrit « 90 min »", "preuve": "rc-a ci-dessus ; restes5-qte « 90 minutes » → « 90 min », « 45 mn » → « 45 min » : 8 ✓ · 0 ✗ mac et iPhone nuit. Ma sonde restes5-rc : prix remisé à 60 puis « 90 min » = 90,00 €, la ligne reste à l'heure" },
+  { "nom": "Prix négatif ou illisible refusé avec une phrase, le champ revient au prix d'avant", "preuve": "restes4-rc-b 8 ✓ · 0 ✗ aux deux profils ; restes5-rc : « −5 », « –5 », « -0 » (phrase de l'avoir), « 12abc », « 1e3 » (phrase des chiffres) : le champ montre toujours ce que la ligne porte" },
+  { "nom": "Quantité lisible en entier sur téléphone (« 90 min », « 1h30 », « 250 mL », « 12 345,5 », prix « 999999,99 »)", "preuve": "restes5-qte 8 ✓ · 0 ✗ mac et iPhone nuit ; capture iPhone nuit relue (champ Qté et Prix côte à côte, toast du plafond « 10 000 » lisible) ; restes3-rc-largeurs vert aux deux profils" },
+  { "nom": "L'aperçu d'envoi dit « × 90 min » et 97,50 € (pas de NaN)", "preuve": "capture rc5b-iphone-nuit relue : ligne « Main-d'œuvre entretien × 90 min · 65,00 € · 97,50 € », total TTC cohérent" },
+  { "nom": "Aucune régression sur les parties voisines", "preuve": "restes-1/2/3, restes1-rc1/rc2, restes2-1/2, restes2-rc-dvt/pdf/qte/remb, restes3-lignes/remb/rc/rc-fait/rc-largeurs/rc-remb/rc-duree, restes4 : tous à 0 ✗ au mac et à l'iPhone nuit (rc-julie 2 ✓ · 0 ✗ avec « mac » et « iphone »)" }
+ ],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "Effacer le prix de la ligne « Acompte déjà facturé » la rend irrécupérable : « -50 » est refusé (avec la phrase de l'avoir, qui ne dit pas la bonne chose) et « 50 » la transforme en +50 € facturés en plus",
+    "gravite": "important (argent, silencieux) — conséquence directe de la correction « un prix négatif est refusé » du tour 5 : la garde de l'acompte ne regarde que `pu < 0`, or une ligne vidée vaut `null`",
+    "etapes": "Marc > Factures > une facture à valider qui porte une ligne « Acompte de 30 % déjà facturé » (−50) > vider le champ « Prix unitaire HT » de cette ligne > Tab (la ligne devient « à chiffrer », Total HT +50) > retaper « -50 » : refus « Un prix ne s'écrit pas en négatif : … fais un avoir » ; retaper « 50 » : la ligne vaut +50, Total HT passe de 59,17 € à 209,17 € et l'envoi redevient possible",
+    "constat": "sonde compta-ventes-restes5-rc2.js mac et iPhone nuit : ✗ « on peut rétablir la déduction » (pu reste null) et ✗ « ne peut pas devenir +50 » (pu 50, total 50). Piste : reconnaître une ligne d'acompte par un drapeau posé à sa création (factureDepuis, ligne 5716) plutôt que par le signe de son prix, et refuser pour elle tout effacement et tout prix positif avec la phrase de l'acompte ; ou lui retirer son champ de prix (texte seul, ✕ pour la retirer)" },
+  { "titre": "La QUANTITÉ de la ligne d'acompte n'est pas gardée comme son prix : « 2 » double la déduction (−100 € pour −50 €), l'acompte est déduit deux fois",
+    "gravite": "moyen (argent, le client est facturé de moins ; silencieux, mais visible dans le total de la ligne)",
+    "etapes": "Marc > Factures > facture à valider avec la ligne d'acompte > champ Qté de cette ligne > « 2 » > Tab",
+    "constat": "restes5-rc2 : ✗ total −100 pour un acompte de −50, Total HT 59,17 € au lieu de 109,17 €. Même famille que le correctif du prix : la ligne d'acompte doit refuser aussi sa quantité (ou n'avoir pas de champ de quantité)" }
+ ],
+ "nouveaux": [],
+ "sondes": [
+  { "fichier": "campagne/sondes/compta-ventes-restes5-rc2.js (nouvelle)", "resultat": "mac et iPhone nuit : 3 ✓ · 3 ✗ — les trois ✗ sont les deux casses ci-dessus (quantité de l'acompte, rétablissement du prix négatif, +50 tapé sur l'acompte) ; l'aperçu d'envoi s'ouvre et dit « × 90 min »" },
+  { "fichier": "campagne/sondes/compta-ventes-restes5-rc.js (nouvelle)", "resultat": "mac : 13 ✓ · 3 ✗ (les mêmes constats, plus mon appel direct d'apercuEnvoi qui ne passait pas par le bouton : défaut de ma sonde, corrigé dans rc2 par le vrai geste) ; les toasts affichés dans cette sonde peuvent être ceux de l'essai d'avant (ils durent plus de 2 s), rc2 attend leur disparition" },
+  { "fichier": "campagne/sondes/compta-ventes-restes4-rc-a.js · restes4-rc-b.js · restes5-qte.js", "resultat": "5 ✓ · 8 ✓ · 8 ✓, 0 ✗ au mac et à l'iPhone nuit, code de sortie 0" },
+  { "fichier": "vingt autres sondes de la partie (restes-1 à restes4, rc-dvt, rc-julie, rc-pdf, rc-qte, rc-remb, rc-fait, rc-largeurs, rc-duree, lignes, remb)", "resultat": "toutes à 0 ✗, code 0, mac et iPhone (nuit) — les mutations M1 à M8 du correcteur n'ont PAS été rejouées (elles réécrivent la page ; le correcteur les a livrées à 8 sur 8)" }
+ ],
+ "doutes": [
+  "Une ligne « Forfait main-d'œuvre déplacement » facturée au prix de l'heure (65 €) accepte « 90 min » (97,50 €) : la règle « désignation d'heure ET prix de l'heure » ne distingue pas un forfait de l'heure. Rare ; à confirmer par Justin ou à resserrer sur le seul mot « heure ».",
+  "Un prix à trois décimales (« 12,345 ») est accepté et affiché tel quel dans le champ ; le total de ligne s'arrondit au centime. Ancien, non rouvert.",
+  "Restent à soumettre à Justin, inchangés : commande fournisseur (prix HT à côté de la quantité), unité inconnue qui multiplie la quantité (« 250 mL » sur une pièce au flacon), remboursement d'une facture payée puis avoirée, « Paiement en ligne » aux factures d'exemple, nom « OP COMPTABLE », cadre qui ne redessine pas sa liste si un changement vient d'ailleurs ; et le choix du tour 5 « le montant d'un acompte ne se retape pas ici » (à confirmer)."
+ ]
+}
