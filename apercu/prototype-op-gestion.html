@@ -3044,7 +3044,13 @@ body.dp-ouvert{overflow:hidden}
 .fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 128px 44px}   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
 .fac-lgs .dv-x{width:44px;height:44px}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
-@media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 104px 44px}}
+/* sous 1250 px l'en-tête de colonnes est caché : sans mot au-dessus, « 2 h » et « 100 » côte à côte laissaient deviner lequel est la quantité (recontrôle, tour 2). Chaque champ reprend son mot, juste au-dessus ; à l'ordinateur ces étiquettes n'existent pas (l'en-tête suffit). */
+.fac-et{display:none}
+@media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 128px 44px;grid-template-areas:none;row-gap:2px}
+  .fac-lgs .dv-lg>input:first-child{grid-column:1/-1;grid-row:1;margin-bottom:4px}
+  .fac-lgs .fac-et{display:block;grid-row:2;font-size:12px;line-height:1.2;color:var(--doux);font-weight:600;white-space:nowrap;text-align:right;padding-right:4px}.fac-lgs .fac-et-q{grid-column:2}.fac-lgs .fac-et-p{grid-column:3}
+  .fac-lgs .dv-lg .dv-q2{grid-column:2;grid-row:3}.fac-lgs .dv-lg .dv-pu{grid-column:3;grid-row:3}.fac-lgs .dv-lg .dv-x{grid-column:4;grid-row:3}.fac-lgs .dv-lg .dv-tot{grid-row:4}}
+@media (max-width:420px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 72px 112px 44px}.fac-lgs .fac-et{font-size:11.5px}}   /* 320 px : 88 + 128 + 44 + 3 écarts dépassaient la carte ; la colonne de gauche ne sert qu'à la désignation, qui prend toute la ligne */
 .fac-edit table.l{margin-top:6px}
 .dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.dv-ajouts .puce-c,.dv-modeles .puce-c{min-height:44px}   /* comme toutes les autres rangées de pastilles : un doigt les touche sans viser (devis-atelier-11) */
 .dv-ajouts label.puce-c select{border:0;background:none;color:inherit;font:inherit;max-width:150px}
@@ -5612,6 +5618,19 @@ const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main
 /* Une quantité TAPÉE (« 2 h », « 250 mL », « 1 000 ») multiplie par son nombre (l.qn, posé à la saisie) : avant, tout ce qui portait une lettre comptait pour 1 — « 2 h × 100 € » faisait 100 €, sans un mot.
    Les lignes préparées par OP GESTION (« 1h30 » avec le prix de la durée entière) n'ont pas de qn et gardent leur règle : la durée est déjà dans le prix. */
 const qteDe = l => typeof l.qn === 'number' && l.qn > 0 ? l.qn : parseFloat(String(l.q).replace(',','.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',','.')) : 1;
+/* Lit une quantité TAPÉE : « 2 », « 0,5 L », « 250 mL », « 1 000 » (un nombre, puis son unité), et une durée comme on la dit — « 2h30 », « 2 h 30 », « 1h15 » valent leurs heures en décimal (2,5 ; 2,25).
+   Avant, « 2h30 » se lisait « 2 » suivi d'une unité « h30 » : 200 € écrits pour 250 € dus, sans un mot (recontrôle, tour 2). Une unité qui porte elle-même un chiffre (« 2 x 5 », « h90 ») est une faute de frappe : null, et l'écran redit l'ancienne valeur. */
+function qteLire(v){
+  v = String(v).trim();
+  const d = v.match(/^(\d{1,4})\s?h(?:eures?)?\s?(\d{1,2})(?:\s?min(?:utes?)?)?$/i);
+  if (d && +d[2] < 60) return +d[1] + (+d[2]) / 60;
+  const m = v.match(/^(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(\S.{0,9}))?$/);
+  if (!m || /\d/.test(m[2] || '')) return null;
+  return parseFloat(m[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'));
+}
+/* Une ligne préparée par OP GESTION dit ce qu'elle compte : la main-d'œuvre « 2 h » vaut 2 × le prix de L'HEURE (qn posé), une pièce dont la quantité porte une unité (« 0,5 L » : un flacon de 0,5 L, vendu au flacon) se compte pour UNE unité de vente — et retaper le MÊME texte redonne ce total
+   (q0/qn0), au lieu de changer de règle selon l'origine de la ligne (recontrôle, tour 2 : 108,00 € devenait 216,00 € dès qu'on retapait « 2h »). */
+const lignePiece = p => /[a-z]/i.test(String(p.q)) ? { d:p.nom, q:p.q, pu:p.pu != null ? p.pu : null, piece:true, q0:p.q, qn0:1, qn:1 } : { d:p.nom, q:p.q, pu:p.pu != null ? p.pu : null, piece:true };
 const totLigne = l => (l.pu || 0) * qteDe(l);
 const htDe = f => lignesDe(f).reduce((s,l) => s + totLigne(l), 0);
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -5625,7 +5644,7 @@ function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   if (i.fact && i.fact.mode === 'garantie') return;
   if (ctrCompris(i)) {   // visite d'un contrat facturé à l'année ou au mois : la main-d'œuvre est comprise, rien à préparer… sauf une pièce posée, qui se facture SEULE (sinon elle n'est facturée nulle part)
     if (!F.pieces.length) return;
-    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`Pièces · ${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:F.pieces.map(p => ({ d:p.nom, q:p.q, pu:p.pu != null ? p.pu : null, piece:true })), ht:0, tva:CLIENTS[i.cli].type === 'part' ? 10 : 20, st:'avalider', emise:'—', ech:'—' }); return; }
+    FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`Pièces · ${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:F.pieces.map(lignePiece), ht:0, tva:CLIENTS[i.cli].type === 'part' ? 10 : 20, st:'avalider', emise:'—', ech:'—' }); return; }
   /* une facture ANNULÉE par un avoir se refait : la nouvelle reprend l'identifiant, l'ancienne garde sa place dans les documents sous un autre (« Préparer la facture » ne tombe pas dans le vide) */
   prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
@@ -5635,14 +5654,14 @@ function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   const kc = ctrDeVisite(i), fi = i.fact || (kc ? { mode:'contrat', tva:CLIENTS[i.cli].type === 'part' ? 10 : 20 } : null);   // une visite de contrat facturée « à chaque visite » se prépare au prix du contrat, jamais au tarif de dépannage
   if (fi) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = fi.mode, L2 = [];
     if (fm === 'forfait') L2.push({ d:'Forfait ' + i.type.toLowerCase(), q:'1', pu:fi.forfait });
-    if (fm === 'temps') { const f = Math.max(TARIFS.minimum, Math.ceil(m / 60) * 60); L2.push({ d:'Main-d’œuvre ' + i.type.toLowerCase(), note:`sur place ${F.debut} – ${F.fin} (${duree(m)}) · facturé ${duree(f)}, à l’heure entamée`, q:duree(f), pu:f / 60 * TARIFS.horaire }); }
+    if (fm === 'temps') { const f = Math.max(TARIFS.minimum, Math.ceil(m / 60) * 60); L2.push({ d:'Main-d’œuvre ' + i.type.toLowerCase(), note:`sur place ${F.debut} – ${F.fin} (${duree(m)}) · facturé ${duree(f)}, à l’heure entamée`, q:duree(f), qn:f / 60, pu:TARIFS.horaire }); }
     if (fm === 'devis' && DEVIS[i.cli]) DEVIS[i.cli].lignes.forEach(l => L2.push({ d:l[0] + ' (devis ' + DEVIS[i.cli].num + ')', q:String(l[1]), pu:l[2] }));
     if (fm === 'contrat') { const c = kc || CONTRATS.find(x => x.cli === i.cli && x.st === 'signe'), v = ctrVisiteNum(i); if (c) { const n = v ? v.n : ctrFaites(c) + 1; L2.push({ d:`Visite ${n} sur ${c.freq} · contrat ${c.num}`, q:'1', pu:ctrPart(c.prix, c.freq, n) }); } }
     if (['forfait','temps'].includes(fm)) L2.push({ d:'Déplacement zone ' + (fi.zone || 1), q:'1', pu:TARIFS.zone[fi.zone || 1] });
-    if (fm !== 'devis') F.pieces.forEach(p => L2.push({ d:p.nom, q:p.q, pu: p.pu != null ? p.pu : null, piece:true }));
+    if (fm !== 'devis') F.pieces.forEach(p => L2.push(lignePiece(p)));
     FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:L2, ht:0, tva:fi.tva, st:'avalider', emise:'—', ech:'—' }); return; }
   const L = [{ d:'Main-d’œuvre ' + i.type.toLowerCase(), note:`sur place ${F.debut} – ${F.fin} · heure entamée due, comme prévu au devis`, q:'1', pu:54.17 }, { d:'Déplacement La Rochelle', q:'1', pu:29.17 },
-    ...F.pieces.map(p => ({ d:p.nom, q:p.q, pu:p.pu, piece:true }))];
+    ...F.pieces.map(lignePiece)];
   FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:`${i.type} · ${jcourt(i.d)} · ${F.debut} – ${F.fin}`, lignes:L, ht:0, tva:CLIENTS[i.cli].type === 'part' ? 10 : 20, st:'avalider', emise:'—', ech:'—' });
 }
 function vueFactures(){
@@ -5674,7 +5693,7 @@ function vueFacture(id){
   ${!complet ? `<div class="bandeau-info"><b>${[sansPrix ? sansPrix + ' ligne' + (sansPrix > 1 ? 's' : '') + ' sans prix' : '', sansNom ? sansNom + ' ligne' + (sansNom > 1 ? 's' : '') + ' sans nom' : ''].filter(Boolean).join(' · ')}</b> · ${sansPrix ? 'chiffre-' + (sansPrix > 1 ? 'les' : 'la') + ' ci-dessous' : ''}${sansPrix && sansNom ? ', et ' : ''}${sansNom ? 'écris ce que ' + (sansNom > 1 ? 'tu factures sur chacune' : 'tu factures sur cette ligne') : ''} pour pouvoir envoyer.${sansPrix ? ' Le prix sera retenu pour la prochaine fois.' : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}"${l.pu == null ? ' placeholder="prix HT"' : ''} aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(totLigne(l))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l fac-lig"><thead><tr><th>Désignation</th><th class="n">Prix unitaire HT</th><th class="l-qc n">Qté</th><th class="n">Total HT</th></tr></thead><tbody>
+      <div class="carte tableau${modifiable ? ' fac-edit' : ''}"><h3>Les lignes${i?' — reprises de l’intervention':''}</h3>${modifiable ? `<div class="dv-lgs fac-lgs"><div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>${L.map((l,k)=>`<div class="dv-lg"><input class="saisie ${String(l.d || '').trim() ? '' : 'manque'}" data-fdes="${k}" data-id="${id}" value="${esc(l.d)}" placeholder="Ce que tu factures" maxlength="120" aria-label="Désignation de la ligne ${k+1}"><span class="fac-et fac-et-q" aria-hidden="true">Qté</span><input class="saisie dv-q2" inputmode="decimal" data-fqte="${k}" data-id="${id}" value="${esc(l.q)}" maxlength="14" aria-label="Quantité de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="fac-et fac-et-p" aria-hidden="true">Prix unitaire HT</span><input class="saisie dv-pu ${l.pu == null ? 'manque' : ''}" inputmode="decimal" data-prix="${k}" data-id="${id}" value="${l.pu == null ? '' : String(l.pu).replace('.',',')}"${l.pu == null ? ' placeholder="prix HT"' : ''} aria-label="Prix HT de ${esc(l.d || 'la ligne ' + (k+1))}"><span class="dv-tot">${l.pu == null ? '—' : eur(totLigne(l))}</span><button type="button" class="dv-x" data-action="ligneSup" data-id="${id}" data-k="${k}" aria-label="Retirer la ligne ${esc(l.d || (k+1))}">✕</button></div>${l.note ? `<div class="faible mini fac-note">${esc(l.note)}</div>` : ''}`).join('')}</div><table class="l"><tfoot>` : `<table class="l fac-lig"><thead><tr><th>Désignation</th><th class="n">Prix unitaire HT</th><th class="l-qc n">Qté</th><th class="n">Total HT</th></tr></thead><tbody>
         ${L.map((l,k)=>`<tr><td>${esc(l.d)} <span class="l-q">${l.pu != null ? eur(l.pu) + '\u00a0×\u00a0' : '×\u00a0'}${esc(l.q)}</span>${l.note?`<br><span class="faible mini">${esc(l.note)}</span>`:''}</td><td class="n">${l.pu!=null?eur(l.pu):'—'}</td><td class="l-qc n">${esc(l.q)}</td><td class="n">${l.pu!=null?eur(totLigne(l)):'—'}</td></tr>`).join('')}
       </tbody><tfoot>`}<tr><td colspan="${modifiable?2:3}">Total HT${complet?'':' (partiel)'}</td><td class="n">${eur(ht)}</td></tr>
         <tr><td colspan="${modifiable?2:3}" style="font-weight:500">TVA ${modifiable?`<select class="saisie" style="width:auto;min-height:38px;padding:4px 8px" data-tva="${id}">${[20,10,5.5].map(t=>`<option value="${t}" ${f.tva===t?'selected':''}>${String(t).replace('.',',')} %</option>`).join('')}</select>`:String(f.tva).replace('.',',')+' %'} <span class="faible mini">${f.tva===10?(c.type==='pro'?'taux réduit : attestation du client à conserver':'particulier, logement de plus de 2 ans, attestation signée'):f.tva===5.5?'travaux d’économie d’énergie':c.type==='pro'?'client professionnel':'taux normal : logement neuf ou de moins de 2 ans'}</span></td><td class="n">${eur(ht*f.tva/100)}</td></tr>
@@ -5691,13 +5710,18 @@ function vueFacture(id){
         <div class="actions"><button type="button" class="lien" data-action="partiel" data-id="${id}">Paiement en partie</button><button type="button" class="lien" data-action="lienPaiement" data-id="${id}">Envoyer un lien de paiement par carte</button></div></div>` : ''}
       ${f.st === 'retard' || f.st === 'envoyee' ? `<div class="carte"><h3>Relancer</h3><div class="gris petit" style="margin-bottom:10px">${f.relances ? 'Déjà relancée ' + f.relances + ' fois' : 'Pas encore relancée'}${reglages.relance ? ' · relance automatique activée' : ''}</div><button type="button" class="btn gris" data-action="relance" data-id="${id}">Relancer maintenant</button></div>` : ''}
       ${f.st === 'retard' || f.st === 'envoyee' || f.st === 'partielle' ? `<div class="carte"><h3>Une erreur sur cette facture ?</h3><div class="gris petit" style="margin-bottom:10px">Une facture envoyée ne se modifie plus : on l’annule par un avoir (un document à part, avec son numéro), puis on refait la bonne.</div><button type="button" class="btn gris" data-action="avoir" data-id="${id}">Annuler cette facture par un avoir</button></div>` : ''}
-      ${f.st === 'annulee' ? `<div class="carte"><h3>Annulée</h3>${(av => av ? `<div class="ligne"><span>Annulée par l’avoir <b>${av.num}</b></span><button type="button" class="lien" data-go="facture-x-${av.id}">Ouvrir</button></div>` : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))}<div class="gris petit">Plus rien n’est à payer, plus aucune relance ne part. La facture reste dans tes documents, comme la loi l’exige.</div>${(r => f.recu ? `<div class="alerte" style="margin-top:10px"><b>${eur(f.recu)} déjà reçus : ${r && r.fait ? 'remboursés' : 'à rembourser'} au client.</b>${r && !r.fait ? ' <button type="button" class="lien" data-go="taches">Voir la tâche</button>' : ''}</div>` : '')(TACHES.find(x => x.cle === 'remb-' + f.id))}</div>` : ''}
+      ${f.st === 'annulee' ? `<div class="carte"><h3>Annulée</h3>${(av => av ? `<div class="ligne"><span>Annulée par l’avoir <b>${av.num}</b></span><button type="button" class="lien" data-go="facture-x-${av.id}">Ouvrir</button></div>` : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))}<div class="gris petit">Plus rien n’est à payer, plus aucune relance ne part. La facture reste dans tes documents, comme la loi l’exige.</div>${(r => f.recu ? `<div class="alerte" style="margin-top:10px"><b>${eur(f.recu)} déjà reçus : ${r && r.fait ? 'remboursés' : 'à rembourser'} au client.</b>${r && !r.fait ? ` <button type="button" class="lien" data-tmodif="${r.id}">Voir la tâche</button>` : ''}${!r ? ' <button type="button" class="lien" data-action="rembourseNote" data-id="' + f.id + '">Noter comme remboursé</button>' : ''}</div>` : '')(TACHES.find(x => x.cle === 'remb-' + f.id))}</div>` : ''}
       ${f.st === 'payee' ? `<div class="carte"><h3>Paiement</h3><div class="ligne"><span>Payée le ${f.paye}</span><b>${f.mode}</b></div>${(av => av ? `<div class="ligne"><span>Un avoir existe : <b>${av.num}</b></span><button type="button" class="lien" data-go="facture-x-${av.id}">Ouvrir</button></div>` : `<button type="button" class="lien" data-action="avoir" data-id="${id}">Faire un avoir (remboursement, erreur)</button>`)(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))}</div>` : ''}
     </div></div>`;
 }
 /* Le remboursement d'une facture annulée n'a qu'un cycle de vie : la tâche « Rembourser » (clé remb-<id>), terminée par la personne. Une fois faite, la fiche, la ligne du bas, le cadre de la
    Comptabilité et la fenêtre de l'avoir le disent d'une seule voix — avant, ils affirmaient jusqu'au bout « À rembourser 500,00 € » pour une somme déjà rendue. */
 function rembourseFait(f){ const t = TACHES.find(x => x.cle === 'remb-' + f.id); return !!(t && t.fait); }
+/* La tâche « Rembourser » va à CELLE OU CELUI QUI ANNULE (avant : toujours à Marc, donc introuvable pour Julie, qui encaisse et annule, alors que la fiche dit « Voir la tâche »). */
+function rembTache(f, montant, numAvoir){
+  const nom = CLIENTS[f.cli].nom, t = { id:'t' + Date.now() + 'r', t:`Rembourser ${eur(montant)} à ${nom}`, qui:tkxMoi(), d:AUJ, h:null, urgent:true, cle:'remb-' + f.id, lien:{ t:'facture', id:f.id, lib:f.num, cli:f.cli }, note:`La facture ${f.num} est annulée par l’avoir ${numAvoir} : ${nom} avait déjà payé ${eur(montant)}.`, creePar:acteur(), creeLe:'31/10', origine:'proposée par OP GESTION' };
+  TACHES.push(t); return t;
+}
 function etapes(f){
   const E = [['Préparée toute seule', true, f.int ? 'à la fin de l’intervention' : ''], ['Validée et envoyée', f.st !== 'avalider', f.emise !== '—' ? 'le ' + f.emise : ''], ['Ouverte par le client', (f.vue !== false || ['payee','partielle'].includes(f.st)) && ['envoyee','retard','payee','partielle'].includes(f.st), f.st !== 'avalider' ? 'le ' + (f.emise === '—' ? '31/10' : f.emise) : ''], ['Payée', f.st === 'payee', f.paye ? 'le ' + f.paye + ' · ' + f.mode : f.st === 'partielle' ? 'en partie' : '']];
   /* une facture annulée n'attend plus ni ouverture ni paiement : deux ronds vides qui ne viendront jamais mentent sur ce qui reste à faire */
@@ -9143,9 +9167,15 @@ const ACTIONS = {
     const nFermees = f.st === 'annulee' ? TACHES.filter(x => tLiee(x, 'facture', f.id) && tBut(x) === 'relancer').map(x => (tFaire(x, 'facture annulée par l’avoir ' + num), x)).length : 0;
     /* des euros déjà reçus ne s'effacent pas avec la facture : ils sont à RENDRE au client, et une tâche (avec sa ligne à l'Historique) le rappelle */
     const aRendre = f.st === 'annulee' && f.recu > 0 ? f.recu : 0;
-    if (aRendre) { const nom = CLIENTS[f.cli].nom; TACHES.push({ id:'t' + Date.now() + 'r', t:`Rembourser ${eur(aRendre)} à ${nom}`, qui:'marc', d:AUJ, h:null, urgent:true, cle:'remb-' + f.id, lien:{ t:'facture', id:f.id, lib:f.num, cli:f.cli }, note:`La facture ${f.num} est annulée par l’avoir ${num} : ${nom} avait déjà payé ${eur(aRendre)}.`, creePar:acteur(), creeLe:'31/10', origine:'proposée par OP GESTION' });
+    if (aRendre) { const nom = CLIENTS[f.cli].nom; rembTache(f, aRendre, num);
       journalAjout('marc', 'equipe', 'a prévu un remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(aRendre)} déjà reçus à rendre à ${nom} (facture annulée par l’avoir ${num})` }); }
     fermerPanneau(); rendre(); toast('Avoir ' + num + ' créé. ' + (f.st === 'annulee' ? 'La facture ' + f.num + ' est annulée : plus rien à recevoir' + (aRendre ? `, mais ${eur(aRendre)} sont à rembourser (tâche créée)` : '') + (nFermees ? ' · ' + (nFermees > 1 ? nFermees + ' tâches de relance terminées' : 'la tâche de relance est terminée') : '') + '.' : 'La facture d’origine reste telle quelle, comme la loi l’exige.')); },
+  /* la tâche « Rembourser » a été supprimée à la main : la fiche ne reste pas bloquée sur « à rembourser » sans geste — ce bouton l'écrit comme rendu (une tâche faite, avec sa ligne à l'Historique) */
+  rembourseNote(b){ const f = FACTURES.find(x => x.id === b.dataset.id); if (!f || f.st !== 'annulee' || !(f.recu > 0) || TACHES.some(x => x.cle === 'remb-' + f.id)) return;
+    const av = FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num), t = rembTache(f, f.recu, av ? av.num : 'd’annulation');
+    t.fait = { par:tkxMoi(), quand:'31/10 · ' + hm(MAINT_MIN), quoi:'remboursement noté sur la facture', auto:false };
+    journalAjout('marc', 'equipe', 'a noté le remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(f.recu)} rendus à ${CLIENTS[f.cli].nom}` });
+    rendre(); toast('Remboursement noté : ' + eur(f.recu) + ' rendus à ' + CLIENTS[f.cli].nom + '.'); },
   nouvelleFacture(){ toast('Dans la vraie version : une facture à la main, sans intervention (vente de pièce, acompte…).'); },
   dateOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; fermerPanneau(); poser(i, q.tid, q.d, q.h, q.dur); },
   creerOk(){ const q = lireQuand(), titre = document.getElementById('n-titre').value.trim() || 'Nouvelle intervention';
@@ -9389,8 +9419,9 @@ document.addEventListener('change', ev => {
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
-    const mq = v.match(/^(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(\S.{0,9}))?$/), nq = mq ? parseFloat(mq[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')) : NaN;
-    if (!(nq > 0) || nq >= 1e6) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
+    const lu = qteLire(v), nq = (l.q0 != null && v === l.q0) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
+    if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
+    if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + prNum(DV_Q_MAX) + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
     if (l.pu != null && nq * l.pu > DV_PU_MAX) { t.value = l.q; toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse la quantité ou le prix. La quantité précédente est conservée.'); return; }   /* un total ne dépasse jamais le plafond sans le dire */
     l.q = v; l.qn = nq; rendreApresClic(); }
   else if (t.dataset.tva) { FACTURES.find(x => x.id === t.dataset.tva).tva = +t.value; rendre(); }
