@@ -1,0 +1,48 @@
+{
+ "corriges": [
+  {
+   "titre": "Le « Reçu I6 » (argent reçu sur place avant facture) part au cadre",
+   "avant": "TVA collectée : cadre 479,16 € / OP GESTION 482,81 € (écart 3,65 €) ; le reçu de 40 € à 10 % n'existait pas dans le cadre",
+   "apres": "cadre 482,80 € / OP GESTION 482,81 € : reste 0,01 € (arrondi par paiement côté cadre, par taux côté hôte, laissé comme demandé)",
+   "choix": "Le cadre range déjà les espèces d'une intervention dans 530000 (encaisserTerrain) : pas de compte « caisse chez le technicien ». Le reçu entre comme ENCAISSEMENT AVANT FACTURE : caisse (ou 467100 / 511200 / 512000 selon le moyen) au débit, acompte client 419100 (compte ajouté au plan) pour le hors-taxes, TVA collectée à l'encaissement avec taux et base. Champ à part `recus` dans la liaison (pas dans `enc`, sinon le cadre lui inventerait une fausse facture). Quand la facture part, le reçu quitte la liste : l'écriture est contrepassée et le paiement revient avec la facture ; si le moyen ou le montant change, l'écriture suit.",
+   "preuve": "compta-restes-coherence-2.js 1a-1k ; 5 mutations tombent (1a-1e) ; ventes-cadre-explore 20/0, annulee-cadre 9/0, reste-cadre-parcours 32/0, cadre-mots 40/0"
+  },
+  {
+   "titre": "Crédit de TVA dit comme tel (« L'État te doit »)",
+   "avant": "Écran TVA du cadre : « À payer à l'État 0,00 € » ; accueil « TVA d'octobre 0,00 € à payer le 23 novembre », alors que le calcul donne un crédit (2 975,16 € après le reçu ; 3 830,56 € une fois la nuit traitée)",
+   "apres": "« Crédit de TVA 2 975,16 € » avec « l'État te doit la différence, elle se reporte » ; « À payer à l'État » seulement si le solde est positif ; idem accueil, fil, à-faire, arrêt (« rien n'est prélevé », « Rien à payer »), mois précédents ; la ligne 32 « Total à payer » de la CA3 ne s'imprime plus à 0",
+   "preuve": "UNE règle tvaDit(T) dans prototype-comptabilite.html ; sonde 2a-2h dont contre-épreuve (solde positif : « À payer » inchangé) ; mutations 2a-2e tombent. Captures relues : iPhone, Mac, iPad, jour et nuit, aucun débordement"
+  },
+  {
+   "titre": "Fin de la promesse « les heures validées dans OP GESTION »",
+   "avant": "9 écrans du cadre (À faire, fiche de paie, rubrique Paie, contrôles, journée, Social/Paie, Aide, lecture) disaient que les heures viennent d'OP GESTION ; la liaison n'envoie pas les heures (PAIE_OCT_VARS est une copie)",
+   "apres": "En mode application (opcSi) : « les heures, les absences et les primes d'octobre » ; la lecture dit « les factures, les paiements et l'argent reçu sur place ». La démonstration seule garde ses mots d'avant, octet pour octet. Rendre la phrase vraie n'est pas petit (heures, absences, primes, barème) : non fait",
+   "preuve": "sonde 3a (54 écrans relus) 3b (aucun motif de promesse) 3c ; mutations 3a-3d tombent. Côté hôte : aucune occurrence à changer (son propre calcul de paie utilise bien ses heures verrouillées)"
+  },
+  {
+   "titre": "Sonde des ventes du cadre renforcée",
+   "avant": "12 ✓ · 0 ✗ avec 3 mutations survivantes (TTC +1, client faux, tuile En retard +1) et l'état jamais lu",
+   "apres": "20 ✓ : TTC, client, état de CHAQUE ligne, tuile En retard, et ce que montre chaque filtre ; population comptée avant chaque zéro (8 lignes, 3 états distincts)",
+   "preuve": "compta-ventes-cadre-explore-mutations.py : M1-M8 tombent, M3/M2 visent l'occurrence vivante (deux VUES.ventes dans la page), pages livrées inchangées (empreintes)"
+  }
+ ],
+ "sondes": [
+  "compta-restes-coherence-2.js : 26 ✓ · 0 ✗ (nouvelle)",
+  "compta-ventes-cadre-explore.js : 20 ✓ · 0 ✗ (était 12)",
+  "compta-reste-cadre-coherence.js : 3 ✓ · 7 ✗ ; les 7 restent légitimes (décision A/B de Justin) : CC2 fournisseurs et CC3 banque (inchangés, la caisse +40 €), CC4 TVA collectée (3,65 € -> 0,01 €, arrondi laissé), CC5 achats, CC6 (le cadre affiche maintenant un crédit : il n'y a plus de « À payer » à lire, valeur nulle ; hôte 162,75 €), CC7 paie, CC8 écritures (61 -> 62 : le reçu)",
+  "compta-ventes-annulee-cadre 9/0, compta-reste-cadre-parcours 32/0, compta-reste-cadre-mots 40/0, compta-reste-mots 18/0, compta-reste-cadre-explore sans échafaudage",
+  "contrôles : compiler-pages, verifier-syntaxe, tests 835/836/837/1008/2994, verif-secrets : code 0"
+ ],
+ "mutations": [
+  "compta-ventes-cadre-explore-mutations.py : M1 TTC +1, M2 nom faux, M3 tuile En retard +1, M4 payées dites À encaisser, M8 à encaisser dites Payée, M5 reste +1, M6 pastille Payées, M7 filtre Payées : 8/8 tombent",
+  "compta-restes-coherence-2-mutations.py : 1a-1e, 2a-2e, 3a-3d : 14/14 tombent (2c et 2d d'abord survivantes : 2c visait une copie recouverte de l'accueil, 2d un motif « \\d à payer » ne voyant pas « € à payer » : retargetées et sonde corrigée)"
+ ],
+ "doutes": [
+  "Le reçu entre dans la caisse du BUREAU (530000), comme le fait déjà le cadre pour les espèces d'une intervention : en vrai, l'argent est chez le technicien jusqu'au dépôt",
+  "Le crédit de TVA se reporte (ou se rembourse sur demande) : texte écrit de mémoire, à faire relire par l'expert-comptable",
+  "Décision A/B (étendre la liaison aux achats/banque/paie, ou étiquettes « chiffres d'exemple ») non tranchée : le crédit de 2 975 € vient des achats d'exemple du cadre",
+  "Côté hôte, tv.aPayer pourrait un jour être négatif : ses six affichages (« à payer ») ne portent pas la règle crédit, inutile tant que les achats d'exemple restent petits",
+  "compta-reste-recontrole-paiement-mots tombe (3 ✗, texte « Voici comment un client paie… » dans prototype-paiement.html que je n'ai pas touché) : non lié, non traité",
+  "La démonstration seule (cadre ouvert sans ?app=1) dit encore « heures validées dans OP GESTION » : voulu, c'est son récit"
+ ]
+}

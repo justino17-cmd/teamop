@@ -2473,7 +2473,7 @@ VUES.accueil = () => {
       ${kpi('banque', 'Argent en banque', eur(treso), 'banque et caisse, au 31/10')}
       ${kpi('ventes', 'Les clients te doivent', eur(clients), retard ? `dont ${eur(retard)} en retard` : 'rien en retard')}
       ${kpi('achats', 'Tu dois aux fournisseurs', eur(fourn), 'factures reçues, pas encore payées')}
-      ${kpi('tva', tvaZ.mois, tvaZ.eur, tvaZ.credit ? 'l’État te doit cette somme · ' + (D.decl ? (D.pret ? 'à déposer d’ici le 23/11' : 'déposée') : 'à déposer au plus tard le 23/11') : D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
+      ${kpi('tva', tvaZ.mois, tvaZ.eur, tvaZ.credit ? 'l’État te doit cette somme · elle se reporte' : D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
       ${kpi('resultat', 'Bénéfice de l’année', eur(res), (PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie') + (LIA ? opcSi(' · paie et achats d’exemple', ' · paie et achats estimés') : ''))}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
