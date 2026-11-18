@@ -11,6 +11,7 @@ for f in ['prototype-op-gestion.html', 'prototype-documents.html', 'prototype-co
     shutil.copy(os.path.join(DEPOT, 'apercu', f), os.path.join(COPIE, 'apercu', f))
 PAGE = open(os.path.join(DEPOT, 'apercu', 'prototype-op-gestion.html'), encoding='utf-8').read()
 S1 = 'restes-contrats-1.js'
+S4 = 'restes-contrats-4.js'
 def M(nom, old, new, sonde=S1, profil='mac'): return dict(nom=nom, old=old, new=new, sonde=sonde, profil=profil)
 MUT = [
  M("C1 le prix d'une visite n'est plus arrondi au centime (casse 1)", "const ctrPart = (prix, n, rang) => { const p = Math.round(prix * 100), u = Math.round(p / n), r = rang >= n ? p - u * (n - 1) : u; return r / 100; };", "const ctrPart = (prix, n, rang) => prix / n;"),
@@ -25,7 +26,7 @@ MUT = [
  M("C10 la fausse barre d'adresse revient (contrats-14)", "<div class=\"client-web\" style=\"max-width:620px\"><div class=\"corps\">", "<div class=\"client-web\" style=\"max-width:620px\"><div class=\"url\">🔒 climservices17.teamop.fr/signer/K7P2</div><div class=\"corps\">"),
  M("C11 le mode « chaque mois » ne prépare plus la facture du premier mois (contrats-15)", "if (k.fact === 'visite' || FACTURES.some(f => f.id === 'fc-' + k.id)) return null;", "if (k.fact !== 'an' || FACTURES.some(f => f.id === 'fc-' + k.id)) return null;"),
  M("C12 au téléphone, le PDF repasse avant les cartes (contrats-13)", ".ctr-grille > .col{order:1}.ctr-grille > .ctr-doc{order:2}", ".ctr-grille > .col{order:2}.ctr-grille > .ctr-doc{order:1}", S1, 'iphone'),
- M("C13 l'article 4 du PDF ne dit plus le TTC (décision i)", "soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)} %)", "(TVA en sus)"),
+ M("C13 l'article 4 du PDF ne dit plus le TTC (décision i)", "soit ${eur(ctrTTC(ctrCentimes(B.prix) || 0, B))} TTC (TVA ${ctrTva(B)} %)", "(TVA en sus)"),
  M("C14 le pied du PDF redit « Modèle de démonstration » (contrats-06)", "<div class=\"pdf-pied\">${ENTREPRISE.nom} · ${ENTREPRISE.adr}", "<div class=\"pdf-pied\">Modèle de démonstration, à faire relire avant tout usage. ${ENTREPRISE.nom} · ${ENTREPRISE.adr}"),
  M("C15 les visites d'un renouvellement lisent celles de l'ancien contrat", "&& ctrDeVisite(o) === k);", ");"),
  M("C16 le PDF d'un contrat terminé redit « à signer »", "const sig = k && k.st !== 'envoye' ? (k.sigImg", "const sig = k && k.st === 'signe' ? (k.sigImg"),
@@ -36,6 +37,11 @@ MUT = [
  M("C22 une visite sortie du planning redit une date (recontrôle 1)", "(fini && !v.fait ? '' : ' · ' + jlong(v.d))}</span><span class=\"st ${v.fait", "' · ' + jlong(v.d)}</span><span class=\"st ${v.fait", "restes-contrats-1-recontrole-ecrans.js", "petit"),
  M("C23 le prix rangé redit l'arrondi flottant : 1.005 range 1,00 € alors que l'aperçu dit 1,01 € (tour 3)", "if (/^\\d+(\\.\\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2');", "if (false) return 0;", "restes-contrats-2-recontrole.js"),
  M("C24 la carte Facturation d'un contrat repasse sur une ligne forcée (320 px)", ".ctr-fact{flex-wrap:wrap}", ".ctr-fact{flex-wrap:nowrap}", "restes-contrats-2-recontrole-facturation.js", "petit"),
+ M("C25 l'aperçu lit le TTC sur la saisie brute (tour 4 : 99.995 → 119,99 au lieu de 120,00)", "soit ${eur(ctrTTC(ctrCentimes(B.prix) || 0, B))} TTC (TVA ${ctrTva(B)}\xa0%)", "soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)}\xa0%)", S4),
+ M("C26 l'aperçu lit le prix par visite sur la saisie brute (tour 4 : 100.005 sur 2 visites → 50,00 au lieu de 50,01)", "prixVisite = ctrPart(ctrCentimes(B.prix) || 0, Number(B.freq) || 1, 1);", "prixVisite = (Number(B.prix)||0) / (Number(B.freq)||1);", S4),
+ M("C27 le plafond se juge de nouveau sur la saisie brute (tour 4 : 1000000.004 refusé)", "if (ctrCentimes(B.prix) > CTR_PRIX_MAX) {", "if (Number(B.prix) > CTR_PRIX_MAX) {", S4),
+ M("C28 le tableau des Contrats ne se replie plus quand la CARTE est étroite (iPad portrait, tour 4)", ".ctr-liste{container:ctrl / inline-size}", ".ctr-liste{}", S4, 'ipad'),
+ M("C29 le total à sept chiffres reprend ses 22 px au téléphone (tour 4)", ".kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}", ".kpis .kpi.kpi-long b{font-size:22px}", S4, 'petit'),
  M("C17 la liste composée ne dit plus le TTC (décision i)", "${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}", "", "restes-contrats-composes.js"),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''

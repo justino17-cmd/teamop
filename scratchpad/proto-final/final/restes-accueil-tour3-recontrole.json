@@ -1,0 +1,66 @@
+{
+ "noms": [
+  "Restes accueil, tour 3 : recontrôle adverse (graphique des 12 mois, argent noté sur place, bilan, bouton « Annuler par un avoir »)"
+ ],
+ "regles": [
+  "Statistiques — graphique des 12 mois, 590 à 625 px (et iPad 890-900) : rejoué sur 22 largeurs (500 à 901 px, iPhone, iPad nuit, Mac), trois périodes, trois paysages de téléphone : défile ⇒ marge + fondu + phrase, tient ⇒ aucun des trois, la page ne glisse jamais ; premier et dernier mois entiers à 390 px. Mutation « seuil à 557 » : la sonde tombe (900 px, carte de 546 px, défile de 12 px).",
+  "Intervention datée après octobre, terminée tôt (i8, 50 € en espèces) : une ligne « 50,00 € · Espèces », argent daté du 31/10, Accueil, Comptabilité (mois, caisse, écriture), fiche intervention et Statistiques d'accord — mac, iPhone nuit, petit nuit (81 ✓ · 0 ✗ chacun).",
+  "Carte et virement notés sur place : « reçus sur place » quel que soit l'envoi automatique ou manuel (quatre moyens × deux envois) ; la caisse ne porte que espèces et chèques, le rapprochement bancaire garde carte et virement en attente — rien de faux à côté.",
+  "Facture déjà partie avec un encaissement d'un autre moyen : l'Historique ne dit que les espèces du technicien ; en plus rejoués ici : facture déjà PAYÉE en entier (la facture reste à 240 €, aucun espèces en plus, pas d'erreur), facture EN RETARD payée de 100 € (reste « en retard ») puis en totalité (« payée », 240 €, une ligne), « Terminer » rejoué sur une facture partie et sur une facture préparée (60 € comptés une seule fois, une seule ligne).",
+  "Bilan en PDF à 320 px : montant et unité sur une ligne ; valeurs de 6 chiffres (123 456 €) tiennent dans leur tuile à 320 et 360 px, la page ne glisse pas.",
+  "« Annuler cette facture par un avoir » à 320 px : sur les 8 fiches de facture du jeu, à 320 et 360 px, aucun bouton ne sort de sa carte ni de l'écran, la page ne glisse jamais ; le bouton fait 44 px au moins et répond au toucher (capture rr3-avoir-320 regardée : deux lignes centrées dans la carte).",
+  "Sondes du tour réparées : accueil-corrections 27 ✓, accueil-restes-1-recontrole 95 ✓, accueil-restes-2-recontrole 74 ✓ (petit, iPad nuit), accueil-coherence 22 ✓, accueil-recontrole-parcours 25 ✓, accueil-recontrole 15 ✓, accueil-restes-1 21 ✓ : toutes à 0 ✗."
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "« Marquer terminée » (menu de l'intervention) avec un paiement déjà noté par le technicien : l'argent n'est compté nulle part quand le jour prévu est après octobre",
+   "gravite": "mineure (porte annexe : le chemin normal « Terminer » est réglé)",
+   "etapes": "i8 (prévue le 2 novembre), le technicien a noté 50 € en espèces sur sa fiche sans appuyer sur Terminer ; le bureau la passe « terminée » par le menu (i.st='fait' seul, le même geste que le menu). Même résultat pour une terminée par le registre biocide (i.st='fait' à l'enregistrement du passage).",
+   "constat": "le paiement n'a pas de P.recuLe (posé seulement par « Terminer »), cpPaieTerrain retombe sur le jour prévu (02/11) et le filtre du mois l'écarte : reçu sur place avant 40 €, après 40 € (aucun +50), aucune ligne dans l'Historique. C'est la même famille que l'entrée « datée après octobre » du tour, par une autre porte. Sonde restes-accueil-3-recontrole B1 (tombe sur mac, iPhone nuit, iPad). Piste : poser recuLe/recuH aussi dans le menu « Marquer terminée » (et le registre biocide) quand un paiement est noté, ou compter l'argent au jour de sa saisie."
+  },
+  {
+   "titre": "« Remettre à faire » puis re-« Terminer » avec un montant corrigé : la ligne de l'Historique garde l'ancien montant pendant que l'Accueil compte le nouveau",
+   "gravite": "mineure",
+   "etapes": "i3 terminée par Karim avec 50 € en espèces ; menu « Remettre à faire » ; le montant est corrigé à 80 € ; « Terminer » de nouveau.",
+   "constat": "l'Accueil et la Comptabilité comptent 80 € (reçu sur place 120 € au total, 31/10) ; l'Historique dit « 50,00 € · Espèces » : P.journale, posé la première fois, empêche la seconde ligne (pas de doublon, c'est voulu) mais fige aussi le montant. Le journal et l'argent comptés ne se disent plus la même chose. Sonde B2. Piste : réécrire le détail de la ligne existante quand le montant change, ou lever P.journale au « Remettre à faire »."
+  }
+ ],
+ "nouveaux": [],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/accueil-restes-3.js MDFCTV mac / iphone nuit / petit nuit",
+   "resultat": "81 ✓ · 0 ✗ ×3"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-accueil-3-recontrole.js A (iphone, ipad nuit, mac)",
+   "resultat": "54 ✓ · 0 ✗ ×3 ; sous mutation « seuil 557 » : 53 ✓ · 1 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-accueil-3-recontrole.js B (mac, iPhone nuit, iPad)",
+   "resultat": "11 ✓ · 2 ✗ — les deux casses ci-dessus (B1, B2), 13 contrôles dont B3 à B6 verts"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-accueil-3-recontrole.js C (petit) et D (petit)",
+   "resultat": "C 25 ✓ · 0 ✗ ; D 7 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-accueil-3-recontrole.js ABCD ipad",
+   "resultat": "94 ✓ · 2 ✗ (B1, B2)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-accueil-3-recontrole-vue.js nuit (captures à regarder)",
+   "resultat": "captures rr3-vue-* regardées : le graphique à 320 et 390 px est fondu à gauche avec sa phrase, à 600 px il tient sans fondu ni phrase"
+  },
+  {
+   "fichier": "sondes du tour rejouées (accueil-corrections, -coherence, -recontrole, -recontrole-parcours, -restes-1, -restes-1-recontrole, -restes-2-recontrole)",
+   "resultat": "toutes à 0 ✗ (27, 22, 15, 25, 21, 95, 74 ✓)"
+  }
+ ],
+ "doutes": [
+  "Bilan en PDF à 320-360 px avec un montant de 7 chiffres ou plus (1 234 567 €) : à cause du « nowrap » du tour, la tuile s'élargit et sort de sa section, qui défile de côté (la page, non) ; avant le correctif le montant passait à la ligne. Les valeurs de 6 chiffres tiennent. Probablement sans conséquence pour une petite entreprise de clim (3 045 € dans le jeu), à confirmer avec Justin.",
+  "Une intervention avec plusieurs factures (avoir, facture annulée + nouvelle) : « Terminer » choisit la PREMIÈRE facture de l'intervention (FACTURES.find) pour inscrire les espèces, qui n'est pas forcément celle qui reste à payer. Aucune intervention du jeu n'en a plusieurs (vérifié), donc non joué : à regarder si le prototype en gagne.",
+  "Facture déjà payée en entier avant « Terminer » et espèces notées en plus : rien n'est compté (voulu pour ne pas payer deux fois), mais aucune alerte n'avertit le bureau qu'un client a payé deux fois. À soumettre à Justin si le cas lui paraît réel.",
+  "Les deux casses ci-dessus sont des portes annexes : Justin voudra peut-être les laisser (le chemin normal est réglé) ou demander que l'argent compte toujours au jour où il est noté."
+ ]
+}
