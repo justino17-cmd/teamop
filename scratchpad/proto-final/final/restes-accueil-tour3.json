@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "Statistiques — graphique des 12 mois, fenêtres de 590 à 625 px (et iPad à 890-900 px) : il défilait de 4 à 24 px pour rien",
+  "defaut": "la requête de conteneur prenait 557 px (528 de colonnes + 30 de marge) comme seuil ; entre 528 et 557 px la marge du fondu faisait défiler le graphique : mois d'octobre coupé de 24 px au plus, « Glisse vers la droite » pour rien.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : @container (max-width:527px) au lieu de 557px dans les deux requêtes d'écran (téléphone et iPad tactile) ; la marge et le fondu ne servent que si le graphique défile vraiment (les colonnes demandent 528 px). Commit 0da8e036.",
+  "preuve": "accueil-restes-3.js partie C : 10 largeurs (530, 560, 590 défilent avec phrase et fondu ; 600, 610, 620, 625, 640, 700, 760 tiennent sans marge ni fondu ni phrase), mac, iphone nuit, petit 77 ✓ · 0 ✗, ipad 19 ✓ · 0 ✗ ; accueil-restes-1-recontrole.js 95 ✓ · 0 ✗ et accueil-restes-2-recontrole.js 62 ✓ · 0 ✗ (3 ✗ avant) ; mutation « seuil à 557 » : la sonde tombe."
+ },
+ {
+  "nom": "Intervention datée après octobre, terminée tôt par le technicien : l'argent noté sur place n'était compté ni écrit nulle part",
+  "defaut": "cpPaieTerrain ne retenait que les interventions dont le JOUR PRÉVU est en octobre : i8 (prévue le 2 novembre, finie le 31 octobre avec 50 € en espèces) n'avait aucune ligne « reçu sur place », rien à l'Accueil, à la Comptabilité, aux Statistiques ni au bilan.",
+  "etat": "corrigé",
+  "changement": "décision du chef de chantier (17/11) appliquée : l'argent compte le JOUR où le technicien le reçoit, pas le jour prévu. « Terminer » pose P.recuLe / P.recuH (aujourd'hui) ; cpPaieTerrain date l'argent de ce jour-là et ne retient que ce qui tombe dans le mois affiché ; on ne refuse pas « Terminée » avant le jour prévu.",
+  "preuve": "accueil-restes-3.js partie D : i8 prévue après octobre, terminée par Karim avec 50 € en espèces : UNE ligne « 50,00 € · Espèces » dans l'Historique, argent daté du 31/10, total « reçu sur place » en hausse de 50 €, et Accueil, Comptabilité (le mois, caisse, écritures), fiche intervention, Statistiques le disent ; mutations « le jour prévu décide » et « recuLe jamais posé » : la sonde tombe."
+ },
+ {
+  "nom": "Une carte ou un virement noté sur place : « reçu sur place » dans l'Historique ou non (et selon l'envoi automatique, un même geste donnait deux comportements)",
+  "defaut": "le moyen décidait de la règle : espèces et chèque comptés, carte et virement non (envoi manuel), mais ligne « 142,61 € · Carte » à l'envoi automatique parce que la facture partait déjà encaissée.",
+  "etat": "corrigé",
+  "changement": "décision du chef : le moyen ne change pas la règle. Espèces, chèque, carte et virement notés sur place sont tous « reçus sur place » tant que la facture n'est pas partie (cpPaieTerrain n'en filtre plus aucun, journal et Accueil suivent) ; une carte ou un virement attend en plus sa ligne de banque, ce que la Comptabilité dit déjà.",
+  "preuve": "accueil-restes-3.js partie M : quatre moyens × envoi manuel / automatique, « payé en totalité » sans montant : une ligne par cas, avec son moyen, au même montant que l'Accueil et la Comptabilité (> 100 €) ; manuel : l'argent est « sur place », pas encore sur une facture ; automatique : la facture part payée, un encaissement, plus rien « sur place » ; l'Accueil dit « reçus sur place, pas encore sur une facture » avec un virement noté. Mutation « seuls espèces/chèque comptent » : la sonde tombe."
+ },
+ {
+  "nom": "Facture déjà partie AVANT « Terminée » avec un encaissement d'un autre moyen : la ligne d'Historique en additionnait le total (cas non éprouvé au tour 2)",
+  "defaut": "pour une facture déjà envoyée (acompte, facture de devis), « Terminer » inscrivait le total des encaissements de la facture dans la ligne « reçu sur place », carte du client comprise, et la facture ne reprenait pas les espèces du technicien pour le reste à payer.",
+  "etat": "corrigé",
+  "changement": "encaisserPaieTech(f, P) : l'argent noté par le technicien devient l'encaissement de la facture, UNE fois (P.encaisse), pour ce qui RESTE à payer et pas plus ; l'Historique ne dit que ce que le technicien a reçu. L'envoi de la facture (envoyerFactureParti) passe par la même fonction : une seule règle.",
+  "preuve": "accueil-restes-3.js partie F : facture partie de 240 € dont 30 € payés par carte, technicien note 500 € d'acompte (plus que le reste) : encaissement des espèces inscrit UNE fois, 240 € reçus en tout, rien « sur place » de plus, la facture passe payée ; la ligne de l'Historique ne dit que les espèces. Mutations « la ligne additionne tout » et « plus que le reste » : la sonde tombe."
+ },
+ {
+  "nom": "Bilan en PDF à 320 px : « 3 045 € » et « TTC » se coupaient en deux lignes dans la tuile Encaissé",
+  "defaut": "l'unité tombait sous le montant dans la tuile Encaissé (plus longue de la ligne de comparaison), pas dans Facturé.",
+  "etat": "corrigé",
+  "changement": ".bil-t b{white-space:nowrap} : le montant et son unité ne se séparent jamais.",
+  "preuve": "accueil-restes-3.js partie T : 320, 360, 390 px et 320 px avec valeur longue (12 345,67 €) : montant et unité sur une ligne, dans les deux tuiles Facturé et Encaissé ; mutation « unité à la ligne » : la sonde tombe."
+ },
+ {
+  "nom": "Un détail connexe du tour 2 : accueil-parcours P7 (sonde périmée) et la lecture du journal « Dépannage climatisation »",
+  "defaut": "la sonde visait une ligne du journal par son numéro (j45), devenu une autre ligne après l'insertion de lignes par d'autres lots.",
+  "etat": "corrigé",
+  "changement": "déjà réparé au tour 2 (la ligne se cherche par son contenu) ; rejoué dans accueil-tout.sh.",
+  "preuve": "voir la ligne « accueil-parcours » de accueil-tout.sh ci-dessous."
+ },
+ {
+  "nom": "accueil-07 — « À faire maintenant » : 17 lignes de même poids ; chiffres des Statistiques d'un mois d'avant octobre fabriqués par le prototype",
+  "defaut": "dessin de l'Accueil et données de démonstration : décisions de Justin, non touchées.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "voir restes-accueil-tour1.json et tour2.json"
+ },
+ {
+  "nom": "Doute (déjà décidé) : Julie s'ouvre sur la Comptabilité ; pied du menu ; vus-par-le-chef (lignes Accueil)",
+  "defaut": "déjà tranchés (MENU-FINAL.md) ; la seule ligne de vus-par-le-chef.md qui touchait l'Accueil (décisions du 17/11, 12 h 35) est celle que ce tour applique : cochée avec son commit.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "vus-par-le-chef.md : ligne « Accueil, argent reçu sur place » cochée ; aucune autre ligne ouverte sur Accueil, Statistiques ou Historique"
+ }
+]
