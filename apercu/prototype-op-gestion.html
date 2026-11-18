@@ -9011,6 +9011,12 @@ const CAL_GENRES = [
   { k:'atelier',     ouvert:() => !!document.querySelector('#opdz:not([hidden])'),      ferme:() => opdFermer('fin') },   // l'atelier de devis et de contrats
   { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
   { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
+  /* les cinq calques que le recontrôle du 18 novembre a trouvés « oubliés » : un Retour quittait l'écran en les laissant posés */
+  { k:'securite',    ouvert:() => !opsLarge() && !!document.querySelector('#opsec[data-ouvert]'), ferme:() => opsFermer() },   // OP Security : le téléphone simulé en plein écran (sur grand écran c'est un volet permanent, pas un calque)
+  { k:'confirmation', ouvert:() => !!document.getElementById('sec-conf'),                 ferme:() => secuConfFermer(true) },   // « Confirme sur ton téléphone » : Retour = « Annuler », la demande est annulée comme au bouton
+  { k:'feuille',     ouvert:() => !!document.getElementById('cr-ftel'),                  ferme:() => { const b = document.querySelector('#cr-ftel [data-crsel]'); if (b) b.click(); } },   // la fiche d'une tournée posée en bas de la carte du planning (téléphone)
+  /* la Comptabilité plein cadre est une page À PART dans un cadre : elle DIT à l'hôte quand elle a un panneau ou le tiroir de son menu ouvert (opc_calque), et l'hôte lui dit de le fermer (opc_fermer_calque) */
+  { k:'cadre',       ouvert:() => cpCalque && !!document.querySelector('#cpsys:not([hidden])'), ferme:() => { cpCalque = false; try { const f = document.querySelector('#cpsys iframe'); if (f) f.contentWindow.postMessage({ opc_fermer_calque:true }, '*'); } catch (e) {} } },
 ];
 const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false, hash:'' };
 const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
@@ -9067,7 +9073,7 @@ addEventListener('popstate', ev => {
    eux-mêmes (lireHash) : la restauration automatique ne sert à rien ici, et elle défait ce que la règle promet — l'écran dessous reste où il était. */
 try { history.scrollRestoration = 'manual'; } catch (e) {}
 { const veille = () => { if (CAL.prevu) return; CAL.prevu = true; queueMicrotask(() => { CAL.prevu = false; calSync(); }); };
-  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class'] });
+  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class', 'data-ouvert'] });
   try { const e = history.state; if (e && typeof e.cal === 'number' && e.cal > 0) calReculer(e.cal); } catch (e) {}   // rechargé fenêtre ouverte : l'entrée orpheline est reculée
 }
 
@@ -14639,8 +14645,9 @@ function xyLu(k, v){
   return n;
 }
 /* [n°4][n°7][n°8] ce que le cadre Comptabilité dit à la fenêtre : le mode qu'on y a choisi, et la touche Échap tapée dedans */
-var cpProg = null, cpSysEcho = false;
+var cpProg = null, cpSysEcho = false, cpCalque = false;   /* cpCalque : la Comptabilité plein cadre a un panneau ou son tiroir ouvert (lu par CAL_GENRES, « cadre ») */
 addEventListener('message', e => { const z = document.getElementById('cpsys'), f = z && z.querySelector('iframe'); if (!f || e.source !== f.contentWindow || !e.data) return;
+  if (e.data.opc_pret) cpCalque = false; else if ('opc_calque' in e.data) { cpCalque = e.data.opc_calque === true; calSync(); }   /* un cadre rechargé repart sans couche ; sinon la page l'historise comme tout calque */
   const m = e.data.opc_mode_choisi;
   if (m === 'jour' || m === 'nuit' || m === 'auto') { cpSysEcho = true; try { mode = m; appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); } finally { cpSysEcho = false; } }
   if (e.data.opc_echap && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
