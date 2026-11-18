@@ -12,6 +12,7 @@ MUT = [
   ('12', 'la barre du document n\'écrit plus au journal', "if (b.dataset.pdfdl) { pdfTelecharger(doc, nom); docTrace(doc, 'tel'); }", 'if (b.dataset.pdfdl) { pdfTelecharger(doc, nom); }'),
   ('12', 'le plan des box part vers une autre adresse que celle du client', 'data-a="${esc(CB_MAIL[c] || \'\')}" data-corps', 'data-a="autre@exemple.fr" data-corps'),
   ('12', 'le registre part sans adresse prérenseignée', 'data-a="${esc(CLIENTS[RG_SITES[k]].mail)}"', 'data-a=""'),
+  ('15', 'la note du relevé reste à côté de « ＋ Photo » sur téléphone', '.cb-nph input{flex:1 1 240px;', '.cb-nph input{flex:1 1 120px;'),
   ('14', 'les commandes de fenêtre ne passent plus à la ligne', '.actions .btn{max-width:100%;white-space:normal;', '.actions .btn{max-width:100%;white-space:nowrap;'),
 ]
 tombent = 0

@@ -157,6 +157,14 @@ const NOMS = ['Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA'
       v(`carte ${profil} : la fenêtre « Envoyer le plan au client » est ouverte, ses commandes comptées (population)`, !!r && r.n >= 2, r);
       if (r) v(`carte ${profil} : aucune commande n'est coupée ni ne sort de la fenêtre`, r.bt.every(b => !b.coupe && !b.dehors), r.bt.filter(b => b.coupe || b.dehors));
     }
+    // 15. UN CHAMP DONT LE TEXTE D'AIDE EST COUPÉ NE DIT PLUS CE QU'IL ATTEND : « Note sur le dernier r… » à 360 px, à côté de « ＋ Photo ».
+    if (sec(15)) {
+      await neuf(p); await L.aller(p, 'carteBox'); await clic(p, '[data-d3="box|P1"]', 700);
+      const r = await p.evaluate(() => { const e = document.querySelector('.cb-nph input'); if (!e) return null; const g = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(e);
+        const ph = getComputedStyle(e, '::placeholder'); g.font = ph.fontWeight + ' ' + ph.fontSize + ' ' + ph.fontFamily; const t = g.measureText(e.placeholder).width, dispo = e.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); return { texte: Math.round(t), dispo: Math.round(dispo), ph: e.placeholder, larg: Math.round(e.getBoundingClientRect().width), rangee: Math.round(e.parentElement.getBoundingClientRect().width), vw: innerWidth }; });
+      v(`carte ${profil} : le champ « Note sur le dernier relevé » est trouvé (population)`, !!r, r);
+      if (r) v(`carte ${profil} : son texte d'aide tient en entier dans le champ`, r.texte <= r.dispo + 1, r);
+    }
     await L.fin(c);
     if (profil !== 'mac' && c.err.length) console.log('  · erreurs JS', profil, c.err.slice(0, 3));
   }
