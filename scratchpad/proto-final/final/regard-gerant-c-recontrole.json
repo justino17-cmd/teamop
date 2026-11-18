@@ -1,0 +1,81 @@
+{
+ "role": "gérant (marc)",
+ "voie": "final-regard",
+ "suffixe": "c-recontrole",
+ "date": "2026-11-18",
+ "population": {
+  "captures": "740 captures prises (53 scènes × mac jour/nuit, windows, ipad, iphone jour/nuit, android, petit), regardées en 12 planches : écrans corrigés (bandeaux Stock/Dépôts, menu, Articles, vides, fiche camion, fiche fournisseur, montants longs) + sondage de fiches article, atelier, fournisseurs plein long sur ordinateur et iPad",
+  "sonde_rejouee": "scratchpad/proto-final/sondes/regard-gerant-c.js : 100 ✓ · 0 ✗",
+  "non_regarde": "mac jour et windows nuit hors des planches citées ; android nuit, ipad nuit, petit nuit non pris ; autres rôles (julie, sm, kb) non rejoués"
+ },
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  6,
+  9,
+  10
+ ],
+ "pasRegles": [
+  {
+   "n": 5,
+   "constat": "Non revu sur capture (« Tout préparer » à 320/360 px) : la sonde ne le contredit pas, mais je ne l'ai pas regardé."
+  },
+  {
+   "n": 7,
+   "constat": "Non revu : la fiche fournisseur sur ordinateur n'a pas été regardée ; sur téléphone l'e-mail des commandes tient dans son champ."
+  },
+  {
+   "n": 8,
+   "constat": "Non revu sur capture (numéro de commande, Remplir les camions, 320 px)."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "ecran": "Fournisseurs › Articles, nom long (petit 320)",
+   "profils": "petit",
+   "constat": "Le titre de carte « Climatiseurs et unités · Climatisation · 1 » passe à la ligne et laisse « · 1 » en tête de la seconde : point médian orphelin, même famille que le point déjà signalé.",
+   "gravite": "faible"
+  },
+  {
+   "ecran": "Stock › fiche article (lignes « Il en reste »)",
+   "profils": "ipad, mac, windows",
+   "constat": "La ligne bleue des lieux finit par un « · » seul en bout de ligne (« … dans le camion de Sophie 2 · »). Point laissé par l'agent précédent : toujours présent, y compris sur iPad, pas seulement à 320 px.",
+   "gravite": "faible"
+  },
+  {
+   "ecran": "Fournisseurs › Articles (petit 320)",
+   "profils": "petit",
+   "constat": "« + Ajouter un article » passe sur deux lignes dans son bouton ; le segmenté Commandes / Articles / Fournisseurs touche les deux bords de sa carte.",
+   "gravite": "faible"
+  }
+ ],
+ "doutes": [
+  "Stock sur ordinateur et iPad : le champ de recherche s'ouvre avec l'anneau de focus bleu dès l'arrivée (mac, windows, ipad). À confirmer que c'est voulu : sur iPad il peut faire monter le clavier.",
+  "Stock vide : « Ajouter un article » est un bouton étroit au-dessus de « Choisir parmi… » pleine largeur ; largeurs différentes, lisible, à soumettre à Justin."
+ ],
+ "tour2": {
+  "date": "2026-11-18",
+  "sonde_rejouee": "regard-gerant-c.js sections 1 à 18",
+  "regles": [
+   "5 (revu android nuit : bouton sous le titre, propre)",
+   "7 (fiche fournisseur : mac/ipad lisible ; android 360 : adresse coupée, laissé)",
+   "8 (non revu : 320 px)",
+   "nouveaux : segmenté 320, bouton noir, « · N », point des lieux, focus tactile, boutons du vide, montant sur colonne voisine"
+  ],
+  "non_regarde": "petit nuit, rôles julie / sm / kb, bas des planches iPad hors 1, 5, 6",
+  "mutations": "nouvelles 14 à 22 : 9 sur 9 tombent ; rejeu 1 à 13 : 10 sur 13 tombent. Ne tombent plus : 6 (« À commander », titre et bouton), 7 (bouton du stock vide : la grille à colonnes égales le neutralise) et 11 (montant coupé : la colonne minmax(max-content) le neutralise) — la mutation 22 garde la colonne ; 6 à revoir."
+ },
+ "nouveaux_regles": [
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18
+ ]
+}

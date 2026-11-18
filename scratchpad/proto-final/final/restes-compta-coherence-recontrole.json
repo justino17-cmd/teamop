@@ -1,0 +1,35 @@
+{
+ "noms": [
+  "Recontrôle adverse : cohérence cadre OP COMPTABLE / OP GESTION et sonde des ventes"
+ ],
+ "regles": [
+  "Les 7 ✗ rejoués deux fois (mac) + une fois (iphone) : identiques, chiffres exacts un par un (17 766,00/896,28 ; 22 165,18/9 792,95 ; 479,16/482,81 ; 3 457,96/320,06 ; 0,00/162,75 ; 26 734,12/24 592,69 ; 61/51)",
+  "TVA : écart 3,65 € = 3,64 € (Reçu I6, 40 € à 10 %, TTC arrondi sur le cumul à 10 % : 414 € donne 37,64) + 0,01 € d'arrondi (479,16 paiement par paiement côté cadre, 479,17 par taux côté OP GESTION sur les 11 mêmes encaissements)",
+  "'sonde périmée' écartée à raison : REPRISE.md l.937-941 note la conséquence 'à trancher' ; RETOURS-JUSTIN.md : Justin a dit 'Comptabilité, ça c'est bon' le 16/11, après l'unification du 13/11, sans trancher les chiffres",
+  "aucune page modifiée, git diff vide après mes mutations"
+ ],
+ "pasRegles": [
+  "'Une seule cause' est inexacte pour CC4 : l'écart 0,01 € existe sur les 11 encaissements COMMUNS, donc dans la partie ventes que le rapport dit 'cohérente' ; corriger le Reçu I6 seul laisse CC4 rouge (l'agent le dit à demi) ; il y a donc une petite divergence de méthode d'arrondi propre aux ventes",
+  "Lecture B décrite avec 'comme la tuile Bénéfice le fait déjà (chiffres d'exemple)' : faux dans l'usage réel — en mode application (opcSi) la tuile dit 'paie et achats estimés', 'd'exemple' n'est que le mode cadre seul",
+  "CC7 et CC8 (paie 26 734,12/24 592,69 ; 61/51 écritures) : la cause 'pas étendu aux achats/paie' est plausible mais non prouvée ; les deux moteurs de paie partent de la même base de salaires et les écritures ne se comptent pas au même grain (cpEcritures contre P.n du cadre) : un écart peut survivre à l'extension de la liaison",
+  "la page dit 'Les fiches se calculent avec les heures validées dans OP GESTION' alors que la liaison n'envoie pas les heures : promesse d'écran à relire en décision A comme en B",
+  "TVA du cadre : 'À payer à l'État 0,00 €' masque un crédit de TVA de 2 978,80 € (479,16 − 3 457,96) que l'écran ne dit pas"
+ ],
+ "casses": [],
+ "nouveaux": [
+  "compta-ventes-cadre-explore.js (12 ✓ · 0 ✗, rejouée) : population comptée avant chaque zéro (V1/V2/V4), mais TROIS angles morts mutés sans effet : M3 TTC de chaque ligne +1 € -> 12 ✓ · 0 ✗ ; M4 tuile 'En retard' +1 -> 12 ✓ · 0 ✗ ; M7 nom du client faux sur chaque ligne -> 12 ✓ · 0 ✗ (aussi l'état de ligne jamais lu)",
+  "scratchpad/proto-final/campagne/sondes/compta-reste-recontrole-coh.js : sonde de décomposition TVA (lecture seule)"
+ ],
+ "sondes": [
+  "compta-reste-cadre-coherence.js : 3 ✓ · 7 ✗ ×3 (mac ×2, iphone ×1)",
+  "compta-ventes-cadre-explore.js : 12 ✓ · 0 ✗",
+  "mutations à moi sur copie (checkout, git diff vide après) : M5 Reste à encaisser +1 € -> V6 tombe (11 ✓ · 1 ✗) ; M6 filtre Payées = toutes -> V9 tombe (11 ✓ · 1 ✗) ; M3, M4, M7 survivent (angles morts ci-dessus). Les M1 M2 de l'agent non rejouées, M5/M6 équivalentes",
+  "contrôle : compiler-pages 41 pages 0 erreur ; verifier-syntaxe ok ; test-835 844 ✓, 836 307 ✓, 837 122 ✓, 1008 54 ✓, 2994 15 ✓, tous 0 ✗ ; verif-secrets code 0"
+ ],
+ "doutes": [
+  "Lecture A : coût correct en nature (achats, fournisseurs, relevé, paie) mais incomplet : il faut aussi trancher la méthode d'arrondi de la TVA (par paiement ou par taux), le crédit de TVA, et réécrire les sondes du cadre qui gardent ses chiffres propres ; A casse le semis du cadre sur lequel Justin a dit 'ça c'est bon'",
+  "Lecture B : exacte pour les tuiles banque, fournisseurs, TVA, paie ; mais le libellé existant est 'estimés' en mode application ; B ne corrige pas les 0,01 € ni le Reçu I6 (ventes), seulement l'étiquette",
+  "Non prouvé : l'équivalence exacte des 61 écritures du cadre avec les 51 d'OP GESTION (grain différent), et l'origine de 2 141,43 € d'écart de paie (heures ?)",
+  "Non vérifié visuellement : captures non relues (aucune page modifiée) ; seuls texte et chiffres lus au DOM, mac et iphone"
+ ]
+}

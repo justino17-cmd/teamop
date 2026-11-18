@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "Restes accueil, tour 4 — « Marquer terminée » (menu de l'intervention) avec un paiement déjà noté par le technicien : l'argent n'était compté nulle part quand le jour prévu est après octobre (casse B1 du recontrôle du tour 3)",
+  "defaut": "i8 prévue le 2 novembre, 50 € en espèces notés sur sa fiche, « Marquer terminée » par le menu : reçu sur place 40 € avant, 40 € après (aucun +50), aucune ligne dans l'Historique. Le menu posait i.st = 'fait' seul : pas de date de réception (P.recuLe, posée seulement par « Terminer »), donc l'argent retombait sur le jour prévu et le filtre du mois l'écartait. Reproduit avant correction (restes-accueil-3-recontrole B : 11 ✓ · 2 ✗).",
+  "etat": "corrigé",
+  "changement": "Une seule fonction, argentSurPlaceCompter(i) (apercu/prototype-op-gestion.html, à côté de journalPaieTerrain) : si le technicien a noté un paiement, elle pose la date de réception (aujourd'hui, sans écraser une date déjà posée) et écrit la ligne « a noté un paiement reçu sur place » dans l'Historique, comme « Terminer ». Elle rend la fonction qui DÉFAIT le geste : « Annuler » du toast retire la date, la ligne et l'état. Appelée par le menu « Marquer terminée ».",
+  "preuve": "scratchpad/proto-final/campagne/sondes/restes-accueil-4.js (partie A, VRAI menu de la carte, plus un i.st posé à la main) : 18 ✓ · 0 ✗ sur mac et iPhone nuit ; mutations A1 à A5 tombent (scratchpad/proto-final/campagne/mutations-accueil-restes-4.py, 10 sur 10 tombent). Capture r4-accueil-apres-menu regardée : « dont 90,00 € reçus sur place » (40 + 50) en octobre. Sonde restes-accueil-3-recontrole B passée à 13 ✓ · 0 ✗ (son B1 joue désormais le vrai menu)."
+ },
+ {
+  "nom": "Restes accueil, tour 4 — le registre biocide passe aussi l'intervention « terminée » sans « Terminer » (même défaut, autre porte, trouvée en cherchant les portes jumelles de B1)",
+  "defaut": "rgSaisieOk (« Enregistrer le passage » du registre sanitaire) pose Iv.st = 'fait' sans date de réception ni ligne d'Historique pour un paiement déjà noté. Rejoué par le vrai formulaire (métier 3D, seul métier qui a un registre) : avant correction, le paiement n'était pas compté au jour reçu et n'avait pas de ligne.",
+  "etat": "corrigé",
+  "changement": "Même fonction argentSurPlaceCompter, appelée dans rgSaisieOk quand l'intervention devient terminée par ce geste (pas si elle l'était déjà), appelée AVANT l'écriture de la ligne du passage (la ligne « jr » reste la dernière) ; son annulation est branchée sur le « Annuler » du toast du passage.",
+  "preuve": "restes-accueil-4.js partie B : 50 € comptés aujourd'hui, une ligne, puis « Annuler » le passage défait aussi l'argent (état, date, ligne) ; mutations B1 et B2 tombent. La troisième porte qui écrit i.st = 'fait' (« Visite terminée → devis », visitefin) ne concerne pas une intervention avec paiement : non touchée."
+ },
+ {
+  "nom": "Restes accueil, tour 4 — « Remettre à faire » puis re-« Terminer » avec un montant corrigé : la ligne de l'Historique gardait l'ancien montant pendant que l'Accueil comptait le nouveau (casse B2)",
+  "defaut": "i3 terminée avec 50 € en espèces, « Remettre à faire », montant retapé à 80 €, « Terminer » : l'Accueil et la Comptabilité comptaient 80 €, l'Historique disait « 50,00 € · Espèces » (P.journale empêchait la seconde ligne, mais figeait aussi le montant). Reproduit avant correction.",
+  "etat": "corrigé",
+  "changement": "journalPaieTerrain garde UNE seule ligne par intervention (pas de doublon, comme voulu), mais quand elle existe déjà elle réécrit son détail avec le montant et le moyen comptés.",
+  "preuve": "restes-accueil-4.js partie C (le vrai bouton « Terminer » trois fois de suite : 50 €, 80 €, 80 € inchangé : toujours une ligne, toujours le bon montant) ; mutations C1 (ligne figée) et C2 (ligne doublée) tombent. Régression : accueil-restes-3 81 ✓, restes-accueil-3-recontrole ABCD mac/iPhone nuit 94-96 ✓ · 0 ✗ (B3 à B6 verts), accueil-corrections 27 ✓, accueil-coherence 22 ✓, accueil-recontrole 15 ✓, accueil-restes-1 21 ✓."
+ },
+ {
+  "nom": "Bilan en PDF à 320-360 px avec un montant de 7 chiffres ou plus (1 234 567 €) : la tuile s'élargit et sa section défile de côté",
+  "defaut": "À cause du white-space:nowrap posé au tour 3 pour garder « TTC » à côté du montant, une valeur de 7 chiffres dépasse la tuile (grille à deux colonnes) ; la section défile de côté, la page non. Les valeurs de 6 chiffres tiennent.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "Mesure du recontrôle du tour 3 (non rejouée ici : aucune entreprise de ce type n'atteint le million d'euros sur un bilan mensuel ; le jeu monte à 3 045 €). Si Justin veut le tenir, la sortie est de laisser l'unité passer sous le montant dans les DEUX tuiles à la fois, jamais dans une seule."
+ },
+ {
+  "nom": "Une intervention avec plusieurs factures (avoir, facture annulée + nouvelle) : « Terminer » inscrit les espèces sur la PREMIÈRE facture (FACTURES.find)",
+  "defaut": "Pas forcément celle qui reste à payer. Aucune intervention du jeu n'a plusieurs factures (vérifié au tour 3).",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "Non reproductible avec les données du prototype : à rejouer le jour où une intervention en gagne plusieurs."
+ },
+ {
+  "nom": "Facture déjà payée en entier avant « Terminer », espèces notées en plus : rien n'est compté (voulu), mais aucune alerte n'avertit le bureau qu'un client a payé deux fois",
+  "defaut": "Le prototype ne double rien (B3 vert), mais ne dit pas au bureau que le technicien a encaissé en plus d'une facture déjà réglée.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "Décision de produit (une alerte, une tâche au bureau, ou rien) : à soumettre. Le calcul, lui, est juste et gardé (restes-accueil-3-recontrole B3)."
+ }
+]
