@@ -2588,6 +2588,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
 .ctr-doc{min-width:0}
 .ctr-lire{display:none}
 .ctr-dates{display:block;margin-top:2px}
+.ctr-fact{flex-wrap:wrap}.ctr-fact>span:first-child{min-width:0;flex:1 1 9em}.ctr-fact>b{margin-left:auto;text-align:right}   /* carte « Facturation » : à 320 px, un prix à cinq chiffres (« 12 345,67 € HT / an ») laissait 84 à 97 px au libellé, qui se cassait mot à mot ; le montant passe SOUS le libellé quand il ne tient pas à côté, comme l'étiquette d'une visite */
 .ctr-vl{flex-wrap:wrap}.ctr-vl>span:first-child{min-width:0;flex:1 1 9em}.ctr-vl .lien{text-align:left;white-space:normal}   /* « Visite 11 · mercredi 15 septembre » et son étiquette « Non faite · sortie du planning » ne tiennent pas côte à côte à 320 px : l'étiquette passe SOUS le nom, au lieu d'écraser le nom et d'élargir la page */
 .ctr-choix{flex:0 0 100%;max-width:100%;line-height:1.4}
 #contenu .tete .actions:has(> .ctr-choix){max-width:min(100%,460px)}   /* sans borne, la rangée tient en UNE ligne et la phrase se pose À CÔTÉ des boutons au lieu d'être dessous */
@@ -3932,7 +3933,9 @@ const TECHS = [
 ];
 /* « Bonjour Syndic Foncia » : on salue une PERSONNE (« M. Durand », « Marc Durand, gérant »), jamais un service ou un organisme ; à défaut, « Bonjour » tout court (client-recontrole). UNE définition pour l'espace du client et pour les e-mails du bureau. */
 function saluer(contact){ const p = String(contact || '').split(',')[0].trim();
-  return p && !/^(syndic|service|accueil|secr[ée]tariat|direction|comptabilit[ée]|cabinet|soci[ée]t[ée]|agence|gestion|contact|bureau|mairie|[ée]quipe|h[ôo]tel|restaurant|copropri[ée]t[ée]|camping)(?=$|[\s,.'’-])/i.test(p) ? 'Bonjour ' + p : 'Bonjour'; }
+  /* un organisme se reconnaît aussi à son article (« La Poste », « Le syndic »), à un chiffre (« Frigo Distribution 17 ») ou à un mot de société en plein nom (« Daikin Pro Ouest ») : un prénom n'a rien de tout cela */
+  const orga = /^(syndic|service|accueil|secr[ée]tariat|direction|comptabilit[ée]|cabinet|soci[ée]t[ée]|agence|gestion|contact|bureau|mairie|[ée]quipe|h[ôo]tel|restaurant|copropri[ée]t[ée]|camping)(?=$|[\s,.'’-])/i.test(p) || /^(le|la|les|l['’])(\s|(?<=['’]))/i.test(p) || /\d/.test(p) || /\b(distribution|sarl|sas|sasu|eurl|sci|pro)\b/i.test(p);
+  return p && !orga ? 'Bonjour ' + p : 'Bonjour'; }
 const CLIENTS = {
   vp:{ nom:'Restaurant Le Vieux Port', type:'pro', contact:'Marc Durand, gérant', tel:'06 12 34 56 78', mail:'marc@vieuxport.fr', adr:'12 quai Valin, 17000 La Rochelle', acces:'Entrée par la cour. Unité extérieure sur le toit, clé au bar.', depuis:'2025',
     appareils:[{ nom:'Daikin FTXM35R', det:'Split mural salle · R32 · 2021 · n° J012345' }, { nom:'Daikin RXM35R', det:'Unité extérieure, toit · R32 · 2021', pannes:'3 pannes du ventilateur en 14 mois' }] },
@@ -5824,6 +5827,7 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
    et la facture faite à la main la lisent ici (17/11, compta-ventes : la facture à la main proposait 20 % à un particulier et le disait « client professionnel ») */
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
+const ctrCentimes = x => { const t = String(x == null ? '' : x).trim(); if (/^\d+(\.\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2'); return Math.round(Number(t) * 100) / 100; };   // le prix qu'on RANGE se lit comme l'aperçu l'écrit : « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999… et rangeait 1,00 € ; la forme à exposant (« 1e5 ») garde l'ancien arrondi
 const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
@@ -5904,7 +5908,7 @@ function vueContrat(id){
         ${peutM ? `<button type="button" class="lien" data-strelctr="${id}">D’abord, proposer le renouvellement au client par e-mail</button>` : ''}</div>` : ''}
       ${prochain ? `<div class="carte"><h3>Renouvelé</h3><div class="ligne"><span>Ce contrat continue sous le numéro</span><button type="button" class="lien" data-go="contrat-x-${prochain.id}">${prochain.num} ›</button></div><span class="faible mini">jusqu’au ${prochain.fin}, aux mêmes conditions.</span></div>` : ''}
       ${k.suiteDe && CONTRATS.find(x => x.id === k.suiteDe) ? `<div class="carte"><h3>Renouvellement</h3><div class="ligne"><span>Suite du contrat</span><button type="button" class="lien" data-go="contrat-x-${k.suiteDe}">${CONTRATS.find(x => x.id === k.suiteDe).num} ›</button></div></div>` : ''}
-      <div class="carte"><h3>Facturation</h3><div class="ligne"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
+      <div class="carte"><h3>Facturation</h3><div class="ligne ctr-fact"><span>${k.fact === 'mois' ? eur(ctrPart(k.prix, 12, 1)) + ' HT chaque mois' : k.fact === 'an' ? eur(k.prix) + ' HT une fois par an, à la signature' : eur(ctrPart(k.prix, k.freq, 1)) + ' HT à chaque visite'}</span><b>${eur(k.prix)} HT / an</b></div><div class="ligne ctr-fact"><span class="gris">Soit, avec la TVA à ${ctrTva(k)} %</span><b>${eur(ctrTTC(k.prix, k))} TTC / an</b></div>
         <div class="faible mini">${k.fact === 'visite' ? 'La facture de chaque visite se prépare toute seule, avec son compte rendu joint.' + (Math.round(ctrPart(k.prix, k.freq, 1) * k.freq * 100) !== Math.round(k.prix * 100) ? ' La dernière visite porte le reste d’arrondi : le total fait exactement le prix du contrat.' : '') : k.fact === 'an' ? 'La facture de l’année est préparée à la signature. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.' : 'Le contrat se facture au mois : la facture du premier mois est préparée à la signature, les suivantes le 1er de chaque mois. Les visites ne sont pas facturées une à une : elles sont comprises dans le prix.'}</div>
         ${k.fact === 'mois' && k.st !== 'envoye' ? ctrEcheancesHtml(k) : ''}</div></div></div>`;
 }
@@ -7168,11 +7172,11 @@ function tMailCommande(x){
     apres:() => { x.etat = 'commandee'; x.commandeLe = '31/10'; journalAjout('marc', 'equipe', 'a commandé les pièces', { lib:x.t }, { det:x.pieces.map(p => p.q + ' × ' + p.nom).join(', ') + ' · ' + f.nom }); rendre(); tDetail(x.id); } });
 }
 function tMailClient(x, prevenir){
-  const i = x.inter && INTS.find(o => o.id === x.inter), c = i ? CLIENTS[i.cli] : CLIENTS[x.lien.cli], prenom = c.contact.split(',')[0];
+  const i = x.inter && INTS.find(o => o.id === x.inter), c = i ? CLIENTS[i.cli] : CLIENTS[x.lien.cli], salut = saluer(c.contact);
   panneauEnvoi(prevenir ? { titre:'Prévenir le client', a:c.mail, objet:`Votre intervention${i ? ' du ' + jcourt(i.d) : ''} — nous préparons les pièces`,
-    corps:`Bonjour ${prenom},\n\nPour votre intervention${i ? ' prévue le ' + tPrevue({ d:i.d, h:i.h }) : ''} (${i ? i.titre.toLowerCase() : ''}), nous commandons dès maintenant les pièces nécessaires${x.pieces ? ' (' + x.pieces.map(p => p.nom.toLowerCase()).join(', ') + ')' : ''}.\n\nTout est en route pour que ${i && i.tech ? tech(i.tech).nom.split(' ')[0] : 'notre technicien'} arrive avec ce qu’il faut. Si quelque chose change de notre côté, nous vous prévenons tout de suite.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
+    corps:`${salut},\n\nPour votre intervention${i ? ' prévue le ' + tPrevue({ d:i.d, h:i.h }) + ' (' + i.titre.toLowerCase() + ')' : ''}, nous commandons dès maintenant les pièces nécessaires${x.pieces && x.pieces.length ? ' (' + x.pieces.map(p => p.nom.toLowerCase()).join(', ') + ')' : ''}.\n\nTout est en route pour que ${i && i.tech ? tech(i.tech).nom.split(' ')[0] : 'notre technicien'} arrive avec ce qu’il faut. Si quelque chose change de notre côté, nous vous prévenons tout de suite.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
     apres:() => { x.clientPrevenu = '31/10'; journalAjout('marc', 'equipe', 'a prévenu le client', { lib:x.t, cli:c === CLIENTS[i && i.cli] ? i.cli : x.lien && x.lien.cli }, { det:'pièces en commande' }); } }
-    : { titre:'Écrire au client', a:c.mail, objet:'', corps:`Bonjour ${prenom},\n\n\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` });
+    : { titre:'Écrire au client', a:c.mail, objet:'', corps:`${salut},\n\n\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}` });
 }
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-tplan],[data-tidate],[data-timodif],[data-tpiece],[data-tedit],[data-tcmd],[data-trecu],[data-tprev],[data-tecrire],[data-trelfac],[data-trep],[data-tvoir]'); if (!b) return;
@@ -9149,11 +9153,11 @@ const ACTIONS = {
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
   creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
-    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(Math.round(Number(B.prix) * 100) >= 100)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(ctrCentimes(B.prix) >= 1)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
     if (Number(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
     cfCtrT = Date.now();
-    const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:Math.round(Number(B.prix) * 100) / 100 || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
+    const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:ctrCentimes(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
     k.fin = ctrFinDe(k.debut);
     const mailK = CLIENTS[B.cli].mail;
     CONTRATS.push(k); journalAjout('marc', 'contrat', 'a envoyé le contrat à signer', { t:'contrat', id:k.id, lib:k.num, cli:k.cli }, { det:k.titre + ' · ' + eur(k.prix) + ' HT / an' });
@@ -14947,7 +14951,8 @@ function tkxAuto(annoncer){
 }
 
 /* ══ LA FICHE : l'action principale d'abord, en bas de l'écran au téléphone ══ */
-const tkxPrenomClient = c => c.contact.split(',')[0].replace(/^(Dr|Mme|M\.)\s+/, '$1 ');
+/* qui l'on prévient : la personne si le contact en est une, sinon le client lui-même (« Prévenir Copropriété Les Mimosas », jamais « Prévenir Syndic Foncia ») · 18 novembre 2026 */
+const tkxPrenomClient = c => { const s = saluer(c.contact); return s === 'Bonjour' ? c.nom : s.slice(8); };
 function tkxAction(x){
   if (x.fait || x.type === 'commande') return null; const L = x.lien || {}, but = tBut(x);
   if (typeof RL_ACTIF !== 'undefined' && RL_ACTIF && ROLE === 'tech' && but === 'relancer' && ['facture', 'devis', 'contrat'].includes(L.t)) return null;   // il ne facture pas et ne relance pas : le bouton « Relancer maintenant » lui restait · 13 novembre 2026
@@ -14984,10 +14989,10 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t.dataset 
 /* prévenir le client : le mot est prêt, la personne le relit et l'envoie ; la tâche garde la trace du geste */
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-tkxprev]'); if (!b) return; const x = TACHES.find(o => o.id === b.dataset.tkxprev); if (!x) return;
-  const L = x.lien || {}, i = INTS.find(o => o.id === (L.t === 'inter' ? L.id : x.inter)), c = CLIENTS[(i && i.cli) || L.cli], pre = tkxPrenomClient(c);
+  const L = x.lien || {}, i = INTS.find(o => o.id === (L.t === 'inter' ? L.id : x.inter)), c = CLIENTS[(i && i.cli) || L.cli];
   tEnvoiPour = x.id;
   panneauEnvoi({ titre:'Prévenir le client', a:c.mail, objet:i ? `Votre intervention du ${jcourt(i.d)}${i.h ? ' à ' + i.h.replace(':', ' h ') : ''}` : 'Votre intervention',
-    corps:`Bonjour ${pre},\n\n${i && i.tech ? tkxPrenom(i.tech) : 'Notre technicien'} sera chez vous ${i ? 'pour : ' + i.titre.toLowerCase() : 'prochainement'}${i && i.h ? ', rendez-vous à ' + i.h.replace(':', ' h ') : ''}. Nous vous préviendrons encore un peu avant d’arriver.\n\nSi quelque chose change de votre côté, répondez simplement à ce message.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
+    corps:`${saluer(c.contact)},\n\n${i && i.tech ? tkxPrenom(i.tech) : 'Notre technicien'} sera chez vous ${i ? 'pour : ' + i.titre.toLowerCase() : 'prochainement'}${i && i.h ? ', rendez-vous à ' + i.h.replace(':', ' h ') : ''}. Nous vous préviendrons encore un peu avant d’arriver.\n\nSi quelque chose change de votre côté, répondez simplement à ce message.\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`,
     apres:() => { journalAjout('marc', 'client', 'a prévenu le client', { t:'client', id:c === CLIENTS[(i || {}).cli] ? i.cli : L.cli, lib:c.nom, cli:c === CLIENTS[(i || {}).cli] ? i.cli : L.cli }, { det:x.t }); } });
 });
 
@@ -19858,6 +19863,9 @@ function mbxModeles(m, courant){
 const mbxModeleDefaut = m => { const R = mlLire(m); return R.relance ? 'relance' : mbxModeles(m)[0][0]; };
 function mbxMod(m){
   const R = mlLire(m), nom = m.de.nom, fin = mbxFin(), cr = mlCreneaux(), I = mbxInt(m) || (m.cren ? null : null);
+  /* on salue une PERSONNE : un fournisseur ou un organisme (« Bonjour Frigo Distribution 17 ») reçoit un « Bonjour » tout court. Un expéditeur inconnu dont le premier mot du nom est dans son adresse (« Clim Pièces Atlantique » écrit de promo@climpieces-atlantique.fr) est une société ; une personne (« Claire Fontaine » de c.fontaine@exemple.fr) ne l'est pas */
+  const dom = String((m.de.mail || '').split('@')[1] || '').toLowerCase().replace(/[^a-z0-9]/g, ''), mot1 = nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/)[0].replace(/[^a-z0-9]/g, '');
+  const sal = R.four || (mot1.length >= 3 && dom.includes(mot1)) ? 'Bonjour' : saluer(nom);
   MBX.crProp = { id:m.id, list:cr };
   const sujetRe = m.objet.replace(/^re\s*:\s*/i, '');
   let conf;
@@ -19867,16 +19875,16 @@ function mbxMod(m){
   else if (I) conf = `nous avons bien noté votre accord${R.devis ? ' pour le devis ' + R.devis.num : ''}. L’installation est prévue autour du ${jCourt(I.d)} : nous vous confirmons l’heure et l’équipe dès qu’elles sont fixées.`;
   else conf = 'nous vous confirmons la date très vite.';
   return {
-    recu:`Bonjour ${nom},\n\nNous avons bien reçu votre message et revenons vers vous très vite.${fin}`,
-    creneau:`Bonjour ${nom},\n\nNous pouvons intervenir ${cr.map(c => `${jlong(c.d)} à ${mlH(c.h)}`).join(', ou ')}.\nDites-nous le créneau qui vous convient et nous le réservons.${fin}`,
-    devis:`Bonjour ${nom},\n\nMerci pour votre demande. Nous préparons votre devis et vous l’envoyons très vite ; il sera valable 30 jours et se signera en ligne.${fin}`,
-    question:`Bonjour ${nom},\n\nPour préparer votre devis au plus juste, pouvez-vous nous préciser la surface ou le nombre de pièces, et le type de logement ?${fin}`,
-    confirm:`Bonjour ${nom},\n\n${R.sujet === 'choixcren' ? conf : conf.charAt(0).toUpperCase() + conf.slice(1).replace(/^Votre/, 'Votre')}${fin}`,
-    merci:`Bonjour ${nom},\n\nMerci pour votre accord${R.devis ? ' sur le devis ' + R.devis.num : ''}. Nous planifions l’installation et vous confirmons la date très vite.${fin}`,
-    recupaie:`Bonjour ${nom},\n\nBien reçu, merci pour votre règlement${R.facture ? ' de la facture ' + R.facture.num : ''}.${fin}`,
+    recu:`${sal},\n\nNous avons bien reçu votre message et revenons vers vous très vite.${fin}`,
+    creneau:`${sal},\n\nNous pouvons intervenir ${cr.map(c => `${jlong(c.d)} à ${mlH(c.h)}`).join(', ou ')}.\nDites-nous le créneau qui vous convient et nous le réservons.${fin}`,
+    devis:`${sal},\n\nMerci pour votre demande. Nous préparons votre devis et vous l’envoyons très vite ; il sera valable 30 jours et se signera en ligne.${fin}`,
+    question:`${sal},\n\nPour préparer votre devis au plus juste, pouvez-vous nous préciser la surface ou le nombre de pièces, et le type de logement ?${fin}`,
+    confirm:`${sal},\n\n${R.sujet === 'choixcren' ? conf : conf.charAt(0).toUpperCase() + conf.slice(1).replace(/^Votre/, 'Votre')}${fin}`,
+    merci:`${sal},\n\nMerci pour votre accord${R.devis ? ' sur le devis ' + R.devis.num : ''}. Nous planifions l’installation et vous confirmons la date très vite.${fin}`,
+    recupaie:`${sal},\n\nBien reçu, merci pour votre règlement${R.facture ? ' de la facture ' + R.facture.num : ''}.${fin}`,
     avoir:`Bonjour,\n\nNous avons relevé un écart entre votre facture${R.cmd && R.cmd.facLue ? ' ' + R.cmd.facLue.num : ''} et notre commande${R.cmd ? ' ' + R.cmd.num : ''}. Pouvez-vous nous établir un avoir ou nous expliquer la différence ?${fin}`,
     commande:`Bonjour,\n\nNous confirmons notre commande${R.cmd ? ' ' + R.cmd.num : ''}. Pouvez-vous nous indiquer la date de livraison ?${fin}`,
-    relance:`Bonjour ${nom},\n\nNous revenons vers vous au sujet de votre message « ${sujetRe.replace(/\s*[?.!]+$/, '')} ». Avez-vous eu le temps d’y réfléchir ? Nous restons disponibles pour en parler.${fin}`
+    relance:`${sal},\n\nNous revenons vers vous au sujet de votre message « ${sujetRe.replace(/\s*[?.!]+$/, '')} ». Avez-vous eu le temps d’y réfléchir ? Nous restons disponibles pour en parler.${fin}`
   };
 }
 
