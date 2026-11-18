@@ -47,6 +47,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     const cree = nouv.length > 0;
     v(`[${J}] K · « ${s} km » ${att === null ? 'ne crée rien et dit une phrase' : 'est lu ' + att + ' km'}`, att === null ? (!cree && /\S/.test(t) && (!/^[1-9]\d{0,2}[.,]\d{3}\s*€?$/.test(s) || /pas clair/.test(t))) : (cree && Math.abs(nouv[0] - att) < 0.011), { t: t.slice(0, 110), nouv });
     if (cree) await R(i0 => { for (let i = NDF.length - 1; i >= 0; i--) if (!i0.includes(NDF[i].id)) NDF.splice(i, 1); rendre(); }, ids0);
+    if (att === null) { const h = await R(() => (document.getElementById('rn-kmtxt') || {}).textContent || ''); v(`[${J}] K · « ${s} km » : la ligne d'aide sous le champ dit la phrase, pas « 1,5 km × tarif »`, /pas clair/.test(h) && !/1,5 km/.test(h), { h: h.slice(0, 90) }); }
     if (att === null) await L.capture(c, CAP + `km-${s.replace(/\W/g, '_')}-${J}.png`);
   }
   await R(() => { if (typeof fermerPanneau === 'function') fermerPanneau(); });
