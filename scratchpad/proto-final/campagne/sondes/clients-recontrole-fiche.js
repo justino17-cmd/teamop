@@ -48,7 +48,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   // ── nom très long, HTML ──
   const LONG = 'Établissements Dupont-Lefebvre & Associés de la Grande Région Atlantique SARL — Division climatisation et chauffage';
   await infos('mr'); await champ('nom', LONG); t = await enreg(); const el = await entete();
-  v('nom de ' + LONG.length + ' signes : enregistré, coupé à 80 signes par la toilette des fiches, affiché sans glisser (h1 = ' + (el && el.h1.length) + ' signes)', el && el.h1.length <= 80 && LONG.startsWith(el.h1.trim()), el);   /* la toilette de toute fiche client (cliNet, sécurité) garde 80 signes au nom : un début EXACT, jamais un nom déformé */
+  const NOMMAX = await p.evaluate(() => NOM_MAX);
+  v('nom de ' + LONG.length + ' signes : enregistré (la toilette de toute fiche, cliNet, garde ' + NOMMAX + ' signes au nom), affiché sans glisser (h1 = ' + (el && el.h1.length) + ' signes)', el && el.h1.length <= NOMMAX && LONG.startsWith(el.h1.trim()), el);   /* le plafond se LIT dans la page (80, puis 120 depuis les restes de la sécurité) : un début EXACT, jamais un nom déformé */
   let d = await L.deborde(c); v('nom très long : la fiche ne glisse pas de côté', d.bouge === 0, d);
   await p.evaluate(() => window.scrollTo(0, 0)); await L.calme(p, 300); await L.capture(c, CAP + 'fiche-nom-long-' + ETQ + '.png');
   await L.aller(p, 'clients'); d = await L.deborde(c); v('nom très long : la liste ne glisse pas de côté', d.bouge === 0, d); await L.capture(c, CAP + 'liste-nom-long-' + ETQ + '.png');
