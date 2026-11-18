@@ -113,3 +113,20 @@ Après chaque vague : le chef fusionne, compile la page ENTIÈRE, note le pource
 33 session_01PfEEAHG95yeX2tTheDtyea · 34 session_01PfEEAEAipA8iyYsbuP9nbb · 37 session_01PfEEAEBRExbA8vc2wYAQsy
 
 Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2 restes + 2 casses) → VOIE SUIVANTE « restes achats » envoyée à 22 h 12.
+
+## Vague 3 — LANCÉE le 18/11 à 22 h 49 (Matériel fini)
+
+16 session_01PfEEAFtHQJEZ4c7B5fEUMX · 30 session_01PfEEAGCgSkCmG9wmQGDvAA · 31 session_01PfEEAF8mXMsabHYLeQ8sW8 · 32 session_01PfEEAEfuVjmMK8nteZneHs ·
+35 session_01PfEEAEsje9M3PGqE4nL9EZ. Reste : 36 (Mon camion) APRÈS la sœur 26 (Véhicules, en correction).
+
+## Retours de la soirée (finies → suite)
+- S1, S2, S3 finies. 37 (nuit) finie sans reste. 25 (Matériel) finie : la régression « Annuler » qu'elle signale était déjà réparée (vérifié dans le code, 36 ✓) ; technicien-08 (« u ») pour Justin.
+- Relancées en tour suivant : 23 achats, 10 métier 3D, 22 contrats, 29 client, 34 interventions, 26 vehtemps, 24 entreprise.
+
+## Pour Justin (liste des doutes, à trancher)
+- Métier 3D : 3 ✗ « à soumettre » (metier-3d-06 ×2, -08, -09, dans campagne/metier-3d-recontrole.json).
+- Interventions : la règle des 20 chiffres d'un numéro (+33…) ; l'écriture d'une durée « 1 h 30 ».
+- Nuit : bouton principal bleu des pages paiement/documents et du courrier ; deux boutons principaux au guide, un par ligne aux véhicules.
+- Véhicules : la tuile « dépensés en octobre » sans l'assurance répartie ; le mot « manque à bord ».
+- Matériel : l'unité « u ».
+- Regard gérant b (sœur 17) : 3 points à soumettre dans final/regard-gerant-b.json.
