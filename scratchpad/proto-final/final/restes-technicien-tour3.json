@@ -1,0 +1,37 @@
+[
+  {
+    "nom": "technicien — « 5.000 € », « 1.500 », « 1,500 » lus 5 € et 1,50 € dans Mes frais et dans l'achat en magasin",
+    "defaut": "axNdfEnvoyer et le geste « J'ai acheté » n'appelaient la phrase de cxMontantRefus que si le montant ne se lisait PAS ; or cxNum lit « 5.000 » comme 5 : une note de 5 € (au lieu de 5 000) partait au bureau sans un mot.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html : les deux portes (axNdfEnvoyer, axTicketEnvoyer) refusent dès que cxMontantRefus rend une phrase (hors « Indique le montant. »), avec la phrase de la Comptabilité : « 5.000 » n'est pas clair : écris 5000 (sans point) ou 5,00 (avec la virgule). Rien n'est enregistré.",
+    "preuve": "restes-technicien-recontrole-2.js (tombait sur 5 contrôles) : petit nuit 36 ✓·0 ✗, ipad jour 35 ✓·0 ✗, ipad nuit 35 ✓·0 ✗, android 35 ✓·0 ✗, mac nuit 30 ✓·0 ✗, mac jour 31 ✓·0 ✗, iphone 33 ✓·0 ✗ ; contrôle neuf « dit la phrase de la Comptabilité » ; captures frais-5000-petit-nuit et frais-5000-mac-jour regardées (phrase entière lisible, champ resté ouvert et sélectionné)."
+  },
+  {
+    "nom": "technicien-14 — invite de recherche d'Articles/Stock coupée après la rotation d'un iPad",
+    "defaut": "L'invite était choisie AU RENDU d'après innerWidth : iPad ouvert en paysage puis tourné en portrait sans rien rouvrir gardait l'invite longue (378 px pour 363 de champ), coupée au bord.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html : deux fonctions msInvite() et fxInvite() (la logique de largeur, une seule fois) servent au rendu ET à un écouteur resize qui ne change que le placeholder des champs #ms-q et #fx-q, sans rien re-rendre.",
+    "preuve": "même sonde, section R : « après rotation vers le portrait SANS rien rouvrir : l'invite tient » vert sur ipad jour et nuit ; capture articles-rotation-ipad-nuit regardée (« Article, référence, fournisseur » entière dans le champ)."
+  },
+  {
+    "nom": "Mon camion hors réseau : la ligne ne change pas après « Je l'ai pris » (seul un toast de 2,5 s le dit)",
+    "defaut": "Pas de perte de données (la file part au retour du réseau, « Mes envois » porte « Part dès que le réseau revient »), mais la ligne garde « Je l'ai pris » et le compteur « J'ai tout pris · 3 » reste à 3.",
+    "etat": "à soumettre à Justin",
+    "changement": "aucun",
+    "preuve": "doute déjà posé au tour 2 ; décision d'affichage (faire passer la ligne elle-même à « Part dès que le réseau revient ») laissée à Justin."
+  },
+  {
+    "nom": "« 12 €. » (point final après le signe) refusé avec la phrase « Ce montant ne se lit pas »",
+    "defaut": "Rien d'enregistré, une phrase est dite.",
+    "etat": "à soumettre à Justin",
+    "changement": "aucun",
+    "preuve": "doute du tour 2 : accepter ou garder la phrase ; sans gravité."
+  },
+  {
+    "nom": "Sondes périmées par la voie Véhicules / Matériel (vehtemps-v4-table, materiel-camion, materiel-recontrole-defauts)",
+    "defaut": "Sondes qui attendent d'anciens libellés (« dépensés » / « l'atelier couvre toute la demande »), pas des défauts de page.",
+    "etat": "déjà décidé",
+    "changement": "aucun : à rendre par la voie Véhicules / Matériel (hors de mes noms)",
+    "preuve": "notées au tour 2, non touchées ici."
+  }
+]

@@ -1,0 +1,41 @@
+{
+ "role": "gerant",
+ "voie": "final-regard",
+ "suffixe": "f",
+ "date": "2026-11-18",
+ "note": "L'entreprise prend le pack 3D pour l'occasion (mchPoser(['3d'])). Captures par sondes/regard-gerant-f-captures.js (39 scènes × profil × jour/nuit, hors dépôt). Première passe (1/n, commit e5e503ad) : lien de contrôle, aperçu PDF, carte à 320 px, noms de site longs, réglages du devis, écrans vides. Cette passe : refait toutes les captures (les précédentes avaient disparu au redémarrage), regardées par planches.",
+ "rubriques": [
+  { "nom": "Registre sanitaire",
+    "ecrans": "tous les sites, un site (3 sites), passage ouvert, saisir un passage, aperçu PDF, recommandations, lien de contrôle (durées), recherche de lot sans résultat, état vide (aucun site), valeurs longues (noms de 60+ signes)",
+    "captures": 420, "regardees": "~170 vignettes (mac jour+nuit, iphone jour+nuit, petit jour, windows jour, ipad jour) ; windows nuit, ipad nuit, android jour, petit nuit : prises, non relues une à une" },
+  { "nom": "Carte des box",
+    "ecrans": "carte d'un site, 3 sites, fiche d'une box (normale / alerte), filtre « À regarder », relevé, ajout de box, menu « Plus d'actions », plan en PDF, envoi au client, étiquettes, modifier le plan, état sans box, aucun site, valeurs longues",
+    "captures": 380, "regardees": "~160 vignettes (mêmes profils) + 3 captures en grand" },
+  { "nom": "Devis xylophage",
+    "ecrans": "formulaire vide, client + zone, préventif, termites, mérule, réglages du calcul, nouveau client, trois zones, devis créé (« Devis en préparation »), valeurs longues (12 345 m², 13 000,00 €)",
+    "captures": 216, "regardees": "~80 vignettes (mac, iphone jour+nuit, petit, ipad) ; windows et android : prises, non relues une à une" }
+ ],
+ "defauts": [
+  { "n": 1, "ecran": "Registre sanitaire › aperçu du PDF ; Carte des box › plan en PDF", "profils": "tous", "jourNuit": "jour et nuit",
+    "constat": "cinq boutons pour deux gestes : la barre du document (Voir en grand · Télécharger le PDF · Envoyer par e-mail) ET, dessous, « Télécharger » + « Envoyer au client » (registre) ou « Enregistrer en PDF » (plan des box), qui ne se distinguaient de « Télécharger le PDF » que par leur nom — un débutant ne sait pas lequel choisir",
+    "etat": "corrigé", "changement": "la fenêtre ne garde que « Fermer » ; la barre du document, commune, fait les deux gestes. Le document porte son nom, son destinataire, son message et sa trace (data-nom, data-a, data-corps, data-trace) : télécharger ou envoyer écrit la même ligne au journal qu'avant (docTrace) et le message part vers l'adresse du client. Sonde 12 (31 ✓ jusqu'à 6 appareils), 5 mutations qui tombent." },
+  { "n": 2, "ecran": "Carte des box, filtre « À regarder »", "profils": "iphone, android, petit, ipad", "jourNuit": "jour et nuit",
+    "constat": "« Voir les 8 box à regarder ↓ » et « 8 box affichées sur 10. Tout afficher » collés sur la même ligne (« ↓8 box affichées »)",
+    "etat": "corrigé", "changement": "la seconde phrase prend sa ligne (.cb-planc>.gris.petit{display:block}). Sonde 13, mutation qui tombe." },
+  { "n": 3, "ecran": "Carte des box › envoyer le plan au client", "profils": "petit (320 px)", "jourNuit": "jour",
+    "constat": "le bouton « Envoyer à contact@lamaree-exemple.fr » sortait coupé de la fenêtre",
+    "etat": "corrigé", "changement": "toute commande de fenêtre passe à la ligne au lieu de se couper (.actions .btn). Sonde 14, mutation qui tombe." },
+  { "n": 4, "ecran": "Carte des box › fiche d'une box", "profils": "android, iphone", "jourNuit": "nuit et jour",
+    "constat": "le champ « Note sur le dernier relevé » restait à 150 px à côté de « ＋ Photo » : son texte d'aide était coupé (« Note sur le dernier r… »)",
+    "etat": "corrigé", "changement": ".cb-nph input prend 240 px de base : la photo passe dessous quand la place manque. Sonde 15 (mesure le texte d'aide contre le champ), mutation qui tombe." },
+  { "n": 5, "ecran": "Registre sanitaire / Carte des box sans aucun site", "profils": "tous", "jourNuit": "jour",
+    "constat": "l'écran vide dit quand un site paraîtra mais ne propose aucun geste : l'œil ne sait pas où aller",
+    "etat": "à soumettre", "changement": "demande de savoir par quel geste un client devient « suivi au registre » (contrat ? première intervention ?) avant d'y mettre un bouton ; rien changé." },
+  { "n": 6, "ecran": "Registre sanitaire › « Activité, passage après passage »", "profils": "mac, windows", "jourNuit": "jour et nuit",
+    "constat": "trois barres serrées à gauche d'une carte de 1 100 px : le reste est vide (avec 8 à 12 passages dans l'année, elle se remplit)",
+    "etat": "à soumettre", "changement": "laissé : le redessiner (légende à droite, barres plus larges) est un choix de dessin, pas la correction d'un défaut." },
+  { "n": 7, "ecran": "Devis xylophage (barre du bas)", "profils": "petit (320 px)", "jourNuit": "jour et nuit",
+    "constat": "« Créer le devis » passe sur deux lignes et le prix aussi (« 1058,96 € / TTC ») : la barre n'a pas la place pour les deux à 320 px",
+    "etat": "à soumettre", "changement": "laissé : la barre prévoit déjà ce passage à la ligne (white-space:normal, max-width:46 %) ; à 360 px et plus tout tient. Seul le plus petit téléphone est touché." }
+ ]
+}
