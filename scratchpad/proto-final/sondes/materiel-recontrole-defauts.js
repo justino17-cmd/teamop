@@ -1,6 +1,7 @@
 // Recontrôle adverse du lot « materiel » — les corrections REJOUÉES par un autre chemin (le toucher, le texte de l'écran),
 // puis leurs bords : ce que la correction a pu casser à côté. Usage : node materiel-recontrole-defauts.js <marc|julie|sm> [profil] [nuit 0|1]
 const L = require('../lib.js');
+// Réalignée par ec5d85cd (espace insécable, transfert annulé par la feuille, Julie voit Dépôts et camions) : 36 ✓ pour marc, 7 pour julie, 9 pour sm, sur mac/iphone/ipad/android, jour et nuit, 0 ✗.
 const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/materiel-recontrole/';
 (async () => {
   const qui = process.argv[2] || 'marc', profil = process.argv[3] || 'mac', nuit = process.argv[4] === '1';

@@ -1,0 +1,79 @@
+[
+ {
+  "nom": "Boîte mail : « Proposer un créneau » / « Proposer une visite » posait des options au planning sans la case Planning (nouveau du recontrôle tour 3)",
+  "defaut": "Boîte mail 1110, Planning en Voir seul : après l'envoi des créneaux, le bureau passait de 0 à 3 options (créneaux bloqués 48 h) — une écriture au planning par un chemin que la garde ne voyait pas.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : mbxPeutTenir() = peut('planif','m') ; mbxOptions ne pose rien sans elle. La réponse part quand même (c'est un courriel, case Boîte mail), et seuls les TEXTES changent selon ce qui s'est vraiment passé : m.attente.tenus (statut du message « trois créneaux proposés » au lieu de « tenus en option », ligne du journal, note du bandeau du choix du client « que tu lui avais proposés ») ; cren.tenus passé à la réponse du client. Avec la case Planning rien ne change (contre-épreuve). On n'a PAS retiré le geste du bandeau : un retrait aurait privé de la proposition de créneau par courriel quelqu'un qui peut très bien répondre.",
+  "preuve": "sondes/entreprise-restes3-recontrole.js c : 3 ✓ · 1 ✗ avant → 4 ✓ · 0 ✗ ; sondes/entreprise-restes4-creneaux.js (neuve, entre dans entreprise-tout.sh) : 12 ✓ · 0 ✗ (population : message trouvé, 3 créneaux proposés, réponse du client arrivée ; sans Planning 0 → 0 option et textes « proposés » ; avec Planning 0 → 3 et « tenus en option ») ; deux mutations tombent (mbxPeutTenir() toujours vrai : 2 ✗ ; m.attente.tenus sans la case : 9 ✗) ; capture creneaux-sans-planning relue (Mac) : « En attente de sa réponse · trois créneaux proposés », bandeau intact"
+ },
+ {
+  "nom": "Deux sondes d'entreprise rouges avant ce tour : entreprise-rapide (« le logo choisi… registre ») et entreprise-destinations (« au moins 10 fabriques de documents »)",
+  "defaut": "pas un défaut d'écran : ces sondes lisaient le registre sanitaire, un document du métier 3D, dans l'entreprise de climatisation « Clim Services 17 » qui n'a pas ses clients fictifs (rgDoc('t1') jetait « reading 'mail' ») ; rouges déjà sur la tête 6c725d16, avant la correction du tour",
+  "etat": "corrigé",
+  "changement": "les deux sondes comptent le registre seulement quand CLIENTS[RG_SITES.t1] existe (neuf fabriques sinon, dix en 3D), et le disent ; aucune page touchée",
+  "preuve": "entreprise-rapide 21 ✓ · 0 ✗ ; entreprise-destinations 45 ✓ · 0 ✗"
+ },
+ {
+  "nom": "« Renommer… » / « Changer le logo… » d'une boîte mail en Voir seul (réglages d'affichage de l'appareil)",
+  "defaut": "doute du tour 3, inchangé",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "voir restes-entreprise-tour3-recontrole.json, doutes"
+ },
+ {
+  "nom": "Le numéro « +33 (0)5 46 11 22 33 » est refusé comme téléphone de l'entreprise",
+  "defaut": "doute du tour 3, inchangé",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "voir restes-entreprise-tour3.json"
+ },
+ {
+  "nom": "Une facture qui part avec le seul SIRET (sans TVA ni IBAN)",
+  "defaut": "doute du tour 3 : point juridique",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : à faire valider par l'agent juriste, jamais décidé ici",
+  "preuve": "voir restes-entreprise-tour3.json"
+ },
+ {
+  "nom": "La secrétaire voit-elle la Boîte mail ? (le bureau)",
+  "defaut": "doute du tour 3",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun (décision (l) du chef : « Boîte mail pour le bureau » reste à soumettre ; recommandation du chef : oui, la boîte de l'entreprise seulement)",
+  "preuve": "vus-par-le-chef.md, ligne « Boîte mail, bureau » non cochée"
+ },
+ {
+  "nom": "Refus de champ avec le clavier d'un vrai iPhone ouvert",
+  "defaut": "non vérifiable ici : le navigateur émulé n'a pas de clavier",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "limite d'outil, dite"
+ },
+ {
+  "nom": "Avec « Voir + Créer » (sans Modifier) à la Boîte mail, le bouton du bas s'appelle « Répondre » mais le menu ne propose que « Transférer » et « Annuler »",
+  "defaut": "doute nouveau du recontrôle tour 3 : l'étiquette promet plus que le menu ne donne",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : renommer « Transférer » dans ce cas, ou garder ? (même doute que « Voir + Créer » du tour 1)",
+  "preuve": "restes-entreprise-tour3-recontrole.json, doutes"
+ },
+ {
+  "nom": "« Créer le client et son devis » lit la case Devis (Ventes › Créer) et pas, en plus, celle de Clients",
+  "defaut": "limite connue : un verbe n'a qu'une catégorie dans la table des gestes ; avec Ventes en Créer et Clients en Voir seul, le bandeau propose un geste qui crée un client",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : décider si un geste peut porter deux cases",
+  "preuve": "restes-entreprise-tour3-recontrole.json, doutes"
+ },
+ {
+  "nom": "droits-table : 3 ✗ (verbes d'Achats et de Stock, familles sxdadd / sxdcop)",
+  "defaut": "écart de la note du tour 3, pas de cette voie",
+  "etat": "déjà décidé",
+  "changement": "aucun : appartient à la voie des droits",
+  "preuve": "voir bloc « sondes voisines » du rapport"
+ },
+ {
+  "nom": "Série entreprise-tout.sh (RAPIDE=1) rejouée sur la tête fusionnée",
+  "defaut": "contrôle de non-régression",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "structure 201 ✓, champs 116, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, restes2-bandeau 5, restes2-toast 11, restes1-recontrole g 5, restes3-bandeau 9, restes3-lien 42, restes3-blanc 30, restes3-recontrole a 7 / b 2 / c 4 / d 16 / e 4 / f 14, restes4-creneaux 12 : tout à 0 ✗ ; achats-lisible 142 ✓ · 0 ✗ hors RAPIDE (son plancher de 6 profils n'est pas atteint en RAPIDE : consigne de la sonde, pas un défaut) ; droits-table non rejouée ici : ses 3 ✗ sont celles de la voie des droits"
+ }
+]

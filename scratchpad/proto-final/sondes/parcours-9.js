@@ -19,7 +19,9 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
     const f0 = net(await txt(c, '#calque'));
     v('A2 (écran) la feuille dit le nombre de comptes (' + e0.actifs + ' sur ' + e0.places + '), que l’invitation part par e-mail et que le mot de passe provisoire se remet en main propre', f0.includes(e0.actifs + ' comptes sur ' + e0.places + ' places') && /invitation par e-mail/.test(f0) && /remets-le-lui en main propre/.test(f0), f0.slice(0, 500));
     await clic(c, '#calque [data-eq="inviterok"]'); await p.waitForTimeout(500);
-    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi (aucun compte créé)', /Écris son prénom ET son nom/.test(await toast(c)) && (await S(c, () => EQUIPE.length)) === e0.n, await toast(c));
+    /* le refus se dit SOUS le champ (restes équipe, tour 2, 18 novembre : sur téléphone la bulle ne répète plus un message déjà lisible sous le doigt) — au bureau, c'est la bulle qui le dit en plus : on lit les deux endroits */
+    const dit3 = net((await toast(c)) + ' ' + await S(c, () => (document.getElementById('eq-p-err') || {}).textContent || ''));
+    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi — sous le champ ou en bulle — (aucun compte créé)', /Écris son prénom ET son nom/.test(dit3) && (await S(c, () => EQUIPE.length)) === e0.n, dit3);
     const err0 = await S(c, () => [...document.querySelectorAll('#calque .erreur')].filter(e => !e.hidden && e.textContent.trim()).length);
     await p.fill('#eq-p', 'Nadia'); await p.fill('#eq-n', 'Fournier'); await p.fill('#eq-m', 'nadia@climservices17.fr'); await p.fill('#eq-r', 'Assistante'); await p.waitForTimeout(300);
     await S(c, () => { document.getElementById('eq-prof').value = 'secr'; document.getElementById('eq-terrain').checked = false; });
@@ -82,7 +84,17 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
       v('C5 (écran) la recherche « client » trouve encore la rubrique Clients (la case Clients est ouverte)', /Clients/.test(pal2), pal2.slice(0, 200));
       await cap(c, '9-C5-recherche-' + P.PROFIL);
       await S(c, () => palFermer(true));
-    } else v('C4-5 population : la recherche « Aller à » est celle du bureau ; sur ce profil, le menu est la porte', true, 'téléphone / tablette');
+    } else {
+      /* sur téléphone et tablette la recherche « Aller à » n'existe pas : la porte est le MENU. On l'ouvre pour de vrai et on lit ce qu'il montre À L'ÉCRAN (liens dans le cadre visible), pas seulement la liste de données */
+      await S(c, () => { const b = [...document.querySelectorAll('[data-menu="ouvrir"]')].find(x => x.getBoundingClientRect().width > 0); if (b) b.click(); }); await p.waitForTimeout(700);
+      const mn = await S(c, () => { const vis = a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.right > 0 && r.left < innerWidth; };
+        const feuille = [...document.querySelectorAll('#calque .panneau .fm-liste [data-go]')].filter(vis).map(a => a.dataset.go);
+        const lateral = [...document.querySelectorAll('#menu a[href^="#"]:not(.logo)')].filter(vis).map(a => a.getAttribute('href').slice(1));
+        return { source:feuille.length ? 'feuille du menu (téléphone)' : 'menu latéral (tablette)', liens:feuille.length ? feuille : lateral }; });
+      v('C4-5 (écran) sur ce profil le menu est la porte : ouvert (' + (mn && mn.source) + '), il montre au moins six rubriques, Clients et Achats y sont, et AUCUNE de Ventes (devis, contrats, factures, encaissements)', !!mn && mn.liens.length >= 6 && ['clients', 'achats'].every(x => mn.liens.includes(x)) && VENTES.every(x => !mn.liens.includes(x)), mn);
+      await cap(c, '9-C45-menu-' + P.PROFIL);
+      await S(c, () => { try { fermerPanneau(); } catch (e) {} });
+    }
     await S(c, () => { location.hash = '#devis'; }); await p.waitForTimeout(600);
     const t1 = await toast(c), h1 = await S(c, () => location.hash.slice(1));
     v('C6 (écran) l’adresse #devis tapée à la main est refusée et DIT pourquoi : « Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir »', /Cette rubrique est fermée à ton compte : demande à l’administrateur de la rouvrir/.test(t1) && h1 !== 'devis', { t1, h1 });
@@ -92,7 +104,11 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
     v('C8 (écran) Clients s’ouvre (« Clients › Voir » est resté coché) et ne propose plus « ＋ Nouveau devis » nulle part', /Clients/.test(cl.slice(0, 120)) && !/Nouveau devis/.test(cl), cl.slice(0, 250));
     await L.aller(p, 'comptabilite'); await p.waitForTimeout(500); const cp = net(await txt(c, '#contenu'));
     const cpR = await S(c, () => ({ ventes:!!document.querySelector('[data-cx="grp|ventes"]'), fventes:!!document.querySelector('[data-cx="sec|fventes"]'), grp:[...document.querySelectorAll('[data-cx^="grp|"]')].map(b => b.dataset.cx.split('|')[1]) }));
-    v('C9 (observation, à dire à Justin) la Comptabilité de Nadia s’ouvre par SA case (« Comptabilité › Voir ») et montre l’onglet « Ventes » (le grand livre des factures) alors que « Ventes › Voir » est décochée : la case Ventes ferme les ÉCRANS Devis, Contrats, Factures, pas le livre de comptes', cpR.ventes && !cpR.fventes && /Comptabilité/.test(cp.slice(0, 60)), cpR);
+    v('C9 (écran) la Comptabilité de Nadia s’ouvre par SA case (« Comptabilité › Voir ») mais SANS l’espace « Ventes » (ni onglet de groupe, ni « Factures & avoirs ») : « Ventes › Voir » est décochée, la case se lit à l’ouverture (corrigé le 18 novembre)', !cpR.ventes && !cpR.fventes && /Comptabilité/.test(cp.slice(0, 60)) && cpR.grp.includes('pilotage') && cpR.grp.includes('achats'), cpR);
+    /* et ses DONNÉES ne se lisent pas non plus : ouvrir l'onglet par le code (un lien du tableau de bord, un lien gardé) ramène à la vue d'ensemble, avec le refus dit */
+    const dv = await S(c, () => { const t = {}; for (const o of ['dossiers', 'fventes', 'clients', 'contrats']) { cxAller(o); t[o] = CP.onglet; } return t; }); await p.waitForTimeout(300);
+    const refu = await toast(c);
+    v('C9b (donnée + écran) les quatre onglets de Ventes ouverts « par la porte de derrière » (Par intervention, Factures & avoirs, Comptes clients, Contrats) ramènent tous à « ensemble », et le refus dit « voir les devis, factures et contrats »', Object.values(dv).every(x => x === 'ensemble') && /voir les devis, factures et contrats/.test(refu), { dv, refu });
     await cap(c, '9-C9-compta-' + P.PROFIL);
     await cap(c, '9-C8-clients-' + P.PROFIL);
 
