@@ -122,6 +122,8 @@ const constats = [];
       await L.aller(c.p, 'inter-x-i9');
       const r = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); return s ? { dedans: s.scrollWidth <= s.clientWidth + 1, retard: !!s.querySelector('.t-retard'), coche: /✅/.test(s.textContent) || !!s.querySelector('[aria-hidden]'), txt: s.textContent.trim().slice(0, 50) } : null; });
       v(`tâche en retard (intervention i9, ${profil} ${qui} ${nuit ? 'nuit' : 'jour'}) : le résumé reste dans sa carte, la pastille « en retard » est là, aucune coche ✅`, !!r && r.retard && r.dedans && !r.coche, r);
+      const lourd = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); if (!s) return null; s.querySelector('b').textContent = '12 tâches ouvertes'; const t = s.querySelector('.t-retard'); if (t) t.textContent = '12 en retard'; return { dedans: s.scrollWidth <= s.clientWidth + 1 }; });
+      v(`tâche en retard, valeurs LONGUES (« 12 tâches ouvertes · 12 en retard », ${profil} ${qui} ${nuit ? 'nuit' : 'jour'}) : le résumé reste dans sa carte`, !!lourd && lourd.dedans, lourd);
       await L.aller(c.p, 'client-x-md');
       const w = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); return s ? { h: Math.round(s.getBoundingClientRect().height), retard: !!s.querySelector('.t-retard'), coche: !!s.querySelector('[aria-hidden]') } : null; });
       v(`voisin : fiche client Durand (${profil}) : le résumé reste sur une ligne (${w && w.h} px) et sans coche`, !!w && w.h <= 50 && !w.coche, w);
