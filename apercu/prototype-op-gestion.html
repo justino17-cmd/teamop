@@ -2299,7 +2299,7 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pl-mrec thead th{font-size:12px;color:var(--doux);font-weight:700;border-top:0}.pl-mrec tbody th{display:flex;align-items:center;gap:8px;font-weight:650}
 .pl-mrec-a{display:inline-block;font-size:12px;font-weight:650;background:color-mix(in srgb,var(--c) 22%,transparent);border-left:3px solid var(--c);border-radius:5px;padding:1px 6px;margin:1px 0}
 .pl-mleg{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 16px 14px;font-size:12.5px;color:var(--doux)}.pl-mleg span{display:inline-flex;align-items:center;gap:6px}.pg-abs.demi{flex:0 0 auto;min-height:28px;margin-bottom:4px}.pl-jh small.pl-abs-l{color:color-mix(in srgb,var(--ac,var(--violet)) 80%,var(--encre));font-weight:700}
-.pg-abs{flex:1;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);min-height:80px}
+.pg-abs{flex:1;padding:0 8px;text-align:center;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);min-height:80px}
 .apercu{position:fixed;z-index:85;width:300px;padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);display:flex;flex-direction:column;gap:8px;pointer-events:none;animation:pop .16s var(--ressort) both;font-size:14.5px}
 .ap-h{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}.ap-h span{display:block;font-size:13px;font-weight:500;color:var(--doux)}
 .ap-t{font-size:16px;font-weight:700;line-height:1.3}.ap-l{line-height:1.4}.ap-motif{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--orange) 10%,transparent)}
@@ -2592,6 +2592,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 /* le détail d'un technicien : ses interventions et leur paiement */
 .st-ent5{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
 .st-ints{display:flex;flex-direction:column}
+.pp>span+span::before{content:' · ';white-space:pre}.pp-court>span{white-space:nowrap}
+@media (max-width:600px){.pp{display:inline-flex;flex-wrap:wrap;column-gap:14px}.pp>span+span::before{content:none}}
 .st-ints-mois{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux);padding:14px 2px 4px}
 .st-int{display:grid;grid-template-columns:58px minmax(0,1fr) auto 150px;gap:12px;align-items:center;padding:11px 2px;border-bottom:1px solid var(--trait)}
 .st-int-q{display:flex;flex-direction:column}.st-int-q small{color:var(--faible);font-size:12px}
@@ -2599,6 +2601,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 .st-int-m{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap;font-variant-numeric:tabular-nums}.st-int-m small{font-size:12px}
 .st-int-p{display:flex;flex-direction:column;align-items:flex-start;gap:3px}.st-int-p small{font-size:12px;color:var(--faible)}
 @media (max-width:760px){.st-int{grid-template-columns:52px minmax(0,1fr) auto;row-gap:6px}.st-int-p{grid-column:2/-1;flex-direction:row;align-items:center;gap:8px}}
+/* à 320 px la colonne du texte tombait à 97–120 px (6 lignes, « Ouvrir l'intervention › » cassé, flèche seule) : sous 380 px, la date et le montant se partagent la première ligne et le texte prend toute la largeur dessous */
+@media (max-width:380px){.st-int,.st-int-3{grid-template-columns:minmax(0,1fr) auto;column-gap:12px}.st-int-q{grid-column:1;grid-row:1;flex-direction:row;align-items:baseline;gap:8px}.st-int-m{grid-column:2;grid-row:1}.st-int-c{grid-column:1/-1;grid-row:2}.st-int-p{grid-column:1/-1;grid-row:3}}
 /* gestes d'une ligne (relancer, à faire), documents, envoi par e-mail */
 .mini-btn{min-height:34px;padding:0 12px;font-size:13.5px;border-radius:10px}
 .st-gestes{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
@@ -2809,7 +2813,8 @@ body.dp-ouvert{overflow:hidden}
 .t-ici{margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--lien) 8%,var(--feuille));border:1px solid color-mix(in srgb,var(--lien) 22%,transparent);padding:4px 6px}
 .t-ici summary{display:flex;align-items:center;gap:8px;padding:10px 10px;cursor:pointer;list-style:none;min-height:44px}.t-ici summary::-webkit-details-marker{display:none}
 .t-ici summary::after{content:'›';margin-left:auto;transition:rotate .2s;color:var(--doux)}.t-ici[open] summary::after{rotate:90deg}
-.t-ici summary b{white-space:nowrap}.t-ici summary .gris{min-width:0}   /* à 320 px « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur : c'est le petit texte qui cède, pas le titre (regard bureau A) */
+.t-ici summary b{white-space:nowrap}.t-ici summary .gris{min-width:0}
+.t-ici{min-width:0}.t-ici summary{flex-wrap:wrap;row-gap:0}   /* à 320 px le titre en nowrap (223 px) + l'icône + la flèche demandaient 323 px à la bande, et le petit texte, écrasé à 0, la laissait pousser la PAGE à 340 px : la fenêtre de mise en page grandissait, la croix des fenêtres plein écran sortait. Le petit texte passe maintenant à la ligne au lieu de s'écraser */   /* à 320 px « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur : c'est le petit texte qui cède, pas le titre (regard bureau A) */
 .t-ici-l{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;border-top:1px solid var(--trait);background:none;color:var(--encre);font:inherit;padding:10px;cursor:pointer;min-height:44px}
 .a-int{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:8px 0;min-height:40px;cursor:pointer;border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}
 
@@ -2877,6 +2882,8 @@ body.dp-ouvert{overflow:hidden}
 /* Tablette (menu permanent : la boîte du tableau fait ~500 px) : mêmes resserrements que sur téléphone, sinon le tableau mesurait 662 px et la
    colonne « À surveiller » sortait de la boîte sans que rien le dise (défaut trouvé au rejeu sur iPad, taches-absences-09). */
 @media (min-width:761px) and (max-width:1100px){.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 8px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{white-space:normal}}
+/* à 390 px la pastille « presque plus de congés » se pliait sur trois lignes dans la colonne « À surveiller » : jusqu'à 430 px (les iPhone) l'alerte passe sous le nom, comme à 360 */
+@media (max-width:430px){.as-t thead th:last-child,.as-t td:last-child{display:none}.as-tel-al{display:block;margin-top:4px}.as-tel-al .st{font-size:11px;padding:2px 8px}}
 @media (max-width:380px){.as-t{font-size:12px}.as-t th,.as-t td{padding:8px 3px}.as-t th:first-child,.as-t td:first-child{padding-left:10px}.as-t td:last-child{padding-right:8px}/* à 320-380 px la colonne « À surveiller » ne tient plus : l'alerte passe sous le prénom, la colonne disparaît (défaut taches-absences-09) */
   .as-t thead th:last-child,.as-t td:last-child{display:none}.as-tel-al{display:block;margin-top:4px}.as-tel-al .st{font-size:11px;padding:2px 8px}.as-t thead th{font-size:10px}}
 /* une personne, mois par mois */
@@ -5364,7 +5371,7 @@ function vueFiche(id){
   const i = INTS.find(o => o.id === id); if (!i) return vueInterventions();
   const c = CLIENTS[i.cli], t = tech(i.tech), F = fiche(id);
   const tete = `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h}\u00a0–\u00a0${fin(i.h,i.dur)} · ${insec(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
+  <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${pp([jlong(i.d) + ' · ' + i.h + '\u00a0–\u00a0' + fin(i.h,i.dur), insec(t.nom)], true)}</span></span><h1>${esc(i.titre)}</h1>
     <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(c.adr)}</span></div>
     <div class="actions"><button type="button" class="btn gris" data-action="modifInt" data-id="${i.id}">✎ Modifier</button><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener noreferrer">Y aller</a>${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}</div></div>`;
   if (F.etat === 'bureau') return tete + finiEcran(i, F);
@@ -5837,7 +5844,7 @@ function vueClient(k){
   /* « Enregistrer » de cette fiche CHANGE un client déjà là : c'est la case « Modifier » qui l'ouvre (la case « Créer » n'ouvre que « Nouveau client »). Sans elle, les champs se figent et la phrase le dit (relecture « tout-05 ») */
   if (ongletClient === 'infos' && !peut('crm', 'm')) corps = corps.replace(/<(input|select|textarea) data-ci=/g, '<$1 disabled data-ci=').replace(/<span class="gris petit">Rien n’est gardé[^<]*<\/span>/, `<span class="gris petit">Tu peux regarder cette fiche ; pour la changer, demande à ${esc(droitPremierAdmin())}.</span>`);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete tete-client"><div><span class="surtitre">${c.archive ? 'Archivé · ' : ''}${c.type==='pro'?'Client professionnel':'Particulier'} · depuis ${c.depuis}</span><h1>${esc(c.nom)}</h1><span class="gris">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', insec(c.tel), esc(c.adr || '')].filter(Boolean).join(' · ')}</span></div>
+  <div class="tete tete-client"><div><span class="surtitre">${c.archive ? 'Archivé · ' : ''}${c.type==='pro'?'Client professionnel':'Particulier'} · depuis ${c.depuis}</span><h1>${esc(c.nom)}</h1><span class="gris">${pp([c.contact && c.contact !== c.nom ? esc(c.contact) : '', insec(c.tel), esc(c.adr || '')].filter(Boolean))}</span></div>
     <div class="actions">${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}${c.mail ? `<a class="btn gris" href="${lienMail(c.mail)}">E-mail</a>` : ''}<button type="button" class="btn gris" data-action="clientDevis" data-cli="${k}">${rlPermis('devis') ? 'Devis rapide' : '＋ Devis'}</button>${rlPermis('devis') ? `<button type="button" class="btn" data-opd="devis" data-cli="${k}">Composer un devis</button>` : ''}<button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button></div></div>
   ${c.archive ? `<div class="info client-archive"><span><b>Client archivé.</b> Il n’est plus dans la liste des clients ; son historique, ses factures et ses contrats sont là.</span>${peut('crm','s') ? `<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button>` : ''}</div>` : ''}
   <div class="kpis">${ancien > .5 ? `<button type="button" class="kpi" data-oc="factures"><b>${eur(paye)}</b><span>payé depuis le début · dont ${eur(ancien)} sans facture ici${clientTerrainMention(k)}</span></button>` : `<div class="kpi"><b>${eur(paye)}</b><span>payé depuis le début${clientTerrainMention(k)}</span></div>`}<button type="button" class="kpi" data-oc="factures"><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><span>à recevoir</span></button><div class="kpi"><b>${proch?jcourt(proch.d):'—'}</b><span>${proch?esc(proch.titre.length>32?proch.titre.slice(0,31)+'…':proch.titre):'prochain passage'}</span></div><button type="button" class="kpi" data-oc="appareils"><b>${c.appareils.length} appareil${c.appareils.length>1?'s':''}</b><span>${c.appareils[0] ? esc(c.appareils[0].nom) : 'à renseigner'}</span></button></div>
@@ -9517,6 +9524,8 @@ appliquerMode();
 /* ══ typographie : espace insécable avant : ; ? ! » et après « — posée sur le texte AFFICHÉ, jamais dans les données ══ */
 /* un numéro de téléphone ou un nom de personne ne se coupe jamais en fin de ligne (« 05 46 00 » puis « 11 22 », « Tom » puis « Leroy ») — espaces insécables, échappé comme esc() (regard bureau A) */
 function insec(t){ return esc(t || '').replace(/ /g, '\u00a0'); }
+/* une ligne de morceaux séparés par « · » : sur écran large la puce s'écrit entre eux ; sous 600 px les morceaux se rangent côte à côte (ou l'un sous l'autre) SANS puce, puisqu'une puce ne peut pas se cacher quand la ligne se coupe et finissait seule en bout de ligne (regard gérant A, C). Morceaux déjà échappés ; `court` : un morceau ne se coupe pas */
+function pp(parts, court){ return `<span class="pp${court ? ' pp-court' : ''}">${parts.map(x => `<span>${x}</span>`).join('')}</span>`; }
 
 const typoTxt = s => s.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0').replace(/(\d) ([%€])/g, '$1\u00a0$2');
 const typoHors = 'svg, pre, code, textarea, script, style, [contenteditable]';
