@@ -138,5 +138,18 @@ const LONG60 = 'Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA
       await L.fin(c);
     }
   }
+  // 9. FICHE CLIENT › Factures au téléphone : la pastille d'état (« Envoyée · en attente ») forçait le tableau à défiler et sortait coupée.
+  if (sec('9')) {
+    for (const profil of ['petit', 'android', 'iphone']) for (const nuit of [false, true]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit });
+      await L.aller(c.p, 'client-x-cm'); await c.p.evaluate(() => { document.querySelector('[data-oc=factures]').click(); }); await L.calme(c.p, 600);
+      const r = await c.p.evaluate(() => { const t = document.querySelector('#contenu .tableau table.l'); if (!t) return null; const carte = t.closest('.tableau'), cr = carte.getBoundingClientRect();
+        const st = [...t.querySelectorAll('tbody .st')].filter(e => e.offsetParent); return { n: st.length, ws: st.map(e => getComputedStyle(e).whiteSpace), dedans: st.every(e => e.getBoundingClientRect().right <= cr.right + 0.5), defile: carte.scrollWidth - carte.clientWidth }; });
+      const tag = `client › factures ${profil} ${nuit ? 'nuit' : 'jour'}`;
+      v(`${tag} : le tableau et ses pastilles sont trouvés (population)`, !!r && r.n >= 1, r);
+      if (r) v(`${tag} : les pastilles passent à la ligne, restent dans la carte et rien ne défile de côté`, r.ws.every(w => w === 'normal') && r.dedans && r.defile <= 1, r);
+      await L.fin(c);
+    }
+  }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });
