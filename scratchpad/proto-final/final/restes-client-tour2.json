@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "« Bonjour Syndic Foncia » (bouton « Prévenir » d'une tâche, tMailClient)",
+  "defaut": "Le bouton « 💬 Prévenir Syndic Foncia » et son courriel « Bonjour Syndic Foncia, » (tkxPrenomClient) ; tMailClient (code mort) écrivait la même chose et « Pour votre intervention (), » à parenthèses vides.",
+  "etat": "corrigé",
+  "changement": "tkxPrenomClient rend la personne si le contact en est une, sinon le client (« Prévenir Copropriété Les Mimosas ») ; le courriel passe par saluer(c.contact) (« Bonjour, » pour une copropriété, « Bonjour Dr Martin, » pour une personne) ; tMailClient salue par saluer() et n'écrit plus de parenthèses vides (ni pour l'intervention, ni pour la liste de pièces).",
+  "preuve": "reproduit (restes-client-1-recontrole.js S : 4 ✗) puis 13 ✓ · 0 ✗ sur mac et iPhone nuit ; restes-client-2.js (neuve) 16 ✓ · 0 ✗ sur mac, iPhone nuit, petit ; mutation (retour à saluer(nom) pour le Courrier) : 14 ✓ · 2 ✗ ; capture de la fenêtre « Prévenir le client » relue (iPhone nuit, Mac jour)"
+ },
+ {
+  "nom": "Réponses types du Courrier : « Bonjour Syndic des Mimosas », « Bonjour Frigo Distribution 17 », « Bonjour La Poste »",
+  "defaut": "mbxMod écrivait « Bonjour <nom de l'expéditeur> » pour 17 expéditeurs sur 18.",
+  "etat": "corrigé",
+  "changement": "saluer() reconnaît aussi un organisme à son article (La Poste, Le syndic), à un chiffre (Frigo Distribution 17) ou à un mot de société en plein nom (Daikin Pro Ouest, …Distribution…, SARL) sans toucher aux prénoms qui commencent pareil (Laurent, Léa, Leroy) ; mbxMod salue un fournisseur reconnu par « Bonjour » tout court, et un expéditeur inconnu dont le premier mot du nom est dans son adresse (Clim Pièces Atlantique / promo@climpieces-atlantique.fr) ; une personne (Mme Bernard, Claire Fontaine, M. Garnier, Sophie Marchand, Dr Martin) garde son nom.",
+  "preuve": "restes-client-2.js : 18 expéditeurs × 7 modèles lus un à un, 16 ✓ · 0 ✗ ; 9 organismes et 7 personnes essayés sur saluer ; restes-client-1.js 39 ✓ · 0 ✗ ; client-recontrole.js mac 113 ✓ · 0 ✗"
+ },
+ {
+  "nom": "prototype-paiement.html : « Bonjour Le syndic, » dans les courriels de facture générés",
+  "defaut": "Les quatre gabarits écrivaient « Bonjour ${g.contact} » avec « Le syndic » pour la Copropriété Les Mimosas.",
+  "etat": "corrigé",
+  "changement": "fonction salut(contact) du cadre : un contact qui commence par un article (Le, La, Les, L') donne « Bonjour » tout court.",
+  "preuve": "restes-client-2.js extrait la VRAIE fonction du fichier et la rejoue (Le syndic, M. Lemoine, Laurent) ; plus aucun « Bonjour ${esc(g.contact)} » écrit à la main"
+ },
+ {
+  "nom": "Doute : le menu de l'espace client affiche « Marc Leblanc · Mon compte · Se déconnecter » (compte du gérant qui teste)",
+  "defaut": "Dans le vrai produit un client n'a pas de session dans l'application ; ce bloc est celui de la session de revue.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "capture Mac relue : le bloc est bien là sous « Jour / Nuit / Auto ». C'est le moyen de sortir du mode « Tester en tant que » : le masquer demande de lui donner une autre sortie, décision de produit."
+ },
+ {
+  "nom": "Doute : la carte « Votre demande est envoyée » disparaît quand le bureau marque « Proposer un contrat » fait sans créer de contrat",
+  "defaut": "Le client voit revenir « Demander un contrat » et ne sait plus que le bureau l'a rappelé.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "comportement décrit par le recontrôle, non modifié : c'est le choix de la règle « la carte disparaît quand le bureau a fait sa tâche »"
+ },
+ {
+  "nom": "Doute : noms de signature d'un client organisme (« Syndic Foncia » dans « Nom et prénom » du devis, « Appeler Syndic Foncia »)",
+  "defaut": "C'est le nom du contact, pas une salutation.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "laissé tel quel au tour 1 (nom du contact, pas un « Bonjour »)"
+ },
+ {
+  "nom": "Doute : phrase du patron « Cet écran est celui du métier 3D… » restée en toast sur les captures du recontrôle",
+  "defaut": "Reste de la sonde qui a changé de rôle en cours de passe.",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "restes-client-1.js R (3 rôles à la main, 6 adresses) 39 ✓ · 0 ✗ : le client lit « Cette page n'est pas dans votre espace. » et le patron sa phrase, sans résidu"
+ }
+]
