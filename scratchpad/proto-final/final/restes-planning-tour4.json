@@ -1,0 +1,23 @@
+[
+ {
+  "nom": "planning",
+  "defaut": "Panneau d'une tuile du bandeau (« Interventions sur la période ») : les lignes sont écrasées à 58 px et leurs textes se superposent (casse trouvée au recontrôle du tour 3)",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html, après `.panneau .ligne-clic` : `.panneau .ligne-clic, .panneau .kpi-l, .panneau > .btn { flex-shrink:0 }` — le panneau est une colonne flex qui défile et `.ligne-clic` porte un min-height explicite (58 px) qui retire le plancher « taille du contenu » ; une ligne ne rétrécit plus sous son texte, la liste défile. Règle posée sur le composant (toute liste de lignes d'un panneau), pas sur l'écran.",
+  "preuve": "reproduit d'abord (restes-planning-3-recontrole.js G sur mac : 8 lignes coupées sur 15, « 58 pour 63 ») puis G 7 ✓ · 0 ✗ ; sonde neuve campagne/sondes/restes-planning-4.js (5 vues du Planning × toutes les tuiles, population ≥ 15 tuiles / ≥ 60 lignes) 2 ✓ · 0 ✗ sur mac, mac nuit, windows nuit, ipad, iphone, android nuit, petit nuit ; mutation mutations-restes-planning-4.py (règle retirée) : la sonde tombe ; captures panneau-int-mac / iphone / petit-nuit relues : lignes entières, titre et client lisibles, la liste défile"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Rien d'autre d'ouvert dans les recontrôles du Planning (pasRegles, nouveaux, encoreOuvertes vides au tour 3) ; aucune ligne non cochée de vus-par-le-chef.md ne touche le Planning",
+  "etat": "déjà décidé",
+  "changement": "Aucun",
+  "preuve": "restes-planning-tour3-recontrole.json relu ; grep des lignes « - [ ] » de vus-par-le-chef.md"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Les « doutes » du tour 3 : « Carte » seule sur sa rangée du sélecteur à 320 px ; « Mes vues » seul à droite sur iPad en Sur mesure ; cinquième tuile coupée à droite au téléphone (rangée qui défile, voulu) ; « Ordre proposé » absent, vue Mois à 216 interventions, Vue d'ensemble à 320 px, 11 communes, client hors liste au dépôt, bulles de trajet 320-360 px, première page du téléphone (décision l)",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : décisions de dessin ou de contenu",
+  "preuve": "restes-planning-tour3-recontrole.json (doutes)"
+ }
+]

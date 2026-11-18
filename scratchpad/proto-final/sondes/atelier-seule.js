@@ -10,14 +10,17 @@ fs.mkdirSync(path.join(TMP, 'apercu'), { recursive: true }); fs.mkdirSync(path.j
 // pas l'état d'avant le mode « dans OP GESTION » (629da64) — celui-là faisait tomber 12 contrôles sur des écarts VOULUS. Ce que la sonde garde reste « rien d'autre n'a bougé » : un écart nouveau, lui, tombe.
 // ORIGINE=<commit> la rejoue contre un autre point (ex. 629da64) ; ORIGINE_CAP=<fichier> contre une copie gardée.
 // Avancé au tour 2 (17 novembre 2026) à fe94b4c : l'étape sécurité a retiré les polices Google (le texte se pose 1 px plus bas/plus haut sur 4 contrôles du Mac) — écart VOULU, hors du compositeur. Le tour 2 du compositeur (beforeinput, motif « supprime ») ne déplace aucune boîte : 56 ✓ · 0 ✗ contre fe94b4c.
-const REF = process.env.ORIGINE || 'fe94b4c';
+// Avancé le 18 novembre à d0f32064 (juste AVANT la typographie française de l'atelier) : entre fe94b4c et là, les mots (« [téléphone] », « [e-mail] » dans les blancs des contrats) ont bougé sur des
+// dizaines de contrôles — écarts VOULUS. Le texte se compare sans ses espaces insécables, les boîtes au pixel : la typographie ne déplace rien (56 ✓ · 0 ✗).
+const REF = process.env.ORIGINE || 'd0f32064';
 const orig = process.env.ORIGINE_CAP && fs.existsSync(process.env.ORIGINE_CAP) ? fs.readFileSync(process.env.ORIGINE_CAP, 'utf8') : cp.execSync('git show ' + REF + ':scratchpad/proto-final/atelier/page.source', { cwd: DEPOT, maxBuffer: 1 << 28 }).toString();
 const gabarit = s => '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' + s + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-origine.html'), gabarit(orig));
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-actuel.html'), fs.readFileSync(process.env.ACTUEL || path.join(DEPOT, 'apercu', 'prototype-documents.html'), 'utf8'));      // ACTUEL : une copie mutée (atelier-mutations)
 process.env.RACINE = TMP;
 const A = require('./atelier-outils.js'), L = A.L, v = L.v;
-const sig = p => p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => (e.offsetParent !== null || getComputedStyle(e).position === 'fixed') && !/^(SCRIPT|STYLE|SVG|USE|PATH)$/i.test(e.tagName) && !e.closest('svg') && !e.closest('#enreg, #toasts')).map(e => { const r = e.getBoundingClientRect(); return [e.tagName, typeof e.className === 'string' ? e.className : '', e.childNodes.length === 1 && e.firstChild.nodeType === 3 ? e.textContent.trim().slice(0, 80) : '', Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join('|'); }));
+/* le texte se compare sans ses espaces insécables : la typographie française (18 novembre) les a posés dans l'actuelle, pas dans la référence (écart VOULU) ; les boîtes, elles, se comparent au pixel */
+const sig = p => p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => (e.offsetParent !== null || getComputedStyle(e).position === 'fixed') && !/^(SCRIPT|STYLE|SVG|USE|PATH)$/i.test(e.tagName) && !e.closest('svg') && !e.closest('#enreg, #toasts')).map(e => { const r = e.getBoundingClientRect(); return [e.tagName, typeof e.className === 'string' ? e.className : '', e.childNodes.length === 1 && e.firstChild.nodeType === 3 ? e.textContent.replace(/[\u00a0\u202f]/g, ' ').trim().slice(0, 80) : '', Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join('|'); }));
 const diff = (a, b) => { const out = []; for (let i = 0; i < Math.max(a.length, b.length) && out.length < 4; i++) if (a[i] !== b[i]) out.push([i, a[i], b[i]]); return out; };
 async function parcours(page, profil, nuit) {
   const c = await L.ouvrir({ profil, nuit, app: false, qui: null, page, attente: 1500 }), p = c.p, S = {}, clic = async s => { const l = p.locator(s).first(); if (c.doigt) await l.tap({ timeout: 5000 }); else await l.click({ timeout: 5000 }); await p.waitForTimeout(500); };

@@ -1,0 +1,45 @@
+{
+ "noms": ["contrats"],
+ "regles": [
+  "Prix rangé au centime (ctrCentimes) : « 1.005 » est rangé 1,01 € comme l'aperçu le dit ; 300 000 saisies aléatoires à 0 à 4 décimales : ctrCentimes et l'arrondi d'affichage (toLocaleString, celui d'eur()) donnent le même nombre dans 100 % des cas ; formes « 1e5 », « .5 », « 5. », « 0001.005 » justes. Sonde restes-contrats-2-recontrole.js rejouée : 42 ✓ · 0 ✗ sur mac et petit nuit",
+  "Carte « Facturation » (.ctr-fact), contrats envoyé ET signé, trois modes, prix jusqu'à 999 999,99 € HT, 12 visites, lieu très long, sondes neuves restes-contrats-3-recontrole.js : rien ne sort de la carte, aucun libellé écrasé, le montant reste à droite, rien ne déborde du profil, sur mac, mac nuit, windows, petit, petit nuit, iphone nuit, ipad nuit ; sur grand écran libellé et montant restent côte à côte (le libellé passe sur deux lignes, le montant reste à sa droite) ; captures regardées : fiche-an-999999.99-signe-mac-jour, fiche-visite-12345.67-signe-petit-nuit (libellé sur une ligne, montant dessous à droite, lisible)",
+  "Autres écrans qui lisent le prix d'un contrat (liste Contrats, fiche client, Factures, Comptabilité, Accueil, page de signature) : ni débordement du profil, ni NaN, ni undefined, ni erreur de page (sondes 3-recontrole, 7 profils)",
+  "Sondes des tours 1 et 2 rejouées : restes-contrats-2-recontrole-facturation.js petit et android nuit 17 ✓ · 0 ✗ ; restes-contrats-2-recontrole-visites.js petit nuit et iphone 7 ✓ · 0 ✗ ; restes-contrats-1.js mac 57 ✓ ; restes-contrats-1-recontrole.js petit nuit 31 ✓ ; restes-contrats-composes.js iphone 10 ✓, tous à 0 ✗",
+  "Mutations C20 à C24 (+ C2) rejouées : 6 mordent · 0 survivent"
+ ],
+ "pasRegles": [
+  {
+   "nom": "contrats",
+   "defaut": "Le TTC annoncé par l'aperçu de « Composer un contrat » n'est pas celui que la fiche du contrat montre, d'un centime, quand le prix tapé a plus de deux décimales (le même défaut que le correctif du HT, resté sur le TTC)",
+   "constat": "L'aperçu (étape « Prix et facturation ») calcule le TTC sur la saisie brute, la fiche le calcule sur le prix rangé (arrondi). Mesuré sur mac, petit, iphone nuit, ipad nuit : « 99.995 » → aperçu 100,00 HT / 119,99 TTC (incohérent même dans l'aperçu : 100,00 × 1,2 = 120,00), fiche 120,00 ; « 12,345 » → 12,35 HT / 14,81 TTC contre 14,82 ; « 2.675 » → 3,21 contre 3,22 ; « 0.995 » → 1,19 contre 1,20 ; « 10.0049 » → 12,01 contre 12,00. Le HT, lui, est juste partout (tour 3 réglé). Gravité faible (saisie à trois ou quatre décimales que personne ne fait en pratique), mais la personne lit le TTC avant d'envoyer. Piste : dans l'aperçu (ligne « ${eur(Number(B.prix)||0)} HT par an, soit ${eur(ctrTTC(B.prix, B))} TTC » et le prix par visite) lire ctrCentimes(B.prix) au lieu de B.prix. Sonde restes-contrats-3-recontrole.js : 5 ✗ identiques sur tous les profils."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Liste des Contrats sur iPad en portrait : la colonne « Client » du tableau tombe à 61 px, le nom s'écrit quelques lettres par ligne (« Copr / opri / été / Les / Mim / osas »)",
+   "gravite": "moyenne (iPad portrait 820 px, avec les données de départ, ancien, non causé par les tours 2 et 3 ; vu sur capture ecran-contrats-ipad-nuit)",
+   "etapes": "Profil ipad (820 px), nuit ou jour › Contrats › tableau des contrats.",
+   "constat": "Le tableau fait 699 px dans un conteneur de 506 px (il défile de côté, la colonne « Prix par an » est coupée au bord), N° prend 124 px, Contrat 153, État 173, et « Client » 61 : « Coproprieté Les Mimosas » et « Hôtel de la Plage » passent à 3-6 lettres par ligne, les lignes du tableau font 130 px. Sonde restes-contrats-3-recontrole-liste.js : « colonne Client ≥ 100 px » ✗ sur ipad avec les données de départ ET avec des prix à sept chiffres. Piste : l'état « Envoyé · en attente » et le numéro CTR-2026-004 ne doivent pas prendre 297 px de 506 ; passer au rendu en cartes (comme sur téléphone) sous la largeur utile de 520 px (requête de conteneur), ou donner un plancher à la colonne Client."
+  },
+  {
+   "titre": "Compteur « HT par an, qui revient » de la liste des Contrats coupé à droite quand le total dépasse un million d'euros à 320 et 390 px",
+   "gravite": "faible (n'arrive qu'avec un total à sept chiffres : 1 999 999,98 € ; les données de départ donnent 2 020,00 €)",
+   "etapes": "Profils petit ou iphone › Contrats › deux contrats signés à 999 999,99 € HT.",
+   "constat": "Le chiffre fait 162 px (390 px) et 140 px (320 px) dans une carte où il tient sur 140 et 113 : le « € » est coupé ou sort de la carte. Rien ne déborde de la page. Sonde restes-contrats-3-recontrole-liste.js : ✗ sur iphone et petit. Piste : même parade que les autres grands chiffres (taille réduite quand le texte est long, ou passage du symbole à la ligne)."
+  }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-contrats-3-recontrole.js (NEUVE)", "resultat": "mac nuit 57 ✓ · 5 ✗ ; windows 57 ✓ · 5 ✗ ; mac 55 ✓ · 7 ✗ avant correction de la sonde (deux ✗ sur « côte à côte » : défaut de la sonde, qui comparait le haut des deux éléments alors que le libellé passe sur deux lignes ; réglé, 57 ✓) ; petit, petit nuit, iphone nuit, ipad nuit 53 ✓ · 5 ✗. Les 5 ✗ sont toujours les mêmes : le TTC de l'aperçu contre la fiche (pasRegles)" },
+  { "fichier": "campagne/sondes/restes-contrats-3-recontrole-liste.js (NEUVE)", "resultat": "14 ✓ · 4 ✗ : colonne Client sur ipad (2 ✗), compteur coupé sur iphone et petit avec des prix à sept chiffres (2 ✗)" },
+  { "fichier": "campagne/sondes/restes-contrats-2-recontrole.js", "resultat": "mac et petit nuit : 42 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-2-recontrole-facturation.js, restes-contrats-2-recontrole-visites.js", "resultat": "17 ✓ · 0 ✗ (petit, android nuit) ; 7 ✓ · 0 ✗ (petit nuit, iphone)" },
+  { "fichier": "campagne/sondes/restes-contrats-1.js, restes-contrats-1-recontrole.js, restes-contrats-composes.js", "resultat": "57 ✓ · 31 ✓ · 10 ✓, tous à 0 ✗" },
+  { "fichier": "campagne/sondes/mutations-restes-contrats.py C2 (C2, C20 à C24)", "resultat": "6 mordent · 0 survivent" }
+ ],
+ "doutes": [
+  "Le plafond de 1 000 000 € est testé sur Number(saisie) et non sur le prix rangé : « 1000000.004 » est refusé alors que l'aperçu l'écrit 1 000 000,00 € (le plafond affiché dans le message est lui, juste). Écart sans conséquence, mais à dire.",
+  "Le PDF et le courriel réels d'un contrat restent hors du prototype (pas de serveur) : à contrôler dans la vraie application.",
+  "L'aperçu écrit aussi un prix par visite calculé sur la saisie brute (Number(B.prix) / freq) : même famille que le TTC, non mesuré séparément."
+ ]
+}

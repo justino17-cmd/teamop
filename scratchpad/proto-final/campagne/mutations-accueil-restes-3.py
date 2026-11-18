@@ -9,6 +9,7 @@ M=[
  ('facture partie : la ligne additionne tout', "(dejaPartie ? encaisserPaieTech(fa, P) : ENCAISSEMENTS", "(false ? 0 : ENCAISSEMENTS", 'F'),
  ('facture partie : plus que le reste', "const reste = restant(f), v = P.etat === 'total' ? reste : Math.min(reste, parseFloat(String(P.montant).replace(',','.')) || 0);", "const reste = restant(f), v = P.etat === 'total' ? reste : (parseFloat(String(P.montant).replace(',','.')) || 0);", 'F'),
  ('graphique : seuil à 557', "@container (max-width:527px)", "@container (max-width:557px)", 'C'),
+ ('fiche facture 320 px : le bouton de l\'avoir ne se replie plus', 'data-action="avoir" data-id="${id}" style="max-width:100%;white-space:normal;padding-block:10px;line-height:1.25">', 'data-action="avoir" data-id="${id}">', 'V'),
  ('bilan : unité à la ligne', "\n.bil-t b{white-space:nowrap}", "", 'T'),
 ]
 bad=0

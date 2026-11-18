@@ -16,6 +16,9 @@ MUT = [
     ('equipe', "Qui fait quoi, ce que chacun peut faire, et ses habilitations.", "Qui fait quoi, ce que chacun peut faire, et l'ensemble de ses habilitations.", "apostrophe-droite"),
     ('accueil', "Planning de l’équipe", "Dashboard de l’équipe", "jargon"),
     ('achats', "Le matériel que ton équipe demande", "Le matériel que votre équipe demande", "vouvoiement-equipe"),
+    ('equipe', "${r.ints.length} intervention${r.ints.length > 1 ? 's' : ''} cette semaine", "${r.ints.length} interv. cette semaine", "abreviation"),
+    ('statistiques', "En retard · échéance ${dAnnee(x.ech, x.d)}", "En retard · éch. ${dAnnee(x.ech, x.d)}", "abreviation"),
+    ('historique', "'account.locked':'a vu son compte verrouillé'", "'account.locked':': compte verrouillé'", "espace-ordinaire-avant-ponctuation"),
     ('stock', "Ce qu’il te reste, et où il est.", "Ce qu’il te reste, et où il est, avec tout ce qui est prévu cette semaine, ce qui est en retard, ce qui attend une réponse du fournisseur et ce que l’équipe doit encore préparer avant lundi matin.", "phrase-longue"),
 ]
 if os.path.exists(COPIE): shutil.rmtree(COPIE)
@@ -26,8 +29,14 @@ posees = []
 for (ecran, avant, apres, regle) in MUT:
     n = s.count(avant)
     if n == 0: print('✗ le texte d’origine n’existe plus : ' + avant[:60]); sys.exit(2)
-    s = s.replace(avant, apres, 1); posees.append((ecran, avant, apres, regle))
+    s = s.replace(avant, apres); posees.append((ecran, avant, apres, regle))
 open(p, 'w', encoding='utf-8').write(s)
+MUT_DOC = [('devis', "const typoTxt = x => x.replace(/ ([:;?!»])/g,", "const typoTxt = x => x.replace(/ ([:;?!»])ZZ/g,", "espace-ordinaire-avant-ponctuation")]
+pd = COPIE + '/apercu/prototype-documents.html'; sd = open(pd, encoding='utf-8').read()
+for (ecran, avant, apres, regle) in MUT_DOC:
+    if sd.count(avant) != 1: print('✗ le texte d’origine de l’atelier n’existe plus : ' + avant[:60]); sys.exit(2)
+    sd = sd.replace(avant, apres, 1); posees.append((ecran, avant, apres, regle))
+open(pd, 'w', encoding='utf-8').write(sd)
 env = dict(os.environ, RACINE=COPIE)
 r = subprocess.run(['node', os.path.join(ICI, 'mots-interdits.js'), 'marc'], env=env, capture_output=True, text=True, timeout=590)
 sortie = r.stdout + r.stderr; ok = ko = 0
