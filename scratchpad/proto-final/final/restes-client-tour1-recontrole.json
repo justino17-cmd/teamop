@@ -1,0 +1,33 @@
+{
+ "noms": ["client-04 (écrans du métier 3D)", "client-06 (demande de contrat)", "mot très long dans une demande", "numéro de contrat coupé", "« Bonjour Syndic Foncia »", "client-14 (trois navigations)", "client-15 (le logiciel au lieu de l’entreprise)", "client-11 (phrase du paiement)", "client-19 (deux devis presque pareils)"],
+ "regles": [
+  "client-04 : #registre, #carteBox, #devisXylo tapés par le client, 3D allumé ou non : « Cette page n’est pas dans votre espace. », le client reste chez lui ; patron, gestion et technicien lisent encore leur phrase d’avant (rien de muet). Sonde R, 3 rôles à la main.",
+  "client-06 : la demande crée UNE tâche au nom du bon client (8 clients), la carte « Votre demande est envoyée » remplace le bouton, survit à un changement d’écran, ne fuit pas chez un autre client, disparaît quand le bureau fait sa tâche ; redemander ne crée rien.",
+  "mot long (83 lettres) : reste dans sa carte sur petit 320, iPhone, Android, Mac, iPad, Windows ; aucune coupure d’un mot ordinaire ; aucun défilement latéral sur 8 clients × 5 onglets.",
+  "numéro de contrat / facture / devis : une seule ligne partout (getClientRects), rien ne dépasse.",
+  "client-14 et client-15 : une seule navigation à 17 largeurs de 320 à 1440 (760 : barre du bas, 761 : onglets de la page), paysage téléphone (844×390, 667×375, 932×430, 800×360), iPad portrait 768×1024, et dans le mode « Tester en tant que » ; le nom de l’entreprise une seule fois, jamais le carré « OP » ; menu de gauche tient dans 360 px de haut ; les comptes (« Factures, 2 à régler ») sont sur la barre.",
+  "client-11 : phrase du paiement remplacée ; les trois autres « carte d’essai » restantes sont des textes de la visite guidée, pas de l’espace client.",
+  "client-19 : D-2026-034 parle de la carte électronique (289 + 130 + 29,17 = 448,17 € HT, inchangé), intervention i13, achat a7 et journal suivent ; un seul devis de ventilateur côté client."
+ ],
+ "pasRegles": [
+  { "nom": "« Bonjour Syndic Foncia »", "defaut": "Le correcteur annonce « les 11 gabarits du bureau qui coupaient le contact à la main appellent saluer() » : titre de l’espace, SMS, devis, facture, relances, contrat y passent bien, mais DEUX chemins écrivent encore « Bonjour Syndic Foncia » : tkxPrenomClient (le bouton « 💬 Prévenir Syndic Foncia » d’une tâche « Prévenir… » liée à un client, et son courriel « Bonjour Syndic Foncia, Notre technicien sera chez vous prochainement… ») et tMailClient (« Prévenir le client » / « Écrire au client »).", "constat": "Rejoué par le vrai geste : une tâche « Prévenir la copropriété du retard de la pièce » liée à mi (Copropriété Les Mimosas) montre le bouton « 💬 Prévenir Syndic Foncia », et le courriel s’ouvre sur « Bonjour Syndic Foncia, ». Les sept autres clients saluent bien une personne. tMailClient (prototype-op-gestion.html ~7165-7170) est du code MORT : data-tprev et data-tecrire ne s’écrivent nulle part, mais le même défaut y est (et « Pour votre intervention (), » avec des parenthèses vides quand il n’y a pas d’intervention) : à brancher sur saluer() ou à retirer. tkxPrenomClient (~14939, utilisé ~14947 et ~14979) : faire passer le courriel par saluer(c.contact), et le libellé du bouton par le nom du client quand le contact est un organisme." }
+ ],
+ "casses": [],
+ "nouveaux": [
+  { "titre": "Les réponses types du Courrier saluent un organisme par son nom : « Bonjour Syndic des Mimosas », « Bonjour Frigo Distribution 17 », « Bonjour La Poste »…", "gravite": "mineur (même famille que « Bonjour Syndic Foncia »)", "constat": "mbxMod (~19846) écrit « Bonjour ${m.de.nom} » pour 17 expéditeurs sur 18 (seuls les particuliers et personnes sont justes) ; le client Syndic des Mimosas est le cas le plus voyant. Piste : saluer(m.de.nom) pour tout expéditeur, un organisme donnant « Bonjour » tout court." },
+  { "titre": "prototype-paiement.html : « Bonjour Le syndic, » dans le courriel de facture généré pour la Copropriété Les Mimosas", "gravite": "mineur", "constat": "MODELES (ligne 368) donne le contact « Le syndic » et les gabarits écrivent « Bonjour ${g.contact} » (lignes 678-682) : sort à la 3ᵉ facture générée. Ce cadre n’a pas saluer(), il est en dehors du lot." }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-client-1.js", "resultat": "iphone, mac nuit, ipad, windows, android nuit, petit : 39 ✓ · 0 ✗ chacun" },
+  { "fichier": "campagne/sondes/client-recontrole.js", "resultat": "iphone et mac : 113 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/client-constats.js", "resultat": "iphone 20 ✓ · 0 ✗ ; mac 11 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/client-mots-documents.js", "resultat": "mac : 213 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-client-1-recontrole.js", "resultat": "sonde du recontrôle, rendue juste ce tour (population ≥ 7 clients, texte en capitales lu sans casse, rôle « patron », population des brouillons, bouton « Prévenir » par le vrai geste) : mac 85 ✓ · 4 ✗, android nuit 37 ✓ · 4 ✗, petit et iphone idem ; les 4 ✗ sont toutes la partie S (« Bonjour » d’un organisme), vraies" }
+ ],
+ "doutes": [
+  "Dans l’espace client, le menu de gauche affiche en bas « Marc Leblanc · Mon compte · Se déconnecter » : c’est le compte de la session de revue (le gérant qui teste en tant que client), pas M. Durand. Dans le vrai produit un client n’a pas de session dans l’application : à décider (masquer ce bloc pour le rôle client ?).",
+  "Quand le bureau marque « Proposer un contrat » fait sans créer de contrat, la carte « Votre demande est envoyée » disparaît et le bouton « Demander un contrat » revient : voulu ? (le client ne sait plus que le bureau l’a rappelé).",
+  "Les noms de signature d’un client organisme restent « Syndic Foncia » (champ « Nom et prénom » du devis, « Appeler Syndic Foncia ») : c’est le nom du contact et non une salutation, laissé tel quel.",
+  "Les captures du recontrôle montrent la phrase du patron « Cet écran est celui du métier 3D… ton entreprise » restée en toast sur les écrans suivants de la sonde : un reste de la sonde (le rôle a été changé en cours de passe), pas du client."
+ ]
+}

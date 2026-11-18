@@ -28,7 +28,7 @@ const RAPIDE = !!process.env.RAPIDE;
     v(`${tag} : sous-titre « Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser. »`, norm(h.sous) === 'Le matériel que ton équipe demande, et les frais qu’elle te fait rembourser.', h.sous);
     if (c.largeur <= 400) v(`${tag} : sous-titre sur trois lignes au plus`, h.lignes <= 3, h.lignes);
     v(`${tag} : DEUX chiffres seulement (demandes de matériel, notes de frais)`, h.nKpi === 2 && /demandes? de matériel à décider/.test(h.kpis[0]) && /notes? de frais à valider/.test(h.kpis[1]), h.kpis);
-    v(`${tag} : puis le titre « Ça se règle dans la Comptabilité » et DEUX lignes (factures fournisseurs à payer, achats sans facture)`, norm(h.groupe) === 'Ça se règle dans la Comptabilité' && h.lignesCx.length === 2 && /de factures fournisseurs à payer/.test(h.lignesCx[0]) && /achats? sans facture/.test(h.lignesCx[1]), { g:h.groupe, l:h.lignesCx });
+    v(`${tag} : puis le titre « Ça se règle dans la Comptabilité » et DEUX lignes (factures fournisseurs à payer, achats sans justificatif)`, norm(h.groupe) === 'Ça se règle dans la Comptabilité' && h.lignesCx.length === 2 && /de factures fournisseurs à payer/.test(h.lignesCx[0]) && /achats? sans justificatif/.test(h.lignesCx[1]), { g:h.groupe, l:h.lignesCx });
     v(`${tag} : les deux lignes sont des lignes (≥ 44 px), pas des chiffres déguisés`, h.cible, h.cible);
     v(`${tag} : onglets « Demandes de matériel » ${c.largeur <= 760 ? '(court « Matériel »)' : ''} et « Notes de frais » ${c.largeur <= 760 ? '(court « Frais »)' : ''}, qui tiennent`, h.tabsOK && (c.largeur <= 760 ? h.onglets.join('|').replace(/\d+/g, '').trim() === 'Matériel|Frais' || /^Matériel\s*\d*\|Frais\s*\d*$/.test(h.onglets.join('|')) : /^Demandes de matériel\s*\d*\|Notes de frais\s*\d*$/.test(h.onglets.join('|'))), h.onglets);
     if (c.largeur <= 760) v(`${tag} : « ＋ Demande » passe SOUS le sous-titre, sur la largeur utile`, !!h.bouton && h.bouton.sous && h.bouton.large >= h.bouton.W * 0.85, h.bouton); else v(`${tag} : « ＋ Demande » est là`, !!h.bouton && /demande/i.test(h.bouton.texte), h.bouton);   /* « ＋ Nouvelle demande d’achat » depuis la campagne coque : la sonde cherche le mot, pas la casse */
@@ -41,7 +41,7 @@ const RAPIDE = !!process.env.RAPIDE;
   // les gestes : les deux lignes mènent à la Comptabilité, l'aide, les états vides
   { const c = await ouvrirEnt({ profil:'mac' }); await L.aller(c.p, 'achats');
     let n = 0;
-    for (const [i, dest] of [[0, 'factures à payer'], [1, 'achats sans facture']]) { await L.aller(c.p, 'achats'); await L.toucher(c, `#contenu .ach-compta .ligne-clic >> nth=${i}`); await L.calme(c.p, 600); n++;
+    for (const [i, dest] of [[0, 'factures à payer'], [1, "achats sans justificatif"]]) { await L.aller(c.p, 'achats'); await L.toucher(c, `#contenu .ach-compta .ligne-clic >> nth=${i}`); await L.calme(c.p, 600); n++;
       const r = await c.p.evaluate(() => ({ hash:location.hash, onglet:CP.onglet, cat:CX.cat, st:CX.st })); v(`la ligne « ${dest} » mène à la Comptabilité › Factures (adresse et filtre)`, r.hash === '#comptabilite' && r.onglet === 'fachats' && r.cat === 'achats' && r.st === (i ? 'sanspiece' : 'traiter'), r); }
     v('population : deux lignes touchées', n === 2, n);
     await L.aller(c.p, 'achats'); await L.toucher(c, '#contenu .ach-aide');
