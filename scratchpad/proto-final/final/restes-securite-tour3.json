@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "Contact, adresse, consignes d'accès, e-mail, téléphone d'un client coupés sans prévenir (recontrôle tour 2, « nouveaux » B)",
+  "defaut": "cliNet range 120 / 160 / 200 / 120 / 30 signes ; aucun champ de la fiche ni des quatre formulaires de création ne portait de maxlength : on tapait 240 signes d'accès, la bulle disait « enregistrée », il en restait 200.",
+  "etat": "corrigé",
+  "changement": "maxlength posé sur 21 champs (contact/prénom 120, adresse 160, accès 200, e-mail 120, téléphone 30) aux cinq endroits qui écrivent un client : fiche (data-ci), devis (dvn-), création d'intervention (data-cnv), création de client (cs-) et dx (nv_). Le nom l'avait déjà (tour 2).",
+  "preuve": "sondes/restes-securite-tour3.js 27 ✓ · 0 ✗ (21 champs lus dans le source + la fiche au navigateur) ; sondes/restes-securite-tour2-recontrole.js (profil petit) 37 ✓ · 0 ✗, avec maxlength null avant et 120/160/200/120 après ; mutation M1 (maxlength d'adresse retiré) : 26 ✓ · 1 ✗"
+ },
+ {
+  "nom": "Une coupe au milieu d'un émoji laisse un signe orphelin (« � »)",
+  "defaut": "slice(0,120) coupait la paire de substituts dans nom, contact, expéditeur d'un e-mail et entrée du courrier (texte collé, e-mail reçu ; au clavier le navigateur refuse l'émoji, cas déjà sain).",
+  "etat": "corrigé",
+  "changement": "coupeSure(t, n) : coupe puis retire une moitié haute orpheline ; utilisée par libelleSur (donc cliNet : nom, contact, adresse, accès, e-mail, téléphone, libellés), mailNom et mlDeNet. Un émoji entier à la limite est gardé, un texte sans émoji est coupé à la même longueur qu'avant.",
+  "preuve": "restes-securite-tour3.js : 119 signes + émoji → 119 sans orphelin (nom, contact, adresse 159, accès 199, expéditeur, entrée) ; 118 + émoji → 120 gardé ; 150 → 120 ; mutation M2 (coupeSure rend la coupe brute) : 25 ✓ · 2 ✗"
+ },
+ {
+  "nom": "cliNet retire les guillemets droits d'un nom tapé ; mailNom retire un « + = @ - » de tête",
+  "defaut": "« Café \"Chez Léa\" » devient « Café Chez Léa ».",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision du chef du 17/11 (sans risque, visible) ; alternative simple : remplacer les guillemets droits par « » au lieu de les retirer"
+ },
+ {
+  "nom": "Limites de navigation et en-têtes (S10) : frame-ancestors, CSP avec nonces, SPF/DKIM/DMARC, corpsLu d'opcourrier.js",
+  "defaut": "hors de portée d'une balise ou d'un prototype",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décidé de NOTER sans corriger (tour 2) ; opcourrier.js non touché"
+ },
+ {
+  "nom": "Fiche client à 320 px avec un nom de 112 signes : titre sur 7 lignes, Appeler / E-mail repoussés",
+  "defaut": "le nom entier se lit, rien ne déborde, mais la fiche est longue",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "réduire le titre au-delà de ~60 signes redessinerait un écran validé"
+ },
+ {
+  "nom": "Prénom + nom d'un particulier : somme au-delà de 120 signes",
+  "defaut": "le prénom (120) et le nom (120) se rangent joints puis cliNet borne le tout à 120 : un couple d'identités de plus de 120 signes est coupé en fin",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun (pas un nom réaliste ; plafond dynamique = redessin du formulaire)",
+  "preuve": "relevé de lecture du code, non reproduit avec une vraie identité"
+ },
+ {
+  "nom": "Passes non rejouées : rôle compta (saisie totale), PDF de devis/facture avec un nom de 112 signes à 320 px, captures iPad et Android du tour 2",
+  "defaut": "signalés « doutes » au recontrôle tour 2",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : non rejoué ce tour (machine chargée, sondes de 4 à 8 minutes) ; la correction de ce tour ne change aucun affichage (attribut maxlength et coupe de texte)",
+  "preuve": "voir rapport"
+ }
+]
