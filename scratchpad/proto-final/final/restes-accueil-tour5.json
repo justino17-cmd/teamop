@@ -1,0 +1,10 @@
+{
+ "noms": [
+  "Restes accueil, tour 5 — « Recommencer la mission » et « Remettre à faire » emportent la ligne « paiement reçu sur place » de l'Historique"
+ ],
+ "regles": [
+  "Restes accueil, tour 5 — « Recommencer la mission » et « Remettre à faire » emportent la ligne « paiement reçu sur place » de l'Historique : l'argent retiré de l'Accueil ⇒ sa ligne part aussi (argentSurPlaceRetirer, « Annuler » du toast la remet) ; « Recommencer » efface aussi P.encaisse, P.recuLe, P.recuH, P.journale (les 50 € d'une facture envoyée automatiquement ne sont plus perdus). Sonde restes-accueil-5 (mac, iPhone nuit : 15 ✓ 0 ✗), mutations 7/8 tombées (R8 neutralisée par le retrait, attendue verte)."
+ ],
+ "pasRegles": [],
+ "decision": "L'ancien constat du tour 4 (« la ligne reste dans l'Historique après Remettre à faire ») est remplacé : la sonde restes-accueil-4-recontrole F attend désormais 0 ligne."
+}
