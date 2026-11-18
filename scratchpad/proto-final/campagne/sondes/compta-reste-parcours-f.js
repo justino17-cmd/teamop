@@ -11,7 +11,7 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await L.toucher(c, '[data-paie="releve|tl"]'); await L.toucher(c, '#calque [data-paie="regle|tl"]'); const t1 = await X.toasts(p); v('F1 « C’est réglé » lève l’erreur signalée par Tom et le dit', (await E()).sig === 0, t1);
   await p.keyboard.press('Escape'); await p.waitForTimeout(250);
   // 2) valider les semaines en règle, puis celles qui ont une alerte une à une (« Valider quand même »)
-  await L.toucher(c, '[data-paie="validertout"]'); const e2 = await E(); v('F2 « Valider ce qui est en règle » ne laisse que les semaines à alerte', e2.nonVal === 3, e2);
+  await L.toucher(c, '[data-paie="validertout"]'); const e2 = await E(); v('F2 « Valider ce qui est en règle » ne laisse que les semaines FINIES à alerte (la semaine en cours ne se valide pas : décision du chef du 17/11, elle ne compte plus parmi les semaines à valider)', e2.nonVal === 1, e2);
   for (const k of ['kb', 'tl']) { await L.toucher(c, `[data-paie="releve|${k}"]`); for (let i = 0; i < 3; i++) { const ok = await p.evaluate(() => { const b = document.querySelector('#calque [data-paie^="valsem|"]'); if (b) { b.click(); return true; } return false; }); if (!ok) break; await p.waitForTimeout(250); await p.evaluate(() => { const b = document.querySelector('#toast.on button'); if (b) b.click(); }); await p.waitForTimeout(300); } await p.keyboard.press('Escape'); await p.waitForTimeout(200); }
   const e3 = await E(); v('F2 toutes les semaines sont validées une à une', e3.nonVal === 0, e3);
   // 3) la journée restée ouverte : « clore »
