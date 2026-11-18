@@ -114,6 +114,57 @@ const NOMS = ['Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA'
       v(`registre ${profil} : les liens à chevron sont comptés (population)`, r.length >= 1, r);
       v(`registre ${profil} : aucun chevron ne reste seul sur sa ligne (la dernière ligne fait plus de 24 px)`, r.every(x => x.derniere > 24 && x.nbsp), r);
     }
+    // 12. UN SEUL JEU DE BOUTONS SOUS UN APERÇU DE PDF : la barre du document (« Voir en grand · Télécharger le PDF · Envoyer par e-mail »)
+    //     ne se double plus de « Télécharger », « Envoyer au client » ou « Enregistrer en PDF » dans la fenêtre — et les gestes de la barre
+    //     écrivent toujours leur ligne au journal, et envoient à l'adresse du client.
+    if (sec(12)) {
+      for (const [h, ouvre, mot] of [['registre', async () => { await clic(p, '[data-rg="cli|t1"]', 600); return clic(p, '[data-rg^="pdf|"]', 900); }, 'registre'], ['carteBox', async () => { await clic(p, '.cb-plus summary', 400); return clic(p, '[data-cbx="pdf"]', 900); }, 'plan des box']]) {
+        await neuf(p); await L.aller(p, h); const ok = await ouvre();
+        const r = await p.evaluate(() => { const pan = document.querySelector('#calque .panneau'); const bt = pan ? [...pan.querySelectorAll('button')].filter(b => b.offsetParent).map(b => b.textContent.replace(/\s+/g, ' ').trim()) : [];
+          return { bt, tel: bt.filter(t => /Télécharger|Enregistrer/.test(t)).length, env: bt.filter(t => /Envoyer/.test(t)).length, barre: !!(pan && pan.querySelector('.doc-barre')) }; });
+        v(`${h} ${profil} : l'aperçu du PDF est ouvert, avec sa barre de document (population)`, ok && r.barre && r.bt.length >= 3, r);
+        v(`${h} ${profil} : un seul bouton pour télécharger (pas « Télécharger » ET « Enregistrer en PDF »)`, r.tel === 1, r.bt);
+        v(`${h} ${profil} : un seul bouton pour envoyer`, r.env === 1, r.bt);
+        if (profil === 'mac') {
+          const j0 = await p.evaluate(() => JOURNAL.length);
+          await clic(p, '#calque [data-pdfdl]', 500);
+          const j1 = await p.evaluate(() => ({ n: JOURNAL.length, der: (JOURNAL[JOURNAL.length - 1] || {}).action }));
+          v(`${h} : « Télécharger le PDF » écrit sa ligne au journal`, j1.n === j0 + 1 && /PDF|plan des box/.test(j1.der || ''), j1);
+          await clic(p, '#calque [data-pdfmail]', 700);
+          const m = await p.evaluate(() => ({ a: (document.getElementById('ml-a') || {}).value, m: (document.getElementById('ml-m') || {}).value, pj: !!document.querySelector('#calque .mail-pj') }));
+          const attendu = await p.evaluate(h => h === 'registre' ? CLIENTS[RG_SITES[d3Cli]].mail : CB_MAIL[d3Cli], h);
+          v(`${h} : « Envoyer par e-mail » ouvre le message avec l'adresse DU CLIENT de ce site, un texte et le PDF joint`, !!attendu && m.a === attendu && (m.m || '').length > 20 && m.pj, { ...m, attendu });
+          const j2 = await p.evaluate(() => JOURNAL.length); await clic(p, '[data-mailenvoi]', 700);
+          const j3 = await p.evaluate(() => ({ n: JOURNAL.length, der: (JOURNAL[JOURNAL.length - 1] || {}).action }));
+          v(`${h} : l'envoi écrit sa ligne au journal (« a envoyé le ${mot} au client »)`, j3.n === j2 + 1 && /a envoyé le .* au client/.test(j3.der || ''), j3);
+        }
+      }
+    }
+    // 13. « Voir les 8 box à regarder ↓ » et « 8 box affichées sur 10 » sont deux phrases : chacune sa ligne (collées, elles se lisaient « ↓8 box affichées »).
+    if (sec(13)) {
+      await neuf(p); await L.aller(p, 'carteBox'); await clic(p, '[data-cbx="filtre|regarder"]', 600);
+      const r = await p.evaluate(() => { const v = document.querySelector('.cb-planc .cb-vers'), a = [...document.querySelectorAll('.cb-planc > .gris.petit')].find(e => /affichée/.test(e.textContent)); if (!a) return { aff: false };
+        const A = a.getBoundingClientRect(), V = v && v.offsetParent ? v.getBoundingClientRect() : null; return { aff: true, vers: !!V, dessous: !V || A.top >= V.bottom - 1 }; });
+      v(`carte ${profil} : le filtre « À regarder » affiche « N box affichées sur 10 » (population)`, r.aff, r);
+      v(`carte ${profil} : cette phrase est sur sa propre ligne, sous « Voir les box à regarder »`, r.dessous, r);
+    }
+    // 14. UNE COMMANDE DE FENÊTRE NE SE COUPE PAS : « Envoyer à contact@lamaree-exemple.fr » (36 signes) sortait de l'écran à 320 px, coupé net.
+    //     On mesure ce que la commande montre (sa largeur de texte contre sa boîte) et qu'elle reste dans la fenêtre.
+    if (sec(14)) {
+      await neuf(p); await L.aller(p, 'carteBox'); await clic(p, '.cb-plus summary', 400); await clic(p, '[data-cbx="envoi"]', 900);
+      const r = await p.evaluate(() => { const pan = document.querySelector('#calque .panneau'); if (!pan) return null; const P = pan.getBoundingClientRect();
+        const bt = [...pan.querySelectorAll('.actions .btn')].filter(b => b.offsetParent).map(b => { const R = b.getBoundingClientRect(); return { t: b.textContent.trim().slice(0, 40), coupe: b.scrollWidth > b.clientWidth + 1, dehors: R.right > P.right + 1 || R.left < P.left - 1 }; }); return { n: bt.length, bt }; });
+      v(`carte ${profil} : la fenêtre « Envoyer le plan au client » est ouverte, ses commandes comptées (population)`, !!r && r.n >= 2, r);
+      if (r) v(`carte ${profil} : aucune commande n'est coupée ni ne sort de la fenêtre`, r.bt.every(b => !b.coupe && !b.dehors), r.bt.filter(b => b.coupe || b.dehors));
+    }
+    // 15. UN CHAMP DONT LE TEXTE D'AIDE EST COUPÉ NE DIT PLUS CE QU'IL ATTEND : « Note sur le dernier r… » à 360 px, à côté de « ＋ Photo ».
+    if (sec(15)) {
+      await neuf(p); await L.aller(p, 'carteBox'); await clic(p, '[data-d3="box|P1"]', 700);
+      const r = await p.evaluate(() => { const e = document.querySelector('.cb-nph input'); if (!e) return null; const g = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(e);
+        const ph = getComputedStyle(e, '::placeholder'); g.font = ph.fontWeight + ' ' + ph.fontSize + ' ' + ph.fontFamily; const t = g.measureText(e.placeholder).width, dispo = e.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); return { texte: Math.round(t), dispo: Math.round(dispo), ph: e.placeholder, larg: Math.round(e.getBoundingClientRect().width), rangee: Math.round(e.parentElement.getBoundingClientRect().width), vw: innerWidth }; });
+      v(`carte ${profil} : le champ « Note sur le dernier relevé » est trouvé (population)`, !!r, r);
+      if (r) v(`carte ${profil} : son texte d'aide tient en entier dans le champ`, r.texte <= r.dispo + 1, r);
+    }
     await L.fin(c);
     if (profil !== 'mac' && c.err.length) console.log('  · erreurs JS', profil, c.err.slice(0, 3));
   }

@@ -497,7 +497,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 @media (max-width:760px) and (max-height:700px){.guide{max-height:min(66vh,calc(100vh - 190px))}}
 @media (max-width:420px){.t{font-size:13.5px}.t td,.t th{padding:8px 6px}.t td.n{font-size:13px}.t td.ret{padding-left:14px}.replie-c .kpis{grid-template-columns:minmax(0,1fr)}}
 /* le nom du système tient en entier (iPhone 390 : « OP COMPTAB… ») : la date de la pastille cède la place, jamais le nom · 13 novembre 2026 */
-@media (max-width:440px){ .barre .chip .chip-date{display:none} .barre .logo b{overflow:visible;text-overflow:clip} }
+@media (max-width:440px){ .barre .chip .chip-date{display:none} .barre .logo b{overflow:visible;text-overflow:clip} .barre .logo small{display:none} .barre .logo b{font-size:13px;letter-spacing:0;white-space:nowrap} .barre .chip{padding-inline:12px} } /* iPhone 390 : « OP COMPTABLE » passait sous la pastille « Relevé à … » (14 novembre → 18 novembre, vu par la voie nuit) */
 /* ─── très petit téléphone (320 à 380 px) ─── */
 @media (max-width:380px){
   .masque-etroit{display:none!important}.seul-etroit{display:block!important}
@@ -1214,7 +1214,7 @@ const ICONES = {
   bilan:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', resultat:'<path d="M4 18l6-6 4 4 6-8"/>', fec:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', controles:'<path d="M5 12l4 4 10-10"/>', dossier:'<path d="M3 7h6l2 2h10v10H3z"/>'
 };
 const svgI = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONES[k] || ''}</svg>`;
-const MENU = [['Pilotage', [['accueil', 'Tableau de bord'], ['parcours', 'Parcours d’essai']]], ['Saisie', [['pieces', 'Pièces à traiter'], ['saisie', 'Saisir une écriture'], ['brouillard', 'Brouillard']]],
+const MENU = [['Pilotage', [['accueil', 'Vue d’ensemble'], ['parcours', 'Parcours d’essai']]], ['Saisie', [['pieces', 'Pièces à traiter'], ['saisie', 'Saisir une écriture'], ['brouillard', 'Brouillard']]],
   ['Comptes', [['journaux', 'Journaux'], ['grand-livre', 'Grand livre'], ['balance', 'Balance'], ['tiers', 'Clients et fournisseurs']]], ['Trésorerie', [['banque', 'Banque et rapprochement']]],
   ['Fiscal et social', [['tva', 'TVA'], ['immos', 'Immobilisations'], ['paie', 'Paie']]], ['Clôture et états', [['clotures', 'Clôtures'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat'], ['fec', 'Fichier des écritures (FEC)'], ['controles', 'Contrôles']]],
   ['Dossier', [['dossier', 'Dossier et plan comptable']]]];
@@ -1318,7 +1318,7 @@ VUES.accueil = () => {
   const mx = Math.max(...mois.map(x => Math.max(x.ca, x.ch))) * 1.08, H = 170, W = 640, bw = 22;
   const graph = `<svg viewBox="0 0 ${W} ${H + 34}" role="img" aria-label="Produits et charges par mois, de janvier à octobre">${[0, .25, .5, .75, 1].map(f => `<line x1="40" x2="${W}" y1="${H - f * H + 6}" y2="${H - f * H + 6}" stroke="var(--line)" stroke-width="1"/><text x="34" y="${H - f * H + 10}" text-anchor="end">${Math.round(mx * f / 1000)} k</text>`).join('')}
     ${mois.map((x, i) => { const cx = 62 + i * ((W - 70) / 10); return `<rect x="${cx}" y="${H - x.ca / mx * H + 6}" width="${bw}" height="${x.ca / mx * H}" rx="3" fill="var(--accent)"><title>${nomMois(x.m)} · produits ${eur(x.ca)}</title></rect><rect x="${cx + bw + 3}" y="${H - x.ch / mx * H + 6}" width="${bw}" height="${x.ch / mx * H}" rx="3" fill="var(--line2)"><title>${nomMois(x.m)} · charges ${eur(x.ch)}</title></rect><text x="${cx + bw}" y="${H + 26}" text-anchor="middle">${MOIS_C[i]}</text>`; }).join('')}</svg>`;
-  return tete('Pilotage', 'Tableau de bord', `Octobre 2026 est en cours. Janvier à septembre sont clôturés.`, `<a class="btn gris" href="#parcours">Parcours d’essai</a>`) +
+  return tete('Pilotage', 'Vue d’ensemble', `Octobre 2026 est en cours. Janvier à septembre sont clôturés.`, `<a class="btn gris" href="#parcours">Parcours d’essai</a>`) +
     `<div class="kpis six">
       <button type="button" class="kpi" data-a="aller" data-r="resultat"><span>Chiffre d’affaires 2026 (HT)</span><b>${eur(ca)}</b><small>janvier à octobre</small></button>
       <button type="button" class="kpi" data-a="aller" data-r="resultat"><span>Résultat provisoire</span><b style="color:${res >= 0 ? 'var(--ok)' : 'var(--bad)'}">${eur(res)}</b><small>avant clôture et impôt</small></button>
@@ -2294,11 +2294,11 @@ const FAM = { accueil:'gris', averifier:'rouge', fil:'sapin', terrain:'bleu', cl
   tva:'ambre', immos:'ardoise', journaux:'ardoise', 'grand-livre':'ardoise', balance:'ardoise', saisie:'ciel', brouillard:'ciel', bilan:'cyan', resultat:'cyan', controles:'sapin', fec:'ardoise', dossier:'gris', demo:'orange', tests:'indigo', aide:'gris' };
 const ico = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONES[k] || ''}</svg>`;
 const tuile = (k, fam, cl) => `<span class="ic c-${fam || FAM[k] || 'gris'} ${cl || ''}" aria-hidden="true">${svgI(k)}</span>`;
-const MENU_SIMPLE = [['Pilotage', [['accueil', 'Tableau de bord'], ['averifier', 'À vérifier'], ['fil', 'Ce qui s’est fait tout seul'], ['terrain', 'La journée en direct'], ['clotures', 'Fin de mois']]],
+const MENU_SIMPLE = [['Pilotage', [['accueil', 'Vue d’ensemble'], ['averifier', 'À vérifier'], ['fil', 'Ce qui s’est fait tout seul'], ['terrain', 'La journée en direct'], ['clotures', 'Fin de mois']]],
   ['Ventes', [['ventes', 'Ventes et encaissements']]], ['Achats', [['achats', 'Achats et dépenses']]], ['Paie', [['paie', 'Paie']]],
   ['Trésorerie', [['banque', 'Banque'], ['previsions', 'Trésorerie à venir']]], ['Fiscal', [['tva', 'TVA'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat']]],
   ['Apprendre', [['demo', 'La démo'], ['tests', 'Tests guidés'], ['aide', 'Comment ça marche']]]];
-const MENU_EXPERT = [['Pilotage', [['accueil', 'Tableau de bord'], ['averifier', 'À vérifier'], ['fil', 'Ce qui s’est fait tout seul'], ['terrain', 'La journée en direct'], ['clotures', 'Clôtures'], ['pilotage', 'Pilotage du comptable']]],
+const MENU_EXPERT = [['Pilotage', [['accueil', 'Vue d’ensemble'], ['averifier', 'À vérifier'], ['fil', 'Ce qui s’est fait tout seul'], ['terrain', 'La journée en direct'], ['clotures', 'Clôtures'], ['pilotage', 'Pilotage du comptable']]],
   ['Ventes', [['ventes', 'Ventes et encaissements'], ['tiers', 'Clients et fournisseurs']]], ['Achats', [['achats', 'Achats et dépenses'], ['pieces', 'Pièces à traiter']]], ['Paie', [['paie', 'Paie']]],
   ['Trésorerie', [['banque', 'Banque et rapprochement'], ['previsions', 'Trésorerie à venir']]],
   ['Fiscal et comptable', [['tva', 'TVA'], ['immos', 'Immobilisations'], ['journaux', 'Journaux'], ['grand-livre', 'Grand livre'], ['balance', 'Balance'], ['saisie', 'Saisir une écriture'], ['brouillard', 'Brouillard'], ['bilan', 'Bilan'], ['resultat', 'Compte de résultat']]],
@@ -2348,7 +2348,7 @@ rendreMenu = () => {
     `</div><div class="pied"><button type="button" class="menu-regl" data-a="reglages">${tuile('reglages', 'gris')}<span><b>Réglages</b><small>${reglagesResume()}</small></span></button>
       <div class="bandeau-proto"><b>Démonstration.</b> Entreprise et chiffres fictifs ; rien n’est enregistré.</div></div>`;
   const T = [['accueil', 'Accueil', 'accueil'], ['averifier', 'À vérifier', 'averifier'], ['terrain', 'Journée', 'terrain'], ['banque', 'Banque', 'banque'], ['plus', 'Plus', 'menu']], dans = T.some(t => t[0] === UI.route);
-  $('#barre-bas').innerHTML = `<nav class="opg-barre" aria-label="Rubriques principales">${T.map(([k, l, ic]) => `<button type="button" class="opg-tab ${k === UI.route || (k === 'plus' && !dans) ? 'on' : ''}" data-a="${k === 'plus' ? 'menu' : 'aller'}" data-r="${k}" ${k === UI.route ? 'aria-current="page"' : ''} ${k === 'plus' ? 'aria-expanded="false" aria-controls="menu" aria-label="Plus : toutes les rubriques"' : k === 'accueil' ? 'aria-label="Tableau de bord"' : k === 'terrain' ? 'aria-label="La journée en direct"' : ''}>${svgI(ic)}<span>${l}</span>${k === 'averifier' && av ? `<span class="nb">${av}</span>` : ''}</button>`).join('')}</nav>`;
+  $('#barre-bas').innerHTML = `<nav class="opg-barre" aria-label="Rubriques principales">${T.map(([k, l, ic]) => `<button type="button" class="opg-tab ${k === UI.route || (k === 'plus' && !dans) ? 'on' : ''}" data-a="${k === 'plus' ? 'menu' : 'aller'}" data-r="${k}" ${k === UI.route ? 'aria-current="page"' : ''} ${k === 'plus' ? 'aria-expanded="false" aria-controls="menu" aria-label="Plus : toutes les rubriques"' : k === 'accueil' ? 'aria-label="Vue d’ensemble"' : k === 'terrain' ? 'aria-label="La journée en direct"' : ''}>${svgI(ic)}<span>${l}</span>${k === 'averifier' && av ? `<span class="nb">${av}</span>` : ''}</button>`).join('')}</nav>`;
 };
 rendreBarre = () => {
   const oct = PER['2026-10'] === 'cloturee';
@@ -2372,7 +2372,7 @@ const fenetreTitre = r => { for (const M of (UI.expert ? [MENU_EXPERT, MENU_SIMP
 function fenetreHabiller(){
   const c = $('#contenu'), fen = UI.route !== 'accueil' && !!VUES[UI.route];
   c.classList.toggle('fen', fen);
-  if (fen) c.insertAdjacentHTML('afterbegin', `<div class="fen-tete"><a class="fen-r" href="#accueil" aria-label="Revenir au tableau de bord">‹ <span>Tableau de bord</span></a><b>${esc(fenetreTitre(UI.route))}</b><a class="fen-x" href="#accueil" aria-label="Fermer la fenêtre">×</a></div>`);
+  if (fen) c.insertAdjacentHTML('afterbegin', `<div class="fen-tete"><a class="fen-r" href="#accueil" aria-label="Revenir à la vue d’ensemble">‹ <span>Vue d’ensemble</span></a><b>${esc(fenetreTitre(UI.route))}</b><a class="fen-x" href="#accueil" aria-label="Fermer la fenêtre">×</a></div>`);
 }
 /* l'ouverture ne s'anime que sur un vrai changement de rubrique, jamais pendant un test guidé ou la démo (leur repère se mesure sur l'écran posé) */
 addEventListener('hashchange', () => { const c = $('#contenu'); if (document.body.classList.contains('guide-on') || !c.classList.contains('fen')) return; c.classList.remove('fen-ouvre'); void c.offsetWidth; c.classList.add('fen-ouvre'); c.addEventListener('animationend', () => c.classList.remove('fen-ouvre'), { once:true }); });
@@ -2611,7 +2611,7 @@ VUES.banque = () => {
       ${REGLES.map(g => `<tr><td><span class="mono">${esc(g.motif)}</span> <span class="st info">règle apprise</span></td><td>${esc(libCpt(g.c).toLowerCase())}</td></tr>`).join('')}
       <tr><td>Rien de tout ça</td><td>${UI.pilote ? 'le pilote applique la réponse la plus probable et la note' : 'une question dans « À vérifier »'}</td></tr></tbody></table></div></div>`;
   if (UI.expert) return apresTete(banqueDetail(), carte);
-  return tete('Trésorerie', 'Banque', 'Ce que la banque a envoyé, et ce qu’OP GESTION en a fait. Chaque ligne du relevé trouve son écriture toute seule ; celle qui n’y arrive pas devient une question dans « À vérifier ».') + `<div class="carte banque-solde"><span class="mute petit">Solde du compte en banque</span><b style="display:block;font-size:24px">${eur(solde('512000', { au:AUJ }))}</b><span class="mute petit">C’est ce chiffre-là, sans la caisse. Le tableau de bord, lui, affiche « Argent en banque » : ce compte plus la caisse (${eur(solde('530000', { au:AUJ }))}), soit ${eur(solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }))}.</span></div>` + carte + replie('banque', 'Le relevé ligne par ligne', sansTete(banqueDetail()));
+  return tete('Trésorerie', 'Banque', 'Ce que la banque a envoyé, et ce qu’OP GESTION en a fait. Chaque ligne du relevé trouve son écriture toute seule ; celle qui n’y arrive pas devient une question dans « À vérifier ».') + `<div class="carte banque-solde"><span class="mute petit">Solde du compte en banque</span><b style="display:block;font-size:24px">${eur(solde('512000', { au:AUJ }))}</b><span class="mute petit">C’est ce chiffre-là, sans la caisse. La vue d’ensemble, elle, affiche « Argent en banque » : ce compte plus la caisse (${eur(solde('530000', { au:AUJ }))}), soit ${eur(solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }))}.</span></div>` + carte + replie('banque', 'Le relevé ligne par ligne', sansTete(banqueDetail()));
 };
 VUES.tva = () => {
   const D = TVA_DECL['2026-10'] || {}, T = D.decl ? D.l : tvaMois('2026-10'), oct = UI.tvaMois === '2026-10';
@@ -2769,10 +2769,10 @@ const PRE_PAIE = { r:'paie', sel:'[data-a="paie-calc"]', txt:'Les fiches de paie
 const immoOrdi = () => { const P5 = PIECES.find(p => p.id === 'P5'); return P5 && P5.ecr ? IMMOS.find(i => i.ecr === P5.ecr) : null; };   // l'ordinateur au registre, si la réponse a été « l'étaler »
 const finTerrain = (k, txt) => () => `<p>${txt}</p>${clairMini(AUTO.ecrTerrain[k] || ecrTag(k))}`;
 const TESTS = [
-  { k:'decouvrir', g:'Découvrir', t:'Lire le tableau de bord', but:'Savoir en dix secondes où en est l’entreprise.', etapes:[
+  { k:'decouvrir', g:'Découvrir', t:'Lire la vue d’ensemble', but:'Savoir en dix secondes où en est l’entreprise.', etapes:[
       { r:'accueil', sel:'#kpis-auto', txt:'Ces six chiffres résument tout : l’argent en banque, ce que les clients te doivent, ce que tu dois, la TVA du mois, le bénéfice de l’année, et la part de la comptabilité faite toute seule.', lire:1 },
       { r:'accueil', sel:'#mois-etapes', txt:'Ton mois en six étapes. Quand elles sont toutes vertes, octobre peut se fermer et partir chez le comptable.', lire:1 }],
-    fin:() => '<p>Rien n’a été écrit : tu as seulement regardé. Le tableau de bord se recalcule à chaque geste.</p>' },
+    fin:() => '<p>Rien n’a été écrit : tu as seulement regardé. La vue d’ensemble se recalcule à chaque geste.</p>' },
   { k:'tout', g:'La nuit', t:'Tout traiter d’un geste', but:'Voir la banque et les documents de la nuit se ranger tout seuls.', etapes:[
       { r:'accueil', sel:'[data-a="tout-traiter"]', txt:'Cette nuit, la banque a envoyé ses derniers mouvements de vendredi et cinq documents sont arrivés. Avec le pilote, tout se traite sans toi ; ici, touche « Tout traiter » pour le voir.', ok:toutLu },
       { r:'fil', sel:'#fil', txt:'Voilà ce qui s’est fait tout seul, chaque écriture avec sa raison. Lis les premières lignes.', lire:1 }],
@@ -3058,6 +3058,15 @@ new MutationObserver(() => { const o = document.body.classList.contains('menu-ou
 window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || ev.defaultPrevented || parent === window) return;
   if ($('#calque').innerHTML || document.body.classList.contains('menu-ouvert') || document.body.classList.contains('guide-on') || document.querySelector('.prev-bulle:not([hidden])')) return;
   try { parent.postMessage({ opc_echap:true }, '*'); } catch (e) {} }, true);
+/* [Retour] le bouton Retour du navigateur (Android, balayage de l'iPhone) ferme la fenêtre ouverte SANS quitter l'écran. L'historique est tenu par la page qui nous contient : elle ne voit pas nos panneaux ni
+   notre tiroir, donc on lui DIT quand une couche s'ouvre ou se ferme (opc_calque), et elle nous dit de la fermer (opc_fermer_calque) quand l'historique recule. Ouverte seule, la page ne dit rien et n'écoute rien. */
+{ const couche = () => !!$('#calque').innerHTML || (document.body.classList.contains('menu-ouvert') && getComputedStyle($('#menu')).position === 'fixed');
+  let dit = false;
+  const dire = () => { if (parent === window) return; const o = couche(); if (o === dit) return; dit = o; try { parent.postMessage({ opc_calque:o }, '*'); } catch (e) {} };
+  new MutationObserver(dire).observe($('#calque'), { childList:true });
+  new MutationObserver(dire).observe(document.body, { attributes:true, attributeFilter:['class'] });
+  addEventListener('message', ev => { if (window.parent === window || ev.source !== window.parent) return; const d = ev.data;
+    if (d && typeof d === 'object' && d.opc_fermer_calque) { fermer(); document.body.classList.remove('menu-ouvert'); dire(); } }); }
 /* ══ LA DÉMO — la journée du 31 octobre se joue toute seule, et une bulle dit ce qui se passe ══
    Justin, 10 novembre 2026 : « avec une démo ». Rien à toucher : chaque plan ouvre le bon écran, joue le moment de la journée
    (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en quelques phrases. On peut
@@ -3516,7 +3525,7 @@ VUES.achats = () => {
     <div class="cmpt-filtres"><div class="seg" role="group" aria-label="Filtrer ce qui reste à payer">${pil.map(([k2, l, n]) => `<button type="button" aria-pressed="${f === k2}" data-cmpt="ach|${k2}">${l} (${n})</button>`).join('')}</div></div>
     ${dues.length ? `<div class="defile"><table class="t liste-tel" role="table"><tbody role="rowgroup">${L.map(x => `<tr role="row"><td class="lt-t" role="cell"><button type="button" class="lien" data-cmpt="tiers|${esc(x.l.aux)}">${esc(nomTiers(x.l.aux))}</button><span class="sec">${esc(x.e.piece)}</span></td><td class="c lt-e" role="cell">${x.e.ech ? 'à payer avant le ' + dCourt(x.e.ech) : ''}<br>${tard(x) ? '<span class="st bad">En retard</span>' : '<span class="st warn">À payer</span>'}</td><td class="n lt-m" role="cell">${nb(x.l.cr)}</td></tr>`).join('') || '<tr role="row"><td role="cell" colspan="3" class="vide">Rien dans ce filtre.</td></tr>'}${f === 'tous' ? avoirs.map(x => `<tr role="row"><td class="lt-t" role="cell"><button type="button" class="lien" data-cmpt="tiers|${esc(x.l.aux)}">${esc(nomTiers(x.l.aux))}</button><span class="sec">Avoir ${esc(x.e.piece)} · à déduire</span></td><td class="c lt-e" role="cell"><span class="st info">Avoir</span></td><td class="n lt-m" role="cell">− ${nb(x.l.d)}</td></tr>`).join('') : ''}</tbody></table></div>
       <div class="cmpt-total"><span>${eur(tot)} de factures${tAv ? ` − ${eur(tAv)} d’avoir` : ''}</span><b>${eur(net)}</b></div>
-      <p class="mute petit">${net === tuile ? 'C’est le chiffre « Tu dois aux fournisseurs » du tableau de bord.' : 'Le tableau de bord affiche ' + eur(tuile) + '.'} Le paiement se reconnaît tout seul sur le relevé de la banque : la facture est alors notée payée.</p>` : '<p class="mute">Rien à payer.</p>'}</div>`;
+      <p class="mute petit">${net === tuile ? 'C’est le chiffre « Tu dois aux fournisseurs » de la vue d’ensemble.' : 'La vue d’ensemble affiche ' + eur(tuile) + '.'} Le paiement se reconnaît tout seul sur le relevé de la banque : la facture est alors notée payée.</p>` : '<p class="mute">Rien à payer.</p>'}</div>`;
   return h.slice(0, k) + carte + '</div>';
 };
 

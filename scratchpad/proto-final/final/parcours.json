@@ -1,0 +1,383 @@
+{
+ "date": "2026-11-17",
+ "parcours": [
+  {
+   "n": 1,
+   "titre": "Un courriel de client → intervention créée depuis la Boîte mail → Planning → « Ma journée » de la technicienne au téléphone (pièces du camion, photos, compte rendu, signature) → stock du camion → facture préparée, mentions légales, envoi → le client la paie → Comptabilité, Accueil et fiche : payée",
+   "etapes": [
+    "courriel de l'Hôtel de la Plage",
+    "création de l'intervention par le gérant",
+    "Planning",
+    "Ma journée de Sophie sur téléphone",
+    "pièces prises, photos, compte rendu, signature",
+    "Terminer : stock du camion -2 (14 → 12) après acceptation",
+    "facture préparée à valider (158,00 HT, 31,60 TVA, 189,60 TTC)",
+    "mentions légales, aperçu, envoi",
+    "espace client : paiement de 189,60 €",
+    "Comptabilité, Accueil, fiche client, facture : payée, au centime"
+   ],
+   "verifications": 54,
+   "resultat": "54 ✓ (mac, iPhone), 270 ✓ au parcours 12 · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 2,
+   "titre": "Un devis composé en grand → envoyé → signé → acompte facturé → intervention « à planifier » → planifiée → faite → solde facturé",
+   "etapes": [
+    "devis composé",
+    "devis rapide",
+    "envoi et signature",
+    "acompte facturé et payé",
+    "intervention à planifier",
+    "planifiée",
+    "faite",
+    "solde déduit de l'acompte",
+    "payé"
+   ],
+   "verifications": 39,
+   "resultat": "39 ✓ mac · 34 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 3,
+   "titre": "Un contrat composé et signé → ses visites au Planning → première visite faite et facturée comme le contrat le dit",
+   "etapes": [
+    "contrat composé",
+    "signature",
+    "visites au Planning",
+    "première visite faite",
+    "facturée au centime"
+   ],
+   "verifications": 30,
+   "resultat": "30 ✓ mac · 27 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 4,
+   "titre": "La technicienne signale une pièce qui manque → demande d'achat → acceptée et mise en commande → commande reçue → stock et camion remplis",
+   "etapes": [
+    "« Il me manque une pièce »",
+    "demande d'achat",
+    "décision du gérant",
+    "commande",
+    "réception dans le camion",
+    "stock"
+   ],
+   "verifications": 26,
+   "resultat": "26 ✓ mac · 26 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 5,
+   "titre": "Une note de frais de la technicienne → validée → Achats et frais, Comptabilité et paie",
+   "etapes": [
+    "note de 58,40 € TTC avec ticket",
+    "gérant prévenu",
+    "validation",
+    "remboursée avec la paie",
+    "Comptabilité : dépenses +58,40",
+    "Mes frais de Sophie"
+   ],
+   "verifications": 18,
+   "resultat": "18 ✓ mac · 18 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 6,
+   "titre": "Un congé demandé au téléphone → accordé → Planning et Temps de travail",
+   "etapes": [
+    "demande de congé",
+    "décision",
+    "Planning",
+    "soldes",
+    "Temps de travail"
+   ],
+   "verifications": 18,
+   "resultat": "18 ✓ mac · 18 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 7,
+   "titre": "Une journée oubliée (Tom, vendredi 30 oct.) → terminée par le gérant → correction demandée traitée → confirmation de Tom → nouvelle correction avec motif → reconfirmation → le mois",
+   "etapes": [
+    "journée ouverte",
+    "« Choisir une autre heure » : 17:20",
+    "demande de correction du mercredi 28",
+    "confirmation du salarié",
+    "correction avec motif (17:30)",
+    "reconfirmation",
+    "semaine et mois : 154 h 55 → 164 h 28"
+   ],
+   "verifications": 26,
+   "resultat": "26 ✓ mac · 26 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 8,
+   "titre": "Le camion de Sophie : plein et compteur depuis « Mon camion » → le gérant retrouve le plein (fiche, Comptabilité) → contrôle technique dans 12 jours → rendez-vous (tâche) → garage (Planning, Sophie prévenue) → retour avec facture → « Contrôle passé ? » → facture du plein ajoutée par le bureau",
+   "etapes": [
+    "plein 84,60 € et compteur +130",
+    "fiche du véhicule, Comptabilité (TTC faute de facture)",
+    "contrôle technique dans 12 jours",
+    "rendez-vous : tâche à sa date",
+    "mise au garage, interventions concernées, Planning",
+    "retour en service, facture 312,00",
+    "contrôle noté (échéance +2 ans, 79,00)",
+    "facture du plein : TVA 14,10 récupérée",
+    "Sophie : révision dans 1 458 km"
+   ],
+   "verifications": 30,
+   "resultat": "30 ✓ mac · 30 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 9,
+   "titre": "Une nouvelle personne dans Équipe, sans le droit de voir les devis : invitation, droits détaillés, « ouvrir l'application comme elle » (menu, recherche, adresse tapée, ouverture)",
+   "etapes": [
+    "invitation de Nadia Fournier (Secrétariat)",
+    "refus de formulaire puis correction",
+    "mot de passe provisoire",
+    "décocher Ventes › Voir",
+    "ouvrir comme Nadia",
+    "menu et recherche",
+    "adresses #devis et #factures refusées",
+    "retour au compte du gérant, journal"
+   ],
+   "verifications": 25,
+   "resultat": "25 ✓ mac · 25 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 10,
+   "titre": "« Mon entreprise » : le SIRET retiré bloque une facture, remis il la débloque",
+   "etapes": [
+    "SIRET non effaçable par un champ vide",
+    "SIRET absent : Mon entreprise le dit",
+    "facture préparée (93,67 HT, 112,40 TTC) : la page nomme le SIRET",
+    "aperçu sans « Envoyer »",
+    "secrétaire : « demande à Marc »",
+    "SIRET tapé (trois fautes refusées)",
+    "facture envoyée FAC-2026-0146",
+    "Comptabilité, fiche client"
+   ],
+   "verifications": 24,
+   "resultat": "24 ✓ mac · 24 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 11,
+   "titre": "La journée du bureau (Julie) : relance, paiement reçu, avoir",
+   "etapes": [
+    "facture en retard des Durand (1 240,00)",
+    "courriel de relance lu puis envoyé (relancée 3 fois)",
+    "virement encaissé",
+    "avoir sur FAC-2026-0143 (114,00 TTC)",
+    "Accueil : reçu +1 240,00 ; à recevoir −1 354,00",
+    "Comptabilité : « 7 factures · 1 avoir »",
+    "fiches clients"
+   ],
+   "verifications": 20,
+   "resultat": "20 ✓ mac · 20 ✓ iPhone · 0 ✗ (rejeu du 17/11 au soir)"
+  },
+  {
+   "n": 12,
+   "titre": "Le parcours 1 en entier AU TÉLÉPHONE pour chaque rôle : iPhone (jour et nuit), Android 360 px, 320 px, iPad",
+   "etapes": [
+    "parcours 1 sur iPhone jour",
+    "iPhone nuit",
+    "Android",
+    "320 px",
+    "iPad"
+   ],
+   "verifications": 270,
+   "resultat": "270 ✓ (5 × 54)"
+  }
+ ],
+ "defauts": [
+  {
+   "n": 1,
+   "gravite": "moyenne",
+   "parcours": 1,
+   "titre": "fiche de l'intervention : « sur place 07:00 – 08:00 » sur la facture et le compte rendu du client",
+   "etapes": [
+    "le gérant crée l'intervention à 07:00 puis la déplace à 11:00",
+    "la technicienne ouvre sa fiche, la termine",
+    "facture et compte rendu"
+   ],
+   "attendu": "les heures remplies toutes seules suivent le rendez-vous déplacé",
+   "constate": "heures de l'ancien rendez-vous (07:00 – 08:00) pour un passage de 11 h",
+   "etat": "corrigé",
+   "changement": "ficheSuivre(i, avant) : les heures de la fiche suivent le déplacement tant que personne ne les a retouchées et que la fiche est en cours"
+  },
+  {
+   "n": 2,
+   "gravite": "moyenne",
+   "parcours": 1,
+   "titre": "Accueil dit « à payer » d'une intervention dont la facture est payée",
+   "etapes": [
+    "le client paie la facture en ligne",
+    "le gérant relit l'Accueil"
+   ],
+   "attendu": "la ligne de l'intervention dit « payée »",
+   "constate": "« à payer » (la note du technicien l'emportait)",
+   "etat": "corrigé",
+   "changement": "pastillePaiementInt : la facture réglée l'emporte sur la note du technicien"
+  },
+  {
+   "n": 3,
+   "gravite": "basse",
+   "parcours": 1,
+   "titre": "le toast promet « reçoit une notification » sans qu'elle existe",
+   "etapes": [
+    "le gérant modifie l'intervention de Sophie"
+   ],
+   "attendu": "Sophie reçoit un message du bureau dans « Ma journée »",
+   "constate": "aucune notification écrite",
+   "etat": "corrigé",
+   "changement": "notifier() à la modification, « Annuler » la retire avec le changement"
+  },
+  {
+   "n": 4,
+   "gravite": "haute",
+   "parcours": 2,
+   "titre": "un TTC non arrondi au centime : acompte payé 136,345 €",
+   "etapes": [
+    "devis de 413,17 € HT à 10 %",
+    "acompte de 30 %",
+    "encaissement, caisse, trésorerie"
+   ],
+   "attendu": "deux décimales, partout",
+   "constate": "136,345 € encaissés : un demi-centime d'argent qui n'existe pas",
+   "etat": "corrigé",
+   "changement": "ttcCentimes() : le TTC s'arrête au centime (HT arrondi puis TVA arrondie, demi vers le haut)"
+  },
+  {
+   "n": 5,
+   "gravite": "basse",
+   "parcours": 3,
+   "titre": "la ligne d'un contrat signé, au téléphone, ne dit pas où en sont ses visites",
+   "etapes": [
+    "liste des contrats au téléphone"
+   ],
+   "attendu": "la ligne d'un contrat signé dit où en sont ses visites",
+   "constate": "la ligne du contrat, au téléphone, ne portait pas « N / M faites »",
+   "etat": "corrigé",
+   "changement": "la ligne d'un contrat signé ajoute « · N / M faites » (ctrFaites)"
+  },
+  {
+   "n": 6,
+   "gravite": "moyenne",
+   "parcours": 4,
+   "titre": "la livraison prévue d'une commande suit la date SOUHAITÉE (« pour aujourd'hui ») au lieu du délai du fournisseur",
+   "etapes": [
+    "demande d'achat avec une date souhaitée",
+    "commande envoyée au fournisseur qui livre en 1 jour"
+   ],
+   "attendu": "livraison prévue = délai du fournisseur (jours ouvrés)",
+   "constate": "livraison prévue = aujourd'hui",
+   "etat": "corrigé",
+   "changement": "prevue = max(souhaitée, disponibilité du fournisseur)"
+  },
+  {
+   "n": 7,
+   "gravite": "moyenne",
+   "parcours": 9,
+   "titre": "un refus de formulaire survit à la correction : « Écris son prénom ET son nom » reste sous un prénom déjà écrit",
+   "etapes": [
+    "Équipe › Inviter une personne",
+    "« Envoyer l'invitation » sans rien écrire",
+    "taper prénom, nom, e-mail au clavier"
+   ],
+   "attendu": "les messages rouges partent dès que le champ est retapé",
+   "constate": "3 messages rouges et 3 liserés restent jusqu'au prochain envoi (rejoué deux fois : touches réelles, événements d'entrée) ; vaut pour tous les formulaires qui passent par entErr (Mon entreprise, habilitations)",
+   "etat": "corrigé",
+   "changement": "entErr pose sur le champ un écouteur « input/change » qui lève SON message ; parcours-9 A3b, qui tombe sur l'ancien code"
+  },
+  {
+   "n": 8,
+   "gravite": "moyenne",
+   "parcours": 10,
+   "titre": "la page d'une facture ne nomme pas le SIRET qui l'empêche de partir",
+   "etapes": [
+    "fiche entreprise sans SIRET",
+    "Comptabilité › Facturer › Préparer la facture",
+    "lire « Il manque sur cette facture… »"
+   ],
+   "attendu": "« Il manque sur cette facture : le SIRET, la forme juridique… » (au téléphone « Il manque 4 mentions »)",
+   "constate": "la page listait « forme juridique, immatriculation, assurance » et se taisait ; l'aperçu refusait ensuite l'envoi (rejoué deux fois)",
+   "etat": "corrigé",
+   "changement": "cxFactureManque() = le SIRET d'abord puis les mentions légales ; parcours-10 C3, qui tombe sur l'ancien code"
+  },
+  {
+   "n": 9,
+   "gravite": "basse",
+   "parcours": 11,
+   "titre": "« 8 factures » dans « facturé en octobre » après un avoir : l'avoir était compté comme une facture",
+   "etapes": [
+    "annuler la facture FAC-2026-0143 par un avoir",
+    "Comptabilité › Pilotage"
+   ],
+   "attendu": "« 7 factures · 1 avoir »",
+   "constate": "« 8 factures »",
+   "etat": "corrigé",
+   "changement": "cxFacLib() ; parcours-11 D3, qui tombe sur l'ancien code"
+  },
+  {
+   "n": 10,
+   "gravite": "doute",
+   "parcours": 9,
+   "titre": "Nadia, sans « Ventes › Voir », voit encore l'onglet « Ventes » de la Comptabilité (factures, encaissements) : c'est SA case Comptabilité qui l'ouvre",
+   "etapes": [
+    "ouvrir l'application comme Nadia",
+    "Comptabilité › Ventes"
+   ],
+   "attendu": "à décider : la case Ventes ne ferme que les écrans Devis, Contrats, Factures",
+   "constate": "l'onglet et les montants sont visibles",
+   "etat": "à soumettre",
+   "changement": "aucun : décision de produit (une case par rubrique, ou la case Ventes ferme aussi le livre de comptes)"
+  },
+  {
+   "n": 11,
+   "gravite": "doute",
+   "parcours": 9,
+   "titre": "une personne du Secrétariat sans « Accueil » s'ouvre sur la Comptabilité (résultat provisoire de l'entreprise) avant ses Clients et ses Interventions",
+   "etapes": [
+    "Nadia (Secrétariat, pas de terrain) ouvre l'application"
+   ],
+   "attendu": "à décider : un ordre d'ouverture par métier",
+   "constate": "OUVERTURE_ORDRE = accueil, majournee, comptabilite, devis, clients, contrats, interventions…",
+   "etat": "à soumettre",
+   "changement": "aucun : le premier écran permis suit un ordre unique"
+  },
+  {
+   "n": 12,
+   "gravite": "doute",
+   "parcours": 8,
+   "titre": "un ticket de carte photographié (Sophie, plein) reste « sans justificatif » dans la Comptabilité et la TVA n'est pas récupérée tant que la FACTURE n'est pas ajoutée",
+   "etapes": [
+    "Sophie note un plein avec la photo du ticket",
+    "le gérant lit Comptabilité › Achats"
+   ],
+   "attendu": "à décider si le mot « sans justificatif » est le bon pour un ticket photographié",
+   "constate": "« Payée · sans justificatif » à côté d'un ticket ; la règle (facture seule) est cohérente dans la Comptabilité et ses points de conformité",
+   "etat": "à soumettre",
+   "changement": "aucun : parcours-8 F joue la bonne issue (le bureau ajoute la facture : TVA 14,10 € récupérée)"
+  },
+  {
+   "n": 13,
+   "gravite": "doute",
+   "parcours": 8,
+   "titre": "Achats et frais : deux onglets (« À payer », « Dépenses ») ne sont plus atteignables mais leur code dit « Sans ticket ni facture, la TVA ne se récupère pas » et « Ticket ajouté : la TVA… est récupérable » — le contraire de la Comptabilité",
+   "etapes": [
+    "lire acDepenses et le geste « Ajouter le ticket » dans le code"
+   ],
+   "attendu": "à retirer ou à aligner",
+   "constate": "inatteignable par l'écran (acOnglet est borné à Demandes et Notes de frais)",
+   "etat": "reporté",
+   "changement": "aucun : code mort, pas de défaut visible"
+  },
+  {
+   "n": 14,
+   "gravite": "doute",
+   "parcours": 0,
+   "titre": "entreprise-corrections 08 et 13 : 3 ✗ qui tombent sans mon changement (phrases de la case Boîte mail, grille détaillée « 13 mac » : 28 écarts)",
+   "etapes": [
+    "node scratchpad/proto-final/sondes/entreprise-corrections.js 08 13"
+   ],
+   "attendu": "0 ✗",
+   "constate": "9 ✓ · 3 ✗ avec ET sans mes changements (préexistant sur la branche fusionnée)",
+   "etat": "à soumettre",
+   "changement": "aucun : une autre voie (droits) a touché les phrases ou la grille depuis"
+  }
+ ]
+}

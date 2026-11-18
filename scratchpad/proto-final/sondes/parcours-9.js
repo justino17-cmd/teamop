@@ -19,7 +19,9 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
     const f0 = net(await txt(c, '#calque'));
     v('A2 (écran) la feuille dit le nombre de comptes (' + e0.actifs + ' sur ' + e0.places + '), que l’invitation part par e-mail et que le mot de passe provisoire se remet en main propre', f0.includes(e0.actifs + ' comptes sur ' + e0.places + ' places') && /invitation par e-mail/.test(f0) && /remets-le-lui en main propre/.test(f0), f0.slice(0, 500));
     await clic(c, '#calque [data-eq="inviterok"]'); await p.waitForTimeout(500);
-    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi (aucun compte créé)', /Écris son prénom ET son nom/.test(await toast(c)) && (await S(c, () => EQUIPE.length)) === e0.n, await toast(c));
+    /* le refus se dit SOUS le champ (restes équipe, tour 2, 18 novembre : sur téléphone la bulle ne répète plus un message déjà lisible sous le doigt) — au bureau, c'est la bulle qui le dit en plus : on lit les deux endroits */
+    const dit3 = net((await toast(c)) + ' ' + await S(c, () => (document.getElementById('eq-p-err') || {}).textContent || ''));
+    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi — sous le champ ou en bulle — (aucun compte créé)', /Écris son prénom ET son nom/.test(dit3) && (await S(c, () => EQUIPE.length)) === e0.n, dit3);
     const err0 = await S(c, () => [...document.querySelectorAll('#calque .erreur')].filter(e => !e.hidden && e.textContent.trim()).length);
     await p.fill('#eq-p', 'Nadia'); await p.fill('#eq-n', 'Fournier'); await p.fill('#eq-m', 'nadia@climservices17.fr'); await p.fill('#eq-r', 'Assistante'); await p.waitForTimeout(300);
     await S(c, () => { document.getElementById('eq-prof').value = 'secr'; document.getElementById('eq-terrain').checked = false; });
@@ -45,7 +47,17 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
     v('B2 population : la case « Ventes › Voir » est cochée', await S(c, k => { const b = document.querySelector('#calque [data-eqd="' + k + '|ventes|v"]'); return !!b && b.checked; }, k));
     await S(c, k => document.querySelector('#calque [data-eqd="' + k + '|ventes|v"]').scrollIntoView({ block:'center' }), k); await p.waitForTimeout(300);
     await cap(c, '9-B2-droits-' + P.PROFIL);
-    await p.locator('#calque [data-eqd="' + k + '|ventes|v"]').first().click({ force:true }); await p.waitForTimeout(600);
+    /* la grille des droits existe en DEUX exemplaires (le tableau et une version téléphone) : on touche celle qui se VOIT, au point où elle est */
+    /* au téléphone, chaque catégorie est une ligne qui se DÉPLIE (« Devis, factures, contrats, paiements · voir, créer, modifier ») : on la touche d'abord, comme la personne */
+    const accord = await S(c, k => { const e = [...document.querySelectorAll('#calque [data-eqd="' + k + '|ventes|v"]')].find(x => x.closest('details.eq-dr-m') && x.closest('details.eq-dr-m').getBoundingClientRect().width > 0); if (!e) return null; const d = e.closest('details.eq-dr-m'); const P_ = d.closest('.panneau'), r = d.getBoundingClientRect(), pr = P_.getBoundingClientRect(); P_.scrollTop += r.top - pr.top - pr.height / 2; return { ouvert:d.open }; }, k);
+    if (accord) { await p.waitForTimeout(300); const sm = await S(c, k => { const d = [...document.querySelectorAll('#calque [data-eqd="' + k + '|ventes|v"]')].map(x => x.closest('details.eq-dr-m')).find(Boolean); const r = d.querySelector('summary').getBoundingClientRect(); return { x:r.x + r.width / 2, y:r.y + r.height / 2 }; }, k); await p.touchscreen.tap(sm.x, sm.y); await p.waitForTimeout(400);
+      v('B2a (écran) au téléphone la catégorie « Devis, factures, contrats, paiements » se déplie au toucher de sa ligne', await S(c, k => [...document.querySelectorAll('#calque [data-eqd="' + k + '|ventes|v"]')].map(x => x.closest('details.eq-dr-m')).find(Boolean).open, k), accord); }
+    const pt = await S(c, k => { const e = [...document.querySelectorAll('#calque [data-eqd="' + k + '|ventes|v"]')].find(x => x.getBoundingClientRect().width > 0); if (!e) return null; const P_ = e.closest('.panneau'), r = e.getBoundingClientRect(), pr = P_.getBoundingClientRect(); P_.scrollTop += r.top - pr.top - pr.height / 2; return true; }, k);   /* le panneau défile, pas la page : on le défile de la distance qui sépare la case du milieu */
+    await p.waitForTimeout(400);   /* la page défile en douceur : on mesure APRÈS, jamais pendant */
+    const pt2 = await S(c, k => { const e = [...document.querySelectorAll('#calque [data-eqd="' + k + '|ventes|v"]')].find(x => x.getBoundingClientRect().width > 0); const r = e.getBoundingClientRect(); return { x:r.x + r.width / 2, y:r.y + r.height / 2, H:innerHeight }; }, k);
+    v('B2b population : la case « Ventes › Voir » a un exemplaire visible, dans l’écran (' + (pt2 && Math.round(pt2.y)) + ' sur ' + (pt2 && pt2.H) + ' px)', !!pt && !!pt2 && pt2.y > 0 && pt2.y < pt2.H, pt2);
+    if (c.doigt) await p.touchscreen.tap(pt2.x, pt2.y); else await p.mouse.click(pt2.x, pt2.y);
+    await p.waitForTimeout(600);
     const d1 = await S(c, k => ({ cats:eqDe(k).droits.cats.ventes, texte:(document.querySelector('#calque') || {}).innerText.replace(/\s+/g, ' ') }), k);
     const voit1 = (/Ce que Nadia voit : ([^]*?)\. Ce que Nadia ne voit pas/.exec(d1.texte.replace(/[  ]/g, ' ')) || [])[1] || '', nvoit1 = (/Ce que Nadia ne voit pas : ([^]*?)\./.exec(d1.texte.replace(/[  ]/g, ' ')) || [])[1] || '';
     v('B3 (donnée) décocher « Voir » ferme aussi les trois autres gestes de Ventes (créer, modifier, supprimer) : { v:0, c:0, m:0, s:0 }', d1.cats.v === 0 && d1.cats.c === 0 && d1.cats.m === 0 && d1.cats.s === 0, d1.cats);

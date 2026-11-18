@@ -66,34 +66,40 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
 
   /* ── E. la semaine : valider ── */
   { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]');
-    const noms = await ev(c, () => { const L0 = lundi(AUJ), S = ttSemEtat(L0); return { ok:S.ok, reste:S.reste, bouton:document.querySelector('.tt-barre .btn') && document.querySelector('.tt-barre .btn').textContent }; });
-    v('E : la population — 4 personnes en règle (Sophie, Léa, Julie, Marc), Karim et Tom à régler', noms.ok.join() === 'sm,lr,julie,marc' && noms.reste.join() === 'kb,tl', noms);
-    v('E : le bouton dit « Valider les 4 personnes en règle » (plus « Valider 4 semaines »)', noms.bouton === 'Valider les 4 personnes en règle', noms.bouton);
-    v('E : une pastille par ligne, et un seul bouton « Valider » par personne en règle (grille)', (await n(c, '.tt-grille .tt-gl .tt-pc')) === 6 && (await n(c, '.tt-grille .tt-pc .btn')) === 4);
-    await clic(c, '.tt-barre .btn'); const noms2 = await n(c, '#calque .panneau .fo-r'); v('E : la feuille liste les 4 noms', noms2 === 4 && /Valider 4 personnes/.test(await txt(c, '#calque .panneau h2')));
-    await clic(c, '#calque .btn.large'); const ap = await ev(c, () => ({ val:Object.keys(PT_VALIDE).filter(k => PT_VALIDE[k] && k.endsWith(lundi(AUJ))).map(k => k.replace(lundi(AUJ), '')).sort().join(), toast:document.getElementById('toast').innerText }));
-    v('E : les 4 sont validées pour la paie, et le toast les nomme avec « Annuler »', ap.val === 'julie,lr,marc,sm' && /4 personnes validées/.test(ap.toast) && /Annuler/.test(ap.toast), ap);
-    v('E : quatre pastilles « Validée », plus de bouton de lot', (await n(c, '.tt-grille .st-v')) === 4 && (await n(c, '.tt-barre .btn')) === 0);
+    /* la semaine EN COURS ne se valide pas (décision du chef du 17/11) : aucun bouton, la phrase le dit ; la validation se joue sur la semaine FINIE d'avant */
+    { const q = { barre:await n(c, '.tt-barre .btn'), un:await n(c, '[data-tt^="validerun|"]'), t:await txt(c, '#contenu') }; v('E : la semaine en cours n\'offre aucun « Valider… » et dit « Semaine en cours : elle se valide une fois finie. »', q.barre === 0 && q.un === 0 && /Semaine en cours\s:\selle se valide une fois finie\./.test(q.t), { barre:q.barre, un:q.un, t:String(q.t).slice(0, 200) }); }
+    await clic(c, '[data-tt="nav|-1"]');
+    const noms = await ev(c, () => { const L0 = ajoute(lundi(AUJ), -7), S = ttSemEtat(L0); return { ok:S.ok, reste:S.reste, bouton:document.querySelector('.tt-barre .btn') && document.querySelector('.tt-barre .btn').textContent }; });
+    v('E : la population — 5 personnes en règle (Sophie, Léa, Tom, Julie, Marc), Karim à régler (la semaine d’avant, finie)', noms.ok.join() === 'sm,lr,tl,julie,marc' && noms.reste.join() === 'kb', noms);
+    v('E : le bouton dit « Valider les 5 personnes en règle » (plus « Valider 4 semaines »)', noms.bouton === 'Valider les 5 personnes en règle', noms.bouton);
+    v('E : une pastille par ligne, et un seul bouton « Valider » par personne en règle (grille)', (await n(c, '.tt-grille .tt-gl .tt-pc')) === 6 && (await n(c, '.tt-grille .tt-pc .btn')) === 5);
+    await clic(c, '.tt-barre .btn'); const noms2 = await n(c, '#calque .panneau .fo-r'); v('E : la feuille liste les 5 noms', noms2 === 5 && /Valider 5 personnes/.test(await txt(c, '#calque .panneau h2')));
+    await clic(c, '#calque .btn.large'); const ap = await ev(c, () => ({ val:Object.keys(PT_VALIDE).filter(k => PT_VALIDE[k] && k.endsWith(ajoute(lundi(AUJ), -7))).map(k => k.replace(ajoute(lundi(AUJ), -7), '')).sort().join(), toast:document.getElementById('toast').innerText }));
+    v('E : les 5 sont validées pour la paie, et le toast les nomme avec « Annuler »', ap.val === 'julie,lr,marc,sm,tl' && /5 personnes validées/.test(ap.toast) && /Annuler/.test(ap.toast), ap);
+    v('E : cinq pastilles « Validée », plus de bouton de lot', (await n(c, '.tt-grille .st-v')) === 5 && (await n(c, '.tt-barre .btn')) === 0);
     /* une heure qui bouge après la validation : « À revalider » */
-    await ev(c, () => { ptDevalide('sm', lundi(AUJ)); rendre(); }); await c.p.waitForTimeout(200);
+    await ev(c, () => { ptDevalide('sm', ajoute(lundi(AUJ), -7)); rendre(); }); await c.p.waitForTimeout(200);
     const rev = await ev(c, () => [...document.querySelectorAll('.tt-grille .tt-gl')].map(e => e.innerText.replace(/\s+/g, ' ')).find(x => /Sophie/.test(x)));
     v('E : une heure corrigée après la validation dit « À revalider » (pas « À valider »)', /À revalider/.test(rev) && !/À valider/.test(rev), rev);
     await toastClic(c, 'Annuler'); await L.fin(c); }
-  { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '.tt-barre .btn'); await clic(c, '#calque .btn.large'); await toastClic(c, 'Annuler'); await c.p.waitForTimeout(250);
+  { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '[data-tt="nav|-1"]'); await clic(c, '.tt-barre .btn'); await clic(c, '#calque .btn.large'); await toastClic(c, 'Annuler'); await c.p.waitForTimeout(250);
     v('E : « Annuler » défait la validation du lot (rien de validé, et pas de « À revalider » fantôme)', Object.values(await ev(c, () => PT_VALIDE)).filter(Boolean).length === 0 && !/À revalider/.test(await txt(c, '.tt-sem')));
     await clic(c, '.tt-grille .tt-pc .btn'); const un = await ev(c, () => ({ val:Object.keys(PT_VALIDE).filter(k => PT_VALIDE[k]), toast:document.getElementById('toast').innerText }));
     v('E : « Valider » d\'une ligne valide CETTE personne (la première en règle : Sophie), avec « Annuler »', un.val.length === 1 && /^sm/.test(un.val[0]) && /Annuler/.test(un.toast), un);
-    await clic(c, '[data-tt="nav|-1"]'); v('E : la flèche ‹ change de semaine', /19 oct\. au 25 oct\./.test(await txt(c, '.st-nav b')), await txt(c, '.st-nav b'));
+    v('E : la flèche ‹ a changé de semaine', /19 oct\. au 25 oct\./.test(await txt(c, '.st-nav b')), await txt(c, '.st-nav b'));
     await clic(c, '[data-tt="nav|1"]'); v('E : la flèche › revient, puis se désactive sur la semaine en cours', /26 oct\./.test(await txt(c, '.st-nav b')) && await ev(c, () => document.querySelector('[data-tt="nav|1"]').disabled));
     await L.fin(c); }
 
   /* ── F. la feuille d'une personne ── */
-  { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '.tt-grille [data-tt^="sem|kb|"].st'); const o = await ev(c, () => ({ h2:(document.querySelector('#calque .panneau h2') || {}).textContent, sept:document.querySelectorAll('#calque .tt-sept .tt-jr').length, alerte:(document.querySelector('#calque .panneau .fo-alerte') || {}).innerText || '', btns:[...document.querySelectorAll('#calque .panneau .btn.large, #calque .panneau .lien')].map(b => b.textContent.trim()) }));
-    v('F : Karim — sept lignes, ses points écrits UNE fois, « Voir les points à régler » (pas de « Valider quand même » : des repères rouges)', o.h2 === 'Karim Benali' && o.sept === 7 && /13h05/.test(o.alerte) && o.btns.includes('Voir les points à régler') && !o.btns.includes('Valider quand même'), o);
+  { const c = await frais(); await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '.tt-grille [data-tt^="sem|kb|"].st'); const o = await ev(c, () => ({ h2:(document.querySelector('#calque .panneau h2') || {}).textContent, sept:document.querySelectorAll('#calque .tt-sept .tt-jr').length, alerte:(document.querySelector('#calque .panneau .fo-alerte') || {}).innerText || '', btns:[...document.querySelectorAll('#calque .panneau .btn.large, #calque .panneau .lien')].map(b => b.textContent.trim()), texte:(document.querySelector('#calque .panneau') || {}).innerText || '' }));
+    v('F : Karim, semaine en cours — sept lignes, ses points écrits UNE fois, « Voir les points à régler » (pas de « Valider quand même » : des repères rouges)', o.h2 === 'Karim Benali' && o.sept === 7 && /13h05/.test(o.alerte) && !o.btns.includes('Valider quand même') && !o.btns.some(x => /^Valider|Voir les points/.test(x)) && /elle se valide une fois finie/.test(o.texte), o);   /* semaine EN COURS : ni validation ni « Voir les points » ; la phrase le dit */
+    await L.ranger(c.p); await clic(c, '[data-tt="nav|-1"]'); await clic(c, '.tt-grille [data-tt^="sem|kb|"].st');
+    const o2 = await ev(c, () => ({ h2:(document.querySelector('#calque .panneau h2') || {}).textContent, alerte:(document.querySelector('#calque .panneau .fo-alerte') || {}).innerText || '', btns:[...document.querySelectorAll('#calque .panneau .btn.large, #calque .panneau .lien')].map(b => b.textContent.trim()) }));
+    v('F : Karim, semaine finie d\'avant — ses points écrits, « Voir les points à régler » (pas de « Valider quand même » : un repère rouge)', o2.h2 === 'Karim Benali' && /10h58/.test(o2.alerte) && o2.btns.includes('Voir les points à régler') && !o2.btns.includes('Valider quand même'), o2);
     await clic(c, '#calque .tt-sept .tt-jr'); v('F : toucher un jour ouvre la journée (fiche existante, étape suivante)', /Karim|lundi|26/.test(await txt(c, '#calque .panneau')) && (await n(c, '#calque .panneau')) === 1);
     await L.ranger(c.p); await clic(c, '.tt-grille [data-tt^="sem|sm|"]'); const s = await ev(c, () => [...document.querySelectorAll('#calque .panneau .btn.large')].map(b => b.textContent.trim()));
     v('F : Sophie (en règle) — « Valider la semaine de Sophie »', s.join() === 'Valider la semaine de Sophie', s);
-    await clic(c, '#calque .btn.large'); v('F : la valider ferme la feuille, la semaine de Sophie est validée', (await n(c, '#calque .panneau')) === 0 && (await ev(c, () => !!PT_VALIDE['sm' + lundi(AUJ)])));
+    await clic(c, '#calque .btn.large'); v('F : la valider ferme la feuille, la semaine de Sophie est validée', (await n(c, '#calque .panneau')) === 0 && (await ev(c, () => !!PT_VALIDE['sm' + ajoute(lundi(AUJ), -7)])));
     await L.fin(c); }
 
   /* ── G. le mois et ses quatre états ── */
@@ -125,7 +131,7 @@ const toastClic = (c, lib) => c.p.evaluate(l => { const b = [...document.querySe
     await ev(c, () => { const p = POINTAGES.find(o => o.qui === 'tl' && ptOuvert(o)); ttTerminerRapide(p.id, ptxFinPropose(p).h); });
     const a1 = await ev(c, () => ({ p:JSON.stringify(POINTAGES), tr:PT_TRACE.length, t:document.getElementById('toast').innerText })); v('H : forcer « Terminer » ne change rien et le dit', a1.p === av.p && a1.tr === av.tr && /fermé/.test(a1.t), a1.t);
     await ev(c, () => ttValiderUn('sm', lundi(AUJ))); v('H : forcer « Valider » ne change rien', (await ev(c, () => JSON.stringify(PT_VALIDE))) === av.val);
-    { const okN = await ev(c, () => ttSemEtat(lundi(AUJ)).ok.length); await ev(c, () => ttValiderLot(lundi(AUJ)));   // le bouton du lot est caché, mais la fonction est joignable : la garde doit tenir seule
+    { const okN = await ev(c, () => ttSemEtat(ajoute(lundi(AUJ), -7)).ok.length); await ev(c, () => ttValiderLot(ajoute(lundi(AUJ), -7)));   /* la semaine d'avant (finie, d'octobre) : la semaine en cours n'a plus personne « en règle », la garde du mois fermé se joue donc sur elle */ // le bouton du lot est caché, mais la fonction est joignable : la garde doit tenir seule
       v('H : forcer « Valider le lot » (des personnes EN RÈGLE existent : ' + okN + ') ne valide personne', okN > 0 && (await ev(c, () => JSON.stringify(PT_VALIDE))) === av.val, okN); }
     await clic(c, '[data-tt="ajout"]'); await ev(c, () => { document.getElementById('tt-aq').value = 'lr'; document.getElementById('tt-aj').value = jour(-2); document.getElementById('tt-am').value = 'test'; }); await clic(c, '[data-tt="ajoutok"]');
     const a2 = await ev(c, () => ({ p:JSON.stringify(POINTAGES), t:document.getElementById('toast').innerText })); v('H : « Ajouter une journée » dans un mois fermé est refusé, rien n\'est écrit', a2.p === av.p && /fermé/.test(a2.t), a2.t);
