@@ -8740,6 +8740,7 @@ function cpFec(){
 }
 const cpFecNom = () => ENTREPRISE.siret.replace(/\s/g, '').slice(0, 9) + '_ecritures_2026-10_format-FEC.txt';
 async function cpFecTelecharger(){
+  if (!secuGarde('compta-export', () => cpFecTelecharger())) return;
   const nom = cpFecNom(), txt = CP.fecEnvoye || cpFec(), data = new Blob([txt], { type:'text/plain' });
   await telechargerFichier(nom, data, { ok:'Fichier des écritures enregistré : ' + esc(nom), texte:txt });   // « texte » : dans un cadre sans pont, le début du fichier s'affiche à copier
 }
@@ -8749,6 +8750,7 @@ async function cpSceller(){
   rendre();
 }
 function cpEnvoyer(){
+  if (!secuGarde('compta-export', () => cpEnvoyer())) return;   /* l'envoi au cabinet : la même garde que dans le cadre de la Comptabilité, posée dans la fonction qui ouvre l'envoi (le bouton « Envoyer › » de la clôture et celui de l'espace « Envoi au comptable » y mènent tous les deux) */
   const et = cpEtapes().filter(x => !x.ok), n = cpEcritures().length;
   panneauEnvoi({ titre:'Envoyer octobre à ton expert-comptable', a:CP_EXPERT.mail, objet:`${ENTREPRISE.nom} — comptabilité d’octobre 2026`,
     corps:`Bonjour ${CP_EXPERT.qui.split(' ')[0]},\n\nVoici la comptabilité d’octobre 2026 de ${ENTREPRISE.nom} : les ${n} écritures du mois au format FEC (bilan d’ouverture compris), les factures émises, les justificatifs d’achat et le relevé de banque rapproché.${et.length ? '\n\nVérifications pas encore faites : ' + et.map(x => '« ' + x.t + ' »').join(' ; ') + '.' : ''}\n\nBonne journée,\nMarc Leblanc`,
@@ -11232,7 +11234,9 @@ vueComptabilite = function(){
   const nbG = g => g[3].reduce((t, x) => t + (nb[x[0]] || 0), 0);
   const clos = CP.envoye ? `<div class="ok-bloc cp-clos"><b>Octobre est envoyé à ${esc(CP_EXPERT.qui)} (${esc(CP_EXPERT.cab)}) le ${CP.envoye}.</b><span class="gris petit">La copie envoyée est gardée telle quelle${CP.empreinte ? ' (empreinte ' + CP.empreinte + ')' : ''} : octobre n’accepte plus de geste, une erreur se corrige en novembre.</span></div>` : '';
   const E = ['balance', 'grandlivre', 'resultat', 'envoi'].includes(O) ? cpEcritures() : null;
-  const corps = { ensemble:() => cxVueTableau(K, D, DD, conf), cloture:() => cxVueCloture(), dossiers:() => cxVueDossiers(DD), fventes:() => cxVueFactures(D, 'ventes'), clients:() => cxVueClients(DD), contrats:() => cxVueContrats(),
+  /* ⛔ une VUE sensible (la banque, les salaires) se garde ICI, dans la fonction qui la dessine : les onglets, le menu d'un espace (CX_DER), un lien du tableau de bord mènent tous à cette fonction, et seul le bouton « Voir et valider les fiches » passait par la garde */
+  const verrou = !!SECU_VUES[O] && !secuVueOuverte(O); SECU_VUE.affiche = SECU_VUES[O] && !verrou && secuMasqueActif() ? O : null; if (!verrou) SECU_VUE.invite = null;
+  const corps = verrou ? secuVueVerrou(O) : { ensemble:() => cxVueTableau(K, D, DD, conf), cloture:() => cxVueCloture(), dossiers:() => cxVueDossiers(DD), fventes:() => cxVueFactures(D, 'ventes'), clients:() => cxVueClients(DD), contrats:() => cxVueContrats(),
     fachats:() => cxVueFactures(D, 'achats'), ndf:() => cxVueNdf(D), fournisseurs:() => cxVueFournisseurs(), paiements:() => cxVuePaiements(K), banque:() => cpVueBanque(K.rap, K.soldeBq), caisse:() => cpVueCaisse(K.ca), enligne:() => cxVueEnLigne(),
     tva:() => cpVueTva(K.tv), ecritures:() => cpVueEcritures(), balance:() => cxBalance(E), grandlivre:() => cxGrandLivre(E), resultat:() => cxResultat(E), envoi:() => cxEnvoi(E), normes:() => cxVueNormes(conf), archives:() => cxVueArchives(K, D), paiemois:() => paieVueMois(), fiches:() => paieVueFiches(), salaries:() => paieVueSalaries(), charges:() => paieVueCharges() }[O]();
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris cx-phr"><span class="cx-p-l">Tes ventes, tes achats, ta trésorerie et ta TVA</span><span class="cx-p-c">Ventes, achats, trésorerie et TVA</span><span class="cx-plus">, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies</span>.</span></div>
@@ -26284,9 +26288,9 @@ const SECU_GESTES = {
   'banque-enregistrer':{ phrase:'enregistrer ton IBAN', portes:['entEnregistrerBanque', 'ent=banqueok'] },
   'virement-ouvrir':{ phrase:'préparer un virement groupé', portes:['acVirement', 'ac=virement'] },
   'virement-fichier':{ phrase:'télécharger le fichier de virement', portes:['acVirok', 'ac=virok'] },
-  'compta-banque':{ phrase:'voir la banque de la comptabilité', portes:['opc_sensible'] },
-  'compta-export':{ phrase:'exporter la comptabilité', portes:['opc_sensible'] },
-  'paie-fiches':{ phrase:'voir les fiches de paie', portes:['paieAller', 'paie=voirfiches'] },
+  'compta-banque':{ phrase:'voir la banque de la comptabilité', portes:['vueComptabilite', 'opc_sensible'] },
+  'compta-export':{ phrase:'exporter la comptabilité', portes:['cpEnvoyer', 'cpFecTelecharger', 'opc_sensible'] },
+  'paie-fiches':{ phrase:'voir les fiches de paie', alt:{ salaries:'voir les salaires de l’équipe', charges:'voir les salaires et les charges' }, portes:['paieAller', 'vueComptabilite', 'paie=voirfiches'] },
   'paie-envoi':{ phrase:'envoyer la paie au cabinet', portes:['paieEnvoyer', 'paie=envoyer', 'pt=export'] },
   'paie-compta':{ phrase:'passer l’écriture de paie', portes:['paieComptabiliser', 'paie=comptabiliser'] },
   'equipe-droits':{ phrase:'changer les droits de {prenom}', portes:['data-eqd', 'data-eqs', 'data-eqt', 'data-eqprof', 'eqx=profok'] },
@@ -26354,7 +26358,9 @@ function secuIbanSurveille(){ const f = document.getElementById('en-iban'); if (
   if (P && !P.querySelector('.sec-expire-pan')) P.querySelector('.surtitre').insertAdjacentHTML('afterend', '<div class="info sec-expire-pan" role="status">La confirmation a expiré : elle sera redemandée à l’enregistrement.</div>'); }
 /* ── la fenêtre de 5 minutes se surveille à la seconde (l'horloge de démonstration l'avance) ── */
 let SECU_FEN_AVANT = false;
-function secuConfTic(){ const k = secuQui(), v = !!k && secuFenetreValide(k); if (SECU_FEN_AVANT && !v) { const w = secuCadre(); if (w) { try { w.postMessage({ opc_confirme:{ expire:true } }, '*'); } catch (e) {} } } SECU_FEN_AVANT = v;
+function secuConfTic(){ const k = secuQui(), v = !!k && secuFenetreValide(k); if (route !== 'comptabilite') SECU_VUE.invite = null;
+  if (SECU_FEN_AVANT && !v && SECU_VUE.affiche && route === 'comptabilite') { SECU_VUE.invite = SECU_VUE.affiche; SECU_VUE.affiche = null; toast('Cinq minutes ont passé : cette page est de nouveau masquée.'); rendre(); }   /* comme le cadre : la page se re-masque, sans rouvrir la confirmation d'elle-même */
+  if (SECU_FEN_AVANT && !v) { const w = secuCadre(); if (w) { try { w.postMessage({ opc_confirme:{ expire:true } }, '*'); } catch (e) {} } } SECU_FEN_AVANT = v;
   const s = SECU.conf; if (s && s.id) { const d = SECU.demandes.find(x => x.id === s.id); if (d && !secuDemandeVivante(d) && d.etat === 'expiree') secuConfDessiner(); } secuIbanSurveille(); }
 /* le cadre de la Comptabilité demande une confirmation (la banque, le FEC, l'envoi au cabinet) : la page tient le téléphone, le cadre ne fait que DEMANDER (contrat : voir prototype-comptabilite.html, « OP Security »).
    La réception est filtrée sur la fenêtre du cadre lui-même ; ce qui arrive est contrôlé (forme, clé de la table) et ne sert que de clé. */
@@ -26364,6 +26370,20 @@ addEventListener('message', ev => { const w = secuCadre(); if (!w || ev.source !
   if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !/^[a-z0-9]{1,40}$/.test(m.id) || !SECU_CADRE_CLES.includes(m.cle)) return;
   const rep = ok => { try { w.postMessage({ opc_confirme:{ id:m.id, ok } }, '*'); } catch (e) {} };
   if (secuGarde(m.cle, () => rep(true), { refus:() => rep(false) })) rep(true); });
+/* ── une VUE sensible : la banque de la Comptabilité et les trois onglets de la Paie qui montrent des salaires ──
+   Chaque onglet de la Comptabilité mène à vueComptabilite : la garde est donc posée là, pas sur un bouton. Sans fenêtre de 5 minutes valable, la vue est REMPLACÉE par une carte « confirme sur ton téléphone »
+   (aucun montant, aucune ligne de relevé n'est écrit dans la page), et la confirmation s'ouvre d'elle-même à l'ARRIVÉE — pas à chaque redessin : annulée, la carte reste avec son bouton.
+   Confirmée, la vue s'écrit ; à l'expiration elle se re-masque (secuConfTic). [clé du geste, onglet de repli] */
+const SECU_VUES = { fiches:['paie-fiches', 'paiemois'], salaries:['paie-fiches', 'paiemois'], charges:['paie-fiches', 'paiemois'], banque:['compta-banque', 'paiements'] };
+const SECU_VUE = { invite:null, affiche:null };
+const secuVueOuverte = o => { if (!SECU_VUES[o] || !secuMasqueActif()) return true; const k = secuQui(); return !!k && secuFenetreValide(k); };
+function secuVueVerrou(o){ const cle = SECU_VUES[o][0], phrase = secuPhrase(cle, { v:o });
+  if (SECU_VUE.invite !== o && !SECU.conf) { SECU_VUE.invite = o; setTimeout(() => { if (route === 'comptabilite' && CP.onglet === o && !SECU.conf && !secuVueOuverte(o)) secuGarde(cle, () => rendre(), { v:o }); }, 0); }
+  return `<div class="carte sec-verrou" data-secvue="${o}"><h2>Une confirmation est nécessaire</h2><p>Pour ${esc(phrase)}, OP GESTION vérifie que c’est bien toi, avec ton téléphone. Rien n’est affiché avant.</p>
+    <div class="actions"><button type="button" class="btn" data-secv="confirmer|${o}">Confirmer sur mon téléphone</button><button type="button" class="btn gris" data-secv="retour|${o}">Revenir en arrière</button></div></div>`; }
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-secv]'); if (!b) return; const [a, o] = b.dataset.secv.split('|'); if (!SECU_VUES[o]) return;
+  if (a === 'retour') { CP.onglet = SECU_VUES[o][1]; return rendre(); }
+  if (a === 'confirmer') { SECU_VUE.invite = o; if (secuGarde(SECU_VUES[o][0], () => rendre(), { v:o })) rendre(); } });
 /* rejouer un clic : le bouton est encore là (la fenêtre de confirmation est une autre couche, rien n'a redessiné dessous) ; sinon on le retrouve par son attribut */
 function secuRejouerClic(b){ const at = [...b.attributes].find(a => a.name.startsWith('data-')); return () => { const e = b.isConnected ? b : at && document.querySelector('[' + at.name + '="' + at.value + '"]'); if (e) e.click(); }; }
 /* une case de droits qui change : restaurée tout de suite (état avant = état après), puis rejouée une fois confirmé */
