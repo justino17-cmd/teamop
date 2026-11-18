@@ -1,0 +1,115 @@
+{
+ "partie": "equipe",
+ "date": "2026-11-18",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20
+ ],
+ "pasRegles": [
+  {
+   "n": 14,
+   "constat": "Reporté à l'autre voie, comme annoncé. Le toast de l'export vers le cabinet de paie parle au gérant (« Le fichier part au cabinet de paie avec les heures… »). Mais la phrase « Prototype : … » existe encore 8 fois dans la page (listes d'Interventions et de Devis en mode revue, pied de PDF, échafaudage) : à vérifier par la voie qui les possède qu'aucune n'est visible en mode application."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Un refus de saisie s'affiche deux fois sur téléphone, et le toast recouvre la phrase écrite sous le champ",
+   "gravite": "gênant (mineur)",
+   "etapes": "iPhone, Android ou 320 px : Équipe › ＋ Inviter une personne › laisser le prénom vide, mettre « Dur<b>and » en nom et « quelquun@sansPoint » en e-mail › Envoyer l'invitation. Même chose : fiche d'une personne › Ajouter une habilitation › fin avant l'obtention › Ajouter.",
+   "constat": "equipe-04/06 : entVerifier écrit la phrase sous chaque champ ET lève un toast avec la même phrase. Sur téléphone le toast se pose en travers du formulaire : il cache la fin de la phrase du champ Nom (« …pas de < > \" & ni de signes spéciaux ») sur 320 px, le début du paragraphe « Technicien voit : … » sur iPhone, et le libellé « Joindre l'attestation » dans le formulaire d'habilitation. Il disparaît seul au bout de quelques secondes ; rien n'est perdu, mais la raison même des messages sous le champ (le toast gêne le clavier) est ainsi contredite. Captures : cap/campagne-equipe/rejeu-inviter-erreurs-*, rejeu-habilitation-fin-avant-*. Proposition : pas de toast quand un message est écrit sous un champ visible (garder le toast seulement si le champ fautif est hors écran)."
+  },
+  {
+   "titre": "Sur la fiche d'un compte DÉSACTIVÉ, les deux gestes de mot de passe sont proposés",
+   "gravite": "détail",
+   "etapes": "Équipe › filtre « Désactivés » › fiche de Tom Leroy (désactivé) › bloc « Changer son mot de passe ».",
+   "constat": "« Lui donner un mot de passe provisoire » ET « Lui envoyer un lien pour choisir le sien » sont offerts à un compte qui ne peut pas se connecter, à côté de « Réactiver le compte ». Le lien existait déjà avant (equipe-13 l'a rapproché du provisoire, donc la proposition est maintenant double). Condition de mdpOutils : (sec && !soi) || !p.invite, sans regarder p.actif. À corriger : ne les montrer qu'aux comptes actifs (la fiche dirait « Réactive d'abord son compte »)."
+  },
+  {
+   "titre": "Le refus du nom est une phrase de 7 lignes dans une demi-colonne sur téléphone",
+   "gravite": "détail",
+   "etapes": "iPhone ou Android : Équipe › Inviter › Nom « Dur<b>and » › Envoyer.",
+   "constat": "« Un prénom ou un nom s'écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > \" & ni de signes spéciaux. » prend sept à huit lignes sous le champ Nom, à côté de « Écris son prénom. » sur une ligne : les deux champs ne sont plus alignés. Un débutant n'a pas besoin de la liste complète : « Garde seulement des lettres, des chiffres, des espaces et des tirets. » suffirait."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "equipe-corrections.js",
+   "resultat": "mac 29 ✓ · iPhone 32 · iPad 31 · Android nuit 32 · 320 px 32 · mac nuit 29 : 0 ✗ partout"
+  },
+  {
+   "fichier": "equipe-gestes.js",
+   "resultat": "mac 117 ✓ · iPhone 121 ✓ · 0 ✗ ; 97/97 et 99/99 gestes touchés, aucun muet (equipe-01 maintenant vert)"
+  },
+  {
+   "fichier": "equipe-parcours.js",
+   "resultat": "mac 66 ✓ · iPhone 66 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "equipe-entreprise.js",
+   "resultat": "mac 59 ✓ · iPhone 60 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "equipe-roles.js / equipe-mots.js",
+   "resultat": "34 ✓ / 65 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "equipe-droits-effets.js",
+   "resultat": "138 ✓ · 0 ✗ (46 cases jouées, 920 routes comparées ; 1ʳᵉ passe coupée par le délai de 580 s, rejouée en entier avec un délai long)"
+  },
+  {
+   "fichier": "equipe-droits-supprimer.js",
+   "resultat": "7 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "equipe-droits-profonds.js",
+   "resultat": "10 ✓ · 6 ✗ — les 6 sont connus et inchangés : cases sans geste visible à l'ouverture (planif.s, crm.m, achats.s : gardées dans la table GESTES — planconf, clientEnreg, demannul/ndfsuppr — mais aucun bouton concerné n'est sur les écrans ouverts ; com.c/m/s : module du courrier non lu par le relevé). Passé de 7 ✗ à 6 : admin.s (equipe-19) est réglé."
+  },
+  {
+   "fichier": "equipe-mise-en-page.js",
+   "resultat": "mac 44 ✓ · Windows 44 ✓ · iPad 92 · iPhone nuit 92 · Android 92 · 320 px nuit 92 : 0 ✗"
+  },
+  {
+   "fichier": "equipe-recontrole.js (la mienne : noms partout, droits → effet réel, Mon entreprise → facture, désactiver/annuler/places pleines)",
+   "resultat": "mac jour 41 ✓ · mac nuit 41 · iPhone jour 42 · iPhone nuit 42 · Android 42 · iPad 42 · 320 px nuit 42 : 0 ✗ (une première passe iPhone à 3 ✗ venait de ma sonde : la case était dans un <details> replié ; corrigée, rejouée)"
+  },
+  {
+   "fichier": "equipe-recontrole-admin.js (la mienne : second administrateur, fiche de soi / invité / désactivé)",
+   "resultat": "mac 11 ✓ · iPhone 11 ✓ · iPhone nuit 11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "equipe-recontrole-rejeu.js (la mienne : rejeu equipe-03/04/05/06/07/12/15/16/20 avec mes valeurs, phrases lues)",
+   "resultat": "mac 19 ✓ · iPhone nuit 19 · iPad 19 · 320 px 19 · Android nuit 19 : 0 ✗"
+  },
+  {
+   "fichier": "contrôles de syntaxe et de publication",
+   "resultat": "compiler-pages, verifier-syntaxe (41 pages), test-835 (844), 836 (307), 837 (122), 1008 (54), 2994 (15), verif-secrets : tous verts"
+  }
+ ],
+ "doutes": [
+  "Décision equipe-11 (Julie, Secrétariat : « Voir » seule) : elle voit désormais « Temps de travail » (les heures de toute l'équipe, donc des données de salaire) et « Véhicules ». Rejoué : OUI, elle ouvre Temps de travail et y lit les heures de Tom, Karim, Sophie. Conséquence à connaître : tout technicien dont on décoche « Travaille sur le terrain » (ex. Léa Roux, profil Technicien) prend la forme du bureau et voit alors aussi Temps de travail, Véhicules et Dépôts et camions. Le testeur proposait un droit à part « Voir les heures de toute l'équipe » : à trancher.",
+  "Il n'existe aucun chemin d'écran pour donner le profil « Administrateur » à une deuxième personne (la fiche et l'invitation le retirent de la liste). Or equipe-01 dit « Pour ton propre compte, demande à un autre administrateur » : tant que Marc est seul administrateur, le message ne mène à personne. Voulu (un seul administrateur) ? Si oui, la phrase devrait dire où changer son propre mot de passe (« Mon compte »).",
+  "Sur sa propre fiche, le gérant lit « Lui envoyer un lien pour choisir le sien — Marc reçoit un e-mail… » : on lui parle de lui à la troisième personne. Détail de formulation.",
+  "Le départ guidé (« Au mieux de chacun ») a repris une intervention de Tom au profit d'Éloïse, une technicienne seulement INVITÉE qui ne s'est jamais connectée (toast « 1 intervention reprise par Éloïse »). Faut-il exclure les invitations en attente des remplaçants proposés ?",
+  "doute-1 du testeur, non résolu : « Valable 72 heures (jusqu'au 20/11 à 12:30) » est calculé sur l'horloge réelle alors que le prototype vit le 31 octobre 2026.",
+  "doute-2 du testeur, non résolu : le bandeau « 1 compte verrouillé : Léa Roux. [Voir] » dit « Voir » seul ; le filtre « Invités » vide ne dit pas quoi faire.",
+  "doute-3 du testeur, non résolu : un Responsable (Équipe en lecture) voit « Planifier la formation » ; « Rôle (un simple nom) » à côté de « Ses droits de départ » peut dérouter un débutant.",
+  "Non vérifié : les cases Créer / Modifier / Supprimer de la Boîte mail (module du courrier, DOM que les relevés ne lisent pas) ; les 27 mutations du testeur (equipe-mutations.py) n'ont pas été rejouées, pour ne pas toucher à la page (le contrôle de ces sondes repose donc sur leur rejeu et sur mes propres sondes)."
+ ]
+}

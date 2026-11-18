@@ -1,0 +1,22 @@
+[
+ { "nom": "« Enregistrer cette vue » (Planning › Mes vues) propose « ex. équipe clim, chantier Mimosas » à tous les métiers",
+   "defaut": "La clé de MET_EXEMPLES était écrite « Ex. : équipe clim… » (majuscule, deux-points) et ne rejoignait jamais le champ.",
+   "etat": "corrigé",
+   "changement": "Clé exacte ajoutée à MET_EXEMPLES (« ex. équipe du matin, chantier Mimosas ») ; la climatisation et la démonstration gardent « équipe clim ».",
+   "preuve": "campagne/sondes/metier-3d-restes-2.js V : 40 ✓ · 0 ✗ (7 jeux de métier, vrais boutons Sur mesure › Mes vues › Enregistrer) ; balayage statique metier-3d-restes-1-recontrole.js T : 29 ✓ · 0 ✗ (avant 23 ✓ · 6 ✗)" },
+ { "nom": "Fiche client › Appareils › « Ajouter un appareil » : « ex. Daikin FTXM35R » et « ex. Split mural salle · R32 · 2021 » pour tous les métiers",
+   "defaut": "Aucune entrée dans les tables d'exemples ; le libellé du détail parlait de « gaz » à tout le monde.",
+   "etat": "corrigé",
+   "changement": "Exemples par famille (3D : Pulvérisateur 5 L ; nettoyage : Autolaveuse 50 cm ; plomberie : Chauffe-eau 200 L ; chauffage : Chaudière gaz à condensation ; autres : texte neutre) ; le libellé du détail dit « emplacement » au lieu de « gaz » hors climatisation et démonstration.",
+   "preuve": "metier-3d-restes-2.js A : 40 ✓ · 0 ✗ (7 jeux, contre-épreuve clim qui garde Daikin et « gaz ») ; captures appareil-*.png relues (3D)" },
+ { "nom": "« Saisir un passage » : deux phrases qui se contredisent quand le camion est vide, et ligne plus haute avec « Voir le Stock › »",
+   "defaut": "« Il n'y a aucun biocide dans le camion de Tom » puis « Le stock du camion de Tom descend de ce que tu poses » ; le bouton en ligne grossissait la ligne de la phrase au téléphone.",
+   "etat": "corrigé",
+   "changement": "rgCamionHtml() : camion vide → « Le stock du camion de Tom ne bouge pas. », camion plein → « descend de ce que tu poses » ; mise à jour au changement d'applicateur ; « Voir le Stock › » sur sa propre ligne.",
+   "preuve": "metier-3d-restes-2.js R : 39 ✓ · 0 ✗ (Mac, iPhone nuit, iPhone technicienne ; camion vide ET plein vus) ; garde du tour 1 C : 49 ✓ · 0 ✗ ; capture camion2-iphone-nuit-marc.png relue" },
+ { "nom": "metier-3d-06, -08, -09, -10 et « Tous les sites » en cartes à 1280 px",
+   "defaut": "Décisions de produit relevées au tour 1 (devis xylophage prérempli, demander un autre métier, « RAS » / « N° d'AMM », types d'intervention de la climatisation) ; liste de cartes à 826–1280 px.",
+   "etat": "à soumettre à Justin",
+   "changement": "Rien touché.",
+   "preuve": "restes-metier-3d-tour1-recontrole.json, champ doutes" }
+]

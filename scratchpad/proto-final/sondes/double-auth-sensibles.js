@@ -79,7 +79,7 @@ const diff = (a, b) => Object.keys(a).filter(k => a[k] !== b[k]).map(k => k + ' 
   await essai('equipe-droits', 'changer les droits de Julie', () => c.p.evaluate(() => document.querySelector('[data-eqd="julie|crm|c"]').click()), async (f, a) => JSON.parse(f.droits).cats.crm.c === (avantDroit ? 0 : 1) && JSON.parse(a.droits).cats.crm.c === avantDroit, { panneauOk:true });
   v('la case cochée est restée COMME AVANT tant que la confirmation n’est pas faite (restaurée tout de suite)', true);
   await c.p.evaluate(() => fermerPanneau());
-  await essai('equipe-inviter', 'reposer un mot de passe', () => c.p.evaluate(() => secuReposer('sm')), async (f, a) => !!f.provSm && f.provSm !== a.provSm && /Mot de passe provisoire pour Sophie/.test(f.panneau || ''), { panneauOk:true });
+  await essai('equipe-inviter', 'donner un mot de passe provisoire', () => c.p.evaluate(() => secuReposer('sm')), async (f, a) => !!f.provSm && f.provSm !== a.provSm && /Mot de passe provisoire pour Sophie/.test(f.panneau || ''), { panneauOk:true });
   await c.p.evaluate(() => secuProvTermine());
   await essai('equipe-retirer', 'désactiver le compte de Tom', () => c.p.evaluate(() => eqxDepart('tl')), async f => /Avant de désactiver Tom Leroy/.test(f.panneau || '') || f.actifTl === false, { panneauOk:true });
   await c.p.evaluate(() => fermerPanneau());

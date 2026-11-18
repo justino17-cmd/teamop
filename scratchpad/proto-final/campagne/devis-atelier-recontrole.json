@@ -1,0 +1,146 @@
+{
+ "partie": "devis-atelier",
+ "date": "2026-11-18",
+ "recontroleur": "recontrôle adverse (étape 3 sur 3)",
+ "regles": [
+  1,
+  2,
+  5,
+  6,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  17
+ ],
+ "pasRegles": [
+  {
+   "n": "devis-atelier-03",
+   "constat": "Pas corrigé, annoncé comme tel : un devis composé dans l'atelier puis accepté ne crée ni intervention « à planifier » ni facture d'acompte (parcours-e : 24 → 24 interventions, 8 → 8 factures), alors que la page Devis promet les deux. Le devis rapide, lui, les crée (rejoué dans mon parcours D1 : une intervention et une facture d'acompte, créées une fois). Décision de produit à prendre : deux modèles de devis côte à côte."
+  },
+  {
+   "n": "devis-atelier-07",
+   "constat": "Pas corrigé, annoncé comme tel : devis rapide et devis composé n'ont pas les mêmes conditions (délai « 10 jours » contre « 3 semaines », acompte de 30 % demandé d'office par l'atelier). Un client à qui on envoie les deux lit deux promesses différentes. Rejoué : parcours-e, 2 contrôles rouges, ceux du défaut."
+  },
+  {
+   "n": "devis-atelier-16",
+   "constat": "Pas corrigé, annoncé comme tel : un contrat composé et signé dans l'atelier ne crée ni contrat OP GESTION ni visites (3 → 3 contrats). parcours-i : 4 ✓ · 1 ✗, le seul rouge, c'est le témoin de la décision. Même famille que le 03."
+  },
+  {
+   "n": "devis-atelier-04 / devis-atelier-15",
+   "constat": "Non rejoués : annoncés « à soumettre » (libellés « (exemple) » de l'atelier) et « reporté » (poignées et date de l'éditeur sur iPad) parce qu'ils vivent dans l'atelier (page.source), qu'un autre agent refait. Rien à vérifier tant que cette page n'est pas refaite."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une signature de devis se valide dès 40 unités de tracé sur 600 : un petit trait passe pour une signature",
+   "gravite": "à regarder",
+   "etapes": "Devis en attente › Ce que voit le client › cocher, nom › tracer un trait d'environ 7 % de la largeur du cadre (40 unités) › Accepter et signer.",
+   "constat": "Le correcteur a bien réglé le cas qu'il décrivait (un simple appui, un frôlement : « Ce trait est trop court », le devis reste en attente — rejoué, 4 unités refusées, trait complet accepté, accord tracé une fois). Mais le seuil est bas : 40 unités de canevas valent ~24 px sur un téléphone, et la longueur est cumulée sur tous les traits depuis l'ouverture de la fenêtre (4 + 38 unités en deux gestes = accepté). Ce n'est pas un défaut, c'est un seuil de produit : le garder, ou l'élever (par exemple 120 unités, soit 20 % du cadre) ? Aucune régression à côté."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "devis-atelier-parcours-a.js (mac)",
+   "resultat": "17 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-b.js (mac)",
+   "resultat": "21 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-c.js (mac)",
+   "resultat": "20 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-d.js (mac)",
+   "resultat": "20 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-e.js (mac)",
+   "resultat": "13 ✓ · 3 ✗ — les trois rouges sont les témoins des défauts 03 et 07, annoncés « à soumettre à Justin »"
+  },
+  {
+   "fichier": "devis-atelier-parcours-f.js (mac)",
+   "resultat": "10 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-g.js (mac)",
+   "resultat": "11 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-h.js (mac)",
+   "resultat": "21 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-parcours-i.js (mac)",
+   "resultat": "4 ✓ · 1 ✗ — le rouge est le témoin du défaut 16, annoncé"
+  },
+  {
+   "fichier": "devis-atelier-roles.js (mac, Julie)",
+   "resultat": "13 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-mots.js",
+   "resultat": "19 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-contraste.js",
+   "resultat": "10 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-valeurs-longues.js (mac, iphone, petit)",
+   "resultat": "15 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-mise-en-page.js (mac et iphone, jour et nuit)",
+   "resultat": "240 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-mise-en-page.js (ipad, android, petit, nuit)",
+   "resultat": "225 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-atelier-mep.js (iphone, nuit)",
+   "resultat": "16 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "devis-atelier-balayage.js (mac, marc, 4 lots : 191 gestes touchés)",
+   "resultat": "0 erreur de la page, 0 geste sans nom, 0 cible manquée. 34 « sans effet visible » : les champs de saisie (focus seul) et « ⤢ Voir en grand » / « Voir le devis complet (PDF) », rejoués à part (voir recontrole-c : le devis s'ouvre en grand, Échap le ferme)."
+  },
+  {
+   "fichier": "devis-atelier-balayage.js (iphone, marc, lots panneaux, fiches-a, liste : 180 gestes touchés)",
+   "resultat": "0 erreur de la page, 0 cible manquée ; « sans effet visible » : 30, tous des champs de saisie ou « Voir en grand » / « Voir le devis complet (PDF) » (rejoués à part)."
+  },
+  {
+   "fichier": "devis-atelier-recontrole-a.js (NOUVELLE, mac) : l'argent",
+   "resultat": "17 ✓ · 0 ✗ — 4 000 devis tirés au sort (taux 0 / 2,1 / 5,5 / 8,5 / 10 / 20 %) contre un calcul entier indépendant : 0 écart ; lignes, HT, TVA, TTC identiques entre la fiche, le PDF, « Ce que voit le client », la liste et le message d'envoi ; l'acompte affiché sur la fiche = l'acompte facturé à l'accord ; un prix négatif ne se saisit pas (l'arrondi des remises est sans objet)."
+  },
+  {
+   "fichier": "devis-atelier-recontrole-b.js (NOUVELLE, mac puis iphone) : les défauts 02, 05, 06, 08, 09, 10 rejoués autrement",
+   "resultat": "33 ✓ · 0 ✗ sur mac comme sur iPhone (le premier jet de la sonde a rendu 7 ✗, tous des erreurs de la sonde : le « ‹ Retour » du mode application est .rl-retour, la fiche de départ BR1 porte exprès une ligne sans prix, Factures vit dans Comptabilité)."
+  },
+  {
+   "fichier": "devis-atelier-recontrole-c.js (NOUVELLE) : mise en page à côté, captures regardées",
+   "resultat": "mac jour 10 ✓, mac nuit 10 ✓, iphone nuit 12 ✓, petit jour 12 ✓, ipad nuit 12 ✓, android jour 12 ✓ · 0 ✗ partout. Fiche aux valeurs longues, facture à valider aux valeurs longues (totaux alignés d'une ligne à l'autre), devis en grand, relance à 16 px. Captures relues (planches) : rien de coupé ni de recouvert, la barre du bas flotte normalement sur la fiche."
+  },
+  {
+   "fichier": "devis-atelier-recontrole-d.js (NOUVELLE) : trois parcours d'une traite",
+   "resultat": "mac 16 ✓ · 0 ✗ ; iphone nuit 16 ✓ · 0 ✗. D1 dictée → acompte 40 % → envoi → relance → refus → « Refaire ce devis » → numéro neuf → accord par téléphone → une intervention « à planifier » + une facture d'acompte à 1 centime de 40 % → facture ouvrable à l'envoi, plus aucune tâche orpheline. D2 client neuf (La Rochelle) : secteur et point de la carte posés, adresse tapée à l'envoi rangée, devis visible sur sa fiche. D3 : l'atelier se passe par parcours-e/h/i, au-dessus."
+  },
+  {
+   "fichier": "MUTATIONS (copie hors dépôt, RACINE=/tmp/rc/mut) : 11 correctifs remis un par un",
+   "resultat": "11 sur 11 font tomber au moins un contrôle : arrondi de ligne (parcours-a 1 ✗), TVA non arrondie (1 ✗), dvComplet sans « au moins une ligne » (parcours-g 1 ✗), adresse non rangée (1 ✗), prénom en dur (roles 7 ✗), seuil de signature (parcours-c 1 ✗), Retour vers l'Accueil (parcours-d 1 ✗), toast de relance doublé (1 ✗), client de l'atelier non positionné (parcours-i : 2 ✗ au lieu de 1), message à 14 px (mise-en-page iphone jour : 2 ✗), colonne du total « auto » (recontrole-c 1 ✗)."
+  }
+ ],
+ "doutes": [
+  "Le seuil de la signature (40 unités sur 600, cumulées) est bas : à garder ou à relever (par exemple 120) ? Décision de produit, pas un défaut.",
+  "Trois décisions qu'il faut TOUJOURS dire à Justin, annoncées par le correcteur et reconfirmées par rejeu : (03) un devis composé accepté ne crée ni intervention ni acompte ; (07) conditions différentes entre devis rapide et composé (10 jours contre 3 semaines, acompte d'office de 30 % dans l'atelier) ; (16) un contrat composé et signé ne crée ni contrat ni visites. Les trois relèvent de « un seul modèle de devis ou deux côte à côte ».",
+  "Une ligne de facture à valider dont le total dépasse ~16 signes (par exemple 12 345 × 98 765,43 € = 1 219 259 233,35 €) sort de sa colonne de 128 px : valeur de l'ordre du milliard, sans rapport avec un devis réel (le plafond écrit en dur est 1e6 × 1e4) ; je l'ai mesuré, non corrigé, aucune page à moi.",
+  "Le toast « Accord noté. Intervention à planifier… » reste affiché pendant la création du client suivant dans un enchaînement rapide : cosmétique, il disparaît seul.",
+  "Non vérifiable d'ici : un vrai iPhone, un vrai Android, un vrai Windows (zoom d'un champ de moins de 16 px, clavier qui recouvre la fenêtre d'envoi, micro réel de « Dicter un devis », « Optimiser avec l'IA », téléchargement du PDF) ; la signature a été tracée à la souris, y compris dans le profil iPhone émulé, jamais au doigt réel."
+ ]
+}

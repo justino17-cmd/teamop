@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "La barre du bas de la fiche « Prévenir » pousse « ✓ Fait » hors de l'écran pour la copropriété (casse du recontrôle du tour 2)",
+  "defaut": "« 💬 Prévenir Copropriété Les Mimosas » (nom plus long depuis le tour 2) faisait 328 px de large : « ✓ Fait » de 352 à 437 sur un écran de 390, barre qui défile de côté.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html, règle « #calque .tkx-barre .btn » du palier téléphone : min-width:0 (le bouton peut rétrécir), white-space:normal et line-height:1.2 (le nom passe sur deux ou trois lignes au lieu de pousser le voisin), padding vertical réduit pour que trois lignes tiennent dans les 48 px minimum.",
+  "preuve": "reproduit d'abord (restes-client-2-recontrole-barre.js, iphone nuit : 2 ✓ · 2 ✗, seul « mi », 437 pour 390) ; puis 4 ✓ · 0 ✗ sur iphone nuit, petit nuit, android nuit (rôle julie), 2 ✓ · 0 ✗ sur iPad ; restes-client-2-recontrole.js 22 ✓ · 0 ✗ sur mac, iphone nuit, petit nuit, android nuit ; captures B-previenir-iphone-nuit et B-previenir-petit-nuit relues : « Prévenir Copropriété Les Mimosas » sur trois lignes à gauche, « ✓ Fait » entier à droite, rien de coupé. Le bureau (hors palier téléphone) n'est pas touché."
+ },
+ {
+  "nom": "Paiement : le courriel de REÇU dit « Merci Le syndic. »",
+  "defaut": "Le gabarit « recu » de prototype-paiement.html écrivait « Merci ${esc(g.contact)}. » : « Merci Le syndic. Nous avons bien reçu… » pour la Copropriété Les Mimosas.",
+  "etat": "corrigé",
+  "changement": "prototype-paiement.html, gabarit « recu » : il passe par salut() comme les quatre autres (« Merci. » quand le contact commence par un article, « Merci M. Lemoine. » pour une personne).",
+  "preuve": "reproduit (restes-client-2-recontrole-paiement.js : 3 ✓ · 1 ✗) puis 4 ✓ · 0 ✗ ; la sonde rejoue les 5 modèles de client par les vraies fonctions de la page."
+ },
+ {
+  "nom": "Défaut d'instrument : « créée par undefined le undefined » sur les captures du recontrôle",
+  "defaut": "Les tâches de test des sondes restes-client-2-recontrole.js (lignes 38 et 58) n'avaient ni creePar ni creeLe ; une vraie tâche les porte toujours.",
+  "etat": "corrigé",
+  "changement": "les deux tâches synthétiques reçoivent creePar:'marc', creeLe:'31/10' ; ce n'est pas un défaut du produit (une tâche créée par l'application porte toujours les deux champs).",
+  "preuve": "capture B-previenir-iphone-nuit relue : « créée par Marc Leblanc le 31/10 » ; sonde 22 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Cohérence : trois façons de nommer le même appel sur une fiche de copropriété (« Appeler Syndic Foncia », « Prévenir Copropriété Les Mimosas », « Appeler Copropriété Les Mimosas : facture… »)",
+  "defaut": "Chaque libellé est juste (on appelle la personne, on prévient le client, la tâche porte le client) mais le lecteur lit trois noms.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décrit par le recontrôle du tour 2 ; rien de faux ni de coupé"
+ },
+ {
+  "nom": "Doute : le menu de l'espace client affiche « Marc Leblanc · Mon compte · Se déconnecter »",
+  "defaut": "C'est le bloc de la session de revue (sortie du mode « Tester en tant que »).",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "déjà soumis au tour 2 ; le masquer demande de lui donner une autre sortie : décision de produit"
+ },
+ {
+  "nom": "Doute : la carte « Votre demande est envoyée » disparaît quand « Proposer un contrat » est fait sans créer de contrat",
+  "defaut": "Le client voit revenir « Demander un contrat » sans savoir que le bureau l'a rappelé.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "déjà soumis au tour 2 ; choix de la règle « la carte disparaît quand le bureau a fait sa tâche »"
+ },
+ {
+  "nom": "Doute : le cadre Documents écrit « Bonjour M. Pierre Delmas, » (contact en toutes lettres)",
+  "defaut": "Correct mais plus lourd que « Bonjour M. Delmas » ; les six contacts sont des personnes, aucun organisme n'est salué.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun (page fabriquée depuis atelier/page.source : ne se retouche pas à la main)",
+  "preuve": "relevé du recontrôle du tour 2"
+ },
+ {
+  "nom": "Doute : un expéditeur inconnu dont l'adresse ne porte pas son nom (« Pôle Emploi » écrivant de francetravail.fr) recevrait encore « Bonjour Pôle Emploi »",
+  "defaut": "Aucun cas parmi les 26 expéditeurs du prototype.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "à garder en tête si l'on ajoute des expéditeurs de démonstration"
+ },
+ {
+  "nom": "Noms de signature d'un client organisme (« Syndic Foncia » dans « Nom et prénom » du devis)",
+  "defaut": "C'est le nom du contact, pas une salutation.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "décidé au tour 1"
+ },
+ {
+  "nom": "Phrase du patron en toast sur les captures",
+  "defaut": "Résidu d'une sonde qui changeait de rôle.",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "restes-client-1.js 39 ✓ · 0 ✗ (mac nuit) rejoué ce tour"
+ }
+]
