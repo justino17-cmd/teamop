@@ -131,5 +131,12 @@
   "À 820 px (iPad) et plus, le titre d'un document long dans le visionneur est coupé par « … » (« Devis DV-2026-0142 - Copropriété Les Hortensias - Ré… ») : voulu (une ligne), mais le nom entier ne se lit nulle part à cette largeur.",
   "Le cercle bleu autour de la croix ✕ du visionneur (anneau de focus) apparaît à l'ouverture sans que personne ait touché le clavier : à regarder sur un vrai iPhone/iPad (programmatic focus ; hors lot).",
   "Les entrées « à soumettre à Justin » (10, 11, 12 du livrable du correcteur) restent ouvertes, telles quelles : Mon camion à 320 px, mots de la Paie et du Mois pour un même fait, hauteur de la liste Véhicules au téléphone."
+ ],
+ "consignes_chef_tour2": [
+  "(1) Mois > Voir la paie > retour du système (history.back) revient sur Mois, comme la barre ‹ Retour.",
+  "(2) l'élision de vhCourt ne traite pas « Y » comme une voyelle devant une consonne (« la Yaris ») : balayer tous les noms de véhicules plausibles.",
+  "(3) le départ guidé ne pose plus une alerte impossible à traiter : si la semaine n'est pas finie, la ligne le dit et n'est pas une alerte.",
+  "Le compte « Prototype / données fictives » de la Comptabilité (compta-reste-parcours-f F5) : voir s'il se voit encore en mode application ; s'il se voit, le retirer.",
+  "Le recontrôle du tour 2 se fait AVEC MUTATIONS (une mutation par correction, commiter avant de muter, la mutation doit mordre)."
  ]
 }
