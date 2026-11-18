@@ -1,0 +1,93 @@
+[
+ {
+  "nom": "Un refus de saisie s'affiche deux fois sur téléphone (toast recopiant la phrase écrite sous le champ, et cachant « Joindre l'attestation »)",
+  "defaut": "casse 1 du recontrôle (equipe-04/06)",
+  "etat": "corrigé",
+  "changement": "entVerifier ne levait la bulle qu'à défaut de phrase visible, mais ne reconnaissait que les fiches de Mon entreprise (.ent-pan) : les fenêtres de l'Équipe (Inviter, Ajouter une habilitation) tombaient toujours sur la bulle. Il reconnaît maintenant toute feuille (#calque .panneau) et borne aussi par le bas de l'écran.",
+  "preuve": "reproduit sur iPhone (capture : bulle sur « Joindre l'attestation » et sur « Ton rôle… ») ; campagne/sondes/restes-equipe-1.js : 15 ✓ · 0 ✗ sur iPhone, iPhone nuit, Mac, 320 px ; captures regardées (jour/nuit)"
+ },
+ {
+  "nom": "Le refus du nom est une phrase de 7 lignes dans une demi-colonne sur téléphone",
+  "defaut": "casse 3",
+  "etat": "corrigé",
+  "changement": "NOM_PERS_REFUS devient « Lettres, chiffres, espaces et tirets seulement (60 signes au plus). » (67 signes, 3 lignes à 390 px, 128 px → 55 px) ; elle dit ce qu'on garde, plus la liste de ce qu'on refuse.",
+  "preuve": "restes-equipe-1.js A : phrase ≤ 90 signes et ≤ 70 px de haut ; capture iPhone nuit regardée"
+ },
+ {
+  "nom": "Sur la fiche d'un compte DÉSACTIVÉ, les deux gestes de mot de passe sont proposés",
+  "defaut": "casse 2",
+  "etat": "corrigé",
+  "changement": "Ni « Lui donner un mot de passe provisoire » ni « Lui envoyer un lien pour choisir le sien » (bloc Connexion ET rangée d'actions de la fiche, deux définitions) : à la place « Tom ne peut pas se connecter : réactive d'abord son compte pour lui donner un nouveau mot de passe », à côté de « Réactiver le compte ». Un compte actif garde ses deux gestes.",
+  "preuve": "restes-equipe-1.js B (désactivé par le geste, contre-épreuve sur Karim) ; capture iPhone regardée"
+ },
+ {
+  "nom": "Sur sa propre fiche, le gérant lit « Marc reçoit un e-mail… » (troisième personne)",
+  "defaut": "doute 3 du recontrôle",
+  "etat": "corrigé",
+  "changement": "Sur sa fiche : surtitre « Changer mon mot de passe », bouton « M'envoyer un lien pour choisir un nouveau mot de passe », phrase « Tu reçois un e-mail et tu choisis ton mot de passe toi-même », toast « tu choisis toi-même… » ; la phrase « Pour ton propre compte, demande à un autre administrateur » (qui laissait croire qu'on ne pouvait rien faire seul) devient « Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur ».",
+  "preuve": "restes-equipe-1.js D ; double-auth-equipe.js mise à jour : 48 ✓ · 0 ✗"
+ },
+ {
+  "nom": "Le bandeau « 1 compte verrouillé : Léa Roux. [Voir] » dit « Voir » seul ; le filtre « Invités » vide ne dit pas quoi faire",
+  "defaut": "doute-2 du testeur",
+  "etat": "corrigé",
+  "changement": "Bouton « Voir ce compte » / « Voir ces comptes » ; filtre Invités vide : « Aucune invitation en attente. Pour inviter quelqu'un, touche « Inviter une personne ». » ; Désactivés vide : « Aucun compte désactivé : tout le monde peut se connecter. ».",
+  "preuve": "restes-equipe-1.js D (Invités vide joué ; Désactivés : cartes présentes, phrase non jouée faute de population vide)"
+ },
+ {
+  "nom": "« Valable 72 heures (jusqu'au 20/11 à 12:30) » calculé sur l'horloge réelle",
+  "defaut": "doute-1 du testeur",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "le calcul passe par secuMaint() (31/10/2026 10:40 + 72 h) : la sonde lit « 03/11 » (restes-equipe-1.js D, 15 ✓) ; le « 20/11 » venait d'une mesure faite sur une autre horloge"
+ },
+ {
+  "nom": "Le bouton Retour qui ferme la fenêtre ET quitte l'écran",
+  "defaut": "voir (a)",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "voie à part (sondes/retour-*.js)"
+ },
+ {
+  "nom": "« Prototype : … » encore présent 8 fois dans la page (pasRegles 14)",
+  "defaut": "reporté à l'autre voie",
+  "etat": "déjà décidé",
+  "changement": "aucun : appNettoyer retire ces notes en mode application ; vérifié en texte visible sur 8 écrans (interventions, devis, accueil, achats, compta, temps, équipe, entreprise)",
+  "preuve": "sonde ad hoc : 8 ✓ · 0 ✗ ; la voie « mots » garde le reste (mots-regles-banc.js)"
+ },
+ {
+  "nom": "Décision equipe-11 : Julie (Secrétariat, « Voir » seule) voit Temps de travail (heures de toute l'équipe) et Véhicules ; un technicien dont on décoche « Travaille sur le terrain » prend la forme du bureau",
+  "defaut": "doute 1",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision du chef du 17/11 appliquée ; reste à trancher : un droit à part « Voir les heures de toute l'équipe » (données de salaire) ?"
+ },
+ {
+  "nom": "Aucun chemin d'écran pour donner le profil « Administrateur » à une deuxième personne",
+  "defaut": "doute 2",
+  "etat": "à soumettre à Justin",
+  "changement": "seule la phrase de sa propre fiche a été rendue utile (le lien de mot de passe est offert au gérant lui-même)",
+  "preuve": "un seul administrateur est-il voulu ? Sinon, il faut un geste « Donner la gestion de l'entreprise » ; le chemin de la fiche/invitation retire le profil de la liste exprès"
+ },
+ {
+  "nom": "Le départ guidé (« Au mieux de chacun ») peut confier une intervention à une technicienne seulement invitée, jamais connectée",
+  "defaut": "doute 4",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "la liste des remplaçants vient du planning (aRemplacants) : une recrue invitée y figure déjà pour être planifiée avant son premier jour ; l'exclure change le Planning aussi"
+ },
+ {
+  "nom": "« Rôle (un simple nom) » à côté de « Ses droits de départ » peut dérouter un débutant ; « Planifier la formation » visible d'un Responsable en lecture",
+  "defaut": "doute-3 du testeur",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "« Rôle (un simple nom) » reprend la phrase de Justin du 23/09 (« c'est juste des noms ») : à lui de dire s'il veut « Rôle (juste un nom, il ne change aucun droit) »"
+ },
+ {
+  "nom": "Les 6 cases sans geste visible à l'ouverture (equipe-droits-profonds : planif.s, crm.m, achats.s, com.c/m/s) et les 27 mutations du testeur non rejouées",
+  "defaut": "non vérifié du recontrôle",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "inchangé : gardées dans la table GESTES (tour 1 n'y touche pas) ; le module du courrier n'est pas lu par les relevés"
+ }
+]

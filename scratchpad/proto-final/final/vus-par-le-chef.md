@@ -189,7 +189,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
         téléphone accepte « poste 12 » et refuse plus de 20 chiffres ; une ligne de facture a le même plafond de prix que le
         forfait de création.
 
-- [ ] **Équipe — décisions du chef du 17/11, 12 h (equipe)** : · **equipe-11** : la case « Voir » décide SEULE si la personne voit
+- [x] (restes équipe 1 : equipe-11 et equipe-13 rejoués par le recontrôle adverse du 18/11 (19 règles) ; reste fait en plus — `final/restes-equipe-tour1.json`, sonde `campagne/sondes/restes-equipe-1.js`) **Équipe — décisions du chef du 17/11, 12 h (equipe)** : · **equipe-11** : la case « Voir » décide SEULE si la personne voit
       une rubrique ; retirer « Supprimer » à quelqu'un ne lui cache jamais une rubrique qu'il a le droit de voir (aujourd'hui
       « Temps de travail » disparaît sans « Temps de travail › Supprimer », et « Dépôts et camions » sans « Stock › Supprimer ») ;
       et la phrase sous chaque case dit exactement ce qu'elle ouvre. · **equipe-13** : les deux boutons qui changent un mot de
