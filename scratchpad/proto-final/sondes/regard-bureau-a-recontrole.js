@@ -146,7 +146,7 @@ const constats = [];
     if (sub('e')) for (const [profil, nuit] of [['petit', false], ['petit', true], ['iphone', false]]) {
       const c = await L.ouvrir({ profil, qui: 'julie', nuit }); await c.p.evaluate(() => cxAller('fventes')); await L.calme(c.p, 500);
       await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|factures"]'); if (b) b.click(); }); await L.calme(c.p, 600);
-      const r = await c.p.evaluate(() => { const l = [...document.querySelectorAll('#contenu .cx-row .cx-doc .petit')].filter(e => /^FAC-/.test(e.textContent)); return { n: l.length, coupes: l.filter(e => e.scrollHeight > e.clientHeight + 1).length, lignes: l.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 20))) }; });
+      const r = await c.p.evaluate(() => { const l = [...document.querySelectorAll('#contenu .cx-row .cx-doc .petit')].filter(e => /^FAC-/.test(e.textContent)); return { n: l.length, coupes: l.filter(e => e.scrollHeight > e.clientHeight + 1 || (innerWidth <= 380 && e.scrollWidth > e.clientWidth + 1)).length, lignes: l.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 20))) }; });
       v(`facture dans Ventes (${profil} ${nuit ? 'nuit' : 'jour'}) : ${r.n} lignes, aucune coupée (jusqu'à ${Math.max(...r.lignes)} lignes)`, r.n >= 6 && r.coupes === 0 && (profil === 'iphone' ? Math.max(...r.lignes) === 1 : Math.max(...r.lignes) <= 3), r);
       await L.fin(c);
     }
