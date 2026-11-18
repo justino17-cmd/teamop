@@ -46,5 +46,5 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   const TTC = await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-r4'); return { ht: htDe(f), ttc: ttcDe(f) }; });
   L.v('le TTC part du HT au centime', Math.abs(TTC.ttc - Math.round(TTC.ht * 110) / 100) < 0.006, JSON.stringify(TTC));
   await L.capture(c, X.CAP + 'restes4-totaux-' + (process.argv[2] || 'mac') + (process.argv[3] === 'nuit' ? '-nuit' : '') + '.png');
-  await L.fermer(c); L.bilan();
+  await L.fermer(c); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
