@@ -856,6 +856,8 @@ var CSS = `
   .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
   .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
   .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
+  /* la rangée « Réponse rapide » n'a plus un bouton à offrir : on la retire ENTIÈRE (sinon son libellé de bureau reste seul, et au téléphone sa marge de 26 px et ses deux écarts de flex laissent un blanc entre le suivi et la rangée Catégorie) */
+  .opc[data-ranger="0"] .rquick{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -1479,6 +1481,8 @@ var CSS = `
   .opc .hband .hd{font-size:14px;line-height:1.4;color:var(--label-2);white-space:pre-line}
   .opc .hband .hliens{display:flex;flex-wrap:wrap;gap:4px 14px}
   .opc .hband .hliens .lnk{color:var(--tint);font-size:14px;font-weight:600;min-height:32px;display:inline-flex;align-items:center}
+  /* un nom long (« Chauffage Distribution Atlantique ») passe à la ligne au lieu de sortir de la carte et de couper le chevron : le lien général est en nowrap, ici il y a la place de s'étaler (restes entreprise, tour 3) */
+  .opc .hband .hliens .lnk{white-space:normal;max-width:100%;min-width:0;text-align:left}
   .opc .hband .hliens .chv{display:inline-flex;width:12px;height:12px;margin-left:2px}
   .opc .hband .hliens .chv svg{width:12px;height:12px}
   .opc .hband .hacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
@@ -2348,7 +2352,7 @@ var MARKUP = `
      Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
   var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
   function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
-  function histCible(){ return isPhone()?((app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)):0; }
+  function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0); }   // le message en cours d'écriture ou la fenêtre « Ajouter une boîte » est un niveau sur TOUS les formats (sur ordinateur aussi, Retour le fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
     HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
@@ -4418,7 +4422,7 @@ var MARKUP = `
   sur(window,"popstate",function(){
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
-    if(HIST.niv<=0||!isPhone()) return;
+    if(HIST.niv<=0) return;
     // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
     if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
     HIST.niv--;
