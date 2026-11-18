@@ -28,8 +28,9 @@ done
 for s in restes2-bandeau restes2-toast; do lance "entreprise-$s" $S/entreprise-$s.js; done
 lance "entreprise-restes1-recontrole g" $S/entreprise-restes1-recontrole.js g
 for s in restes3-bandeau restes3-lien restes3-blanc; do lance "entreprise-$s" $S/entreprise-$s.js; done
-# recontrôle du tour 3 : « c » (créneaux proposés → options au planning sans la case Planning) est un défaut OUVERT, laissé hors de la série tant qu'il n'est pas réglé
-for n in a b d e f; do lance "entreprise-restes3-recontrole $n" $S/entreprise-restes3-recontrole.js $n; done
+# recontrôle du tour 3 : « c » (créneaux proposés → options au planning sans la case Planning) est réglé au tour 4 (restes4-creneaux) : il rentre dans la série
+for n in a b c d e f; do lance "entreprise-restes3-recontrole $n" $S/entreprise-restes3-recontrole.js $n; done
+lance "entreprise-restes4-creneaux" $S/entreprise-restes4-creneaux.js
 if [ -z "$RAPIDE" ]; then
   # « 12 » est jouée avec « 01 » (même bloc) ; « 06 » n'a pas de section
   for n in 01 02 03 04 05 07 08 09 10 11 13; do lance "entreprise-corrections $n" $S/entreprise-corrections.js $n; done
