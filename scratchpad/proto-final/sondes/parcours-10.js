@@ -39,7 +39,7 @@ const ctFin = async c => { await L.aller(c.p, 'comptabilite'); await c.p.waitFor
     const fi = await S(c, () => { const f = FACTURES.find(x => !window.__avant.includes(x.id)) || FACTURES[FACTURES.length - 1]; return { id:f.id, st:f.st, num:f.num, n:FACTURES.length, cli:f.cli }; });
     const pf = net(await txt(c, '#contenu'));
     v('C2 (donnée) la facture est préparée « à valider », sans numéro (« — »), pour l’Hôtel de la Plage : ' + (fi.n - n0) + ' facture de plus', fi.n === n0 + 1 && fi.st === 'avalider' && fi.num === '—' && fi.cli === e0.hotel, fi);
-    v('C3 (écran) la PAGE de la facture nomme le SIRET parmi ce qui manque (« Il manque sur cette facture : le SIRET, la forme juridique… ») — sans lui elle ne part pas', /Il manque sur cette facture : le SIRET,/.test(pf), pf.slice(0, 500));
+    v('C3 (écran) la PAGE de la facture nomme le SIRET parmi ce qui manque (« Il manque sur cette facture : le SIRET, la forme juridique… ») — sans lui elle ne part pas', (c.largeur >= 700 ? /Il manque sur cette facture : le SIRET,/.test(pf) : /Il manque 4 mentions/.test(pf)), pf.slice(0, 500));   /* au téléphone la page compte au lieu de lister : 4 = le SIRET et les trois mentions légales */
     await cap(c, '10-C3-facture-' + P.PROFIL);
     await S(c, () => document.querySelector('[data-action="apercuEnvoi"]').click()); await p.waitForTimeout(700);
     const ap = await S(c, () => { const P_ = document.querySelector('#calque .panneau'); return { envoyer:!!P_.querySelector('[data-action="envoyer"]'), ban:((P_.querySelector('.ent-ban') || {}).innerText || '').replace(/\s+/g, ' '), boutons:[...P_.querySelectorAll('.ent-ban .btn')].map(b => b.textContent.trim()) }; });
