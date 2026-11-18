@@ -22,7 +22,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   // F3 chiffrer
   await p.fill('input[data-prix]:placeholder-shown', '35,5'); await p.evaluate(() => document.querySelector('input[data-prix]:not([placeholder=""])') && 0); await p.keyboard.press('Tab'); await L.calme(p, 500);
   const tot = await ev(() => { const f = FACTURES.find(x => x.id === 'f-i1'); const ht = f.lignes.reduce((s, l) => s + (l.pu || 0) * (parseFloat(String(l.q).replace(',', '.')) > 0 && !/[a-z]/i.test(l.q) ? parseFloat(String(l.q).replace(',', '.')) : 1), 0); return { ht: Math.round(ht * 100), tva: f.tva, pus: f.lignes.map(l => l.pu) }; });
-  t = await txt(); const lire = re => { const m = t.match(re); return m ? L.cents(m[1]) : null; }, N = '([\\d\\s\\u00a0\\u202f,.]+€)';
+  t = await txt(); const lire = re => { const g = [...t.matchAll(new RegExp(re.source, 'g'))]; const m = g[g.length - 1]; return m ? L.cents(m[1]) : null; }   /* le DERNIER « Total HT » : sur ordinateur, l'en-tête de la colonne des lignes porte le même libellé, suivi du total de la 1re ligne */, N = '([\\d\\s\\u00a0\\u202f,.]+€)';
   const htE = lire(new RegExp('Total HT\\s*' + N)), ttcE = lire(new RegExp('Total TTC\\s*' + N));
   console.log('  · lignes après saisie du prix :', JSON.stringify(tot.pus), '· HT écran', htE, '· TTC écran', ttcE);
   v('F3 le prix saisi est retenu et le total HT se recalcule au centime', htE === tot.ht && tot.pus.includes(35.5), [htE, tot]);

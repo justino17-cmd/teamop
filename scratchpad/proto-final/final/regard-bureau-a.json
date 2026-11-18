@@ -1,0 +1,199 @@
+{
+ "role": "bureau (lib.ouvrir({ qui:'julie' }), mode application)",
+ "etat": "en cours — captures mac/iphone/petit/android jour+nuit regardées par planches ; ipad/windows en reprise",
+ "rubriques": [
+  {
+   "nom": "Mes tâches",
+   "ecrans": [
+    "Aujourd'hui",
+    "À venir",
+    "Faites",
+    "Nouvelle tâche",
+    "Fiche d'une tâche",
+    "Retards",
+    "vide",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Interventions",
+   "ecrans": [
+    "5 filtres",
+    "3 fiches",
+    "Créer",
+    "vide",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Clients",
+   "ecrans": [
+    "3 rangements",
+    "Nouveau client",
+    "fiche + 9 onglets",
+    "vide",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Devis",
+   "ecrans": [
+    "5 filtres",
+    "4 fiches",
+    "Dicter",
+    "Devis rapide",
+    "Composer",
+    "vide",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Contrats",
+   "ecrans": [
+    "liste",
+    "2 fiches",
+    "Nouveau",
+    "modèle",
+    "Composer",
+    "vide",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  },
+  {
+   "nom": "Comptabilité",
+   "ecrans": [
+    "accueil",
+    "21 sections",
+    "3 fiches de facture",
+    "vides",
+    "plein long"
+   ],
+   "captures": 0,
+   "regardees": 0
+  }
+ ],
+ "defauts": [
+  {
+   "n": 1,
+   "ecran": "Comptabilité › fiche d'une facture, lignes au téléphone",
+   "profils": [
+    "petit",
+    "android",
+    "iphone"
+   ],
+   "jourNuit": "jour et nuit",
+   "constat": "trois colonnes laissaient ~100 px à la désignation et un total de 12 351,67 € sortait de la carte ; à 320 px la colonne du prix unitaire (68 px) restait ouverte (une règle td{font-size:13px} de 320 px battait font-size:0)",
+   "etat": "corrigé",
+   "changement": ".fac-lig : le prix unitaire passe sous la désignation, sa colonne se referme, !important sur font-size (apercu/prototype-op-gestion.html)"
+  },
+  {
+   "n": 2,
+   "ecran": "Interventions, liste vide",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "jourNuit": "jour et nuit",
+   "constat": "« Rien ici. » ne disait ni pourquoi ni quoi faire",
+   "etat": "corrigé",
+   "changement": "une carte (titre, phrase, geste) par filtre — posée par la voie « restes interventions », gardée ici"
+  },
+  {
+   "n": 3,
+   "ecran": "Clients « Par mois » sans client",
+   "profils": [
+    "mac",
+    "iphone"
+   ],
+   "jourNuit": "jour",
+   "constat": "écran blanc sous le sélecteur",
+   "etat": "corrigé",
+   "changement": "un message pour les trois rangements"
+  },
+  {
+   "n": 4,
+   "ecran": "Fiche à planifier / en-tête client",
+   "profils": [
+    "petit",
+    "iphone"
+   ],
+   "jourNuit": "jour",
+   "constat": "un numéro de téléphone se coupait en fin de ligne",
+   "etat": "corrigé",
+   "changement": "espaces insécables"
+  },
+  {
+   "n": 5,
+   "ecran": "Comptabilité › Achats (et Factures), catégories et filtres au téléphone",
+   "profils": [
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "jourNuit": "jour et nuit",
+   "constat": "« Véhicules & carburant » et « Frais généraux » sortaient de l'écran sans aucun signe ; « Sans justificatif » se lisait « Sans justific »",
+   "etat": "corrigé",
+   "changement": ".cx-cats : fondu sur le bord droit + marge pour le dernier chip ; .cx-outils .seg passe à la ligne comme les filtres des devis"
+  },
+  {
+   "n": 6,
+   "ecran": "Fiche contrat / facture / client, « 1 tâche ouverte »",
+   "profils": [
+    "petit"
+   ],
+   "jourNuit": "jour et nuit",
+   "constat": "« 1 tâche / ouverte » sur deux lignes à 320 px pendant que « pour ce contrat » gardait sa largeur",
+   "etat": "corrigé",
+   "changement": ".t-ici summary b{white-space:nowrap} ; le petit texte cède"
+  },
+  {
+   "n": 7,
+   "ecran": "Fiches avec le lien « Nom du client › », nom de 60 signes",
+   "profils": [
+    "petit",
+    "iphone",
+    "android"
+   ],
+   "jourNuit": "jour",
+   "constat": "la flèche › restait seule sur sa ligne",
+   "etat": "corrigé",
+   "changement": "espace insécable devant › (6 emplois)"
+  },
+  {
+   "n": 8,
+   "ecran": "Comptabilité › Factures, liste vide",
+   "profils": [
+    "mac",
+    "iphone",
+    "petit"
+   ],
+   "jourNuit": "jour",
+   "constat": "« Rien ici avec ces filtres. » aussi quand il n'existe AUCUNE pièce, sans dire quoi faire",
+   "etat": "corrigé",
+   "changement": "deux messages : filtre sans résultat (ôter le filtre) / aucune pièce (comment elles viennent)"
+  },
+  {
+   "n": 9,
+   "ecran": "Clients › fiche › Factures, tableau",
+   "profils": [
+    "iphone",
+    "android",
+    "petit"
+   ],
+   "jourNuit": "jour et nuit",
+   "constat": "la pastille « Envoyée · en attente » sur une ligne forçait le tableau à défiler et sortait coupée (« Envoyée · en at »)",
+   "etat": "corrigé",
+   "changement": "@media ≤760 : la pastille d'un tableau passe à la ligne"
+  }
+ ]
+}

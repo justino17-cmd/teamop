@@ -1,0 +1,23 @@
+[
+ {
+  "nom": "La barre du bas de la fiche d'une tâche met « Relancer maintenant », « Relancer le devis », « Prévenir M. Durand » et six autres libellés courts sur DEUX lignes à 390 px (casse du recontrôle du tour 3)",
+  "defaut": "La règle « #calque .tkx-barre .btn » gardait flex:1 1 0 : les deux boutons se partageaient 50/50, donc tout libellé plus long que la moitié passait à la ligne, alors que le voisin « Déjà fait » laissait de la place.",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html, palier téléphone : le bouton d'action prend flex:1 1 auto (il se règle sur son texte), « Fait / Déjà fait » flex:0 0 auto (il garde sa largeur, ne rétrécit jamais) ; le libellé de l'action est enveloppé dans <span class=\"tkx-lib\"> coupé à DEUX lignes avec « … » (line-clamp:2), le nom entier restant dans la carte « Client » au-dessus.",
+  "preuve": "reproduit (restes-client-3-recontrole.js sur l'état poussé : 11 ✓ · 1 ✗) puis 12 ✓ · 0 ✗ (iphone nuit, iphone jour, iphone nuit pour kb), 10 ✓ (petit nuit, android nuit julie), 8 ✓ (ipad, mac, windows jour sm). Mutations : sans la règle « .btn.gris » et avec flex:1 1 0 → 1 ✗ (libellés courts sur trois rangées) ; sans line-clamp → 1 ✗ (bouton de 70 px et de 108 px). Captures relues : r3-barre-mi-iphone-nuit (« Prévenir Copropriété Les Mimosas » sur deux lignes, « ✓ Fait » entier), r4-relancer-iphone (« ✉ Relancer le devis » sur une ligne, « Déjà fait » plus étroit), r3-barre-zzlong-petit-nuit. Voisins rejoués : restes-client-2-recontrole 22 ✓, restes-client-2 16 ✓, restes-client-1 39 ✓, restes-client-2-recontrole-barre 4 ✓ (iphone nuit, petit nuit) ; sonde neuve restes-client-4-relancer.js 4 ✓."
+ },
+ {
+  "nom": "Nouveau (tour 3) : un nom de client très long (38 à 62 signes) fait grandir le bouton « Prévenir … » à cinq lignes à 320 px",
+  "defaut": "À 320 px, « 💬 Prévenir Société civile immobilière des Hauts de la Rochelle et Associés » prenait ~100 à 127 px de haut et le tiers de l'écran.",
+  "etat": "corrigé",
+  "changement": "même changement que ci-dessus (coupure à deux lignes avec « … »).",
+  "preuve": "la sonde mesure maintenant le nom inventé de 62 signes : ≤ 64 px de haut à 320 px (petit nuit, 10 ✓), 360 px (android) et 390 px ; capture r3-barre-zzlong-petit-nuit relue : deux lignes, « … » à la fin, « ✓ Fait » entier."
+ },
+ {
+  "nom": "Cinq doutes pour Justin, inchangés (tour 3)",
+  "defaut": "(1) trois façons de nommer l'appel d'une copropriété (« Appeler Syndic Foncia », « Prévenir Copropriété Les Mimosas », « Appeler Copropriété Les Mimosas : facture… ») ; (2) le menu de l'espace client « Marc Leblanc · Mon compte · Se déconnecter » (bloc de la session de revue) ; (3) la carte « Votre demande est envoyée » qui disparaît quand « Proposer un contrat » est fait sans créer de contrat ; (4) « Bonjour M. Pierre Delmas, » dans le cadre Documents ; (5) un expéditeur dont l'adresse ne porte pas son nom recevrait encore « Bonjour <nom> ».",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décisions de produit ; rien de faux ni de coupé. Le cadre Documents est fabriqué depuis atelier/page.source : on ne le retouche pas à la main."
+ }
+]

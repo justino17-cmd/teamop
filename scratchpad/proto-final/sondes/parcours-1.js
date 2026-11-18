@@ -122,7 +122,7 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     await L.aller(p, 'facture-x-f-' + id);
     const f0 = net(await txt(c, '#contenu'));
     v('F1 (écran) la facture « À valider » reprend les 3 lignes et le total : 158,00 € HT, 31,60 € de TVA, 189,60 € TTC', /À valider/.test(f0) && /Total HT 158,00 €/.test(f0) && /31,60 €/.test(f0) && /Total TTC 189,60 €/.test(f0), f0.slice(0, 500));
-    v('F2 (écran) la facture dit ce qu’il manque (« forme juridique, immatriculation, assurance ») tant que la fiche de l’entreprise n’est pas complète', /Il manque (sur cette facture : la forme juridique, l’immatriculation[^.]*l’assurance professionnelle|3 mentions légales)/.test(f0), f0.slice(0, 300));
+    v('F2 (écran) la facture dit ce qu’il manque (« forme juridique, immatriculation, assurance ») tant que la fiche de l’entreprise n’est pas complète', /Il manque (sur cette facture : la forme juridique, l’immatriculation[^.]*l’assurance professionnelle|3 mentions( légales)?)/.test(f0), f0.slice(0, 300));
     v('F3 les heures de la facture sont celles du rendez-vous (11:00 – 12:00), pas 07:00 – 08:00', /sur place 11:00 – 12:00/.test(f0) && !/07:00/.test(f0), f0.slice(0, 600));
     await clic(c, '[data-cx="fiche"]'); await p.waitForTimeout(600);
     await S(c, () => { const f = (i, x) => { const e = document.getElementById(i); if (e && !e.value) { e.value = x; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); } };

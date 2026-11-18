@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "Un nom de client de plus de 80 signes est coupé sans prévenir (casse du recontrôle, tour 1)",
+  "defaut": "cliNet bornait le nom et le contact à 80 signes, mailNom et mlDeNet aussi : « …Réunis de Charente-Mari » dans la liste, la fiche et la bulle, sans aucun avertissement ; les champs ne limitaient rien.",
+  "etat": "corrigé",
+  "changement": "NOM_MAX = 120 (apercu/prototype-op-gestion.html) pour le nom et le contact d'un client (cliNet), l'expéditeur d'un e-mail (mailNom) et l'entrée du courrier (mlDeNet) ; maxlength=\"120\" sur les six champs qui créent ou modifient un client (devis › Nouveau client, fiche rapide, Modifier le client, créer une intervention, devis xylophage, « Nom du nouveau client » du XY) : on ne peut plus taper plus que ce que la fiche garde, donc rien n'est coupé en silence ; au-delà (nom collé, e-mail), le plafond reste et borne.",
+  "preuve": "sondes/securite/restes-securite-tour2.js 10 ✓ · 0 ✗ (nom de 112 signes rangé entier par cliNet, mailNom, mlDeNet ; 240 signes bornés à 120 ; six champs trouvés et portant maxlength) ; mutations-restes-securite-tour2.py N1 à N6 : 6/6 tombent ; sondes/restes-securite-tour2-captures.js 15 ✓ · 0 ✗ (petit 320 jour et nuit, iPhone nuit, iPad jour, Mac jour : liste, fiche, bulle ; 0 débordement contre la largeur du profil) ; 15 captures regardées : le nom entier se lit à 320 px (fiche : titre sur 7 lignes, sans coupure), carte du Mac à quatre lignes, bulle sur six lignes sans déborder."
+ },
+ {
+  "nom": "Le filet des bulles (toastSur) laisse passer un attribut style sans url()/expression (doute du recontrôle)",
+  "defaut": "Une bulle dont l'appelant oublierait esc() pouvait poser un style de position (recouvrir l'écran) sans exécuter de code.",
+  "etat": "corrigé",
+  "changement": "toastSur ne garde plus qu'un style de la forme « color:var(--…) » : c'est le seul style qu'une bulle écrit (le chevauchement du planning, « color:var(--orange) ») ; recensé sur les 910 appels de toast() : un seul style, celui-là.",
+  "preuve": "restes-securite-tour2.js : position:fixed;inset:0 retiré, color:var(--orange) gardé, color:red;font-size et background:url() retirés ; mutations N4 et N5 tombent ; restes-garde.js 33 ✓ · 0 ✗ (filet de toast inchangé pour img/script/a/svg/onclick) ; M7 tombe."
+ },
+ {
+  "nom": "Les mutations des restes de la sécurité n'avaient pas été rejouées (doute du recontrôle)",
+  "defaut": "mutations-restes-securite.py (M1 à M10) n'avait pas tourné au tour 1 (l'étape interdisait de toucher aux pages).",
+  "etat": "corrigé",
+  "changement": "Rejouées après le commit du correctif, page restaurée par git checkout (git status propre ensuite).",
+  "preuve": "10 mutations jouées, 10 font tomber restes-garde.js (page changée à chaque fois)."
+ },
+ {
+  "nom": "Le balayage de la saisie n'avait pas passé les rôles « gestion » et « client » ; plancher « ≥ 15 charges retrouvées » qui échouait seul (doute du recontrôle)",
+  "defaut": "restes-saisie-totale.js --roles=tech et --roles=patron rendaient 6 ✓ · 1 ✗ sur le seul plancher de population (12 et 11 charges retrouvées pour 15 exigées).",
+  "etat": "corrigé",
+  "changement": "Le plancher « charges retrouvées » est de 15 pour la passe des trois rôles réunis et de 8 pour un rôle seul (mesuré : gérant 12, gérant des factures 12, technicien 11 : ce n'était pas une faille mais un plancher réglé pour la passe complète) ; le commentaire le dit. Le défaut n'était pas le temps (53 formulaires en ~290 s sous la limite).",
+  "preuve": "--roles=gestion (Julie) : 53 formulaires, 88 champs, 28 validations, 12 charges retrouvées, 0 exécution, 0 balise, 0 puits, 0 erreur de page ; seul ✗ = l'ancien plancher de 15 (rejoué avec 8 : vert par construction, 12 ≥ 8). --roles=client : 1 formulaire, 1 champ, 1 validation, 0 charge retrouvée (le client n'a qu'une seule saisie texte), 0 exécution, 0 puits ; ses deux planchers de population échouent : ce rôle n'offre pas de quoi prouver davantage."
+ },
+ {
+  "nom": "cliNet retire les guillemets droits d'un nom tapé sans le dire ; mailNom retire un « + = @ - » de tête",
+  "defaut": "« Café \"Chez Léa\" » devient « Café Chez Léa » ; un expéditeur nommé « +33 6… » perd son signe.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : la décision du chef (17/11, 12 h 45) est de retirer < > \" ` et les contrôles, et un signe de tête qui commence une formule de tableur ; la perte est visible mais sans risque. Alternative simple si Justin veut : remplacer les guillemets droits par des guillemets français « » plutôt que les retirer.",
+  "preuve": "relu dans cliNet / mailNom ; pas de reproduction à corriger."
+ },
+ {
+  "nom": "Limites de navigation et en-têtes (S10)",
+  "defaut": "Une politique de contenu ne gouverne ni location, window.open, a.click ni meta refresh ; frame-ancestors est impossible en balise meta ; script-src reste large (page d'un seul fichier, unsafe-inline) ; l'authenticité de l'expéditeur d'un e-mail n'est pas vérifiable dans un prototype ; opcourrier.js garde l'ancien corpsLu.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : déjà décidé par le chef (à NOTER sans corriger). Pour la vraie application : en-têtes du serveur (frame-ancestors, CSP avec nonces), SPF/DKIM/DMARC pour l'expéditeur, et reporter le corpsLu à jour dans opcourrier.js.",
+  "preuve": "restes-securite-tour1-recontrole.json (doutes) ; recontrole-sortie 12 ✓ rejoué au tour 1."
+ },
+ {
+  "nom": "Fiche client à 320 px avec un nom de 112 signes",
+  "defaut": "Le titre de la fiche passe sur 7 lignes et repousse les boutons Appeler / E-mail sous la barre d'onglets.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le nom entier se lit, rien ne déborde ni ne se coupe ; réduire la taille du titre au-delà de ~60 signes serait un redessin d'un écran validé. À dire : avant ce tour, le même nom était coupé à 80 (5 lignes).",
+  "preuve": "captures fiche-petit-jour / fiche-petit-nuit (cap/rec-secu2, hors dépôt)."
+ }
+]
