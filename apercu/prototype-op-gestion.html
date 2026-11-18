@@ -8644,7 +8644,7 @@ function cpEtapes(){
     { k:'fac', ok:!avv.length && !afac.length, t:'Les factures du mois sont toutes émises', d:(afac.length ? `${afac.length} intervention${afac.length > 1 ? 's' : ''} terminée${afac.length > 1 ? 's' : ''} sans facture : ${afac.map(x => esc(x.c.nom)).join(', ')}` + (avv.length ? ' · ' : '') : '') + (avv.length ? `${avv.length} facture${avv.length > 1 ? 's' : ''} préparée${avv.length > 1 ? 's' : ''}, pas encore envoyée${avv.length > 1 ? 's' : ''} : ${avv.map(f => esc(CLIENTS[f.cli].nom) + ' (' + eur(ttcDe(f)) + ')').join(', ')}` : afac.length ? '' : 'Une facture préparée devient une écriture le jour où elle part.'), go:avv.length ? 'factures' : null, cx:avv.length ? null : 'dosf|afacturer' },
     { k:'banque', ok:!rap.aExpliquer.length, t:'Chaque ligne de la banque est expliquée', d:rap.aExpliquer.length ? `${rap.aExpliquer.length} ligne${rap.aExpliquer.length > 1 ? 's' : ''} à expliquer : ${rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}` : `Les ${CP_RELEVE.length} lignes du relevé correspondent à une facture, un achat ou un dépôt.`, onglet:'banque' },
     { k:'caisse', ok:!ca.chezTech.length && !ca.chq.length && !ca.solde, t:'L’argent liquide et les chèques sont à la banque', d:[ca.chezTech.length ? `${cpTechNoms(ca.chezTech)} a encore ${eur(ca.chezTech.reduce((s, e) => s + e.ttc, 0))} reçus sur place` : '', ca.solde ? `${eur(ca.solde)} d’espèces au bureau à déposer` : '', ca.chq.length ? `${ca.chq.length} chèque${ca.chq.length > 1 ? 's' : ''} à remettre (${eur(ca.chq.reduce((s, e) => s + e.ttc, 0))})` : ''].filter(Boolean).join(' · ') || 'Rien ne traîne dans un tiroir ou une camionnette.', onglet:'caisse' },
-    { k:'just', ok:!tv.sans.length, t:'Chaque achat a sa facture', d:tv.sans.length ? `${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${tv.sans.map(a => esc(a.four) + (a.piece === 'ticket' ? ' (ticket de carte seul)' : '')).join(', ')} — ${eur(tv.manque)} de TVA que tu ne récupères pas tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}` : 'Les factures sont là ; ce qui se déduit vraiment (véhicule, repas…) se vérifie avec ton expert-comptable.', cx:'sec|fachats|achats|sanspiece' },
+    { k:'just', ok:!tv.sans.length, t:'Chaque achat a sa facture', d:tv.sans.length ? `${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${tv.sans.map(a => esc(a.four) + (a.piece === 'ticket' ? ' (ticket de carte seul)' : '')).join(', ')} — ${eur(tv.manque)} de TVA que tu ne récupères pas tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}` : 'Les factures sont là ; ce qui se déduit vraiment (véhicule, repas…) se vérifie avec ton expert-comptable.', cx:'sec|fachats|achats|sansfacture' },
     { k:'tva', ok:!rap.aExpliquer.length && !tv.sans.length, t:'La TVA d’octobre est calculée', d:`${eur(tv.aPayer)} à payer en novembre — à vérifier avec ton expert-comptable avant de déclarer${tv.sans.length || rap.aExpliquer.length ? ' ; montant provisoire tant que les points au-dessus restent ouverts' : ''}.`, onglet:'tva' }
   ];
 }
@@ -8663,7 +8663,7 @@ function vueComptabilite(){
     <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button>${CP.envoye ? '' : `<button type="button" class="btn" data-cp="envoi">Envoyer octobre à ${esc(CP_EXPERT.qui.split(' ')[0])}</button>`}</div></div>
   ${clos}
   <div class="kpis">
-    <button type="button" class="kpi" data-cp="onglet|ecritures"><b>${eur(facHT)}</b><span>facturé en octobre (HT) · ${facOct.length} facture${facOct.length > 1 ? 's' : ''}</span></button>
+    <button type="button" class="kpi" data-cp="onglet|ecritures"><b>${eur(facHT)}</b><span>facturé en octobre (HT) · ${cxFacLib(facOct)}</span></button>
     <button type="button" class="kpi" data-cp="go|encaissements"><b style="color:var(--vert)">${eur(encTTC)}</b><span>encaissé en octobre (TTC)${terrain.length ? ` <i class="cp-k">+ ${eur(cpR(terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cp="onglet|ensemble"><b>${eur(cpR(facHT - achHT))}</b><span>facturé moins achats (HT, indicatif, avant salaires)</span></button>
     <button type="button" class="kpi" data-cp="onglet|banque"><b>${eur(cpR(soldeBq + enRoute + enMain))}</b><span>trésorerie · banque ${eur(soldeBq)}${enRoute ? ' + en route ' + eur(enRoute) : ''}${enMain ? ' + en main ' + eur(enMain) : ''}</span></button>
@@ -10493,7 +10493,7 @@ const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').repl
 const NOM_PERS_REFUS = 'Un prénom ou un nom s’écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > " & ni de signes spéciaux.';
 const libelleSur = (t, n) => String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
-/* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un courriel ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
+/* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
    Chaque écran qui les écrit en HTML les ÉCHAPPE à la sortie (esc). Toute création de client passe par cliNet(), toute modification aussi */
 /* texteNet : le même nettoyage, SANS rogner ni replier les espaces — pour ce qu'on garde pendant qu'on tape (une espace tapée en fin de mot ne doit pas disparaître sous le doigt) ; libelleSur() rogne à l'enregistrement */
@@ -10638,8 +10638,8 @@ let ML_BOITES = [
 /* UNE RÈGLE POUR TOUT TEXTE VENU DU DEHORS OU TAPÉ (17 novembre 2026, décision du chef) : il est NETTOYÉ une fois À L'ENTRÉE (on garde « & », l'apostrophe, les accents ;
    on retire < > " ` et les caractères de contrôle ou d'inversion de sens) et rangé tel quel, SANS entité HTML ; il est ÉCHAPPÉ une fois À LA SORTIE (esc dans tout innerHTML,
    bulle de message comprise). Jamais les deux (c'est ce qui affichait « &amp;amp; » dans l'Historique), jamais aucun des deux.
-   Un expéditeur de courriel est un INCONNU : son nom ne porte ni balise, ni formule de tableur (= + - @ en tête), 80 signes au plus ; son adresse ni chevron, ni guillemet, ni espace ;
-   un courriel sans champ d'adresse se lit « expéditeur inconnu » au lieu de faire jeter la Boîte mail. mlDeNet() est LA porte d'entrée : mlM() et MAILS.push() y passent. */
+   Un expéditeur d’e-mail est un INCONNU : son nom ne porte ni balise, ni formule de tableur (= + - @ en tête), 80 signes au plus ; son adresse ni chevron, ni guillemet, ni espace ;
+   un e-mail sans champ d'adresse se lit « expéditeur inconnu » au lieu de faire jeter la Boîte mail. mlDeNet() est LA porte d'entrée : mlM() et MAILS.push() y passent. */
 const mailAdr = m => String((m && m.de && m.de.mail) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').slice(0, 120);   /* les espaces restent : « x@y.fr␣ » n'est PAS l'adresse du client (pas d'usurpation par variante) — seule la fiche client créée en retire (cliNet) */
 const mailNom = m => String((m && m.de && (m.de.nom || m.de.mail)) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/^[\s=+\-@]+/, '').trim().slice(0, 80) || String((m && m.de && m.de.mail) || 'Expéditeur inconnu').replace(/^[=+\-@<>"`\s]+/, '').slice(0, 80) || 'Expéditeur inconnu';
 const mlDeNet = de => { const d = de && typeof de === 'object' ? de : {}; return { ...d, nom:String(d.nom == null ? '' : d.nom).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80), mail:mailAdr({ de:d }) }; };
@@ -10845,7 +10845,7 @@ function vueAchats(){
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">Ce que l’équipe demande et les notes de frais à valider. Les factures des fournisseurs, leur paiement et les justificatifs sont dans la Comptabilité.</span></div></div>
     <div class="kpis"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} à décider</span></button>
       <button type="button" class="kpi" data-cx="sec|factures|achats|traiter"><b>${eur0(ap.reduce((s, a) => s + acTTC(a), 0))}</b><span>à payer${ret.length ? ` · <span class="ve-rt">${ret.length} en retard</span>` : ''} · dans la Comptabilité ›</span></button>
-      <button type="button" class="kpi" data-cx="sec|factures|achats|sanspiece"><b style="color:${sp ? 'var(--orange)' : 'inherit'}">${sp}</b><span>achat${sp > 1 ? 's' : ''} sans facture · dans la Comptabilité ›</span></button>
+      <button type="button" class="kpi" data-cx="sec|factures|achats|sanspiece"><b style="color:${sp ? 'var(--orange)' : 'inherit'}">${sp}</b><span>achat${sp > 1 ? 's' : ''} sans justificatif · dans la Comptabilité ›</span></button>
       <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
     <div class="seg pr-vues" role="tablist" aria-label="Vues">${O.map(([k, l, c, n]) => `<button type="button" role="tab" data-ac="onglet|${k}" aria-pressed="${acOnglet === k}" aria-selected="${acOnglet === k}"><span class="l-long">${l}</span><span class="l-court">${c}</span>${n ? ` <span class="pr-nb${k === 'demandes' || k === 'notes' ? ' chaud' : ''}">${n}</span>` : ''}</button>`).join('')}</div>
     ${{ demandes:acDemandes, payer:acPayer, depenses:acDepenses, notes:acNotes }[acOnglet]()}`;
@@ -11211,7 +11211,7 @@ function cxDocs(){
   return L.sort((x, y) => (y.d || '9999').localeCompare(x.d || '9999'));
 }
 const cxGarde = x => (CX.cat === 'tous' || CX.cat === x.fam || CX.cat === x.cat)
-  && ({ tous:true, traiter:CX_A_TRAITER.includes(x.st), retard:x.st === 'retard', payee:x.st === 'payee', sanspiece:x.src !== 'ndf' && (!x.piece || x.sf) })[CX.st]
+  && ({ tous:true, traiter:CX_A_TRAITER.includes(x.st), retard:x.st === 'retard', payee:x.st === 'payee', sanspiece:x.src !== 'ndf' && !x.piece, sansfacture:x.src !== 'ndf' && x.sf })[CX.st]
   && (!CX.q.trim() || sansAccent(x.num + ' ' + x.tiers + ' ' + x.objet).replace(/\s+/g, ' ').includes(sansAccent(CX.q.trim()).replace(/\s+/g, ' ')));
 
 /* ─── les chiffres du mois (les mêmes calculs que la catégorie d'avant) ─── */
@@ -11259,9 +11259,9 @@ function cxVueFactures(D, famille){
   const chip = (k, ic, l) => `<button type="button" class="cx-chip" data-cx="cat|${k}" aria-pressed="${CX.cat === k}">${ic ? `<span aria-hidden="true">${ic}</span> ` : ''}${l} <span class="cx-c">${nbCat(k)}</span></button>`;
   const cats = f => CX_CATS.filter(c => c.fam === f && c.k !== 'ndf' && nbCat(c.k)).map(c => chip(c.k, c.ic, c.l)).join('');
   const fam = (f, l) => CX_CATS.filter(c => c.fam === f && nbCat(c.k)).length > 1 ? chip(f, '', l).replace('class="cx-chip"', 'class="cx-chip cx-fam"') : '';   // « toutes les ventes » n'a de sens qu'avec plusieurs catégories
-  const sans = D.filter(x => x.src !== 'ndf' && (!x.piece || x.sf) && (CX.cat === x.fam || CX.cat === x.cat)).length;
-  const filtres = CX.cat === 'avoirs' ? [['tous', 'Toutes']] : [['tous', 'Toutes'], ['traiter', 'À traiter'], ['retard', 'En retard'], ['payee', 'Payées'], ...(sans ? [['sanspiece', 'Sans justificatif']] : [])];
-  if (CX.st === 'sanspiece' && !sans) CX.st = 'tous'; if (CX.cat === 'avoirs' && CX.st !== 'tous') CX.st = 'tous';
+  const enCat = x => CX.cat === x.fam || CX.cat === x.cat, sans = D.filter(x => x.src !== 'ndf' && !x.piece && enCat(x)).length, sansF = D.filter(x => x.src !== 'ndf' && x.sf && enCat(x)).length;   /* deux choses vraies, deux mots : « sans justificatif » = ni facture ni ticket ; « sans facture » = il manque la facture au nom de l'entreprise (même quand le ticket est là : un ticket ne fait pas récupérer la TVA) */
+  const filtres = CX.cat === 'avoirs' ? [['tous', 'Toutes']] : [['tous', 'Toutes'], ['traiter', 'À traiter'], ['retard', 'En retard'], ['payee', 'Payées'], ...(sans ? [['sanspiece', 'Sans justificatif']] : []), ...(sansF ? [['sansfacture', 'Sans facture']] : [])];
+  if ((CX.st === 'sanspiece' && !sans) || (CX.st === 'sansfacture' && !sansF)) CX.st = 'tous'; if (CX.cat === 'avoirs' && CX.st !== 'tous') CX.st = 'tous';
   const c = CX_CATS.find(o => o.k === CX.cat);
   return `<div class="cx-cats" role="group" aria-label="Catégories">${famille === 'ventes' ? chip('ventes', '', 'Factures et avoirs') + cats('ventes') : chip('achats', '', 'Tous les achats') + cats('achats')}</div>
     ${c ? `<div class="cx-explique"><span aria-hidden="true">${c.ic}</span><span><b>${c.l}</b> · ${c.d}.${c.k === 'clients' ? ' Elles se préparent toutes seules à la fin de chaque intervention : tu valides, elles partent.' : c.fam === 'achats' ? ' Ajoute une facture ou une photo de ticket avec « ＋ Nouvelle opération ».' : ''}</span></div>` : ''}
@@ -11282,7 +11282,7 @@ function cxListe(D){
       <span class="cx-cat"><span class="cx-mini" aria-hidden="true">${c.ic}</span>${esc(c.c)}</span>
       <span class="cx-ech">${j == null ? '' : j < 0 ? `<span class="cx-rt">échue depuis ${vxN(-j, 'jour')}</span>` : j === 0 ? 'échue aujourd’hui' : 'avant le ' + jCourt(x.ech)}</span>
       <span class="cx-m"><b>${x.ttc == null ? 'à chiffrer' : eur(x.ttc)}</b>${x.reste > .01 && x.ttc != null && x.reste < x.ttc - .01 ? `<span class="gris mini">reste ${eur(x.reste)}</span>` : ''}</span>
-      <span class="cx-st"><span class="st ${s[1]}">${s[0]}</span>${x.src === 'ndf' || (x.piece && !x.sf) ? '' : `<span class="cx-sans">sans justificatif</span>`}</span></button>`; };
+      <span class="cx-st"><span class="st ${s[1]}">${s[0]}</span>${x.src === 'ndf' ? '' : !x.piece ? `<span class="cx-sans">sans justificatif</span>` : x.sf ? `<span class="cx-sans">ticket reçu · facture manquante</span>` : ''}</span></button>`; };
   return `${prets.length && (CX.cat === 'tous' || CX.cat === 'ventes' || CX.cat === 'clients') ? `<div class="cx-bandeau"><span><b>${prets.length} facture${prets.length > 1 ? 's' : ''} prête${prets.length > 1 ? 's' : ''} à partir</b> · préparée${prets.length > 1 ? 's' : ''} à la fin des interventions, toutes les lignes ont un prix.</span><button type="button" class="btn petit" data-action="toutValider">Valider et envoyer</button></div>` : ''}
   <div class="carte cx-liste">${L.length ? `<div class="cx-entete" aria-hidden="true"><span>Date</span><span>Pièce</span><span>Catégorie</span><span>Échéance</span><span class="n">Montant TTC</span><span>Où elle en est</span></div>${L.map(ligne).join('')}` : '<p class="gris" style="margin:6px 0">Rien ici avec ces filtres.</p>'}</div>
   ${L.length ? `<div class="cx-total"><span>${L.length} pièce${L.length > 1 ? 's' : ''}</span>${v.length ? `<span>Ventes <b>${eur(som(v, 'ttc'))}</b>${som(v, 'reste') ? ` · à encaisser <b>${eur(som(v, 'reste'))}</b>` : ''}</span>` : ''}${a.length ? `<span>Achats <b>${eur(som(a, 'ttc'))}</b>${som(a.filter(x => x.src !== 'ndf'), 'reste') ? ` · à payer <b>${eur(som(a.filter(x => x.src !== 'ndf'), 'reste'))}</b>` : ''}${som(a.filter(x => x.src === 'ndf'), 'reste') ? ` · notes de frais à valider <b>${eur(som(a.filter(x => x.src === 'ndf'), 'reste'))}</b>` : ''}</span>` : ''}</div>` : ''}`;   /* « à payer » = ce qu'on doit aux fournisseurs, comme dans Comptes fournisseurs : une note de frais pas encore validée ne se paie pas (compta-reste-20) */
@@ -11756,6 +11756,8 @@ function cxMentionsManquantes(){
   return [!E.forme && 'la forme juridique', cxSociete() && !E.capital && 'le capital social', !E.rcs && 'l’immatriculation (RCS ou répertoire des métiers)', !(E.assureur && E.assurc && E.assurZone) && 'l’assurance professionnelle (assureur, coordonnées, zone)'].filter(Boolean);
 }
 /* ce que la page d'une facture dit qu'il lui manque : le SIRET d'abord (sans lui la facture ne PART pas, et il se règle dans la même carte « mentions légales »), puis les mentions légales (parcours 10, 17 novembre 2026 : la page listait « forme juridique, immatriculation, assurance » et se taisait sur le SIRET, que l'aperçu refusait ensuite) */
+/* « 8 factures » après un avoir était faux : l'avoir est un document à part, il ne se compte pas parmi les factures (parcours 11, 17 novembre 2026) */
+const cxFacLib = L => { const a = L.filter(f => f.st === 'avoir').length, n = L.length - a; return n + ' facture' + (n > 1 ? 's' : '') + (a ? ' · ' + a + ' avoir' + (a > 1 ? 's' : '') : ''); };
 const cxFactureManque = () => [...(entrepriseManque().some(m => m.k === 'siret') ? ['le SIRET'] : []), ...cxMentionsManquantes()];
 const CX_ETATS = { non:['À régler', 'st-r'], att:['À surveiller', 'st-o'], avenir:['À préparer', 'st-b'], ok:['En règle', 'st-v'], auto:['Fait par OP GESTION', 'st-p'], info:['Bon à savoir', 'st-g'] };
 const cxVerifies = conf => conf.filter(c => c.v);
@@ -11832,7 +11834,7 @@ function cxConformite(K, D){
       act:rtFour.length ? ['Payer', 'data-cx="sec|fachats|achats|retard"'] : rtCli.length ? ['Relancer', 'data-cx="sec|fventes|ventes|retard"'] : null },
     { g:'achats', k:'justif', v:1, s:tv.sans.length ? 'non' : 'ok', t:'Une facture pour chaque achat', ref:'CGI, art. 271 (la TVA d’un achat ne se récupère qu’avec la facture)',
       d:tv.sans.length ? `${pl(tv.sans.length, 'achat')} sans facture au nom de l’entreprise : ${eur(tv.manque)} de TVA que tu ne récupères pas tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}. Un ticket de carte seul ne suffit pas.` : 'Chaque achat a sa facture au nom de l’entreprise : toute la TVA des achats se récupère.',
-      act:tv.sans.length ? ['Ajouter les factures', 'data-cx="sec|fachats|achats|sanspiece"'] : null },
+      act:tv.sans.length ? ['Ajouter les factures', 'data-cx="sec|fachats|achats|sansfacture"'] : null },
     { g:'achats', k:'ndf', v:1, s:ndfA.length ? 'att' : 'ok', t:'Les notes de frais', ref:'Un ticket ou une facture par dépense ; au nom de l’entreprise pour en récupérer la TVA',
       d:ndfA.length ? `${pl(ndfA.length, 'note')} de frais à valider : sans ticket, une note ne se rembourse pas.` : 'Aucune note de frais en attente.',
       act:ndfA.length ? ['Valider', 'data-cx="sec|ndf"'] : null },
@@ -11875,7 +11877,7 @@ function cxAFaire(K, D, DD, conf){
   if (aCompleter.length) L.push([1, '✏️', `${pl(aCompleter.length, 'facture')} à compléter`, 'une ligne attend encore son prix', null, 'Compléter', 'data-cx="sec|fventes|clients|traiter"']);
   if (K.rap.aExpliquer.length) L.push([1, '🏦', `${pl(K.rap.aExpliquer.length, 'ligne')} de la banque à expliquer`, K.rap.aExpliquer.map(r => esc(r.lib)).join(' · '), null, 'Expliquer', 'data-cx="sec|banque" data-cxaf="expliquer"']);
   if (rtFour.length) L.push([1, '📦', `${pl(rtFour.length, 'fournisseur')} à payer, échéance passée`, rtFour.map(a => esc(a.four)).join(' · '), cpR(rtFour.reduce((s, a) => s + cpTTC(a), 0)), 'Payer', 'data-cx="sec|fachats|achats|retard" data-cxaf="payer"']);
-  if (tv.sans.length) L.push([2, '📎', `${pl(tv.sans.length, 'achat')} sans facture`, `${eur(tv.manque)} de TVA pas récupérable tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}`, null, 'Ajouter', 'data-cx="sec|fachats|achats|sanspiece"']);
+  if (tv.sans.length) L.push([2, '📎', `${pl(tv.sans.length, 'achat')} sans facture`, `${eur(tv.manque)} de TVA pas récupérable tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}`, null, 'Ajouter', 'data-cx="sec|fachats|achats|sansfacture"']);
   if (enMain) L.push([2, '💶', 'Espèces et chèques pas encore à la banque', cpTechNoms(ca.chezTech) ? 'chez ' + cpTechNoms(ca.chezTech) + (ca.solde || ca.chq.length ? ' et au bureau' : '') : 'au bureau', enMain, 'Voir la caisse', 'data-cx="sec|caisse"']);
   if (ndf.length) L.push([2, '🧑‍🔧', `${pl(ndf.length, 'note')} de frais à valider`, ndf.map(n => esc(H_NOM(n.qui))).join(' · '), cpR(ndf.reduce((s, n) => s + n.ttc, 0)), 'Valider', 'data-cx="sec|ndf" data-cxaf="valider"']);
   L.push([3, '📒', 'TVA d’octobre à déclarer en novembre', 'calculée toute seule, à vérifier avec ton expert-comptable', tv.aPayer, 'Voir la TVA', 'data-cx="sec|tva"']);
@@ -11890,7 +11892,7 @@ function cxVueTableau(K, D, DD, conf){
       ${t.length ? `<span class="cx-tt${rt.length ? ' rt' : ''}">${t.length} à traiter${rt.length ? ' · ' + rt.length + ' en retard' : ''}</span>` : '<span class="cx-tt ok">À jour</span>'}</span><span class="cx-chev" aria-hidden="true">›</span></button>`; }).join('');
   const ok = cxSuivis(conf).filter(c => c.s === 'ok').length, nc = conf.filter(c => c.s === 'non').length;
   return `<div class="kpis cx-kpis">
-    <button type="button" class="kpi" data-cx="sec|fventes|ventes"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${K.facOct.length} facture${K.facOct.length > 1 ? 's' : ''}</span></button>
+    <button type="button" class="kpi" data-cx="sec|fventes|ventes"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${cxFacLib(K.facOct)}</span></button>
     <button type="button" class="kpi" data-cx="sec|paiements"><b style="color:var(--vert)">${eur(K.encTTC)}</b><span>encaissé en octobre (TTC)${K.terrain.length ? ` <i class="cp-k">+ ${eur(cpR(K.terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|fachats|achats"><b>${eur(K.charges)}</b><span>dépenses d’octobre (TVA récupérable exclue), payées ou non</span></button>
     <button type="button" class="kpi" data-cx="sec|resultat"><b style="color:${K.resultat < 0 ? 'var(--rouge)' : 'inherit'}">${eur(K.resultat)}</b><span>résultat provisoire d’octobre : facturé moins dépenses, ${PAIE.compta ? 'salaires et charges sociales compris' : 'sans salaires ni charges sociales'}</span></button>
@@ -11931,11 +11933,11 @@ function cxFournisseurs(){
 function cxVueFournisseurs(){
   const F = cxFournisseurs(), du = cpR(F.reduce((s, o) => s + o.du, 0));
   return `<div class="kpis cx-kpis4"><div class="kpi"><b>${F.length}</b><span>fournisseurs ce mois-ci</span></div><div class="kpi"><b>${eur(cpR(F.reduce((s, o) => s + o.achete, 0)))}</b><span>acheté en octobre (TTC)</span></div>
-      <button type="button" class="kpi" data-cx="sec|fachats|achats|traiter"><b style="color:${du ? 'var(--orange)' : 'inherit'}">${eur(du)}</b><span>encore à payer</span></button><button type="button" class="kpi" data-cx="sec|fachats|achats|sanspiece"><b>${F.reduce((s, o) => s + o.sans, 0)}</b><span>achats sans justificatif</span></button></div>
+      <button type="button" class="kpi" data-cx="sec|fachats|achats|traiter"><b style="color:${du ? 'var(--orange)' : 'inherit'}">${eur(du)}</b><span>encore à payer</span></button><button type="button" class="kpi" data-cx="sec|fachats|achats|sansfacture"><b>${F.reduce((s, o) => s + o.sans, 0)}</b><span>achats sans facture</span></button></div>
     <div class="carte cx-liste"><div class="cx-centete" aria-hidden="true"><span>Fournisseur</span><span class="n">Acheté en oct.</span><span class="n">Payé en oct.</span><span class="n">Tu lui dois</span><span>À suivre</span></div>
     ${F.map(o => `<button type="button" class="cx-crow" data-cx="relevef|${esc(o.k)}"><span class="cx-doc"><b>${esc(o.nom)}</b><span class="gris petit">${o.L.length} pièce${o.L.length > 1 ? 's' : ''}</span></span>
       <span class="n">${o.achete ? eur(o.achete) : '—'}</span><span class="n">${o.paye ? eur(o.paye) : '—'}</span><span class="n"><b class="${o.rt.length ? 'cx-rt' : ''}">${o.du ? eur(o.du) : '—'}</b></span>
-      <span class="cx-st">${o.rt.length ? `<span class="st st-r">${o.rt.length} en retard</span>` : ''}${o.sans ? `<span class="st st-o">${o.sans} sans justificatif</span>` : ''}${!o.rt.length && !o.sans ? '<span class="gris mini">à jour</span>' : ''}</span></button>`).join('')}</div>
+      <span class="cx-st">${o.rt.length ? `<span class="st st-r">${o.rt.length} en retard</span>` : ''}${o.sans ? `<span class="st st-o">${o.sans} sans facture</span>` : ''}${!o.rt.length && !o.sans ? '<span class="gris mini">à jour</span>' : ''}</span></button>`).join('')}</div>
     <span class="gris petit">Touche un fournisseur : son relevé, facture par facture et paiement par paiement, avec ce que tu lui dois à chaque date.</span>`;
 }
 function cxReleveFour(k){
@@ -14457,7 +14459,7 @@ ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENT
     ${aVenir || aRecevoir ? `<div class="info petit" style="margin-top:10px">${[aVenir ? aVenir + ' intervention' + (aVenir > 1 ? 's' : '') + ' à venir : elle' + (aVenir > 1 ? 's restent' : ' reste') + ' au planning' : '', aRecevoir ? aRecevoir + ' facture' + (aRecevoir > 1 ? 's' : '') + ' à recevoir : elle' + (aRecevoir > 1 ? 's restent' : ' reste') + ' à suivre' : ''].filter(Boolean).join(' · ')}.</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-action="clientArchiverOk" data-cli="${k}">Oui, archiver ce client</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
 ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return; c.archive = true;
-  journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est effacé' });
+  journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est supprimé' });
   fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('clients'); toast('Client archivé : ' + esc(c.nom) + '.', { lib:'Annuler', fn:() => { delete c.archive; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); } }); };
 ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive) return; delete c.archive;
   journalAjout('marc', 'client', 'a remis le client dans la liste', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il était archivé' });
@@ -15686,7 +15688,9 @@ function sxRestaurer(p){
 }
 function sxAnnule(p, lib, sig){
   if (sig && sig !== sxSig()) return toast('Trop tard pour annuler : le stock a encore bougé depuis. Passe une correction ou un mouvement inverse.');
-  sxRestaurer(p); SX.dernier = null; prCatalogueMaj(); sxJournal('a annulé', lib.replace(/^t(a|on|es) /, (m, k) => ({ a:'sa ', on:'son ', es:'ses ' })[k]));   // le toast parle à la personne (« ta prise à l’atelier »), le journal est lu par le gérant : « Sophie a annulé sa prise à l’atelier » fermerPanneau(); rendre(); toast('Annulé : ' + lib + '. Le stock est revenu comme avant.');
+  sxRestaurer(p); SX.dernier = null; prCatalogueMaj(); sxJournal('a annulé', lib.replace(/^t(a|on|es) /, (m, k) => ({ a:'sa ', on:'son ', es:'ses ' })[k]));
+  /* le toast parle à la personne (« ta prise à l’atelier »), le journal est lu par le gérant : « Sophie a annulé sa prise à l’atelier ». La fermeture de la fenêtre, le rafraîchissement et le message vivaient à la suite de ce commentaire, sur la même ligne : ils ne tournaient jamais (restes achats 1) */
+  fermerPanneau(); rendre(); toast('Annulé : ' + lib + '. Le stock est revenu comme avant.');
 }
 /* un message de geste fini avec « Annuler » (le bouton reste aussi dans Mouvements tant que le stock n'a pas bougé ailleurs) */
 function sxToast(msg, actions, photo, lib){
@@ -18024,7 +18028,7 @@ function ttFraisLigne(V){
 }
 function ttOngletMois(){
   const V = PT_GENS.map(paieVariables), B = ttMoisBilan(V), verr = paieVerrouille(), plus = V.reduce((s, v) => s + v.s25 + v.s50, 0), conf = V.filter(v => v.confirme).length;
-  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'demande') + ' de correction à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
+  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
   const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
   let bouton, lien = '';
   if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
@@ -20130,7 +20134,7 @@ const axDansPanneau = b => !!(b && b.closest && b.closest('#calque'));
 const axEnAttente = () => DEM_ACHAT.filter(d => d.etat === 'attente');
 const axTotalAttente = () => axEnAttente().length + NDF.filter(n => n.etat === 'attente').length;
 /* le même compte que l'écran où le clic mène (Comptabilité › Factures & dépenses › Sans justificatif) : avant, la carte disait 2 et la liste 4 */
-const axSansJustif = () => cxDocs().filter(x => x.fam === 'achats' && x.src !== 'ndf' && (!x.piece || x.sf)).length;
+const axSansJustif = () => cxDocs().filter(x => x.fam === 'achats' && x.src !== 'ndf' && !x.piece).length;
 if (typeof H_TYPES === 'object' && !H_TYPES.achats) H_TYPES.achats = ['Achats', 'var(--orange)'];
 /* une ligne dans l'Historique ; on garde l'entrée pour la retirer quand le geste est annulé */
 function axJ(qui, action, lib, det) { journalAjout(qui, 'achats', action, { lib }, det ? { det } : undefined); return JOURNAL[JOURNAL.length - 1]; }
@@ -20583,7 +20587,7 @@ document.addEventListener('click', ev => {
   if (a === 'reglages') return ouvrirPanneau(`<span class="surtitre">Notes de frais</span><h2>Réglages</h2><div class="gris ax-regle ax-regle-p">${axReglesLignes()}</div><div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
   if (a === 'kmtarif') return ouvrirPanneau(`<span class="surtitre">Notes de frais · kilomètres</span><h2>Tarif au kilomètre</h2><span class="gris">Ce que tu rembourses par kilomètre parcouru avec un véhicule personnel. Le barème dépend de la puissance du véhicule : à régler avec ton expert-comptable.</span>
     <label class="champ">Tarif, en € le kilomètre<input class="saisie" id="ax-km" inputmode="decimal" value="${String(AX.kmTarif).replace('.', ',')}"></label><div class="actions"><button type="button" class="btn" data-axa="kmok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
-  if (a === 'kmok') { const v = axNum((g('ax-km') || {}).value); if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${eur(v)}.`); }
+  if (a === 'kmok') { const txt = (g('ax-km') || {}).value, v = axNum(txt); /* « 1.500 » se lit 1 500 ou 1,5 : la phrase des autres montants le refuse, au lieu de poser un tarif 2,5 fois trop haut sans un mot (restes achats 1) */ const refus = String(txt || '').trim() ? cxMontantRefus(txt, 100) : ''; if (refus && refus !== 'Indique le montant.' && isFinite(v)) { const z = g('ax-km'); if (z) z.focus(); return toast(refus); } if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${eur(v)}.`); }
   if (a === 'paie') { if (typeof ptOnglet !== 'undefined') { ptOnglet = 'mois'; TT.garder = true; } return aller('pointage'); }
   if (a === 'renvoyer') { if (!n || n.etat !== 'refusee') return; const av = { motif:n.motif, par:n.par, le:n.le }; axRenvoiNettoye(n); n.etat = 'attente'; n.renvoye = true; n.motif = null; axNotif('marc', `${prenomDe(n.qui)} renvoie sa note « ${n.objet} » après correction.`); axJ(n.qui, 'a renvoyé la note de frais', n.objet); rendre();
     return toast('Note renvoyée au bureau.', { lib:'Annuler', fn:() => { n.etat = 'refusee'; n.renvoye = false; Object.assign(n, av); rendre(); } }); }
@@ -21033,9 +21037,12 @@ img.logo-ent{background:#fff;object-fit:contain;overflow:hidden;padding:0;width:
 .ach-compta{margin-bottom:2px}
 /* le titre de ce bloc n'est pas un lien (il ne répond pas au toucher) : il ne porte donc pas la couleur des liens, mais le gris des titres de groupe du menu (achats-07) */
 .groupe.ach-cpt-t{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--doux);padding:12px 2px 0}
-.ach-regl-b{display:none}
+/* sur ordinateur et tablette le bouton « Réglages › » n'existe pas : les deux lignes sont sur la page (un .lien écrit plus loin lui rendait son display, mesuré 1128 × 44 px sous les lignes qu'il répète) ; #contenu le fait gagner */
+#contenu .ach-regl-b{display:none}
 .ax-trf{display:flex;flex-direction:column;align-items:flex-start;gap:0}
 /* le plus petit téléphone (320 px) : les filtres par personne tiennent sur UNE rangée qui défile au doigt (c'est un filtre, pas une rangée de destinations), sinon ils prennent deux rangées et la première demande est sous la barre d'onglets */
+/* et sur le plus petit écran, la première note (ou demande) se voit AVANT la fin de l'écran : la phrase sous le titre (les onglets et le bouton disent déjà de quoi il s'agit) et « Comment ça marche ? » (rangé après la liste, comme « Réglages › ») laissent leur place (restes achats 1 : à 320 px la première note commençait à 559 px sur 568) */
+@media (max-width:380px){#contenu .tete.ach-tete .gris{display:none}#contenu .ach-aide{order:8}#contenu .ax-tt{gap:2px}}
 @media (max-width:380px){#contenu .ax-filtre{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}#contenu .ax-filtre::-webkit-scrollbar{display:none}#contenu .ax-filtre .puce-c{flex:none}}
 .ach-compta .ligne-clic{margin-bottom:8px}
 .ach-compta .ligne-clic .m-t{flex:1 1 0;min-width:0}
@@ -23327,7 +23334,7 @@ const cfTelOk = t => { t = String(t || '').trim(); if (!t) return true; const c 
 const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)/ : /^(?:0033|33)(?=\d{9}$)/, '0'); return n; };
 /* à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » (clients, décision du 17 novembre) */
 const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
-/* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, courriel, « le client seul ») :
+/* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, e-mail, « le client seul ») :
    son numéro à la française, le point de la carte des tournées et le secteur — sans ça la carte le plaçait au dépôt (clients-05, recontrôle casse 3) */
 function clientFinir(k){ const c = CLIENTS[k]; if (!c) return; c.tel = cfTelFmt(c.tel); cliPositionner(k, c.adr); }   /* cliPositionner : la seule décision de position (secteur et point de la carte) */
 /* deux noms sont les mêmes quand ils ne diffèrent que par la casse, les accents, la ponctuation ou les espaces en trop */
@@ -24715,7 +24722,7 @@ immChap('devisXylo', 'devisXylo', 'Devis xylophage', 'Le devis xylophage : le tr
   { c:'.dx-sugg', t:'Les mesures, zone par zone', p:'Je mesure par zone avec les puces : combles, charpente, plancher, cave ou murs. Pour chacune, la surface, et un accès difficile ajoute 30 pour cent. J’ajoute les combles : 30 mètres carrés.',
     jouer:() => immMetier3dSerie([() => immClic('[data-dxb="zadd|Combles|bois"]'), () => { const L = [...document.querySelectorAll('[data-dx^="zm|"]')]; const e = L[L.length - 1];
       if (!e) return IMM.perdus.push('champ zone'); e.value = '30'; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); }], 380) },
-  { c:'.dx-tech', t:'Un ou deux techniciens', p:'Je dis si vous serez un ou deux techniciens sur place. Le temps facturé ne change pas, mais le temps passé chez le client est divisé. Je touche 2.',
+  { c:'.dx-tech', t:'Un ou deux techniciens', p:'Je dis s’il y aura un ou deux techniciens sur place. Le temps facturé ne change pas, mais le temps passé chez le client est divisé. Je touche 2.',
     jouer:() => immClic('[data-dxb="techs|2"]') },
   { c:'#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]', t:'Créer le devis', p:'Le total se met à jour à chaque saisie. Sur téléphone, une barre en bas garde le prix et le bouton sous le pouce. Je touche Créer le devis.',
     jouer:() => immClic('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]') },
@@ -24838,7 +24845,7 @@ immChap('gestion', 'comptabilite', 'La gestion', 'La gestion : les factures, san
   { c:'#contenu .kpis', t:'Les devis, d’un coup d’œil', p:'Les devis, d’un coup d’œil : un à finir et envoyer, 2 950 euros en attente de réponse dont deux à relancer, 2 571 euros acceptés. Quand un devis est signé, l’intervention arrive « à planifier » : Julie ne la planifie pas.',  },
   { c:'.cartes-clients', t:'Ses clients et ce qu’ils doivent', p:'Ses clients, avec ce qui compte pour elle : ce qu’ils ont payé, ce qu’il leur reste à payer et le prochain passage. Monsieur et Madame Durand doivent encore 1 361 euros. Un toucher ouvre la fiche du client.',  },
   { c:'#contenu .liste-bureau, #contenu .liste-tel', t:'Les interventions, sans le planning', p:'Les interventions : elle voit qui y va, quand, et où ça en est, terminée, en cours, à planifier. Elle n’a pas le planning pour les déplacer. Les terminées sont celles qu’elle facture.' },
-  { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du patron au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut, patron, gestion, technicien ou client, et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
+  { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du gérant au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut (gérant, gestion, technicien ou client) et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
 ], { role:'gestion' });
 ['tech', 'client', 'gestion'].forEach(immRolesDebut);
 immRolesEcran('tech', 7, 'majournee'); immRolesEcran('tech', 8, 'moncamion'); immRolesEcran('tech', 11, 'mesheures'); immRolesEcran('tech', 12, 'techfrais');   /* l'étape 5 a inséré « Son camion, en trois boutons » en 8 : « Ses heures » passe en 11, « Ses frais » en 12 */
@@ -26107,7 +26114,7 @@ function vueSecurite(){
   const liste = L.length ? `<div class="sec-lignes"><table class="sec-tab"><thead><tr><th>Date</th><th>Qui</th><th>Appareil</th><th>Adresse (IP)</th><th>Pourquoi</th><th>Résultat</th></tr></thead><tbody>${L.map(ligne).join('')}</tbody></table><div class="sec-cartes">${L.map(carte).join('')}</div></div>`
     : '<div class="carte sec-vide gris"><span aria-hidden="true">🛡️</span> Rien d’inhabituel pour l’instant.</div>';
   return tete + cartes + verrous + `<h2 class="cmd-titre sec-titre">Connexions inhabituelles ou refusées</h2>` + liste
-    + '<p class="gris petit sec-pied">Une connexion est inhabituelle quand elle vient d’un autre appareil ou d’un autre réseau, hors des heures de travail, ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.</p>'; }
+    + '<p class="gris petit sec-pied">Une connexion est inhabituelle si elle vient d’un autre appareil ou d’un autre réseau. C’est aussi le cas hors des heures de travail ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.</p>'; }
 
 /* ── B3 · Équipe : le téléphone, le mot de passe provisoire, les gestes d'un administrateur ── */
 /* un mot de passe provisoire : tiré au hasard, un par personne, montré UNE fois, à remettre en main propre. L'UNIQUE endroit (avec le bloc « Démonstration ») où il s'affiche : aucun bouton Copier, jamais dans un data-, jamais dans un toast */

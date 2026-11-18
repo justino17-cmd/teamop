@@ -196,7 +196,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       passe ont deux noms qu'on ne confond pas, avec des mots de tous les jours (plus de « Reposer… ») : « Lui donner un mot de
       passe provisoire » et « Lui envoyer un lien pour choisir le sien » — une seule phrase d'explication sous chacun.
 
-- [ ] **Achats et frais — décisions du chef du 17/11, 12 h (achats)** : · **achats-01 (bloquant)** : la virgule décimale d'une quantité
+- [x] (restes achats 1 : mot « sans justificatif » / « sans facture » séparés, 320 px, Réglages › en double, tarif « 1.500 », sxAnnule ; achats-restes-tour1) **Achats et frais — décisions du chef du 17/11, 12 h (achats)** : · **achats-01 (bloquant)** : la virgule décimale d'une quantité
       ou d'un montant ne s'avale JAMAIS (« 1,5 » vaut 1,5 partout dans l'application, pas seulement ici : chercher les autres champs
       du même genre) ; une valeur illisible est refusée avec une phrase, jamais devinée. · **achats-03** : « La paie du mois »
       (Temps de travail › Mois) porte UNE ligne « Frais à rembourser avec cette paie : Tom 16,50 € · Karim 14,90 € — hors salaire »,

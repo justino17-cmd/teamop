@@ -12,6 +12,17 @@ const { L, ouvrirAchats, txt } = require('./achats-outils.js'), v = L.v;
   v('C2 chaque ligne de cette liste porte « sans justificatif »', compta.sans === compta.lignes, compta);
   await L.aller(p, 'comptabilite'); await L.calme(p, 600);
   const t2 = await txt(p); console.log('  Comptabilité (accueil) :', JSON.stringify((t2.match(/[^.]{0,70}(sans justificatif|sans facture|sans pièce|justificatif)[^.]{0,70}/gi) || []).slice(0, 8)));
+  // restes achats 1 (achats-10) : « sans facture » (TVA) est un AUTRE compte que « sans justificatif » — la gazole a son ticket, il lui manque la facture
+  await E(() => { CX.cat = 'tous'; CX.st = 'tous'; cxAller('ensemble'); }); await L.calme(p, 700);
+  const sf = await E(() => { const b = [...document.querySelectorAll('[data-cx$="sansfacture"]')].filter(e => e.offsetParent); return { n: b.length, txt: b.map(e => ((e.closest('li, .cx-af, .ligne, .fo-r, .cx-fai') || e.parentElement).textContent).replace(/\s+/g, ' ').trim().slice(0, 140)) }; });
+  console.log('  liens « sans facture » de la Comptabilité :', JSON.stringify(sf));
+  v('C3 la Comptabilité propose un chemin « sans facture » (ticket reçu, facture manquante)', sf.n > 0, sf);
+  if (sf.n) { const nF = parseInt((sf.txt.join(' ').match(/(\d+) achat/) || [])[1] || '0', 10);
+    await E(() => { const b = [...document.querySelectorAll('[data-cx$="sansfacture"]')].find(e => e.offsetParent); b.click(); }); await L.calme(p, 700);
+    const l = await E(() => ({ lignes: document.querySelectorAll('#cx-liste [data-cx^="doc|"]').length, marques: [...document.querySelectorAll('#cx-liste .cx-sans')].map(e => e.textContent.trim()), puce: [...document.querySelectorAll('#contenu [data-cx^="st|"]')].filter(e => e.getAttribute('aria-pressed') === 'true').map(e => e.textContent.trim()) }));
+    console.log('  liste « sans facture » :', JSON.stringify(l));
+    v('C4 la liste « sans facture » a ' + (nF || '?') + ' lignes (le chiffre annoncé), chacune marquée', l.lignes === l.marques.length && (!nF || l.lignes === nF) && l.lignes >= 1, { nF, l });
+    v('C5 une ligne dont le ticket est là le dit (« ticket reçu · facture manquante »), pas « sans justificatif »', l.marques.some(m => /ticket reçu/.test(m)), l); }
   await L.aller(p, 'accueil'); await L.calme(p, 600);
   const t3 = await txt(p); console.log('  Accueil :', JSON.stringify((t3.match(/[^.]{0,70}(sans justificatif|sans facture|sans pièce)[^.]{0,70}/gi) || []).slice(0, 8)));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);

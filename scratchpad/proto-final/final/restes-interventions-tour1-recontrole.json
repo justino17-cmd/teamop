@@ -1,0 +1,100 @@
+{
+ "noms": [
+  "interventions"
+ ],
+ "regles": [
+  "interventions-16 : entretien annuel / case « Un autre passage » pour tous les clients",
+  "Garantie : plus aucune mention de facture, fiche technicienne et bureau",
+  "iPad : le filtre « Toutes » passe à la ligne (506/506 à 820 px)",
+  "« Voir dans Tâches › » : 44 px (ne se reproduisait pas)",
+  "iPad : case « Seulement les techniciens du secteur » à 44 px",
+  "Liste au téléphone : « Date à fixer » en gras",
+  "Relevé numérique : « abc » refusé, « 12x3 » devient « 123 »",
+  "Téléphone : « poste 12 » accepté, plus de 20 chiffres refusé, « Appeler » compose le premier numéro seul",
+  "Prix d'une ligne de facture : plafond 1 000 000 € (999 999,99 accepté, ancien prix conservé)",
+  "« ton compte ne peut pas créer, demande à Marc » : retiré (ne se reproduisait pas)",
+  "Fiche terminée : cartes à leur hauteur sur une colonne (plus de 160 px de vide)",
+  "Lien « Mon entreprise » dans l'aide de création : reste dans la phrase"
+ ],
+ "pasRegles": [
+  {
+   "nom": "Durée « 1 h 30 » contre « 1h30 »",
+   "defaut": "duree() lue par 34 appels",
+   "constat": "Non changé volontairement (décision du chef de chantier) ; reste à soumettre à Justin."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une ligne de facture à 9999 × 999 999,99 donne un total de près de 10 milliards d'euros (Total HT 9 998 999 939,51 €) : le plafond du prix unitaire ne borne pas le total",
+   "gravite": "moyenne",
+   "etapes": [
+    "Marc ouvre une facture à valider (iPhone, jour)",
+    "Quantité 9999 sur la 1ʳᵉ ligne, prix 999999,99",
+    "Le total de la ligne et le Total HT affichent ~10 milliards, sans message (capture restes-recontrole-iphone-e1-facture.png)"
+   ],
+   "constat": "Sonde restes-recontrole E, 5 profils identiques. Le correcteur a plafonné le prix seul ; la quantité (< 1 000 000) et le produit restent libres. Piste : borner aussi le total de ligne, ou ramener la quantité à un plafond raisonnable."
+  },
+  {
+   "titre": "Relevé numérique : « 3 sur 18 » devient « 318 » et « 10-12 » devient « 1012 » en silence",
+   "gravite": "faible",
+   "etapes": [
+    "Compte rendu, champ de relevé numérique",
+    "Coller « 3 sur 18 » ou « 10-12 »",
+    "Le champ et la fiche gardent 318 / 1012 sans message"
+   ],
+   "constat": "Le nettoyage de la correction « abc » retire les non-chiffres et concatène ; le message n'est pas posé quand un séparateur disparaît. Piste : refuser plutôt que concaténer quand plusieurs nombres sont séparés."
+  },
+  {
+   "titre": "Relevé numérique : le clavier « decimal » de l'iPhone n'a pas de touche « − » : une température négative ne se tape pas alors que le signe moins est accepté",
+   "gravite": "faible",
+   "etapes": [
+    "iPhone, relevé de température",
+    "Clavier inputmode=decimal : pas de moins"
+   ],
+   "constat": "Mesuré sur 5 profils (inputmode=decimal partout). Piste : inputmode texte pour les relevés pouvant être négatifs."
+  },
+  {
+   "titre": "Deux numéros écrits en +33 (22 chiffres) refusés alors que deux numéros en 0X passent",
+   "gravite": "faible",
+   "etapes": [
+    "Création d'un client, téléphone « +33 5 46 00 00 00 / +33 6 12 34 56 78 »",
+    "Refusé (plus de 20 chiffres) ; « 05 46 00 00 00 / 06 12 34 56 78 » accepté"
+   ],
+   "constat": "Conséquence assumée de la règle des 20 chiffres ; à trancher par Justin (relevé en doute, pas un blocage)."
+  }
+ ],
+ "nouveaux": [
+  "Sonde interventions-recontrole.js R15 : course contre rendreApresClic (redessin reporté jusqu'à 600 ms après un doigt posé) : la quantité « 2 » se perdait 1 fois sur 3 ; sonde corrigée (attente de 800 ms), 4 passages sur 4 verts. Pas un défaut de la page pour une saisie normale."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/interventions-restes-recontrole.js (brouillon repris, validé)",
+   "resultat": "iphone 130 ✓ · 5 ✗ ; ipad nuit 130 ✓ · 5 ✗ ; android 130 ✓ · 5 ✗ ; petit nuit 130 ✓ · 5 ✗ ; mac nuit 141 ✓ · 5 ✗ — les 5 ✗ (tous « doute ») identiques sur chaque profil, population comptée, aucune erreur JavaScript"
+  },
+  {
+   "fichier": "interventions-restes-1.js",
+   "resultat": "iphone 63 ✓ · 0 ✗ ; ipad nuit 63 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "interventions-parcours-suite.js",
+   "resultat": "38 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "interventions-parcours-roles.js",
+   "resultat": "16 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "interventions-mise-en-page.js ipad nuit",
+   "resultat": "207 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "interventions-recontrole.js iphone",
+   "resultat": "127 ✓ · 2 ✗ avant correction de la sonde ; R15 réglé (4/4 verts) ; R22 « null.click » : enchaînement de sonde déjà présent avant les corrections (le correcteur l'a montré sur 2d0c295), non rejoué isolément ici"
+  }
+ ],
+ "doutes": [
+  "Les 4 casses ci-dessus sont des écarts relevés par des contrôles « (doute) » : aucun ne bloque une journée de travail, le premier (total de 10 milliards) est le seul visible à l'œil.",
+  "Durée « 1 h 30 » / « 1h30 » : à soumettre à Justin.",
+  "Captures regardées : iphone e1 (facture), ipad nuit f1 (fiche terminée 820 px, propre) ; les autres planches non toutes revues."
+ ]
+}
