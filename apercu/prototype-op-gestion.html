@@ -10671,7 +10671,13 @@ const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
 const nomPersonneOk = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
 const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
 /* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
-const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement (60 signes au plus).';
+/* tour 2 : la phrase DIT LA VRAIE RAISON (le premier signe, la longueur, ou un signe interdit) au lieu de redire toute la règle : une seule phrase de 67 signes passait à quatre lignes dans une demi-colonne d'Android (360 px), et « -Marie » était refusé avec une phrase qui ne parlait pas du premier signe */
+const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';
+const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
+  if (/[^\p{L}\p{M}\p{N} .’-]/u.test(x)) return NOM_PERS_REFUS;
+  if (!/^[\p{L}\p{M}\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';
+  if (x.length > 60) return '60 signes au plus.';
+  return NOM_PERS_REFUS; };
 /* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
 const coupeSure = (t, n) => { const c = String(t).slice(0, n); return /[\ud800-\udbff]$/.test(c) ? c.slice(0, -1) : c; };
 const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
@@ -10731,7 +10737,7 @@ function eqFiche(k){
     ${enApp() ? '' : '<div class="gris petit">Dans ce prototype, ces cases ne changent pas encore ce que la personne voit : « Tester en tant que » montre des profils fixes.</div>'}<div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
       ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div>
     <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
-    <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions">${p.invite ? (p.actif ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : '') : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 }
 function eqInviter(){
@@ -10755,7 +10761,7 @@ document.addEventListener('click', ev => {
   if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
   if (a === 'inviterok') { const pr = nomPersonneOk(document.getElementById('eq-p').value), no = nomPersonneOk(document.getElementById('eq-n').value), m = document.getElementById('eq-m').value.trim();
     if (!document.getElementById('eq-p').value.trim() || !document.getElementById('eq-n').value.trim()) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
-    if (!pr || !no) return toast(NOM_PERS_REFUS);
+    if (!pr || !no) return toast(nomRefus(document.getElementById(!pr ? 'eq-p' : 'eq-n').value));
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');
@@ -20722,22 +20728,27 @@ function axNdfForm() {
     <div class="ndf-sans ax-dbl" id="rn-dbl" hidden></div>
     <div class="actions"><button type="button" class="btn" data-rl="ndfok">Envoyer au bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
+/* les kilomètres passent par la même règle que les montants (restes technicien, tour 4) : « 1.500 » et « 1,500 » se lisaient 1,5 km en silence ; l'espace sépare les milliers (« 1 500 » = 1500).
+   Rend true si c'est clair, false si cxMontantRefus dit une phrase (la même que pour un montant), null si le champ est vide */
+function axKmClair(txt) { if (!String(txt == null ? '' : txt).trim()) return null; const r = cxMontantRefus(txt); return !(r && r !== 'Indique le montant.' && !/ne se lit pas/.test(r)); }
 /* « Kilomètres » : le montant se calcule, il n'y a ni ticket ni TVA */
 function axNdfNature() {
   const o = document.getElementById('rn-o'); if (!o) return; const km = o.value === AX_NATURES[4];
   document.getElementById('rn-euros').hidden = km; document.getElementById('rn-kms').hidden = !km; document.getElementById('rn-ph').hidden = km;
-  if (km) { const k = axNum(document.getElementById('rn-km').value);
-    document.getElementById('rn-kmtxt').textContent = k > 0 ? `${axN(k)} km × ${axTarif(AX.kmTarif)} = ${eur(axKmMontant(k, AX.kmTarif))} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le gérant.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le gérant (${axTarif(AX.kmTarif)}).`; }
+  if (km) { const kv = document.getElementById('rn-km').value, k = axKmClair(kv) ? axNum(kv) : NaN;
+    document.getElementById('rn-kmtxt').textContent = axKmClair(kv) === false ? cxMontantRefus(kv) : k > 0 ? `${axN(k)} km × ${axTarif(AX.kmTarif)} = ${eur(axKmMontant(k, AX.kmTarif))} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le gérant.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le gérant (${axTarif(AX.kmTarif)}).`; }
 }
 function axNdfEnvoyer(forcer) {
   const g = id => document.getElementById(id), nat = g('rn-o').value, km = nat === AX_NATURES[4], pr = g('rn-pr').value.trim(), iid = g('rn-i').value, d = g('rn-d').value || AUJ;
-  const k = km ? axNum(g('rn-km').value) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, ''), m = km ? (k > 0 ? axKmMontant(k, AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
+  const kTxt = km ? g('rn-km').value : '', k = km && axKmClair(kTxt) !== false ? axNum(kTxt) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, ''), m = km ? (k > 0 ? axKmMontant(k, AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
   /* Rien n'est choisi d'avance (restes technicien 1) : « Carburant » pré-rempli titrait « Carburant · Péage A10 · AB-123-CD » un péage ou des gants. */
   if (!nat) { const o = g('rn-o'); if (o) o.focus(); return toast('Choisis d’abord ce que c’est dans la liste : carburant, repas, péage…'); }
   /* un montant écrit avec un « € », ou qu'on ne sait pas lire, reçoit une phrase qui dit QUOI écrire : « Indique le montant payé. » devant un champ déjà rempli laissait croire à un bug (achats-11) */
   /* même phrase que la Comptabilité pour « 5.000 » ou « 1,500 » : lus 5 € et 1,50 €, ils partaient au bureau sans un mot (restes technicien 3) */
   const refusN = !km && mTxt.trim() ? cxMontantRefus(mTxt) : '';
   if (!km && mTxt.trim() && (!(m > 0) || (refusN && refusN !== 'Indique le montant.'))) { const r = refusN; const z = g('rn-m'); if (z) z.focus(); return toast(r && r !== 'Indique le montant.' ? r : 'Écris le montant payé en chiffres, par exemple 12,50.'); }
+  /* la fonction qui enregistre refuse aussi, pas seulement le champ : même phrase que la Comptabilité, rien n'est enregistré */
+  if (km && axKmClair(kTxt) === false) { const z = g('rn-km'); if (z) z.focus(); return toast(cxMontantRefus(kTxt)); }
   if (km ? !(k > 0) : !(m > 0)) return toast(km ? 'Indique les kilomètres parcourus.' : 'Indique le montant payé.');
   if (d > AUJ) return toast('La date de la dépense ne peut pas être dans le futur.');
   if (!forcer && (km ? k > 1500 : m > 2000)) { const z = g('rn-dbl'); z.hidden = false;
@@ -21461,7 +21472,7 @@ eqFiche = function (k) {
       return `<div class="fo-r eqx-hr"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${eqxHabTexte(p, j)}</span>${anc.length ? `<details class="eqx-anc"><summary>Voir les anciennes (${anc.length})</summary>${anc.map(a => `<span class="gris petit">${a.fin ? 'jusqu’au ' + dFr(a.fin) : 'sans date de fin'}${a.passee ? ' · passée le ' + dFr(a.passee) : ''}${a.orga ? ' · ' + esc(a.orga) : ''}${a.piece ? ' · 📎 ' + esc(a.piece) : ''}</span>`).join('')}</details>` : ''}</span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouveler…</button>` : ''}</div>`; }).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
     ${droitsBlocFiche(p, k, admin, ajuste, pk)}
-    <div class="actions eqx-act">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button><button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions eqx-act">${p.invite ? `${p.actif ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : ''}<button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 };
 
@@ -21662,8 +21673,8 @@ document.addEventListener('click', ev => {
     /* equipe-04 : chaque refus s'écrit SOUS son champ (un clavier de téléphone cache le toast), le champ est marqué en erreur et le curseur va au premier fautif */
     const dejaMail = v => EQUIPE.find(o => String(o.mail || '').trim().toLowerCase() === v.toLowerCase());
     const V = entVerifier([
-      ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : NOM_PERS_REFUS],
-      ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : NOM_PERS_REFUS],
+      ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : nomRefus(v)],
+      ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : nomRefus(v)],
       ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : '']]);
     if (!V) return;
     const pr = nomPersonneOk(V['eq-p']), no = nomPersonneOk(V['eq-n']), m = V['eq-m'];
@@ -21697,7 +21708,7 @@ document.addEventListener('click', ev => {
   if (a === 'modifok') {
     const p = eqDe(x), pr = nomPersonneOk(eqxVal('eqx-mp')), no = nomPersonneOk(eqxVal('eqx-mn')), m = eqxVal('eqx-mm'), t = eqxVal('eqx-mt'), ro = libelleSur(eqxVal('eqx-mr'), 40) || p.role, ter = document.getElementById('eqx-mter').checked;
     if (!eqxVal('eqx-mp') || !eqxVal('eqx-mn')) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
-    if (!pr || !no) return toast(NOM_PERS_REFUS);
+    if (!pr || !no) return toast(nomRefus(!pr ? eqxVal('eqx-mp') : eqxVal('eqx-mn')));
     if (t && !/^[0-9 +.()-]{6,20}$/.test(t)) return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.');
     const h = eqHomonyme(pr, no, x); if (h) { document.getElementById('eqx-mhomo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide.');
@@ -23277,12 +23288,15 @@ addEventListener('message', ev => {
    Justin : « une seule comptabilité ». La fenêtre « Comptabilité » avait son propre jeu de factures (26, 72 845 € à recevoir) pendant que l'application
    en avait 8 (1 475 €) — mêmes numéros, autres clients, autres montants ; un paiement ou une relance faits ici n'y arrivaient pas, une facture envoyée
    ici prenait un numéro déjà pris là-bas. L'application fait foi : elle donne à la fenêtre ses factures de vente, ses paiements, ses relances et
-   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement). Rien d'autre n'est envoyé. Seulement avec ?app=1. */
+   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement), plus l'argent reçu sur place avant facture. Rien d'autre n'est envoyé (ni achats, ni banque, ni paie, ni heures). Seulement avec ?app=1. */
 function opLiaDonnees(){
   const nom = k => (CLIENTS[k] || {}).nom, typ = k => (CLIENTS[k] || {}).type;
   return { prochain:numSuiv,
     factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), rembourse:f.st === 'annulee' && rembourseFait(f), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
-    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
+    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })),
+    /* l'argent reçu SUR PLACE par un technicien, avant toute facture (« Reçu I6 ») : un encaissement comme les autres pour la TVA et la caisse — l'application le compte déjà (cpEncOct). À
+       part de `enc` : il n'a pas de facture, et le cadre ne doit pas lui en inventer une. Quand la facture part, le reçu quitte cette liste et le cadre défait son écriture. */
+    recus:cpPaieTerrain().map(e => ({ id:e.int, num:e.fac, d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
   try { u += '?app=1&liaison=' + encodeURIComponent(JSON.stringify(opLiaDonnees())); } catch (e) { u += '?app=1'; } return u; }
@@ -26440,25 +26454,25 @@ function secuReposer(k){ const p = eqDe(k); if (!p || !peut('admin', 'm')) retur
   secuProvisoireNeuf(k); secuFermerSessions(k, 'admin'); opsDemo();
   secuPanProv(k, '', null); toast('Mot de passe provisoire donné. À sa prochaine connexion, ' + esc(p.prenom) + ' choisira le sien.'); return true; }
 /* la fiche d'une personne : le bloc « Connexion » (jamais un mot de passe lisible) et les gestes d'un administrateur */
-function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLogin(p), perso = !!c.empreinte, verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee'), soi = k === acteur(), sec = secuPeut();
+function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLogin(p), soi = k === acteur(), perso = !!c.empreinte || soi, verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee'), sec = secuPeut();   /* tour 2 : quelqu'un qui lit sa PROPRE fiche est connecté : il a forcément choisi son mot de passe, on ne lui écrit pas « provisoire, à lui remettre en main propre » */
   /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le panneau d'un geste et dans le bloc « Démonstration ») */
   const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
-  const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : '<b>À activer à sa première connexion</b>';
+  const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : soi ? '<b>À activer depuis ton téléphone</b>' : '<b>À activer à sa première connexion</b>';
   const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : '';
   /* equipe-13 (décision du chef, 17/11) : deux gestes qui changent un mot de passe, deux noms qu'on ne confond pas, UNE phrase sous chacun.
      Pas pour son propre compte (equipe-01) : la session se couperait avant la lecture du provisoire. Le bouton « lien » de la fiche est repris ici
      (même geste data-eq=mdp) pour que les deux soient côte à côte ; un compte verrouillé n'en reçoit aucun (« Déverrouiller » d'abord). */
   /* restes équipe : un compte DÉSACTIVÉ ne se connecte pas, on ne lui offre donc ni provisoire ni lien (à côté de « Réactiver le compte ») ; sur sa PROPRE fiche, le gérant se lit à la première personne */
-  const mdpOutils = !p.actif ? `<small class="gris">${esc(p.prenom)} ne peut pas se connecter : réactive d’abord son compte pour lui donner un nouveau mot de passe.</small>` : (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">${soi ? 'Changer mon mot de passe' : 'Changer son mot de passe'}</span>
+  const mdpOutils = !p.actif ? `<small class="gris">${esc(p.prenom)} ne peut pas se connecter : réactive d’abord son compte${p.invite ? '.' : ' pour lui donner un nouveau mot de passe.'}</small>` : (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">${soi ? 'Changer mon mot de passe' : 'Changer son mot de passe'}</span>
       ${sec && !soi ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-cnx="repose|${esc(k)}">Lui donner un mot de passe provisoire</button><small class="gris">Un mot de passe s’affiche : remets-le-lui en main propre. Il en choisira un autre à sa prochaine connexion.</small></div>` : ''}
       ${!p.invite ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-eq="mdp|${esc(k)}">${soi ? 'M’envoyer un lien pour choisir un nouveau mot de passe' : 'Lui envoyer un lien pour choisir le sien'}</button><small class="gris">${soi ? 'Tu reçois un e-mail et tu choisis ton mot de passe toi-même.' : esc(p.prenom) + ' reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre.'}</small></div>` : ''}</div>` : '';
   return `<div class="cn-acces"><span class="surtitre">Connexion</span>
     <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
     <div class="ligne"><span>Identifiant</span><b class="mono">${esc(id)}</b></div>
-    <div class="ligne"><span>Mot de passe</span><b>${perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
+    <div class="ligne"><span>Mot de passe</span><b>${soi ? 'Personnel : tu l’as choisi toi-même.' : perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
     ${perso ? '' : '<small class="gris">' + esc(p.prenom) + ' le change à sa première connexion.</small>'}
     <div class="ligne"><span>Téléphone</span>${telTxt}</div>
-    <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : 'Jamais'}</b></div>
+    <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : soi ? 'En ce moment' : 'Jamais'}</b></div>
     ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
     ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}</div>
