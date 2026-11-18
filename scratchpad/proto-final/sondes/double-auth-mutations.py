@@ -99,6 +99,17 @@ M = [
  (205, 'tout-10 : la confirmation se rouvre à chaque redessin de la carte de verrou', 'da-vues', [("if (SECU_VUE.invite !== o && !SECU.conf) {", "if (!SECU.conf) {")]),
  (206, 'tout-01 : le libellé de la ligne de la fiche Connexion n\u2019est plus protégé et la valeur ne passe plus à la ligne', 'da-corrections:tout-01', [(".ligne.eqx-l>span:first-child,.cn-acces .ligne>span:first-child{flex:none}", ".ligne.eqx-l>span:first-child{flex:none}"), (".ligne.eqx-l>b,.cn-acces .ligne>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}", ".ligne.eqx-l>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}.cn-acces .ligne>b{white-space:nowrap}")]),
  (207, 'tout-03 : le nombre n\u2019est plus amené dans l\u2019écran sous la boîte rouge', 'da-corrections:tout-03', [("if (d.raisons.length) setTimeout(cnxNombreEnVue, 520);", "")]),
+ # ── tour 3 : la banque se lit ailleurs que dans son onglet (constat 1 du recontrôle) et la carte de verrou à 320 px (constat 2) ──
+ (208, 'recensement : la clôture écrit de nouveau les lignes du relevé (libellé et montant) fenêtre fermée', 'da-recensement-banque', [("${secuBanqueVoilee() ? '' : ' : ' + rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}", "${' : ' + rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}")]),
+ (209, 'recensement : la Vue d’ensemble écrit de nouveau le solde du compte fenêtre fermée', 'da-recensement-banque', [("${secuBanqueVoilee() ? '<b>— €</b><span>trésorerie · confirme sur ton téléphone pour voir la banque</span>' : `<b>${eur(K.treso)}</b>", "${false ? '<b>— €</b><span>trésorerie · confirme sur ton téléphone pour voir la banque</span>' : `<b>${eur(K.treso)}</b>")]),
+ (210, 'recensement : la liste « À faire » écrit de nouveau les libellés du relevé', 'da-recensement-banque', [("secuBanqueVoilee() ? 'confirme sur ton téléphone pour les voir' : K.rap.aExpliquer.map(r => esc(r.lib)).join(' · ')", "K.rap.aExpliquer.map(r => esc(r.lib)).join(' · ')")]),
+ (211, 'recensement : le panneau « Expliquer » n’est plus gardé (neutralisé sans toucher au texte)', 'da-recensement-banque', [("  if (!secuGarde('compta-banque', () => cmptPanneauExpliquer())) return;", "  if (false && !secuGarde('compta-banque', () => cmptPanneauExpliquer())) return;")]),
+ (212, 'recensement : les lignes de frais des Achats écrivent de nouveau le libellé du relevé', 'da-recensement-banque', [("objet:secuBanqueVoilee() ? 'Ligne de la banque' : r.lib", "objet:r.lib")]),
+ (213, 'recensement : le panneau « Expliquer » ne se ferme plus à l’expiration des 5 minutes', 'da-recensement-banque', [("if (SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {", "if (false && SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {")]),
+ (214, 'recensement : la règle commune est déclarée « jamais voilée » (toutes les sorties s’écrivent)', 'da-recensement-banque', [("const secuBanqueVoilee = () => !secuVueOuverte('banque');", "const secuBanqueVoilee = () => false;")]),
+ (215, 'recensement : la Vue d’ensemble et la Clôture ne se re-masquent plus à l’expiration', 'da-recensement-banque', [("const SECU_BANQUE_DANS = ['ensemble', 'cloture', 'fachats'];", "const SECU_BANQUE_DANS = [];")]),
+ (216, 'verrou : la règle commune des boutons d’actions repasse en nowrap (le bouton de la carte de verrou garde son texte sur une ligne à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;", "\n.actions .btn{max-width:100%;white-space:nowrap;text-align:center;")]),
+ (217, 'verrou : la règle commune des boutons d’actions est retirée (le défaut d’origine : 11 px de débord de la carte de verrou à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;line-height:1.2;padding-top:6px;padding-bottom:6px}", "\n")]),
 ]
 
 def copier(n):
@@ -119,6 +130,11 @@ def muter(racine, edits):
     if not touche: return None, 'rien n’a changé'
     for rel, s in fichiers.items(): open(os.path.join(racine, rel), 'w', encoding='utf-8').write(s)
     return True, None
+
+def diff_court(racine):
+    r = subprocess.run(['diff', os.path.join(DEPOT, PAGE), os.path.join(racine, PAGE)], capture_output=True, text=True).stdout.splitlines()
+    plus = [l[2:] for l in r if l.startswith('> ')]; moins = [l[2:] for l in r if l.startswith('< ')]
+    return '%d ligne(s) changée(s) ; avant : %s ; après : %s' % (len(plus), (moins[0][:90].strip() if moins else '—'), (plus[0][:90].strip() if plus else '—'))
 
 def jouer(racine, sonde, delai=560):
     env = dict(os.environ, RACINE=racine)
@@ -154,6 +170,7 @@ if __name__ == '__main__':
     for n, nom, sonde, edits in choix:
         racine = copier(n); s, err = muter(racine, edits)
         if err: print('ERREUR  M%d %s → %s' % (n, nom, err)); manque.append(n); sys.stdout.flush(); continue
+        print('        touche : ' + diff_court(racine)); sys.stdout.flush()   # la mutation a-t-elle frappé le BON endroit ? (une ligne changée, citée)
         tombe, ok, d = jouer(racine, sonde)
         if tombe: tombees += 1; print('TOMBE   M%-3d %s → %s après %d ✓ (%d s) : %s' % (n, nom, sonde, ok, d, tombe))
         else: manque.append(n); print('RESTE VERT  M%-3d %s → %s ne voit rien (%d ✓, %d s)' % (n, nom, sonde, ok, d))

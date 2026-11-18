@@ -1,0 +1,63 @@
+{
+ "noms": [
+  "Montant d'une note kilométrique : phrase = note = toast (centimes entiers)",
+  "« Retrouver le ticket » sans « la TVA ne se récupère pas » pour un achat sans TVA",
+  "Refus d'un tarif à quatre décimales",
+  "Tuile « achats sans facture, dont N notes de frais » de Comptes fournisseurs",
+  "Puce de filtre active centrée dans sa rangée"
+ ],
+ "regles": [
+  "Note kilométrique : 40 envois par de vrais gestes (4 tarifs × 10 kilométrages : 85, 85,5, 85.5, 1 200, 1500, 1501, 7, 0,5, 12345, 2,25), joués par Sophie (technicienne) sur mac jour et iphone nuit et par Karim (chef d'équipe) sur petit : la phrase du formulaire, la note enregistrée, le toast et la phrase de confirmation au-delà de 1 500 km disent le même montant, égal à l'arithmétique entière (achats-restes3-adverse-km.js, 2 ✓ · 0 ✗ ×3). 85 km = 51,26 ; 45 km = 27,14 ; 255 km = 153,77 ; 2,25 km à 0,603 = 1,36 ; à 0,6 = 1,35.",
+  "Tarif au kilomètre saisi par le gérant : 20 saisies (0,603 ; 0.603 ; 0,6 ; 1 ; 0,50 ; 0,6 € ; 0,603 €/km ; 0,60 € par km ; 0,05 ; 10 acceptées ; 0,6034, 1,2345 refusées avec « trois décimales » ; 0, abc, -1, 0,01, 11, 1.500, 1 500 refusées avec une phrase) : le tarif ne bouge jamais sur un refus (achats-restes3-adverse-tarif.js, 2 ✓ · 0 ✗).",
+  "Puce active des rangées de la Comptabilité : 42 états (toutes les rubriques des six espaces, toutes les catégories, tous les statuts) sur petit, iphone nuit, android et ipad (16 à 20 rangées qui défilent) : la puce est toujours entière dans sa rangée, la page ne glisse jamais de côté (achats-restes3-adverse-puces.js, 3 ✓ · 0 ✗ ×4).",
+  "Tuile « achats sans facture » : 3, puis 4 (« dont 1 note de frais »), puis 5 (« dont 2 notes de frais ») au fil de deux validations ; le chiffre reste celui de la liste où la tuile mène, singulier/pluriel juste, pas de « dont » à zéro (achats-restes3-adverse-tuile.js, mac et iphone nuit : 2 ✓ · 0 ✗) ; capture mac jour regardée : la tuile tient sur deux lignes sans coupure.",
+  "« Retrouver le ticket » : acTTC lit a.tva || 0, donc une TVA absente vaut zéro comme dans la règle de la phrase ; la phrase n'existe qu'à une seule place du fichier."
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Le refus de « 00,603 » dit « trois décimales » alors que la saisie en a trois",
+   "gravite": "faible",
+   "etapes": "Gérant, Achats > Notes de frais > tarif au kilomètre, écrire « 00,603 » (ou « 000,6 »), valider.",
+   "constat": "Le tarif est bien refusé, mais la phrase « Un tarif au kilomètre a au plus trois décimales (0,603). » contredit ce qu'on vient d'écrire (trois décimales : c'est le zéro de tête qui est en trop). Le correcteur du tour 3 l'a rangé dans « même phrase » (R2) ; avant la correction la phrase était fausse aussi (« deux chiffres »). Cas rare, jamais bloquant."
+  }
+ ],
+ "nouveaux": [
+  "Tarif saisi « 1.500 » : la phrase dit « écris 1500 (sans point) ou 1,50 », deux montants qui n'ont aucun sens pour un tarif au kilomètre ; « 1 500 » : « ce chiffre est très élevé » parle d'un « montant ». Phrases des champs de montant réutilisées telles quelles pour le tarif (faible, non bloquant : le tarif ne bouge pas).",
+  "Sondes ajoutées pour le tour suivant : campagne/sondes/achats-restes3-adverse-{km,tarif,puces,tuile}.js."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/achats-restes3.js (mac, iphone nuit, ipad)",
+   "resultat": "16 ✓ · 0 ✗ ; 20 ✓ · 0 ✗ ; 20 ✓ · 0 ✗ (la partie P est sans objet sur mac : aucune rangée ne défile)"
+  },
+  {
+   "fichier": "campagne/sondes/achats-restes2-adverse.js, -km.js, -cats.js (mac, iphone nuit)",
+   "resultat": "49/50 ✓, 18 ✓, 17 ✓ ; 0 ✗ partout"
+  },
+  {
+   "fichier": "achats-restes3-adverse-km.js (sm mac jour, sm iphone nuit, kb petit)",
+   "resultat": "2 ✓ · 0 ✗ ×3"
+  },
+  {
+   "fichier": "achats-restes3-adverse-tarif.js (mac)",
+   "resultat": "2 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "achats-restes3-adverse-puces.js (petit, iphone nuit, android, ipad)",
+   "resultat": "3 ✓ · 0 ✗ ×4"
+  },
+  {
+   "fichier": "achats-restes3-adverse-tuile.js (mac, iphone nuit)",
+   "resultat": "2 ✓ · 0 ✗ ×2"
+  },
+  {
+   "fichier": "les 27 autres sondes d'Achats (achats-*.js de campagne/sondes et sondes/entreprise-achats-lisible.js)",
+   "resultat": "toutes 0 ✗ (champs-virgule 14, corrections 29, details 14, doublon 3, gestes 32, liaisons 26, mise-en-page 120, parcours-demandes 46, parcours-notes 37, recontrole-* 10/52/12/5/32/20/21, restes1-* 11/9/12/11/50, restes2-regard 4, roles 9, saisies 17, toast-fenetre 6, virgule 3, entreprise-achats-lisible 142)"
+  }
+ ],
+ "doutes": [
+  "Doutes 2 (pastilles de personnes défilantes) et 4 (trois onglets de la Comptabilité sur deux lignes à l'iPhone) restent à soumettre à Justin : choix de dessin, rien n'est coupé ni faux sur les captures. Doute 5 est périmé : « 0,60 € », « 0,603 €/km » et « 0,60 € par km » sont acceptés (rejoué), seul ce qui n'est pas un tarif est refusé.",
+  "Doute 3 (tuiles de la Comptabilité sur octobre, liste sur toutes les dates) : ne se reproduit toujours pas, le formulaire de dépense ne laisse choisir qu'octobre."
+ ]
+}
