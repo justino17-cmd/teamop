@@ -5108,7 +5108,7 @@ function menuCarte(id, x, y){
     { ic:'👤', l:'Changer de personne', s:'›', garde:true, fn:() => menuPersonnes(id, x, y) },
     { ic:'⧉', l:'Dupliquer', s:'›', garde:true, fn:() => menuDupliquer(id, x, y) },
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
-    i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; rendre(); toast('Remise à faire', ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; rendre(); toast('Marquée terminée', ANNULER); } },
+    i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; rendre(); toast('Remise à faire', ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
     { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
     { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
@@ -6840,8 +6840,23 @@ function journalPaiement(f, v, mode, o){ o = o || {}; journalAjout(o.qui || 'mar
 /* L'argent qu'un technicien reçoit sur place est un encaissement comme un autre (l'Accueil et la Comptabilité le comptent) : il a SA ligne dans « Qui a fait quoi »,
    au nom du technicien, une seule fois par intervention (P.journale), à « Terminer » : le montant d'un paiement « en totalité » laissé vide est celui de la facture préparée
    (restes accueil, tour 1 : le chemin qui encaissait sans rien écrire dans l'Historique) */
-function journalPaieTerrain(i, P, v){ if (!P || P.journale || !(v > 0)) return; P.journale = true;
+function journalPaieTerrain(i, P, v){ if (!P || !(v > 0)) return;
+  /* une seule ligne par intervention (« Terminer » rejoué ne double rien) — mais elle dit TOUJOURS ce que l'Accueil compte : « Remettre à faire », le montant retapé, « Terminer » de nouveau,
+     et l'ancienne ligne disait encore 50 € quand on comptait 80 € (restes accueil, tour 4) */
+  if (P.journale) { const l = JOURNAL.find(j => j.action === 'a noté un paiement reçu sur place' && j.el && j.el.id === i.id); if (l) l.det = eur(v) + ' · ' + P.mode; return; }
+  P.journale = true;
   journalAjout(i.tech || rlQui(), 'facture', 'a noté un paiement reçu sur place', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:eur(v) + ' · ' + P.mode }); }
+/* Les portes qui passent une intervention « terminée » SANS « Terminer » (le menu « Marquer terminée », le registre biocide) : si le technicien a déjà noté un paiement, il est reçu AUJOURD'HUI
+   (sans cela il retombait sur le jour prévu, et une intervention prévue après octobre ne comptait nulle part) et il a sa ligne dans l'Historique, comme par « Terminer ».
+   Rend la fonction qui DÉFAIT ce geste (« Annuler » du toast) ; null s'il n'y avait rien à compter (restes accueil, tour 4). */
+function argentSurPlaceCompter(i){
+  const P = (fiche(i.id) || {}).paiement; if (!P || P.etat === 'rien') return null;
+  const posee = !P.recuLe, deja = !!P.journale, n = JOURNAL.length;
+  if (posee) { P.recuLe = AUJ; P.recuH = hm(MAINT_MIN); }
+  journalPaieTerrain(i, P, cpPaieTerrain().filter(e => e.int === i.id).reduce((s, e) => s + e.ttc, 0));
+  const ajoutees = JOURNAL.slice(n);
+  return () => { if (posee) { delete P.recuLe; delete P.recuH; } if (!deja) delete P.journale; ajoutees.forEach(l => { const k = JOURNAL.indexOf(l); if (k >= 0) JOURNAL.splice(k, 1); }); };
+}
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
   const a = { tech:i.tech, d:i.d, h:i.h, dur:i.dur }, r = avant.apply(this, arguments);
   if (a.tech !== i.tech || a.d !== i.d || a.h !== i.h || a.dur !== i.dur) journalAjout('marc', 'planning', a.dur !== i.dur && a.d === i.d && a.h === i.h ? 'a changé la durée' : !a.tech && i.tech ? 'a planifié l’intervention' : 'a déplacé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli },
@@ -22045,6 +22060,7 @@ function rgSaisieOk(){
   const F = S.int ? fiche(S.int) : null, cochesAvant = F ? { r:F.coches['Registre biocide'], p:F.coches['Plan mis à jour'] } : null;
   if (F) { F.coches['Registre biocide'] = true; F.coches['Plan mis à jour'] = true; }
   const Iv = S.int ? INTS.find(o => o.id === S.int) : null, stAvant = Iv ? Iv.st : null; if (Iv && Iv.st !== 'annulee') Iv.st = 'fait';
+  const defaireArgent = Iv && stAvant !== 'fait' && Iv.st === 'fait' ? argentSurPlaceCompter(Iv) : null;   /* un paiement déjà noté par le technicien compte aujourd'hui, et a sa ligne, comme par « Terminer » */
   D3_PASSAGES = D3_PASSAGES.concat(p);
   const act = d3Activite(p)[0], sorties = {}; lignes.forEach(l => { sorties[D3_PROD[l.pid].u] = (sorties[D3_PROD[l.pid].u] || 0) + l.q; });
   const sortStr = Object.entries(sorties).map(([u, q]) => rgNb(q) + ' ' + (u === 'g' ? 'g' : q > 1 ? 'unités' : 'unité')).join(' + ');
@@ -22052,7 +22068,7 @@ function rgSaisieOk(){
   const jr = JOURNAL.at(-1); rgSaisie = null; if (typeof cbReleve !== 'undefined' && cbReleve && cbReleve.cli === k) cbReleve = null; fermerPanneau(); rendre();
   toast(`Passage enregistré${sortStr ? ' : ' + sortStr + ' ' + rgAccPart(sorties, 'retiré') + ' du camion de ' + esc(rgPrenom(ap)) : ''}${reco && envoi ? ' · recommandation envoyée à ' + esc(cli.mail) : ''}.`, { lib:'Annuler', fn:() => {
     D3_PASSAGES = D3_PASSAGES.filter(o => o !== p); avant.forEach(([lot, a]) => { lot[1] = a; }); delete RG_RECO[rid];
-    if (Iv) Iv.st = stAvant; if (F) { F.coches['Registre biocide'] = cochesAvant.r; F.coches['Plan mis à jour'] = cochesAvant.p; }
+    if (Iv) Iv.st = stAvant; if (defaireArgent) defaireArgent(); if (F) { F.coches['Registre biocide'] = cochesAvant.r; F.coches['Plan mis à jour'] = cochesAvant.p; }
     const j = JOURNAL.indexOf(jr); if (j >= 0) JOURNAL.splice(j, 1); rendre(); } });
 }
 d3Saisie = function(){ rgSaisieOuvrir(d3Cli); };   // l'ancien panneau (10 listes, produit et lot figés) est remplacé
