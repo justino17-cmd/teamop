@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "Une durée tapée en minutes (« 90 min », « 45 mn », « 90 minutes ») se multipliait par 90 au prix de l'heure : 5 850,00 € au lieu de 97,50 €",
+  "defaut": "casse du recontrôle tour 3 (argent, silencieux)",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : `dureeMinutes` + `ligneHeure`. Sur une ligne facturée à l'heure (quantité ou désignation à l'heure, main-d'œuvre) « 90 min » vaut 1,5 h (97,50 €), « 45 mn » 0,75 h, « 50 min » 54,17 €. Sur une ligne qui n'est pas à l'heure (déplacement, pièce) elle est REFUSÉE avec une phrase (« Une durée en minutes se compte sur une ligne facturée à l'heure : écris-la en heures (1h30), ou une quantité. Je garde 1. »), la quantité d'avant reste ; « 0 min » refusé (« supérieur à zéro »).",
+  "preuve": "reproduit d'abord (rc-duree : 5850 €) ; sonde compta-ventes-restes4.js mac 23 ✓ · 0 ✗, iPhone nuit 23 ✓ · 0 ✗ ; rc-duree rejouée : 97,5 / 48,75 / 97,5 ; mutations N1, N2, N7 tombent ; captures restes4-minutes-refusees-*.png lues (toast lisible sur iPhone et Mac)"
+ },
+ {
+  "nom": "Les totaux de ligne affichés ne s'additionnaient pas au Total HT (jusqu'à 2 centimes d'écart) dès qu'une quantité est fractionnaire",
+  "defaut": "casse du recontrôle tour 3 (document remis au client)",
+  "etat": "corrigé",
+  "changement": "`totLigne` arrondi au centime comme `dvLigneHT` du devis (Math.round(x*100+1e-7)/100) et `htDe` somme des lignes arrondies : trois lignes « 2,5 × 10,33 € » affichent 25,83 € et le Total HT en compte 25,83 chacune (207,49 €) ; la TVA et le TTC partent de ce HT ; aperçu PDF, e-mail, avoir, paiements lisent la même fonction.",
+  "preuve": "rc.js (qui tombait volontairement) 28 ✓ · 0 ✗ ; restes4 « les totaux de ligne affichés s'additionnent au Total HT affiché » et « le TTC part du HT au centime » ; mutations N3, N4 tombent ; capture restes4-totaux-mac.png lue (25,83 € ×3, HT cohérent)"
+ },
+ {
+  "nom": "Une pièce préparée retapée avec une autre casse ou sans espace change de total (« 0,5 L » = 10,33 €, « 0,5 l » / « 0,5L » = 5,17 €)",
+  "defaut": "casse mineure du recontrôle tour 3",
+  "etat": "corrigé",
+  "changement": "`qteNorm` : le texte d'origine d'une ligne préparée (q0) se compare sans la casse ni les espaces (insécables compris) ; « 0,5 l », « 0,5L », « 0,5 l », « 0,5  L » redonnent le total du flacon, « 1 », « 2 » gardent l'ancienne règle.",
+  "preuve": "restes4 pièce 5 variantes + 3 valeurs de contrôle ; mutations N5, N6 tombent"
+ },
+ {
+  "nom": "Commande fournisseur (« Nouvelle commande ») : champ « Prix HT » à côté de la quantité, total de ligne non arrondi",
+  "defaut": "nouveau du recontrôle tour 3, signalé hors compta-ventes",
+  "etat": "à soumettre à Justin",
+  "changement": "rien touché : relève de la voie achats (hors de mes noms), même ambiguïté de mot que celle corrigée dans la facture, le devis et l'atelier ; à lui passer.",
+  "preuve": "lu dans le rapport tour 3, non rejoué"
+ },
+ {
+  "nom": "Une unité inconnue multiplie encore la quantité (« 3 forfaits » = 3 × le prix du forfait ; « 250 mL » sur une pièce vendue au flacon = 250 ×)",
+  "defaut": "doute du recontrôle tour 3 : refuser toute unité inconnue sur une ligne ?",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé : le sens d'une unité tapée n'est connu que pour l'heure et les minutes (désormais traitées) ; refuser toute autre unité est une décision de produit. Aucune valeur silencieuse nouvelle n'est introduite.",
+  "preuve": "restes4 constate « 250 mL » = 2 582,50 € (comportement d'avant, non modifié)"
+ },
+ {
+  "nom": "Reportés du tour 2, non rouverts : remboursement d'une facture payée en entier puis avoirée ; « Paiement en ligne » aux factures d'exemple ; nom « OP COMPTABLE » ; cadre qui ne redessine pas sa liste si un changement arrive d'ailleurs",
+  "defaut": "doutes anciens",
+  "etat": "à soumettre à Justin",
+  "changement": "rien changé",
+  "preuve": "non rejoués (aucun nouveau constat)"
+ }
+]

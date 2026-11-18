@@ -1,0 +1,149 @@
+[
+ {
+  "nom": "recontrôle · casse « comptés 4 moiss » sur la ligne d'assurance de chaque fiche véhicule",
+  "defaut": "vxN ajoute « s » au pluriel : « 1 080 € par an, comptés 4 moiss ».",
+  "etat": "corrigé",
+  "changement": "vxN(c.nbMois, 'mois', 'mois') : le pluriel est dit.",
+  "preuve": "sondes/restes-vehtemps-1.js (4 véhicules × 3 périodes, mac, jour ; iPhone jour et nuit) ; mutation 1 tombe (48 ✓ · 9 ✗)."
+ },
+ {
+  "nom": "recontrôle · casse « Les dépenses · 6 » au-dessus de sept lignes",
+  "defaut": "L'en-tête compte F.length, la ligne d'assurance répartie s'y ajoute sans être comptée.",
+  "etat": "corrigé",
+  "changement": "Le compte est F.length + (ligne d'assurance ? 1 : 0).",
+  "preuve": "sondes/restes-vehtemps-1.js : le nombre annoncé = le nombre de .vh-fr pour les 4 véhicules et les 3 périodes ; mutation 2 tombe (45 ✓ · 12 ✗)."
+ },
+ {
+  "nom": "recontrôle · casse « Au garage jusqu'au lundi 2 novembre » écrit sur toutes les échéances d'entretien",
+  "defaut": "Le correctif de gerant-03 appliquait « Au garage » au contrôle technique ET à la courroie, alors que le garage est noté pour le seul contrôle.",
+  "etat": "corrigé",
+  "changement": "Une seule règle, vhEchAuGarage(v, e), lue par la ligne de l'onglet À faire ET par le bouton : le motif noté (« Contrôle technique » ou « Entretien ») dit quelle échéance est au garage ; panne, accident, autre gardent l'ancienne lecture (le garage a la main sur les deux).",
+  "preuve": "sondes/restes-vehtemps-1.js : l'Expert mis au garage au toucher (motif Contrôle technique) : la ligne du contrôle dit « Au garage jusqu'au », la courroie non ; contre-épreuve motif « Entretien » : la courroie oui, le contrôle non ; mutation 5 tombe."
+ },
+ {
+  "nom": "recontrôle · casse « Le Expert et le Kangoo sont au garage » (préexistant, écran du lot)",
+  "defaut": "vhCourt rendait toujours « le » devant le nom du modèle.",
+  "etat": "corrigé",
+  "changement": "vhCourt élide devant une voyelle (« l'Expert ») ; les trois emplois (phrase du haut, tâche, fiche) suivent.",
+  "preuve": "sondes/restes-vehtemps-1.js : « L’Expert et le Kangoo sont au garage » ; mutation 6 tombe."
+ },
+ {
+  "nom": "recontrôle · casse « elle sera régularisée » pour un homme (mois fermé)",
+  "defaut": "L'encadré de la fiche de la journée écrivait « elle sera régularisée » en dur.",
+  "etat": "corrigé",
+  "changement": "Accord par ttFem(k) : « il sera régularisé » pour Tom, « elle sera régularisée » pour une salariée ; la sonde du correcteur (vehtemps-corr-temps.js, 07) est alignée.",
+  "preuve": "sondes/restes-vehtemps-1.js (mois fermé par le vrai geste de verrouillage) ; mutation 22 tombe ; vehtemps-corr-temps 34 ✓ · 0 ✗."
+ },
+ {
+  "nom": "recontrôle · casse visionneur de fiche de paie : titre sous le bouton ✕ à 390 px (préexistant, partagé, rangé « hors lot » par le recontrôleur)",
+  "defaut": "« Fiche de paie septembre 2026 - Sophie Martin » passait sous le rond ✕ : le titre est un flex nowrap qui ne se coupe pas.",
+  "etat": "corrigé",
+  "changement": "Une seule règle CSS au téléphone (.dp-barre b : white-space normal, overflow-wrap anywhere, interligne 1,25) : le titre passe à la ligne et garde sa réserve de 52 px pour la croix ; c'est le visionneur commun, aucun écran n'en est changé ailleurs que par cette règle.",
+  "preuve": "sondes/restes-vehtemps-1.js partie « visionneur » (le rectangle de chaque ligne du titre, comparé à celui de la croix) : iPhone, Android, jour et nuit ; mutation 26 tombe (3 ✓ · 1 ✗). Capture visionneur-android regardée."
+ },
+ {
+  "nom": "recontrôle · pas réglé gerant-19 : la feuille d'une personne écrit « Congé payé » le samedi et le dimanche",
+  "defaut": "ttCase corrigée, pas ttJoursListe (feuille de la semaine) : « sam. 31 Congé payé », « dim. 1 Congé payé » pour Léa.",
+  "etat": "corrigé",
+  "changement": "ttJoursListe ne regarde l'absence que les jours ouvrés (comme la grille, Mes heures et la Paie) : le week-end dit « pas de journée ».",
+  "preuve": "sondes/restes-vehtemps-1.js (feuille de Léa, la semaine en cours : samedi et dimanche sans « Congé », le vendredi en congé le dit encore) ; mutation 19 tombe."
+ },
+ {
+  "nom": "recontrôle · pas réglé gerant-20 : « dim. 1 · pas encore »",
+  "defaut": "Pour un jour à venir, la feuille disait « pas encore » (pas encore quoi ?).",
+  "etat": "corrigé",
+  "changement": "« à venir ».",
+  "preuve": "sondes/restes-vehtemps-1.js ; mutation 20 tombe ; capture tt-feuille-conge regardée (mac, iPhone, Android, jour et nuit)."
+ },
+ {
+  "nom": "recontrôle · pas réglé gerant-16 : Mois › Voir la paie › « ‹ Retour · Temps de travail » rouvre « Aujourd'hui »",
+  "defaut": "Le retour passait par aller('pointage') depuis la Comptabilité : TT.avant ≠ pointage remettait l'onglet à « Aujourd'hui ».",
+  "etat": "corrigé",
+  "changement": "Le retour demandé par la Paie (allerAvecRetour) porte une petite fonction « garde » qui pose TT.garder avant de revenir : l'onglet et la semaine d'où l'on est parti reviennent. Le bouton ‹ Retour n'est pas changé (la voie « retour » du chef de chantier n'est pas touchée).",
+  "preuve": "sondes/restes-vehtemps-1.js partie « retour » (mois fermé, Voir la paie, ‹ Retour, onglet actif = Mois ; contre-épreuve : revenir par le menu rouvre « Aujourd'hui ») ; mutation 25 tombe."
+ },
+ {
+  "nom": "recontrôle · pas réglé gerant-15 : toast du rapport de contrôle technique (« Le procès-verbal de contrôle ajoutée »)",
+  "defaut": "Un autre mot que l'écran et un accord féminin sur un nom masculin.",
+  "etat": "corrigé",
+  "changement": "« Le rapport du contrôle technique ajouté pour GH-482-KL. » ; la carte grise et l'attestation gardent « ajoutée ».",
+  "preuve": "sondes/restes-vehtemps-1.js (les trois documents) ; mutations 3 et 4 tombent."
+ },
+ {
+  "nom": "recontrôle · pas réglé salarie-05 : à 320 × 568 et Android 360 × 740, la première ligne d'« À régler » / de la Semaine reste sous la barre du bas",
+  "defaut": "À 320 × 568 la première action d'« À régler » finit à 625 px, la barre du bas commence à 488 ; sur Android 360 × 740 la pastille de la première personne passe sous la barre.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun. « À régler » passe bien avant la carte de la journée (fait) ; tenir « sans défiler » sur un 320 × 568 demanderait de retirer le bouton « Ajouter une journée » ou les quatre chiffres du haut, deux choses que Justin a validées. Au-dessus de 600 px de haut, un petit défilement suffit (la page glisse sous la barre translucide, comme partout).",
+  "preuve": "Mesures du recontrôle (refonte/vehtemps-recontrole.json) ; rien de neuf mesuré ici."
+ },
+ {
+  "nom": "recontrôle · doute gerant-06 : la Paie (étape 1) et Temps de travail › Mois disent la même chose avec d'autres mots",
+  "defaut": "« 1 journée restée ouverte · 6 personnes ont encore des heures à valider » contre « 1 journée à terminer, … 6 personnes à valider » ; « Demander aux salariés de confirmer » contre « Demander de confirmer ».",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : l'étape 1 de la Paie est un écran validé hors du lot ; seuls « en plus » et « payée avec novembre » ont été alignés (décision du chef).",
+  "preuve": "—"
+ },
+ {
+  "nom": "recontrôle · doutes salarie-03, salarie-06, salarie-07 (Mon camion à 320 px, hauteur de la liste Véhicules au téléphone, pastille « messages du bureau »)",
+  "defaut": "Trois pastilles de 13 px au lieu de trois boutons empilés ; Véhicules à 1 515 px au lieu de 1 200 ; un rappel des messages du bureau sur Mon camion.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : choix de la refonte du Matériel, cible de hauteur à réviser, décision sur la pastille — des décisions, pas des défauts.",
+  "preuve": "—"
+ },
+ {
+  "nom": "recontrôle · doute « 1 566 € dépensés en octobre » n'inclut pas l'assurance répartie alors que « Ce mois-ci » d'une fiche l'inclut",
+  "defaut": "Deux manières de compter pour le même mot ; après un renouvellement groupé de 4 200 €, la tuile passe de 1 566 € à 5 766 €.",
+  "etat": "corrigé",
+  "changement": "Décision du chef du 17/11 (assurance payée à l'année) : le chiffre du haut reste ce qui a été PAYÉ dans le mois et le dit (« payés en octobre (hors taxes) »), avec dessous « dont l'assurance de l'année : 4 200 € » quand une prime y est (liste et fenêtre « Ce que coûtent les véhicules ») ; le coût au kilomètre continue de la lisser sur douze mois. Au téléphone, la tuile qui porte cette ligne passe seule sur sa rangée (à 360 px, trois tuiles étroites l'écrivaient sur sept lignes : vu sur la capture Android, corrigé, mesuré).",
+  "preuve": "sondes/restes-vehtemps-1.js (renouvellement de 4 200 € joué au toucher : 1 566 € → 5 766 €, la ligne apparaît, la fenêtre des coûts la redit ; téléphone : tuile pleine largeur) ; mutations 7, 8, 9 tombent."
+ },
+ {
+  "nom": "recontrôle · doute « la semaine en cours est validable »",
+  "defaut": "« Valider les 4 personnes en règle » et « Valider ce qui est en règle » comprenaient la semaine du 26 octobre, pas finie un samedi à 10 h 40.",
+  "etat": "corrigé",
+  "changement": "Décision du chef du 17/11 : une semaine se valide une fois finie (ttSemFinie). Semaine en cours : personne n'est « en règle à valider », aucun bouton (lot, personne, feuille), la pastille dit « En cours », la phrase dit « Semaine en cours : elle se valide une fois finie. » ; les gestes forgés (ttValiderUn, ttValiderLot, ttValiderPanneau) refusent avec la même phrase ; « Valider ce qui est en règle » (Mois, Paie) saute les semaines non finies, et le Mois dit « la semaine en cours est à valider une fois finie » (la phrase a ensuite été affinée par la voie « mots »). La visite parlée de Temps de travail remonte à la semaine d'avant pour valider. Le relevé de la Paie (Comptabilité › Paie, « Semaine par semaine ») suit : la semaine en cours dit « En cours » au lieu de « Valider », et « valsem » refuse (même phrase).",
+  "preuve": "sondes/restes-vehtemps-1.js (population : semaine en cours pas finie, 3 personnes au moins ont pointé ; aucun bouton ; geste forgé sans écriture ; contre-épreuve : la semaine finie d'avant propose « Valider » exactement quand des personnes y sont en règle) ; mutations 13 à 18, 27 et 28 tombent ; sondes du lot alignées (t1-gestes E, F, H, t56-gestes 7, visites). ; sondes des autres voies alignées : compta-reste-parcours-f (F2 : 3 → 1 semaine finie à alerte), vehtemps-rc-parcours A (12 ✓ · 0 ✗) ; fumée de toutes les routes 396 ✓ · 0 ✗."
+ },
+ {
+  "nom": "décision du chef 17/11 12 h 25 · pas pointé alors qu'une intervention tourne",
+  "defaut": "La ligne « Pas encore commencé » disait « devait commencer à 08:30 » à côté d'une intervention déjà en cours.",
+  "etat": "corrigé",
+  "changement": "ttEtats relève l'intervention du jour démarrée ou terminée (tourne) ; la ligne dit « Une intervention est en cours depuis 08:30, rien n'est pointé » (ou « Une intervention de 07:30 est terminée, rien n'est pointé »), avec le rappel quand il est parti. La cible de hauteur de la sonde iPhone passe de 2 100 à 2 120 px (une ligne de plus à 390 px, décision comprise).",
+  "preuve": "sondes/restes-vehtemps-1.js (Sophie, 08:30 ; contre-épreuve : une personne attendue sans intervention garde « devait commencer à ») ; mutation 12 tombe ; capture tt-auj regardée."
+ },
+ {
+  "nom": "décision du chef 17/11 12 h 25 · Mois : « dont X en octobre »",
+  "defaut": "Les lignes de la feuille d'une personne ne faisaient pas la somme du chiffre du haut (Sophie : 41h00 + 40h50 + … = 195h26 pour 170h46).",
+  "etat": "corrigé",
+  "changement": "Une semaine à cheval sur deux mois dit « dont 16h20 en octobre » (avant « dont … en plus ») ; la somme des lignes retombe sur le chiffre du haut.",
+  "preuve": "sondes/restes-vehtemps-1.js (trois personnes : la somme des lignes lue À L'ÉCRAN = le chiffre du haut) ; mutation 21 tombe ; captures tt-mois-pers regardées."
+ },
+ {
+  "nom": "décision du chef 17/11 12 h 25 · deux mots pour un fait (« en plus », « payée avec novembre »)",
+  "defaut": "Le relevé de la Paie écrivait « sup. » et « se termine en novembre · sur novembre ».",
+  "etat": "corrigé",
+  "changement": "Paie : « +3h en plus », « payée avec novembre », tuiles « heures en plus à 25 % / 50 % », phrase du report et pièces jointes (« · 3h en plus ») ; les mots légaux « heures supplémentaires » du bulletin et de la fiche ne changent pas.",
+  "preuve": "sondes/restes-vehtemps-1.js (relevé et document de la Paie, deux personnes) ; mutations 23 et 24 tombent. Non rejoué : la liste des pièces jointes de « Envoyer au cabinet » (même mot, derrière une garde de sécurité) — corrigé dans le code, aucune sonde ne l'ouvre."
+ },
+ {
+  "nom": "vu par le chef 17/11 12 h 15 · la bande d'onglets de Véhicules et de Temps de travail est étirée à l'ordinateur",
+  "defaut": "Une bande grise sur toute la largeur avec trois onglets tassés à gauche et 800 px de vide.",
+  "etat": "corrigé",
+  "changement": "Au-dessus de 760 px, ces deux bandes prennent la largeur de leurs onglets (comme Équipe, Stock, Fournisseurs) ; le téléphone n'est pas touché.",
+  "preuve": "sondes/restes-vehtemps-1.js (mac : 312 et 314 px sur 1 184, windows idem ; iPad, iPhone, Android, 320 px : largeur pleine, contre-épreuve) ; mutation 10 tombe ; capture regardée."
+ },
+ {
+  "nom": "vu par le chef 17/11 12 h 15 · la phrase sous le titre de Temps de travail oublie les « pas encore commencé »",
+  "defaut": "« 1 personne au travail, 1 absente » alors que les chiffres dessous disent aussi « 2 pas encore commencé ».",
+  "etat": "corrigé",
+  "changement": "« Aujourd'hui, samedi 31 octobre : 1 personne au travail, 1 absente, 2 pas encore commencé. »",
+  "preuve": "sondes/restes-vehtemps-1.js (la phrase contient le nombre des chiffres) ; mutation 11 tombe."
+ },
+ {
+  "nom": "déjà décidé · écriture des heures (décision g)",
+  "defaut": "Rien à changer : « 8h05 », « 170h46 » restent collés ; « 16:47 » pour une heure ; « 10 h » dans une phrase.",
+  "etat": "déjà décidé",
+  "changement": "Aucun.",
+  "preuve": "—"
+ }
+]

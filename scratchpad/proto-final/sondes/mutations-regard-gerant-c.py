@@ -12,7 +12,7 @@ M = [  # (nom, section de la sonde, avant, après)
  ('pastille du menu : sa marge retirée', [2], ".menu a .nb{margin-left:auto;margin-right:-4px;min-width:20px;height:20px;padding:0 5px;", ".menu a .nb{margin-left:auto;min-width:20px;height:20px;padding:0 6px;"),
  ('état de l\'article à côté du nom (grille retirée)', [3], "html .ms-l.sk-l:not(.fx-a){display:grid;grid-template-columns:auto minmax(0,1fr) auto;", "html .ms-l.sk-l:not(.fx-a){display:flex;grid-template-columns:auto minmax(0,1fr) auto;"),
  ('invite de « Ce qui a bougé » longue au téléphone', [4], "tel() ? 'Article, personne…' :", "tel() ? 'Chercher un article, une personne…' :"),
- ('invite des articles du fournisseur longue au téléphone', [4], "tel() ? 'Article, référence, fournisseur…' :", "tel() ? 'Chercher un article, une référence, un fournisseur' :"),
+ ('invite des articles du fournisseur longue au téléphone', [4], "(innerWidth < 340 ? 'Article, fournisseur' : 'Article, référence, fournisseur')", "'Chercher un article, une référence, un fournisseur'"),
  ('titre et bouton de « À commander » sur la même ligne', [5], "html .fx-ch{flex-wrap:wrap}html .fx-ch>div{flex:1 1 100%}html .fx-ch h3{white-space:normal}", "html .fx-ch{flex-wrap:nowrap}"),
  ('bouton du stock vide qui sort de la carte', [6], "html .ms-vb .btn{max-width:100%;white-space:normal;", "html .ms-vb .btn{max-width:none;white-space:nowrap;"),
  ('adresse e-mail de la fiche fournisseur coupée', [7], "html .fx-lg .saisie[type=email]{width:min(70%,340px)}", "html .fx-lg .saisie[type=email]{width:min(52%,240px)}"),
@@ -21,6 +21,15 @@ M = [  # (nom, section de la sonde, avant, après)
  ('montant d\'une carte de dépôt coupé avant la virgule', [10], "html .md-c .client-chiffres b{white-space:nowrap}", "html .md-c .client-chiffres b{overflow-wrap:anywhere}"),
  ('tuile de la fiche camion à 320 px : police non réduite', [9], "html .md-kpis .kpi{padding-inline:8px}html .md-kpis .kpi b{font-size:15px}", "html .md-kpis .kpi{padding-inline:8px}"),
  ('« · 6 » seul sur sa ligne', [8], "${BX.cfg.okLib}\\u00a0·\\u00a0${n}", "${BX.cfg.okLib} · ${n}"),
+ ('segmenté Matériel : marges de 2 px (320)', [11], "html .fx-seg button{padding:0 5px!important;gap:3px!important;font-size:12px!important}html .fx-seg .pr-nb{min-width:0;padding:0 2px;font-size:10.5px}html .fx-seg .pr-nb:not(.chaud){background:none;padding:0}", "html .fx-seg button{padding:0 2px!important;gap:2px!important;font-size:12.5px!important}html .fx-seg .pr-nb{min-width:16px;padding:0 3px;font-size:11px}"),
+ ('bouton noir de l\'en-tête à 16 px (deux lignes)', [12], "html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){padding-inline:8px;font-size:14px}}", "}"),
+ ('titre de groupe à l\'ancienne (une chaîne, point collé en bout de ligne)', [13], "const titre = pack ? msPts([esc(cat), esc(pack) + fin]) : msPts([esc(cat) + fin]);", "const titre = esc(cat + (pack ? ' · ' + pack : '') + ' · ' + A.length);"),
+ ('points médians visibles en tête de ligne (conteneur sans coupe)', [13, 14], "html .pts{display:block;overflow:hidden}", "html .pts{display:block;overflow:visible}"),
+ ('clavier qui monte seul sur tactile', [15], "!matchMedia('(pointer:coarse)').matches && !(navigator.maxTouchPoints > 0 && !matchMedia('(hover:hover)').matches) && ", ""),
+ ('boutons du stock vide à largeurs différentes', [16], "html .ms-vb:has(>.btn:nth-child(2)){display:grid;", "html .ms-vb:has(>.btn:nth-child(2)){display:flex;"),
+ ('ligne de lieux du Stock à l\'ancienne (point en bout de ligne)', [17], "return it.length ? msPts(it) : 'Nulle part pour l’instant'; })();", "return it.length ? it.join(' · ') : 'Nulle part pour l’instant'; })();"),
+ ('lignes de la fiche camion à l\'ancienne (« · » en bout de ligne)', [18], "const cl = o.a <= 0 ? 'md-rg' : 'md-o', sub = o.cible != null ? (m > 0 ? msPts([", "const cl = o.a <= 0 ? 'md-rg' : 'md-o', sub = o.cible != null ? (m > 0 ? ((A => A.join(' · ')))(["),
+ ('colonne du montant plus étroite que lui (carte de dépôt)', [10], "html .md-c .client-chiffres,html .fx-c .client-chiffres{grid-template-columns:minmax(0,1fr) minmax(max-content,1fr) minmax(0,1.3fr)}", "html .md-c .client-chiffres,html .fx-c .client-chiffres{grid-template-columns:1fr 1fr 1.3fr}"),
 ]
 def ferme():
     shutil.rmtree(TMP, ignore_errors=True); os.makedirs(os.path.join(TMP, 'apercu'))
