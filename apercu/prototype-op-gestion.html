@@ -26927,7 +26927,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="cnx-motion2">
 .cn-orbe{position:absolute;width:70vmax;height:70vmax;border-radius:50%;opacity:.34;pointer-events:none}
 .cn-orbe.a{left:-22vmax;top:-18vmax;background:radial-gradient(closest-side,#2f6bff,rgba(47,107,255,0));animation:cnDerive 9s ease-in-out infinite alternate}
 .cn-orbe.b{right:-24vmax;bottom:-22vmax;background:radial-gradient(closest-side,#5b3dff,rgba(91,61,255,0));animation:cnDerive 11s ease-in-out infinite alternate-reverse}
-#cnx.charge > :not(.cn-orbe){position:relative;z-index:1}
+#cnx.charge > :not(.cn-orbe):not(#cnx-test){position:relative;z-index:1}
 .charge.trace .cn-scene{animation:cnCamera 2.05s cubic-bezier(.2,.7,.2,1) both}
 .trace .cn-contour,.trace .cn-diag{filter:drop-shadow(0 0 5px rgba(150,190,255,.95)) drop-shadow(0 0 14px rgba(90,140,255,.7))}
 .cn-onde{position:absolute;inset:0;border-radius:calc(var(--cn-t) * .3);border:2px solid rgba(160,195,255,.85);opacity:0;animation:cnOnde .95s 2.12s cubic-bezier(.2,.7,.3,1) forwards}
