@@ -23261,7 +23261,11 @@ function opdListeNet(L){
   return out;
 }
 function opdListeLire(){ try { const t = localStorage.getItem(OPD_CLE); return (t && opdListeNet(JSON.parse(t))) || []; } catch (e) { return []; } }
-const ATD = { docs:opdListeLire() };
+/* les numéros que l'atelier a DÉJÀ DONNÉS, même à un brouillon supprimé depuis : { devis:{p,n}, contrat:{p,n} } — recopié dans le rangement de l'hôte comme la liste (restes devis-atelier, tour 2 : sans ça le devis rapide reprenait D-2026-042) */
+const OPD_CLE_NUMS = 'opg_proto_atelier_nums';
+function opdNumsNet(o){ const r = {}; if (!o || typeof o !== 'object') return r; for (const t of ['devis', 'contrat']) { const x = opdA(o, t), p = opdA(x, 'p'), n = opdA(x, 'n'); if (typeof p === 'string' && /^[A-Za-z0-9-]{1,12}$/.test(p) && Number.isInteger(n) && n >= 0 && n <= 999999) r[t] = { p, n }; } return r; }
+function opdNumsLire(){ try { return opdNumsNet(JSON.parse(localStorage.getItem(OPD_CLE_NUMS) || 'null')); } catch (e) { return {}; } }
+const ATD = { docs:opdListeLire(), nums:opdNumsLire() };
 const OPDZ = { pret:false, file:[], ouvert:false, tAtt:0, sale:false, depart:'', sigDocs:JSON.stringify(ATD.docs), sigDon:'', overflow:'' };
 const opdOuvert = () => { const z = document.getElementById('opdz'); return !!z && !z.hidden; };
 const opdCadre = () => { const z = document.getElementById('opdz'); return z && z.querySelector('iframe'); };
@@ -23299,7 +23303,7 @@ function opdClientLignes(k, type){   // la fiche d'un client : ses documents com
   return opdDocsDe(type).filter(x => x.clientId === k).map(x => `<div class="ligne lg-pli">${peut('ventes', 'm') ? `<button type="button" class="lien opd-cl" data-opd="doc" data-id="${esc(x.id)}">` : '<span class="opd-cl">'}${esc((x.numero ? x.numero + ' · ' : '') + (opdNom(x) || (type === 'devis' ? 'Devis' : 'Contrat')))}${peut('ventes', 'm') ? '</button>' : '</span>'}<span class="st ${opdEt(x)[1]}">${opdEt(x)[0]}</span></div>`).join('');
 }
 /* les numéros : l'atelier suit la série d'OP GESTION, et OP GESTION compte ce que l'atelier a composé — dans les deux sens, jamais deux fois le même */
-const opdNums = (type, pre) => ATD.docs.filter(x => x.type === type && x.numero.startsWith(pre)).map(x => +x.numero.slice(pre.length)).filter(n => Number.isInteger(n));
+const opdNums = (type, pre) => ATD.docs.filter(x => x.type === type && x.numero.startsWith(pre)).map(x => +x.numero.slice(pre.length)).filter(n => Number.isInteger(n)).concat(ATD.nums[type] && ATD.nums[type].p === pre ? [ATD.nums[type].n] : []);   // + la mémoire des numéros donnés
 const opdDevisMax = () => Math.max(0, DVN || 0, ...[...DV.map(x => x.num), DEVIS_SUITE.num, ...Object.keys(DEVIS_REG)].filter(n => /^D-2026-\d+$/.test(n || '')).map(n => +n.slice(7)));
 const opdContratMax = () => Math.max(0, ...CONTRATS.map(k => k.num).filter(n => /^CTR-2026-\d+$/.test(n || '')).map(n => +n.slice(9)));
 function ctrNum(){ return 'CTR-2026-' + String(Math.max(opdContratMax(), ...opdNums('contrat', 'CTR-2026-')) + 1).padStart(3, '0'); }
@@ -23383,6 +23387,10 @@ function opdFermer(motif){
   opdSync();
 }
 function opdRedessiner(){ if (route === 'devis' ? !param : route === 'contrats' || route === 'client') rendre(); }
+function opdNumsRecus(o){   // on ne fait que MONTER : un numéro donné ne redescend jamais, quoi que dise un message plus ancien
+  const n = opdNumsNet(o); for (const t of ['devis', 'contrat']) { const x = n[t], y = ATD.nums[t]; if (x && (!y || y.p !== x.p || y.n < x.n)) ATD.nums[t] = x; }
+  try { localStorage.setItem(OPD_CLE_NUMS, JSON.stringify(ATD.nums)); } catch (e) { /* confort seulement */ }
+}
 function opdDocsRecus(L){
   const n = opdListeNet(L); if (!n) return; const sig = JSON.stringify(n); try { localStorage.setItem(OPD_CLE, sig); } catch (e) { /* la copie n'est qu'un confort de premier rendu */ }
   if (sig === OPDZ.sigDocs) return; ATD.docs = n; OPDZ.sigDocs = sig;   // on ne redessine que si la liste a changé : sinon elle sautait de 130 à 180 px à chaque réponse de l'atelier
@@ -23403,6 +23411,7 @@ addEventListener('message', ev => {
       if (deuxieme) { opdFermer('fin'); return; }   // reçu une SECONDE fois : l'atelier a redémarré, son état est perdu — on ferme plutôt que de laisser un cadre vide sans sortie
       const z = document.getElementById('opdz'); if (z && !z.hidden) { z.querySelector('.opdz-att').hidden = true; OPDZ.file.splice(0).forEach(opdEnvoyer); try { f.contentWindow.focus(); } catch (e) {} }
     }
+    if (opdA(d, 'opd_nums') !== undefined) opdNumsRecus(opdA(d, 'opd_nums'));
     if (opdA(d, 'opd_docs') !== undefined) opdDocsRecus(opdA(d, 'opd_docs'));
     if (opdA(d, 'opd_client') !== undefined) opdClientRecu(opdA(d, 'opd_client'));
     const q = opdA(d, 'opd_fermer'); if (q !== undefined) { const m = opdA(q, 'motif'); opdFermer(m === 'role' || m === 'absent' || m === 'supprime' ? m : 'fin'); if (m === 'entreprise' && droitVoit('entreprise')) aller('entreprise'); }
