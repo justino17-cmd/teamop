@@ -1,0 +1,70 @@
+{
+ "noms": [
+  "restes-entreprise-tour1-recontrole"
+ ],
+ "regles": [
+  "casse 1 — champ refusé caché sous la rangée « Enregistrer » collée : réglé (k : 360×420, 320×330 nuit, 390×360 = 3 ✓ ; contre-épreuve : scroll-padding retiré = 3 ✗ ; restes1 section c rejouée)",
+  "tout-11 — la barre « ‹ Retour · Mon entreprise » reste à l'écran après les cinq liens (restes1 r : iPhone, Android, Mac) ; fond plein, z-index 29 sous le calque, une feuille ouverte (iPhone, Android nuit, iPad) passe AU-DESSUS (s2 : 3 ✓), plus de barre collée au retour (s : 2 ✓)",
+  "fiche « Droits » : bloc Connexion à 320, 360, 820, 1440 px avec un nom de 44 signes et une adresse de 80 signes : rien ne sort, la page ne glisse pas (d : 8 ✓ ; l'ancien correctif en double a bien disparu, une seule règle .cn-acces)",
+  "arrondi du centime : 13 saisies limites (1e2, 1,5e1, −5, abc, 12,345, 12.345, 0,995, 1,004, 499,995, 500,004, 1 000, vide) : jamais NaN, jamais hors bornes, bornes refusées (c : 26 ✓)",
+  "bandeaux .alerte (+ .ent-ban) de jour et de nuit, sur page et sur carte, Mac et iPhone : contraste texte 10,9 à 16,6 (b : 20 ✓) ; captures lues, l'ambre et le rose de jour sont francs, la nuit est inchangée",
+  "tout-08 Boîte mail — lecture seule : restes1 m (5 jeux de cases) + mt = 128 ✓ · 0 ✗ ; les autres rôles (Julie, Sophie, Karim) n'ouvrent pas la rubrique (redirigés, aucune erreur)",
+  "sondes périmées d'autres lots remises d'aplomb : structure 201 ✓, champs 116 ✓, destinations 46, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, rapide 21 : tous 0 ✗"
+ ],
+ "pasRegles": [
+  {
+   "nom": "tout-08 — la Boîte mail en « Voir seul »",
+   "defaut": "Le correcteur a gardé répondre, archiver, supprimer, écrire, transférer, mais le SUIVI d'une demande (boutons À traiter / En cours / Résolu et champ « Assigné à ») écrit sans passer par aucun droit.",
+   "constat": "Sondé (restes1-recontrole g) : « Voir seul », une demande ouverte, un clic sur « En cours » passe de aTraiter à enCours, sans refus ni phrase (avec toutes les cases : même résultat, attendu). Cause : changerSuivi() (apercu/prototype-courrier.js, ~l. 2805) et l'écouteur change de #suiviAssigne (~l. 4520) n'appellent pas droit('ranger'), et aucune règle CSS data-ranger=\"0\" ne masque [data-suivi] ni .rs-a. Correction : droit('ranger') en tête de changerSuivi + masquer .rsuivi quand data-ranger=0 (ou le rendre en lecture seule, à décider)."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Un refus de champ sur téléphone : la bulle du refus (toast) recopie le message du champ et recouvre l'aide placée sous lui",
+   "gravite": "mineure, 2,5 s",
+   "etapes": "iPhone ou Android, Mon entreprise > Ton entreprise, « Site internet » = « pas un site », Enregistrer.",
+   "constat": "Le champ, son aide (« Il s'écrit dans les documents sur mesure ») et son message sont à 627-723 px ; le toast (688-736 px) répète « Cette adresse de site ne semble pas juste. » par-dessus l'aide et le message, qui paraissent coupés (visible sur cap/entreprise-restes1-recontrole/k-360x420.png et c-iphone.png du correcteur). Disparaît avec le toast ; la phrase est dite deux fois. À trancher : pas de toast quand le champ dit déjà le refus."
+  },
+  {
+   "titre": "Boîte mail « Voir seul » : « Renommer… » et « Changer le logo… » d'une boîte restent proposés",
+   "gravite": "doute",
+   "etapes": "Clic droit sur une boîte du tiroir (restes1-recontrole h).",
+   "constat": "Voir seul et Voir + Modifier y gardent Ouvrir / Renommer / Logo ; Supprimer est bien retiré sans la case. Ce sont des réglages d'affichage de la boîte : à Justin de dire s'ils relèvent de Modifier."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "sondes/entreprise-restes1.js",
+   "resultat": "128 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/entreprise-restes1-recontrole.js g",
+   "resultat": "3 ✓ · 1 ✗ (suivi d'une demande en Voir seul)"
+  },
+  {
+   "fichier": "sondes/entreprise-restes1-recontrole.js b s s2 k c d h",
+   "resultat": "20 ✓ + 2 ✗ puis rejouée corrigée (le ✗ venait de la sonde, chevauchement horizontal seulement) ; s 4 ✓, s2 3 ✓, k 3 ✓, c 26 ✓, d 8 ✓, h 6 ✓ : 0 ✗ ; contre-épreuve k (scroll-padding retiré) : 3 ✗"
+  },
+  {
+   "fichier": "sondes/entreprise-tout.sh (RAPIDE)",
+   "resultat": "rapide 21, structure 201, champs 116, destinations 46, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16 = 0 ✗ ; achats-lisible 31 ✓ · 3 ✗ (attente périmée par la voie achats : « Ça se règle dans la Comptabilité » ne vient plus après les deux lignes ; pas un défaut d'entreprise)"
+  },
+  {
+   "fichier": "sondes/entreprise-recontrole.js r08 r11 r13 casse1 casse1b",
+   "resultat": "codes de sortie 0"
+  },
+  {
+   "fichier": "contrôles du chantier",
+   "resultat": "compiler-pages, verifier-syntaxe, test-835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), verif-secrets : 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Justin : numéro « +33 (0)5 46 11 22 33 » refusé (écriture courante) — décision du correcteur gardée ouverte, rien n'a changé",
+  "Justin : une facture peut partir avec le seul SIRET (mentions de société absentes) — à faire valider côté droit français",
+  "Justin : « Voir + Créer » écrit un message neuf ou compose un devis mais ne peut ni répondre ni rouvrir (répondre = Modifier)",
+  "Justin : « Renommer » et « Logo » d'une boîte en Voir seul (voir nouveaux)",
+  "Voie achats : la sonde entreprise-achats-lisible est périmée (3 ✗) ; la phrase « Kilomètres : 0,60 € le km (exemple de démonstration…) » signalée par le correcteur n'a pas été revérifiée ici",
+  "Non vérifié : Windows réel (émulation Chromium seulement), pas de mesure sur la barre du Retour collée en paysage téléphone"
+ ]
+}

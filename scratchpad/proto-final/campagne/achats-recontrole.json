@@ -1,0 +1,100 @@
+{
+ "partie": "achats (recontrôle adverse, 18 novembre 2026)",
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  6,
+  7,
+  8,
+  9,
+  11,
+  12,
+  13
+ ],
+ "pasRegles": [
+  {
+   "n": "achats-10",
+   "constat": "Le MOT est unifié (« sans justificatif » dans Achats, la puce et les lignes de la Comptabilité) et une note de frais à valider ne se compte plus, mais l'autre moitié du constat reste : un achat qui A son ticket est encore « sans justificatif ». Joué : la technicienne rapporte le ticket de 18,40 € d'une demande acceptée (« Merci : 18,40 € payés, ticket joint », Mes frais dit « Achetée ») ; le gérant lit alors « 4 achats sans justificatif » (3 avant) et la ligne de la Comptabilité « TICKET-3110 · Échelle… 18,40 € Payée / sans justificatif ». Même chose pour le gazole (TICKET-TOTAL-1210). Règle voulue côté code (sf = tva et pièce ≠ « facture » : un ticket n'est pas une facture pour la TVA) mais l'écran ne le dit pas : le débutant a fait ce qu'on lui demandait et se lit « sans justificatif ». De plus la Comptabilité (À faire, TVA, Conformité « Une facture pour chaque achat ») dit encore « 3 achats sans facture » pour les MÊMES 3 achats : deux mots pour une liste. Preuve : achats-recontrole-parcours.js P1g ✗, achats-recontrole-comptes.js (compte identique 3 = 3 = 3, mots différents), captures rc-ticket-*, rc-compta-sanspiece-mac.png.",
+   "gravite": "genant"
+  },
+  {
+   "n": "achats-05",
+   "constat": "Réglé sur iPhone (642 px), Android et au-dessus ; PAS réglé sur 320 × 568 pour les notes : la première note à valider commence à 559 px (écran de 568, barre d'onglets flottante par-dessus) : seul le titre « À valider · 3 » se voit. La première demande, elle, se voit (445 px). La propre sonde du correcteur (achats-mise-en-page.js petit jour) tombe sur ce contrôle : 105 ✓ · 2 ✗ (le second ✗ est une sonde périmée, voir doutes). Cause : filtres par personne + « Comment ça marche ? » + bouton « Valider les 2 notes avec ticket » au-dessus de la première note.",
+   "gravite": "detail"
+  }
+ ],
+ "casses": [
+  {
+   "titre": "« Réglages › » s'affiche aussi sur ordinateur et tablette, en double des deux lignes de réglage",
+   "gravite": "genant",
+   "etapes": "Gérant, ordinateur (mac, windows) ou iPad 820 px › Achats et frais › Notes de frais.",
+   "constat": "achats-05 devait laisser l'ordinateur inchangé. Or le bouton .ach-regl-b n'est caché que sous 760 px par une règle qui ne lui donne un display que dans le média téléphone : sur grand écran il est affiché (flex, 1128 × 44 px sur mac, 508 × 44 sur iPad), juste sous les deux lignes qu'il répète (« Changer › » est déjà écrit en ligne). Il ouvre une fenêtre qui redit les mêmes deux lignes. Mesuré : mac flex/1128x44, windows flex/1054x44, ipad flex/508x44 ; iPhone : lignes masquées, bouton visible (voulu). Capture rc-notes-mac-jour/nuit, rc-notes-ipad-jour/nuit : le lien bleu « Réglages › » flotte sous les lignes. À corriger : display:none par défaut sur .ach-regl-b, affiché seulement sous 760 px."
+  },
+  {
+   "titre": "Tarif au kilomètre : « 1.500 » est accepté et devient 1,50 € le km, alors que la même saisie est refusée dans « Combien ? »",
+   "gravite": "detail",
+   "etapes": "Notes de frais › Changer › (ou Réglages › Changer ›) › taper 1.500 › Enregistrer.",
+   "constat": "Le message dit « Tarif au kilomètre : 1,50 € » : un point suivi de trois chiffres est ambigu (1 500 ou 1,5), la quantité d'une demande le refuse avec une phrase (« n'est pas clair : écris 1500 ou 1,5 »), le tarif le devine et pose un tarif 2,5 fois trop haut sans un mot. Joué avec frappe réelle ; « abc », « 0 », « -1 », « 0,6,5 » et vide sont bien refusés avec une phrase."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "achats-corrections.js",
+   "resultat": "mac 29 ✓ · 0 ✗ ; mac nuit 29 ✓ ; iphone 31 ✓ ; petit 31 ✓ ; android nuit 31 ✓ (0 ✗ partout)"
+  },
+  {
+   "fichier": "achats-virgule.js / achats-champs-virgule.js / achats-details.js / achats-saisies.js / achats-doublon.js / achats-roles.js",
+   "resultat": "3/3 · 14/14 · 14/14 · 17/17 · 3/3 · 9/9 (0 ✗)"
+  },
+  {
+   "fichier": "achats-toast-fenetre.js (iphone) / achats-liaisons.js",
+   "resultat": "6/6 · 26/26"
+  },
+  {
+   "fichier": "achats-parcours-demandes.js / achats-parcours-notes.js",
+   "resultat": "mac 46 ✓ et 37 ✓ ; iphone 48 ✓ et 38 ✓ (0 ✗)"
+  },
+  {
+   "fichier": "achats-mise-en-page.js",
+   "resultat": "iphone jour 106 ✓ · 1 ✗ ; petit jour 105 ✓ · 2 ✗ : le ✗ commun est la sonde elle-même (elle touche [data-axa=\"kmtarif\"], qui n'est plus sur la page au téléphone depuis achats-05) ; l'autre est achats-05 sur petit (voir pasRegles)"
+  },
+  {
+   "fichier": "achats-recontrole-gestes.js (balayage du prédécesseur, déjà poussé, non rejoué)",
+   "resultat": "marc mac 26/26 et 29/29, marc iphone 26/26 et 27/27, sm iphone 7/7, sm mac nuit 5/5 ; aucun geste sans effet (relu dans les json)"
+  },
+  {
+   "fichier": "achats-recontrole-annuler.js (neuve : « Annuler le transfert » de la fenêtre, achats-06)",
+   "resultat": "mac 10/10 ; iphone 10/10 ; android nuit 10/10 : stock atelier et camion rendus, commandes (lignes, brouillon, numéro) rendues, demande à « attente », mouvement retiré, notification du technicien retirée, fenêtre fermée avec message, refaire le transfert ne double rien"
+  },
+  {
+   "fichier": "achats-recontrole-telephone.js (neuve : Réglages, tarif km à la frappe, chemins vers la Comptabilité, premier écran)",
+   "resultat": "iphone 21/21 ; petit 20 ✓ · 1 ✗ (note sous le pli, voir pasRegles)"
+  },
+  {
+   "fichier": "achats-recontrole-champs.js (neuve : tout champ numérique, frappe réelle de décimaux)",
+   "resultat": "mac 12/12 : aucun type=number dans les fenêtres d'Achats et de Mes frais ; 380,50 ; 450,75 ; 12,5 € ; 1,5 gardés"
+  },
+  {
+   "fichier": "achats-recontrole-parcours.js (neuve : 3 parcours technicien › gérant › Comptabilité / paie / Stock)",
+   "resultat": "mac 19 ✓ · 1 ✗ (P1g, achats-10). P1 demande 2,5 kg › accepter › ticket 18,40 € (15,33 HT) ; P2 note 12,50 € validée › ligne de paie « Sophie 12,50 € · Karim 14,90 € » › Voir les notes › ; refus sans motif refusé puis avec motif lu par la technicienne ; P3 transfert + brouillon 4 kg + mouvement « Demande de Tom Leroy »"
+  },
+  {
+   "fichier": "achats-recontrole-captures.js (neuve : 4 écrans × 6 profils × jour/nuit, débordement, cibles, texte écrasé)",
+   "resultat": "172 ✓ · 0 ✗ (mac, iphone : 52 ; ipad, android, windows, petit : 120) ; planches relues à l'œil"
+  },
+  {
+   "fichier": "achats-recontrole-comptes.js (neuve)",
+   "resultat": "2/2 : la liste où mène « 3 achats sans justificatif » a 3 lignes, toutes marquées"
+  }
+ ],
+ "doutes": [
+  "Faut-il qu'un achat payé AVEC son ticket (gazole, achat en magasin dont la technicienne a envoyé le ticket) s'affiche « sans justificatif » ? Le code dit : un ticket n'est pas une facture, la TVA ne se récupère pas. À trancher : garder la règle mais l'écrire (« ticket reçu, facture manquante »), ou compter le ticket comme justificatif.",
+  "À Justin : au téléphone l'onglet s'appelle « Matériel / Frais », sur ordinateur « Demandes de matériel / Notes de frais » : voulu (place), mais le menu et le titre disent « Achats et frais » dans les deux cas.",
+  "Non vérifié : l'envoi réel de la paie au cabinet (passage des notes à « remboursée »), zone Temps de travail ; la ligne « Frais à rembourser avec cette paie » est juste (somme au centime, mise à jour à chaque validation) mais je n'ai pas joué verrouiller/envoyer.",
+  "Non rejoué : le correcteur signale que « Annuler » des AUTRES messages de Stock (sxAnnule) ne ferme pas la fenêtre ni ne rafraîchit (le commentaire qui précède avale « fermerPanneau(); rendre(); toast(…) ») : compensé seulement dans le geste d'Achats ; à corriger côté Stock. La phrase « camion au garage » de Dépôts et camions garde l'ancien « les mets-tu quand même » (zone d'un autre agent).",
+  "Droits d'Équipe (cases Achats et frais d'un rôle, chef d'équipe sans la rubrique) : toujours en refonte ailleurs ; seul l'état actuel est joué (achats-roles 9/9).",
+  "La sonde achats-mise-en-page.js est périmée sur un point : elle cherche [data-axa=\"kmtarif\"] sur la page, introuvable au téléphone depuis achats-05 (il faut passer par « Réglages › »). Je n'ai pas modifié la sonde du correcteur : le chef peut la faire passer par la fenêtre Réglages."
+ ]
+}

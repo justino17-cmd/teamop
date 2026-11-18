@@ -105,3 +105,11 @@ Après chaque vague : le chef fusionne, compile la page ENTIÈRE, note le pource
 | S1 | session_01PfEEAGZfkM3hFpgqyDkPeG |
 | S2 | session_01PfEEAHbWuJ8LMJ8B3V6jCE |
 | S3 | session_01PfEEAGRWcwdVT77zo9L5HM |
+
+## Vague 2 — LANCÉE le 18/11 à 22 h 14 (après l'allègement de CLAUDE.md)
+
+11 session_01PfEEAFm4LcfV39a6VfqDkS · 12 session_01PfEEAEp7bsR3VG5PzrrMDK · 18 session_01PfEEAECC87xwfFm8CUY9iP · 19 session_01PfEEAE9kmX4F7kAQGrwcQf ·
+22 session_01PfEEAJX8WapidXmjCHuBTq · 24 session_01PfEEAFiFAEQwCRT9X5vqKe · 27 session_01PfEEAFNwJcRRsYNyzfgUVH · 29 session_01PfEEAFSRueRxMKZjGhgUvp ·
+33 session_01PfEEAHG95yeX2tTheDtyea · 34 session_01PfEEAEAipA8iyYsbuP9nbb · 37 session_01PfEEAEBRExbA8vc2wYAQsy
+
+Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2 restes + 2 casses) → VOIE SUIVANTE « restes achats » envoyée à 22 h 12.
