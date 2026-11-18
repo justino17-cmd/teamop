@@ -1,0 +1,65 @@
+[
+ {
+  "nom": "achats-10 (« un achat qui a son ticket est encore sans justificatif »)",
+  "defaut": "La technicienne rapporte le ticket d'une demande acceptée : le gérant lisait « 4 achats sans justificatif » (3 avant) et la ligne « sans justificatif » ; la Comptabilité disait « sans facture » pour les mêmes achats (deux mots pour une liste).",
+  "etat": "corrigé",
+  "changement": "Deux choses vraies, deux mots. « Sans justificatif » = ni facture ni ticket (Achats, puce, lignes, liste « Sans justificatif » : 2 achats). « Sans facture » = la facture au nom de l'entreprise manque (la TVA ne se récupère pas) : un achat dont le ticket est là s'écrit « ticket reçu · facture manquante », jamais « sans justificatif ». La Comptabilité (À faire, Conformité, compte fournisseurs) dit « sans facture » et mène à un filtre neuf « Sans facture » (3 lignes) ; le nombre annoncé est partout celui de la liste où le clic mène. Mot de la tuile d'ordinateur (code mort) aligné.",
+  "preuve": "achats-recontrole-parcours 20 ✓·0 ✗ (P1g vert) ; achats-recontrole-comptes 5 ✓·0 ✗ (C3-C5 neufs : lien « sans facture » = 3 = 3 lignes, ligne du gazole « ticket reçu · facture manquante ») ; achats-corrections mac 29, iphone 31, petit 31 (0 ✗, 10-2 et 10-3 mis à jour) ; entreprise-achats-lisible 142 ✓·0 ✗ (sonde périmée mise à jour) ; capture liste-sansfacture-mac regardée"
+ },
+ {
+  "nom": "achats-05 à 320 px (première note sous le pli)",
+  "defaut": "Notes de frais sur 320 × 568 : la première note commençait à 559 px, seul le titre « À valider » se voyait.",
+  "etat": "corrigé",
+  "changement": "≤ 380 px seulement : la phrase sous le titre est masquée (les onglets et le bouton disent déjà de quoi il s'agit), « Comment ça marche ? » est rangé après la liste (comme « Réglages › »), l'écart du titre « À valider » est resserré : la première note commence à 442 px. Ordinateur, tablette et iPhone inchangés.",
+  "preuve": "achats-recontrole-telephone petit 21 ✓·0 ✗ (N1 vert) ; achats-mise-en-page petit 120 ✓·0 ✗ ; capture notes-petit regardée"
+ },
+ {
+  "nom": "« Réglages › » en double sur ordinateur et tablette",
+  "defaut": "Le bouton .ach-regl-b était affiché (1128 × 44 px sur mac) sous les deux lignes de réglage qu'il répète.",
+  "etat": "corrigé",
+  "changement": "#contenu .ach-regl-b{display:none} : un .lien écrit plus loin lui rendait son display ; il ne s'affiche que sous 760 px.",
+  "preuve": "achats-recontrole-telephone mac 14 ✓·0 ✗ et ipad 14 ✓·0 ✗ (N0 neuf : bouton absent, lignes présentes) ; capture notes-mac regardée"
+ },
+ {
+  "nom": "Tarif au kilomètre « 1.500 » accepté et devenu 1,50 €",
+  "defaut": "Le tarif devinait « 1.500 » = 1,5 sans un mot alors que « Combien ? » le refuse.",
+  "etat": "corrigé",
+  "changement": "« Enregistrer » passe par cxMontantRefus : « 1.500 » est refusé avec « n'est pas clair : écris 1500 ou 1,50 », le tarif ne bouge pas, la fenêtre reste ouverte ; « abc », « 0 », « -1 », « 0,6,5 » gardent la phrase « Indique un tarif ».",
+  "preuve": "achats-recontrole-telephone petit 21 ✓·0 ✗ ; K4 rendu strict (l'ancien « ≤ 5 € » laissait passer 1,5 : la sonde était la moitié du défaut)"
+ },
+ {
+  "nom": "Sonde achats-mise-en-page périmée (tarif km)",
+  "defaut": "Elle touchait [data-axa=\"kmtarif\"], absent de la page au téléphone depuis achats-05.",
+  "etat": "corrigé",
+  "changement": "Au téléphone la sonde passe par « Réglages › » puis « Changer › » ; le contrôle « première demande/note dans le premier écran » ne vaut que pour les téléphones.",
+  "preuve": "achats-mise-en-page petit 120 ✓·0 ✗, mac 79 ✓·0 ✗"
+ },
+ {
+  "nom": "« Annuler » d'un message de Stock (sxAnnule) ne fermait pas la fenêtre ni ne rafraîchissait",
+  "defaut": "fermerPanneau(); rendre(); toast(…) étaient écrits à la suite d'un commentaire « // » sur la même ligne : ils ne tournaient jamais.",
+  "etat": "corrigé",
+  "changement": "Le commentaire est sur sa ligne, les trois appels tournent ; la compensation d'Achats (trfannul) reste inoffensive (elle ne joue que si la fenêtre est encore là).",
+  "preuve": "achats-recontrole-annuler mac 10 ✓·0 ✗ ; materiel-table 66 ✓·0 ✗ (S11 annuler)"
+ },
+ {
+  "nom": "Ligne vus-par-le-chef « Achats et frais — décisions du 17/11, 12 h » (achats-01, 03, 05, 08, 10)",
+  "defaut": "Ligne non cochée.",
+  "etat": "corrigé",
+  "changement": "Les cinq points se rejouent verts (achats-01 virgule, 03 ligne de paie, 05 téléphone, 08 kilomètres, 10 mot) ; ligne cochée avec ce commit.",
+  "preuve": "achats-corrections 29/31/31 ✓·0 ✗ ; achats-virgule, achats-champs-virgule verts au tour précédent"
+ },
+ {
+  "nom": "Pastilles de personnes (regard gérant-b, doute) : iPhone elles passent à la ligne, Android et 320 px elles défilent",
+  "defaut": "Deux comportements selon la largeur pour un même composant.",
+  "etat": "à soumettre à Justin",
+  "changement": "Non touché : le défilement d'une rangée de FILTRES sous 380 px est la décision d'achats-05 (la première demande se voit) ; sur 360 px « Karim » coupé en bord de rangée est le signe qu'elle défile.",
+  "preuve": "regard-gerant-b-recontrole.json, doutes"
+ },
+ {
+  "nom": "Bouton Retour / cases d'un jour du calendrier / Boîte mail à deux boîtes",
+  "defaut": "(restes d'autres noms)",
+  "etat": "déjà décidé",
+  "changement": "Décisions a, b, c du chef : non touchées.",
+  "preuve": "REPRISE.md"
+ }
+]

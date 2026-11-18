@@ -19,6 +19,7 @@ const CAS = [
   ['jargon', 'Voir le dashboard', 'Voir l’accueil'],
   ['jargon', 'ID du client', 'Numéro du client'],
   ['abreviation', '5 int. · 81 € en moyenne', '5 interventions · 81 € en moyenne'],
+  ['abreviation', '🗓 5 interv. cette semaine', '🗓 5 interventions cette semaine'],
   ['abreviation', 'Moyen Règl. Montant', 'Moyen de paiement Nombre Montant'],
   ['abreviation', 'Type Nb Facturé HT', 'Type Nombre Facturé HT'],
   ['deux-mots-courriel', 'Voir le courriel', 'Voir l’e-mail'],
@@ -36,7 +37,7 @@ const CAS = [
   ['espace-avant-euro-pourcent', '120 € HT', '120 € HT'],
   ['guillemet-sans-espace', 'Touche «Envoyer»', 'Touche « Envoyer »'],
   ['tiret-court', 'Dépannage - fuite d’eau', 'Dépannage — fuite d’eau'],
-  ['phrase-longue', Array(34).fill('mot').join(' ') + '.', 'Une phrase courte.'],
+  ['phrase-longue', Array(26).fill('mot').join(' ') + '.', 'Une phrase courte.'],
   ['vouvoiement-equipe', 'Vous pouvez choisir votre date', 'Tu peux choisir ta date'],
   ['tutoiement-client', 'Tu peux choisir ta date', 'Vous pouvez choisir votre date', { role: 'client' }],
 ];

@@ -40,8 +40,9 @@ function monde(beta, favoris, edit) {
     var _favEdit=${!!edit};
     function syncTeam(){ return 'eq'; }
     function toast(m){ __toasts.push(String(m)); }
-    function fetch(u,o){ __posts.push({u:u,b:JSON.parse(o.body)}); return Promise.resolve({json:()=>({sent:1})}); }
+    function fetch(u,o){ __posts.push({u:u,b:JSON.parse(o.body)}); return Promise.resolve({ok:true,json:()=>({sent:1})}); }
     async function pushSubscribe(){ return true; }
+    async function enteteEquipe(h){ return h; }   // pushNotify présente la preuve de clé (S1) : elle attend l'en-tête avant d'envoyer
     function applyBrand(){} function accesSuspendu(){ return false; } function canSee(){ return true; }
     function userSeesModule(){ return true; } function t(s){ return s; } function multiEnCours(){ return false; }
     function catVars(){ return ''; } function refreshBadges(){} function navGlisseInit(){} function renderOnglets(){}
@@ -68,6 +69,7 @@ const page = b => b ? 'beta.html' : 'app.html';
     W.pushNotify('T', 'B');
     W.pushNotify('T', 'B', 'https://exemple.test/x');
     W.pushNotify('T', 'B', '/beta.html#v=x');
+    await new Promise(r => setTimeout(r, 20));   // l'envoi attend l'en-tête de preuve
     const u = W.__posts.map(p => p.b.url);
     vrai('pushNotify : l\'adresse transmise suit la page (avec son fragment)', u[0] === '/' + page(beta) + '#v=boxes', u[0]);
     vrai('pushNotify sans adresse : la page courante', u[1] === '/' + page(beta), u[1]);
