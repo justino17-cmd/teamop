@@ -274,6 +274,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       chaleur — main-d'œuvre »), la colonne du libellé tombe à 95 px et s'écrit sur quatre lignes pendant que deux prix prennent la place.
       Sous 480 px, chaque ligne de la facture s'empile : la désignation sur toute la largeur, puis dessous, sur une ligne, quantité × prix
       unitaire et le total à droite. À l'ordinateur et sur tablette, le tableau à quatre colonnes ne change pas ; le PDF non plus.
+      → FAIT (regard bureau A, 17-18/11 : `.fac-lig`, le prix unitaire passe sous la désignation et sa colonne se referme ; sonde `sondes/regard-bureau-a.js` §1, jour et nuit sur trois téléphones, montants longs ; à 320 px la désignation garde au moins 120 px).
       · **Planning, en-tête à 360 px (regard gérant a, n° 14)** : « Rendez-vous en ligne » et « ＋ Nouvelle intervention » passent chacun sur
       deux lignes. Jusqu'à 380 px de large ils tiennent chacun sur UNE ligne, côte à côte, en resserrant (marges intérieures et corps de
       14 px, mesuré à 360 et 320 px) ; s'ils ne tiennent vraiment pas à 320 px, ils s'empilent — jamais deux lignes dans un bouton.

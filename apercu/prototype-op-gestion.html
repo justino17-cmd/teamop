@@ -1812,10 +1812,13 @@ button.cx-bal:hover{background:var(--survol)}
   .cx-row.cx-p .cx-cat{display:none}.cx-row.cx-p .cx-ech{grid-area:meta;display:block}
   .cx-liste{padding:2px 12px}
   .cx-sep{display:none}
-  .cx-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+  /* regard bureau A : à 390 px la rangée des catégories sortait de l'écran sans aucun signe (« Véhicules & carburant », « Frais généraux » n'existaient pas pour qui ne devinait
+     pas de la faire glisser) : elle défile toujours (une seule ligne, comme les filtres), mais son bord droit s'estompe, et le dernier chip a de la marge pour sortir du fondu.
+     Les quatre filtres, eux, passent à la ligne comme ceux des devis : « Sans justificatif » se lisait « Sans justific » */
+  .cx-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 44px 0 16px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 36px),rgba(0,0,0,0));mask-image:linear-gradient(to right,#000 calc(100% - 36px),rgba(0,0,0,0))}
   .cx-cats::-webkit-scrollbar{display:none}
   .cx-grp{white-space:nowrap}
-  .cx-outils .seg{overflow-x:auto;scrollbar-width:none}
+  .cx-outils .seg{flex-wrap:wrap;overflow-x:visible}.cx-outils .seg button{flex:1 1 auto}
   .cx-outils .actions{margin-left:0!important;width:100%}
   .cx-choix{grid-template-columns:minmax(0,1fr)}
   .cx-choix button{min-height:0}
@@ -2788,6 +2791,7 @@ body.dp-ouvert{overflow:hidden}
 .t-ici{margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--lien) 8%,var(--feuille));border:1px solid color-mix(in srgb,var(--lien) 22%,transparent);padding:4px 6px}
 .t-ici summary{display:flex;align-items:center;gap:8px;padding:10px 10px;cursor:pointer;list-style:none;min-height:44px}.t-ici summary::-webkit-details-marker{display:none}
 .t-ici summary::after{content:'›';margin-left:auto;transition:rotate .2s;color:var(--doux)}.t-ici[open] summary::after{rotate:90deg}
+.t-ici summary b{white-space:nowrap}.t-ici summary .gris{min-width:0}   /* à 320 px « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur : c'est le petit texte qui cède, pas le titre (regard bureau A) */
 .t-ici-l{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;border-top:1px solid var(--trait);background:none;color:var(--encre);font:inherit;padding:10px;cursor:pointer;min-height:44px}
 .a-int{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:8px 0;min-height:40px;cursor:pointer;border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}
 
@@ -3584,6 +3588,9 @@ body.ac-glisse .ac-x{pointer-events:none}
 /* 7. Les factures d'un client, au téléphone : l'objet passe sous le numéro (quatre colonnes ne tenaient pas, le tableau était coupé) */
 .l-sous{display:none}
 @media (max-width:760px){.tableau table.l .l-obj{display:none}.tableau table.l .l-sous{display:block;white-space:normal;font-family:var(--police);font-size:13px;font-weight:400;color:var(--doux)}}
+/* regard bureau A : la fiche d'un client, onglet Factures, à 390 px : la pastille « Envoyée · en attente » (sur une ligne) forçait le tableau à défiler et sortait coupée (« Envoyée · en at »).
+   Dans un tableau, au téléphone, la pastille passe à la ligne comme celles des envois du courrier — le tableau tient dans sa carte, il n'y a plus rien à deviner à droite */
+@media (max-width:760px){.tableau table.l td .st{white-space:normal;line-height:1.25;border-radius:12px;text-align:left}}
 
 /* 11. Vu à l'œil sur les captures finales */
 /* les espaces de la Comptabilité, sur tablette (une icône et un mot côte à côte) : le compteur posé dans l'angle mordait sur la fin de
@@ -3685,7 +3692,7 @@ table.l th.n{text-align:right}
   .tableau table.l td.ttc-m{font-size:17px}   /* le total TTC en 19 px faisait à lui seul une colonne de 92 px : le tableau sortait de la carte de 26 px à 320 */
   /* les lignes d'une facture au téléphone : trois colonnes (désignation, prix unitaire, total) laissaient 100 px à la désignation — six lignes de texte, et un total de 12 351,67 € qui sortait de la carte.
      Le prix unitaire passe sous la désignation (« 1 127,27 € × 1 », comme dans un devis) et sa colonne se referme ; le total garde la sienne (regard bureau A) */
-  .tableau table.fac-lig :is(thead th,tbody td):nth-child(2){font-size:0;padding-inline:0!important;width:0;border:0}   /* !important : une règle de téléphone plus forte lui rendait 8 px de chaque côté, donc un trou de 16 px dans le filet sous l'en-tête */
+  .tableau table.fac-lig :is(thead th,tbody td):nth-child(2){font-size:0!important;padding-inline:0!important;width:0;border:0}   /* !important : une règle de téléphone plus forte lui rendait 8 px de chaque côté, donc un trou de 16 px dans le filet sous l'en-tête ; et celle de 320 px (td{font-size:13px}) rouvrait la colonne de 68 px */
   .tableau table.fac-lig .l-q{display:block;margin-top:2px;font-size:14px;white-space:normal}
 }
 @media (max-width:340px){.tableau table.l:not(:has(thead th:nth-child(5))) td{font-size:13px}.tableau table.l:not(:has(thead th:nth-child(5))) td.n{padding-inline:3px}.tableau table.l td.ttc-m{font-size:16px}.tableau table.l td.ttc-l{font-size:15px}}   /* 320 px : trois colonnes de chiffres et une désignation tenaient dans 254 px à 17 px près */
@@ -5332,7 +5339,7 @@ function vueFiche(id){
   const c = CLIENTS[i.cli], t = tech(i.tech), F = fiche(id);
   const tete = `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h}\u00a0–\u00a0${fin(i.h,i.dur)} · ${insec(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
-    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(c.adr)}</span></div>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(c.adr)}</span></div>
     <div class="actions"><button type="button" class="btn gris" data-action="modifInt" data-id="${i.id}">✎ Modifier</button><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener noreferrer">Y aller</a>${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}</div></div>`;
   if (F.etat === 'bureau') return tete + finiEcran(i, F);
   if (F.etat === 'reprendre') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><span class="st st-o">À reprendre · ${esc(F.motif)}</span><h2>Le bureau est prévenu</h2>${F.mot ? '<p style="margin:0">« ' + esc(F.mot) + ' »</p>' : ''}
@@ -5668,7 +5675,7 @@ function vueFacture(id){
   const f = FACTURES.find(x => x.id === id); if (!f) return vueFactures();
   const c = CLIENTS[f.cli], L = lignesDe(f), complet = L.every(ligneOk), sansPrix = L.filter(l => l.pu == null).length, sansNom = L.filter(l => !String(l.d || '').trim()).length, ht = htDe(f), i = f.int && INTS.find(o => o.id === f.int), modifiable = f.st === 'avalider';
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete"><div><span class="st ${STF[f.st][1]}" style="align-self:flex-start">${STF[f.st][0]}</span><h1>${f.num==='—'?'Facture préparée':f.num}</h1><button type="button" class="lien" data-go="client-x-${f.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button></div>
+  <div class="tete"><div><span class="st ${STF[f.st][1]}" style="align-self:flex-start">${STF[f.st][0]}</span><h1>${f.num==='—'?'Facture préparée':f.num}</h1><button type="button" class="lien" data-go="client-x-${f.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button></div>
     <div class="actions">${modifiable ? `<button type="button" class="btn" data-action="apercuEnvoi" data-id="${id}" ${complet && !sansNom ? '' : 'disabled'}>Aperçu et envoi</button>` : `<button type="button" class="btn gris" data-action="pdfFacture" data-id="${id}">Voir le PDF</button>`}</div></div>
   ${f.paieTech && f.paieTech.etat !== 'rien' && modifiable ? `<div class="ok-bloc"><b>Noté sur place par le technicien :</b> ${esc(paiementTexte(f.paieTech))}.<br><span class="petit">À l’envoi, la facture sera ${f.paieTech.etat==='total'?'marquée <b>payée</b>':'envoyée avec l’acompte déduit'}, et le paiement rangé dans Comptabilité › Paiements.</span></div>${ecartPaie(f)}` : f.paieTech && f.paieTech.etat === 'rien' && modifiable ? `<div class="info petit"><b>Noté sur place :</b> ${esc(paiementTexte(f.paieTech))}.</div>` : ''}
   ${!complet ? `<div class="bandeau-info"><b>${[sansPrix ? sansPrix + ' ligne' + (sansPrix > 1 ? 's' : '') + ' sans prix' : '', sansNom ? sansNom + ' ligne' + (sansNom > 1 ? 's' : '') + ' sans nom' : ''].filter(Boolean).join(' · ')}</b> · ${sansPrix ? 'chiffre-' + (sansPrix > 1 ? 'les' : 'la') + ' ci-dessous' : ''}${sansPrix && sansNom ? ', et ' : ''}${sansNom ? 'écris ce que ' + (sansNom > 1 ? 'tu factures sur chacune' : 'tu factures sur cette ligne') : ''} pour pouvoir envoyer.${sansPrix ? ' Le prix sera retenu pour la prochaine fois.' : ''}</div>` : ''}
@@ -5900,7 +5907,7 @@ function vueContrat(id){
   const faites = ctrFaites(k), toutes = faites >= k.freq, suite = k.st === 'signe' && !k.renouvele && (peutC || peutM);
   const prochain = CONTRATS.find(x => x.id === k.renouvele);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete"><div><span class="st ${eta[1]}" style="align-self:flex-start">${k.st==='envoye' ? 'Envoyé le '+k.envoye+' · en attente de signature' : eta[0]}</span><h1>${k.num}</h1><button type="button" class="lien" data-go="client-x-${k.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris ctr-dates">${esc(ctrDatesTxt(k))}</span></div>
+  <div class="tete"><div><span class="st ${eta[1]}" style="align-self:flex-start">${k.st==='envoye' ? 'Envoyé le '+k.envoye+' · en attente de signature' : eta[0]}</span><h1>${k.num}</h1><button type="button" class="lien" data-go="client-x-${k.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris ctr-dates">${esc(ctrDatesTxt(k))}</span></div>
     <div class="actions">${k.st==='envoye'?`<button type="button" class="btn gris" data-action="relanceContrat" data-id="${id}">Renvoyer le lien</button><button type="button" class="btn" data-go="signer-x-${id}">Voir ce que le client voit</button>`:''}</div></div>
   <div class="grille2 ctr-grille"><div class="ctr-doc"><button type="button" class="btn gris ctr-lire" data-action="ctrLire" aria-expanded="false">Lire le contrat</button>${pdf}</div>
     <div class="col"><div class="carte"><h3>Le chemin du contrat</h3><div class="etapes">${[['Préparé',true,''],['Envoyé au client',true,k.envoye||'02/01/2026'],['Signé',k.st!=='envoye',k.signe||''],['Visites posées au planning',k.st!=='envoye','']].map(e=>`<div class="etape ${e[1]?'ok':''}"><span class="pt"></span><span><b>${e[0]}</b>${e[2]&&e[1]?'<br><span class="faible mini">le '+e[2]+'</span>':''}</span></div>`).join('')}${fini ? `<div class="etape ok"><span class="pt"></span><span><b>Terminé</b><br><span class="faible mini">le ${k.termine}</span></span></div>` : ''}</div></div>
@@ -8271,7 +8278,7 @@ function vueDevisFiche(k){
     ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot${l[2] == null ? ' vide' : ''}">${l[2] == null ? '—' : eur(dvLigneHT(l))}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
     : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('');
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete"><div><span class="st ${DV_ETATS[e][1]}" style="align-self:flex-start">${DV_ETATS[e][0]}</span><h1>${x.num || 'Devis en préparation'}</h1><button type="button" class="lien" data-go="client-x-${x.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(x.objet)}</span></div>
+  <div class="tete"><div><span class="st ${DV_ETATS[e][1]}" style="align-self:flex-start">${DV_ETATS[e][0]}</span><h1>${x.num || 'Devis en préparation'}</h1><button type="button" class="lien" data-go="client-x-${x.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(x.objet)}</span></div>
     <div class="actions">${gestes}</div></div>
   ${ed && !complet ? `<div class="bandeau-info" data-dvmanque="1">${dvManque(x)}</div>` : ''}
   ${x.remplace ? `<div class="info petit">Nouvelle version du devis <b>${x.remplace}</b> : à l’envoi, l’ancien passe « remplacé » et le client ne peut plus l’accepter.</div>` : ''}
@@ -11301,7 +11308,7 @@ function cxListe(D){
       <span class="cx-m"><b>${x.ttc == null ? 'à chiffrer' : eur(x.ttc)}</b>${x.reste > .01 && x.ttc != null && x.reste < x.ttc - .01 ? `<span class="gris mini">reste ${eur(x.reste)}</span>` : ''}</span>
       <span class="cx-st"><span class="st ${s[1]}">${s[0]}</span>${x.src === 'ndf' ? '' : !x.piece ? `<span class="cx-sans">sans justificatif</span>` : x.sf ? `<span class="cx-sans">ticket reçu · facture manquante</span>` : ''}</span></button>`; };
   return `${prets.length && (CX.cat === 'tous' || CX.cat === 'ventes' || CX.cat === 'clients') ? `<div class="cx-bandeau"><span><b>${prets.length} facture${prets.length > 1 ? 's' : ''} prête${prets.length > 1 ? 's' : ''} à partir</b> · préparée${prets.length > 1 ? 's' : ''} à la fin des interventions, toutes les lignes ont un prix.</span><button type="button" class="btn petit" data-action="toutValider">Valider et envoyer</button></div>` : ''}
-  <div class="carte cx-liste">${L.length ? `<div class="cx-entete" aria-hidden="true"><span>Date</span><span>Pièce</span><span>Catégorie</span><span>Échéance</span><span class="n">Montant TTC</span><span>Où elle en est</span></div>${L.map(ligne).join('')}` : '<p class="gris" style="margin:6px 0">Rien ici avec ces filtres.</p>'}</div>
+  <div class="carte cx-liste">${L.length ? `<div class="cx-entete" aria-hidden="true"><span>Date</span><span>Pièce</span><span>Catégorie</span><span>Échéance</span><span class="n">Montant TTC</span><span>Où elle en est</span></div>${L.map(ligne).join('')}` : (D.some(x => CX.cat === 'tous' || CX.cat === x.fam || CX.cat === x.cat) ? '<p class="gris" style="margin:6px 0">Rien ici avec ces filtres. Choisis « Toutes » ou efface la recherche.</p>' : `<p class="gris" style="margin:6px 0"><b>Aucune pièce pour l’instant.</b> ${CX.cat === 'achats' || CX.cat === 'ndf' || CX_CATS.some(c => c.k === CX.cat && c.fam === 'achats') ? 'Ajoute une facture fournisseur ou une photo de ticket avec « ＋ Nouvelle opération ».' : 'Les factures se préparent toutes seules à la fin de chaque intervention : tu les valides, elles partent.'}</p>`)}</div>
   ${L.length ? `<div class="cx-total"><span>${L.length} pièce${L.length > 1 ? 's' : ''}</span>${v.length ? `<span>Ventes <b>${eur(som(v, 'ttc'))}</b>${som(v, 'reste') ? ` · à encaisser <b>${eur(som(v, 'reste'))}</b>` : ''}</span>` : ''}${a.length ? `<span>Achats <b>${eur(som(a, 'ttc'))}</b>${som(a.filter(x => x.src !== 'ndf'), 'reste') ? ` · à payer <b>${eur(som(a.filter(x => x.src !== 'ndf'), 'reste'))}</b>` : ''}${som(a.filter(x => x.src === 'ndf'), 'reste') ? ` · notes de frais à valider <b>${eur(som(a.filter(x => x.src === 'ndf'), 'reste'))}</b>` : ''}</span>` : ''}</div>` : ''}`;   /* « à payer » = ce qu'on doit aux fournisseurs, comme dans Comptes fournisseurs : une note de frais pas encore validée ne se paie pas (compta-reste-20) */
 }
 
@@ -13031,7 +13038,7 @@ function rlFicheAPlanifier(i){
   const charge = t => INTS.filter(o => o.tech === t.id && o.d === jour && o.st !== 'aplanifier' && o.st !== 'annulee').length;
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span><span class="st st-o">À planifier</span> <span class="gris petit">${i.origine === 'client' ? 'demandée en ligne par le client' : 'pas encore de date ni de technicien'}</span></span><h1>${esc(i.titre)}</h1>
-    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${[esc(c.adr), insec(c.tel)].filter(Boolean).join(' · ')}</span></div>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${[esc(c.adr), insec(c.tel)].filter(Boolean).join(' · ')}</span></div>
     <div class="actions">${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler le client</a>` : ''}</div></div>
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.origine === 'client' ? ' · par son espace client' : ''}</div></div>` : ''}
@@ -13048,7 +13055,7 @@ function rlFicheVisite(i){
   const c = CLIENTS[i.cli], F = fiche(i.id), t = tech(i.tech), tech_ = typeof ROLE !== 'undefined' && RL_ACTIF && ROLE === 'tech';
   F.besoin = F.besoin || ''; F.mesures = F.mesures || ''; F.noteBureau = F.noteBureau || '';
   const tete = `<div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h}\u00a0–\u00a0${fin(i.h, i.dur)} · ${insec(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
-    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)} ›</button><span class="gris">${esc(c.adr)}</span></div>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(c.adr)}</span></div>
     <div class="actions"><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener noreferrer">Y aller</a>${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}</div></div>`;
   if (i.st === 'fait') { const d = i.devisBr && DEVIS_REG[i.devisBr];
     return tete + `<div class="ok-bloc"><b>Visite faite le ${jlong(i.d)}</b><span class="gris petit">${tech_ ? 'Le bureau prépare le devis à partir de ce que tu as relevé.' : 'Le devis à chiffrer est prêt : ' + (d ? 'il reprend ce que le technicien a relevé.' : 'il se prépare au bureau.')}</span>${d && !tech_ ? `<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-rl="go|devis-x-${d.id}">Chiffrer le devis</button></div>` : ''}</div>
