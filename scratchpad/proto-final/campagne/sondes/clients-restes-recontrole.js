@@ -11,6 +11,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
 (async () => {
   const c = await L.ouvrir({ profil: PROFIL, qui: QUI, nuit: NUIT }), p = c.p;
   await p.evaluate(() => { window.__confirms = 0; window.confirm = () => { window.__confirms++; return true; }; });
+  const CMD = (await p.evaluate(() => MAC)) ? 'Meta' : 'Control';   /* l'iPad se déclare « Macintosh » : son raccourci est Cmd, pas Ctrl */
   const ouvrirInfos = async k => { await L.aller(p, 'client-x-' + k); await L.toucher(c, '#contenu [role=tab][data-oc="infos"]'); };
   const sale = () => p.evaluate(() => clientInfosSale());
   const panneauDit = () => p.evaluate(() => ((document.querySelector('#calque') || {}).textContent || '').replace(/\s+/g, ' '));
@@ -45,14 +46,42 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     await sortie('logo', async () => { await L.toucher(c, '[data-logo]'); });
     await sortie('Mon compte', async () => { await L.toucher(c, '[data-cnx="moncompte"]'); });
     await sortie('Nouveautés', async () => { await L.toucher(c, '[data-nv="ouvrir"]'); });
-    await sortie('palette (Ctrl+K) puis Entrée sur « Planning »', async () => { await p.keyboard.press('Control+k'); await L.calme(p, 300); await p.keyboard.type('Planning'); await L.calme(p, 300); await p.keyboard.press('Enter'); });
-    await sortie('raccourci Ctrl+1', async () => { await p.keyboard.press('Control+1'); });
+    await sortie('palette (Ctrl+K) puis Entrée sur « Planning »', async () => { await p.keyboard.press(CMD + '+k'); await L.calme(p, 300); await p.keyboard.type('Planning'); await L.calme(p, 300); await p.keyboard.press('Enter'); });
+    await sortie('raccourci Ctrl+1', async () => { await p.keyboard.press(CMD + '+1'); });
     await sortie('retour du navigateur (history.back)', async () => { await p.evaluate(() => history.back()); });
     await sortie('adresse #planning', async () => { await p.evaluate(() => { location.hash = '#planning'; }); });
   } else {
-    await sortie('barre du bas : Planning', async () => { await p.evaluate(() => window.scrollTo(0, 0)); await L.calme(p, 500); await p.locator('[data-tab="planning"]').first().tap({ timeout: 4000 }); });
+    await sortie('barre du bas : une autre rubrique', async () => { await p.evaluate(() => window.scrollTo(0, 0)); await L.calme(p, 500); const t = await p.evaluate(() => (['planning', 'devis', 'taches', 'comptabilite'].find(k => document.querySelector('[data-tab="' + k + '"]')) || '')); await p.locator('[data-tab="' + t + '"]').first().tap({ timeout: 4000 }); });   /* la secrétaire n'a pas de Planning dans sa barre */
     await sortie('retour du navigateur (history.back)', async () => { await p.evaluate(() => history.back()); });
     await sortie('adresse #planning', async () => { await p.evaluate(() => { location.hash = '#planning'; }); });
+  }
+
+  // ── A5. les trois choix de la fenêtre, par les portes sans clic : « Continuer » reste et garde la saisie (sans entrée d'historique en plus), « Abandonner » part SANS redemander, « Enregistrer » enregistre puis part ──
+  {
+    const portes = [], dest = await p.evaluate(() => { const k = ['planning', 'interventions', 'devis', 'taches', 'contrats'].find(k => LIG[k] && droitVoit(k)); return { k, l: LIG[k].l }; });   /* la secrétaire n'a pas toutes les rubriques : on part vers une qu'elle ouvre */
+    if (await p.evaluate(() => rcBureau())) portes.push(['palette puis ' + dest.l, async () => { await p.keyboard.press(CMD + '+k'); await L.calme(p, 300); await p.keyboard.type(dest.l); await L.calme(p, 300); await p.keyboard.press('Enter'); }, true]);
+    portes.push(['retour du navigateur', async () => { await p.evaluate(() => history.back()); }, false], ['adresse #planning', async () => { await p.evaluate(k => { location.hash = '#' + k; }, dest.k); }, false]);
+    const destR = dest.k + '|';
+    const etat = () => p.evaluate(() => ({ r: route + '|' + (param || ''), champ: (document.querySelector('[data-ci="nom"]') || {}).value, nom: CLIENTS.md.nom, h: history.length, dem: /sans l’enregistrer/.test(((document.querySelector('#calque') || {}).textContent || '')) }));
+    const choix = async lib => { await L.toucher(c, '#calque button:has-text("' + lib + '")'); await L.calme(p, 700); };
+    /* chaque choix repart d'un historique NEUF [Planning, fiche] : « retour » mène alors à Planning, et un retour déjà joué ne laisse pas l'entrée suivante au hasard */
+    const prep = async suffixe => { await L.ranger(p); await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} const f = document.querySelector('[data-ci="nom"]'); if (f) f.value = CLIENTS.md.nom; });   /* la saisie laissée par le choix d'avant se remet d'abord, sinon CE geste-ci est lui aussi retenu */
+      await L.aller(p, dest.k); await L.aller(p, 'client-x-md'); await L.toucher(c, '#contenu [role=tab][data-oc="infos"]');
+      const nom0 = await p.evaluate(() => CLIENTS.md.nom); await p.fill('[data-ci="nom"]', nom0 + suffixe); await p.evaluate(() => document.querySelector('[data-ci="nom"]').blur()); return nom0; };
+    for (const [nomP, porte, sansHisto] of portes) {
+      let nom0 = await prep(' Zz'); const h0 = (await etat()).h;
+      await porte(); await L.calme(p, 600); const e1 = await etat();
+      v('A5 « ' + nomP + ' » : la fenêtre se pose et la fiche reste', e1.dem && e1.r === 'client|md', e1);
+      await choix('Continuer la saisie'); const e2 = await etat();
+      v('A5 « ' + nomP + ' » : « Continuer la saisie » reste sur la fiche et garde ce qui est écrit', e2.r === 'client|md' && e2.champ === nom0 + ' Zz' && !e2.dem, e2);
+      if (sansHisto) v('A5 « ' + nomP + ' » : l’historique du navigateur n’a gagné que l’entrée de la fenêtre (pas une adresse ajoutée puis remise)', e2.h <= h0 + 1, { avant: h0, apres: e2.h });
+      nom0 = await prep(' Zz'); await porte(); await L.calme(p, 600); await choix('Abandonner mes changements'); const e3 = await etat();
+      v('A5 « ' + nomP + ' » : « Abandonner » part vers la rubrique demandée, sans redemander, et la fiche garde son nom', e3.r === destR && !e3.dem && e3.nom === nom0, e3);
+      nom0 = await prep(' Yy'); await porte(); await L.calme(p, 600); await choix('Enregistrer'); const e4 = await etat();
+      v('A5 « ' + nomP + ' » : « Enregistrer » enregistre le nom puis part vers la rubrique demandée', e4.r === destR && e4.nom === nom0 + ' Yy' && !e4.dem, e4);
+      await p.evaluate(nom => { CLIENTS.md.nom = nom; }, nom0);
+    }
+    await L.ranger(p); await L.aller(p, 'clients');
   }
 
   // ── A4. enregistrer : la fenêtre « Enregistrer » d'un client refusé reste sur la fiche, et un client enregistré ne redemande rien ──
@@ -97,6 +126,14 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   const seg = await p.evaluate(() => { const g = document.querySelector('[aria-label="Ranger les clients"]'); if (!g) return null; const r = g.getBoundingClientRect(), bs = [...g.querySelectorAll('button')].map(b => ({ t: b.textContent.trim(), d: Math.round(b.getBoundingClientRect().right - r.right), g: Math.round(r.left - b.getBoundingClientRect().left) })); return { sw: g.scrollWidth, cw: g.clientWidth, parent: Math.round(g.parentElement.getBoundingClientRect().right - r.right), bs, iw: innerWidth }; });
   v('B5 : les quatre rangements dont « Archivés » tiennent dans leur rangée sans défiler (largeur ' + (seg && seg.cw) + ', contenu ' + (seg && seg.sw) + ')', !!seg && seg.sw <= seg.cw + 1 && seg.bs.every(b => b.d <= 1 && b.g <= 1), seg);
   await L.capture(c, CAP + 'archive-' + ETQ + '.png');
+  // ── F. la recherche d'un client ARCHIVÉ ne répond pas « aucun client » comme si rien ne correspondait : elle le dit et mène aux archivés, recherche gardée ──
+  await p.evaluate(nom => { chercheClient = nom; rangClients = 'tous'; rendre(); }, nom); await L.calme(p, 400);
+  const f1 = await p.evaluate(() => ({ t: (document.querySelector('#contenu .carte.gris') || {}).textContent || '', lien: !!document.querySelector('#contenu [data-rangc="archives"][data-garde]') }));
+  v('F1 : chercher « ' + nom + ' » (archivé) le dit et propose « Voir le client archivé » (au lieu d’inviter à créer un doublon)', /archivé/.test(f1.t) && f1.lien && !/Nouveau client/.test(f1.t), f1);
+  if (f1.lien) { await L.toucher(c, '#contenu [data-rangc="archives"][data-garde]'); await L.calme(p, 400);
+    const f2 = await p.evaluate(nom => ({ champ: (document.querySelector('[data-cherche]') || {}).value || '', cartes: [...document.querySelectorAll('#contenu .client-carte')].map(e => e.textContent).filter(t => t.includes(nom)).length, nArch: rangClients }), nom);
+    v('F2 : « voir les archivés » garde la recherche et montre le client', f2.champ === nom && f2.cartes === 1 && f2.nArch === 'archives', f2); await L.capture(c, CAP + 'recherche-archive-' + ETQ + '.png'); }
+  await p.evaluate(() => { chercheClient = ''; rangClients = 'tous'; rendre(); }); await L.calme(p, 300);
   // les interventions à venir du client archivé restent au planning et dans la liste des interventions
   const restent = await p.evaluate(() => INTS.filter(i => i.cli === 'hp' && !['fait', 'annulee'].includes(i.st)).length); v('B4 : ses interventions à venir sont toujours là (' + restent + ')', restent >= 0);
   await p.evaluate(() => { delete CLIENTS.hp.archive; });

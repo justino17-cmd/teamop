@@ -1,0 +1,90 @@
+{
+ "diverge": [
+  {
+   "ecran": "Tableau de bord du cadre OP COMPTABLE › « Tu dois aux fournisseurs » (CC2)",
+   "chiffre": "cadre 17 766,00 € · OP GESTION 896,28 €",
+   "source": "cadre : grand livre 401000 non lettré (F-CDO 15 552, F-FPA 1 188, F-EP17 678, F-CAB 348), semis de prototype-comptabilite.html ~ligne 1100 ; OP GESTION : ACHATS non payés (3 pièces : Clim Pièces Atlantique, Sanitaire Pro 17, Daikin Pro Ouest), cxFournisseurs()",
+   "verdict": "défaut de fond, hors de portée d'un correctif au plus petit : les deux comptabilités n'ont PAS les mêmes fournisseurs (12 noms d'un côté, d'autres noms de l'autre)",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-detail (scratchpad/ta) : liste des dus des deux côtés ; la liaison « une seule comptabilité » du 13/11 (opLiaDonnees, apercu/prototype-op-gestion.html ~23226) n'envoie que factures et encaissements, « Rien d'autre n'est envoyé »"
+  },
+  {
+   "ecran": "Tableau de bord du cadre › « Argent en banque » (CC3)",
+   "chiffre": "cadre 22 165,18 € (21 865,18 banque + 300 caisse) · OP GESTION 9 792,95 €",
+   "source": "cadre : solde d'ouverture de l'année 76 000 € + dix mois de grand livre, 396 lignes de relevé ; OP GESTION : CP_SOLDE_01 8 412,36 € + 20 lignes de relevé d'octobre (cpEcritures, cxChiffres.soldeBq)",
+   "verdict": "défaut de fond : deux histoires bancaires différentes ; aligner l'une sur l'autre change tout le semis du cadre (rapprochement, prévisions, alerte de trésorerie)",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-detail : anBanque 76000, nRelev 396 contre nRel 20 ; compta-reste-cadre-coherence.js CC3"
+  },
+  {
+   "ecran": "Cadre › TVA › « ventes payées ce mois-ci » (CC4)",
+   "chiffre": "cadre 479,16 € · OP GESTION 482,81 €",
+   "source": "écart de 3,65 € = le reçu sur place « Reçu I6 » (40 € TTC en espèces à 10 %, TVA 3,64 €, noté par un technicien, pas encore facturé) que cpPaieTerrain() ajoute côté OP GESTION et que la liaison n'envoie pas (11 encaissements envoyés, 12 comptés) + 1 centime d'arrondi (par taux côté OP GESTION, paiement par paiement côté cadre : même écart que compta-reste-12)",
+   "verdict": "défaut réel et petit (ventes), mais le corriger sans le reste ne ferait pas passer CC4 à coup sûr (1 centime) et obligerait le cadre à tenir une caisse « chez le technicien » (compte 531) qu'il n'a pas : 530000 est la caisse du bureau",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-paie/sonde-detail : enc d'OP GESTION (12 lignes dont Reçu I6, virtuel) contre encLia du cadre (11) ; calcul : 414 € TTC à 10 % donne 37,64 € contre 34,00 € sans les 40 €, soit 3,64 €"
+  },
+  {
+   "ecran": "Cadre › TVA › « TVA payée sur tes achats » (CC5)",
+   "chiffre": "cadre 3 457,96 € · OP GESTION 320,06 €",
+   "source": "achats d'octobre : cadre 10 pièces dont 3 à 5 groupes de climatisation (F-CDO 2 800 à 6 200 € HT) ; OP GESTION 10 pièces d'exemple de 45 à 612 € HT",
+   "verdict": "même cause que CC2 (achats d'exemple différents)",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-detail : dedAch hôte 6 pièces = 320,06 €"
+  },
+  {
+   "ecran": "Cadre › TVA › « À payer à l'État » (CC6)",
+   "chiffre": "cadre 0,00 € (crédit de TVA) · OP GESTION 162,75 €",
+   "source": "conséquence de CC4 et CC5 : 479,16 − 3 457,96 est négatif, donc crédit de TVA à reporter côté cadre ; 482,81 − 320,06 = 162,75 côté OP GESTION",
+   "verdict": "le plus gênant pour un patron (un montant de déclaration différent selon l'écran), mais il ne se règle pas seul : il suit les achats",
+   "decision": "à soumettre à Justin",
+   "preuve": "compta-reste-cadre-coherence.js CC6 ; le cadre porte déjà la mention « paie et achats d'exemple » sur la tuile Bénéfice seulement (apercu/prototype-comptabilite.html ~3470), pas sur la TVA"
+  },
+  {
+   "ecran": "Accueil du cadre › « paie d'octobre prévue » (CC7)",
+   "chiffre": "cadre 26 734,12 € · OP GESTION coût 24 592,69 € (nets 14 994,24 €)",
+   "source": "DEUX moteurs de paie : mêmes six salariés, même brut pour Marc, Sophie et Karim, mais Julie 2 366,33 € (cadre) / 2 734,33 € (hôte), Léa 2 758,91 / 2 869,66, Tom 2 426,72 / 2 527,93 ; cotisations patronales différentes (Sophie : coût 4 337,29 € côté cadre, 3 830,29 € côté hôte) ; les heures et absences d'octobre du cadre sont une COPIE écrite en dur (PAIE_OCT_VARS) de ce que l'hôte est censé envoyer",
+   "verdict": "défaut de fond : « ce qu'OP GESTION envoie pour octobre » n'est pas envoyé, c'est recopié, et les barèmes diffèrent ; unifier = remplacer un moteur de paie par l'autre (fiche, validation, DSN, virements du cadre)",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-paie : fiches des deux côtés, personne par personne"
+  },
+  {
+   "ecran": "Accueil du cadre › écritures du mois (CC8)",
+   "chiffre": "cadre 61 · OP GESTION 51",
+   "source": "le décompte suit les achats, la banque et la paie de chaque côté (cadre octobre : 38 écritures de banque, 10 d'achat, 7 d'OP GESTION, 4 de carte, 1 de caisse, 1 de note de frais ; hôte : cpEcritures) : il n'a pas de cause propre",
+   "verdict": "effet des autres : se règle seul si la banque et les achats sont unifiés ; sinon chiffre qui ne se comparera jamais",
+   "decision": "à soumettre à Justin",
+   "preuve": "sonde-detail : par origine des écritures d'octobre du cadre"
+  }
+ ],
+ "corriges": [],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/compta-reste-cadre-coherence.js",
+   "resultat": "3 ✓ · 7 ✗ (deux passages, identiques) : les 7 ✗ sont les 7 divergences ci-dessus, toutes à soumettre ; la sonde n'a pas été assouplie (une sonde qui garde une décision ouverte reste rouge)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-cadre-explore.js",
+   "resultat": "12 ✓ · 0 ✗ (deux passages, code 0), avant : aucun total. Population comptée (44 gestes à l'accueil, 15 dans « Ventes », 8 lignes de factures contre 8 dans OP GESTION), mêmes numéros, « Reste à encaisser » 1 475,00 €, « Encaissé » 3 045,00 €, « Facturé » 2 071,44 € HT, filtres, panneau de la première ligne, aucune erreur JavaScript. Elle confirme au passage que la partie VENTES de la liaison est cohérente (ce qui doit rester identique)."
+  }
+ ],
+ "mutations": [
+  {
+   "cible": "apercu/prototype-comptabilite.html (copie, restaurée par git checkout, git diff vide après)",
+   "mutation": "M1 le chiffre « Encaissé en octobre » du cadre dérive d'un euro",
+   "resultat": "V7 tombe (11 ✓ · 1 ✗)"
+  },
+  {
+   "cible": "idem",
+   "mutation": "M2 la liste du cadre perd les factures dont le numéro finit par 5",
+   "resultat": "V5 et V9 tombent (10 ✓ · 2 ✗)"
+  }
+ ],
+ "doutes": [
+  "Les 7 ✗ ont UNE cause : « une seule comptabilité » (Justin, 13/11) n'a été étendue qu'aux ventes. Achats, fournisseurs, banque, TVA déductible, paie restent deux jeux d'exemple distincts (REPRISE.md ~937-941 le note déjà comme « à trancher »). Aucun correctif au plus petit ne le règle ; je n'ai rien modifié dans les pages.",
+  "Lecture A (une seule comptabilité complète) : étendre la liaison aux achats, au relevé de banque et à la paie ; coûteux (le cadre porte 10 mois d'historique, 396 lignes de relevé, un moteur de paie complet) et il faudrait refaire les sondes du cadre qui gardent ses chiffres propres.",
+  "Lecture B (le cadre est une comptabilité d'exemple plus riche) : écrire « chiffres d'exemple » sur les tuiles banque, fournisseurs, TVA et paie du cadre, comme la tuile Bénéfice le fait déjà, pour qu'un patron ne lise jamais deux « TVA à payer » sans être prévenu. Réversible et petit, mais cela change un écran que Justin a validé (« Comptabilité, c'est bon ») : je ne l'ai pas fait seul.",
+  "Rien ne se voit de changé : aucune page modifiée, donc aucune capture iPhone, Mac ou iPad à relire."
+ ],
+ "avant_apres": "coherence 3 ✓ · 7 ✗ avant et après (rien de changé côté pages) ; ventes-explore : aucun total avant, 12 ✓ · 0 ✗ après"
+}

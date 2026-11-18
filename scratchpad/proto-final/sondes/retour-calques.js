@@ -34,6 +34,7 @@ const C = require('./retour-commun.js'), L = C.L, v = C.v;
     }
     const h2b = g.dans ? await C.hist(p) : h2;
     v(nom + ' : Retour ferme le calque (plus rien d\'ouvert, pile vide, aucune entrée en travers)', h2b.ouverts === '' && h2b.pile === '' && h2b.pousse === 0 && !(h2b.st && h2b.st.cal), h2b);
+    if (g.reste) v(nom + ' : … et rien n\'est resté ouvert DANS le calque lui-même (un cadre est une autre page : la page ne le voit pas)', !(await g.reste(c)), await g.reste(c));
     v(nom + ' : … l\'écran est resté où il était (même adresse' + (g.rend ? '' : ', défilement resté à ' + h1.y + ' px') + ')', h2b.h === h0.h && (g.rend || Math.abs(h2b.y - h1.y) <= 2), [h0.h, h2b.h, h1.y, h2b.y]);   // un calque qui redessine l\'écran à sa fermeture (rend) le fait aussi par SA croix : le défilement n\'est pas la mesure
     v(nom + ' : … l\'historique n\'a pas grandi', h2b.n === h1.n, [h1.n, h2b.n]);
     if (!g.rend && !g.dans) v(nom + ' : … le rendu de l\'écran dessous n\'est pas rejoué (sa marque est encore là)', await C.marque(p));

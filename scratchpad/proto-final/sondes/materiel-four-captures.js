@@ -3,7 +3,7 @@
 const L = require('../lib.js'), path = require('path');
 const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', DIR = process.argv[4] || '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/materiel4';
 (async () => {
-  const c = await L.ouvrir({ profil, nuit, qui:'marc' }), p = c.p, tag = profil + (nuit ? '-nuit' : '-jour');
+  const c = await L.ouvrir({ profil, nuit, qui: process.env.QUI || 'marc' }), p = c.p, tag = (process.env.QUI ? process.env.QUI + '-' : '') + profil + (nuit ? '-nuit' : '-jour');
   const snap = async nom => { await L.calme(p, 450); await L.capture(c, path.join(DIR, `f-${nom}-${tag}.png`)); };
   const R = (f, a) => p.evaluate(f, a), clic = s => p.evaluate(x => { const e = document.querySelector(x); if (e) e.click(); return !!e; }, s);
   const bas = () => R(() => { const e = document.querySelector('#calque .panneau'); if (e) e.scrollTop = 9999; else window.scrollTo(0, 99999); }), haut = () => R(() => { const e = document.querySelector('#calque .panneau'); if (e) e.scrollTop = 0; else window.scrollTo(0, 0); });

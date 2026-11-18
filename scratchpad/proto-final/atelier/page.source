@@ -601,6 +601,8 @@ body.fen-ouverte #toasts,body.ap-ouvert #toasts{top:calc(12px + env(safe-area-in
 .interr input:disabled+span{opacity:.55}
 .interr.haut{align-items:flex-start;padding-top:2px}.interr.haut input{margin-top:2px}
 .interr small{display:block;margin-top:1px;font-weight:400;font-size:12.5px;color:var(--faible);text-wrap:pretty}
+/* les interrupteurs « PDF joint », « Lien pour accepter… », « Ce que voit le client » : la rangée entière est la cible, 38 px sur iPad. Écrit ICI, tôt et à la spécificité d'un `.interr` nu (:where), pour ne servir que de PLANCHER : les règles plus généreuses plus bas (48 px sur téléphone, clauses, liste d'articles, feuille vierge) gardent le dernier mot — la première version, plus spécifique, les rapetissait toutes de 48 à 44 (restes devis-atelier, tour 2). */
+@media (pointer:coarse){ :where(html[data-app]) .interr{min-height:44px} }
 .nv-client .fen-corps{padding-top:10px}
 .nv-dbl{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surf2);border:1px solid var(--trait2);border-left:4px solid var(--accent)}
 .nv-dbl p{margin:0 0 10px;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere}
@@ -1417,7 +1419,6 @@ html[data-app] #vue-accueil{display:none!important}
 @media (pointer:coarse){
   html[data-app] .barre .bt{min-width:44px}
   html[data-app] .nom-doc{font-size:16px}
-  html[data-app] .interr{min-height:44px}      /* les interrupteurs « PDF joint », « Lien pour accepter… », « Ce que voit le client » : la rangée entière est la cible, 38 px sur iPad */
   html[data-app] .rt::after{content:'';position:absolute;inset:-9px -11px}
   html[data-app] button.ct-date{position:relative}
   html[data-app] button.ct-date::after{content:'';position:absolute;inset:-13px -8px}
@@ -3723,7 +3724,7 @@ function poserSignatureClient(trace){
 }
 ACTIONS['ap-rejouer']=()=>{
   const d=D(); muter('',()=>{ d.blocs.filter(x=>x.type==='signature').forEach(b=>b.signataires.forEach(s=>{ if(/client/i.test(s.role)){ s.trace=null; s.date='' } })); d.etat=d.type==='contrat'?'attente':'envoye'; if(!d.ident) figerIdentite(d) },{sys:1});
-  rendreApercu(); toast('Signature effacée : tu peux rejouer l’exemple');
+  rendreApercu(); toast(APP?'Signature effacée.':'Signature effacée : tu peux rejouer l’exemple');
 };
 
 /* ── envoi (simulé, et le dit) ── */
@@ -7683,7 +7684,7 @@ ACTIONS['pdf-annuler']=()=>{ if(!PDF.enCours) return; PDF.annule=true; pdfBandea
    réception filtrée sur event.source (HOTE) — jamais sur l'origine, qui peut valoir « null » — et TOUT ce qui arrive est revalidé, borné,
    puis écrit en texte (l'échappement se fait à l'affichage, par esc() comme partout ici).
    Prototype → atelier : opd_donnees {entreprise, clients, catalogue, numeros} · opd_role {devis, contrats} · opd_mode 'jour'|'nuit' · opd_ouvrir {faire, client?, id?}
-   Atelier → prototype : opd_pret · opd_docs [{id,type,nom,numero,etat,client,clientId,ttc,prix,maj,nr}] (ttc et prix en CENTIMES) · opd_client · opd_fermer {motif}
+   Atelier → prototype : opd_pret · opd_nums {devis:{p,n},contrat:{p,n}} (numéros déjà donnés) · opd_docs [{id,type,nom,numero,etat,client,clientId,ttc,prix,maj,nr}] (ttc et prix en CENTIMES) · opd_client · opd_fermer {motif}
    Un message de la liste qui n'a pas la bonne forme est ignoré en entier ; une valeur hors bornes est écartée seule. */
 const RE_ID=/^[A-Za-z0-9_-]{1,40}$/;
 const RE_PROTO=/^(__proto__|constructor|prototype)$/;      // noms qui existent déjà sur tout objet : jamais un identifiant de client ni d'article (le forme [A-Za-z0-9_-] les laisserait passer)
@@ -7775,7 +7776,7 @@ function opdDocs(){
     return r;
   });
 }
-function opdDocsEnvoyer(force){ const l=opdDocs(), sig=JSON.stringify(l); if(!force&&sig===OPG.sigDocs) return; OPG.sigDocs=sig; opdPoster({opd_docs:l}); }
+function opdDocsEnvoyer(force){ numRetenirDocs(); const l=opdDocs(), nums=numRetenusLire(OPG.retenus), sig=JSON.stringify([l,nums]); if(!force&&sig===OPG.sigDocs) return; OPG.sigDocs=sig; opdPoster({opd_nums:nums,opd_docs:l}); }      // les numéros DONNÉS partent avec la liste : le devis rapide du prototype ne reprend pas celui d'un brouillon supprimé
 function opdClientCree(c){ opdPoster({opd_client:{id:c.id,nom:c.nom,pro:!!c.pro,adresse:c.adresse||'',cp:c.cp||'',ville:c.ville||'',email:c.email||'',tel:c.tel||''}}); }
 function opdRienAMontrer(){ return !FEN&&!POP&&S.vue!=='editeur'&&!apercuOuvert()&&!document.querySelector('.voile,#cl-signer'); }
 /* quand il n'y a plus rien à montrer, l'atelier demande sa fermeture — après un court délai, pour laisser passer une réouverture (un sous-écran qui revient) */

@@ -70,8 +70,10 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
   // 5. « À commander · N » et « Tout préparer » ne se touchent pas à 360 et 320 px
   for (const profil of ['android', 'petit', 'iphone']) {
     const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { prVue = 'commandes'; }); await aller(c, 'produits');
-    const r = await c.p.evaluate(() => { const h = document.querySelector('.fx-ch h3'), b = document.querySelector('.fx-ch .btn'); if (!h || !b) return null; const a = h.getBoundingClientRect(), z = b.getBoundingClientRect();
-      return { sepV: z.top >= a.bottom - 1, sepH: z.left >= a.right + 6 }; });
+    const r = await c.p.evaluate(() => { const h = document.querySelector('.fx-ch h3'), b = document.querySelector('.fx-ch .btn'); if (!h || !b) return null; const g = document.createRange(); g.selectNodeContents(h); const a = h.getBoundingClientRect(), z = b.getBoundingClientRect();
+      /* le TEXTE du titre, pas la boîte du <h3> : en « nowrap » le texte sort de sa boîte (min-width:0) et vient toucher le bouton sans que la boîte bouge d'un pixel */
+      const t = [...g.getClientRects()].reduce((m, x) => Math.max(m, x.right), 0), bas = [...g.getClientRects()].reduce((m, x) => Math.max(m, x.bottom), 0);
+      return { sepV: z.top >= Math.max(a.bottom, bas) - 1, sepH: z.left >= Math.max(a.right, t) + 6, texteDroite: Math.round(t), boutonGauche: Math.round(z.left) }; });
     v(`À commander (${profil}) : population — titre et bouton trouvés`, !!r, r);
     v(`À commander (${profil}) : le titre et le bouton ne se touchent pas`, r && (r.sepV || r.sepH), r);
     await L.fin(c);
@@ -136,7 +138,7 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
       v(`cartes de dépôts, montants longs (${profil}) : population — au moins 3 montants`, r.n >= 3, r);
       v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne passe sur deux lignes`, r.coupes === 0, r);
       v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne sort de sa carte`, r.dehors === 0, r);
-      const q = await c.p.evaluate(() => { const T = [...document.querySelectorAll('.md-c .client-chiffres')].filter(e => e.offsetWidth > 0); let chev = 0, n = 0; T.forEach(t => { const S = [...t.children]; S.forEach((e, i) => { if (!i) return; n++; if (S[i - 1].querySelector('b').getBoundingClientRect().right > e.getBoundingClientRect().left + 0.5 || S[i - 1].getBoundingClientRect().right > e.getBoundingClientRect().left + 0.5) chev++; }); }); return { rangees: T.length, jonctions: n, chev }; });
+      const q = await c.p.evaluate(() => { const T = [...document.querySelectorAll('.md-c .client-chiffres')].filter(e => e.offsetWidth > 0); let chev = 0, n = 0; T.forEach(t => { const S = [...t.children]; S.forEach((e, i) => { if (!i) return; n++; const g = document.createRange(); g.selectNodeContents(S[i - 1].querySelector('b')); /* le <b> est un bloc : sa boîte garde la largeur de la colonne, c'est le TEXTE (Range) qui déborde */ if (g.getBoundingClientRect().right > e.getBoundingClientRect().left + 0.5) chev++; }); }); return { rangees: T.length, jonctions: n, chev }; });
       v(`cartes de dépôts, montants longs (${profil}) : population — au moins 3 rangées de chiffres`, q.rangees >= 3, q);
       v(`cartes de dépôts, montants longs (${profil}) : un montant ne passe jamais sur la colonne voisine`, q.chev === 0, q);
       await L.fin(c); }
@@ -238,6 +240,64 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
       v(`fiche camion, lignes à points médians (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal.slice(0, 5));
       await L.fin(c);
     }
+  }
+  if (veut(19)) {
+  // 19. Le bouton noir de l'en-tête (« ＋ Ajouter un fournisseur », « ＋ Ajouter un article », « ＋ Nouvelle commande ») tient sur UNE ligne à 320 et 360 px, et les deux boutons carrés d'à côté gardent 44 px de large
+  for (const profil of ['petit', 'android']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' });
+    for (const vue of ['articles', 'fournisseurs', 'commandes']) {
+      await c.p.evaluate(x => { prVue = x; }, vue); await aller(c, 'produits');
+      const r = await c.p.evaluate(() => { const b = document.querySelector('.fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb)'); if (!b) return null; const g = document.createRange(); g.selectNodeContents(b);
+        const carres = [...document.querySelectorAll('.fx-tete .actions>.fx-photo, .fx-tete .actions>.fx-plusb')].map(e => Math.round(e.getBoundingClientRect().width));
+        return { texte: b.textContent.trim(), lignes: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size, corps: parseFloat(getComputedStyle(b).fontSize), carres }; });
+      v(`bouton de l'en-tête, onglet ${vue} (${profil}) : population — le bouton et ses deux carrés`, !!r && r.carres.length === 2, r);
+      v(`bouton de l'en-tête, onglet ${vue} (${profil}) : « ${r && r.texte} » sur une seule ligne`, r && r.lignes === 1, r);
+      v(`bouton de l'en-tête, onglet ${vue} (${profil}) : corps 14 px au moins, carrés de 44 px au moins`, r && r.corps >= 14 && r.carres.every(w => w >= 44), r);
+    }
+    await L.fin(c);
+  }
+  }
+  if (veut(20)) {
+  // 20. L'adresse e-mail des commandes se lit EN ENTIER au téléphone : le champ la coupe (il ne passe pas à la ligne), donc elle s'écrit aussi sur sa propre ligne, à 16 px
+  for (const profil of ['petit', 'android', 'iphone']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { prVue = 'fournisseurs'; }); await aller(c, 'produits');
+    await c.p.evaluate(() => fournFiche('cpa')); await L.calme(c.p, 600);
+    const r = await c.p.evaluate(() => { const i = document.querySelector('input[data-fochamp="cpa|mail"]'), l = document.querySelector('.fx-mailv'); if (!i) return null;
+      const coupe = i.scrollWidth > i.clientWidth + 1, vis = !!l && l.offsetWidth > 0, g = l ? l.getBoundingClientRect() : null;
+      return { valeur: i.value, coupe, vis, texte: l ? l.textContent : null, corps: l ? parseFloat(getComputedStyle(l).fontSize) : 0, dedans: !!g && g.left >= 0 && g.right <= innerWidth + 0.5, deborde: !!l && l.scrollWidth > l.clientWidth + 1, champ: parseFloat(getComputedStyle(i).fontSize) }; });
+    v(`fiche fournisseur (${profil}) : population — le champ e-mail et la ligne d'adresse`, !!r && r.valeur.length > 20, r);
+    v(`fiche fournisseur (${profil}) : si le champ coupe l'adresse, elle se lit en entier sur sa ligne, à 16 px, dans l'écran`, r && (!r.coupe || (r.vis && r.texte === r.valeur && r.corps >= 16 && r.dedans && !r.deborde)), r);
+    v(`fiche fournisseur (${profil}) : le champ lui-même reste à 16 px (iOS ne zoome pas)`, r && r.champ >= 16, r);
+    if (profil !== 'iphone') {
+      await c.p.evaluate(() => { const i = document.querySelector('input[data-fochamp="cpa|mail"]'); i.value = 'achats.region.ouest@climpieces-atlantique.fr'; i.dispatchEvent(new Event('input', { bubbles: true })); });
+      const t = await c.p.evaluate(() => (document.querySelector('.fx-mailv') || {}).textContent);
+      v(`fiche fournisseur (${profil}) : la ligne suit ce qu'on tape`, t === 'achats.region.ouest@climpieces-atlantique.fr', t);
+    }
+    await L.fin(c);
+  }
+  }
+  if (veut(21)) {
+  // 21. « Réglages du stock » : chaque case garde sa phrase DANS sa boîte et ne touche pas la case d'en dessous (320 px : la case se rétrécissait, les phrases se chevauchaient)
+  for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'stock'); await c.p.evaluate(() => msReglagesVue()); await L.calme(c.p, 700);
+    const r = await c.p.evaluate(() => { const L = [...document.querySelectorAll('#calque .ms-reg')].map(l => { const b = l.getBoundingClientRect(), s = l.querySelector(':scope > span').getBoundingClientRect(); return { haut: Math.round(b.top), bas: Math.round(b.bottom), texteBas: Math.round(s.bottom), dedans: s.bottom <= b.bottom + 1 }; });
+      return { n: L.length, debordent: L.filter(x => !x.dedans).length, chevauche: L.filter((x, i) => L[i + 1] && L[i + 1].haut < x.bas - 1).length, L }; });
+    v(`réglages du stock (${profil}) : population — au moins deux cases`, r.n >= 2, r);
+    v(`réglages du stock (${profil}) : chaque phrase reste dans la boîte de sa case`, r.debordent === 0, r);
+    v(`réglages du stock (${profil}) : aucune case ne chevauche la suivante`, r.chevauche === 0, r);
+    await L.fin(c);
+  }
+  }
+  if (veut(22)) {
+  // 22. La fiche d'un article : « Réf. CAP-5-450 · Clim Pièces Atlantique » ne laisse pas son point médian seul en bout de ligne quand le fournisseur passe dessous
+  for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'stock');
+    await c.p.evaluate(() => { const x = PRODUITS.find(p => p.id === 'p3'); x.ref = 'CAP-5-450-RENFORCE-LONG'; prFiche('p3'); }); await L.calme(c.p, 700);
+    const o = await orphelins(c.p, '#calque');
+    v(`fiche article, ligne « Réf. · fournisseur » (${profil}) : population — le séparateur est jugé`, o.points >= 1, o);
+    v(`fiche article, ligne « Réf. · fournisseur » (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal.slice(0, 5));
+    await L.fin(c);
+  }
   }
   process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
