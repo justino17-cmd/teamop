@@ -1,0 +1,42 @@
+{
+ "noms": ["planning"],
+ "regles": [
+  "La note « (N sur M) » du bandeau ne compte que des personnes (3 sur 4, la colonne « Non assigné » masquée se dit à part) : rejoué sur mac, windows, ipad, iphone, android (nuit), petit (nuit) : restes-planning-3.js 23 / 103 / 71 / 71 / 71 ✓ · 0 ✗, plus recontrôle F (titre de période : « 4 personnes », « 1 personne », « aucune personne », la colonne seule masquée ne change pas le compte) et le panneau de la tuile qui dit la même phrase",
+  "Sur mesure, une personne écartée certains jours est nommée avec le jour (« sans Karim le mercredi 4 novembre », « sans Sophie 3 jours »), jamais « seulement … (5 sur 5) » : pire cas au téléphone (une masquée + la colonne + deux personnes écartées), note et panneau tiennent à 320, 360, 390 px, jour et nuit, captures relues",
+  "Depuis une absence (« Voir le planning ») : « 3 dates · 1 personne », note « (1 sur 4) », la colonne « Non assigné » reste affichée et n'est pas nommée ; panneaux « absent » et « de travail prévu » redisent le filtre, « à planifier » n'en dit aucun (il compte toute l'équipe)",
+  "Sélecteur des six vues : iPad portrait de 768 à 1024 px (82 contrôles), et au-dessus du seuil de 900 px de 900 à 1440 px (6 vues × 7 largeurs : tout tient, rien de coupé, pas de défilement caché, la page ne glisse pas) ; la Carte est visible et active",
+  "En-tête « Rendez-vous en ligne » / « ＋ Nouvelle intervention » : une ligne par bouton, marge de texte ≥ 6 px, de 320 à 430 px (jour et carte, nuit comprise) ; et de 700 à 1440 px la règle du téléphone ne s'y applique pas, rien n'a bougé",
+  "Les autres rôles : le secrétariat (Gestion), la technicienne et le chef d'équipe n'ont pas le Planning (« Voir les interventions, ne les planifie pas » ; « Ma journée » pour les techniciens) : la porte renvoie à leur accueil, aucune erreur JavaScript, rien à casser",
+  "Sondes des tours précédents rejouées sur le code fusionné : restes-planning-2.js mac 53 ✓ · 0 ✗ ; planning-parcours2.js mac 57 ✓ · 0 ✗ ; planning-mise-en-page.js iphone (semaine, multi) 11 ✓, petit nuit (jour) 6 ✓, ipad 31 ✓ ; restes-planning-3.js : quatre mutations M1 à M4 (tour 3) puis quatre mutations N1 à N4 du recontrôle, toutes tombent"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Panneau d'une tuile du bandeau (« Interventions sur la période ») : les lignes sont écrasées à 58 px et leurs textes se superposent",
+   "gravite": "majeur (texte illisible dans un panneau que le gérant ouvre tous les jours ; pas causé par le tour 3 : il existe sans filtre, mais le recontrôle le trouve au bord de ce que les corrections ont touché)",
+   "etapes": "Planning (gérant) › vue Semaine (ou Jour) › toucher la tuile « interventions sur la période » : sur 15 lignes, 8 (ordinateur, iPad) à 15 (téléphone) sont plus petites que leur texte (58 px pour 63 à 86) ; le titre d'une ligne passe sur le nom du client et du technicien de la ligne du dessus. Mesuré sur mac, windows, iPad, iPhone, Android, de jour comme de nuit ; capture N1-panneau-plein.png, C-panneau-mac.png.",
+   "constat": "Cause : `.panneau` est une colonne flex avec défilement (page l.215), `.ligne-clic` porte `min-height:58px` (l.201) et garde `flex-shrink:1` : quand la liste dépasse la hauteur du panneau, les lignes se compressent jusqu'à 58 px et leur contenu déborde. Les panneaux « à planifier » et « en retard » (min-height auto) n'ont pas le défaut. Correctif probable : `.panneau .ligne-clic, .panneau .kpi-l { flex-shrink:0 }` (une ligne ne rétrécit jamais sous son texte, le panneau défile) ; à balayer : les autres panneaux qui rangent des `.ligne-clic` en liste longue (34 endroits dans la page). Gardé rouge par restes-planning-3-recontrole.js parcours G (mac : 8 lignes coupées sur 15)."
+  }
+ ],
+ "nouveaux": [
+  "Sonde restes-planning-2-recontrole.js A obsolète depuis le 17/11 13 h (règle des Clients : un client neuf exige un téléphone ou un e-mail, et un numéro déjà connu dit « ce client existe peut-être déjà ») : elle créait le client sans téléphone, la création était refusée et les 2 contrôles tombaient. Mise à jour (numéro neuf) : 35 ✓ · 0 ✗. Pas un défaut de la page.",
+  "Sonde planning-recontrole.js R11 obsolète sur ordinateur depuis « vue d'ensemble sans samedi coupé au Mac » : elle exigeait un défilement latéral que la correction a supprimé (sw = cw à 1052 et 1126 px). Elle accepte maintenant « tient tout entière » dès 1000 px ; ipad (sw 1012 pour 506) reste exigeant. Pas un défaut de la page.",
+  "Sonde nouvelle : scratchpad/proto-final/campagne/sondes/restes-planning-3-recontrole.js (parcours A à G) et ses mutations mutations-restes-planning-3-recontrole.py (N1 à N4, toutes tombent)"
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-planning-3.js", "resultat": "mac 23 ✓ · windows 23 ✓ · ipad 103 ✓ · iphone 71 ✓ · android nuit 71 ✓ · petit nuit 71 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-planning-3-recontrole.js", "resultat": "A à F : mac, mac nuit, windows, ipad, iphone, android nuit, petit nuit 100 ✓ · 0 ✗ chacun  ; G : 6 ✓ · 1 ✗ sur mac (le défaut des lignes du panneau, voir casses)" },
+  { "fichier": "campagne/sondes/mutations-restes-planning-3-recontrole.py", "resultat": "4 mutations sur 4 tombent (période comptée avec la colonne, personne écartée un jour non datée, ancienne phrase du panneau « temps », absence qui masque aussi « Non assigné »)" },
+  { "fichier": "campagne/sondes/restes-planning-2.js", "resultat": "mac 53 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-planning-2-recontrole.js", "resultat": "mac 361 ✓ · 2 ✗ avant mise à jour de la sonde (parcours A obsolète), A seul 35 ✓ · 0 ✗ après" },
+  { "fichier": "campagne/sondes/planning-parcours2.js", "resultat": "mac 57 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/planning-recontrole.js", "resultat": "mac 77 ✓ · 1 ✗ (R11, sonde obsolète) ; R11 windows et ipad ✓ après mise à jour" },
+  { "fichier": "campagne/sondes/planning-mise-en-page.js", "resultat": "iphone 11 ✓, petit nuit 6 ✓, ipad 31 ✓, 0 ✗" }
+ ],
+ "doutes": [
+  "À 320 px le sélecteur des six vues occupe trois rangées (Jour · Semaine · Mois / Vue d'ensemble · Sur mesure / Carte seule) : tout tient, mais « Carte » reste seule sur sa ligne ; à soumettre si Justin préfère trois par rangée.",
+  "iPad, vue Sur mesure : le sélecteur « Mes vues » reste seul à droite sur une troisième rangée, avec un grand vide à gauche (déjà là avant ce tour).",
+  "Au téléphone la rangée des cinq tuiles défile de côté (la cinquième est coupée à droite) : dessin voulu des tours précédents, pas touché.",
+  "Reste à soumettre à Justin (inchangés) : « Ordre proposé » absent, vue Mois à 216 interventions, Vue d'ensemble à 320 px, 11 communes seulement, client hors liste placé au dépôt, bulles de trajet à 320-360 px, première page du téléphone (carte « tâches pour toi » avant l'emploi du temps)."
+ ]
+}

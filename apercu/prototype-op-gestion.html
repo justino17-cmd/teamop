@@ -10556,7 +10556,8 @@ const eqDe = k => EQUIPE.find(p => p.k === k);
 const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
 const nomPersonneOk = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
 const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
-const NOM_PERS_REFUS = 'Un prénom ou un nom s’écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > " & ni de signes spéciaux.';
+/* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
+const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement (60 signes au plus).';
 const libelleSur = (t, n) => String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
@@ -10614,7 +10615,7 @@ function eqFiche(k){
     ${enApp() ? '' : '<div class="gris petit">Dans ce prototype, ces cases ne changent pas encore ce que la personne voit : « Tester en tant que » montre des profils fixes.</div>'}<div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
       ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div>
     <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
-    <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>`}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 }
 function eqInviter(){
@@ -14537,7 +14538,7 @@ ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; 
 ACTIONS.clientAppForm = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = n >= 0 ? c && c.appareils[n] : null; if (!c || (n >= 0 && !a)) return;
   ouvrirPanneau(`<h2>${a ? 'Modifier l’appareil' : 'Ajouter un appareil'}</h2><span class="gris">Chez ${esc(c.nom)}.</span>
     <label class="champ">Nom de l’appareil<input id="app-nom" maxlength="80" value="${esc(a ? a.nom : '')}" placeholder="ex. Daikin FTXM35R" autocomplete="off"></label>
-    <label class="champ">Détail (type, gaz, année, numéro de série)<input id="app-det" maxlength="160" value="${esc(a ? a.det : '')}" placeholder="ex. Split mural salle · R32 · 2021" autocomplete="off"></label>
+    <label class="champ">${metiersFamille() === 'clim' || metiersFamille() === 'cvc' ? 'Détail (type, gaz, année, numéro de série)' : 'Détail (type, emplacement, année, numéro de série)'}<input id="app-det" maxlength="160" value="${esc(a ? a.det : '')}" placeholder="ex. Split mural salle · R32 · 2021" autocomplete="off"></label>
     <div class="alerte" id="app-err" role="alert" hidden></div>
     <div class="actions"><button type="button" class="btn" data-action="clientAppEnreg" data-cli="${k}" data-n="${n}">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   setTimeout(() => document.getElementById('app-nom')?.focus(), 50); };
@@ -20863,8 +20864,9 @@ function entVerifier(regles){
   const c = document.getElementById(E[0][0]); if (c) c.focus();
   /* sur téléphone la bulle (au bas de l'écran) tombait sur l'aide et sur le message du champ refusé, qu'elle recopiait mot pour mot : si le message est LÀ, sous le doigt, au-dessus de la rangée collée, on ne le répète pas
      (il est déjà dit aux lecteurs d'écran par son role="alert") ; s'il n'est pas à l'écran, la bulle le dit comme avant (restes entreprise, tour 2) */
-  const m0 = document.getElementById(E[0][0] + '-err'), P0 = m0 && m0.closest('.ent-pan');
-  if (m0 && P0 && window.matchMedia('(max-width:760px)').matches) { const r = m0.getBoundingClientRect(), pr = P0.getBoundingClientRect(), ac = P0.querySelector(':scope > .actions'), bas = Math.min(pr.bottom, ac ? ac.getBoundingClientRect().top : pr.bottom);
+  /* restes équipe : toute fenêtre à feuille (« Inviter une personne », « Ajouter une habilitation »…), pas seulement les fiches de Mon entreprise — la bulle y recopiait le refus et cachait « Joindre l'attestation » ; et ce qui est sous le bord de l'écran n'est pas « là, sous le doigt » */
+  const m0 = document.getElementById(E[0][0] + '-err'), P0 = m0 && m0.closest('#calque .panneau');
+  if (m0 && P0 && window.matchMedia('(max-width:760px)').matches) { const r = m0.getBoundingClientRect(), pr = P0.getBoundingClientRect(), ac = P0.querySelector(':scope > .actions'), bas = Math.min(pr.bottom, window.innerHeight, ac ? ac.getBoundingClientRect().top : pr.bottom);
     if (r.height > 0 && r.top >= pr.top && r.bottom <= bas) return null; }
   toast(esc(E[0][1])); return null;
 }
@@ -21285,7 +21287,7 @@ vueEquipe = function () {
       return `<div class="eqx-hab"><button type="button" class="ve-u" data-eq="fiche|${p.k}"><span class="st st-${habEtat(h[1]) === 'r' ? 'r' : 'o'}">${tJours(h[1]) < 0 ? 'Expirée' : tJours(h[1]) + ' j'}</span><span class="fo-n"><b>${esc(h[0])}</b><span class="gris petit">${esc(eqNom(p))} · ${tJours(h[1]) < 0 ? 'expirée le' : 'fin le'} ${dFr(h[1])}${fo ? ` · <b class="ve-vt">formation prévue le ${jCourt(fo.du)}</b>` : ''}</span></span><span class="fo-chev" aria-hidden="true">›</span></button>${fo ? '' : `<button type="button" class="btn gris petit eqx-form" data-eqx="formation|${p.k}|${j}">Planifier la formation</button>`}</div>`; }).join('')}</div>` : ''}
     <div class="cmd-liens"><button type="button" class="lien" data-eqx="regles">Habilitations exigées pour certaines interventions ›</button></div>
     <div class="seg eqx-seg" role="group" aria-label="Filtre" style="align-self:flex-start">${FILTRES.map(([k, l]) => `<button type="button" data-eq="filtre|${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
-    ${f === 'droits' ? eqxDroitsVue() : `<div class="bx-grille eq-grille">${L.map(eqxCarte).join('') || '<p class="gris">Personne ici pour le moment.</p>'}</div>`}`;
+    ${f === 'droits' ? eqxDroitsVue() : `<div class="bx-grille eq-grille">${L.map(eqxCarte).join('') || `<p class="gris">${f === 'invites' ? 'Aucune invitation en attente. Pour inviter quelqu’un, touche « ＋ Inviter une personne ».' : f === 'off' ? 'Aucun compte désactivé : tout le monde peut se connecter.' : 'Personne ici pour le moment.'}</p>`}</div>`}`;
 };
 
 /* ═ 5. La fiche d'une personne ═ */
@@ -21314,7 +21316,7 @@ eqFiche = function (k) {
       return `<div class="fo-r eqx-hr"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${eqxHabTexte(p, j)}</span>${anc.length ? `<details class="eqx-anc"><summary>Voir les anciennes (${anc.length})</summary>${anc.map(a => `<span class="gris petit">${a.fin ? 'jusqu’au ' + dFr(a.fin) : 'sans date de fin'}${a.passee ? ' · passée le ' + dFr(a.passee) : ''}${a.orga ? ' · ' + esc(a.orga) : ''}${a.piece ? ' · 📎 ' + esc(a.piece) : ''}</span>`).join('')}</details>` : ''}</span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouveler…</button>` : ''}</div>`; }).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
     ${droitsBlocFiche(p, k, admin, ajuste, pk)}
-    <div class="actions eqx-act">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button><button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>`}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions eqx-act">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button><button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 };
 
@@ -21490,7 +21492,7 @@ document.addEventListener('click', ev => {
   if (a === 'renouv') return eqxRenouvPanneau(x, +y);
   if (a === 'mdp' && !secuGarde('equipe-inviter', secuRejouerClic(b), { k:x, v:'repose' })) return;
   if (a === 'mdp' || a === 'relancer') { const p = eqDe(x); eqxJ(a === 'mdp' ? 'a envoyé un lien de mot de passe à' : 'a renvoyé l’invitation à', p, { det:p.mail });
-    return toast(a === 'mdp' ? `Lien envoyé à ${esc(p.mail)} : la personne choisit elle-même son nouveau mot de passe.` : `Invitation renvoyée à ${esc(p.mail)}.`); }
+    return toast(a === 'mdp' ? `Lien envoyé à ${esc(p.mail)} : ${x === acteur() ? 'tu choisis toi-même ton nouveau mot de passe' : 'la personne choisit elle-même son nouveau mot de passe'}.` : `Invitation renvoyée à ${esc(p.mail)}.`); }
   if (a === 'actif') { const p = eqDe(x);
     if (p.actif) return eqxDepart(x);
     if (!droitSp(eqDe(acteur()), 'comptes')) return droitsRefus('comptes', 'sp', 'eq', 'actif');
@@ -21909,6 +21911,9 @@ function rgBoxHtml(p){
     <div class="rg-past" role="group" aria-label="État de ${p.id}">${F.map(([v, l, c]) => `<button type="button" class="rg-p ${c}" data-rg="etat|${p.id}|${v}" aria-pressed="${e === v}">${l}</button>`).join('')}<button type="button" class="rg-p g" data-rg="autre|${p.id}" aria-pressed="${aut}" aria-expanded="${aut || S.autre === p.id}">Autre</button></div>
     ${aut || S.autre === p.id ? `<div class="rg-past rg-sous" role="group" aria-label="Autre état de ${p.id}">${[['z', 'Remise à neuf'], ['a', 'Absente'], ['d', 'Dégradée']].map(([v, l]) => `<button type="button" class="rg-p g" data-rg="etat|${p.id}|${v}" aria-pressed="${e === v}">${l}</button>`).join('')}</div>` : ''}</div>`;
 }
+/* la phrase sous « Produits posés » parle du même camion que la liste au-dessus : camion vide, elle ne promet pas une baisse de stock (metier-3d-restes-2) ; le bouton « Voir le Stock » a sa ligne à lui, sinon il grossit la ligne de la phrase au téléphone */
+function rgCamionHtml(){ const S = rgSaisie, vide = !Object.keys(RG_CAMION[S.appl] || {}).length, nom = `<span id="rg-camion">${esc(rgPrenom(S.appl))}</span>`;
+  return vide ? `Le stock du camion de ${nom} ne bouge pas.` : `Le stock du camion de ${nom} descend de ce que tu poses.`; }
 function rgProdsHtml(){
   const S = rgSaisie, cam = RG_CAMION[S.appl] || {}, ids = Object.keys(cam), pre = rgPrenom(S.appl);
   if (!ids.length) return `<div class="info petit">Il n’y a aucun biocide dans le camion de ${esc(pre)}. Un passage sans produit reste valable (simple contrôle).</div>`;
@@ -21932,7 +21937,7 @@ function rgSaisieRendre(){
     <div class="rg-bandeau"><span class="gris petit" id="rg-resume"></span><button type="button" class="btn gris petit" data-rg="toutok">Tout est intact</button></div>
     <div class="rg-boxes">${zones.map(z => `<div class="rg-zone"><div class="rg-zt"><b>${esc(z)}</b><button type="button" class="lien" data-rg="zoneok|${esc(z)}">Toute la zone RAS</button></div>${P.filter(p => p.zone === z).map(rgBoxHtml).join('')}</div>`).join('')}</div>
     <h3 class="rg-h3">Produits posés</h3><div id="rg-prods">${rgProdsHtml()}</div>
-    <span class="gris petit">Le stock du camion de <span id="rg-camion">${esc(rgPrenom(S.appl))}</span> descend de ce que tu poses. ${tech ? '' : '<button type="button" class="lien" data-rg="stock">Voir le Stock ›</button>'}</span>
+    <span class="gris petit" id="rg-camion-ph" style="display:block">${rgCamionHtml()}</span>${tech ? '' : '<div style="margin-top:4px"><button type="button" class="lien" data-rg="stock">Voir le Stock ›</button></div>'}
     <label class="champ">Observations<textarea id="rg-obs" rows="2" placeholder="ex. traces près des poubelles"></textarea></label>
     ${ouvertes.length ? `<div class="info petit"><b>Toujours à faire chez le client</b>${ouvertes.map(r => `<br>« ${esc(r.txt)} » · déjà signalée le ${jCourt(r.p.d)}`).join('')}<br>Elles seront rappelées dans le compte rendu de ce passage.</div>` : ''}
     <label class="champ">Recommandation au client (facultatif)<input id="rg-reco" placeholder="ex. boucher l’accès sous la porte" autocomplete="off"></label>
@@ -22119,7 +22124,7 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('change', ev => {
   const t = ev.target, f = t.dataset && t.dataset.rgf; if (!f || !rgSaisie) return; const S = rgSaisie;
-  if (f === 'appl') { S.appl = t.value; S.lignes = [{ pid:'', lot:'', q:'' }]; const c = rgCertif(S.appl), e = rgGet('rg-cert'); e.className = 'rg-cert ' + (c.ok ? 'ok' : 'ko'); e.textContent = (c.ok ? '✓ ' : '⚠ ') + c.txt; const cam = rgGet('rg-camion'); if (cam) cam.textContent = rgPrenom(S.appl) /* la phrase « Le stock du camion de … » nomme celui dont le camion baissera : elle suit l'applicateur choisi (metier-3d-recontrole-01) */; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
+  if (f === 'appl') { S.appl = t.value; S.lignes = [{ pid:'', lot:'', q:'' }]; const c = rgCertif(S.appl), e = rgGet('rg-cert'); e.className = 'rg-cert ' + (c.ok ? 'ok' : 'ko'); e.textContent = (c.ok ? '✓ ' : '⚠ ') + c.txt; const cam = rgGet('rg-camion-ph'); if (cam) cam.innerHTML = rgCamionHtml() /* la phrase « Le stock du camion de … » nomme celui dont le camion baissera : elle suit l'applicateur choisi (metier-3d-recontrole-01) */; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
   const l = S.lignes[+t.closest('.rg-pl').dataset.i];
   if (f === 'pid') { l.pid = t.value; l.lot = l.pid ? ((RG_CAMION[S.appl] || {})[l.pid] || [[]])[0][0] : ''; l.q = ''; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
   if (f === 'lot') l.lot = t.value;
@@ -23723,7 +23728,9 @@ const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel',
   /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
   'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
-  'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus' };
+  'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
+  /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin, chantier Mimosas', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
   if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
@@ -23859,13 +23866,13 @@ document.addEventListener('click', ev => {
 const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
 const MET_EX_FAM = {
   chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.' },
+    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz à condensation', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
   plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
-    'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.' }
+    'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
 /* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
-MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…' };
-MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…' };
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
 /* une même indication s'écrit avec ou sans majuscule selon la fenêtre qui la porte (« Ex. condensateur… » dans les achats, « ex. condensateur… » dans « Nouvelle intervention ») : la correspondance est EXACTE, donc la seconde copie échappait à la table et rendait un exemple de climatisation à tous les métiers (metier-3d-recontrole-04). Chaque entrée « Ex. … » reçoit sa jumelle « ex. … » */
 [MET_EXEMPLES, ...Object.values(MET_EX_FAM)].forEach(T => Object.keys(T).forEach(k => { if (!/^Ex\. (?!:)/.test(k)) return; const j = 'ex. ' + k.slice(4), v = T[k]; if (!(j in T)) T[j] = v == null ? v : /^Ex\. /.test(v) ? 'ex. ' + v.slice(4) : v; }));
 function metiersEx(){
@@ -26283,9 +26290,10 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
   /* equipe-13 (décision du chef, 17/11) : deux gestes qui changent un mot de passe, deux noms qu'on ne confond pas, UNE phrase sous chacun.
      Pas pour son propre compte (equipe-01) : la session se couperait avant la lecture du provisoire. Le bouton « lien » de la fiche est repris ici
      (même geste data-eq=mdp) pour que les deux soient côte à côte ; un compte verrouillé n'en reçoit aucun (« Déverrouiller » d'abord). */
-  const mdpOutils = (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">Changer son mot de passe</span>
+  /* restes équipe : un compte DÉSACTIVÉ ne se connecte pas, on ne lui offre donc ni provisoire ni lien (à côté de « Réactiver le compte ») ; sur sa PROPRE fiche, le gérant se lit à la première personne */
+  const mdpOutils = !p.actif ? `<small class="gris">${esc(p.prenom)} ne peut pas se connecter : réactive d’abord son compte pour lui donner un nouveau mot de passe.</small>` : (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">${soi ? 'Changer mon mot de passe' : 'Changer son mot de passe'}</span>
       ${sec && !soi ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-cnx="repose|${esc(k)}">Lui donner un mot de passe provisoire</button><small class="gris">Un mot de passe s’affiche : remets-le-lui en main propre. Il en choisira un autre à sa prochaine connexion.</small></div>` : ''}
-      ${!p.invite ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-eq="mdp|${esc(k)}">Lui envoyer un lien pour choisir le sien</button><small class="gris">${esc(p.prenom)} reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre.</small></div>` : ''}</div>` : '';
+      ${!p.invite ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-eq="mdp|${esc(k)}">${soi ? 'M’envoyer un lien pour choisir un nouveau mot de passe' : 'Lui envoyer un lien pour choisir le sien'}</button><small class="gris">${soi ? 'Tu reçois un e-mail et tu choisis ton mot de passe toi-même.' : esc(p.prenom) + ' reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre.'}</small></div>` : ''}</div>` : '';
   return `<div class="cn-acces"><span class="surtitre">Connexion</span>
     <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
     <div class="ligne"><span>Identifiant</span><b class="mono">${esc(id)}</b></div>
@@ -26294,7 +26302,7 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
     <div class="ligne"><span>Téléphone</span>${telTxt}</div>
     <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : 'Jamais'}</b></div>
     ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
-    ${sec && soi ? '<small class="gris">Pour ton propre compte, demande à un autre administrateur.</small>' : ''}
+    ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}</div>
     ${mdpOutils}</div>`; }
 { const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
@@ -26310,7 +26318,7 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
   return h; }; }
 { const v0 = vueEquipe; vueEquipe = function(){ const h = v0.apply(this, arguments); if (!secuPeut()) return h; const V = secuVerrous(); if (!V.length) return h;
   const noms = V.map(p => esc(eqNom(p))).join(', ');
-  return h.replace('<div class="kpis">', `<div class="alerte sec-bandeau" role="status"><span><b>${V.length} compte${V.length > 1 ? 's' : ''} verrouillé${V.length > 1 ? 's' : ''} : ${noms}.</b></span><button type="button" class="btn gris" data-sec2="voir">Voir</button></div><div class="kpis">`); }; }
+  return h.replace('<div class="kpis">', `<div class="alerte sec-bandeau" role="status"><span><b>${V.length} compte${V.length > 1 ? 's' : ''} verrouillé${V.length > 1 ? 's' : ''} : ${noms}.</b></span><button type="button" class="btn gris" data-sec2="voir">${V.length > 1 ? 'Voir ces comptes' : 'Voir ce compte'}</button></div><div class="kpis">`); }; }
 /* une personne désactivée ne peut plus rien approuver : ses connexions se ferment et ses demandes tombent (son téléphone, lui, n'est PAS révoqué : celle qui revient retrouve le sien) */
 { const s0 = eqxSynchro; eqxSynchro = function(){ const r = s0.apply(this, arguments);
   EQUIPE.forEach(p => { if (!p.actif && SECU.comptes[p.k]) { SECU.demandes.forEach(d => { if (d.k === p.k && d.etat === 'attente') d.etat = 'annulee'; }); secuFermerSessions(p.k, 'admin'); } });
