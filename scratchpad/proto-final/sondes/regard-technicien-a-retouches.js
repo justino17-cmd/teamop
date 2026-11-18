@@ -45,7 +45,7 @@ const L = require('../lib.js'), PNG = require('../../png.js');
     L.v(`${tag} · retouche 3 : population (jours fériés, dont un sous une bande d'absence)`, g.length >= 3 && g.some(x => x.sousBande), g);
     L.v(`${tag} · jours fériés : au moins 11 px`, g.every(x => x.fs >= 11), g.map(x => x.fs));
     L.v(`${tag} · jours fériés : aucun nom coupé`, g.every(x => !x.coupe), g.filter(x => x.coupe));
-    L.v(`${tag} · jours fériés : la bande d'absence est à 6 px au moins du nom`, g.filter(x => x.sousBande).every(x => x.ecart >= 6), g.filter(x => x.sousBande));
+    L.v(`${tag} · jours fériés : la bande d’absence est à 12 px au moins du nom`, g.filter(x => x.sousBande).every(x => x.ecart >= 12), g.filter(x => x.sousBande));
     L.v(`${tag} · jours fériés : la case sous une bande porte la marque « cp » (chiffre à l'encre)`, g.filter(x => x.sousBande).every(x => x.cp), g.filter(x => x.sousBande));
     // contraste AU PIXEL du chiffre du jour férié sous la bande : encre calculée contre le fond lu dans la capture
     const cibles = await p.evaluate(() => { const k = [...document.querySelectorAll('#contenu .acm-c.fer')].find(k => k.classList.contains('cp')); if (!k) return null; k.scrollIntoView({ block: 'center' }); const n = k.querySelector('.acm-n'), f = k.querySelector('.acm-f'); return { cn: getComputedStyle(n).color, cf: f ? getComputedStyle(f).color : null }; });
