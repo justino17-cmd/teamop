@@ -30,7 +30,7 @@ function monde({ permission, reponse, supporte = true }) {
   const swOk = { ready: Promise.resolve({ pushManager: { subscribe: async () => { ctx.__abonne++; return { toJSON: () => ({ endpoint: 'e' }) }; } } }) };
   ctx.navigator = supporte ? { serviceWorker: swOk } : {};
   ctx.window = supporte ? { PushManager: function () {}, Notification: ctx.Notification } : {};
-  ctx.fetch = async () => { ctx.__fetch++; return {}; };
+  ctx.fetch = async () => { ctx.__fetch++; return { ok: true }; };
   vm.createContext(ctx);
   vm.runInContext(`var window=this.window; function toast(m){ __toasts.push(String(m)); }
     async function enteteEquipe(h){ return h; } function syncTeam(){ return 't'; } function fullName(u){ return 'A B'; } function _vapidArr(k){ return new Uint8Array(1); }
