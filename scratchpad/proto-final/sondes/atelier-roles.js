@@ -54,12 +54,12 @@ const ecoute = p => p.evaluate(() => { window.__fermes = []; addEventListener('m
   v('identifiants invalides (espace, nom vide, > 40 signes) et formes fausses : écartés', !H.mauvais, H);
   v('population : le client au nom hostile, lui, est bien ajouté (texte brut)', H.xss, H);
   const fiche = await (async () => { await L.aller(p, 'client-x-xss1'); return p.evaluate(() => ({ h1: document.querySelector('#contenu h1') && document.querySelector('#contenu h1').textContent, img: !!document.querySelector('#contenu img[src="x"]'), pwn: window.__pwn, ancres: [...document.querySelectorAll('#contenu a[href^="mailto:"], #contenu a[href^="tel:"]')].map(a => [a.getAttribute('href'), [...a.attributes].map(x => x.name).join(',')]) })); })();
-  v('HTML dans un nom : affiché en TEXTE dans la fiche (aucun <img> né, aucun script exécuté)', fiche.h1 === '<img src=x onerror=window.__pwn=1>' && !fiche.img && fiche.pwn === undefined, fiche);
+  v('HTML dans un nom : les chevrons et guillemets sont retirés à l\'entrée (cliNet, S01), le reste s\'affiche en TEXTE dans la fiche (aucun <img> né, aucun script exécuté)', fiche.h1 === 'img src=x onerror=window.__pwn=1' && !fiche.img && fiche.pwn === undefined, fiche);
   v('liens tel: et mailto: : aucun guillemet, aucun attribut injecté (onmouseover, onclick)', fiche.ancres.length >= 1 && fiche.ancres.every(a => !/["]/.test(a[0]) && !/on[a-z]+/.test(a[1])), fiche.ancres);
   await L.aller(p, 'clients'); const liste = await p.evaluate(() => ({ img: !!document.querySelector('#contenu img[src="x"]'), pwn: window.__pwn })); v('… et dans la liste des clients', !liste.img && liste.pwn === undefined, liste);
   f = await A.ouvrirAtelier(c, 'devis', 'devis');
   const dedans = await f.evaluate(() => ({ img: !!document.querySelector('img[src="x"]'), pwn: window.__pwn, nom: (S.clients.find(x => x.id === 'xss1') || {}).nom }));
-  v('l\'atelier reçoit ce client en texte aussi (liste de composition sans <img> ni script)', dedans.nom === '<img src=x onerror=window.__pwn=1>' && !dedans.img && dedans.pwn === undefined, dedans);
+  v('l\'atelier reçoit ce client en texte aussi (liste de composition sans <img> ni script)', dedans.nom === 'img src=x onerror=window.__pwn=1' && !dedans.img && dedans.pwn === undefined, dedans);
   await f.locator('[data-fen-x]').first().click(); await p.waitForTimeout(700);
   // bornes de la liste de documents
   const gros = await f.evaluate(() => { const L2 = []; for (let i = 0; i < 600; i++) L2.push({ id: 'd' + i, type: i % 2 ? 'devis' : 'contrat', etat: ['brouillon', 'envoye', 'attente', 'signe'][i % 4], nom: 'N'.repeat(5000), numero: 'X'.repeat(300), client: 'C'.repeat(900), clientId: 'xss1', ttc: -5, prix: 1e15, maj: 9e15, nr: 1 });
@@ -76,7 +76,7 @@ const ecoute = p => p.evaluate(() => { window.__fermes = []; addEventListener('m
   // un e-mail saisi AVEC un guillemet dans la fiche client (le chemin d'avant l'atelier : « Infos » puis « Enregistrer ») : le lien ne fabrique aucun attribut
   await L.aller(p, 'client-x-vp'); await L.toucher(c, '[data-oc="infos"]'); await p.locator('[data-ci="mail"]').fill('a"onmouseover="window.__pwn=9@x.fr'); await L.toucher(c, '[data-action="clientEnreg"]');
   const lm = await p.evaluate(() => ({ mail: CLIENTS.vp.mail, pwn: window.__pwn, ancres: [...document.querySelectorAll('#contenu a[href^="mailto:"], #contenu a[href^="tel:"]')].map(a => [a.getAttribute('href'), a.getAttributeNames().join(',')]) }));
-  v('un e-mail saisi avec un guillemet n\'injecte aucun attribut dans le lien de la fiche (population ' + lm.ancres.length + ' liens)', lm.mail.includes('"') && lm.ancres.length >= 2 && lm.ancres.every(a => a[1].split(',').sort().join(',') === 'class,href') && lm.pwn === undefined, lm);      // la mauvaise adresse est BIEN enregistrée (population), et le lien n'en tire aucun attribut
+  v('un e-mail saisi avec un guillemet est nettoyé à l\'entrée (cliNet) et n\'injecte aucun attribut dans le lien de la fiche (population ' + lm.ancres.length + ' liens)', !/[<>"`]/.test(lm.mail) && lm.ancres.length >= 2 && lm.ancres.every(a => a[1].split(',').sort().join(',') === 'class,href') && lm.pwn === undefined, lm);      // la mauvaise adresse est BIEN enregistrée (population), et le lien n'en tire aucun attribut
   await p.evaluate(() => { CLIENTS.vp.mail = 'marc@vieuxport.fr'; CLIENTS.vp.tel = '06 12 34 56 78'; });
   // ═════ E. CE QU'UN PROTOTYPE HOSTILE PEUT ENVOYER À L'ATELIER ═════
   await p.evaluate(() => { const w = document.querySelector('#opdz iframe').contentWindow, cl = []; for (let i = 0; i < 600; i++) cl.push({ id: 'k' + i, nom: 'Client ' + i, pro: 'oui', adresse: 'A'.repeat(500), contact: 'C'.repeat(500) }); cl.unshift({ id: 'a b', nom: 'x' }, { id: '__proto__', nom: 'p' }, { id: 'v', nom: '' }, 5, null);

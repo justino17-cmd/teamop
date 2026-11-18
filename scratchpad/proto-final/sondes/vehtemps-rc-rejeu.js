@@ -65,9 +65,9 @@ const gestes = c => ev(c, () => [...document.querySelectorAll('#calque .panneau 
       const R = await ev(c, () => { const txt = document.querySelector('#contenu').innerText; const lignes = [...document.querySelectorAll('[data-vh^="fiche|"]')].filter(e => e.offsetParent).map(e => e.innerText.replace(/\s+/g, ' ')); return { assur:(txt.match(/Assurance/g) || []).length, lignes }; });
       v(nom + ' · veh 17 : l’assurance du groupe n’est écrite qu’une fois dans la liste (pas sous chaque véhicule)', R.assur === 1 && R.lignes.length === 4 && R.lignes.filter(l => /assurance/i.test(l)).length === 0, R);
       v(nom + ' · veh : les rangées parlent de la révision ou d’aucune autre échéance, jamais d’un texte vide', R.lignes.every(l => /règle|À faire|Au garage|garage/.test(l) && !/undefined|NaN|null/.test(l)), R.lignes);
-      // — les trois sommes se recoupent : la liste (« 1 566 € dépensés en octobre ») et les fiches (lignes d'octobre) —
-      const oct = await ev(c, () => (document.querySelector('#contenu').innerText.replace(/\s+/g, ' ').match(/([\d\s]+) € dépensés en octobre/) || [])[1] || '');
-      v(nom + ' · veh : la tuile « dépensés en octobre » se lit (1 566 €)', /1\s*566/.test(oct), oct);
+      // — les trois sommes se recoupent : la liste (« 1 566 € payés en octobre ») et les fiches (lignes d'octobre) —
+      const oct = await ev(c, () => (document.querySelector('#contenu').innerText.replace(/\s+/g, ' ').match(/([\d\s]+) € payés en octobre/) || [])[1] || '');
+      v(nom + ' · veh : la tuile « payés en octobre » se lit (1 566 €)', /1\s*566/.test(oct), oct);
       await L.capture(c, CAP + 'veh-liste-' + nom + '.png');
       const err = c.err.filter(e => !/ERR_/.test(e)); v(nom + ' · veh : aucune erreur de page', err.length === 0, err.slice(0, 3));
       await L.fin(c);
