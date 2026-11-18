@@ -7,19 +7,21 @@
    "ecrans": "Articles, Ce qui a bougé, feuilles (Que veux-tu faire, Envois, Filtrer, Compter, Voir le stock), fiche article (stock, rupture), états vide / recherche vide / plein long",
    "captures": 123,
    "regardees": 123,
-   "note": "android nuit : 129 captures regardées en 17 planches ; iPad nuit : 81 prises, 53 premières vues regardées (planches 1, 5, 6 lues) ; iPhone nuit et petit jour vus par le tour précédent ; petit nuit, rôles julie / sm / kb : non pris"
+   "note": "android nuit : 129 captures regardées en 17 planches ; iPad nuit : 81 prises, 53 premières vues regardées (planches 1, 5, 6 lues) ; iPhone nuit et petit jour vus par le tour précédent ; petit nuit, rôles julie / sm / kb : non pris | tour 3 (code final) : petit nuit (72 captures, 9 planches lues), iPad nuit (72 prises, planches 1 et 6 lues), android nuit (72 prises, planche des écrans corrigés lue), rôle julie iPhone jour (6 captures lues) ; sm et kb : Stock et Fournisseurs leur sont fermés (renvoi à l'accueil, voulu), leur « Mon camion » lu"
   },
   {
    "nom": "Fournisseurs, matériel & produits",
    "ecrans": "Commandes, Articles, Fournisseurs, fiches, création (article, fournisseur, commande), photo de facture, import de prix, articles habituels, rangement, états vides et pleins longs",
    "captures": 123,
-   "regardees": 123
+   "regardees": 123,
+   "note": " | tour 3 (code final) : petit nuit (72 captures, 9 planches lues), iPad nuit (72 prises, planches 1 et 6 lues), android nuit (72 prises, planche des écrans corrigés lue), rôle julie iPhone jour (6 captures lues) ; sm et kb : Stock et Fournisseurs leur sont fermés (renvoi à l'accueil, voulu), leur « Mon camion » lu"
   },
   {
    "nom": "Dépôts et camions",
    "ecrans": "liste, Plus, Remplir les camions, nouvelle réserve, fiches camion / atelier / réserve, réserves fermées, vide, valeurs longues",
    "captures": 123,
-   "regardees": 123
+   "regardees": 123,
+   "note": " | tour 3 (code final) : petit nuit (72 captures, 9 planches lues), iPad nuit (72 prises, planches 1 et 6 lues), android nuit (72 prises, planche des écrans corrigés lue), rôle julie iPhone jour (6 captures lues) ; sm et kb : Stock et Fournisseurs leur sont fermés (renvoi à l'accueil, voulu), leur « Mon camion » lu"
   }
  ],
  "defauts": [
@@ -184,12 +186,51 @@
    "constat": "« 281 859 021,34 € » passe sur le « 3 » de la colonne voisine",
    "etat": "corrigé",
    "changement": "colonne du montant minmax(max-content,1fr) (sonde §10, mutation 22)"
+  },
+  {
+   "n": 19,
+   "ecran": "Fournisseurs : bouton « ＋ Ajouter un fournisseur » de l'en-tête",
+   "profils": "petit (320), android (360)",
+   "jourNuit": "jour et nuit",
+   "constat": "le bouton noir passait sur deux lignes",
+   "etat": "corrigé",
+   "changement": "360 px : 15 px et marges de 10 px ; 320 px : marges de 6 px, écart de 6 px, carrés voisins à 44 px (sonde §19, mutations 23 et 24)"
+  },
+  {
+   "n": 20,
+   "ecran": "Fournisseurs › fiche : e-mail des commandes",
+   "profils": "petit, android",
+   "jourNuit": "jour et nuit",
+   "constat": "l'adresse était coupée dans son champ (un champ ne passe pas à la ligne)",
+   "etat": "corrigé",
+   "changement": "l'adresse s'écrit aussi en toutes lettres sous le titre du champ, 16 px, jusqu'à 400 px, et suit la frappe ; le champ reste à 16 px (sonde §20, mutations 25 à 27)"
+  },
+  {
+   "n": 21,
+   "ecran": "Stock › Réglages du stock",
+   "profils": "petit (320)",
+   "jourNuit": "nuit",
+   "constat": "la phrase de chaque case chevauchait la case suivante (la case se rétrécissait dans la feuille)",
+   "etat": "corrigé",
+   "changement": "flex:none sur .ms-reg (sonde §21, mutation 28)"
+  },
+  {
+   "n": 22,
+   "ecran": "Stock › fiche article : « Réf. · fournisseur »",
+   "profils": "petit (320)",
+   "jourNuit": "nuit",
+   "constat": "un « · » seul en bout de ligne quand le fournisseur passe dessous",
+   "etat": "corrigé",
+   "changement": "la ligne passe par msPts (sonde §22, mutation 29)"
   }
  ],
  "laisses": [
   "fiche fournisseur, android 360 : l'adresse e-mail des commandes (36 signes) est coupée par « … » dans son champ (16 px minimum pour iOS) ; à soumettre : champ sur deux lignes",
   "bouton « ＋ Ajouter un fournisseur » sur deux lignes à 360 et 320 px (libellé le plus long) ; à soumettre : « ＋ Fournisseur »",
   "menu Métier de « Le rangement par métier » : texte de la liste déroulante coupé par sa flèche (natif)",
-  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu"
+  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu",
+  "Stock › Ranger › « Un achat au comptoir » : le segmenté passe sur trois lignes à 320 px (lisible, rien de coupé) — à soumettre à Justin",
+  "Compter un lieu à 320 px : le pied de la feuille (phrase + deux boutons empilés) prend ~155 px sur 568 — lisible, à soumettre",
+  "Fiche fournisseur : « Choisir l'heure » sur deux lignes à 820 px (iPad) — lisible, laissé"
  ]
 }

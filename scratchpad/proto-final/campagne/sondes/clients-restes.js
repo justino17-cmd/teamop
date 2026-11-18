@@ -102,6 +102,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await ouvrirInfos('mr'); await champ('nom', 'Mme Roux'); await enreg();
   await ouvrirInfos('mr'); await champ('nom', 'Restaurant  Le Vieux Port'); await enreg(); const dd = await t();
   v('casse 6 : « Restaurant  Le Vieux Port » (deux espaces) est refusé comme doublon (« ' + dd + ' »)', /porte déjà ce nom/.test(dd) && await p.evaluate(() => CLIENTS.mr.nom === 'Mme Roux'), dd);
+  await champ('nom', 'Mme Roux');   /* le champ refusé reste écrit : on le remet, sinon quitter la fiche demande (clients-15) et la suite part de la mauvaise page */
 
   // ── casse 5 : un seul rangement enfoncé pendant une recherche ──
   for (const rang of ['mois', 'semaine']) {
