@@ -1,0 +1,65 @@
+[
+ {
+  "nom": "compta-ventes",
+  "defaut": "« 90 min » sur une ligne de main-d'œuvre issue d'un DEVIS (quantité 1 au prix des 2 h) écrivait 195,00 € pour 130,00 € dus, sans un mot",
+  "etat": "corrigé",
+  "changement": "ligneHeure ne reconnaît plus une ligne à l'heure par sa seule désignation : sa quantité (« 2h »), le drapeau l.heure posé par une durée acceptée, ou une désignation d'heure DONT LE PRIX est celui de l'heure (TARIFS.horaire). La ligne de devis est refusée avec la phrase des minutes, la quantité d'avant reste.",
+  "preuve": "compta-ventes-restes4-rc-a.js mac 5 ✓ · 0 ✗, iPhone nuit 5 ✓ · 0 ✗ (avant : 1 ✓ · 3 ✗) ; mutations M1 à M3 tombent"
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Une seconde saisie en minutes sur la même ligne était refusée avec une phrase fausse (« se compte sur une ligne facturée à l'heure »)",
+  "etat": "corrigé",
+  "changement": "une durée acceptée pose l.heure = true sur la ligne ; une quantité ordinaire ensuite le retire (le prix redevient celui d'UNE unité). Une durée s'écrit aussi d'une seule forme : « 90 minutes » et « 45 mn » s'enregistrent « 90 min » / « 45 min ».",
+  "preuve": "rc-a : 2h → 90 min (97,50 €) → 45 min (48,75 €) ; restes5-qte « 90 minutes » → « 90 min », « 45 mn » → « 45 min » ; mutations M2, M3, M6 tombent"
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Un prix négatif tapé dans « Prix unitaire HT » d'une facture vidait le prix en silence (la ligne devenait « à chiffrer » sans raison)",
+  "etat": "corrigé",
+  "changement": "un prix illisible se refuse avec une phrase et garde l'ancien : « Un prix ne s'écrit pas en négatif : pour rendre de l'argent à un client, fais un avoir. » (« Un prix s'écrit en chiffres : 35 ou 35,50 » pour un texte). Effacer le champ reste « à chiffrer ».",
+  "preuve": "restes4-rc-b.js mac 8 ✓ · 0 ✗, iPhone nuit 8 ✓ · 0 ✗ (avant : 0 ✓ · 2 ✗) ; mutation M4 tombe"
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Trouvé en corrigeant le précédent : retaper « 40 » sur la ligne « Acompte de 30 % déjà facturé » (prix négatif) la retournait en +40 € : le client payait l'acompte une seconde fois au lieu de le voir déduit",
+  "etat": "corrigé",
+  "changement": "une ligne dont le prix est négatif (déduction d'acompte) refuse toute retape avec la phrase « Cette ligne déduit un acompte déjà facturé : son montant ne se retape pas ici ».",
+  "preuve": "restes4-rc-b : −123,95 reste après « 40 » et la phrase est dite ; mutation M5 tombe. Ce choix (acompte non modifiable ici) est à confirmer par Justin."
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Le champ Qté d'une ligne de facture à l'iPhone coupe « 90 min » en « 90 … » (case de 72 px)",
+  "etat": "corrigé",
+  "changement": "téléphone (≤ 420 px) : colonnes Qté 92 px, Prix 98 px, écart 6 px, remplissage 6 px (252 px au total, comme avant : la ligne reste dans la carte à 320 px) ; bureau et tablette : Qté 100 px au lieu de 88. Phrase du plafond : « au plus 10 000 » (espace).",
+  "preuve": "compta-ventes-restes5-qte.js (nouvelle) 8 ✓ · 0 ✗ sur iphone nuit, petit (320), android, ipad, mac ; « 1h30 », « 250 mL », « 12 345,5 », « 999999,99 » relus en entier ; restes3-rc-largeurs 22 ✓ · 0 ✗ ; captures petit, iPhone nuit, mac regardées ; mutations M7, M8 tombent. Une première version à 100 + 100 sortait de la carte à 320 px (restes3-rc-largeurs la faisait tomber) : corrigée avant commit."
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "L'arrondi d'un total de ligne négatif est asymétrique (25,83 € contre −25,82 €)",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "inatteignable à l'écran : un prix négatif est maintenant refusé, et l'acompte déduit comme l'avoir sont à quantité 1 (arrondi exact). À symétriser le jour où une remise se saisira."
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Commande fournisseur (« Nouvelle commande ») : champ « Prix HT » à côté de la quantité, total de ligne non arrondi",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "voie achats, hors compta-ventes ; déjà rapporté au tour 4"
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Une unité inconnue multiplie encore la quantité (« 3 forfaits », « 250 mL » sur une pièce vendue au flacon = 250 ×)",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "refuser toute unité inconnue sur une ligne ? décision de produit, inchangée depuis le tour 4"
+ },
+ {
+  "nom": "compta-ventes",
+  "defaut": "Reportés du tour 2 : remboursement d'une facture payée en entier puis avoirée ; « Paiement en ligne » aux factures d'exemple ; nom « OP COMPTABLE » ; cadre qui ne redessine pas sa liste si un changement arrive d'ailleurs",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "doutes anciens, non rouverts"
+ }
+]

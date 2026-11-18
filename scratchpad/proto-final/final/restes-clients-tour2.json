@@ -1,0 +1,86 @@
+[
+ {
+  "nom": "clients-15 : la saisie non enregistrée d'« Infos » perdue par la palette, les raccourcis, le retour du navigateur et une adresse changée",
+  "defaut": "Quitter « Infos » avec une saisie non enregistrée doit demander, quel que soit le chemin de sortie (pas seulement les clics).",
+  "etat": "corrigé",
+  "changement": "Deux gardes ajoutées derrière celle des clics : aller() (palette Ctrl/Cmd+K, Ctrl/Cmd+1…9, tout lien) retient la sortie sans toucher à l'adresse ; lireHash() retient un changement d'adresse qui n'est pas passé par aller() (retour du navigateur ou du téléphone, adresse tapée), remet l'adresse de la fiche (replaceState) puis demande. Même fenêtre que pour les clics (Enregistrer / Abandonner mes changements / Continuer la saisie). Le choix fait est retenu (CLI_PASSE, consommé par le changement d'adresse qui suit, périmé en 1,5 s) : « Abandonner » ne redemande pas.",
+  "preuve": "clients-restes-recontrole.js A3 (palette, Ctrl+1, retour, adresse) puis A5 neuf (les trois choix de la fenêtre par chaque porte sans clic : Continuer garde la saisie et n'ajoute qu'une entrée d'historique, Abandonner part sans redemander, Enregistrer enregistre puis part) : mac 49 ✓, windows 49 ✓, ipad 49 ✓ (Cmd : l'iPad se dit Macintosh), iphone nuit 39 ✓, petit 320 nuit 39 ✓, android nuit 39 ✓, mac secrétaire 38 ✓, iphone secrétaire nuit 28 ✓ · 0 ✗ partout. Mutations T1 (garde d'aller retirée : tombe sur l'entrée d'historique en trop), T2 (garde d'adresse), T13 (choix non retenu : redemande) tombent. Captures regard-quitter-infos-iphone et -mac regardées (fenêtre en bas d'écran, trois boutons)."
+ },
+ {
+  "nom": "clients-17 : un client archivé encore proposé à « Nouvelle facture » (Comptabilité), « Nouvelle réserve chez un client » et « Modifier l'intervention »",
+  "defaut": "Un client archivé n'est plus proposé pour un nouveau travail.",
+  "etat": "corrigé",
+  "changement": "cxNouvelleFacture et la liste de la réserve (suggestions ET reconnaissance du nom tapé) écartent les archivés ; « Modifier l'intervention » garde le client ACTUEL de l'intervention et écarte les autres archivés (le doute du recontrôle, tranché dans ce sens). Une réserve demandée pour un archivé tapé à la main dit « est un client archivé : remets-le d'abord dans la liste » au lieu de « n'est pas dans tes clients ».",
+  "preuve": "clients-restes-recontrole.js B1 (facture, réserve, modification, plus devis, intervention, contrat déjà verts) 0 ✗ sur les profils joués ; mutations T3, T4, T5 tombent sur la ligne visée."
+ },
+ {
+  "nom": "Casse : « Archivés · N » hors de la vue à 320 et 360 px",
+  "defaut": "La rangée « Tous les clients · Par semaine · Par mois · Archivés » faisait 382 px dans 286 / 326 px.",
+  "etat": "corrigé",
+  "changement": "Le segmenté des rangements passe à la ligne sous 760 px (même règle que les segmentés des Véhicules, Interventions, Devis) : deux lignes de deux, tout est visible sans défiler.",
+  "preuve": "clients-restes-recontrole.js B5 : petit nuit et android nuit 0 ✗ ; capture archive-petit-nuit regardée (grille 2 × 2, « Archivés · 1 » entier) ; mutation T10 tombe."
+ },
+ {
+  "nom": "clients-18 : « +33 06 12 34 56 78 » (le 0 gardé) et « (+33) 6 12 34 56 78 » non rangés, recherche et doublon aveugles",
+  "defaut": "Un numéro français se range à la française quelle que soit son écriture ; recherche et doublon comparent les mêmes chiffres.",
+  "etat": "corrigé",
+  "changement": "cfTelChiffres retire « 33 » suivi d'un 0 facultatif (« +33 06… » devient « 06… ») et reconnaît « (+33) » ; cfTelFmt accepte une parenthèse avant le +.",
+  "preuve": "clients-restes-recontrole.js C1, C2, C6 0 ✗ ; mutations T6 et T7 tombent ; clients-restes.js (65 à 67 ✓) toujours vert."
+ },
+ {
+  "nom": "Nouveau : deux numéros de 31 signes rognés à 30 à l'enregistrement de la fiche",
+  "defaut": "cfTelOk admet « 05 46 12 12 12 / 06 12 34 56 78 » mais cliNet le coupait à 30 signes (« … 56 7 »).",
+  "etat": "corrigé",
+  "changement": "cliNet garde 60 signes au numéro (deux numéros avec leurs espaces).",
+  "preuve": "clients-restes-recontrole.js C7 0 ✗ ; mutation T8 tombe."
+ },
+ {
+  "nom": "Casse : Ctrl+Z, des minutes plus tard, supprime un client à qui l'on a écrit ses consignes et son appareil",
+  "defaut": "Annuler après « nouveau client + intervention » retire l'intervention ; le client ne part que s'il n'a pas vécu depuis.",
+  "etat": "corrigé",
+  "changement": "L'instantané d'annulation garde la signature de la fiche à la création (NVSIG) : si la fiche a changé (consignes, appareil, adresse…) ou si une tâche lui est liée, seule l'intervention est retirée et le message le dit (« Le client est gardé, sa fiche a été complétée depuis »). L'identifiant d'un client créé avec une intervention ne se calcule plus sur le seul nombre de clients (boucle jusqu'à un identifiant libre) : le doute du recontrôle sur les identifiants libérés par Annuler est levé.",
+  "preuve": "clients-restes-recontrole.js D1 0 ✗ (le client « Lemoine » reste avec ses consignes) ; clients-restes.js casse 8 toujours vert (un client intact part avec l'intervention) ; clients-creer.js 35 ✓ ; mutation T9 tombe."
+ },
+ {
+  "nom": "Casse : la recherche d'un client archivé répond « Aucun client ne correspond » et invite à créer un doublon",
+  "defaut": "La recherche doit dire qu'un client ARCHIVÉ correspond.",
+  "etat": "corrigé",
+  "changement": "« Aucun client de ta liste ne correspond à « … ». Un client archivé correspond. » avec le bouton « Voir le client archivé » : il ouvre « Archivés » EN GARDANT la recherche. La phrase « ＋ Nouveau client » n'est plus proposée dans ce cas.",
+  "preuve": "clients-restes-recontrole.js F1, F2 (neufs) 0 ✗ ; captures recherche-archive-iphone (nuit) et -mac regardées ; mutation T12 tombe."
+ },
+ {
+  "nom": "Nouveau : ACTIONS.clientArchiverOk (et clientRestaurer, clientAppEnreg, clientAppSupprOk) sans garde de droit",
+  "defaut": "Appelée sans passer par le bouton, l'action archive pour le secrétariat.",
+  "etat": "corrigé",
+  "changement": "Une case se lit dans la fonction qui écrit : archiver, demander l'archivage et remettre dans la liste (case « archiver un client »), enregistrer ou retirer un appareil (case « changer un client »).",
+  "preuve": "clients-restes-recontrole.js B0 (secrétaire sur mac et iphone) : l'action appelée à la main n'archive pas ; mutation T11 tombe."
+ },
+ {
+  "nom": "Sondes périmées mises à jour",
+  "defaut": "Deux sondes anciennes accusaient du code juste.",
+  "etat": "corrigé",
+  "changement": "clients-restes.js remet le champ refusé avant de quitter la fiche (quitter demande désormais) ; clients-recontrole-fiche.js lit le plafond du nom dans la page (120 depuis les restes de la sécurité, elle attendait 80) ; clients-restes-recontrole.js : la barre du bas de la secrétaire n'a pas de Planning. clients-restes-recontrole.js entre dans clients-tout.sh.",
+  "preuve": "clients-restes 65 à 67 ✓, clients-recontrole-fiche 31 ✓ · 0 ✗."
+ },
+ {
+  "nom": "Doute : retirer le premier appareil d'un client",
+  "defaut": "La fiche d'intervention et le compte rendu lisent appareils[0] (« Votre appareil »).",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : pas de plantage, mais avec plusieurs appareils le compte rendu ne nomme que le premier, quelle que soit l'intervention. Choisir l'appareil traité sur l'intervention serait une fonction neuve.",
+  "preuve": "Lecture du code (appareils[0] du compte rendu et du registre) ; rendu PDF non mesuré."
+ },
+ {
+  "nom": "Doute : suggestions d'adresse à 320 px (liste tronquée par la barre d'actions)",
+  "defaut": "3 propositions visibles sur 5.",
+  "etat": "à soumettre à Justin",
+  "changement": "Non rejoué dans ce tour (défilement au doigt à confirmer sur appareil).",
+  "preuve": "Aucune nouvelle mesure."
+ },
+ {
+  "nom": "Glisser pour archiver, Boîte mail pour le bureau, Planning au téléphone",
+  "defaut": "Hors périmètre du recontrôle.",
+  "etat": "déjà décidé",
+  "changement": "Aucun (décision (l) du chef : à soumettre).",
+  "preuve": "REPRISE.md, décisions du chef de chantier."
+ }
+]
