@@ -2663,7 +2663,7 @@ body.dp-ouvert{overflow:hidden}
 .st-dlien{font:inherit;font-weight:700;text-align:left;padding:0;min-height:0}
 .etapes-d{display:flex;flex-direction:column;gap:10px}.etapes-d>div{display:flex;gap:10px;align-items:flex-start}.etapes-d i{width:12px;height:12px;border-radius:50%;border:2px solid var(--faible);margin-top:4px;flex:none}.etapes-d .ok i{background:var(--vert);border-color:var(--vert)}
 .etapes-d span{display:flex;flex-direction:column}.etapes-d small{color:var(--faible)}
-@media (max-width:760px){.dp-barre{position:relative}.dp-barre b{flex:1 1 100%;min-height:44px;display:flex;align-items:center;padding-right:52px}.dp-gestes{width:100%}.dp-gestes .btn{flex:1}.dp-x{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right))}}   /* la croix monte sur la ligne du titre : à 320 px, deux boutons de 44 px et la croix ne tenaient pas côte à côte */
+@media (max-width:760px){.dp-barre{position:relative}.dp-barre b{flex:1 1 100%;min-height:44px;display:flex;align-items:center;padding-right:52px;white-space:normal;overflow-wrap:anywhere;line-height:1.25}.dp-gestes{width:100%}.dp-gestes .btn{flex:1}.dp-x{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right))}}   /* la croix monte sur la ligne du titre : à 320 px, deux boutons de 44 px et la croix ne tenaient pas côte à côte */
 /* ══ TÂCHES ══ */
 .t-res{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .t-filtres{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.t-filtres .saisie{flex:1;min-width:180px;margin:0}.t-filtres select.saisie{flex:0 1 220px}
@@ -18069,7 +18069,7 @@ function ttMoisPers(k){
     <div class="fo-stats"><span><b>${ttHL(v.tot)}</b>travaillées</span><span><b>${pl ? ptH(pl) : '—'}</b>en plus</span></div>
     ${v.nuit ? `<span class="gris petit">${ptH(v.nuit)} de nuit (entre 21 h et 6 h).</span>` : ''}${v.nAbs ? `<span class="gris petit">${esc(paieAbsTxt(v.abs))} d’absence.</span>` : ''}
     <h3 class="tt-h3">Ses semaines</h3><div class="fo-bloc">${v.semaines.map(w => { const sup = w.s25 + w.s50;
-      return `<button type="button" class="fo-r tt-jr" data-tt="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.report ? 'payée avec ' + paieMoisVoisin(1) : w.avant ? 'commencée en ' + paieMoisVoisin(-1) : w.valide ? 'validée' : 'à valider'}${sup && w.ici ? ' · dont ' + ptH(sup) + ' en plus' : ''}${w.mois !== w.tot ? ' · dont ' + ttHL(w.mois) + ' en ' + ttMois() : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>
+      return `<button type="button" class="fo-r tt-jr" data-tt="sem|${k}|${w.L}"><span class="fo-n"><b>Semaine du ${jCourt(w.L)}</b><span class="gris petit">${w.report ? 'payée avec ' + paieMoisVoisin(1) : w.avant ? 'commencée en ' + paieMoisVoisin(-1) : w.valide ? 'validée' : 'à valider'}${w.mois !== w.tot ? ' · dont ' + ttHL(w.mois) + ' en ' + ttMois() : ''}${sup && w.ici ? ' · dont ' + ptH(sup) + ' en plus' : ''}</span></span><b>${ptH(w.tot)}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>
     <details class="tt-det"><summary>Ses journées · ${jrs.length}</summary><div class="fo-bloc">${jrs.map(d => { const P = ptJour(k, d)[0];
       return `<button type="button" class="fo-r tt-jr" data-tt="jour|${k}|${d}"><span class="tt-jd">${esc(ptJ(d))}</span><span class="fo-n"><span>${P.debut}–${P.fin || '…'}</span></span><b>${P.fin ? ptH(ptJourMin(k, d)) : 'pas terminée'}</b><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div></details>
     <h3 class="tt-h3">Ses corrections du mois</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune heure de ce mois n’a été modifiée.</span>'}
@@ -24163,9 +24163,9 @@ immChap('pointage', 'pointage', 'Temps de travail', 'Le temps de travail',
     jouer:() => immClic('[data-tt="onglet|semaine"]') },
   { c:'.tt-sem', t:'La semaine sur 7 jours', p:'Du lundi au dimanche, comme la paie : les heures de chacun, le total, les heures en plus et UNE pastille par personne. Karim a des points à regarder : j’ouvre sa semaine.',
     jouer:() => immClic('[data-tt^="sem|kb|"]') },
-  { c:'#calque .panneau .tt-sept', t:'Sa semaine, jour par jour', p:'Les sept jours de Karim, chacun touchable pour voir la journée, la comparer au planning ou la corriger avec un motif. Je ferme et je valide les personnes en règle.',
-    jouer:() => fermerPanneau() },
-  { c:'.tt-barre .btn', t:'Valider en un seul geste', p:'Quand une personne est en règle, sa semaine peut partir à la paie. Un seul bouton les valide toutes. Je le touche.',
+  { c:'#calque .panneau .tt-sept', t:'Sa semaine, jour par jour', p:'Les sept jours de Karim, chacun touchable pour voir la journée, la comparer au planning ou la corriger avec un motif. Je ferme et je remonte à la semaine d’avant : celle-ci court encore, elle se valide une fois finie.',
+    jouer:() => { fermerPanneau(); immClic('[data-tt="nav|-1"]'); } },
+  { c:'.tt-barre .btn', t:'Valider en un seul geste', p:'Quand une personne est en règle, sa semaine finie peut partir à la paie. Un seul bouton les valide toutes. Je le touche.',
     jouer:() => immClic('[data-tt^="valider|"]') },
   { c:'#calque .panneau h2', t:'Qui est concerné', p:'Le logiciel dit qui est concerné : les personnes sans aucun point à régler. Leurs heures partiront à la paie. Je valide, puis je regarde le mois.',
     jouer:() => { immClic('[data-tt^="validerok|"]'); immClic('[data-tt="onglet|mois"]'); } },
