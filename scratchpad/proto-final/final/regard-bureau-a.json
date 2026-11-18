@@ -1,6 +1,6 @@
 {
  "role": "bureau (lib.ouvrir({ qui:'julie' }), mode application)",
- "etat": "en cours — captures mac/iphone/petit/android jour+nuit regardées par planches ; ipad/windows en reprise",
+ "etat": "terminé — 105 scènes × 8 profils/modes pris (mac jour et nuit, windows, ipad, iphone, android et petit jour et nuit, ipad/windows jour seulement) ; planches regardées sur chaque profil",
  "rubriques": [
   {
    "nom": "Mes tâches",
@@ -195,5 +195,14 @@
    "etat": "corrigé",
    "changement": "@media ≤760 : la pastille d'un tableau passe à la ligne"
   }
+ ],
+ "captures": {
+  "prises": "~840 (105 scènes, jusqu'à 2-3 positions de défilement) sur 9 profil×mode",
+  "regardees": "~210 vignettes sur 40 planches + 4 captures corrigées avant/après"
+ },
+ "sondes": "scratchpad/proto-final/sondes/regard-bureau-a.js : 182 ✓ · 0 ✗ (sections 1 à 9) ; mutation de la section 9 qui tombe",
+ "a_soumettre": [
+  "Bouton « Aperçu et envoi » d'un brouillon de devis : gris sur gris tant qu'il manque un prix (état désactivé voulu), à confirmer que l'on ne cherche pas un bouton actif au premier regard",
+  "La 3e colonne « Qté » des tableaux de facture garde 6 px à 320 px (invisible)"
  ]
 }
