@@ -1,0 +1,36 @@
+{
+ "noms": ["compta-ventes (restes, tour 4) — recontrôle adverse"],
+ "regles": [
+  { "nom": "« 90 min », « 45 mn », « 90 minutes » sur la main-d'œuvre préparée à l'heure : 97,50 € / 48,75 €, plus 5 850 €", "preuve": "restes4 mac 23 ✓ · 0 ✗ et iPhone nuit 23 ✓ · 0 ✗ rejoués ; « 0 min » et « 0,0 mn » refusés, la quantité d'avant reste" },
+  { "nom": "Minutes refusées avec une phrase sur une ligne qui n'est pas à l'heure (déplacement)", "preuve": "restes4 : « 30 min » et « 45 mn » sur le déplacement gardent « 1 » et 29,17 € avec la phrase dite ; capture restes4 lue au tour précédent, toast lisible" },
+  { "nom": "Les totaux de ligne affichés s'additionnent au Total HT (quantité fractionnaire)", "preuve": "restes4 : 3 lignes « 2,5 × 10,33 € » = 25,83 € chacune, Total HT = leur somme, TTC au centime ; tous les lecteurs de htDe (liste, avoir, envoi, Comptabilité, export du cadre) lisent la même fonction : relu dans le code, aucune somme de bruts restante" },
+  { "nom": "Pièce préparée retapée à une autre casse ou sans espace (« 0,5 l », « 0,5L », « 0,5  L »)", "preuve": "restes4 : les 5 variantes = 10,33 € ; « 1 », « 2 » gardent l'ancienne règle" },
+  { "nom": "Aucune régression sur les parties voisines", "preuve": "36 passages (mac et iPhone nuit) à 0 ✗ : restes-1/2/3, restes1-rc1/rc2, restes2-1/2, restes2-rc-dvt/pdf/qte/remb, restes3-lignes/remb/rc-fait/rc-largeurs/rc-remb, restes4 ; restes2-rc-julie (qui = julie) mac 2 ✓ et iPhone 2 ✓ ; rc-largeurs 22 ✓ aux deux profils" }
+ ],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "« 90 min » sur une ligne de main-d'œuvre issue d'un DEVIS multiplie le prix de la durée entière : 195,00 € pour une ligne « Main-d'œuvre remplacement (2 h) » à 130 €",
+    "gravite": "important (argent, silencieux : aucun message, le total de ligne et le Total HT suivent) — introduit par la correction du tour 4",
+    "etapes": "Marc > Factures > une facture préparée depuis un devis accepté (intervention avec fact.mode 'devis', ex. Restaurant Le Vieux Port, devis D-2026-034) > ligne « Main-d'œuvre remplacement (2 h) (devis D-2026-034) », Qté 1, prix 130 > taper « 90 min » dans Qté > Tab",
+    "constat": "ligneHeure() accepte la ligne par sa DÉSIGNATION (/main.d.œuvre/) alors que son prix (130 €) couvre déjà les 2 h ; qn = 1,5, total = 195 € (probe compta-ventes-restes4-rc-a.js, mac et iPhone nuit : ✗ « 195 pour un prix de ligne de 130 »). Le lecteur voit « 90 min » au lieu de 1. Piste : ne reconnaître la ligne à l'heure que par sa quantité en heures (q ou q0 du type « 2h ») ou par un prix égal à TARIFS.horaire, jamais par un mot de la désignation ; sinon refuser avec la phrase des minutes." },
+  { "titre": "Une SECONDE saisie en minutes sur la même ligne est refusée avec une phrase fausse (« se compte sur une ligne facturée à l'heure »)",
+    "gravite": "défaut (gênant, pas d'argent faux : la quantité d'avant reste)",
+    "etapes": "Marc > Factures > une facture à valider > « ＋ Ajouter une ligne » > désignation « Intervention de dépannage », prix 65 > Qté « 2h » (130 €) > « 90 min » (97,50 €, accepté) > « 45 min » dans la même case",
+    "constat": "après « 90 min », l.q vaut « 90 min » : ligneHeure(l) ne lit plus « h » dans q, et la désignation (libre) ne dit rien d'heure : la ligne cesse d'être « à l'heure » par le fait même d'avoir reçu des minutes. Toast : « Je garde 90 min. », total reste 97,50 € au lieu de 48,75 € (probe restes4-rc-a). Ne se voit pas sur la main-d'œuvre préparée (sa désignation le dit) : seulement sur une ligne libre ou renommée. Piste : poser un drapeau sur la ligne (l.heure = true) quand une durée est acceptée, et le lire dans ligneHeure." }
+ ],
+ "nouveaux": [
+  { "titre": "Un prix négatif tapé dans « Prix unitaire HT » d'une facture vide le prix en silence (« à chiffrer »)", "gravite": "mineur, ancien (non introduit par le tour 4)", "constat": "dvLireNb refuse « -10,33 » (NaN) et la ligne passe à pu = null sans toast : la ligne devient « à chiffrer », sans qu'on dise pourquoi (probe restes4-rc-b : pu null, toast vide). Pas de remise possible en facture sauf par avoir : à dire en phrase (« un prix ne s'écrit pas en négatif : fais un avoir »)." },
+  { "titre": "Le champ Qté d'une ligne à l'iPhone coupe « 90 min » en « 90 … »", "gravite": "cosmétique", "constat": "capture rc4-devis-90min.png (iPhone nuit) : la case fait ~72 px, « 90 min » et « 90 minutes » s'y lisent « 90 … » ; la valeur est juste mais ne se relit pas. Même effet attendu pour « 250 mL » (ancien)." }
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes4.js", "resultat": "mac 23 ✓ · 0 ✗ ; iPhone nuit 23 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes4-rc-a.js (nouvelle, devis + ligne libre + remise)", "resultat": "mac 1 ✓ · 3 ✗ ; iPhone nuit 1 ✓ · 3 ✗ (deux casses ci-dessus + l'arrondi de ligne négative, inatteignable à l'écran : voir doutes) — elle doit passer à 0 ✗ une fois les casses corrigées, sauf le 3e contrôle à retirer si le prix négatif reste refusé" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes4-rc-b.js (nouvelle)", "resultat": "mac 0 ✓ · 2 ✗ : constat du prix négatif vidé (le champ n'accepte pas le négatif)" },
+  { "fichier": "36 sondes de régression compta-ventes (liste dans « regles »)", "resultat": "36 passages à 0 ✗, aucun code de sortie non nul une fois les bons arguments donnés (restes2-rc-julie prend « profil qui », pas « profil nuit »)" }
+ ],
+ "doutes": [
+  "L'arrondi de ligne est asymétrique pour un total négatif (25,83 € contre −25,82 €, formule Math.round(x*100+1e-7)) : inatteignable aujourd'hui (aucun prix ni quantité négatifs saisissables ; l'acompte déduit et l'avoir sont à quantité 1), même formule que dvLigneHT du devis. À symétriser le jour où une remise se saisira.",
+  "Les 7 mutations du correcteur (mutations-compta-ventes-restes4.py) n'ont pas été rejouées : le script réécrit la page en place, ce que ce recontrôle s'interdit ; leur nombre (7 sur 7) est repris tel que rapporté.",
+  "Restent à soumettre à Justin, inchangés depuis le tour 4 : la commande fournisseur (champ « Prix HT » à côté de la quantité, total non arrondi, voie achats) ; une unité inconnue qui multiplie encore la quantité (« 3 forfaits », « 250 mL » sur une pièce au flacon = 2 582,50 €) ; les reportés du tour 2."
+ ]
+}
