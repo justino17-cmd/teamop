@@ -10973,25 +10973,6 @@ function acDemandes(){
   return `${att.length ? att.map(carte).join('') : '<div class="carte gris">Aucune demande en attente. Les techniciens demandent depuis leur téléphone : « Il me faut… ».</div>'}
     ${fini.length ? `<div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Déjà décidées</h2>${fini.map(d => `<div class="fo-r">${hAv(d.qui)}<span class="fo-n"><b>${esc(d.quoi)}</b><span class="gris petit">${esc(H_NOM(d.qui))} · ${d.etat === 'refusee' ? 'refusée : ' + esc(d.motif) : esc(d.suite)}</span></span><span class="st st-${d.etat === 'refusee' ? 'r' : 'v'}">${d.etat === 'refusee' ? 'Refusée' : 'Approuvée'}</span></div>`).join('')}</div>` : ''}`;
 }
-function acPayer(){
-  const L = acAPayer(), gr = [['retard', 'En retard', a => acEch(a) < AUJ], ['semaine', 'Cette semaine', a => acEch(a) >= AUJ && acEch(a) <= ajoute(AUJ, 7)], ['tard', 'Plus tard', a => acEch(a) > ajoute(AUJ, 7)]];
-  const sel = L.filter(a => acSel.has(a.id)), tot = sel.reduce((s, a) => s + acTTC(a), 0);
-  return `${gr.map(([k, t, f]) => { const G = L.filter(f); return G.length ? `<div class="carte ach-g"><h2 class="cmd-titre" style="margin:0 0 4px">${t} · ${eur(G.reduce((s, a) => s + acTTC(a), 0))}</h2>
-      ${G.map(a => { const c = acCmd(a), j = tJours(acEch(a)); return `<label class="ach-l"><input type="checkbox" data-acsel="${a.id}" ${acSel.has(a.id) ? 'checked' : ''} aria-label="Choisir ${esc(a.ref)}"><span class="fo-n"><b>${esc(a.four)} · ${eur(acTTC(a))}</b><span class="gris petit">${esc(a.ref)} · ${esc(a.objet)}${c ? ` · rapprochée de ${esc(c.num)}` : ''}</span></span>
-        <span class="ach-ech ${j < 0 ? 've-rt' : j <= 7 ? 've-ot' : ''}">${j < 0 ? 'échue depuis ' + vxN(-j, 'jour') : j === 0 ? 'échue aujourd’hui' : 'le ' + jCourt(acEch(a))}</span><button type="button" class="btn gris petit" data-ac="payer|${a.id}">Payer</button></label>`; }).join('')}</div>` : ''; }).join('') || '<div class="carte gris">Rien à payer. Les prélèvements (assurance, téléphone) passent seuls et sont déjà rangés.</div>'}
-    ${L.length ? `<div class="carte ach-vir"><span class="fo-n"><b>${sel.length ? `${sel.length} facture${sel.length > 1 ? 's' : ''} choisie${sel.length > 1 ? 's' : ''} · ${eur(tot)}` : 'Coche les factures à régler ensemble'}</b><span class="gris petit">Un seul virement groupé, préparé pour ta banque (fichier SEPA). Chaque facture est marquée payée et rangée en comptabilité.</span></span><button type="button" class="btn" data-ac="virement" ${sel.length ? '' : 'disabled'}>Préparer le virement</button></div>` : ''}`;
-}
-function acDepenses(){
-  const mois = ACHATS.filter(a => acJ(a.d) >= '2026-10-01' && acJ(a.d) <= '2026-10-31'), tot = mois.reduce((s, a) => s + acTTC(a), 0);
-  const par = {}; mois.forEach(a => { par[a.compte] = (par[a.compte] || 0) + acTTC(a); });
-  const max = Math.max(...Object.values(par), 1), sp = acSansPiece();
-  return `${sp.length ? `<div class="carte ve-urg"><h2 class="cmd-titre" style="margin:0 0 6px">Justificatifs manquants · ${sp.length}</h2><span class="gris petit">Sans ticket ni facture, la TVA ne se récupère pas et la dépense ne se justifie pas en cas de contrôle.</span>
-      ${sp.map(a => `<div class="fo-r"><span class="ve-pt ve-o" aria-hidden="true"></span><span class="fo-n"><b>${esc(a.four)} · ${eur(acTTC(a))}</b><span class="gris petit">${esc(a.objet)} · ${esc(a.d)} · ${esc(a.mode || '')}</span></span><button type="button" class="btn petit" data-ac="piece|${a.id}">📷 Ajouter le ticket</button></div>`).join('')}</div>` : ''}
-    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 10px">Octobre · ${eur(tot)} TTC</h2>
-      ${Object.entries(par).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="ach-bar"><span>${esc(ACOMPTES[k] || 'Compte ' + k)}</span><span class="ach-jauge"><i style="width:${Math.round(v / max * 100)}%"></i></span><b>${eur(v)}</b></div>`).join('')}</div>
-    <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">Toutes les dépenses d’octobre</h2>
-      ${mois.slice().sort((a, b) => acJ(b.d).localeCompare(acJ(a.d))).map(a => { const v = typeof VEHICULES !== 'undefined' && VEHICULES.find(o => a.objet.includes(o.plaque)); return `<div class="fo-r"><span class="fo-n"><b>${esc(a.four)}</b><span class="gris petit">${esc(a.d)} · ${esc(a.objet)}${v ? ' · 🚐 ' + esc(v.plaque) : ''} · ${esc(ACOMPTES[a.compte] || a.compte)}</span></span><span class="ach-m"><b>${eur(acTTC(a))}</b><span class="gris petit">${a.paye ? esc(a.mode || 'payé') : 'à payer'}${a.piece ? '' : ' · sans pièce'}</span></span></div>`; }).join('')}</div>`;
-}
 function acNotes(){
   const att = NDF.filter(n => n.etat === 'attente'), val = NDF.filter(n => n.etat === 'validee'), parQui = {};
   val.forEach(n => { parQui[n.qui] = (parQui[n.qui] || 0) + n.ttc; });
@@ -11001,19 +10982,6 @@ function acNotes(){
     <div class="carte"><h2 class="cmd-titre" style="margin:0 0 4px">À rembourser avec la paie de novembre</h2>
       ${Object.keys(parQui).length ? Object.entries(parQui).map(([k, v]) => `<div class="fo-r">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit">${val.filter(n => n.qui === k).map(n => esc(n.objet)).join(' · ')}</span></span><b>${eur(v)}</b></div>`).join('') : '<span class="gris">Rien pour l’instant.</span>'}
       <span class="gris petit">Ajouté à l’export de paie (Temps de travail → Paie), en remboursement de frais, hors salaire.</span></div>`;
-}
-function vueAchats(){
-  const nd = DEM_ACHAT.filter(d => d.etat === 'attente').length, ap = acAPayer(), ret = ap.filter(a => acEch(a) < AUJ), sp = acSansPiece().length, nn = NDF.filter(n => n.etat === 'attente').length;
-  const oct = ACHATS.filter(a => acJ(a.d) >= '2026-10-01' && acJ(a.d) <= '2026-10-31').reduce((s, a) => s + acTTC(a), 0);
-  const O = [['demandes', 'Demandes', 'Demandes', nd], ['notes', 'Notes de frais', 'Frais', nn]];
-  if (!O.some(o => o[0] === acOnglet)) acOnglet = 'demandes';
-  return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Achats et frais</h1><span class="gris">Ce que l’équipe demande et les notes de frais à valider. Les factures des fournisseurs, leur paiement et les justificatifs sont dans la Comptabilité.</span></div></div>
-    <div class="kpis"><button type="button" class="kpi" data-ac="onglet|demandes"><b style="color:${nd ? 'var(--orange)' : 'inherit'}">${nd}</b><span>demande${nd > 1 ? 's' : ''} à décider</span></button>
-      <button type="button" class="kpi" data-cx="sec|factures|achats|traiter"><b>${eur0(ap.reduce((s, a) => s + acTTC(a), 0))}</b><span>à payer${ret.length ? ` · <span class="ve-rt">${ret.length} en retard</span>` : ''} · dans la Comptabilité ›</span></button>
-      <button type="button" class="kpi" data-cx="sec|factures|achats|sanspiece"><b style="color:${sp ? 'var(--orange)' : 'inherit'}">${sp}</b><span>achat${sp > 1 ? 's' : ''} sans justificatif · dans la Comptabilité ›</span></button>
-      <button type="button" class="kpi" data-ac="onglet|notes"><b style="color:${nn ? 'var(--orange)' : 'inherit'}">${nn}</b><span>note${nn > 1 ? 's' : ''} de frais à valider</span></button></div>
-    <div class="seg pr-vues" role="tablist" aria-label="Vues">${O.map(([k, l, c, n]) => `<button type="button" role="tab" data-ac="onglet|${k}" aria-pressed="${acOnglet === k}" aria-selected="${acOnglet === k}"><span class="l-long">${l}</span><span class="l-court">${c}</span>${n ? ` <span class="pr-nb${k === 'demandes' || k === 'notes' ? ' chaud' : ''}">${n}</span>` : ''}</button>`).join('')}</div>
-    ${{ demandes:acDemandes, payer:acPayer, depenses:acDepenses, notes:acNotes }[acOnglet]()}`;
 }
 /* la ligne part dans le brouillon de commande du fournisseur s'il y en a un, sinon dans une commande neuve : on la relit avant l'envoi */
 function acVersCommande(s, q, d){
@@ -11356,6 +11324,9 @@ function cxNorm(o){   // les anciennes portes (« factures », étapes de clôtu
   return CX_NAV.some(g => g[3].some(x => x[0] === o)) ? o : 'ensemble';
 }
 const cxGroupe = o => CX_NAV.find(g => g[3].some(x => x[0] === o)) || CX_NAV[0];
+/* L'espace « Ventes » de la Comptabilité (par intervention, factures et avoirs, comptes clients, contrats) est la case « Ventes › Voir » : sans elle l'onglet ne s'affiche pas ET ses données ne se
+   lisent pas — la case se lit ICI, à l'ouverture (cxAller) et là où la page se dessine (vueComptabilite), jamais seulement sur le bouton. Même règle que la paie (au patron seul). · 18 novembre 2026 */
+const cxVentesVoir = () => typeof ROLE === 'undefined' || typeof RL_ACTIF === 'undefined' || !RL_ACTIF || peut('ventes', 'v');
 const cxCatDe = k => CX_CATS.find(c => c.k === k) || CX_CATS[5];
 const cxCatAchat = a => a.mode === 'Note de frais' ? 'ndf' : (CX_CATS.find(c => c.comptes && c.comptes.includes(a.compte)) || CX_CATS[5]).k;   // une note de frais garde sa nature (carburant, repas…) : c'est un mode de remboursement
 const cxNatures = sel => CX_CATS.filter(c => c.fam === 'achats' && c.comptes && c.comptes.length).map(c => `<optgroup label="${c.ic} ${c.l}">${c.comptes.filter(k => k !== '2154').map(k => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(CX_NATURES[k] || CP_COMPTES[k] || k)}</option>`).join('')}</optgroup>`).join('');
@@ -11393,6 +11364,7 @@ function cxChiffres(){
 vueComptabilite = function(){
   CP.onglet = cxNorm(CP.onglet);
   if (!cxEstPatron() && cxGroupe(CP.onglet)[0] === 'paie') CP.onglet = 'ensemble';   // la paie est au patron seul
+  if (!cxVentesVoir() && cxGroupe(CP.onglet)[0] === 'ventes') CP.onglet = 'ensemble';   // les ventes, à qui a la case « Ventes › Voir »
   const O = CP.onglet, G = cxGroupe(O);
   CX_DER[G[0]] = O;
   if (O === 'fventes' && !CX_FAM_VENTES.includes(CX.cat)) CX.cat = 'ventes';
@@ -11412,7 +11384,7 @@ vueComptabilite = function(){
   return `<div class="tete"><div><span class="surtitre">Argent</span><h1>Comptabilité</h1><span class="gris cx-phr"><span class="cx-p-l">Tes ventes, tes achats, ta trésorerie et ta TVA</span><span class="cx-p-c">Ventes, achats, trésorerie et TVA</span><span class="cx-plus">, rangés comme chez un expert-comptable. Tout s’écrit tout seul ; tu vérifies, tu envoies</span>.</span></div>
     <div class="actions"><button type="button" class="btn gris" data-gd="apprendre">📘 Visite guidée</button><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button><button type="button" class="btn" data-cx="nouveau">＋ Nouvelle opération</button></div></div>
   ${clos}
-  <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
+  <nav class="cx-nav1" aria-label="Espaces de la comptabilité">${CX_NAV.filter(g => (g[0] !== 'paie' || cxEstPatron()) && (g[0] !== 'ventes' || cxVentesVoir())).map(g => `<button type="button" data-cx="grp|${g[0]}" aria-current="${G[0] === g[0] ? 'page' : 'false'}"><span class="cx-gi" aria-hidden="true">${g[2]}</span><span class="cx-gl1">${g[1]}</span><span class="cx-gl2">${g[4] || g[1]}</span>${nbG(g) ? `<span class="cx-nb">${nbG(g)}</span>` : ''}</button>`).join('')}</nav>
   <div class="cx-sous" role="tablist" aria-label="${esc(G[1])}">${G[3].map(([k, l]) => `<button type="button" role="tab" data-cx="sec|${k}" aria-selected="${O === k}">${l}${nb[k] ? `<span class="cx-nb">${nb[k]}</span>` : ''}</button>`).join('')}</div>
   ${corps}`;
 };
@@ -11627,7 +11599,9 @@ function cxMontantRefus(txt, max){
   if (max && n > max) return 'Vérifie le montant : ce chiffre est très élevé.';
   return '';
 }
-function cxAller(sec, o){ o = o || {}; cpSysteme = false; CP.onglet = sec; if (o.cat) CX.cat = o.cat; if (o.st) CX.st = o.st; if (route !== 'comptabilite') aller('comptabilite'); else { rendre(); scrollTo({ top:0, behavior:'smooth' }); } }
+function cxAller(sec, o){ o = o || {}; cpSysteme = false;
+  if (cxGroupe(cxNorm(sec))[0] === 'ventes' && !cxVentesVoir()) { droitsRefus('ventes', 'v', 'ventes'); sec = 'ensemble'; o = {}; }
+  CP.onglet = sec; if (o.cat) CX.cat = o.cat; if (o.st) CX.st = o.st; if (route !== 'comptabilite') aller('comptabilite'); else { rendre(); scrollTo({ top:0, behavior:'smooth' }); } }
 document.addEventListener('click', ev => {
   /* les anciennes portes (étapes de clôture, tableaux de bord) mènent aux rubriques d'ici, sans quitter la Comptabilité */
   const g = ev.target.closest('[data-cp^="go|factures"], [data-cp^="go|encaissements"]');
@@ -12210,7 +12184,7 @@ document.addEventListener('click', ev => {
   if (!ev.target.closest('[data-cp="aide"]') || route !== 'comptabilite') return;
   ev.stopPropagation(); ev.preventDefault();
   ouvrirPanneau(`<h2>Comment ça marche</h2><span class="gris">Tu ne tapes rien : tu travailles dans l’application, la comptabilité se fait toute seule. Elle est rangée en espaces, comme chez un expert-comptable.</span>
-    <div class="cp-aide">${CX_NAV.filter(g => g[0] !== 'paie' || cxEstPatron()).map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.', paie:'Les heures du mois, les fiches de paie, les salariés, les charges et la déclaration sociale (réservé au gérant).' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
+    <div class="cp-aide">${CX_NAV.filter(g => (g[0] !== 'paie' || cxEstPatron()) && (g[0] !== 'ventes' || cxVentesVoir())).map(g => `<div><b>${g[2]} ${g[1]}</b><span class="gris petit">${{ pilotage:'Ce qui attend, dans une seule liste, et la clôture du mois en cinq vérifications.', ventes:'Chaque intervention avec son devis, sa facture et ses paiements ; les factures et les avoirs ; le compte de chaque client ; les contrats.', achats:'Les factures des fournisseurs et les dépenses, rangées par catégorie ; les notes de frais de l’équipe ; le compte de chaque fournisseur.', tresorerie:'Ce qui est reçu et payé, la banque qui se pointe toute seule, les espèces et les chèques suivis jusqu’au dépôt.', fiscal:'La TVA calculée, le journal, la balance, le grand livre, le résultat, et l’envoi à ton expert-comptable.', conformite:'Un contrôle qui vérifie tout seul que tes factures, ta TVA et tes archives sont aux normes, et dit quoi faire sinon.', paie:'Les heures du mois, les fiches de paie, les salariés, les charges et la déclaration sociale (réservé au gérant).' }[g[0]]}</span><span class="gris mini">${g[3].map(x => x[1]).join(' · ')}</span></div>`).join('')}
     <div><b>Et à la fin du mois, un bouton</b><span class="gris petit">« Envoyer à ton expert-comptable » : il reçoit tout, rangé, dans le format que lit son logiciel. Le mois est envoyé ; une erreur se corrige le mois suivant, rien ne se supprime.</span></div></div>`);
 }, true);
 
@@ -20622,7 +20596,7 @@ function axToutValider() {
 }
 
 /* ───────── la page Achats ───────── */
-vueAchats = function () {
+function vueAchats() {   /* la seule page « Achats et frais » (18 novembre 2026) : deux onglets, Demandes et Notes de frais — les factures à payer et les justificatifs vivent dans la Comptabilité */
   /* « Achats et frais » se comprend sans explication (17 novembre 2026) : c'est la boîte de réception du gérant pour ce que son équipe lui demande de payer.
      Deux chiffres seulement, qui sont des DEMANDES DE L'ÉQUIPE ; les deux qui menaient dans la Comptabilité deviennent deux lignes, sous le titre qui le dit. */
   const nd = axEnAttente().length, ap = acAPayer(), ret = ap.filter(a => acEch(a) < AUJ), sp = axSansJustif(), nn = NDF.filter(n => n.etat === 'attente').length, na = DEM_ACHAT.filter(d => d.etat === 'aacheter').length;
