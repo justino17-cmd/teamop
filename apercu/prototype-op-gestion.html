@@ -20801,6 +20801,11 @@ function entVerifier(regles){
   E.forEach(([id, m]) => entErr(id, m));
   if (!E.length) return V;
   const c = document.getElementById(E[0][0]); if (c) c.focus();
+  /* sur téléphone la bulle (au bas de l'écran) tombait sur l'aide et sur le message du champ refusé, qu'elle recopiait mot pour mot : si le message est LÀ, sous le doigt, au-dessus de la rangée collée, on ne le répète pas
+     (il est déjà dit aux lecteurs d'écran par son role="alert") ; s'il n'est pas à l'écran, la bulle le dit comme avant (restes entreprise, tour 2) */
+  const m0 = document.getElementById(E[0][0] + '-err'), P0 = m0 && m0.closest('.ent-pan');
+  if (m0 && P0 && window.matchMedia('(max-width:760px)').matches) { const r = m0.getBoundingClientRect(), pr = P0.getBoundingClientRect(), ac = P0.querySelector(':scope > .actions'), bas = Math.min(pr.bottom, ac ? ac.getBoundingClientRect().top : pr.bottom);
+    if (r.height > 0 && r.top >= pr.top && r.bottom <= bas) return null; }
   toast(esc(E[0][1])); return null;
 }
 const entTexte = (max, vide) => v => !v ? (vide || '') : ENT_INTERDIT.test(v) ? ENT_MSG_INTERDIT : v.length > max ? `Ce champ ne peut pas dépasser ${max} signes.` : '';
