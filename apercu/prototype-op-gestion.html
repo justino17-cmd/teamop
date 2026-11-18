@@ -262,6 +262,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
 body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
 body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein écran (9000) et la fenêtre ouverte depuis elle (9100) couvraient la bulle (90 ou 300) : « Annuler » y était peint derrière et ne recevait pas le toucher */
+body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pour la carte « Copie ce texte » (copie de secours, numéro après un lien tel:) : à 92 elle se peignait DERRIÈRE la Comptabilité plein écran, texte à copier et croix de fermeture compris (restes compta-plein-ecran, 18 novembre 2026) */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -27042,7 +27043,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
   #nv{padding-top:calc(6px + env(safe-area-inset-top,0px))}
   .nv-feuille{gap:6px;padding-top:10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
   .nv-aide{display:none}
-  .nv-carte{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding-top:2px;padding-bottom:2px}
+  .nv-carte{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;align-content:center;padding-top:2px;padding-bottom:2px}
   .nv-carte > *{grid-column:1}
   .nv-carte .nv-voir{grid-column:2;grid-row:1 / span 2;align-self:center;margin:0;min-height:46px;min-width:112px;padding:0 18px}
   .nv-haut{gap:10px}
