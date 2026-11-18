@@ -26,6 +26,7 @@ const vis = (c, sel) => c.p.locator(sel).first().isVisible().catch(() => false);
     await L.toucher(c, '#contenu [data-tt^="accepter|tl"]'); const t2 = await toast(c); v(n + '« Accepter 17:40 » : le toast parle, la demande disparaît de « À régler »', /17:40|Corrigé/.test(t2) && await areg() === 2, { t2, a:await areg() });
     await L.capture(c, CAP + 'parcours-A-aregler.png');
     await L.toucher(c, '[data-tt="onglet|semaine"]');
+    await L.toucher(c, '[data-tt="nav|-1"]');   // la semaine EN COURS ne se valide pas (décision du chef du 17/11) : le parcours valide la semaine finie d'avant
     const val = await ev(c, () => (document.querySelector('[data-tt^="valider|"]') || {}).textContent || '');
     v(n + 'Semaine : le bouton dit « Valider les N personnes en règle »', /Valider les \d+ personnes en règle/.test(net(val)), val);
     const a0 = await ev(c, () => document.querySelectorAll('.tt-grille [data-tt^="validerun|"]').length); await L.toucher(c, '[data-tt^="valider|"]'); const conf = net(await ev(c, () => (document.querySelector('.panneau') || { innerText:'' }).innerText)); v(n + 'Valider la semaine demande confirmation et nomme Karim, laissé de côté (Tom est réglé)', /Valider 5 personnes/.test(conf) && /À régler d’abord, pas validés? : Karim\./.test(conf), conf.slice(0, 460)); await L.toucher(c, '.panneau .btn.large, .panneau [data-tt^="validerok"]'); await L.calme(c.p, 500); const tv = await toast(c);
