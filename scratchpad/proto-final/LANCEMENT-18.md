@@ -85,3 +85,23 @@ corriger soi-même ; 3 points à soumettre à Justin, dans `final/regard-gerant-
 
 ⚠️ Les « depuis » viennent des fiches, écrites à l'arrêt ; une fenêtre qui voit un journal différent suit SESSION-SOEUR.md (point 4).
 Après chaque vague : le chef fusionne, compile la page ENTIÈRE, note le pourcentage consommé et le dit à Justin.
+
+## Vague 1 — LANCÉE le 18/11 à 21 h 50 (heure française), sur ordre de Justin (« lance tout maintenant »), AVANT l'allègement de CLAUDE.md
+
+| Fenêtre | Session |
+|---|---|
+| 25 | session_01PfEEAGuPApkVucRDpsaZMi |
+| 26 | session_01PfEEAFegbsNBNx6JGw114B |
+| 28 | session_01PfEEAExKU5cK8fZNrujS3o |
+| 8 | session_01PfEEAGJe8TjgJMyfvuFXK8 |
+| 38 | session_01PfEEAEXg9Uh5eNZ4ZkKSu7 |
+| 21 | session_01PfEEAEnqU5qtq4S51gMMyE |
+| 23 | session_01PfEEAHUBdV76VthLNo6x6B |
+| 10 | session_01PfEEADu9wUM5mHcb6uHJC2 |
+| 7 | session_01PfEEAGUibfQ3wV4oiWH1jU |
+| 14 | session_01PfEEAGRztTDBSNw6g5JX4u |
+| 15 | session_01PfEEAHNQreWdv7axZtc8tA |
+| 9 | session_01PfEEAJeciZvB8fMhMbWJNL |
+| S1 | session_01PfEEAGZfkM3hFpgqyDkPeG |
+| S2 | session_01PfEEAHbWuJ8LMJ8B3V6jCE |
+| S3 | session_01PfEEAGRWcwdVT77zo9L5HM |
