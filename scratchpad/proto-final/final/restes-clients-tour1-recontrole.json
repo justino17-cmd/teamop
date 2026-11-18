@@ -1,0 +1,113 @@
+{
+ "noms": [
+  "clients-04 : créer un client avec une intervention exige une adresse et un téléphone ou un e-mail",
+  "clients-11 : « ＋ Ajouter un appareil », modifier et retirer dans l'onglet Appareils",
+  "clients-12 : vider le téléphone ET l'e-mail s'enregistre sans un mot",
+  "clients-15 : la saisie non enregistrée de l'onglet Infos est perdue en quittant",
+  "clients-17 : la case « supprimer un client » n'a aucun geste derrière",
+  "clients-18 + casse 1 : un client dont le téléphone est enregistré en « +33 … » est introuvable",
+  "Casse 2 : renommer un particulier laisse l'ancien nom dans « Contact »",
+  "Casse 3 : les autres façons de créer un client n'ont pas reçu clients-05 (la carte les place au dépôt)",
+  "Casse 4 : « ＋ Nouveau client » sans aucun geste pour qui a « créer un client » seul",
+  "Casse 5 : deux rangements enfoncés pendant une recherche",
+  "Casse 6 : « Restaurant  Le Vieux Port » (deux espaces) passe le refus de doublon",
+  "Casse 7 : renommer un client ne renomme pas les titres de ses tâches",
+  "Casse 8 : « Annuler » après nouveau client + intervention laisse le client",
+  "Casse 9 : « aucun résultat » renvoie vers un bouton absent",
+  "Casse 10 : suggestions d'adresse à 42 px",
+  "Doute : créations depuis la Boîte mail et « Composer un devis » non jouées par l'interface",
+  "Sondes périmées mises à jour",
+  "Décisions déjà prises par le chef"
+ ],
+ "regles": [
+  "clients-04 : créer un client avec une intervention exige une adresse et un téléphone ou un e-mail",
+  "clients-11 : « ＋ Ajouter un appareil », modifier et retirer dans l'onglet Appareils",
+  "clients-12 : vider le téléphone ET l'e-mail s'enregistre sans un mot",
+  "Casse 2 : renommer un particulier laisse l'ancien nom dans « Contact »",
+  "Casse 3 : les autres façons de créer un client n'ont pas reçu clients-05 (la carte les place au dépôt)",
+  "Casse 4 : « ＋ Nouveau client » sans aucun geste pour qui a « créer un client » seul",
+  "Casse 5 : deux rangements enfoncés pendant une recherche",
+  "Casse 6 : « Restaurant  Le Vieux Port » (deux espaces) passe le refus de doublon",
+  "Casse 7 : renommer un client ne renomme pas les titres de ses tâches",
+  "Casse 8 : « Annuler » après nouveau client + intervention laisse le client",
+  "Casse 9 : « aucun résultat » renvoie vers un bouton absent",
+  "Casse 10 : suggestions d'adresse à 42 px",
+  "Doute : créations depuis la Boîte mail et « Composer un devis » non jouées par l'interface",
+  "Sondes périmées mises à jour"
+ ],
+ "pasRegles": [
+  {
+   "nom": "clients-15 : la saisie non enregistrée de l'onglet Infos est perdue en quittant",
+   "defaut": "Quitter « Infos » avec une saisie non enregistrée doit demander avant de perdre la saisie, quel que soit le chemin de sortie.",
+   "constat": "Protégés (rejoués, jour et nuit, six profils) : onglets, menu latéral, logo, Nouveautés, barre du bas, « ‹ Retour ». PAS protégés, la saisie est perdue sans un mot : la palette (Ctrl+K puis Entrée sur une rubrique), les raccourcis Ctrl+1…9, le retour du navigateur (history.back : c'est le bouton retour du système sur Android et le geste de retour d'iPhone), un changement d'adresse (#planning). Cause : l'écouteur ne retient que des CLICS sur une liste de sélecteurs ; aucune de ces portes n'est un clic. Aucune fausse alerte en revanche : ouvrir « Infos » sans écrire ne demande rien pour les 8 clients d'origine, et écrire puis retirer sa lettre lève l'alerte. Sonde : clients-restes-recontrole.js (A3), 4 ✗ sur mac, windows, ipad, 2 ✗ sur iphone/android (retour, adresse)."
+  },
+  {
+   "nom": "clients-17 : la case « supprimer un client » n'a aucun geste derrière",
+   "defaut": "Un client archivé « n'est plus proposé pour un nouveau travail » ; et le geste doit se voir.",
+   "constat": "Devis (nouveau devis, devis xylophage, atelier), nouvelle intervention et nouveau contrat ne le proposent plus (rejoué). Encore proposé : « Nouvelle facture » de la Comptabilité (cxNouvelleFacture, ligne ~11406), « Nouvelle réserve chez un client » (bxNouVue, ~17086), et le menu « Client » de « Modifier l'intervention » (panneauModifier, ~5159 : devrait garder le client actuel et écarter les archivés). Et le rangement « Archivés · N » est HORS DE LA VUE à 320 px et à 360 px (rangée de 382 px dans 286 et 326 px : capture archive-android-nuit.png montre « Arch… » coupé) : une personne qui archive ne retrouve pas où le client est allé (règle du dépôt : une destination qu'on ne voit pas n'existe pas). Sondes : clients-restes-recontrole.js (B1, B5)."
+  },
+  {
+   "nom": "clients-18 + casse 1 : un client dont le téléphone est enregistré en « +33 … » est introuvable",
+   "defaut": "Un numéro français se range à la française, quelle que soit son écriture ; la recherche et le doublon comparent les chiffres normalisés.",
+   "constat": "Rangés : « +33 6 12 34 56 78 », « 0033… », « +33 (0)6… », « +33612345678 », « 06.12.34.56.78 », « +33 1 23… ». NON rangés : « +33 06 12 34 56 78 » (le 0 gardé par habitude, très fréquent) et « (+33) 6 12 34 56 78 » restent tels quels ; leurs chiffres comparés sont « 330612345678 » contre « 0612345678 » : la recherche « 0612345678 » ne retrouve pas le client et le refus de doublon ne voit pas que c'est le même numéro. Cause : cfTelChiffres (ligne ~23320) ne retire « 33 » que s'il reste exactement 9 chiffres, et cfTelFmt exige /^(\\+|00)?[\\d\\s.()-]+$/ sans « (+33) » pris en compte. Sonde : clients-restes-recontrole.js (C1, C2, C6)."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "« Archivés · N » hors de la vue sur Android 360 px et sur le petit 320 px",
+   "gravite": "moyenne",
+   "etapes": "profil android ou petit, gérant : archiver un client, revenir sur Clients : la rangée « Tous les clients · Par semaine · Par mois · Archivés » fait 382 px dans 286 px (320) ou 326 px (360) et défile sans indice ; « Archivés » est coupé (« Arch… ») ou invisible.",
+   "constat": "clients-restes-recontrole.js B5 : 1 ✗ sur petit et android. À 390 px (iPhone) le bouton touche à peine le bord. Une rangée de destinations ne doit pas défiler (règle du dépôt) : raccourcir les libellés (« Tous », « Semaine », « Mois ») ou passer le segmenté en deux lignes."
+  },
+  {
+   "titre": "Ctrl+Z, des minutes plus tard, supprime un client à qui l'on a ensuite écrit ses consignes et son appareil",
+   "gravite": "faible à moyenne",
+   "etapes": "1) « Nouveau client » › « Avec une intervention » (client + intervention créés). 2) Ouvrir la fiche du client, Infos : écrire « Code portail 4521 », Enregistrer ; ajouter un appareil. 3) Revenir sur Clients, Ctrl+Z (hors champ de saisie).",
+   "constat": "annuler() (ligne ~4805) dépile l'ancien point de retour : l'intervention disparaît et, la garde « autre chose » ne regardant que interventions, devis, factures et contrats, le client est supprimé avec ses consignes et ses appareils. Le message dit « retour à l'état d'avant » : ce n'est plus vrai. Il faudrait aussi refuser quand le client a été modifié depuis (accès, appareils, notes, tâches liées). clients-restes-recontrole.js D1."
+  },
+  {
+   "titre": "La recherche d'un client archivé répond « Aucun client ne correspond » et invite à créer un doublon",
+   "gravite": "faible",
+   "etapes": "Archiver « Cabinet dentaire Martin », rester sur « Tous les clients », chercher « dentaire ».",
+   "constat": "Le texte propose « ＋ Nouveau client » ; rien ne dit qu'un client archivé correspond. Le garde-fou de doublon rattrape à la création (message nommant le client), mais la même phrase vaut pour renommer (« Un autre client porte déjà ce nom » sans dire qu'il est archivé). Ajouter « 1 client archivé correspond » avec un lien vers « Archivés »."
+  }
+ ],
+ "nouveaux": [
+  "Un numéro de deux téléphones de 31 signes (« 05 46 12 12 12 / 06 12 34 56 78 »), permis par cfTelOk, est rogné à 30 signes à l'enregistrement de la fiche (cliNet ← libelleSur(tel, 30)) : « … 06 12 34 56 7 ». Défaut ANCIEN (commit 9a95511a), pas introduit par le correcteur, mais la fiche Infos le réalise chaque fois (clients-restes-recontrole.js C7, 1 ✗). Portée : 60 signes dans cliNet, ou refuser à la saisie.",
+  "L'action ACTIONS.clientArchiverOk n'a aucune garde de droit : appelée sans passer par le bouton (qui n'existe pas pour le secrétariat), elle archive (rejoué en Julie, B0). Le prototype garde par la vue ; à trancher avec la règle « une case se lit dans la fonction qui écrit » du produit réel (même remarque pour clientRestaurer, clientAppEnreg, clientAppSupprOk)."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/clients-restes.js",
+   "resultat": "mac 65 ✓ · 0 ✗ ; iphone nuit 67 ✓ · 0 ✗ ; petit nuit 67 ✓ · 0 ✗ ; ipad 67 ✓ · 0 ✗ ; windows 65 ✓ · 0 ✗ ; android nuit 67 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/clients-restes-creations.js",
+   "resultat": "mac 16 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/clients-liste.js / -fiche.js / -creer.js / -modifier.js / -gestes.js",
+   "resultat": "mac marc : 51 / 107 / 35 / 22 / 29 ✓, 0 ✗ ; iphone julie nuit (liste, fiche, creer, modifier) : 54 / 107 / 37 / 23 ✓, 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/clients-recontrole-{creations,fiche,liste,parcours,petits}.js",
+   "resultat": "mac marc : 14 / 31 / 44 / 34 / 16 ✓, 0 ✗ ; parcours iphone julie nuit rejoué (0 ✗)"
+  },
+  {
+   "fichier": "campagne/sondes/clients-{croise,corriges,roles,recontrole-droits,clavier}.js",
+   "resultat": "mac et iphone nuit : 11 / 23 / 23 / 4 ✓, 0 ✗ ; clavier mac et windows 8 ✓, 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/clients-restes-recontrole.js (NOUVELLE, adverse)",
+   "resultat": "mac marc 22 ✓ · 12 ✗ ; ipad 23 ✓ · 10 ✗ ; iphone nuit 18 ✓ · 9 ✗ ; petit nuit 18 ✓ · 10 ✗ ; android nuit 18 ✓ · 10 ✗ ; windows 22 ✓ · 11 ✗ ; iphone julie nuit 11 ✓ · 9 ✗. Les ✗ sont les défauts ci-dessus (elle sort en 1 tant qu'ils restent) ; ajoutée à clients-tout.sh par le tour suivant, une fois verte."
+  }
+ ],
+ "doutes": [
+  "Les sondes d'origine sont toutes vertes : leur couverture s'arrête aux gestes que le correcteur a imaginés (clics, panneaux). Les trous trouvés ici (palette, retour navigateur, factures de la Comptabilité, largeur 320/360) sont hors de ce périmètre.",
+  "« Modifier l'intervention » : proposer un client archivé n'est peut-être pas voulu comme défaut (on garde le client actuel) ; à trancher : garder l'actuel, écarter les autres archivés.",
+  "Retirer le premier appareil d'un client : les documents et la fiche d'intervention lisent appareils[0] (lignes ~5411, 5444, 15663) ; le deuxième appareil devient « Votre appareil » dans le compte rendu. Pas de plantage (liste vide gérée), non mesuré dans le rendu PDF/rapport.",
+  "Suggestions d'adresse à 320 px (casse 10) : 44 px de haut, mais la liste est tronquée par la barre d'actions du panneau (3 propositions visibles sur 5, capture suggestions-petit-nuit) : défilement dans le panneau à confirmer au doigt.",
+  "Identifiant des clients créés par « Avec une intervention » : 'c' + nombre de clients (ligne ~14085). Avec « Annuler » qui supprime désormais un client, un identifiant libéré peut resservir ; pas de collision trouvée (la pile d'annulation est dernier-entré premier-sorti), à garder en tête si l'on ajoute une autre suppression.",
+  "Non vérifié : glisser pour archiver, la Boîte mail au bureau et le planning au téléphone (décisions du chef, laissés hors du tour)."
+ ]
+}
