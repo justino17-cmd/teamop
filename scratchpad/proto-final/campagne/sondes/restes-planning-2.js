@@ -53,11 +53,12 @@ parcours('S2 · décision (k) : les chiffres du bandeau suivent les personnes af
   L.v('S2 · Sophie masquée : « interventions » suit les cartes affichées', +k1.int === n1 && n1 < n0, { kpi: k1.int, cartes: n1, avant: n0 });
   L.v('S2 · Sophie masquée : « de travail prévu » = les durées des personnes affichées', minutes(k1.temps) === attendu1.mn && attendu1.mn > 0, { kpi: k1.temps, attendu: attendu1 });
   L.v('S2 · Sophie masquée : « à planifier » et « en retard » comptent toute l’équipe', +k1.plan === glob.plan && +k1.retard === glob.retard, { k1, glob });
-  L.v('S2 · la note le DIT : seulement les personnes affichées, ' + (glob.tech - 1) + ' sur ' + glob.tech, !!nt1 && /seulement les personnes affichées/.test(nt1) && new RegExp('\\(' + (glob.tech - 1) + ' sur ' + glob.tech + '\\)').test(nt1), nt1);
+  // tour 3 (17/11) : « N sur M » ne compte que des PERSONNES, la colonne « Non assigné » (id vide) n'en est pas une — glob.tech compte les colonnes
+  L.v('S2 · la note le DIT : seulement les personnes affichées, ' + (glob.tech - 2) + ' sur ' + (glob.tech - 1), !!nt1 && /seulement les personnes affichées/.test(nt1) && new RegExp('\\(' + (glob.tech - 2) + ' sur ' + (glob.tech - 1) + '\\)').test(nt1), nt1);
   L.v('S2 · la note dit ce qui reste global (« à planifier », « en retard ») et propose « Tout afficher »', /à planifier/i.test(nt1 || '') && /en retard/.test(nt1 || '') && /Tout afficher/.test(nt1 || ''), nt1);
   // le panneau que la tuile ouvre = même population, et il le dit
   await L.toucher(c, '[data-kpi="int"]');
-  const p1 = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('.ligne-clic').length, dit: /Seulement les personnes affichées/.test(P.textContent), sophie: [...P.querySelectorAll('.ligne-clic span.gris')].filter(e => /Sophie/.test(e.textContent)).length } : null; });
+  const p1 = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('.ligne-clic').length, dit: /seulement les personnes affichées/i.test(P.textContent), sophie: [...P.querySelectorAll('.ligne-clic span.gris')].filter(e => /Sophie/.test(e.textContent)).length } : null; });
   L.v('S2 · le panneau « interventions » liste autant de lignes que le chiffre, aucune de Sophie, et dit « seulement les personnes affichées »', !!p1 && p1.lignes === +k1.int && p1.sophie === 0 && p1.dit, { p1, kpi: k1.int });
   await L.ranger(c.p);
   await L.toucher(c, '[data-kpi="temps"]');
@@ -82,12 +83,12 @@ parcours('S2 · décision (k) : les chiffres du bandeau suivent les personnes af
     const apres = await kpis(c.p);
     L.v('S2 · la personne absente est masquée : « absent » ne la compte plus', +apres.abs === await compte([ab.tech]) && +apres.abs < +avant.abs, { avant: avant.abs, apres: apres.abs });
     await L.toucher(c, '[data-kpi="abs"]');
-    const pa = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('[data-kabs]').length, dit: /Seulement les personnes affichées/.test(P.textContent), vide: /Personne n’est absent/.test(P.textContent) } : null; });
+    const pa = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('[data-kabs]').length, dit: /seulement les personnes affichées/i.test(P.textContent), vide: /Personne n’est absent/.test(P.textContent) } : null; });
     L.v('S2 · le panneau « absent » liste autant de lignes que le chiffre (' + apres.abs + ') et dit « seulement les personnes affichées »', !!pa && pa.lignes === +apres.abs && pa.dit && (+apres.abs > 0 || pa.vide), pa);
     await L.ranger(c.p);
     // le même panneau SANS filtre liste bien la personne absente (la population n'est pas vide : la ligne ci-dessus ne compare pas 0 à 0)
     await c.p.evaluate(() => { plMasques = new Set(); rendre(); }); await L.calme(c.p, 400); await L.toucher(c, '[data-kpi="abs"]');
-    const pb = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('[data-kabs]').length, dit: /Seulement les personnes affichées/.test(P.textContent) } : null; });
+    const pb = await c.p.evaluate(() => { const P = document.querySelector('#calque .panneau'); return P ? { lignes: P.querySelectorAll('[data-kabs]').length, dit: /seulement les personnes affichées/i.test(P.textContent) } : null; });
     L.v('S2 · sans filtre, le panneau « absent » liste la personne et ne dit rien de filtre', !!pb && pb.lignes === +avant.abs && pb.lignes >= 1 && !pb.dit, pb);
     await L.ranger(c.p);
   }
@@ -104,7 +105,7 @@ parcours('S2 · décision (k) : les chiffres du bandeau suivent les personnes af
   await c.p.evaluate(d => { const i = INTS.find(x => x.tech && [...multiJours].includes(x.d) && x.st !== 'annulee'); multiExclu = new Set([i.tech + '|' + i.d]); rendre(); }, sm.d); await L.calme(c.p, 500);
   const kB = await kpis(c.p), nB = await cartes(c.p), ntB = await note(c.p);
   L.v('S2 · Sur mesure, une personne masquée un jour : « interventions » = cartes affichées (' + nB + ' < ' + nA + ')', +kB.int === nB && nB < nA, { kB, nB, nA });
-  L.v('S2 · Sur mesure, une personne masquée un jour : la note le dit', !!ntB && /seulement les personnes affichées/.test(ntB), ntB);
+  L.v('S2 · Sur mesure, une personne masquée un jour : la note le dit (tour 3 : elle la NOMME, avec le jour)', !!ntB && /sans Sophie le /.test(ntB), ntB);
   // la Carte a sa propre rangée de personnes : ni note ni masques
   await c.p.evaluate(() => { plMasques = new Set(['sm']); }); await vue(c, 'carte'); await c.p.evaluate(() => { plMasques = new Set(['sm']); rendre(); }); await L.calme(c.p, 600);
   L.v('S2 · la Carte ne montre pas la note (elle ne suit pas ces masques)', (await note(c.p)) === null, await note(c.p));
