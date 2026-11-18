@@ -88,14 +88,15 @@ const lireSauf = async (sel, c) => c.p.evaluate(s => { const e = document.queryS
     v('P3 : le guide des nouveautés de Sophie ne s\'est pas ouvert devant Marc et sa marque est intacte', !st.guide && st.marque === null, st);
     await L.capture(c, CAP + 'p3-comme-sophie-mac.png'); await L.fermer(); }
   if (cle.includes('4')) { console.log('\n── P4 · la carte de verrou des vues sensibles (tout-10, tout-11) au plus étroit ──');
-    for (const profil of ['petit', 'android']) {
-      const c = await S.ouvrir({ profil }); await S.tous(c); const rg = await entrerPar(c, 'marc'); v('P4 ' + profil + ' : Marc connecté', rg.ok);
+    for (const profil of (process.env.PROFILS || 'petit,android').split(',')) {   // PROFILS=petit,android,iphone,ipad NUIT=1 : le bouton se mesure à 320, 360, 390 et sur iPad, de jour et de nuit
+      const c = await S.ouvrir({ profil, nuit:process.env.NUIT === '1' }); await S.tous(c); const rg = await entrerPar(c, 'marc'); v('P4 ' + profil + ' : Marc connecté', rg.ok);
       await pointer(c); await S.avancer(c, 6); await L.aller(c.p, 'comptabilite'); await c.p.waitForTimeout(500); await fermerConf(c);
       for (const [g, o] of [['paie', 'fiches'], ['tresorerie', 'banque']]) {
         await c.p.evaluate(g => { const b = document.querySelector('[data-cx="grp|' + g + '"]'); b && b.click(); }, g); await c.p.waitForTimeout(350); await fermerConf(c);
         await c.p.evaluate(o => { const b = document.querySelector('[data-cx="sec|' + o + '"]'); b && b.click(); }, o); await c.p.waitForTimeout(500); await fermerConf(c); await c.p.waitForTimeout(1000);
         const m = await c.p.evaluate(() => { const z = document.querySelector('[data-secvue]'); if (!z) return null; const cs = getComputedStyle(z), r = z.getBoundingClientRect(), dedans = r.right - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth || 0);
-          return { carte:[Math.round(r.left), Math.round(r.right)], depasse:[...z.querySelectorAll('button')].map(b => ({ t:b.textContent.trim().slice(0, 14), debord:Math.round(b.getBoundingClientRect().right - dedans) })).filter(x => x.debord > 0) }; });
+          return { carte:[Math.round(r.left), Math.round(r.right)], depasse:[...z.querySelectorAll('button')].map(b => ({ t:b.textContent.trim().slice(0, 14), debord:Math.round(b.getBoundingClientRect().right - dedans), coupe:b.scrollWidth > b.clientWidth + 1 })).filter(x => x.debord > 0 || x.coupe) }; });
+        if (process.env.CAPTURES) { await c.p.evaluate(() => { const z = document.querySelector('[data-secvue]'); z && z.scrollIntoView({ block:'center' }); }); await c.p.waitForTimeout(300); await L.capture(c, CAP + 'p4-verrou-' + o + '-' + profil + (process.env.NUIT === '1' ? '-nuit' : '-jour') + '.png'); }
         v('P4 ' + profil + ' · ' + o + ' : la carte de verrou existe', !!m);
         v('P4 ' + profil + ' · ' + o + ' : aucun bouton de la carte ne déborde de son rembourrage', !!m && m.depasse.length === 0, m); }
       await L.fermer(); } }

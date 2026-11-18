@@ -24,6 +24,9 @@ const I = require('./interventions-outils.js'), L = I.L;
     else if (att === null) v(`« ${val} » : sortie notée (pas de verdict imposé)`, true, r);
     else v(`« ${val} » → « ${att} »`, r.champ === att && r.mem === att, r);
   }
+  // — un nombre recollé est DIT : « 10 100 » devient 10100 ET le message montre ce qui a été lu
+  await poser(sels('Soufflage'), '12'); await ev(() => { const T = document.getElementById('toast'); if (T) T.textContent = ''; }); await poser(sels('Soufflage'), '10 100');
+  { const r = await lire(sels('Soufflage')), t = await ev(() => (document.getElementById('toast') || {}).textContent || ''); v('« 10 100 » enregistré 10100 et dit « Lu 10 100 »', r.champ === '10100' && /Lu 10 100/.test(t) && /10100/.test(t), [r, t]); }
   // — champs LIBRES des autres métiers : ce qu'on écrit n'est pas réécrit en silence
   for (const [m, lab, val] of [['nuis', 'Infestation', 'faible – moyenne'], ['nuis', 'Infestation', '2 100 individus'], ['nett', 'Arrivée', '06:10 – 06:40'], ['nett', 'Départ', '08:40 −10 min']]) {
     const k = 'i1'; await metierDe(m);
