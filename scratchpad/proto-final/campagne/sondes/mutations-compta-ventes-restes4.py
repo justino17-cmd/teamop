@@ -12,7 +12,7 @@ MUT = [
  ('N4 le Total HT redevient une somme de bruts', "const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 100 + 1e-7) / 100;", "const htDe = f => lignesDe(f).reduce((s,l) => s + (l.pu || 0) * qteDe(l), 0);", S),
  ('N5 la pièce se compare de nouveau caractère pour caractère', "qteNorm(v) === qteNorm(l.q0)", "v === l.q0", S),
  ('N6 la comparaison de la pièce ignore la casse mais plus les espaces', "toLowerCase().replace(/[\\s\\u00a0\\u202f]/g, '')", "toLowerCase()", S),
- ('N7 « 0 min » passe en silence', "const lu = mn !== null ? mn / 60 : qteLire(v), nq", "const lu = mn !== null ? (mn / 60 || 1) : qteLire(v), nq", S),
+ ('N7 « 0 min » refusé sans dire pourquoi (phrase des minutes sur une durée nulle)', ": 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }\n    const lu", ": 'Une durée en minutes se compte sur une ligne facturée à l’heure. Je garde ' + (l.q || '1') + '.'); return; }\n    const lu", S),
 ]
 def sh(c, t=250):
     return subprocess.run(c, shell=True, cwd=RACINE, capture_output=True, text=True, timeout=t)
