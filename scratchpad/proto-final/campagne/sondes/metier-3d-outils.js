@@ -19,7 +19,7 @@ exports.lire = p => p.evaluate(() => { const c = document.getElementById('conten
 exports.nettoyer = async p => { await p.evaluate(() => { try { docPleinFermer(); } catch (e) {} try { fermerPanneau(); } catch (e) {} }); if (await p.locator('.fen').count()) { await p.keyboard.press('Escape'); await L.calme(p, 250); }   // la fenêtre de création (.fen) se ferme par Échap, comme pour la personne
   await L.calme(p, 150); };
 // mots qui n'ont rien à faire dans un texte d'un métier qui n'est pas le leur
-exports.MOTS_CLIM = /clim(?:atisation|atiseur)?\b|\bsplit\b|frigorig|\bR-?32\b|R-?410|daikin|pompe à chaleur|groupe froid|unité extérieure|unité intérieure|\bPAC\b|gainable|cassette/i;
+exports.MOTS_CLIM = /clim(?:atisation|atiseur)?\b|\bsplit\b|frigorig|\bR-?32\b|R-?410|daikin|pompe à chaleur|groupe froid|unité extérieure|unité intérieure|\bPAC\b|gainable|cassette|\bcondensateur|\bfluide\b|évaporateur|compresseur|détendeur/i;   // recontrôle du 18/11 : « condensateur » et « fluide » traînaient dans une indication de champ sans que la sonde les lise
 exports.MOTS_3D = /rongeur|\brats?\b|nuisible|biocide|xylophage|dératis|deratis|appât|appat|cafard|punaise|capricorne|vrillette|termite|désinsect|desinsect|\b3D\b|hygiène anti/i;
 exports.bilan = (nom, ok, ko, notes) => { console.log('\n' + nom + ' : ' + ok + ' ✓ · ' + ko + ' ✗'); (notes || []).forEach(n => console.log('  · ' + n)); return ko ? 1 : 0; };
 // le corpus des DONNÉES d'exemple (tables de démonstration) : un relevé est une donnée si le mot, avec son voisin de gauche ou de droite, s'y lit tel quel

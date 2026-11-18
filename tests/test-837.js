@@ -362,7 +362,11 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   /* `blog/logiciel-entreprise-de-nettoyage.html` (16 novembre 2026) : « un passage de bureaux facturé 90 € hors taxes à votre client » est le
      tarif D'UNE ENTREPRISE DE NETTOYAGE, posé « à titre d'exemple » ; ce n'est pas un prix de TEAM OP. Arrivé sur `main` sans sa ligne ici, comme
      les deux précédents : le rouge de `main` se retrouvait sur chaque demande de fusion. */
-  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html', 'blog/logiciel-entreprise-de-nettoyage.html'];
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html', 'blog/logiciel-entreprise-de-nettoyage.html', 'blog/contrat-de-nettoyage-de-bureaux.html'];
+  /* `blog/contrat-de-nettoyage-de-bureaux.html` (18/11) : les prix d'un CONTRAT DE NETTOYAGE (« forfait de 2 400 € HT par mois », « à partir de
+     5 000 € HT » — le seuil de vigilance) ; publié sur `main` par le travail du blog, il n'est pas encore sur la branche de travail : là, son
+     contrôle « parle encore de hors taxe » ne peut pas exiger le fichier. */
+  const ARTICLES_SUR_MAIN_SEULEMENT = ['blog/contrat-de-nettoyage-de-bureaux.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
   /* Un EXTRAIT, pas un fichier, quand la phrase vit aussi dans `contenu/blog/articles.json` (le résumé de l'article) : exclure ce fichier entier
@@ -379,7 +383,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     if (m) ht.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }
   v('⛔ aucune page servie n\'écrit « HT » pour un prix', ht, []);
-  for (const f of ARTICLES_FACTURE) vrai('l\'article ' + f + ' parle encore de la facture d\'un artisan en hors taxe (sinon : le retirer de ARTICLES_FACTURE)', existe(f) && /€\s*HT\b|hors[ -]taxes?/i.test(lire(f)));
+  for (const f of ARTICLES_FACTURE) if (existe(f) || ARTICLES_SUR_MAIN_SEULEMENT.indexOf(f) < 0) vrai('l\'article ' + f + ' parle encore de la facture d\'un artisan en hors taxe (sinon : le retirer de ARTICLES_FACTURE)', existe(f) && /€\s*HT\b|hors[ -]taxes?/i.test(lire(f)));
   for (const f of ECART_APPLICATION) if (existe(f)) vrai('l\'écart déclaré pour ' + f + ' sert encore (sinon : le retirer d\'ici et de test-835)', PROMESSE.test(sansCommentaires(lire(f))));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

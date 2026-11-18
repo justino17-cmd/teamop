@@ -37,7 +37,7 @@ const L = require('../lib.js');
   const f = await R(() => ({ ck:document.querySelectorAll('#calque [data-md-ck]').length, coches:document.querySelectorAll('#calque [data-md-ck]:checked').length, ok:NB(document.getElementById('md-rok').textContent), garage:/au garage/.test(document.querySelector('#calque').innerText), titre:document.querySelector('#calque h2').textContent }));
   v('la feuille « Remplir les camions » : tout est coché d\'office (' + f.coches + '/' + f.ck + '), le bouton le dit « ' + f.ok + ' », le garage est cité en bas', f.ck >= 5 && f.coches === f.ck && f.ok === 'Tout mettre dans les camions · ' + f.ck && f.garage && f.titre === 'Remplir les camions', f);
   await R(() => document.querySelector('#calque [data-md-ck]').click()); await attendre(150);
-  v('une ligne décochée ne part pas : le bouton passe à ' + (f.ck - 1), await R(() => document.getElementById('md-rok').textContent.endsWith('· ' + (document.querySelectorAll('#calque [data-md-ck]').length - 1))));
+  v('une ligne décochée ne part pas : le bouton passe à ' + (f.ck - 1), await R(() => new RegExp('·\\s*' + (document.querySelectorAll('#calque [data-md-ck]').length - 1) + '$').test(document.getElementById('md-rok').textContent)));
   await R(() => document.querySelector('#calque [data-md-ck]').click()); await attendre(150);
   await R(() => { const b = document.getElementById('md-rok'); b.click(); const b2 = document.getElementById('md-rok'); if (b2) b2.click(); }); await attendre(500);   // un double appui
   const e1 = await etat(), apres = await R(() => ({ n:camionsARemplir().n, noir:NB((document.querySelector('[data-vis="depots-remplir"]') || {}).textContent || ''), panneau:!!document.querySelector('#calque .panneau') }));

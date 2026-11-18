@@ -1,0 +1,38 @@
+{
+ "noms": ["contrats"],
+ "regles": [
+  "contrats-07 / Mettre fin et Renouveler : un nouveau contrat du même client ne reprend plus les visites faites de l'ancien (ctrFigerVisites). Rejoué sur c1 et c2 : « Mettre fin » garde les faites (2 → 2, 1 → 1), le nouveau dit « 0 sur N faites », N visites à lui, aucune dans le passé ; Renouveler puis Mettre fin au renouvelé laisse l'ancien intact ; deux contrats signés du même client : finir le second ne déplace pas les visites du premier. 41 ✓ sur la sonde du tour 2, 3 profils (mac, petit nuit, iphone) ; neuf écrans, deux fiches client, deux fiches de contrat, l'espace client et « Ma journée » du technicien lus sans NaN ni undefined",
+  "Fiche d'un contrat terminé à 320 et 360 px : la carte « Les visites » ne dépasse plus l'écran, le nom garde sa place, l'étiquette passe dessous (19-20 ✓ sur petit nuit, windows, iphone nuit ; carte d'un contrat EN COURS à 12 visites et lieu très long : 7 ✓ sur petit, petit nuit, android nuit, iphone, ipad nuit, hors le contrôle « texte écrasé » qui tombe sur la carte Facturation, voir plus bas) ; capture visites-encours-petit-nuit.png regardée",
+  "« NaN € TTC » dans l'aperçu : plus aucun, sur les huit saisies (1000.005, 1000,01, 0.995, 1.005, 2.675, 12,5€, abc, 99,99) et les neuf écrans lus",
+  "Visites sorties du planning sans date : réglé (sonde du tour 1 rejouée, 20 ✓)",
+  "Les sondes du tour 1 rejouées après le tour 2 : restes-contrats-1.js 57 ✓ · 0 ✗, restes-contrats-1-recontrole.js 31 ✓ · 0 ✗, restes-contrats-composes.js 10 ✓ · 0 ✗",
+  "Mutations C18 à C22 (retirer chaque correctif sur une copie) : 5 mordent, 0 survivent"
+ ],
+ "pasRegles": [
+  {
+   "nom": "contrats",
+   "defaut": "Prix en centimes : l'aperçu et le prix rangé ne disent pas toujours le même nombre",
+   "constat": "Le correctif « prix rangé en centimes » arrondit par Math.round(Number(prix) * 100) / 100, qui rend 1 pour « 1.005 » (1.005 * 100 = 100.49999…), alors que l'aperçu (eur(), arrondi décimal) affiche « 1,01 € HT par an » et le TTC « 1,21 € ». Le contrat est donc créé à 1,00 € alors que la personne a lu 1,01 € à l'écran juste avant de l'envoyer. Même chose pour tout prix de la forme x.xx5 que le flottant tombe sous le demi-centime. Mesuré sur mac, petit nuit et iphone : 41 ✓ · 1 ✗, toujours le même contrôle (restes-contrats-2-recontrole.js). Écart d'un centime, sur une saisie à trois décimales que personne ne fait en pratique : faible, mais le contrôle « l'aperçu dit le prix rangé » est le sens du correctif. Piste : arrondir par la même fonction aux deux endroits (Number(Math.round(Number(prix + 'e2')) + 'e-2'))."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Fiche d'un contrat à 320 px : la carte « Facturation » écrase ses libellés quand le prix a cinq chiffres ou plus",
+   "gravite": "moyenne (profil de 320 px seulement, absent à 360 px, iphone, android, ipad, ordinateur ; ancien, non causé par le tour 2)",
+   "etapes": "Contrats › créer et signer un contrat de 12 visites à 12 345,67 € HT par an › ouvrir sa fiche sur le profil « petit » (320 px) › carte « Facturation ».",
+   "constat": "La ligne .ligne (libellé à gauche, montant « 12 345,67 € HT / an » à droite, en gras, sans retour à la ligne) laisse 84 à 97 px au libellé : « 1 028,81 € HT à chaque visite » tient sur 4 lignes dans 93 px, « Soit, avec la TVA à 20 % » sur 3 lignes dans 84 px, « 123 456,78 € HT une fois par an, à la signature » sur 4 lignes dans 97 px (sonde neuve restes-contrats-2-recontrole-facturation.js : petit 13 ✓ · 4 ✗, android nuit, iphone et ipad nuit 17 ✓ · 0 ✗). Capture facturation-visite-12345.67-petit-nuit.png regardée : la carte est lisible mais le libellé se casse mot à mot. Piste : dans cette carte, .ligne en flex-wrap:wrap avec le libellé en flex:1 1 9em et le montant qui passe dessous, comme la règle .ctr-vl de la carte des visites."
+  }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-contrats-2-recontrole.js", "resultat": "mac, petit nuit, iphone : 41 ✓ · 1 ✗ chacun (le seul ✗ : prix 1.005, voir pasRegles) ; android nuit : même résultat (rejoué dans la boucle de fond)" },
+  { "fichier": "campagne/sondes/restes-contrats-2-recontrole-visites.js", "resultat": "petit et petit nuit : 6 ✓ · 1 ✗ (texte écrasé dans la carte Facturation, voir nouveaux, pas dans la carte des visites) ; android nuit, iphone, ipad nuit : 7 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-2-recontrole-facturation.js (NEUVE)", "resultat": "petit nuit : 7 ✓ · 4 ✗ avant d'écarter deux prix au-dessus du plafond de 1 000 000 € ; petit : 13 ✓ · 4 ✗ ; android nuit, iphone, ipad nuit : 17 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-contrats-1.js, restes-contrats-1-recontrole.js, restes-contrats-1-recontrole-ecrans.js, restes-contrats-composes.js", "resultat": "57 ✓ · 31 ✓ · 20 ✓ (petit nuit, windows, iphone nuit) · 10 ✓, tous à 0 ✗" },
+  { "fichier": "campagne/sondes/mutations-restes-contrats.py C18 à C22", "resultat": "5 mordent · 0 survivent" }
+ ],
+ "doutes": [
+  "Le PDF et le courriel réels d'un contrat restent hors du prototype (pas de serveur) : à contrôler dans la vraie application (déjà « à soumettre à Justin » au tour 2).",
+  "La sonde neuve de la carte Facturation a d'abord tenté des prix à sept chiffres : refusés par la page (plafond de 1 000 000 €, message clair), ce qui est le bon comportement ; non joué avec des valeurs plus longues."
+ ]
+}
