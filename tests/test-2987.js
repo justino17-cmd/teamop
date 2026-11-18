@@ -86,6 +86,7 @@ function tourDe(dossier, rangement) {
     localStorage: { getItem: k => (rangement.has(k) ? rangement.get(k) : null), setItem: (k, x) => rangement.set(k, String(x)), removeItem: k => rangement.delete(k) },
     sessionStorage: { getItem: k => (session.has(k) ? session.get(k) : null), setItem: (k, x) => session.set(k, String(x)), removeItem: k => session.delete(k) },
     poserApps(a) { j.apps = a; }, entrer() { j.entrees++; },
+    decoEchecDire() {},   /* 18/11 : le démarrage dit une déconnexion que le serveur n'a pas confirmée — un message d'écran, hors de ce que ce banc mesure */
   };
   vm.createContext(sb);
   vm.runInContext(hA[0], sb);
