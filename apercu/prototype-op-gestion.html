@@ -3439,7 +3439,11 @@ body.ac-glisse .ac-x{pointer-events:none}
 .acm-n b{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:13px;background:var(--lien);color:var(--on-etat);font-weight:800}
 .acm-f{position:relative;z-index:2;pointer-events:none;font-size:11.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,var(--orange) 72%,var(--encre));line-height:1.15;overflow-wrap:anywhere}
 /* colonne étroite (iPad) : « TOUSSAINT » se coupait en « TOUSSA / INT » ; un nom de jour férié tient sur une ligne à 9 px */
-.acm-etroit .acm-f{font-size:9px;letter-spacing:-.01em}.acm-etroit .acm-c{padding-left:4px;padding-right:4px}
+.acm-etroit .acm-f{font-size:11px;letter-spacing:-.01em;text-transform:none;font-weight:700;line-height:1.1;overflow-wrap:normal;hyphens:none}.acm-etroit .acm-c{padding-left:4px;padding-right:4px}
+/* le même nom en minuscules tient à 11 px (« TOUSSAINT » à 9 px était minuscule), « Jour de l'an » passe sur deux lignes ; la ligne grandit pour que la bande d'absence, collée au bas, ne touche plus le nom */
+.acm-etroit .acm-sem{grid-template-rows:minmax(108px,auto)}.acm-etroit .acm-x{padding-bottom:12px}
+/* sous une bande d'absence (fond vert, rose, bleu…) le chiffre et le nom du jour férié prennent l'encre : l'orange y tombait à ~3:1 */
+.acm-c.fer.cp .acm-n,.acm-c.fer.cp .acm-f{color:var(--encre)}
 .acm-x{grid-row:1;align-self:stretch;position:relative;z-index:1;margin:0;border:0;border-radius:0;display:flex;align-items:flex-end;padding:0 9px 9px;min-width:0;overflow:hidden;white-space:nowrap;cursor:pointer;font:inherit;font-size:13.5px;font-weight:750;color:var(--encre);
   background:repeating-linear-gradient(90deg,transparent 0 calc(100% / var(--n) - 1px),color-mix(in srgb,var(--carte-fond) 40%,transparent) calc(100% / var(--n) - 1px) calc(100% / var(--n))),color-mix(in srgb,var(--c) 50%,var(--carte-fond));
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 85%,transparent)}
@@ -7614,9 +7618,9 @@ function aCalMois(J, tid){ const T = tel(), dep = aDeplCible();
   const entete = (T ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : etroit ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] : ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']).map((x, k) => `<span class="${k > 4 ? 'we' : ''}">${x}</span>`).join('');
   return blocs.map(b => { const dans = new Set(b.jours), fin = ajoute(aLundi(b.jours[b.jours.length - 1]), 6), sems = [];
     for (let s = aLundi(b.jours[0]); s <= fin; s = ajoute(s, 7)) sems.push(s);
-    const rangs = sems.map(s => { const S = Array.from({ length:7 }, (_, k) => ajoute(s, k));
+    const rangs = sems.map(s => { const S = Array.from({ length:7 }, (_, k) => ajoute(s, k)), sous = new Set(); [...A, ...D].forEach(a => S.forEach(d => { if (d >= a.du && d <= a.au) sous.add(d); }));
       const cells = S.map((d, k) => !dans.has(d) ? `<div class="acm-c hors${k === 6 ? ' k7' : ''}" style="grid-column:${k + 1}" aria-hidden="true"></div>`
-        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
+        : `<div class="acm-c${aOuvre(d) ? '' : A_FERIES[d] ? ' fer' : ' we'}${!aOuvre(d) && A_FERIES[d] && sous.has(d) ? ' cp' : ''}${d === AUJ ? ' auj' : ''}${k === 6 ? ' k7' : ''}${dep && dep.tech === tid ? ' ac-choix' : ''}" style="grid-column:${k + 1}" data-acd="${d}" data-act="${tid}" title="${aMaj(aDate(d, true))}${A_FERIES[d] ? ' · ' + A_FERIES[d] + ' (jour férié)' : !aOuvre(d) ? ' · non travaillé' : ''}"><span class="acm-n">${d === AUJ ? `<b>${+d.slice(8)}</b>` : +d.slice(8)}</span>${A_FERIES[d] ? `<span class="acm-f">${cw < 56 ? 'Férié' : A_FERIES[d]}</span>` : ''}</div>`).join('');   /* une case de téléphone (38 à 48 px) ne tient pas « Toussaint » : « Férié », le nom reste dans l'infobulle de la case */
       const bandes = [...A.map(a => [a, false]), ...D.map(a => [a, true])].map(([a, att]) => { const ds = S.filter(d => dans.has(d) && d >= a.du && d <= a.au); if (!ds.length) return '';
         const k0 = S.indexOf(ds[0]), n = ds.length, demi = a.demi && a.du === a.au ? a.demi : '';
         return aBandeHtml(a, att, demi, `grid-column:${k0 + 1} / span ${n};--n:${n}`, aLib(a, att, demi, n * cw, (T ? [[11.5, 8, ''], [10, 4, 'mini']] : [[13.5, 18, ''], [12, 10, 'serre'], [10.5, 4, 'mini']]).map(([px, pad, cl]) => [px, Math.max(pad, demi ? 18 : 0), cl]))   /* une demi-journée garde 9 px de marge de chaque côté : à 4 ou 8 px comptés, « ½ j Autre » était mesuré 47 px pour 29 de place */, ds[0] > a.du, ds[n - 1] < a.au, 'acm-x'); }).join('');
@@ -8091,7 +8095,8 @@ function vueAbsencesTech(){ const tid = aTech(), t = tech(tid), cp = aSolde(tid,
     <h3 class="t-sep">Mon calendrier</h3>${aCalFin(aCtrl(false), true, aCalMois(J, tid), J)}`;
 }
 function aPanneauDemande(){ const tid = aTech(), cp = aSolde(tid, 'Congé payé'), rtt = aSolde(tid, 'RTT');
-  const T = [['Congé payé', `${aJ(cp.reste - cp.att)} disponibles`], ['RTT', `${aJ(rtt.reste - rtt.att)} disponibles`], ['Sans solde', 'non payé'], ['Récupération', 'heures déjà faites'], ['Formation', ''], ['Autre', 'rendez-vous, famille…']];
+  const dispo = innerWidth < 340 ? 'dispo.' : 'disponibles';   /* à 320 px « Congé payé · 3 jours disponibles » (247 px) passait sous la flèche du champ (238 libres) */
+  const T = [['Congé payé', `${aJ(cp.reste - cp.att)} ${dispo}`], ['RTT', `${aJ(rtt.reste - rtt.att)} ${dispo}`], ['Sans solde', 'non payé'], ['Récupération', 'heures déjà faites'], ['Formation', ''], ['Autre', 'rendez-vous, famille…']];
   ouvrirPanneau(`<h2>Demande de congé</h2><span class="gris">Elle part à Marc. Il la valide, la refuse en te disant pourquoi, ou te propose d’autres dates.</span>
     <label class="champ">Type<select id="ad-ty">${T.map(([k, s]) => `<option value="${k}">${k}${s ? ' · ' + s : ''}</option>`).join('')}</select></label>
     <div class="deux-champs"><label class="champ">Du<input type="date" id="ad-du" value="${jour(9)}"></label><label class="champ">Au<input type="date" id="ad-au" value="${jour(11)}"></label></div>
@@ -17835,7 +17840,7 @@ function ptxCarteSalarie(k){
   let c = '';
   if (ouvH) { const f = ptxFinPropose(ouvH).h;
     c += `<div class="info petit fo-alerte ptx-oubli"><b>Ta journée du ${esc(jlong(ouvH.date))} est restée ouverte</b> (depuis ${ouvH.debut}). À quelle heure as-tu fini ?<div class="actions" style="margin-top:8px"><button type="button" class="btn petit" data-ptx="finhier|${ouvH.id}|${f}">${f}</button><button type="button" class="btn gris petit" data-ptx="finhierautre|${ouvH.id}">Une autre heure</button></div></div>`; }
-  if (!P) c += `<div class="ptx-etat"><b>Tu n’as pas encore commencé.</b><span class="gris petit ptx-hnow">Il est ${hNow()}${premier ? ' · ta première intervention est à ' + premier : ''}.</span></div><button type="button" class="btn large" data-ptx="debut|${k}">Je commence ma journée</button><button type="button" class="lien" data-ptx="plustot|${k}">J’ai commencé plus tôt</button>`;
+  if (!P) c += `<div class="ptx-etat"><b>Tu n’as pas encore commencé.</b><span class="gris petit ptx-hnow">Il est ${hNow()}${premier ? ' · ta première intervention ' + (ptMin(premier) < MAINT_MIN ? 'était' : 'est') + ' à ' + premier : ''}.</span></div><button type="button" class="btn large" data-ptx="debut|${k}">Je commence ma journée</button><button type="button" class="lien" data-ptx="plustot|${k}">J’ai commencé plus tôt</button>`;
   else if (ouv) { const en = PTX.pause[ouv.id], fait = mesInts.length && mesInts.every(i => i.st === 'fait'), fin = PTX.finInt[k + AUJ];
     c += `<div class="ptx-etat"><b>Commencée à ${ouv.debut} · ${ptH(Math.max(0, MAINT_MIN - ptMin(ouv.debut)))}</b><span class="gris petit">${en ? 'En pause depuis ' + en.h + '.' : 'Ta journée est en cours : le bureau le voit.'}${ouv.pause ? ' Pause déjà prise : ' + ouv.pause + ' min.' : ''}</span></div>
       <div class="actions">${en ? `<button type="button" class="btn" data-ptx="reprendre|${k}">Je reprends</button>` : `<button type="button" class="btn gris" data-ptx="pause|${k}">Pause</button><button type="button" class="btn" data-ptx="termine|${k}">Je termine</button>`}</div>
@@ -25003,7 +25008,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="app-tel">
   .opg-barre{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .opg-tab .t-n{max-width:100%;white-space:normal;text-align:center;line-height:1.08;hyphens:none;overflow-wrap:normal}
   .opg-tab{min-width:44px;padding-inline:2px}
-  @media (max-width:340px){.opg-tab{font-size:10px}.opg-barre{padding:5px 4px;gap:0}.barre-bas{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}}
+  /* « html » devant : la feuille principale, écrite APRÈS ce bloc, redonnait 11 px et 6 px de rembourrage à même spécificité — à 320 px « Comptabilité » touchait ses voisins et le bord de la pilule */
+  @media (max-width:340px){html .opg-tab{font-size:10px}html .opg-barre{padding:5px 4px;gap:0}.barre-bas{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}}
   .opg-tab .emo{font-size:18px;line-height:24px;height:24px}
 }
 .mb-l{display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:8px 12px;border:1px solid var(--trait);border-radius:14px;background:var(--surf);color:var(--encre);font:inherit;text-align:left;margin-top:6px}
