@@ -20,6 +20,16 @@ const O = require('./devis-atelier-outils.js'), L = O.L, v = L.v;
   await poser(champ(0, 1), '1'); await poser(champ(0, 2), '999999,99'); T = await tot(); v('1 × 999 999,99 accepté', T[0] === 999999.99, T);
   await poser(champ(0, 1), '2'); t = await toast(); T = await tot(); v('2 × 999 999,99 : ramené sous le plafond AVEC message', T[0] <= 1e6 && /dépasse|dépasserait|ramené/.test(t), [T, t]);
   await L.capture(c, O.CAP + `plafond3-devis-${profil}${nuit ? '-nuit' : ''}.png`);
+  // — facture : le PRIX saisi sur une ligne dont la quantité est grande (le total, pas le prix seul, dépasse le plafond) : garde du chemin « prix » de la facture, que la voie quantité ne couvre pas
+  await L.aller(p, 'inter-x-i6'); await L.toucher(c, '[data-action="prepFacture"]'); await L.calme(p, 500);
+  const fid = await ev(() => { const x = FACTURES.find(o => o.st === 'avalider'); return x && x.id; }); v('population : une facture existe', !!fid, fid);
+  await L.aller(p, 'facture-x-' + fid); await L.calme(p, 500); await L.toucher(c, '[data-action="ligneAjout"]'); await L.calme(p, 400);
+  const kl = (await ev(() => document.querySelectorAll('[data-fdes]').length)) - 1, fp = `[data-prix="${kl}"]`, fq = `[data-fqte="${kl}"]`;
+  const pose = async (sel, x) => { await ev(() => { const T = document.getElementById('toast'); if (T) T.textContent = ''; }); await p.fill(sel, x); await p.dispatchEvent(sel, 'change'); await L.calme(p, 450); };
+  const lg = () => ev(([id, k]) => { const l = FACTURES.find(o => o.id === id).lignes[k]; return l && { q: l.q, pu: l.pu }; }, [fid, kl]);
+  await pose(fq, '2000'); await pose(fp, '400'); let g = await lg(); v('facture : 2 000 × 400 € accepté (800 000 €)', g && Math.abs(g.pu - 400) < 1e-9, g);
+  await pose(fp, '600'); g = await lg(); t = await toast();
+  v('facture : 2 000 × 600 € (1,2 M€) refusé AVEC message, le prix précédent est gardé', g && Math.abs(g.pu - 400) < 1e-9 && /dépasserait/.test(t), [g, t]);
   // — contrats : prix annuel
   await L.aller(p, 'contrat-nouveau'); await L.calme(p, 500);
   const pf = '[data-b="prix"]'; v('population : le champ prix du contrat', (await p.locator(pf).count()) === 1, 0);

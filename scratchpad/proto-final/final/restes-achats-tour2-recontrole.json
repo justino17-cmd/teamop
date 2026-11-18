@@ -1,0 +1,95 @@
+{
+  "noms": [
+    "Après la validation d'une note de frais avec ticket : « sans facture » dit le même nombre partout",
+    "Tarif au kilomètre à trois décimales (0,603) et unité tolérée",
+    "Puce de filtre active ramenée dans l'écran sur téléphone",
+    "Deux phrases d'aide « ni facture ni ticket »",
+    "Deux doutes laissés à Justin (deux mots ; pastilles de personnes)"
+  ],
+  "regles": [
+    "« Sans facture » dit le même nombre partout (Comptabilité À faire, Aux normes, liste du filtre, tuile Comptes fournisseurs) : rejoué par de vrais gestes d'écran sur mac, ipad, petit et iphone nuit : dépense sans justificatif (+1), ticket seul payé (+1), facture avec numéro (0), sans TVA (0), facture ajoutée après coup (-1), deux notes avec ticket validées (+2) ; à chaque pas Comptabilité = liste = tuile = texte lu (46 ✓ sur mac, 0 ✗ sur ces contrôles). La règle de « sans justificatif » contient bien celle de « sans facture » pour les achats avec TVA.",
+    "Dans chaque catégorie d'achats (achats, matériel, carburant, véhicule…), après validation des notes : les listes « Sans facture » et « Sans justificatif » montrent exactement le nombre de lignes de la règle, et la puce n'existe que s'il y a de quoi la remplir (achats-restes2-adverse-cats.js, mac et petit : 17 ✓ · 0 ✗).",
+    "La liste « Sans facture » montre autant de lignes que le nombre annoncé (S11), notes validées avec ticket comprises, avec leur marque « ticket reçu · facture manquante » (capture iphone nuit regardée).",
+    "Tarif au kilomètre : « 0,603 », « 0.603 », « 0,631 », « 0,60 €/km », « 0,60€ », « 0,60 euros par km », « 0,603 » entouré d'espaces sont lus ; « 0,05 » et « 10 » acceptés ; « 0,049 », « 10,01 », « 0 », « -0,6 », « abc », vide, « 0,60,3 », « 1,203 » refusés sans bouger le tarif, avec une phrase ; ouvrir le champ à 0,603 puis Enregistrer sans toucher garde 0,603 ; 0,603, 0,50 et 0,631 s'écrivent bien dans le toast et dans la ligne de la règle des notes.",
+    "Puce de filtre : la page ne glisse jamais de côté (scrollX 0, aucun débordement de page) sur petit, android, iphone, ipad, mac, jour et nuit ; la puce active se voit en entier dans sa rangée (mesure par rectangles) sur les cinq états testés (À traiter, En retard, Payées, Sans justificatif, Sans facture) ; captures petit jour, android jour, iphone nuit regardées.",
+    "Sondes du correcteur rejouées : 6 sondes de ce tour (coherence 9 ✓, km 11 ✓, puce 50 ✓, regard 4 ✓, filtres 12 ✓, aide 11 ✓) puis les 20 autres sondes d'Achats et la table Matériel (recontrole-parcours 20, comptes 5, telephone 21, annuler 10, gestes 32, champs 12, corrections 29, mise-en-page 120, roles 9, liaisons 26, details 14, saisies 17, doublon 3, toast-fenetre 6, champs-virgule 14, virgule 3, parcours-demandes 46, parcours-notes 37, gestes 32, entreprise-achats-lisible 142, materiel-table 66) : 0 ✗ partout, aucune erreur de page."
+  ],
+  "pasRegles": [
+    {
+      "nom": "Le formulaire d'une note de frais kilométrique annonce un montant d'un centime différent de celui qu'il enregistre, et dit encore « 0,60 € » avant la saisie",
+      "defaut": "Avec un tarif à trois décimales, kilomètres × tarif tombe sur un demi-centime pour environ un kilométrage entier sur quinze. La phrase du formulaire calcule avec eur(k × tarif) (arrondi du navigateur sur le flottant), la note enregistre axR2(k × tarif) (Math.round) : ils divergent dans les deux sens. Aucun écart n'existait à 0,60 (0 sur 2 000 kilométrages) ni à 0,50.",
+      "constat": "Rejoué dans la vraie page, gérant (mac jour) et technicienne (iphone nuit), tarif 0,603 : 85 km, le formulaire dit « = 51,25 € », la note et le toast disent 51,26 € ; 45 km, formulaire 27,13 €, note 27,14 € ; 255 km, formulaire 153,77 €, note 153,76 € (alors que l'arrondi usuel de 153,765 est 153,77 : l'enregistré est le faux). Calcul exhaustif : 33 kilométrages sur 2 000 à 0,603 (dont 45, 85, 175, 185, 255, 265), 10 à 0,631. Et avant toute saisie, la phrase « Le montant se calcule : kilomètres × le tarif… (0,60 €) » (rn-kmtxt, branche k ≤ 0 de axNdfNature, ligne ~20589) utilise encore eur(AX.kmTarif) : le sixième endroit du tarif que le correcteur n'a pas passé à axTarif. Sonde : campagne/sondes/achats-restes2-adverse-km.js (K1, K3, K4 en échec). Correction proposée : un seul calcul en centimes entiers (Math.round(k × millièmes / 10 + 1e-9) / 100) utilisé par la phrase, la note, le toast et le total ; axTarif(AX.kmTarif) dans la branche vide."
+    },
+    {
+      "nom": "La tâche « Retrouver le ticket » dit « la TVA ne se récupère pas » pour un achat qui n'a pas de TVA",
+      "defaut": "LIENS_SOURCES (ligne ~11125) : filtre !a.piece && a.paye sans regarder a.tva ; la phrase réécrite au tour 2 (« ni facture ni ticket : la TVA ne se récupère pas ») est fausse pour une dépense sans TVA (cotisation, assurance, péage exonéré) enregistrée sans justificatif. Défaut d'avant le tour 2 (l'ancienne phrase avait le même défaut), mais le correcteur a réécrit cette phrase sans le voir.",
+      "constat": "Dépense « Cotisation adverse », 30 €, « Pas de TVA », payée par virement, justificatif « Pas encore » (formulaire de la Comptabilité) : l'Accueil propose « Retrouver le ticket : Brico Test, 30,00 € · Cotisation adverse · ni facture ni ticket : la TVA ne se récupère pas ». Les données d'origine n'ont aucun tel achat (la MAAF a piece:'autre'), il apparaît seulement avec une saisie. Sonde : achats-restes2-adverse.js S13c (aussi sur ipad, petit, iphone nuit). Correction proposée : la fin de phrase seulement si a.tva, sinon « · ni facture ni ticket ».",
+      "gravite": "faible"
+    },
+    {
+      "nom": "La phrase de refus d'un tarif à quatre décimales contredit l'écran",
+      "defaut": "« 0,6034 » et « 00,603 » sont refusés par cxMontantRefus avec « Un montant a au plus deux chiffres après la virgule (1 234,56). » alors que le même champ accepte « 0,603 » (trois chiffres) et l'écrit à trois décimales : la phrase est fausse pour ce champ.",
+      "constat": "Rejoué mac, petit, ipad, iphone nuit (achats-restes2-adverse.js K3). Correction proposée : pour le champ du tarif seulement, « Un tarif au kilomètre a au plus trois décimales (0,603). ».",
+      "gravite": "faible"
+    },
+    {
+      "nom": "Comptes fournisseurs : la tuile « achats sans facture » ne se retrouve pas dans les pastilles de la liste, et la page ne le dit pas",
+      "defaut": "Le correcteur a aligné la tuile sur la liste où elle mène (notes de frais validées comprises), mais la liste « Comptes fournisseurs » ne contient pas les notes (ce ne sont pas des fournisseurs) : la tuile et la somme des pastilles divergent dès qu'une note avec TVA est validée.",
+      "constat": "Après la validation des deux notes avec ticket : tuile « 6 achats sans facture », quatre pastilles « 1 sans facture » dans la liste (capture adverse2-fournisseurs-mac-jour.png, iphone nuit) ; aucun mot ne dit « dont 2 notes de frais ». Avant la correction, la tuile ne comptait pas les notes (égale aux pastilles, mais plus petite que la liste où elle mène). Les deux choix ont un coût ; celui-ci est plus juste mais muet. Sonde : S10. Correction proposée : une ligne de détail sous le nombre quand il y a des notes (« dont 2 notes de frais ») ou « (notes de frais comprises) » dans le libellé de la tuile.",
+      "gravite": "faible"
+    },
+    {
+      "nom": "La puce active est ramenée 16 px (iPad 30 px) trop à gauche du centre de sa rangée",
+      "defaut": "Le correcteur lit b.offsetLeft, relatif au plus proche ancêtre positionné (ici .contenu, car la rangée .cx-cats / .seg est en position statique), pas à la rangée : tout est décalé du remplissage latéral de la page (16 px sur téléphone, ~30 px sur iPad). La garde « déjà visible » (scrollLeft + 4 >= offsetLeft) est de surcroît écrite à l'envers (vraie seulement quand la puce est collée au bord gauche) : elle ne protège rien, le recentrage a lieu à chaque rendu.",
+      "constat": "Mesuré par rectangles : petit, En retard 90 px de vide à gauche pour 124 à droite (centrée : 107 / 107), Payées 96 / 130 ; iPad Payées -59 d'écart. La puce reste ENTIÈREMENT visible (c'est ce que gardaient les sondes du correcteur), seul son centrage est faux ; invisible à l'œil sur capture. Sonde : achats-restes2-adverse.js P4 (ipad). Correction proposée : getBoundingClientRect() de la puce moins celui de la rangée, plus scrollLeft.",
+      "gravite": "faible"
+    }
+  ],
+  "casses": [
+    {
+      "titre": "Un tarif à trois décimales (0,603) rend la phrase du formulaire de note kilométrique différente d'un centime du montant enregistré",
+      "gravite": "faible",
+      "etapes": [
+        "Gérant : Achats et frais › Notes de frais › Réglages › Tarif au kilomètre : 0,603 › Enregistrer.",
+        "Ouvrir le formulaire d'une note de frais, choisir « Kilomètres avec mon véhicule », écrire 85.",
+        "Lire « 85 km × 0,603 € = 51,25 € », envoyer : le toast dit « 85 km, 51,26 € » et la note vaut 51,26 €."
+      ],
+      "constat": "Voir pasRegles[0] : 33 kilométrages sur 2 000 diffèrent, et à 255 km c'est le montant enregistré (153,76) qui est faux (153,765 s'arrondit à 153,77). Avant la correction (tarif à deux décimales) il n'y avait aucun écart. La phrase de départ du formulaire dit aussi « 0,60 € » quand le tarif est 0,603 : une occurrence de eur(AX.kmTarif) est restée."
+    }
+  ],
+  "nouveaux": [
+    "La tâche « Retrouver le ticket » affirme « la TVA ne se récupère pas » pour une dépense sans TVA (pasRegles[1]).",
+    "Refus « au plus deux chiffres après la virgule » pour « 0,6034 », champ qui en accepte trois (pasRegles[2]).",
+    "Tuile des Comptes fournisseurs (6) ≠ pastilles de la liste (4 × « 1 sans facture »), sans explication à l'écran (pasRegles[3]).",
+    "Puce active recentrée avec 16 px (iPad 30 px) de décalage : offsetLeft pris pour une position dans la rangée (pasRegles[4])."
+  ],
+  "sondes": [
+    {
+      "fichier": "campagne/sondes/achats-restes2-adverse.js",
+      "resultat": "mac 46 ✓ · 3 ✗ (S10 tuile/pastilles, S13c TVA d'un achat sans TVA, K3 phrase des quatre décimales) ; ipad 46 ✓ · 3 ✗ (S13c, K3, P4 centrage) ; petit et iphone nuit : mêmes échecs S13c et K3 ; aucune erreur de page. Chaque ✗ est un constat de ce livrable, rien d'autre."
+    },
+    {
+      "fichier": "campagne/sondes/achats-restes2-adverse-km.js",
+      "resultat": "mac 13 ✓ · 5 ✗ (K1 phrase à 0,60 €, K3 trois fois, K4 un montant à 153,76) ; iphone nuit, technicienne : mêmes écarts ; aucune erreur de page."
+    },
+    {
+      "fichier": "campagne/sondes/achats-restes2-adverse-cats.js",
+      "resultat": "mac 17 ✓ · 0 ✗ ; petit 17 ✓ · 0 ✗."
+    },
+    {
+      "fichier": "campagne/sondes/achats-restes1-coherence.js, -km.js, -puce.js, achats-restes2-regard.js, -restes1-filtres.js, -restes1-aide.js",
+      "resultat": "9 ✓, 11 ✓, 50 ✓, 4 ✓, 12 ✓, 11 ✓ ; 0 ✗."
+    },
+    {
+      "fichier": "20 autres sondes d'Achats + sondes/entreprise-achats-lisible.js + sondes/materiel-table.js",
+      "resultat": "0 ✗ partout (voir regles[5])."
+    }
+  ],
+  "doutes": [
+    "Les deux mots « sans justificatif » (ni facture ni ticket) et « sans facture » (pas de facture au nom de l'entreprise) coexistent : cohérents, définis dans les phrases d'aide, à regarder avec Justin sur la vraie application (décision achats-10 du chef de chantier).",
+    "Pastilles de personnes d'Achats et frais : à la ligne sur iPhone, défilantes sur Android et 320 px : choix de dessin, pas un défaut de débordement ; à soumettre à Justin.",
+    "Les tuiles de la Comptabilité ne respectent pas la même fenêtre de temps que la liste : cpTva().sans ne regarde que octobre, cxDocs().sf et cxFournisseurs().sans regardent toutes les dates. Aucun défaut atteignable aujourd'hui (le formulaire de dépense ne laisse choisir qu'octobre, aucune donnée d'avant), mais le jour où une dépense d'un autre mois existera, les deux chiffres divergeront : non rejoué faute de geste qui la produise.",
+    "Sur iPhone, les trois onglets de la Comptabilité Achats passent sur deux lignes, le troisième centré seul (capture adverse2-fournisseurs-iphone-nuit.png) : d'avant ce tour, non lié aux corrections, à regarder.",
+    "« 0,60 € par kilomètre » et « € 0,60 » (unité écrite autrement) restent refusés avec « Indique un tarif, par exemple 0,60. » : un refus qui dit quoi écrire, pas bloquant."
+  ]
+}
