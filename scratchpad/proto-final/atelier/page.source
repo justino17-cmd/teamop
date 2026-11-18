@@ -1983,34 +1983,34 @@ const LIB={
     x:'Le prestataire peut confier une partie des visites à une autre entreprise de son choix.\nIl reste responsable de la qualité du travail et prévient le client à l’avance lorsque cela arrive.',
     c:'Le prestataire peut faire appel à une autre entreprise pour une partie des visites, tout en restant responsable du travail réalisé.'}};
 const CLAUSES=['revision','retard','resiliation','reconduction','responsabilite','donnees','soustraitance'];   // l'ordre du panneau
-/* l'ordre logique d'un contrat : une clause cochée se glisse avant le premier article qui doit la suivre */
+/* l'ordre logique d'un contrat : une clause cochée se glisse avant le premier article qui doit la suivre */
 const ORDRE_ART=['objet','visites','depannage','acces','duree','prix','revision','retard','pannes','obligations','reconduction','resiliation','responsabilite','donnees','soustraitance','litiges'];
 
-/* articles propres à un modèle : [titre, texte, version courte] */
+/* articles propres à un modèle : [titre, texte, version courte] */
 const COMMUN={litiges:['En cas de désaccord','En cas de désaccord, les deux parties cherchent d’abord une solution à l’amiable, par écrit ou par téléphone.\nSi elles n’y arrivent pas, elles peuvent s’adresser au tribunal compétent.','En cas de désaccord, les deux parties cherchent d’abord une solution à l’amiable.']};
 const AMOD={
   part:{
-    objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient les climatiseurs de {{client}} (le client), installés à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient les climatiseurs de {{client}} installés à l’adresse suivante : {{adresse}}.'],
-    visites:['Visites d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il nettoie les filtres, contrôle le fonctionnement et vérifie les raccordements. Il remet ensuite un compte rendu au client.','Le prestataire effectue {{frequence}} : nettoyage des filtres, contrôle de l’appareil et compte rendu.'],
+    objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient les climatiseurs de {{client}} (le client), installés à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient les climatiseurs de {{client}} installés à l’adresse suivante : {{adresse}}.'],
+    visites:['Visites d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il nettoie les filtres, contrôle le fonctionnement et vérifie les raccordements. Il remet ensuite un compte rendu au client.','Le prestataire effectue {{frequence}} : nettoyage des filtres, contrôle de l’appareil et compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose les dates de visite au client, qui peut les décaler en le prévenant à l’avance.\nLe client donne accès aux appareils le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','Les dates sont fixées avec le client, qui donne accès aux appareils. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
     prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
-    pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant une visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.'],
+    pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant une visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.'],
     obligations:['Obligations du client','Le client utilise les appareils normalement et signale sans attendre un bruit, une fuite ou une panne.\nPendant la durée du contrat, il prévient le prestataire avant de faire intervenir une autre entreprise sur les appareils.','Le client utilise normalement les appareils, signale vite tout problème et prévient le prestataire avant de faire venir une autre entreprise.']},
   pro:{
-    objet:['Objet du contrat','{{entreprise}} (le prestataire) assure la maintenance des installations de climatisation de {{client}} (le client), situées à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} assure la maintenance des installations de climatisation de {{client}}, situées à l’adresse suivante : {{adresse}}.'],
+    objet:['Objet du contrat','{{entreprise}} (le prestataire) assure la maintenance des installations de climatisation de {{client}} (le client), situées à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} assure la maintenance des installations de climatisation de {{client}}, situées à l’adresse suivante : {{adresse}}.'],
     visites:['Maintenance préventive','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le bon fonctionnement des appareils, nettoie ce qui doit l’être et note ses constats dans un compte rendu remis au client.','Le prestataire effectue {{frequence}} et remet un compte rendu au client.'],
-    depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par e-mail à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
-    acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
+    depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par e-mail à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
+    acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
     prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC, payé {{paiement}}.']},
   pac:{
-    objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient la pompe à chaleur de {{client}} (le client), installée à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient la pompe à chaleur de {{client}} installée à l’adresse suivante : {{adresse}}.'],
-    visites:['Visite d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le circuit, les réglages et le bon fonctionnement de la pompe à chaleur, puis remet un compte rendu au client.','Le prestataire effectue {{frequence}} : contrôle du circuit et des réglages, puis compte rendu.'],
+    objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient la pompe à chaleur de {{client}} (le client), installée à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient la pompe à chaleur de {{client}} installée à l’adresse suivante : {{adresse}}.'],
+    visites:['Visite d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le circuit, les réglages et le bon fonctionnement de la pompe à chaleur, puis remet un compte rendu au client.','Le prestataire effectue {{frequence}} : contrôle du circuit et des réglages, puis compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose la date de la visite au client, qui peut la décaler en le prévenant à l’avance.\nLe client donne accès à la pompe à chaleur le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','La date est fixée avec le client, qui donne accès à l’appareil. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
     prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
-    pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant la visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.']}};
+    pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant la visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.']}};
 const CONTRATS={
   part:{nom:'Contrat d’entretien de climatisation — particulier',modele:'classique',couleur:'#1b3a6b',
     suite:['objet','visites','acces','duree','prix','pannes','obligations','reconduction','resiliation','responsabilite','litiges'],
@@ -3983,7 +3983,7 @@ function htPanContrat(d){
   }).join('');
   return `<section class="pg ac-carte manque-carte">${htManque(d)}</section>${carteAC}
   <section class="pg"><h4>Client</h4>${pBtn('client','user',c?esc(c.nom):'Choisir un client')}</section>
-  <section class="pg"><h4>Informations du contrat</h4><p class="note" style="margin:0 0 10px">Tu les remplis une seule fois : elles se posent partout dans le texte.</p>
+  <section class="pg"><h4>Informations du contrat</h4><p class="note" style="margin:0 0 10px">Tu les remplis une seule fois : elles se posent partout dans le texte.</p>
     ${VARS.filter(v=>v.k!=='client').map(v=>champ(v)+(v.k==='adresse'&&adr&&!String(d.vars.adresse||'').trim()?`<button type="button" class="bt lien" data-act="var-adresse" style="margin:-6px 0 10px">Reprendre l’adresse du client</button>`:'')).join('')}</section>
   <section class="pg"><h4>Clauses</h4><p class="note" style="margin:0 0 6px">Coche une clause : elle prend sa place dans le contrat. Décoche-la : elle s’en va et les numéros se recalent.</p>${clauses}</section>`;
 }
@@ -5164,7 +5164,7 @@ function viergeClients(V){
   let L=S.clients.filter(ok), reste=0;
   if(!q&&L.length>4){ const sel=L.find(c=>c.id===V.clientId); let p=L.slice(0,4); if(sel&&!p.includes(sel)) p=[sel].concat(p.slice(0,3)); reste=L.length-p.length; L=p }
   const ligne=(id,nom,sous)=>`<button type="button" class="vv-cl" data-vv="client" data-id="${esc(id)}" aria-pressed="${V.clientId===id}"><b>${esc(nom)}</b>${sous?`<span>${esc(sous)}</span>`:''}</button>`;
-  return (q?'':ligne('','Sans client pour l’instant','Tu le choisiras dans le '+mot))+L.map(c=>ligne(c.id,c.nom,(c.pro?'Professionnel':'Particulier')+(c.ville?' · '+c.ville:''))).join('')+(reste?`<p class="fen-note vv-vide">+ ${reste} ${reste>1?'autres clients':'autre client'} : écris un nom plus haut pour ${reste>1?'les':'le'} trouver.</p>`:'')+(q&&!L.length?`<p class="fen-note vv-vide">Aucun client ne s’appelle comme ça. Tu peux en créer un avec « Nouveau client… ».</p>`:'');
+  return (q?'':ligne('','Sans client pour l’instant','Tu le choisiras dans le '+mot))+L.map(c=>ligne(c.id,c.nom,(c.pro?'Professionnel':'Particulier')+(c.ville?' · '+c.ville:''))).join('')+(reste?`<p class="fen-note vv-vide">+ ${reste} ${reste>1?'autres clients':'autre client'} : écris un nom plus haut pour ${reste>1?'les':'le'} trouver.</p>`:'')+(q&&!L.length?`<p class="fen-note vv-vide">Aucun client ne s’appelle comme ça. Tu peux en créer un avec « Nouveau client… ».</p>`:'');
 }
 function viergeVignettes(V){
   const o={identId:V.identId,logo:{show:V.logo.show,taille:V.logo.taille},cases:V.cases}; if(V.logo.align) o.logo.align=V.logo.align;
@@ -5239,7 +5239,7 @@ function vvCorpsContrat(V){
     return `<div class="vv-var"><label class="champ">${esc(v.l)}${saisie}<span class="err" id="vv-ve-${v.k}" role="alert" hidden></span></label>${v.sug?`<div class="vv-chips" role="group" aria-label="${esc(v.l)} : valeurs toutes prêtes">${v.sug.map((t,i)=>`<button type="button" class="chip-i" data-vv="sug" data-k="${v.k}" data-i="${i}">${esc(t)}</button>`).join('')}</div>`:''}</div>`;
   };
   const infos=`<label class="champ">Titre du contrat<input id="vv-titre" value="${esc(V.titre)}" maxlength="120" placeholder="Ex. : Entretien annuel" autocomplete="off"></label>
-    <p class="vv-sub">Informations à remplir</p><p class="fen-note vv-n">Tu les remplis une seule fois : elles se posent partout dans le texte des articles. Ce que tu laisses vide reste à compléter dans le contrat.</p>
+    <p class="vv-sub">Informations à remplir</p><p class="fen-note vv-n">Tu les remplis une seule fois : elles se posent partout dans le texte des articles. Ce que tu laisses vide reste à compléter dans le contrat.</p>
     ${VARS.filter(v=>v.k!=='client').map(champ).join('')}`;
   const arts=`<p class="vv-sub">Partir d’un modèle</p>
     <div class="vv-chips" id="vv-tpl" role="group" aria-label="Modèles de contrat">${['part','pro','pac'].map(m=>`<button type="button" class="chip-i" data-vv="tpl" data-v="${m}" aria-pressed="false">${esc(VV_TPL_NOM[m])}</button>`).join('')}<button type="button" class="chip-i" data-vv="tpl" data-v="" aria-pressed="false">Aucun</button></div>
@@ -5273,7 +5273,7 @@ function viergeCorps(V){
     :`<aside class="vv-ap" aria-label="Aperçu de la première page">${barre}<div class="vv-ap-cadre" id="vv-ap"></div><p class="vv-ap-note" id="vv-ap-note" role="status"></p></aside>`;
   return `<div class="vv">
     ${aside}
-    <div class="vv-form"><p class="fen-note vv-intro">Écris et choisis ce que tu veux : l’aperçu montre ton ${mot} qui se remplit. Rien n’est créé tant que tu ne touches pas « Créer le ${mot} ».</p>
+    <div class="vv-form"><p class="fen-note vv-intro">Écris et choisis ce que tu veux : l’aperçu montre ton ${mot} qui se remplit. Rien n’est créé tant que tu ne touches pas « Créer le ${mot} ».</p>
       ${ct?vvCorpsContrat(V):vvCorpsDevis(V)}
       <p class="vv-mem vv-mem-g fen-note" id="vv-mem-g" role="status" hidden></p>
     </div></div>`;
@@ -5325,7 +5325,7 @@ function vvLigHtml(V){
     return tete+`<li class="vv-l${l.opt?' opt':''}" data-id="${esc(l.id)}">
       <div class="vv-l-t">${esc(l.des)}${l.ref?`<i>${esc(l.ref)}</i>`:''}${l.opt?`<em class="vv-opt-b">Option</em>`:''}</div>
       <div class="vv-l-c"><label class="vv-mini">Quantité<input data-vv-q data-id="${esc(l.id)}" data-fk="q:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['qb:'+l.id]!==undefined?V.erreurs['qb:'+l.id]:rawQte(l.qteM))}" autocomplete="off" aria-label="Quantité : ${nom}"${V.erreurs['q:'+l.id]?' aria-invalid="true"':''}></label><span class="vv-u">${esc(l.unite)}</span>
-        <label class="vv-mini">Prix HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:champPrix(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
+        <label class="vv-mini">Prix unitaire HT (€)<input data-vv-p data-id="${esc(l.id)}" data-fk="p:${esc(l.id)}" inputmode="decimal" value="${esc(V.erreurs['pb:'+l.id]!==undefined?V.erreurs['pb:'+l.id]:champPrix(l.puC))}" autocomplete="off" aria-label="Prix unitaire HT : ${nom}"${V.erreurs['p:'+l.id]?' aria-invalid="true"':''}></label>
         <span class="vv-l-m" data-m="${esc(l.id)}">${esc(fmtMontant(htDeLigne(vvLigneDoc(l))))}</span></div>
       <span class="err" role="alert"${err?'':' hidden'}>${esc(err)}</span>
       <div class="vv-l-a"><label class="interr vv-opt"><input type="checkbox" role="switch" data-vv-sw="opt" data-id="${esc(l.id)}" data-fk="sw:${esc(l.id)}"${l.opt?' checked':''}><span>En option</span></label>
@@ -5338,7 +5338,7 @@ function vvMajLig(f,fk){
   const V=VV, ol=f.fen.querySelector('#vv-lig'); if(!ol||V.type!=='devis') return;
   const a=document.activeElement, cle=fk||(a&&ol.contains(a)?a.dataset.fk:null);
   ol.innerHTML=vvLigHtml(V);
-  f.fen.querySelector('#vv-lig-vide').innerHTML=V.lignes.length?'':'<p class="fen-note vv-vide">Rien ici pour l’instant : touche un article du catalogue, ou écris une ligne libre.</p>';
+  f.fen.querySelector('#vv-lig-vide').innerHTML=V.lignes.length?'':'<p class="fen-note vv-vide">Rien ici pour l’instant : touche un article du catalogue, ou écris une ligne libre.</p>';
   f.fen.querySelector('#vv-nb').textContent=V.lignes.length?'· '+vvPl(V.lignes.length,'ligne'):'';
   if(cle){ const n=ol.querySelector(`[data-fk="${CSS.escape(cle)}"]`); if(n&&!n.disabled) n.focus({preventScroll:true}); else if(cle.startsWith('del:')){ const m=ol.querySelector('[data-fk^="del:"]'); if(m) m.focus({preventScroll:true}) } }
 }
@@ -5745,7 +5745,7 @@ function vvMajArts(f,fk){
         <button type="button" class="bt icone danger" data-vv="a-del" data-id="${esc(x.uid)}" data-fk="adel:${esc(x.uid)}" aria-label="Retirer : ${nom}">${ic('x')}</button></div>
       ${ouv?`<label class="champ vv-a-e">Texte de l’article<textarea class="vv-ta" rows="7" maxlength="2500" data-vv-atexte="${esc(x.uid)}" autocomplete="off">${esc(x.texte)}</textarea></label><p class="fen-note vv-n">Les mots entre {{ }} se remplissent avec tes informations.</p>`:''}</li>`;
   }).join('');
-  f.fen.querySelector('#vv-lig-vide').innerHTML=V.articles.length?'':'<p class="fen-note vv-vide">Rien ici pour l’instant : choisis un modèle, touche des articles de la bibliothèque, ou écris le tien.</p>';
+  f.fen.querySelector('#vv-lig-vide').innerHTML=V.articles.length?'':'<p class="fen-note vv-vide">Rien ici pour l’instant : choisis un modèle, touche des articles de la bibliothèque, ou écris le tien.</p>';
   f.fen.querySelector('#vv-nb').textContent=V.articles.length?'· '+vvPl(V.articles.length,'article'):'';
   if(cle){ const n=ol.querySelector(`[data-fk="${CSS.escape(cle)}"]`); if(n&&!n.disabled) n.focus({preventScroll:true}) }
 }
@@ -7803,4 +7803,12 @@ function boot(){
 if(location.protocol==='file:') window.DSM={optPropositions,optVerrou,optEcrire,optPrompt,optContexte,optRaison,OPTI,htmlPages,appliquerReglages,identDe,identFigee,figerIdentite,identNet,refLogo,logosUtiles,IDENT_CHAMPS,sauverStock,chargerStock,appliquerIdentite,enregistrerIdentite,miniature,PDF,pdfFabriquer,pdfTelecharger,pdfLignes,pdfAssembler,pdfWinAnsi,pdfCouleurs,couleurRgb,pdfHote,pdfNomFichier,S,calculer,miseEnPage,paginer,htDeLigne,lireDecimal,validerChamp,fmtMontant,nouveauDevis,ligne,L,SEC,OPT,ouvrirDoc,fermerDoc,dessinerMaintenant,creerDocument,graines,capDe,D,AP,annuler,retablir,modelesIntegres,problemesEnvoi,lum,contrasteBlanc,ENTREPRISE,MODELES_PAGE,POLICES,normaliserReglages,reglagesDefaut,ibanOk,validerIdentite,docEchantillon,appliquerModeleNeuf,colsDe,STYLES_CLES,CLE_STOCK,CLE_ENT,_MINI,chargerPolice,ouvrirGalerie,ouvrirIdentite,blocDe,enteteObj,enteteListe,enteteIdDe,enteteNom,definirDefaut,supprimerEntete,ouvrirEntetes,ouvrirVierge,viergeDoc,viergeCreer,CATALOGUE,LIB,AMOD,COMMUN,CONTRATS,ORDRE_ART,contratDepuis,articleDe,vvBib,vvCalc,get VV_CLAUSES(){return VV_CLAUSES},get VV_MATOS(){return VV_MATOS},choisirEnteteDoc,usageEntete,prendreStyleEntete,CLE_VIERGE,get ENTETES(){return ENTETES},get DEFAUT_ID(){return DEFAUT_ID},get VV(){return VV},nouveauContrat,docEchantillonContrat,viergeNeuf,viergeCorps,VARS,LIB,optPropositionsCtr,optVerrouCtr,optNombres,optLois,optVarCle,optGardeTexte,optTexteLong,
   IA,ACTIONS,contratDepuis,numArticle,varInfo,manquantsContrat,varSet,articlesComplets,composerContrat,planComposition,extraireDemande,deplacerBlocVers,clausePresente,selectionner,muter,lireMulti,ttcDe,htDeTtc,NAV,lireRiche,fmtCommande,fmtListe,etatFormat,objDe,selectionnerObjet,insererObjet,htLignesEd,SECTIONS,ouvrirSections,poserSection,sectionsLire,sectionsEcrire,gardeAjouter,gardeRetirer,colGeo,bColonnes,colonnesNet,ouvrirGardeFenetre,ouvrirEnregSection,colRetirer,colAjouter,GARDES,SEC_CLE,paquetNeuf,propsNet,runsNormer,normaliserDoc,objSet,dupliquerObjet,supprimerObjet,pageVisible,entrerEditionObjet,geoPage,cibleFmt};   // outils des sondes : seulement en local (file:), jamais sur une page publiée
 boot();
+/* typographie française sur le texte AFFICHÉ (la même que celle du prototype OP GESTION) : espace insécable avant : ; ? ! » et après «, avant % et €.
+   Elle passe sur les textes que la page écrit elle-même (aides, états vides) ; jamais dans les données, ni dans ce qui s'édite (contenteditable), ni dans une zone de saisie. */
+{ const typoTxt = x => x.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0').replace(/(\d) ([%€])/g, '$1\u00a0$2');
+  const HORS = 'svg, pre, code, textarea, script, style, [contenteditable]';
+  const typo = racine => { if (!racine || racine.nodeType !== 1 || racine.closest(HORS)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
+    while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest(HORS)) continue; const u = typoTxt(t); if (u !== t) n.nodeValue = u; } };
+  new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) typo(n); else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(HORS)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; } } }).observe(document.body, { childList: true, subtree: true });
+  typo(document.body); }
 </script>
