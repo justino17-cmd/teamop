@@ -1,0 +1,36 @@
+{
+  "voie": "final-regard",
+  "suffixe": "technicien-a-retouches",
+  "date": "2026-11-18",
+  "fichier_modifie": "apercu/prototype-op-gestion.html (ni app.html, beta.html, sw.js, server/, REPRISE.md, CLAUDE.md, VOIES-EN-COURS.md)",
+  "sonde": "scratchpad/proto-final/sondes/regard-technicien-a-retouches.js : 71 ✓ · 0 ✗ ; regard-technicien-a.js : 272 ✓ · 0 ✗",
+  "corriges": [
+    {"n": 1, "ecran": "Ma journée avant pointage", "avant": "« ta première intervention est à 08:30 » à 10:40", "apres": "« était à 08:30 » si l'heure est passée, « est à » sinon (4 profils joués)"},
+    {"n": 2, "ecran": "Demande de congé, 320 px", "avant": "« Congé payé · 3 jours disponibles » 247 px pour 238 libres, sous la flèche", "apres": "« Congé payé · 3 jours dispo. » 207 px pour 238 sous 340 px de large ; texte complet (247 px) inchangé à 360 px et plus (278 à 425 px libres)"},
+    {"n": 3, "ecran": "iPad, calendrier six mois", "avant": "nom du jour férié à 9 px, 2 lignes collées à « CP » (11 px d'écart), chiffre orange sur le vert du congé ~3:1", "apres": "11 px, minuscules, « Jour de l'an » sur 2 lignes, 17 px d'écart avec la bande, chiffre et nom à l'encre sous une bande d'absence : 8,19:1 de jour, 4,52:1 de nuit (lus au pixel)"},
+    {"n": 4, "ecran": "Barre d'onglets à 320 px (gérant, secrétariat)", "avant": "règle @media 340 px morte (la feuille principale, écrite après, redonnait 11 px) : « Comptabilité » à 309 px pour un bord de pilule à 308, 4 px de son voisin", "apres": "10 px, rembourrage 4 px : texte dans la pilule, 6,4 à 11,8 px entre textes (gérant), 16 à 25 px (secrétariat sur Tâches)"}
+  ],
+  "regarde_sans_defaut": [
+    "iPad nuit : écrans vides (Ma journée, Faites, Aujourd'hui, Mes congés) pour la technicienne et le chef d'équipe",
+    "Windows et Android nuit : Nouvelle tâche et Demande de congé (technicienne et chef d'équipe), jusqu'au bas du panneau",
+    "fiche d'une absence du chef d'équipe (Formation validée, injectée dans la sonde car aucune dans sa fenêtre) : iPad jour, iPhone nuit, 320 px jour, Windows nuit, sans défaut"
+  ],
+  "decouverte": "la barre du secrétariat sur l'écran Comptabilité n'est pas celle du prototype (c'est celle de l'iframe, Accueil / À vérifier / Journée / Banque / Plus) : la barre du prototype se mesure sur Tâches",
+  "mutations": [
+    {"defaut_remis": "verbe fixe « est »", "sonde": "67 ✓ · 4 ✗"},
+    {"defaut_remis": "« disponibles » à 320 px", "sonde": "70 ✓ · 1 ✗"},
+    {"defaut_remis": "nom férié à 9 px", "sonde": "69 ✓ · 2 ✗"},
+    {"defaut_remis": "plus de marque cp (chiffre orange)", "sonde": "1 ✗ (case sous bande sans la marque)"},
+    {"defaut_remis": "bande collée au nom : SURVIVAIT (seuil de 6 px trop bas, l'écart sans correctif était déjà de 7 px)", "sonde": "seuil relevé à 12 px, mutation rejouée : 69 ✓ · 2 ✗"},
+    {"defaut_remis": "règle de barre sans « html »", "sonde": "69 ✓ · 2 ✗"}
+  ],
+  "controles": "compiler-pages 0 ✗ ; verifier-syntaxe 41 pages 0 erreur ; tests 835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓), 0 ✗ ; verif-secrets code 0",
+  "reste": [
+    "à 320 px la gouttière entre « Planning » et « Interventions » reste à 6,4 px (texte à 10 px) : lisible, mais la plus serrée de la barre",
+    "le jour férié sous une congé n'est plus orange : la distinction se lit au nom et à l'infobulle",
+    "« dispo. » est une abréviation, décision de vocabulaire à confirmer par Justin"
+  ],
+  "non_verifie": [
+    "rendu sur de vrais appareils (Chromium émulé seulement) ; les noms de jours fériés plus longs de l'année (Assomption, Pentecôte) ne tombent pas dans la fenêtre de six mois du prototype et n'ont pas été vus"
+  ]
+}

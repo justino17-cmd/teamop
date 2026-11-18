@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "Le refus du nom est une phrase de 4 lignes dans une demi-colonne sur Android (360 px)",
+  "defaut": "pasRegles 1 du recontrôle tour 1 (casse 3)",
+  "etat": "corrigé",
+  "changement": "NOM_PERS_REFUS devient « Lettres, chiffres, espaces et tirets seulement. » (47 signes) et un refus dit sa VRAIE raison par nomRefus() : signe interdit → cette phrase ; premier signe qui n'est pas une lettre ou un chiffre → « Commence par une lettre ou un chiffre. » ; plus de 60 signes → « 60 signes au plus. ». Les quatre endroits qui refusaient un nom (champ Prénom/Nom d'Inviter, bulle d'Inviter, bulle de Modifier la fiche) l'utilisent.",
+  "preuve": "campagne/sondes/restes-equipe-1-recontrole.js android nuit : 61 ✓ · 0 ✗ (avant : 57 ✓ · 5 ✗ dont « phrase du nom en TROIS lignes au plus ») ; capture iPhone jour rc-restes-inviter-3 regardée (la phrase tient en 2 lignes) ; mutation 3 (retour à la liste de sept lignes) tombe sur Android"
+ },
+ {
+  "nom": "Le refus du nom ne dit pas la règle du premier signe (« -Marie », « .Marie », « ’Marie »)",
+  "defaut": "nouveaux 1 du recontrôle tour 1",
+  "etat": "corrigé",
+  "changement": "Voir ci-dessus : « Commence par une lettre ou un chiffre. » pour un tiret, un point ou une apostrophe en tête ; la phrase ne promet plus « tirets seulement » à qui n'a tapé que des tirets ; 61 signes dit « 60 signes au plus. ».",
+  "preuve": "recontrôle section B réécrite (elle exigeait le contraire de la phrase vraie) : 8 valeurs jouées, « O'Neil », « Marie-Ève », « Jean 3 », 60 signes acceptés ; mutations 9 et 12 tombent"
+ },
+ {
+  "nom": "Sur sa propre fiche, le bloc Connexion du gérant reste à la troisième personne (« Provisoire : à lui remettre en main propre. Marc le change à sa première connexion », « Jamais »)",
+  "defaut": "pasRegles 2 du recontrôle tour 1",
+  "etat": "corrigé",
+  "changement": "secuFicheConnexion : quand la fiche est celle de la personne connectée, Mot de passe = « Personnel : tu l'as choisi toi-même. » (pas de « le change à sa première connexion »), Téléphone sans appareil = « À activer depuis ton téléphone », Dernière connexion sans trace = « En ce moment ». Les fiches des AUTRES personnes ne changent pas.",
+  "preuve": "recontrôle section E : 0 ✗ (phrase 3e personne absente, « utilise le lien ci-dessous » au-dessus du lien) ; capture Android nuit rc-restes-soi regardée ; sondes/secu-secrets.js mise à jour pour Marc (56 ✓ · 0 ✗) ; mutation 10 tombe"
+ },
+ {
+  "nom": "Une invitée désactivée se voit proposer « Renvoyer l'invitation » et « un nouveau mot de passe »",
+  "defaut": "casses 1 du recontrôle tour 1 (mineure)",
+  "etat": "corrigé",
+  "changement": "Un compte invité DÉSACTIVÉ n'a plus « Renvoyer l'invitation » (il ne peut pas se connecter) ; « Annuler l'invitation » et « Réactiver le compte » restent ; la phrase dit « Inès ne peut pas se connecter : réactive d'abord son compte. » (sans « pour lui donner un nouveau mot de passe » : elle n'en a jamais eu). Une invitée active garde ses deux boutons.",
+  "preuve": "recontrôle section D : 0 ✗ sur Android nuit et iPhone ; capture invitée désactivée regardée ; mutation 11 tombe"
+ },
+ {
+  "nom": "Compte désactivé : « Nouveau téléphone » et « Déconnecter partout » restent à côté de « Réactiver le compte »",
+  "defaut": "nouveaux 2 du recontrôle tour 1",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé. Sans danger ni effet visible ; un administrateur peut vouloir retirer le téléphone perdu d'un compte désactivé, et son téléphone est gardé pour son retour : à trancher.",
+  "preuve": "relevé du recontrôle (boutons de la fiche d'un compte désactivé)"
+ },
+ {
+  "nom": "Léa verrouillée ET désactivée : « utilise Déverrouiller » et « réactive d'abord son compte » côte à côte, sans ordre",
+  "defaut": "doute du recontrôle tour 1",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : cas rare, ni contradictoire ni dangereux ; l'ordre (réactiver puis déverrouiller) est une décision de parcours.",
+  "preuve": "relevé du recontrôle (lr-desactivee)"
+ },
+ {
+  "nom": "Sur iPad et au bureau, la bulle redit toujours la phrase écrite sous le champ",
+  "defaut": "doute du recontrôle tour 1",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : la bulle ne recouvre rien, c'est un doublon de présentation ; étendre la règle des téléphones à toute fenêtre à feuille est une décision.",
+  "preuve": "recontrôle tour 1 (iPad nuit, Mac : aucune zone recouverte)"
+ },
+ {
+  "nom": "Clavier virtuel réel : une phrase sous le champ peut passer sous le clavier",
+  "defaut": "doute du recontrôle tour 1",
+  "etat": "à soumettre à Justin",
+  "changement": "Non vérifiable ici (pas de vrai clavier iOS/Android dans l'émulateur) : à regarder sur un vrai téléphone.",
+  "preuve": "aucune mesure possible dans le Chromium de la machine"
+ }
+]

@@ -12,6 +12,7 @@ for f in ['prototype-op-gestion.html', 'prototype-documents.html', 'prototype-co
 PAGE = open(os.path.join(DEPOT, 'apercu', 'prototype-op-gestion.html'), encoding='utf-8').read()
 S1 = 'restes-contrats-1.js'
 S4 = 'restes-contrats-4.js'
+S5 = 'restes-contrats-5.js'
 def M(nom, old, new, sonde=S1, profil='mac'): return dict(nom=nom, old=old, new=new, sonde=sonde, profil=profil)
 MUT = [
  M("C1 le prix d'une visite n'est plus arrondi au centime (casse 1)", "const ctrPart = (prix, n, rang) => { const p = Math.round(prix * 100), u = Math.round(p / n), r = rang >= n ? p - u * (n - 1) : u; return r / 100; };", "const ctrPart = (prix, n, rang) => prix / n;"),
@@ -31,11 +32,11 @@ MUT = [
  M("C15 les visites d'un renouvellement lisent celles de l'ancien contrat", "&& ctrDeVisite(o) === k);", ");"),
  M("C16 le PDF d'un contrat terminé redit « à signer »", "const sig = k && k.st !== 'envoye' ? (k.sigImg", "const sig = k && k.st === 'signe' ? (k.sigImg"),
  M("C18 « Mettre fin » ne note plus les visites de départ à l'ancien contrat (recontrôle 1)", "    ctrFigerVisites(k);   // AVANT de changer l'état", "    //   // AVANT de changer l'état", "restes-contrats-1-recontrole.js"),
- M("C19 le TTC d'un prix « abc » redit NaN (recontrôle 1)", "return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };", "return Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100; };", "restes-contrats-1-recontrole.js"),
+ M("C19 le TTC d'un prix « abc » redit NaN (recontrôle 1)", "return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };", "return Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100; };", S5),
  M("C20 la visite d'un contrat terminé écrase de nouveau son nom (320 px)", ".ctr-vl{flex-wrap:wrap}", ".ctr-vl{flex-wrap:nowrap}", "restes-contrats-1-recontrole-ecrans.js", "petit"),
  M("C21 un prix à trois décimales se range tel quel (recontrôle 1)", "prix:ctrCentimes(B.prix) || 0, fact:B.fact, st:'envoye'", "prix:Number(B.prix) || 0, fact:B.fact, st:'envoye'", "restes-contrats-1-recontrole.js"),
  M("C22 une visite sortie du planning redit une date (recontrôle 1)", "(fini && !v.fait ? '' : ' · ' + jlong(v.d))}</span><span class=\"st ${v.fait", "' · ' + jlong(v.d)}</span><span class=\"st ${v.fait", "restes-contrats-1-recontrole-ecrans.js", "petit"),
- M("C23 le prix rangé redit l'arrondi flottant : 1.005 range 1,00 € alors que l'aperçu dit 1,01 € (tour 3)", "if (/^\\d+(\\.\\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2');", "if (false) return 0;", "restes-contrats-2-recontrole.js"),
+ M("C23 le prix rangé redit l'arrondi flottant : 1.005 range 1,00 € alors que l'aperçu dit 1,01 € (tour 3)", "if (/^\\d+(\\.\\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2');", "if (false) return 0;", S5),
  M("C24 la carte Facturation d'un contrat repasse sur une ligne forcée (320 px)", ".ctr-fact{flex-wrap:wrap}", ".ctr-fact{flex-wrap:nowrap}", "restes-contrats-2-recontrole-facturation.js", "petit"),
  M("C25 l'aperçu lit le TTC sur la saisie brute (tour 4 : 99.995 → 119,99 au lieu de 120,00)", "soit ${eur(ctrTTC(ctrCentimes(B.prix) || 0, B))} TTC (TVA ${ctrTva(B)}\xa0%)", "soit ${eur(ctrTTC(B.prix, B))} TTC (TVA ${ctrTva(B)}\xa0%)", S4),
  M("C26 l'aperçu lit le prix par visite sur la saisie brute (tour 4 : 100.005 sur 2 visites → 50,00 au lieu de 50,01)", "prixVisite = ctrPart(ctrCentimes(B.prix) || 0, Number(B.freq) || 1, 1);", "prixVisite = (Number(B.prix)||0) / (Number(B.freq)||1);", S4),
@@ -43,6 +44,11 @@ MUT = [
  M("C28 le tableau des Contrats ne se replie plus quand la CARTE est étroite (iPad portrait, tour 4)", ".ctr-liste{container:ctrl / inline-size}", ".ctr-liste{}", S4, 'ipad'),
  M("C29 le total à sept chiffres reprend ses 22 px au téléphone (tour 4)", ".kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}", ".kpis .kpi.kpi-long b{font-size:22px}", S4, 'petit'),
  M("C17 la liste composée ne dit plus le TTC (décision i)", "${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}", "", "restes-contrats-composes.js"),
+ M("C30 le tableau des Contrats revient dès 761 px de carte : « Copropriété » coupé en plein mot sur une fenêtre de 1 100 px (tour 5)", "@container ctrl (max-width:840px){", "@container ctrl (max-width:760px){", S5),
+ M("C31 l'aperçu écrit de nouveau « ∞ € » pour 1e999 (le plafond ne se lit plus, tour 5)", "return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };", "return c > 0 ? c : 0; };", S5),
+ M("C32 l'aperçu écrit de nouveau 0,50 € pour un prix sous 1 € (tour 5)", "return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };", "return isFinite(c) && c > 0 && c <= CTR_PRIX_MAX ? c : 0; };", S5),
+ M("C33 le champ ne dit plus « trop grand » (tour 5)", "ctrCentimes(B.prix) > CTR_PRIX_MAX ? 'Ce prix est trop grand : maximum '", "false ? 'Ce prix est trop grand : maximum '", S5),
+ M("C34 l'article 4 relit la saisie brute pour le HT (tour 5)", "${eur(ctrPrixApercu(B.prix))} HT par an, soit", "${eur(Number(B.prix) || 0)} HT par an, soit", S5),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
 log = open(os.path.join(CAP, 'mutations-restes-contrats.log'), 'a')

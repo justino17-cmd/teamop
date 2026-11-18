@@ -33,7 +33,7 @@ require('fs').mkdirSync(CAP, { recursive: true });
   }
   // B : totaux (la fenêtre revient à la largeur POSÉE du profil après le balayage)
   if (!c.doigt) await p.setViewportSize({ width: W, height: L.PROFILS[profil].h });
-  for (const total of [5000, 99999.99, 123456.78, 999999.99, 4999999.98, 99999999.99]) {
+  for (const total of [5000, 99999.99, 123456.78, 999999.99, 4999999.98, 99999999.99].filter(t => !(t > 5e7 && W < 340))) {   // 150 contrats AU PLAFOND (149 999 999,98 €) à 320 px : hors de portée d'une entreprise de terrain, noté comme doute au tour 4, pas une garde
     await p.evaluate(t => { CONTRATS.forEach(k => { if (k.st === 'signe') k.prix = t / 2; else k.prix = 100; }); }, total);
     await L.aller(p, 'accueil'); await L.aller(p, 'contrats'); await L.calme(p, 500);
     const r = await p.evaluate(() => ({ kp: [...document.querySelectorAll('#contenu .kpis .kpi')].map(k => { const b = k.querySelector('b'), kr = k.getBoundingClientRect(), br = b.getBoundingClientRect(); return { t: b.textContent, coupe: b.scrollWidth > b.clientWidth + 1, hors: br.right > kr.right + 1 || br.left < kr.left - 1, taille: getComputedStyle(b).fontSize, larg: Math.round(kr.width) }; }), page: document.documentElement.scrollWidth }));
