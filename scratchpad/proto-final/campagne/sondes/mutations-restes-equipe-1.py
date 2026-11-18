@@ -11,12 +11,16 @@ src = open(PAGE, encoding='utf-8').read()
 M = [
  ('1 la bulle ne reconnaît que les fiches de Mon entreprise (.ent-pan)', [("m0.closest('#calque .panneau')", "m0.closest('.ent-pan')")], 'A', 'iphone'),
  ('2 [ÉQUIVALENTE : la feuille #calque .panneau est découpée au bas de l\'écran (bottom == innerHeight mesuré à 320 et 390 px), la borne est redondante ici] la bulle ne borne plus par le bas de l\'écran', [("Math.min(pr.bottom, window.innerHeight, ac ?", "Math.min(pr.bottom, ac ?")], 'A', 'petit'),
- ('3 la phrase du nom redevient la liste de sept lignes', [("const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement (60 signes au plus).';", "const NOM_PERS_REFUS = 'Un prénom ou un nom s’écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > \" & ni de signes spéciaux.';")], 'A', 'iphone'),
+ ('3 la phrase du nom redevient la liste de sept lignes', [("const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';", "const NOM_PERS_REFUS = 'Un prénom ou un nom s’écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > \" & ni de signes spéciaux.';")], 'A', 'android'),
  ('4 un compte désactivé reçoit de nouveau les gestes de mot de passe (fiche)', [("const mdpOutils = !p.actif ? `", "const mdpOutils = false ? `")], 'D', 'iphone'),
  ('5 un compte désactivé reçoit de nouveau le lien (rangée d\'actions de la fiche)', [(": p.actif ? `<button type=\"button\" class=\"btn gris\" data-eq=\"mdp|${k}\">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type=\"button\" class=\"btn gris\" data-eq=\"${p.actif ? 'desact' : 'actif'}|${k}\"", ": `<button type=\"button\" class=\"btn gris\" data-eq=\"mdp|${k}\">Lui envoyer un lien pour choisir le sien</button>`}<button type=\"button\" class=\"btn gris\" data-eq=\"${p.actif ? 'desact' : 'actif'}|${k}\"")], 'D', 'iphone'),
  ('6 « Voir » seul dans le bandeau des comptes verrouillés', [("${V.length > 1 ? 'Voir ces comptes' : 'Voir ce compte'}", "Voir")], 'F', 'iphone'),
  ('7 le filtre Invités vide redit « Personne ici pour le moment »', [("f === 'invites' ? 'Aucune invitation en attente. Pour inviter quelqu’un, touche « ＋ Inviter une personne ».' :", "")], 'C', 'iphone'),
  ('8 la fiche de soi parle de nouveau à la troisième personne (bouton)', [("${soi ? 'M’envoyer un lien pour choisir un nouveau mot de passe' : 'Lui envoyer un lien pour choisir le sien'}", "Lui envoyer un lien pour choisir le sien")], 'E', 'iphone'),
+ ('9 [tour 2] la phrase du nom ne parle plus du PREMIER signe', [("if (!/^[\\p{L}\\p{M}\\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';", "")], 'B', 'iphone'),
+ ('10 [tour 2] la fiche de soi redevient « provisoire, à lui remettre en main propre »', [("soi = k === acteur(), perso = !!c.empreinte || soi,", "soi = k === acteur(), perso = !!c.empreinte,")], 'E', 'iphone'),
+ ('11 [tour 2] une invitée désactivée se voit de nouveau proposer « Renvoyer l\'invitation »', [("${p.invite ? `${p.actif ? `<button type=\"button\" class=\"btn gris\" data-eq=\"relancer|${k}\">Renvoyer l’invitation</button>` : ''}", "${p.invite ? `<button type=\"button\" class=\"btn gris\" data-eq=\"relancer|${k}\">Renvoyer l’invitation</button>")], 'D', 'iphone'),
+ ('12 [tour 2] 61 signes : la phrase ne dit plus 60', [("if (x.length > 60) return '60 signes au plus.';", "")], 'B', 'iphone'),
 ]
 sel = [int(a) for a in sys.argv[1:]]
 bilan = []

@@ -1,5 +1,5 @@
 // GARDE des restes de la sécurité, tour 3 (18 novembre 2026) : les champs d'un client portent le plafond que cliNet range
-// (contact 120, adresse 160, accès 200, e-mail 120, téléphone 30) — sinon on tape plus que ce qui est gardé, sans prévenir —
+// (contact 120, adresse 160, accès 200, e-mail 120, téléphone 60 : deux numéros avec leurs espaces) — sinon on tape plus que ce qui est gardé, sans prévenir —
 // et une coupe ne laisse jamais la moitié d'un émoji (« � »).
 //   A. STATIQUE : dans le source de la page, chacun des 21 champs de contact/adresse/accès/e-mail/téléphone des cinq formulaires qui écrivent un client porte son maxlength ;
 //   B. VIVANT : la fiche client ouverte au navigateur le porte aussi ; libelleSur / mailNom / mlDeNet coupés à la limite d'un émoji ne laissent aucun signe orphelin, et un texte sans émoji est coupé à la même longueur qu'avant.
@@ -7,11 +7,11 @@
 const L = require('../lib.js'), fs = require('fs'), path = require('path');
 const SRC = fs.readFileSync(path.join(__dirname, '../../../apercu/prototype-op-gestion.html'), 'utf8');
 const ATTENDUS = [ // [motif de l'ouverture de la balise, maxlength attendu]
-  ['<input data-ci="contact"', 120], ['<input data-ci="tel"', 30], ['<input data-ci="mail"', 120], ['<input data-ci="adr"', 160], ['<textarea data-ci="acces"', 200],
-  ['<input id="dvn-prenom"', 120], ['<input id="dvn-tel"', 30], ['<input id="dvn-mail"', 120], ['<input id="dvn-adr"', 160],
-  ['<input data-cnv="contact"', 120], ['<input data-cnv="tel"', 30], ['<input data-cnv="mail"', 120], ['<input data-cnv="adr"', 160],
-  ['<input id="cs-contact"', 120], ['<input id="cs-tel"', 30], ['<input id="cs-mail"', 120], ['<input id="cs-adr"', 160],
-  ['<input data-dx="nv_prenom"', 120], ['<input data-dx="nv_tel"', 30], ['<input data-dx="nv_mail"', 120], ['<input data-dx="nv_adr"', 160]];
+  ['<input data-ci="contact"', 120], ['<input data-ci="tel"', 60], ['<input data-ci="mail"', 120], ['<input data-ci="adr"', 160], ['<textarea data-ci="acces"', 200],
+  ['<input id="dvn-prenom"', 120], ['<input id="dvn-tel"', 60], ['<input id="dvn-mail"', 120], ['<input id="dvn-adr"', 160],
+  ['<input data-cnv="contact"', 120], ['<input data-cnv="tel"', 60], ['<input data-cnv="mail"', 120], ['<input data-cnv="adr"', 160],
+  ['<input id="cs-contact"', 120], ['<input id="cs-tel"', 60], ['<input id="cs-mail"', 120], ['<input id="cs-adr"', 160],
+  ['<input data-dx="nv_prenom"', 120], ['<input data-dx="nv_tel"', 60], ['<input data-dx="nv_mail"', 120], ['<input data-dx="nv_adr"', 160]];
 (async () => {
   L.v('A. population : 21 champs recensés', ATTENDUS.length === 21, ATTENDUS.length);
   for (const [m, n] of ATTENDUS) {

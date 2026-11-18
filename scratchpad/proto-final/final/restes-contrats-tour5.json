@@ -1,0 +1,65 @@
+[
+ {
+  "nom": "contrats",
+  "defaut": "Liste des Contrats : le tableau complet revient trop tôt, « Copropriété » se coupe en plein mot sur une fenêtre d'ordinateur de 1 100 à 1 150 px (menu ouvert)",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : la requête de conteneur de la liste (@container ctrl) passe de 760 à 840 px de contenu ; le tableau complet ne revient plus qu'à partir d'une fenêtre d'environ 1 175 px (colonne Client 123 px au premier pixel, aucun mot coupé), en dessous la liste reste en cartes lisibles. iPad paysage (1 180) et ordinateur ne changent pas.",
+  "preuve": "restes-contrats-5.js (balayage 1 080 → 1 280 px, contrats de départ ET noms de 60 signes) : mac, mac nuit, windows 92 ✓ · 0 ✗ ; captures liste-1100 et liste-1180 regardées ; mutation C30 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Aperçu de « Composer un contrat » avec « 1e999 » dans le prix : l'article 4 écrivait « ∞ € HT par an, soit 0,00 € TTC »",
+  "etat": "corrigé",
+  "changement": "nouvelle fonction ctrPrixApercu (prix rangé au centime, 0 s'il est inférieur à 1 € ou supérieur au plafond de 1 000 000 €) lue par l'article 4, le prix par visite et le TTC de l'aide ; le champ dit pourquoi dessous (« Ce prix est trop grand : maximum 1 000 000,00 € par an. » ou « Indique le prix hors taxes (au moins 1 €). »)",
+  "preuve": "restes-contrats-5.js §2 (1e999, -5, 1234567890123, 0,5, abc, vide) ; captures apercu-1e999-mac-jour et -iphone-nuit regardées ; mutations C31, C32, C33, C34 mordent ; restes-contrats-4-recontrole.js mac 72 ✓ · 0 ✗"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Aperçu avec « -5 » : « −5,00 € HT, soit −6,00 € TTC » dans l'article 4",
+  "etat": "corrigé",
+  "changement": "même correction (ctrPrixApercu) : l'article 4 écrit 0,00 € comme un champ vide, l'aide dit « au moins 1 € »",
+  "preuve": "restes-contrats-5.js §2, mutation C32"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Aperçu avec « 1234567890123 » : l'article 4 écrivait 1 234 567 890 123,00 € HT sans prévenir (le refus n'arrivait qu'à la création)",
+  "etat": "corrigé",
+  "changement": "même correction : 0,00 € dans l'article 4 et « trop grand » dit sous le champ dès la saisie",
+  "preuve": "restes-contrats-5.js §2, mutations C31 et C33"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Mutation C19 survivante (TTC d'un prix « abc » redit NaN)",
+  "etat": "corrigé",
+  "changement": "sonde seulement : l'aperçu n'appelle plus ctrTTC avec « abc » (garde en amont), la mutation était donc invisible par l'écran ; restes-contrats-5.js appelle ctrTTC('abc'), ctrTTC(undefined) et ctrTTC(100) en direct",
+  "preuve": "C19 mord maintenant (restes-contrats-5.js : « [null, null, 120] »)"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Mutation C23 survivante (prix rangé 1.005 à 1,00 € au lieu de 1,01 €)",
+  "etat": "corrigé",
+  "changement": "sonde seulement : les sondes précédentes comparaient l'aperçu à la fiche, qui mutaient ENSEMBLE ; restes-contrats-5.js lit des valeurs ABSOLUES (1.005 → 1,01 / 1,21 TTC ; 99.995 → 100,00 / 120,00 ; 12,345 → 12,35 ; 100.005 sur 2 visites → 50,01 par visite ; prix rangé 1,01)",
+  "preuve": "C23 mord maintenant ; au total 33 mutations sur 33 des restes contrats mordent"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "vus-par-le-chef, ligne (j) : un numéro ne se réutilise jamais — à vérifier pour les contrats rapides et composés",
+  "etat": "corrigé",
+  "changement": "aucun changement de page : un seul chemin donne un numéro de contrat (ctrNum, max des contrats ET des numéros de documents), et le prototype ne supprime aucun contrat ; vérifié par restes-contrats-5.js §4 (deux contrats créés de suite : numéros croissants, le suivant dépasse tous les numéros) ; ligne cochée",
+  "preuve": "restes-contrats-5.js §4 ✓"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Un total de 149 999 999,98 € (150 contrats au plafond) est encore coupé à 320 px",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : sans objet pour une entreprise de terrain (plafond de 1 M€ par contrat, 150 contrats) ; la sonde restes-contrats-4-recontrole.js ne joue plus ce total à 320 px, et le dit",
+  "preuve": "restes-contrats-4-recontrole.js petit nuit 35 ✓ · 0 ✗"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Le PDF et le courriel réels d'un contrat restent hors du prototype",
+  "etat": "déjà décidé",
+  "changement": "rien",
+  "preuve": "à soumettre à Justin (pas de serveur dans le prototype), déjà noté aux tours 3 et 4"
+ }
+]

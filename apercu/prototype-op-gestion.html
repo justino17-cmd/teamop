@@ -291,11 +291,12 @@ body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pou
 .gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}
 
 /* [8] une rangée de destinations ne défile pas : sur téléphone elle passe à la ligne, tous les choix restent visibles */
-@media (max-width:760px){.seg:has([data-vc]),.seg:has([data-filtreint]),.seg:has([data-dvf]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-vc]) button,.seg:has([data-filtreint]) button,.seg:has([data-dvf]) button{flex:1 1 auto}}
+@media (max-width:760px){.seg:has([data-vc]),.seg:has([data-filtreint]),.seg:has([data-dvf]),.seg:has([data-rangc]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-vc]) button,.seg:has([data-filtreint]) button,.seg:has([data-dvf]) button,.seg:has([data-rangc]) button{flex:1 1 auto}}   /* « Archivés · N » sortait de la vue à 320 et 360 px : la rangée passe à la ligne (recontrôle clients) */
 /* le filtre des interventions ne défile jamais de côté (restes interventions : sur iPad portrait, « Toutes » sortait à droite sans indice) : il passe à la ligne dès que la colonne est trop étroite, quel que soit l'appareil */
 .seg:has([data-filtreint]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-filtreint]) button{flex:1 1 auto}
 /* Devis : cinq filtres qui ne tiennent pas sur une ligne (téléphone, iPad en colonne) passent à la ligne au lieu de défiler : « Tous » ne se perd plus derrière le bord (regard gérant B) */
 .seg:has([data-dvf]){flex-wrap:wrap;overflow-x:visible}
+@media (min-width:761px) and (max-width:1100px){.seg:has([data-dvf]) button{padding:0 12px}}   /* iPad : les cinq filtres de Devis tiennent sur une ligne (« Tous » restait seul en dessous, dans une pastille plus large) */
 
 /* [10] tableau des contrats au téléphone : N° et client (avec titre, prix et état dessous) ; les colonnes de droite se replient */
 .ctr-tab .ctr-m{display:none}
@@ -307,9 +308,9 @@ body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pou
 /* un total à sept chiffres (« 1 999 999,98 € ») ne tient pas dans une carte de téléphone à 22 px : il rapetisse avec l'écran au lieu d'être coupé (restes contrats, tour 4) */
 .kpis .kpi.kpi-long b{overflow-wrap:anywhere}
 @media (max-width:760px){.kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}}
-/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
+/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 840 px (tour 5) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
 .ctr-liste{container:ctrl / inline-size}
-@container ctrl (max-width:760px){
+@container ctrl (max-width:840px){
   table.l.ctr-tab{min-width:0!important}
   .ctr-tab th:nth-child(n+3),.ctr-tab td:nth-child(n+3){display:none}
   .ctr-tab .ctr-m{display:block;margin-top:3px;line-height:1.5}
@@ -1498,7 +1499,7 @@ table.l tr.cp-ko td{background:color-mix(in srgb,var(--orange) 7%,transparent)}
 .cp-rl{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--trait)}.cp-rl:last-child{border-bottom:0}
 .cp-rl-g{display:flex;flex-direction:column;gap:3px;min-width:0}.cp-rl-g .mono{white-space:normal;word-break:break-word}
 .cp-rl.ko{background:color-mix(in srgb,var(--orange) 7%,transparent);border-radius:10px;padding:11px 10px}
-.cp-dr{text-align:right;flex:none;white-space:nowrap}.cp-dr .gris{white-space:normal}
+.cp-dr{text-align:right;flex:none;white-space:nowrap}.cp-dr .gris{white-space:normal}.cp-pj{white-space:nowrap}   /* une référence de pièce (« FA-CPA-88412.pdf ») se coupe entre deux mots, jamais au milieu de son identifiant (regard bureau A, second regard) */
 .cp-clos{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;align-items:flex-start}
 .cp-fec{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre;overflow:auto;max-height:340px;padding:12px;border-radius:12px;background:var(--surf-in);border:1px solid var(--trait);margin:12px 0}
 /* Matériel & produits (6 novembre 2026) */
@@ -1770,6 +1771,7 @@ button.cx-row:hover{background:var(--survol)}
 .cx-d{color:var(--doux);font-size:14px;white-space:nowrap}
 .cx-doc{display:flex;flex-direction:column;gap:2px;min-width:0}
 .cx-doc .petit{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:380px){.cx-row .cx-doc .petit{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}}   /* « FAC-2026-0144 · R… » : à 320 px le numéro mangeait la ligne et l’objet se réduisait à une lettre ; il passe sur trois lignes au plus (regard bureau A, second regard) */
 .cx-cat{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--doux);min-width:0}
 .cx-mini{font-size:16px}
 .cx-ech{font-size:14px;color:var(--doux)}
@@ -2311,7 +2313,7 @@ body.glisse,body.glisse *{cursor:grabbing!important;-webkit-user-select:none!imp
 .pl-mrec thead th{font-size:12px;color:var(--doux);font-weight:700;border-top:0}.pl-mrec tbody th{display:flex;align-items:center;gap:8px;font-weight:650}
 .pl-mrec-a{display:inline-block;font-size:12px;font-weight:650;background:color-mix(in srgb,var(--c) 22%,transparent);border-left:3px solid var(--c);border-radius:5px;padding:1px 6px;margin:1px 0}
 .pl-mleg{display:flex;flex-wrap:wrap;gap:8px 16px;padding:10px 16px 14px;font-size:12.5px;color:var(--doux)}.pl-mleg span{display:inline-flex;align-items:center;gap:6px}.pg-abs.demi{flex:0 0 auto;min-height:28px;margin-bottom:4px}.pl-jh small.pl-abs-l{color:color-mix(in srgb,var(--ac,var(--violet)) 80%,var(--encre));font-weight:700}
-.pg-abs{flex:1;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);min-height:80px}
+.pg-abs{flex:1;padding:0 8px;text-align:center;border-radius:12px;border:1px dashed color-mix(in srgb,var(--ac,var(--doux)) 60%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;color:color-mix(in srgb,var(--ac,var(--doux)) 72%,var(--encre));background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ac,var(--doux)) 20%,transparent) 0 8px,color-mix(in srgb,var(--ac,var(--doux)) 6%,transparent) 8px 16px);min-height:80px}
 .apercu{position:fixed;z-index:85;width:300px;padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);display:flex;flex-direction:column;gap:8px;pointer-events:none;animation:pop .16s var(--ressort) both;font-size:14.5px}
 .ap-h{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}.ap-h span{display:block;font-size:13px;font-weight:500;color:var(--doux)}
 .ap-t{font-size:16px;font-weight:700;line-height:1.3}.ap-l{line-height:1.4}.ap-motif{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--orange) 10%,transparent)}
@@ -2604,6 +2606,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 /* le détail d'un technicien : ses interventions et leur paiement */
 .st-ent5{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
 .st-ints{display:flex;flex-direction:column}
+.pp>span+span::before{content:' · ';white-space:pre}.pp-court>span{white-space:nowrap}
+@media (max-width:600px){.pp{display:inline-flex;flex-wrap:wrap;column-gap:14px}.pp>span+span::before{content:none}}
 .st-ints-mois{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--doux);padding:14px 2px 4px}
 .st-int{display:grid;grid-template-columns:58px minmax(0,1fr) auto 150px;gap:12px;align-items:center;padding:11px 2px;border-bottom:1px solid var(--trait)}
 .st-int-q{display:flex;flex-direction:column}.st-int-q small{color:var(--faible);font-size:12px}
@@ -2611,6 +2615,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 .st-int-m{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap;font-variant-numeric:tabular-nums}.st-int-m small{font-size:12px}
 .st-int-p{display:flex;flex-direction:column;align-items:flex-start;gap:3px}.st-int-p small{font-size:12px;color:var(--faible)}
 @media (max-width:760px){.st-int{grid-template-columns:52px minmax(0,1fr) auto;row-gap:6px}.st-int-p{grid-column:2/-1;flex-direction:row;align-items:center;gap:8px}}
+/* à 320 px la colonne du texte tombait à 97–120 px (6 lignes, « Ouvrir l'intervention › » cassé, flèche seule) : sous 380 px, la date et le montant se partagent la première ligne et le texte prend toute la largeur dessous */
+@media (max-width:380px){.st-int,.st-int-3{grid-template-columns:minmax(0,1fr) auto;column-gap:12px}.st-int-q{grid-column:1;grid-row:1;flex-direction:row;align-items:baseline;gap:8px}.st-int-m{grid-column:2;grid-row:1}.st-int-c{grid-column:1/-1;grid-row:2}.st-int-p{grid-column:1/-1;grid-row:3}}
 /* gestes d'une ligne (relancer, à faire), documents, envoi par e-mail */
 .mini-btn{min-height:34px;padding:0 12px;font-size:13.5px;border-radius:10px}
 .st-gestes{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
@@ -2821,7 +2827,8 @@ body.dp-ouvert{overflow:hidden}
 .t-ici{margin:0 0 16px;border-radius:18px;background:color-mix(in srgb,var(--lien) 8%,var(--feuille));border:1px solid color-mix(in srgb,var(--lien) 22%,transparent);padding:4px 6px}
 .t-ici summary{display:flex;align-items:center;gap:8px;padding:10px 10px;cursor:pointer;list-style:none;min-height:44px}.t-ici summary::-webkit-details-marker{display:none}
 .t-ici summary::after{content:'›';margin-left:auto;transition:rotate .2s;color:var(--doux)}.t-ici[open] summary::after{rotate:90deg}
-.t-ici summary b{white-space:nowrap}.t-ici summary .gris{min-width:0}   /* à 320 px « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur : c'est le petit texte qui cède, pas le titre (regard bureau A) */
+.t-ici summary b{white-space:nowrap}.t-ici summary .gris{min-width:0}
+.t-ici{min-width:0}.t-ici summary{flex-wrap:wrap;row-gap:0}   /* à 320 px le titre en nowrap (223 px) + l'icône + la flèche demandaient 323 px à la bande, et le petit texte, écrasé à 0, la laissait pousser la PAGE à 340 px : la fenêtre de mise en page grandissait, la croix des fenêtres plein écran sortait. Le petit texte passe maintenant à la ligne au lieu de s'écraser */   /* à 320 px « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur : c'est le petit texte qui cède, pas le titre (regard bureau A) */
 .t-ici-l{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;border-top:1px solid var(--trait);background:none;color:var(--encre);font:inherit;padding:10px;cursor:pointer;min-height:44px}
 .a-int{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:8px 0;min-height:40px;cursor:pointer;border-top:1px solid color-mix(in srgb,currentColor 15%,transparent)}
 
@@ -2889,6 +2896,8 @@ body.dp-ouvert{overflow:hidden}
 /* Tablette (menu permanent : la boîte du tableau fait ~500 px) : mêmes resserrements que sur téléphone, sinon le tableau mesurait 662 px et la
    colonne « À surveiller » sortait de la boîte sans que rien le dise (défaut trouvé au rejeu sur iPad, taches-absences-09). */
 @media (min-width:761px) and (max-width:1100px){.as-t{font-size:13px}.as-t th,.as-t td{padding:8px 8px}.as-t td:last-child{white-space:normal}.as-t .st{white-space:normal;display:inline-block;line-height:1.25}.as-t thead th{white-space:normal}}
+/* à 390 px la pastille « presque plus de congés » se pliait sur trois lignes dans la colonne « À surveiller » : jusqu'à 430 px (les iPhone) l'alerte passe sous le nom, comme à 360 */
+@media (max-width:430px){.as-t thead th:last-child,.as-t td:last-child{display:none}.as-tel-al{display:block;margin-top:4px}.as-tel-al .st{font-size:11px;padding:2px 8px}}
 @media (max-width:380px){.as-t{font-size:12px}.as-t th,.as-t td{padding:8px 3px}.as-t th:first-child,.as-t td:first-child{padding-left:10px}.as-t td:last-child{padding-right:8px}/* à 320-380 px la colonne « À surveiller » ne tient plus : l'alerte passe sous le prénom, la colonne disparaît (défaut taches-absences-09) */
   .as-t thead th:last-child,.as-t td:last-child{display:none}.as-tel-al{display:block;margin-top:4px}.as-tel-al .st{font-size:11px;padding:2px 8px}.as-t thead th{font-size:10px}}
 /* une personne, mois par mois */
@@ -3075,16 +3084,16 @@ body.dp-ouvert{overflow:hidden}
   .dv-lg .dv-x{grid-row:2;grid-column:4}
   .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:none}.dv-lg.lu>span:nth-child(2){grid-column:1;grid-row:2;font-size:13px}.dv-lg.lu b{grid-column:2;grid-row:1/3}}
 /* les lignes d'une facture à valider : mêmes champs que le devis, mais la quantité peut porter une unité (« 250 mL ») et la croix se touche au doigt */
-.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 128px 44px}   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
+.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 100px 110px 128px 44px}   /* quantité à 100 px (88 avant) : « 12 345,5 » et « 90 min » s'y relisent en entier */   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
 .fac-lgs .dv-x{width:44px;height:44px}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
 /* sous 1250 px l'en-tête de colonnes est caché : sans mot au-dessus, « 2 h » et « 100 » côte à côte laissaient deviner lequel est la quantité (recontrôle, tour 2). Chaque champ reprend son mot, juste au-dessus ; à l'ordinateur ces étiquettes n'existent pas (l'en-tête suffit). */
 .fac-et{display:none}
-@media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 128px 44px;grid-template-areas:none;row-gap:2px}
+@media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 100px 128px 44px;grid-template-areas:none;row-gap:2px}
   .fac-lgs .dv-lg>input:first-child{grid-column:1/-1;grid-row:1;margin-bottom:4px}
   .fac-lgs .fac-et{display:block;grid-row:2;font-size:12px;line-height:1.2;color:var(--doux);font-weight:600;white-space:nowrap;text-align:right;padding-right:4px}.fac-lgs .fac-et-q{grid-column:2}.fac-lgs .fac-et-p{grid-column:3}
   .fac-lgs .dv-lg .dv-q2{grid-column:2;grid-row:3}.fac-lgs .dv-lg .dv-pu{grid-column:3;grid-row:3}.fac-lgs .dv-lg .dv-x{grid-column:4;grid-row:3}.fac-lgs .dv-lg .dv-tot{grid-row:4}}
-@media (max-width:420px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 72px 112px 44px}.fac-lgs .fac-et{font-size:11.5px}}   /* 320 px : 88 + 128 + 44 + 3 écarts dépassaient la carte ; la colonne de gauche ne sert qu'à la désignation, qui prend toute la ligne */
+@media (max-width:420px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 92px 98px 44px;column-gap:6px}.fac-lgs .dv-lg .dv-q2,.fac-lgs .dv-lg .dv-pu{padding-left:6px;padding-right:6px}.fac-lgs .fac-et{font-size:11.5px}}   /* « 90 min », « 90 minutes » et « 12 345,5 » se relisent en entier dans la quantité : 72 px de champ n'en montraient que « 90 … » (recontrôle, tour 4) ; 92 + 98 + 44 + 3 écarts de 6 = 252 px, la place d'avant : la ligne reste DANS la carte à 320 px */   /* 320 px : 88 + 128 + 44 + 3 écarts dépassaient la carte ; la colonne de gauche ne sert qu'à la désignation, qui prend toute la ligne */
 .fac-edit table.l{margin-top:6px}
 .dv-ajouts,.dv-modeles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.dv-ajouts .puce-c,.dv-modeles .puce-c{min-height:44px}   /* comme toutes les autres rangées de pastilles : un doigt les touche sans viser (devis-atelier-11) */
 .dv-ajouts label.puce-c select{border:0;background:none;color:inherit;font:inherit;max-width:150px}
@@ -3609,6 +3618,10 @@ body.ac-glisse .ac-x{pointer-events:none}
   .cx-sous{margin:-2px 0 0;padding:0}
   .cx-sous button{flex:1 1 auto;justify-content:center;text-align:center;white-space:normal;line-height:1.15;min-height:46px;padding:0 10px}
 }
+/* fiche client : six onglets, 3 + 3 partout où ils ne tiennent pas sur une ligne (iPhone et iPad les rangeaient en 4 + 2, les deux derniers étalés avec un grand vide) */
+@media (max-width:900px){.seg[aria-label="Fiche client"]:has(button:nth-child(6)){display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* jusqu'à quatre onglets : une grille de deux colonnes, jamais 1 / 2 / 1 ni 1 / 1 / 2 (« Comptes clients » ou « Contrats » orphelin au milieu, soulignement sous une seule rangée) ; le dernier, s'il est seul, prend toute la ligne. Cinq onglets et plus gardent la ligne qui se coupe (regard bureau A, second regard) */
+@media (max-width:560px){.cx-sous:not(:has(button:nth-child(5))){display:grid;grid-template-columns:1fr 1fr}.cx-sous:not(:has(button:nth-child(5))) button:last-child:nth-child(odd){grid-column:1/-1}}
 /* 16 et 17 : au téléphone seulement, de la hauteur gagnée sans rien redessiner. La phrase de la tête tient sur une ligne (le reste est derrière « Comment ça marche ? ») ;
    sur la fiche d'une facture, la pastille « Retour » suffit (plus de fil d'Ariane), l'encadré « Il manque… » tient sur une ligne et « Voir dans la Comptabilité »
    comme « Tout le dossier de l'intervention » passent dans la rangée d'actions, à côté de « Voir le PDF » */
@@ -3735,7 +3748,7 @@ table.l th.n{text-align:right}
   .tableau table.fac-lig :is(thead th,tbody td):nth-child(2){font-size:0!important;padding-inline:0!important;width:0;border:0}   /* !important : une règle de téléphone plus forte lui rendait 8 px de chaque côté, donc un trou de 16 px dans le filet sous l'en-tête ; et celle de 320 px (td{font-size:13px}) rouvrait la colonne de 68 px */
   .tableau table.fac-lig .l-q{display:block;margin-top:2px;font-size:14px;white-space:normal}
 }
-@media (max-width:340px){.tableau table.l:not(:has(thead th:nth-child(5))) td{font-size:13px}.tableau table.l:not(:has(thead th:nth-child(5))) td.n{padding-inline:3px}.tableau table.l td.ttc-m{font-size:16px}.tableau table.l td.ttc-l{font-size:15px}}   /* 320 px : trois colonnes de chiffres et une désignation tenaient dans 254 px à 17 px près */
+@media (max-width:340px){.tableau table.l:not(:has(thead th:nth-child(5))) td{font-size:13px}.tableau table.l:not(:has(thead th:nth-child(5))) td.mono{font-size:11.5px}.tableau table.l:not(:has(thead th:nth-child(5))) td.n{padding-inline:3px}.tableau table.l td.ttc-m{font-size:16px}.tableau table.l td.ttc-l{font-size:15px}}   /* 320 px : trois colonnes de chiffres et une désignation tenaient dans 254 px à 17 px près */
 /* sous 340 px : les six tuiles de la Comptabilité l'une sous l'autre (à deux de front leur phrase tenait dans 113 px), et deux champs côte à côte
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
@@ -4859,8 +4872,12 @@ const bloque = () => { clicBloque = true; setTimeout(() => clicBloque = false, 4
 function memo(){ pile.push(JSON.stringify({ INTS, BUREAU, NOTES })); if (pile.length > 40) pile.shift(); }
 function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); INTS = s.INTS; BUREAU = s.BUREAU; NOTES = s.NOTES;
   /* « nouveau client + intervention » : le message dit « retour à l'état d'avant », le client né avec l'intervention repart avec elle — sauf s'il a déjà autre chose (une intervention, un devis, une facture, un contrat) */
-  if (s.NVCLI && CLIENTS[s.NVCLI] && !INTS.some(i => i.cli === s.NVCLI) && !DV.some(d => d.cli === s.NVCLI) && !FACTURES.some(f => f.cli === s.NVCLI) && !CONTRATS.some(x => x.cli === s.NVCLI)) { delete CLIENTS[s.NVCLI]; delete SECT_CLI[s.NVCLI]; delete CR_GEO[s.NVCLI]; }
-  if (s.MAIL) { const m = mlDe(s.MAIL.id); if (m) { m.fait = s.MAIL.fait; m.faitLien = s.MAIL.faitLien; m.lu = s.MAIL.lu; } } rendre(); toast('Annulé : retour à l’état d’avant'); }
+  /* … et seulement s'il n'a pas vécu depuis : une fiche complétée (consignes d'accès, appareil, nouvelle adresse) ou une tâche écrite pour lui se garde, le message le dit (recontrôle, clients-restes D1) */
+  let gardeCli = false;
+  if (s.NVCLI && CLIENTS[s.NVCLI] && !INTS.some(i => i.cli === s.NVCLI) && !DV.some(d => d.cli === s.NVCLI) && !FACTURES.some(f => f.cli === s.NVCLI) && !CONTRATS.some(x => x.cli === s.NVCLI)) {
+    if ((s.NVSIG && JSON.stringify(CLIENTS[s.NVCLI]) !== s.NVSIG) || TACHES.some(x => x.lien && x.lien.cli === s.NVCLI)) gardeCli = true;
+    else { delete CLIENTS[s.NVCLI]; delete SECT_CLI[s.NVCLI]; delete CR_GEO[s.NVCLI]; } }
+  if (s.MAIL) { const m = mlDe(s.MAIL.id); if (m) { m.fait = s.MAIL.fait; m.faitLien = s.MAIL.faitLien; m.lu = s.MAIL.lu; } } rendre(); toast(gardeCli ? 'Annulé : l’intervention est retirée. Le client est gardé, sa fiche a été complétée depuis.' : 'Annulé : retour à l’état d’avant'); }
 /* LE DERNIER FILET DES BULLES (17 novembre 2026) : une bulle s'écrit en HTML (un gras, un retour à la ligne), et chaque appelant échappe (esc) ce qui vient d'une donnée. Si l'un d'eux l'oublie, la bulle
    ne rend de toute façon que du texte et ces balises-là : le reste (img, svg, iframe, script…), tout gestionnaire (on…) et tout lien sont RETIRÉS avant d'être posés. Ce n'est pas une raison d'oublier esc :
    le filet garde le code, pas l'affichage (« & » reste « & » grâce à esc, jamais « &amp; » grâce au filet) */
@@ -5214,7 +5231,7 @@ const lireQuand = () => ({ tid:document.getElementById('q-tech').value, d:docume
 function panneauModifier(id){
   const i = INTS.find(o => o.id === id);
   ouvrirPanneau(`<h2>Modifier l’intervention</h2>
-  <label class="champ">Client<select id="m-cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${k===i.cli?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
+  <label class="champ">Client<select id="m-cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || k === i.cli).map(([k,c])=>`<option value="${k}" ${k===i.cli?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
   <label class="champ">Ce qu’il faut faire<input id="m-titre" value="${esc(i.titre)}"></label>
   <label class="champ">Type<select id="m-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option ${x===i.type?'selected':''}>${x}</option>`).join('')}</select></label>
   ${champsQuand(i.tech, i.d, i.h, i.dur)}
@@ -5381,7 +5398,7 @@ function vueFiche(id){
   const i = INTS.find(o => o.id === id); if (!i) return vueInterventions();
   const c = CLIENTS[i.cli], t = tech(i.tech), F = fiche(id);
   const tete = `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h}\u00a0–\u00a0${fin(i.h,i.dur)} · ${insec(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
+  <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${pp([jlong(i.d) + ' · ' + i.h + '\u00a0–\u00a0' + fin(i.h,i.dur), insec(t.nom)], true)}</span></span><h1>${esc(i.titre)}</h1>
     <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(c.adr)}</span></div>
     <div class="actions"><button type="button" class="btn gris" data-action="modifInt" data-id="${i.id}">✎ Modifier</button><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener noreferrer">Y aller</a>${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}</div></div>`;
   if (i.st === 'annulee') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span class="st st-g">Annulée</span><h2>Cette intervention est annulée</h2><p class="gris" style="margin:0">Rien à terminer : aucun compte rendu ne part, aucune facture n’est préparée et le stock ne bouge pas. Le bureau a été informé.</p></div>`;
@@ -5683,7 +5700,9 @@ const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 1
 /* Une durée tapée EN MINUTES (« 90 min », « 45 mn ») : sa valeur en minutes, ou null. Elle ne vaut des heures que sur une ligne facturée à l'heure (`ligneHeure`) :
    « 90 min » lu comme « 90 » au prix de l'HEURE écrivait 5 850,00 € pour 97,50 € dus, sans un mot (recontrôle, tour 3). */
 const dureeMinutes = v => { const m = String(v).trim().match(/^(\d{1,4}(?:[.,]\d+)?)\s?(?:min(?:ute)?s?|mn)$/i); return m ? parseFloat(m[1].replace(',', '.')) : null; };
-const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || /main.d.œuvre|\bheures?\b/i.test(String(l.d || ''));
+/* Une ligne est « à l'heure » par ce que SA QUANTITÉ dit (« 2h »), par le drapeau qu'une durée acceptée lui pose (`l.heure` : sans lui, la ligne cessait de l'être dès qu'elle avait reçu « 90 min », et la saisie suivante était refusée avec une phrase fausse),
+   ou par une désignation d'heure DONT LE PRIX EST CELUI DE L'HEURE. Jamais par la désignation seule : « Main-d'œuvre remplacement (2 h) » d'un devis est une quantité 1 au prix des deux heures, et « 90 min » y écrivait 195 € pour 130 € dus, sans un mot (recontrôle, tour 4). */
+const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
 /* « même texte = même total » ne tient pas à la casse ni aux espaces : « 0,5 l » et « 0,5L » sont le flacon de « 0,5 L » (recontrôle, tour 3). */
 const qteNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[\s\u00a0\u202f]/g, '');
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -5819,8 +5838,10 @@ function vueClients(){
   let cqt = /^[\d\s.+()]+$/.test(cq) ? cfTelChiffres(cq, true) : ''; if (cqt.length < 4) cqt = '';   /* le numéro ENREGISTRÉ se normalise comme la saisie : « +33 6… » en base se retrouve aussi (recontrôle, casse 1) */
   const enArch = rangClients === 'archives';   /* « Archivés » : les clients rangés hors de la liste (clients-17) ; la recherche y reste */
   /* « hôtel plage » retrouve « Hôtel de la Plage » : chaque mot doit se trouver quelque part, dans l'ordre qu'on veut (clients-01) */
-  const L = Object.entries(CLIENTS).filter(([k,c]) => { if (k === '__nv' || !!c.archive !== enArch) return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
-    return mots.every(m => botte.includes(m)) || (cqt && cfTelChiffres(c.tel).includes(cqt)); }).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const trouve = ([k,c]) => { if (k === '__nv') return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
+    return mots.every(m => botte.includes(m)) || (cqt && cfTelChiffres(c.tel).includes(cqt)); };
+  const L = Object.entries(CLIENTS).filter(e => !!e[1].archive === enArch && trouve(e)).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const nArchTrouves = !enArch && cq ? Object.entries(CLIENTS).filter(e => e[1].archive && trouve(e)).length : 0;   /* la recherche ne doit pas dire « aucun client » quand un client ARCHIVÉ correspond (recontrôle clients) */
   const nArch = Object.values(CLIENTS).filter(c => c.archive).length;   /* le bouton « Archivés » n'existe que s'il y en a, ou si on y est */
   /* pendant une recherche, UN seul rangement paraît choisi : la recherche couvre « Tous les clients » (ou les archivés quand on y est) — jamais deux boutons enfoncés (recontrôle, casse 5) */
   const seg = `<div class="seg" role="group" aria-label="Ranger les clients">${[['tous','Tous les clients'],['semaine','Par semaine'],['mois','Par mois'], ...(nArch || enArch ? [['archives','Archivés · ' + nArch]] : [])].map(([k,l])=>`<button type="button" data-rangc="${k}" aria-pressed="${chercheClient.trim() && !enArch ? k==='tous' : rangClients===k}">${l}</button>`).join('')}</div>`;
@@ -5828,7 +5849,7 @@ function vueClients(){
     <input class="saisie" placeholder="Chercher un client…" value="" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}${rangClients==='mois'?vueClientsMois():vueClientsSemaine()}`;
   return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1>${enArch ? '<span class="gris">Les clients rangés hors de la liste. Leur historique, leurs factures et leurs contrats restent : « Remettre dans la liste » les ramène.</span>' : ''}</div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
   <input class="saisie" placeholder="Chercher un client…" value="${esc(chercheClient)}" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}
-  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">Aucun client ne correspond à « ${esc(chercheClient.trim())} ». Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
+  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">${nArchTrouves ? 'Aucun client de ta liste' : 'Aucun client'} ne correspond à « ${esc(chercheClient.trim())} ». ${nArchTrouves ? `${nArchTrouves === 1 ? 'Un client archivé correspond' : nArchTrouves + ' clients archivés correspondent'}.<div class="actions" style="margin-top:10px"><button type="button" class="btn gris" data-rangc="archives" data-garde="1">Voir ${nArchTrouves === 1 ? 'le client archivé' : 'les clients archivés'}</button></div>` : `Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.`}</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
     const carte = `<button type="button" class="carte client-carte" data-go="client-x-${k}"><span style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:17px">${esc(c.nom)}</b>${ctr?'<span class="st st-v">contrat</span>':''}</span><span class="gris petit">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc((c.adr || '').split(',').pop().trim())].filter(Boolean).join(' · ')}</span>
       <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; return enArch && peut('crm', 's') ? `<div class="client-arch">${carte}<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button></div>` : carte; }).join('')}</div>`;
 }
@@ -5846,19 +5867,19 @@ function vueClient(k){
   const proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0], ctrs = CONTRATS.filter(x => x.cli === k);
   const onglets = [['histo','Historique'],['factures','Factures · ' + F.length],['appareils','Appareils'],['contrats','Contrats · ' + ctrs.length],['docs','Documents'],['infos','Infos']];
   let corps = '';
-  if (ongletClient === 'histo') corps = `<div class="tl">${histoClient(k).map(h=>`<button type="button" ${h.go?`data-go="${h.go}"`:'disabled'}><span class="faible mini" style="text-align:right">${jcourt(h.d)}/${h.d.slice(2,4)}</span><span class="pt" style="background:${h.c}"></span><span><b>${esc(h.t)}</b><br><span class="gris petit">${esc(h.s)}</span></span><span class="gris mini${h.droite ? '' : ' tl-vide'}" style="white-space:nowrap">${h.droite}${h.go?' ›':(h.droite ? ' · ' : '') + 'archive'}</span></button>`).join('')}</div>`;
+  if (ongletClient === 'histo') corps = `<div class="tl">${histoClient(k).map(h=>`<button type="button" ${h.go?`data-go="${h.go}"`:'disabled'}><span class="faible mini" style="text-align:right">${jcourt(h.d)}/${h.d.slice(2,4)}</span><span class="pt" style="background:${h.c}"></span><span><b>${ppt(h.t)}</b><br><span class="gris petit">${ppt(h.s)}</span></span><span class="gris mini${h.droite ? '' : ' tl-vide'}" style="white-space:nowrap">${h.droite}${h.go?' ›':(h.droite ? ' · ' : '') + 'archive'}</span></button>`).join('')}</div>`;
   if (ongletClient === 'factures') corps = `<div class="tableau"><table class="l"><thead><tr><th>N°</th><th class="l-obj">Objet</th><th class="n">TTC</th><th>État</th></tr></thead><tbody>${F.map(f=>`<tr class="clic" data-go="facture-x-${f.id}"><td class="mono">${f.num}<span class="l-sous">${esc(f.objet)}</span></td><td class="l-obj">${esc(f.objet)}</td><td class="n">${eur(ttcDe(f))}</td><td><span class="st ${STF[f.st][1]}">${STF[f.st][0]}</span></td></tr>`).join('') || '<tr><td colspan="4" class="gris">Aucune facture.</td></tr>'}</tbody></table></div>${ancien > .5 ? `<div class="gris petit" style="margin-top:10px">« Payé depuis le début » compte ${eur(paye)} : ${eur(ancien)} viennent de règlements anciens ou de paiements rangés dans la Comptabilité, dont la facture n’est pas dans cette liste.</div>` : ''}`;
   if (ongletClient === 'appareils') corps = (c.appareils.length ? '' : '<div class="gris">Aucun appareil enregistré pour l’instant.</div>') + c.appareils.map((a,n)=>`<div class="ligne app-l"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span>${a.pannes?`<br><span class="st st-r" style="margin-top:6px">${esc(a.pannes)}</span>`:''}</span>${peut('crm','m') ? `<span class="app-gestes"><button type="button" class="lien" data-action="clientAppForm" data-cli="${k}" data-n="${n}" aria-label="Modifier ${esc(a.nom)}">Modifier</button><button type="button" class="lien" data-action="clientAppSuppr" data-cli="${k}" data-n="${n}" aria-label="Retirer ${esc(a.nom)}">Retirer</button></span>` : ''}</div>`).join('') + (peut('crm','m') ? `<button type="button" class="btn gris" data-action="clientAppForm" data-cli="${k}" data-n="-1" style="margin-top:10px">＋ Ajouter un appareil</button>` : '');   /* le chiffre était celui du CLIENT entier, collé à chaque appareil : faux, retiré (clients-10) ; la mention suit l'APPAREIL, pas sa place dans la liste, pour qu'un appareil retiré ne la déplace pas sur un autre (clients-11) */
   if (ongletClient === 'contrats') corps = ctrs.map(x=>`<button type="button" class="ligne-clic" data-go="contrat-x-${x.id}"><span><b>${x.num} · ${esc(x.titre)}</b><br><span class="gris petit">${x.freq} visite${x.freq>1?'s':''} par an · ${eur(x.prix)} HT / an</span></span><span class="st ${ctrEtatCourt(x)[1]}">${ctrEtatCourt(x)[0]}</span></button>`).join('') + `<button type="button" class="btn gris" data-action="contratPour" data-cli="${k}" style="margin-top:10px">Proposer un contrat d’entretien</button>` + (rlPermis('contrats') ? `<button type="button" class="btn" data-opd="contrat" data-cli="${k}" style="margin-top:10px">Composer un contrat</button>` : '');
   if (ongletClient === 'docs') corps = [...INTS.filter(i=>i.cli===k&&(i.st==='fait'||fiche(i.id).etat==='bureau')).map(i=>`<div class="ligne"><span>📄 Compte rendu du ${jcourt(i.d)} · ${esc(i.titre)}</span><button type="button" class="lien" data-voirclient="${i.id}|pdf">Voir</button></div>`), ...F.filter(f=>f.st!=='avalider').map(f=>`<div class="ligne"><span>🧾 Facture ${f.num}</span><button type="button" class="lien" data-go="facture-x-${f.id}">Voir</button></div>`), ...ctrs.filter(x=>x.st==='signe').map(x=>`<div class="ligne"><span>✍️ Contrat ${x.num} signé le ${x.signe}</span><button type="button" class="lien" data-go="contrat-x-${x.id}">Voir</button></div>`)].join('') || '<span class="gris">Aucun document.</span>';
-  if (ongletClient === 'infos') corps = `<label class="champ" style="margin-bottom:10px">${c.type==='pro'?'Raison sociale':'Nom'}<input data-ci="nom" maxlength="120" value="${esc(c.nom)}" autocomplete="off"></label><div class="deux-champs ci-champs"><label class="champ">Contact<input data-ci="contact" maxlength="120" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" maxlength="30" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" maxlength="120" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" maxlength="160" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces" maxlength="200">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>${peut('crm','s') ? `<div class="client-arch-zone"><button type="button" class="btn gris" data-action="clientArchiverDemande" data-cli="${k}">Archiver ce client</button><span class="gris petit">Il quitte la liste des clients. Son historique, ses factures et ses contrats restent.</span></div>` : ''}`;
+  if (ongletClient === 'infos') corps = `<label class="champ" style="margin-bottom:10px">${c.type==='pro'?'Raison sociale':'Nom'}<input data-ci="nom" maxlength="120" value="${esc(c.nom)}" autocomplete="off"></label><div class="deux-champs ci-champs"><label class="champ">Contact<input data-ci="contact" maxlength="120" value="${esc(c.contact)}"></label><label class="champ">Téléphone<input data-ci="tel" inputmode="tel" maxlength="60" value="${esc(c.tel)}"></label><label class="champ">E-mail<input data-ci="mail" inputmode="email" maxlength="120" value="${esc(c.mail)}"></label><label class="champ">Type<select data-ci="type"><option value="pro" ${c.type==='pro'?'selected':''}>Professionnel</option><option value="part" ${c.type==='part'?'selected':''}>Particulier</option></select></label></div><label class="champ" style="margin-top:10px">Adresse<input data-ci="adr" maxlength="160" value="${esc(c.adr)}"></label><label class="champ" style="margin-top:10px">Accès et consignes (le technicien les lit avant d’entrer)<textarea data-ci="acces" maxlength="200">${esc(c.acces)}</textarea></label><div class="actions" style="margin-top:12px;align-items:center"><button type="button" class="btn" data-action="clientEnreg" data-cli="${k}">Enregistrer</button><span class="gris petit">Rien n’est gardé tant que tu n’as pas touché « Enregistrer ».</span></div>${peut('crm','s') ? `<div class="client-arch-zone"><button type="button" class="btn gris" data-action="clientArchiverDemande" data-cli="${k}">Archiver ce client</button><span class="gris petit">Il quitte la liste des clients. Son historique, ses factures et ses contrats restent.</span></div>` : ''}`;
   /* « Enregistrer » de cette fiche CHANGE un client déjà là : c'est la case « Modifier » qui l'ouvre (la case « Créer » n'ouvre que « Nouveau client »). Sans elle, les champs se figent et la phrase le dit (relecture « tout-05 ») */
   if (ongletClient === 'infos' && !peut('crm', 'm')) corps = corps.replace(/<(input|select|textarea) data-ci=/g, '<$1 disabled data-ci=').replace(/<span class="gris petit">Rien n’est gardé[^<]*<\/span>/, `<span class="gris petit">Tu peux regarder cette fiche ; pour la changer, demande à ${esc(droitPremierAdmin())}.</span>`);
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
-  <div class="tete tete-client"><div><span class="surtitre">${c.archive ? 'Archivé · ' : ''}${c.type==='pro'?'Client professionnel':'Particulier'} · depuis ${c.depuis}</span><h1>${esc(c.nom)}</h1><span class="gris">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', insec(c.tel), esc(c.adr || '')].filter(Boolean).join(' · ')}</span></div>
+  <div class="tete tete-client"><div><span class="surtitre">${c.archive ? 'Archivé · ' : ''}${c.type==='pro'?'Client professionnel':'Particulier'} · depuis ${c.depuis}</span><h1>${esc(c.nom)}</h1><span class="gris">${pp([c.contact && c.contact !== c.nom ? esc(c.contact) : '', insec(c.tel), esc(c.adr || '')].filter(Boolean))}</span></div>
     <div class="actions">${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}${c.mail ? `<a class="btn gris" href="${lienMail(c.mail)}">E-mail</a>` : ''}<button type="button" class="btn gris" data-action="clientDevis" data-cli="${k}">${rlPermis('devis') ? 'Devis rapide' : '＋ Devis'}</button>${rlPermis('devis') ? `<button type="button" class="btn" data-opd="devis" data-cli="${k}">Composer un devis</button>` : ''}<button type="button" class="btn" data-creer="1">＋ Nouvelle intervention</button></div></div>
   ${c.archive ? `<div class="info client-archive"><span><b>Client archivé.</b> Il n’est plus dans la liste des clients ; son historique, ses factures et ses contrats sont là.</span>${peut('crm','s') ? `<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button>` : ''}</div>` : ''}
-  <div class="kpis">${ancien > .5 ? `<button type="button" class="kpi" data-oc="factures"><b>${eur(paye)}</b><span>payé depuis le début · dont ${eur(ancien)} sans facture ici${clientTerrainMention(k)}</span></button>` : `<div class="kpi"><b>${eur(paye)}</b><span>payé depuis le début${clientTerrainMention(k)}</span></div>`}<button type="button" class="kpi" data-oc="factures"><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><span>à recevoir</span></button><div class="kpi"><b>${proch?jcourt(proch.d):'—'}</b><span>${proch?esc(proch.titre.length>32?proch.titre.slice(0,31)+'…':proch.titre):'prochain passage'}</span></div><button type="button" class="kpi" data-oc="appareils"><b>${c.appareils.length} appareil${c.appareils.length>1?'s':''}</b><span>${c.appareils[0] ? esc(c.appareils[0].nom) : 'à renseigner'}</span></button></div>
+  <div class="kpis">${ancien > .5 ? `<button type="button" class="kpi" data-oc="factures"><b>${eur(paye)}</b><span>payé depuis le début · dont ${eur(ancien)} sans facture ici${clientTerrainMention(k)}</span></button>` : `<div class="kpi"><b>${eur(paye)}</b><span>payé depuis le début${clientTerrainMention(k)}</span></div>`}<button type="button" class="kpi" data-oc="factures"><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><span>à recevoir</span></button><div class="kpi"><b>${proch?jcourt(proch.d):'—'}</b><span>${proch?esc(proch.titre):'prochain passage'}</span></div><button type="button" class="kpi" data-oc="appareils"><b>${c.appareils.length} appareil${c.appareils.length>1?'s':''}</b><span>${c.appareils[0] ? esc(c.appareils[0].nom) : 'à renseigner'}</span></button></div>
   ${k==='vp'?`<div class="alerte"><b>⚠ La même pièce qui casse :</b> le condensateur du ventilateur extérieur a été remplacé 2 fois (août 2025, février 2026), et le roulement lâche aujourd’hui. À dire au client, et à vérifier côté garantie du fabricant (appareil de 2021).</div>`:''}
   <div class="seg" role="tablist" aria-label="Fiche client" style="flex-wrap:wrap">${onglets.map(([o,l])=>`<button type="button" role="tab" data-oc="${o}" aria-pressed="${ongletClient===o}" aria-selected="${ongletClient===o}">${l}</button>`).join('')}</div>
   <div class="grille2"><div class="carte">${corps}</div>
@@ -5907,6 +5928,7 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
 const ctrCentimes = x => { const t = String(x == null ? '' : x).trim(); if (/^\d+(\.\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2'); return Math.round(Number(t) * 100) / 100; };   // le prix qu'on RANGE se lit comme l'aperçu l'écrit : « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999… et rangeait 1,00 € ; la forme à exposant (« 1e5 ») garde l'ancien arrondi
+const ctrPrixApercu = x => { const c = ctrCentimes(x); return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait (« 1e999 » donnait « ∞ € HT », « -5 » donnait « −5,00 € », 1 234 567 890 123 s'écrivait sans prévenir) s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
 const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
@@ -5946,7 +5968,7 @@ function vueContratNouveau(){
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || B.cli === k).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
-    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > 0 ? 'soit ' + eur(ctrTTC(ctrCentimes(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes.'}</span></label></div>
+    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > CTR_PRIX_MAX ? 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.' : ctrPrixApercu(B.prix) ? 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes (au moins 1 €).'}</span></label></div>
     <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
@@ -5957,14 +5979,14 @@ function vueContratNouveau(){
   ${pdfContrat(B, null)}</div>`;
 }
 function pdfContrat(B, k){
-  const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = ctrPart(ctrCentimes(B.prix) || 0, Number(B.freq) || 1, 1);   // le prix PAR VISITE se lit sur le prix RANGÉ (au centime), comme la fiche du contrat
+  const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = ctrPart(ctrPrixApercu(B.prix), Number(B.freq) || 1, 1);   // le prix PAR VISITE se lit sur le prix RANGÉ (au centime), comme la fiche du contrat
   const sig = k && k.st !== 'envoye' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
   return `<div class="pdf" ${k ? '' : 'data-brouillon="1" data-sans-mail="1"'}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
     <h6>Entre les soussignés</h6><div><b>${ENTREPRISE.nom}</b>, représentée par ${ENTREPRISE.patron}, ci-après « le prestataire », et <b>${esc(c.nom)}</b>, ${esc(c.adr)}, ci-après « le client ».</div>
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
     <h6>2 · Ce qui est compris</h6><div>${Mo.presta.map(p=>'• '+esc(p)).join('<br>')}${B.pieces?'<br>• ' + esc(metiersCtr(B.modele).pieces):''}</div>
     <h6>3 · Visites</h6><div>${B.freq} visite${B.freq>1?'s':''} par an, planifiée${B.freq>1?'s':''} par le prestataire et annoncée${B.freq>1?'s':''} au client au moins 7 jours avant.${B.delai?' ' + esc(metiersCtr(B.modele).panne):''}</div>
-    <h6>4 · Prix et facturation</h6><div>${eur(ctrCentimes(B.prix) || 0)} HT par an, soit ${eur(ctrTTC(ctrCentimes(B.prix) || 0, B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
+    <h6>4 · Prix et facturation</h6><div>${eur(ctrPrixApercu(B.prix))} HT par an, soit ${eur(ctrTTC(ctrPrixApercu(B.prix), B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
     <h6>5 · Durée</h6><div>Un an à compter du ${B.debut.split('-').reverse().join('/')}, reconduit chaque année. Chaque partie peut y mettre fin par écrit au moins un mois avant l’échéance.</div>
     <div class="deux" style="margin-top:8px"><div class="zone-sig"><span class="mini">Pour le prestataire</span><b>${ENTREPRISE.patron}</b></div><div class="zone-sig"><span class="mini">Le client · lu et approuvé</span>${sig}</div></div>
     <div class="pdf-pied">${ENTREPRISE.nom} · ${ENTREPRISE.adr} · SIRET ${ENTREPRISE.siret} · ${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div></div>`;
@@ -7420,8 +7442,8 @@ let tIciReplie = {};
   /* Justin, 5 novembre 2026 (sur la Carte) : « en haut, ça met tâche pour toi aujourd'hui ici, je sais pas pourquoi ça met ça là ». Sur la Carte, la
      bande disparaît (la carte a besoin de la hauteur) ; ailleurs, une seule ligne REPLIÉE qui dit d'où elle vient (la liste des Tâches). */
   const L = tIci(route), tete = document.querySelector('#contenu .tete'); if (!L.length || !tete || (route === 'planning' && plVue === 'carte')) return;
-  tete.insertAdjacentHTML('afterend', `<details class="t-ici" ${tIciReplie[route] === false ? 'open' : ''} data-ticir="${route}"><summary><span aria-hidden="true">✅</span><b>${L.length} tâche${L.length > 1 ? 's' : ''} pour toi aujourd’hui</b><span class="gris petit">de ta liste Tâches</span></summary>
-    ${L.map(x => `<button type="button" class="t-ici-l" data-tici="${x.id}"><span>${x.urgent ? '<span class="t-urg">!</span>' : ''}${esc(x.t)}</span><span class="gris petit">${tJours(x.d) < 0 ? '<span class="t-retard">en retard</span>' : x.h ? 'à ' + x.h : 'aujourd’hui'}${tBut(x) ? ' · ' + T_BUT_LIB[tBut(x)].replace('se termine toute seule', 'finit toute seule') : ''}</span></button>`).join('')}<a class="t-ici-tout" href="#taches">Voir dans Tâches ›</a></details>`);
+  tete.insertAdjacentHTML('afterend', `<details class="t-ici" ${tIciReplie[route] === false ? 'open' : ''} data-ticir="${route}"><summary><b>${L.length} tâche${L.length > 1 ? 's' : ''} pour toi aujourd’hui</b><span class="gris petit">de ta liste Tâches</span></summary>
+    ${L.map(x => `<button type="button" class="t-ici-l" data-tici="${x.id}"><span>${x.urgent ? '<span class="t-urg">!</span>' : ''}${esc(x.t)}</span><span class="gris petit">${pp([tJours(x.d) < 0 ? '<span class="t-retard">en retard</span>' : x.h ? 'à ' + x.h : 'aujourd’hui'].concat(tBut(x) ? [T_BUT_LIB[tBut(x)].replace('se termine toute seule', 'finit toute seule')] : []))}</span></button>`).join('')}<a class="t-ici-tout" href="#taches">Voir dans Tâches ›</a></details>`);
 }; })();
 document.addEventListener('toggle', ev => { const d = ev.target; if (d.dataset && d.dataset.ticir) tIciReplie[d.dataset.ticir] = !d.open; }, true);
 /* ══ ABSENCES & CONGÉS — refaite le 1er novembre 2026, reprise le 2 novembre après l'essai de Justin :
@@ -8382,7 +8404,7 @@ function vueDevisFiche(k){
     : e === 'accepte' ? (iv && iv.st === 'aplanifier' && peut('planif', 'm') ? `<button type="button" class="btn" data-dv="planifier|${dvCle(x)}">Planifier l’intervention</button>` : iv ? `<button type="button" class="btn gris" data-go="inter-x-${iv.id}">Voir l’intervention</button>` : `<button type="button" class="btn" data-dv="creerInt|${dvCle(x)}">Créer l’intervention à planifier</button>`)
     : `<button type="button" class="btn gris" data-dv="version|${dvCle(x)}">Refaire ce devis</button>`;
   const lignes = x.lignes.map((l, n) => ed
-    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot${l[2] == null ? ' vide' : ''}">${l[2] == null ? '—' : eur(dvLigneHT(l))}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
+    ? `<div class="dv-lg"><input class="saisie" data-dvl="${dvCle(x)}|${n}|0" value="${esc(l[0])}" aria-label="Désignation"><span class="fac-et fac-et-q" aria-hidden="true">Qté</span><input class="saisie dv-q2" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|1" value="${String(l[1]).replace('.', ',')}" aria-label="Quantité"><span class="fac-et fac-et-p" aria-hidden="true">Prix unitaire HT</span><input class="saisie dv-pu ${l[2] == null ? 'manque' : ''}" inputmode="decimal" data-dvl="${dvCle(x)}|${n}|2" value="${l[2] == null ? '' : String(l[2]).replace('.', ',')}" placeholder="prix HT" aria-label="Prix unitaire HT"><span class="dv-tot${l[2] == null ? ' vide' : ''}">${l[2] == null ? '—' : eur(dvLigneHT(l))}</span><button type="button" class="dv-x" data-dv="ligneSup|${dvCle(x)}|${n}" aria-label="Retirer la ligne ${esc(l[0])}">✕</button></div>`
     : `<div class="dv-lg lu"><span>${esc(l[0])}</span><span class="gris">${String(l[1]).replace('.', ',')} × ${eur(l[2])}</span><b>${eur(dvLigneHT(l))}</b></div>`).join('');
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span class="st ${DV_ETATS[e][1]}" style="align-self:flex-start">${DV_ETATS[e][0]}</span><h1>${x.num || 'Devis en préparation'}</h1><button type="button" class="lien" data-go="client-x-${x.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(x.objet)}</span></div>
@@ -8393,7 +8415,7 @@ function vueDevisFiche(k){
   ${e === 'refuse' ? `<div class="info petit"><b>Refusé le ${x.rep}</b>${x.motif ? ' · ' + esc(x.motif) : ''}</div>` : ''}
   <div class="grille2">
     <div class="col">
-      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>' : ''}${lignes}</div>
+      <div class="carte"><h3>Les lignes</h3><div class="dv-lgs${ed ? ' fac-lgs' : ''}">${ed ? '<div class="dv-lg dv-lg-t"><span>Désignation</span><span>Qté</span><span>Prix unitaire HT</span><span>Total HT</span><span></span></div>' : ''}${lignes}</div>
         ${ed ? `<div class="dv-ajouts"><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|libre">＋ Ligne</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|mo">＋ 1 h de main-d’œuvre</button><button type="button" class="puce-c" data-dv="ligneAj|${dvCle(x)}|dep">＋ Déplacement</button>
           <label class="puce-c">📦 Du catalogue<select data-dvcat="${dvCle(x)}" aria-label="Ajouter une pièce du catalogue"><option value="">…</option>${CATALOGUE.map(p => `<option value="${esc(p[0])}">${esc(p[0])} · ${eur(p[1])}</option>`).join('')}</select></label></div>` : ''}
         <div class="dv-totaux"><div class="ligne"><span>Total HT${complet ? '' : ' (partiel)'}</span><b>${eur(ht)}</b></div>
@@ -8497,7 +8519,7 @@ function dvNouveau(){
     ${!f.nv ? `<label class="champ">Client<select id="dvn-cli"><option value="">Choisir…</option>${Object.entries(CLIENTS).filter(([k, c]) => k !== '__nv' && !c.archive).map(([k, c]) => `<option value="${k}" ${f.cli === k ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>`
       : `<div class="seg" role="group" aria-label="Type de client"><button type="button" data-dvn="type|part" aria-pressed="${f.type === 'part'}">Particulier</button><button type="button" data-dvn="type|pro" aria-pressed="${f.type === 'pro'}">Professionnel</button></div>
       <div class="deux-champs"><label class="champ">${f.type === 'pro' ? 'Raison sociale' : 'Nom'}<input id="dvn-nom" maxlength="120" value="${esc(f.nom)}" autocomplete="off"></label><label class="champ">${f.type === 'pro' ? 'Contact (prénom, nom)' : 'Prénom'}<input id="dvn-prenom" maxlength="120" value="${esc(f.prenom)}" autocomplete="off"></label>
-      <label class="champ">Téléphone<input id="dvn-tel" type="tel" maxlength="30" value="${esc(f.tel)}"></label><label class="champ">E-mail<input id="dvn-mail" type="email" maxlength="120" value="${esc(f.mail)}"></label></div>
+      <label class="champ">Téléphone<input id="dvn-tel" type="tel" maxlength="60" value="${esc(f.tel)}"></label><label class="champ">E-mail<input id="dvn-mail" type="email" maxlength="120" value="${esc(f.mail)}"></label></div>
       <label class="champ">Adresse des travaux<input id="dvn-adr" maxlength="160" value="${esc(f.adr)}" placeholder="n°, rue, code postal, ville"></label>`}
     <label class="champ">Objet du devis<input id="dvn-objet" value="${esc(f.objet)}" placeholder="ex. Remplacement de la pompe de relevage"></label>
     <div class="champ">Partir de<div class="dv-modeles">${DV_MODELES.map(([l], n) => `<button type="button" class="puce-c" data-dvn="modele|${n}" aria-pressed="${f.modele === n}">${esc(l)}</button>`).join('')}<button type="button" class="puce-c" data-dvn="modele|-1" aria-pressed="${f.modele === -1}">Page blanche</button></div></div>
@@ -8675,6 +8697,7 @@ const cpOct = d => d && d.endsWith('/10'), cpDM = d => d.slice(8, 10) + '/' + d.
 const cpTvaEnc = e => cpR(e.ttc - e.ttc / (1 + e.tva / 100));
 const cpFac = num => FACTURES.find(f => f.num === num);
 /* la TVA d'un achat : récupérable avec une FACTURE seulement ; un bien à la facture, un service au paiement */
+const cpPj = j => `<span class="gris petit">${('✓ ' + esc(j)).split(' ').map((m, k) => k === 0 ? '' : `<span class="cp-pj">${k === 1 ? '✓&nbsp;' : ''}${m}</span>`).join(' ')}</span>`;   // coche collée au premier mot, chaque mot insécable : la pièce se coupe entre deux mots
 const cpDed = a => !!a.tva && a.piece === 'facture', cpService = a => /^6[12]/.test(a.compte);
 const cpDedOct = a => cpDed(a) && (cpService(a) ? !!a.paye && cpOct(a.paye) : cpOct(a.d));
 /* ce qu'un technicien a encaissé sur place et qu'aucune facture émise n'a encore repris : c'est un encaissement, daté du jour où il l'a
@@ -8841,7 +8864,7 @@ function cpVueCaisse(ca){
       <span class="gris petit" style="display:block;margin-top:8px">Le reçu signé par le client sur le téléphone du technicien sert de preuve. Au-dessus de 1 000 €, un client qui vit en France, particulier ou professionnel, ne peut pas payer en espèces.</span></div></div></div>`;
 }
 function cpVueTva(tv){
-  const etat = a => cpDed(a) ? (cpDedOct(a) ? `<span class="gris petit">✓ ${esc(a.just)}</span>` : '<span class="gris petit">TVA récupérable au paiement (service)</span>') : a.piece === 'ticket' ? `<span class="gris petit">ticket de carte seul</span><br><label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>` : `<label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>`;
+  const etat = a => cpDed(a) ? (cpDedOct(a) ? cpPj(a.just) : '<span class="gris petit">TVA récupérable au paiement (service)</span>') : a.piece === 'ticket' ? `<span class="gris petit">ticket de carte seul</span><br><label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>` : `<label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>`;
   return `<div class="grille2"><div class="col"><div class="carte"><div class="cp-t"><h3>TVA d’octobre · à payer ${eur(tv.aPayer)}</h3><span class="gris petit">réel normal · déclaration mensuelle</span></div>
       <div class="groupe">Due sur ce que les clients ont payé en octobre</div>${tv.taux.map(x => `<div class="ligne"><span>Base HT à ${String(x.t).replace('.', ',')} %</span><span>${eur(x.ht)} <span class="gris">→ TVA</span> <b>${eur(x.tva)}</b></span></div>`).join('')}
       <div class="ligne"><span><b>TVA collectée</b></span><b>${eur(tv.col)}</b></div>
@@ -8850,7 +8873,7 @@ function cpVueTva(tv){
       <span class="gris petit" style="display:block;margin-top:8px">À déclarer en novembre (déclaration CA3 de la période d’octobre), avant ta date limite (espace professionnel impots.gouv.fr). L’écriture de déclaration est déjà passée dans le journal. Les lignes exactes se vérifient avec ton expert-comptable.</span></div>
       <div class="carte"><h3>Pourquoi « sur ce qui a été payé » ?</h3><span class="gris petit">Tes interventions sont des services : leur TVA est due quand le client paie, pas quand la facture part. Une facture d’octobre payée en novembre compte en novembre. Une facture de septembre payée en octobre compte ici. Un acompte reçu sur place compte le jour où le technicien l’encaisse. (Une vente de pièces seules, sans pose, suit une autre règle : la TVA est due à la livraison.)</span>
         <button type="button" class="lien" data-cp="regimes" style="margin-top:6px">Les autres régimes de TVA</button></div></div>
-    <div class="col"><div class="carte"><h3>Achats d’octobre · ${ACHATS.filter(a => cpOct(a.d)).length}</h3>${ACHATS.filter(a => cpOct(a.d)).map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${a.d} · ${esc(a.objet)} · ${a.tva ? 'TVA ' + eur(cpTVA(a)) : 'sans TVA'}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br>${a.tva ? etat(a) : `<span class="gris petit">✓ ${esc(a.just || '')}</span>`}</span></div>`).join('')}
+    <div class="col"><div class="carte"><h3>Achats d’octobre · ${ACHATS.filter(a => cpOct(a.d)).length}</h3>${ACHATS.filter(a => cpOct(a.d)).map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${a.d} · ${esc(a.objet)} · ${a.tva ? 'TVA ' + eur(cpTVA(a)) : 'sans TVA'}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br>${a.tva ? etat(a) : a.tva ? etat(a) : cpPj(a.just || '')}</span></div>`).join('')}
       ${tv.sans.length ? `<div class="info petit" style="margin-top:10px">${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${eur(tv.manque)} de TVA que tu ne peux pas récupérer tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}. Une photo de la facture suffit ; un ticket de carte seul ne permet pas de récupérer la TVA (la station ou le magasin te la donne sur demande).</div>` : ''}</div></div></div>`;
 }
 /* les écritures du mois au format FEC : 18 colonnes séparées par une tabulation, ce que lit un logiciel d'expert-comptable.
@@ -9018,9 +9041,12 @@ function placerPops(){
     if (droite > W - marge) e.style.left = (e.offsetLeft - (droite - (W - marge))) + 'px';
   });
 }
-function aller(h){ if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
+  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
+  /* l'adresse a changé sans passer par aller() (retour du navigateur ou du téléphone, adresse tapée) alors que « Infos » porte une saisie non enregistrée : on remet l'adresse de la fiche, puis on demande (clients-15, recontrôle) */
+  if (route === 'client' && h !== ici && cliInfosRetenir(() => aller(h), true)) { histRemplacer('#' + ici); return; }
   calApresNavigation();
   // le chemin parcouru, tenu par la page : l'historique du navigateur ne répond pas dans toutes les fenêtres (artefact, iframe)
   if (enRetour) enRetour = false; else if (ici !== h && lireHash.deja) histo.push(ici);
@@ -9434,7 +9460,7 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
   if ((b = q('[data-plnav]'))) { const n = +b.dataset.plnav; plRef = n === 0 ? AUJ : plVue === 'jour' || plVue === 'carte' ? ajoute(plRef, n) : plVue === 'multi' ? ((multiJours = n === 0 ? multiJours.map((_,k)=>ajoute(AUJ,k)) : multiJours.map(d=>ajoute(d, 7*n))), plRef) : (plVue === 'semaine' || plVue === 'general') ? ajoute(plRef, 7*n) : (() => { const d = dObj(plRef.slice(0,8) + '15'); d.setMonth(d.getMonth() + n); const m = d.toISOString().slice(0,10); return m.slice(0,7) === AUJ.slice(0,7) ? AUJ : m; })(); rendre(); return; }
   if ((b = q('[data-voirjour]'))) { if (clicBloque) return; plRef = b.dataset.voirjour; plVue = 'jour'; rendre(); return; }
-  if ((b = q('[data-rangc]'))) { rangClients = b.dataset.rangc; chercheClient = ''; rendre(); return; }
+  if ((b = q('[data-rangc]'))) { rangClients = b.dataset.rangc; if (!b.dataset.garde) chercheClient = ''; rendre(); return; }   /* « voir les archivés » depuis une recherche garde la recherche */
   if ((b = q('[data-semc]'))) { semClients = ajoute(semClients, 7 * +b.dataset.semc); rendre(); return; }
   if ((b = q('[data-mpop]'))) { multiPop = multiPop === b.dataset.mpop ? null : b.dataset.mpop; rendre(); if (multiPop) requestAnimationFrame(() => { const e = document.querySelector('.pm-pop'); if (e && e.getBoundingClientRect().bottom > innerHeight - 90) e.scrollIntoView({ block:'center', behavior:'smooth' }); }); return; }
   if ((b = q('[data-mjbascule]'))) { const d = b.dataset.mjbascule; if (multiJours.includes(d)) { if (multiJours.length > 1) multiJours = multiJours.filter(x => x !== d); } else multiJours.push(d); rendre(); return; }
@@ -9513,6 +9539,10 @@ document.addEventListener('change', ev => {
     if (!isNaN(v) && v >= DV_PU_MAX) { toast('Ce prix est trop grand : un montant en euros inférieur à ' + eur(DV_PU_MAX) + ' (35 ou 35,50). Le précédent est conservé.'); rendre(); return; }   /* même plafond que le forfait de création */
     { const lg = f.lignes[+t.dataset.prix];   /* le plafond vaut aussi pour le TOTAL de la ligne : 9 999 × 999 999,99 € donnait près de 10 milliards, sans un mot */
       if (!isNaN(v) && v * qteDe(lg) > DV_PU_MAX) { toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse le prix ou la quantité. Le prix précédent est conservé.'); rendre(); return; } }
+    /* un prix qu'on ne sait pas lire se DIT : « -10,33 » vidait le prix en silence et la ligne devenait « à chiffrer » sans raison (recontrôle, tour 4). Effacer le champ, lui, reste « à chiffrer ». */
+    { const lg0 = f.lignes[+t.dataset.prix];   /* une DÉDUCTION (l'acompte déjà facturé, prix négatif) ne change pas de signe en retapant « 40 » : le client paierait l'acompte une seconde fois au lieu de le déduire */
+      if (lg0.pu < 0 && t.value.trim() !== '') { toast('Cette ligne déduit un acompte déjà facturé : son montant ne se retape pas ici. Le prix précédent est conservé.'); rendre(); return; } }
+    if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
@@ -9521,9 +9551,9 @@ document.addEventListener('change', ev => {
     if (mn !== null && !(mn > 0 && ligneHeure(l))) { t.value = l.q; toast(mn > 0 ? 'Une durée en minutes se compte sur une ligne facturée à l’heure : écris-la en heures (1h30), ou une quantité. Je garde ' + (l.q || '1') + '.' : 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }
     const lu = mn !== null ? mn / 60 : qteLire(v), nq = (l.q0 != null && qteNorm(v) === qteNorm(l.q0)) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
     if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
-    if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + prNum(DV_Q_MAX) + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
+    if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + DV_Q_MAX.toLocaleString('fr-FR') + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
     if (l.pu != null && nq * l.pu > DV_PU_MAX) { t.value = l.q; toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse la quantité ou le prix. La quantité précédente est conservée.'); return; }   /* un total ne dépasse jamais le plafond sans le dire */
-    l.q = v; l.qn = nq; rendreApresClic(); }
+    l.q = mn !== null ? prNum(mn) + ' min' : v; l.qn = nq; if (mn !== null) l.heure = true; else delete l.heure; rendreApresClic(); }   /* une durée acceptée s'écrit « 90 min » (« 90 minutes », « 45 mn » : une seule forme, qui tient dans la case) et marque la ligne « à l'heure » ; une quantité ordinaire retirée la marque (le prix redevient celui d'UNE unité) */
   else if (t.dataset.tva) { FACTURES.find(x => x.id === t.dataset.tva).tva = +t.value; rendre(); }
   else if (t.dataset.voirint) { voirInt = t.value; rendre(); }
   else if (t.dataset.mqt !== undefined) { const id = t.dataset.mqt; t.checked ? plMasques.delete(id) : plMasques.add(id); rendre(); }
@@ -9567,6 +9597,9 @@ appliquerMode();
 /* ══ typographie : espace insécable avant : ; ? ! » et après « — posée sur le texte AFFICHÉ, jamais dans les données ══ */
 /* un numéro de téléphone ou un nom de personne ne se coupe jamais en fin de ligne (« 05 46 00 » puis « 11 22 », « Tom » puis « Leroy ») — espaces insécables, échappé comme esc() (regard bureau A) */
 function insec(t){ return esc(t || '').replace(/ /g, '\u00a0'); }
+/* une ligne de morceaux séparés par « · » : sur écran large la puce s'écrit entre eux ; sous 600 px les morceaux se rangent côte à côte (ou l'un sous l'autre) SANS puce, puisqu'une puce ne peut pas se cacher quand la ligne se coupe et finissait seule en bout de ligne (regard gérant A, C). Morceaux déjà échappés ; `court` : un morceau ne se coupe pas */
+function ppt(t){ return t.includes(' · ') ? pp(t.split(' · ').map(esc)) : esc(t); }   // un texte déjà fait (titre, objet) qui porte des puces
+function pp(parts, court){ return `<span class="pp${court ? ' pp-court' : ''}">${parts.map(x => `<span>${x}</span>`).join('')}</span>`; }
 
 const typoTxt = s => s.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u00a0').replace(/(\d) ([%€])/g, '$1\u00a0$2');
 const typoHors = 'svg, pre, code, textarea, script, style, [contenteditable]';
@@ -10069,7 +10102,12 @@ let COMMANDES = [
 let cmdNum = 40, cmdOnglet = 'cours', CMD_PANIER = {}, CMD_DEPL = {}, CMD_HORS = new Set();
 const cmdArt = l => l.pid ? PRODUITS.find(x => x.id === l.pid) : null;
 const cmdNom = l => l.nom || (cmdArt(l) || {}).nom || '—';
-const cmdHT = c => Math.round(c.lignes.reduce((s, l) => s + l.q * l.pu, 0) * 100) / 100;
+/* UN total de ligne de commande, arrondi au CENTIME comme celui du devis (`dvLigneHT`) et de la facture (`totLigne`) : « 3 × 12,345 € » s'affichait 37,04 € sur la ligne
+   et le Total HT en comptait 37,035 — le bon de commande ne retombait pas sur ses lignes (compta-ventes, tour 6, décision du chef du 18/11). */
+const cmdLigneHT = l => Math.round((Number(l.q) || 0) * (Number(l.pu) || 0) * 100 + 1e-7) / 100;
+const cmdHT = c => Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT(l), 0) * 100 + 1e-7) / 100;
+/* le prix d'une ligne de commande s'écrit comme il est stocké : deux décimales au moins, davantage si le prix en porte (sinon « 12,345 » s'affichait « 12,35 » et le total ne s'expliquait plus) */
+const cmdPuTexte = p => { const t = String(Math.round(p * 1e6) / 1e6), d = (t.split('.')[1] || '').length; return p.toFixed(Math.max(2, d)).replace('.', ','); };
 const cmdOuverte = c => ['envoyee', 'confirmee', 'partielle'].includes(c.st);
 /* ce qui est déjà commandé et pas encore arrivé, pour un article */
 const enCommande = x => COMMANDES.filter(cmdOuverte).reduce((s, c) => s + c.lignes.filter(l => l.pid === x.id).reduce((t, l) => t + Math.max(0, l.q - l.recu), 0), 0);
@@ -10127,7 +10165,7 @@ const prixChez = (x, four) => four === x.four ? x.pa : ((x.offres || {})[four] !
 function cmdMoinsCher(x, four){ if (!x) return null; const ici = prixChez(x, four);
   const o = Object.entries(Object.assign({ [x.four]:x.pa }, x.offres || {})).filter(([n, pa]) => n !== four && pa && foDe(n) && ici && pa < ici - .005).sort((a, b) => a[1] - b[1])[0];
   return o ? { four:o[0], pa:o[1], pct:foPct(ici, o[1]) } : null; }
-function cmdFranco(pan){ const f = foDe(pan.four), ht = pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0);
+function cmdFranco(pan){ const f = foDe(pan.four), ht = cmdHT({ lignes:pan.lignes });
   if (!f || !f.franco || ht >= f.franco) return { ht, manque:0, f };
   const dans = new Set(pan.lignes.map(l => l.x && l.x.id)), idees = PRODUITS.filter(x => !x.retire && x.four === pan.four && !dans.has(x.id) && !dansBrouillon(x.id) && x.seuil > 0 && x.q <= x.seuil * 1.8 && x.pa).sort((a, b) => a.q / a.seuil - b.q / b.seuil).slice(0, 2);
   return { ht, manque:Math.round((f.franco - ht) * 100) / 100, f, idees }; }
@@ -10141,7 +10179,7 @@ function cmdFranco(pan){ const f = foDe(pan.four), ht = pan.lignes.reduce((s, l)
    jour seule → retard et silence se relancent → la RÉCEPTION (bon de livraison, reliquat) monte le stock → la FACTURE est rapprochée →
    elle rejoint les achats. « Recommander » refait une commande à l'identique. */
 let cmdFiltre = 'traiter', cmdRech = '', CMD_ED = null;
-const cmdTVA = c => Math.round(c.lignes.reduce((s, l) => s + l.q * (l.pu || 0) * (l.tva != null ? l.tva : 20) / 100, 0) * 100) / 100;
+const cmdTVA = c => Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT(l) * (l.tva != null ? l.tva : 20) / 100, 0) * 100 + 1e-7) / 100;
 const cmdU = l => (cmdArt(l) || {}).u || l.u || 'u';
 const cmdBrouillonDe = four => COMMANDES.find(c => c.st === 'brouillon' && c.four === four);
 const dansBrouillon = k => COMMANDES.some(c => c.st === 'brouillon' && c.lignes.some(l => (l.pid || 'lib-' + l.ref) === k));
@@ -10188,7 +10226,7 @@ function cmdDoc(o){
     <div class="bc-blocs"><div><small>Fournisseur</small><b>${esc(o.four)}</b>${f.compte ? `<span>Compte client ${esc(f.compte)}</span>` : ''}${f.mail ? `<span>${esc(f.mail)}</span>` : ''}</div>
       <div><small>Livraison</small><b>${esc(liv)}</b>${o.souh ? `<span>Souhaitée le ${dFr(o.souh)}</span>` : ''}${i ? `<span>Réf. chantier : ${esc(cli.nom)} · ${esc(i.titre)}</span>` : ''}</div></div>
     <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Total HT</th></tr></thead>
-      <tbody>${o.lignes.map(l => `<tr><td><b>${esc(cmdNom(l))}</b>${l.ref && l.ref !== '—' ? `<span>Réf. ${esc(l.ref)}</span>` : ''}</td><td>${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}</td><td>${l.pu != null ? eur(l.pu) : 'selon tarif'}</td><td>${l.pu != null ? eur(l.q * l.pu) : '—'}</td></tr>`).join('')}</tbody></table>
+      <tbody>${o.lignes.map(l => `<tr><td><b>${esc(cmdNom(l))}</b>${l.ref && l.ref !== '—' ? `<span>Réf. ${esc(l.ref)}</span>` : ''}</td><td>${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}</td><td>${l.pu != null ? eur(l.pu) : 'selon tarif'}</td><td>${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</td></tr>`).join('')}</tbody></table>
     <div class="bc-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
     ${o.note ? `<div class="bc-note"><small>Note</small>${esc(o.note)}</div>` : ''}
     <div class="bc-pied"><span>Merci de confirmer cette commande (votre référence et la date de livraison) par le lien joint à l’e-mail, ou en y répondant.</span><span>Bon pour commande · ${esc(tNom('marc'))}, ${esc(ENTREPRISE.nom)}</span></div></div>`;
@@ -10650,7 +10688,13 @@ const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
 const nomPersonneOk = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
 const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
 /* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
-const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement (60 signes au plus).';
+/* tour 2 : la phrase DIT LA VRAIE RAISON (le premier signe, la longueur, ou un signe interdit) au lieu de redire toute la règle : une seule phrase de 67 signes passait à quatre lignes dans une demi-colonne d'Android (360 px), et « -Marie » était refusé avec une phrase qui ne parlait pas du premier signe */
+const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';
+const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
+  if (/[^\p{L}\p{M}\p{N} .’-]/u.test(x)) return NOM_PERS_REFUS;
+  if (!/^[\p{L}\p{M}\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';
+  if (x.length > 60) return '60 signes au plus.';
+  return NOM_PERS_REFUS; };
 /* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
 const coupeSure = (t, n) => { const c = String(t).slice(0, n); return /[\ud800-\udbff]$/.test(c) ? c.slice(0, -1) : c; };
 const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
@@ -10664,7 +10708,7 @@ const nomClientNet = (t, n) => libelleSur(t, n || 80);
 /* Un nom de client ou d'expéditeur va jusqu'à 120 signes (« Syndicat des copropriétaires de la résidence … » en demande plus de 80) ; les champs de saisie portent le même plafond (maxlength) :
    on ne peut pas taper plus, donc rien n'est coupé en silence (recontrôle de la sécurité, tour 1 : un nom de 90 signes sortait coupé à 80) */
 const NOM_MAX = 120;
-const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 30); return o; };
+const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 60); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
 const nomNorm = s => prNorm(s).replace(/ /g, '');
 const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
 const habEtat = d => d == null ? 'v' : tJours(d) < 0 ? 'r' : tJours(d) <= 60 ? 'o' : 'v';
@@ -10710,7 +10754,7 @@ function eqFiche(k){
     ${enApp() ? '' : '<div class="gris petit">Dans ce prototype, ces cases ne changent pas encore ce que la personne voit : « Tester en tant que » montre des profils fixes.</div>'}<div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
       ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div>
     <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
-    <div class="actions">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions">${p.invite ? (p.actif ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : '') : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 }
 function eqInviter(){
@@ -10734,7 +10778,7 @@ document.addEventListener('click', ev => {
   if (a === 'conges') { fermerPanneau(); if (typeof aOnglet !== 'undefined') aOnglet = 'soldes'; return aller('absences'); }
   if (a === 'inviterok') { const pr = nomPersonneOk(document.getElementById('eq-p').value), no = nomPersonneOk(document.getElementById('eq-n').value), m = document.getElementById('eq-m').value.trim();
     if (!document.getElementById('eq-p').value.trim() || !document.getElementById('eq-n').value.trim()) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
-    if (!pr || !no) return toast(NOM_PERS_REFUS);
+    if (!pr || !no) return toast(nomRefus(document.getElementById(!pr ? 'eq-p' : 'eq-n').value));
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');
@@ -11545,7 +11589,7 @@ function cxNouveau(){
     <button type="button" data-cx="payerliste"><span aria-hidden="true">📤</span><b>Paiement fait</b><span class="gris petit">Tu as réglé un fournisseur.</span></button></div>`);
 }
 function cxNouvelleFacture(){
-  const C = Object.entries(CLIENTS).sort((a, b) => a[1].nom.localeCompare(b[1].nom));
+  const C = Object.entries(CLIENTS).filter(([, c]) => !c.archive).sort((a, b) => a[1].nom.localeCompare(b[1].nom));   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) */
   ouvrirPanneau(`<span class="surtitre">Factures clients</span><h2>Nouvelle facture</h2><span class="gris">Pour une prestation sans intervention : un forfait, un acompte, une visite. Elle reste « à valider » : tu la relis, tu peux ajouter des lignes, puis tu l’envoies. Le numéro se donne à l’envoi.</span>
     <label class="champ">Client<select class="saisie" id="nf-c"><option value="">Choisir le client…</option>${C.map(([k, c]) => `<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Objet<input class="saisie" id="nf-o" placeholder="ex. Forfait de mise en service"></label>
@@ -13154,7 +13198,7 @@ function rlFicheAPlanifier(i){
   const charge = t => INTS.filter(o => o.tech === t.id && o.d === jour && o.st !== 'aplanifier' && o.st !== 'annulee').length;
   return `<button type="button" class="lien retour" data-retour="1">‹ Retour</button>
   <div class="tete"><div><span><span class="st st-o">À planifier</span> <span class="gris petit">${i.origine === 'client' ? 'demandée en ligne par le client' : 'pas encore de date ni de technicien'}</span></span><h1>${esc(i.titre)}</h1>
-    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${[esc(c.adr), insec(c.tel)].filter(Boolean).join(' · ')}</span></div>
+    <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${pp([esc(c.adr), insec(c.tel)].filter(Boolean))}</span></div>
     <div class="actions">${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler le client</a>` : ''}</div></div>
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.origine === 'client' ? ' · par son espace client' : ''}</div></div>` : ''}
@@ -14121,7 +14165,7 @@ function rendreCreation_(){
     <div class="seg" role="group" aria-label="Client" style="width:auto;margin-bottom:10px"><button type="button" data-cnouveau="0" aria-pressed="${!CREA.nouveau}">Client existant</button><button type="button" data-cnouveau="1" aria-pressed="${CREA.nouveau}">＋ Nouveau client</button></div>
     ${CREA.nouveau ? `<div class="seg" role="group" aria-label="Type de client" style="width:auto;margin-bottom:10px"><button type="button" data-cnvtype="part" aria-pressed="${CREA.nv.type==='part'}">Particulier</button><button type="button" data-cnvtype="pro" aria-pressed="${CREA.nv.type==='pro'}">Professionnel</button></div>
       <div class="deux-champs"><label class="champ">${CREA.nv.type==='pro'?'Raison sociale':'Nom'}<input data-cnv="nom" maxlength="120" value="${esc(CREA.nv.nom)}"></label><label class="champ">${CREA.nv.type==='pro'?'Personne à contacter':'Prénom'}<input data-cnv="contact" maxlength="120" value="${esc(CREA.nv.contact)}"></label>
-      <label class="champ">Téléphone<input data-cnv="tel" inputmode="tel" maxlength="30" value="${esc(CREA.nv.tel)}"></label><label class="champ">E-mail<input data-cnv="mail" inputmode="email" maxlength="120" value="${esc(CREA.nv.mail)}"></label></div>
+      <label class="champ">Téléphone<input data-cnv="tel" inputmode="tel" maxlength="60" value="${esc(CREA.nv.tel)}"></label><label class="champ">E-mail<input data-cnv="mail" inputmode="email" maxlength="120" value="${esc(CREA.nv.mail)}"></label></div>
       <label class="champ" style="margin-top:10px;position:relative">Adresse de l’intervention<input data-cnv="adr" maxlength="160" value="${esc(CREA.nv.adr)}" placeholder="Commence à taper : 10 rue de la gravière…" autocomplete="off">
         ${sugs.length ? `<div class="adr-sug" role="listbox">${sugs.map(a => `<button type="button" role="option" data-adrsug="${esc(a)}">📍 ${esc(a)}</button>`).join('')}</div>` : ''}</label>
       ${CREA.nv.adr ? (rep ? `<div class="adr-rep"><b>📍 Repérée : ${rep.commune}</b><span>${rep.km} km du dépôt · environ ${rep.min} min · zone ${rep.zone} · secteur ${rep.secteur}</span><a class="lien" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CREA.nv.adr)}">Voir sur la carte ›</a></div>` : `<div class="bandeau-info petit">Adresse pas encore reconnue : choisis-la dans la liste, ou vérifie la commune.</div>`) : ''}`
@@ -14231,8 +14275,9 @@ const ACTIONS_CREA = {
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
-    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
-    const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
+    if (CREA.nouveau) { let nn = Object.keys(CLIENTS).length; while (CLIENTS['c' + nn]) nn++; k = 'c' + nn;   /* jamais un identifiant déjà pris : « Annuler » peut retirer un client au milieu de la liste, et le nombre de clients ne suffit plus */
+      CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
+    const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, NVSIG:CREA.nouveau ? JSON.stringify(CLIENTS[k]) : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
     Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: texteNet(CREA.motif).trim().slice(0, 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
@@ -14575,19 +14620,27 @@ function clientEnregistrer(k){ const c = CLIENTS[k]; if (!c) return false; const
 ACTIONS.clientEnreg = function(b){ clientEnregistrer(b.dataset.cli); };
 /* ── quitter « Infos » avec une saisie non enregistrée (clients-15) : on demande, dans la fenêtre de l'application, jamais confirm() du navigateur ──
    Un écouteur de capture : il voit le clic AVANT l'écran, retient le geste, et le rejoue (sur le même bouton, ou son pareil si l'écran a été redessiné) quand la personne a choisi. */
-let CLI_RETENU = null, CLI_LIBRE = false;
+let CLI_RETENU = null, CLI_LIBRE = false, CLI_PASSE = false;
+/* Toute autre porte que le clic (palette, Ctrl+1…9, retour du navigateur, adresse tapée) passe par ici : vrai = la sortie est retenue et la fenêtre posée. `CLI_PASSE` : la personne a déjà choisi, le prochain changement d'adresse (asynchrone) ne redemande pas. */
+function cliInfosRetenir(suite, parAdresse){ if (CLI_LIBRE || !clientInfosSale()) return false;
+  if (CLI_PASSE) { if (parAdresse) CLI_PASSE = false; return false; }   /* seul le changement d'adresse consomme le choix : aller() le précède et le laisse */
+  CLI_RETENU = { suite }; cliInfosDemande(); return true; }
+function cliInfosDemande(){ ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
+    <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`); }
 document.addEventListener('click', ev => {
   if (CLI_LIBRE || !clientInfosSale()) return;
   const el = ev.target.closest && ev.target.closest('#contenu [data-oc],#contenu [data-go],#contenu [data-retour],#contenu [data-rl="retour"],#menu a[href^="#"],[data-tab],[data-nv],[data-logo],[data-menu]'); if (!el || el.closest('#calque')) return;
   if (el.dataset.oc === 'infos') return;   /* le même onglet : rien ne se quitte */
   const sel = el.dataset.oc ? '#contenu [data-oc="' + el.dataset.oc + '"]' : el.dataset.go ? '#contenu [data-go="' + el.dataset.go + '"]' : el.dataset.retour ? '#contenu [data-retour]' : el.dataset.rl === 'retour' ? '#contenu [data-rl="retour"]' : null;
-  ev.preventDefault(); ev.stopPropagation(); CLI_RETENU = { el, sel };
-  ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
-    <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`);
+  ev.preventDefault(); ev.stopPropagation(); CLI_RETENU = { el, sel }; cliInfosDemande();
 }, true);
 ACTIONS.clientInfosSuite = function(b){ const R = CLI_RETENU; CLI_RETENU = null; if (!R) return fermerPanneau();
   if (b.dataset.v === 'enreg' && !clientEnregistrer(param)) return fermerPanneau();   /* un champ est refusé : on reste sur la fiche, avec son message */
-  fermerPanneau(); const cible = R.el.isConnected ? R.el : (R.sel && document.querySelector(R.sel)); if (!cible) return;
+  fermerPanneau();
+  /* le choix est fait : la sortie rejouée ne redemande pas, y compris au changement d'adresse qui arrive APRÈS (hashchange est asynchrone) ; un délai le périme si l'adresse ne change pas */
+  CLI_PASSE = true; setTimeout(() => { CLI_PASSE = false; }, 1500);
+  if (R.suite) return R.suite();
+  const cible = R.el.isConnected ? R.el : (R.sel && document.querySelector(R.sel)); if (!cible) return;
   CLI_LIBRE = true; try { cible.click(); } finally { CLI_LIBRE = false; } };
 /* [4] « ＋ Client » : un client se crée avec son premier travail (une intervention à planifier, un devis à lui envoyer), ou seul, sans rien d'autre */
 ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Tu peux préparer son premier travail : une intervention à planifier, ou un devis à lui envoyer. Ou ne créer que sa fiche, et t’occuper du reste plus tard.</p>
@@ -14598,7 +14651,7 @@ function clientSeulFen(){ const f = CS_F, pro = f.type === 'pro'; ouvrirPanneau.
   ouvrirPanneau(`<h2>Le client seul</h2><span class="gris">Sa fiche, avec ses coordonnées. Aucune intervention ni aucun devis n’est créé.</span>
     <div class="seg" role="group" aria-label="Type de client"><button type="button" data-action="clientSeulType" data-v="part" aria-pressed="${!pro}">Particulier</button><button type="button" data-action="clientSeulType" data-v="pro" aria-pressed="${pro}">Professionnel</button></div>
     <div class="deux-champs"><label class="champ">${pro ? 'Raison sociale' : 'Nom'}<input id="cs-nom" maxlength="120" value="${esc(f.nom)}" autocomplete="off"></label><label class="champ">${pro ? 'Contact (prénom, nom)' : 'Prénom'}<input id="cs-contact" maxlength="120" value="${esc(f.contact)}" autocomplete="off"></label>
-    <label class="champ">Téléphone<input id="cs-tel" type="tel" maxlength="30" value="${esc(f.tel)}"></label><label class="champ">E-mail<input id="cs-mail" type="email" maxlength="120" value="${esc(f.mail)}"></label></div>
+    <label class="champ">Téléphone<input id="cs-tel" type="tel" maxlength="60" value="${esc(f.tel)}"></label><label class="champ">E-mail<input id="cs-mail" type="email" maxlength="120" value="${esc(f.mail)}"></label></div>
     <label class="champ">Adresse (si tu la connais)<input id="cs-adr" maxlength="160" value="${esc(f.adr)}" placeholder="n°, rue, code postal, ville"></label>
     ${f.err ? `<div class="alerte" role="alert">${esc(f.err)}</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-action="clientSeulOk">Créer le client</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
@@ -14617,15 +14670,16 @@ ACTIONS.clientSeulOk = function(){ clientSeulLire(); const f = CS_F; f.err = '';
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:nom, cli:k }, { det:'sa fiche seule' });
   CS_F = null; fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('client-x-' + k); toast('Client créé : ' + esc(nom) + '. Tu peux maintenant lui créer une intervention ou un devis.'); };
 /* clients-17 : un client ne s'efface jamais (ses factures doivent garder leur client) : il s'ARCHIVE, et se remet dans la liste d'un geste */
-ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return;
+/* une case se lit dans la fonction qui ÉCRIT, pas seulement au bouton : un autre chemin (un geste rejoué, une fenêtre restée ouverte) ne contourne pas le droit (recontrôle clients) */
+ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !peut('crm', 's')) return;
   const aVenir = INTS.filter(i => i.cli === k && i.d >= AUJ && !['fait', 'annulee'].includes(i.st)).length, aRecevoir = FACTURES.filter(f => f.cli === k && ['envoyee', 'retard', 'partielle'].includes(f.st)).length;
   ouvrirPanneau(`<h2>Archiver ${esc(c.nom)} ?</h2><p class="gris" style="margin:0">Il quitte la liste des clients et n’est plus proposé pour un nouveau travail. Son historique, ses factures, ses devis et ses contrats restent. Tu le retrouves dans « Archivés », et tu peux le remettre dans la liste quand tu veux.</p>
     ${aVenir || aRecevoir ? `<div class="info petit" style="margin-top:10px">${[aVenir ? aVenir + ' intervention' + (aVenir > 1 ? 's' : '') + ' à venir : elle' + (aVenir > 1 ? 's restent' : ' reste') + ' au planning' : '', aRecevoir ? aRecevoir + ' facture' + (aRecevoir > 1 ? 's' : '') + ' à recevoir : elle' + (aRecevoir > 1 ? 's restent' : ' reste') + ' à suivre' : ''].filter(Boolean).join(' · ')}.</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-action="clientArchiverOk" data-cli="${k}">Oui, archiver ce client</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
-ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return; c.archive = true;
+ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !peut('crm', 's')) return; c.archive = true;
   journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est supprimé' });
   fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('clients'); toast('Client archivé : ' + esc(c.nom) + '.', { lib:'Annuler', fn:() => { delete c.archive; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); } }); };
-ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive) return; delete c.archive;
+ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive || !peut('crm', 's')) return; delete c.archive;
   journalAjout('marc', 'client', 'a remis le client dans la liste', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il était archivé' });
   if (rangClients === 'archives' && !Object.values(CLIENTS).some(x => x.archive)) rangClients = 'tous'; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); };
 /* clients-11 : les appareils d'un client s'ajoutent, se modifient et se retirent depuis la fiche */
@@ -14636,7 +14690,7 @@ ACTIONS.clientAppForm = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n 
     <div class="alerte" id="app-err" role="alert" hidden></div>
     <div class="actions"><button type="button" class="btn" data-action="clientAppEnreg" data-cli="${k}" data-n="${n}">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   setTimeout(() => document.getElementById('app-nom')?.focus(), 50); };
-ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n; if (!c) return; const nom = (document.getElementById('app-nom').value || '').trim(), det = (document.getElementById('app-det').value || '').trim();
+ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n; if (!c || !peut('crm', 'm')) return; const nom = (document.getElementById('app-nom').value || '').trim(), det = (document.getElementById('app-det').value || '').trim();
   if (!nom) { const er = document.getElementById('app-err'); er.textContent = 'Indique le nom de l’appareil.'; er.hidden = false; document.getElementById('app-nom').focus(); return; }
   if (n >= 0 && c.appareils[n]) { Object.assign(c.appareils[n], { nom, det }); journalAjout('marc', 'client', 'a modifié un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:nom }); }
   else { c.appareils.push({ nom, det }); journalAjout('marc', 'client', 'a ajouté un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:nom }); }
@@ -14644,7 +14698,7 @@ ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n
 ACTIONS.clientAppSuppr = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a) return;
   ouvrirPanneau(`<h2>Retirer cet appareil ?</h2><p class="gris" style="margin:0">« ${esc(a.nom)} » quitte la fiche de ${esc(c.nom)}. Les interventions déjà faites dessus gardent leur historique.</p>
     <div class="actions"><button type="button" class="btn" data-action="clientAppSupprOk" data-cli="${k}" data-n="${n}">Oui, retirer</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
-ACTIONS.clientAppSupprOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a) return; c.appareils.splice(n, 1);
+ACTIONS.clientAppSupprOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a || !peut('crm', 'm')) return; c.appareils.splice(n, 1);
   journalAjout('marc', 'client', 'a retiré un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:a.nom }); fermerPanneau(); rendre();
   toast('Appareil retiré : ' + esc(a.nom) + '.', { lib:'Annuler', fn:() => { c.appareils.splice(Math.min(n, c.appareils.length), 0, a); rendre(); toast('Appareil remis : ' + esc(a.nom) + '.'); } }); };
 ACTIONS.clientNvInt = function(){ fermerPanneau(); ouvrirCreation({}); if (CREA) { CREA.nouveau = true; if (['devis', 'contrat'].includes(CREA.fact)) CREA.fact = 'temps'; rendreCreation(); } };
@@ -15244,8 +15298,8 @@ function tkxLiees(){
   const T = TACHES.filter(x => !x.fait && lie(x)), ret = T.filter(tkxEnRetard).length, l = R === 'client' ? 'client' : R === 'inter' ? 'intervention' : R === 'facture' ? 'facture' : 'contrat';
   const nouv = `<button type="button" class="btn gris mini-btn tkx-nouv" data-tkxnouv="${R}|${P}">＋ Nouvelle tâche</button>`;
   if (!T.length) { tete.insertAdjacentHTML('afterend', `<div class="tkx-lie tkx-lie-vide"><span class="gris petit">✅ Aucune tâche pour ${R === 'client' ? 'ce client' : (l === 'contrat' ? 'ce contrat' : R === 'facture' && (FACTURES.find(o => o.id === P) || {}).st === 'avoir' ? 'cet avoir' : 'cette ' + l)}</span>${nouv}</div>`); return; }
-  tete.insertAdjacentHTML('afterend', `<details class="t-ici tkx-lie" ${ret ? 'open' : ''}><summary><span aria-hidden="true">✅</span><b>${T.length} tâche${T.length > 1 ? 's' : ''} ouverte${T.length > 1 ? 's' : ''}</b>${ret ? `<span class="t-retard petit">${ret} en retard</span>` : ''}<span class="gris petit">pour ${R === 'client' ? 'ce client' : (l === 'contrat' ? 'ce contrat' : R === 'facture' && (FACTURES.find(o => o.id === P) || {}).st === 'avoir' ? 'cet avoir' : 'cette ' + l)}</span></summary>
-    ${T.map(x => `<button type="button" class="t-ici-l" data-tmodif="${x.id}"><span>${x.urgent ? '<span class="t-urg">!</span>' : ''}${esc(x.t)}</span><span class="gris petit">${tkxEnRetard(x) ? '<span class="t-retard">en retard</span> · ' : ''}${esc(tkxPrenom(x.qui))} · ${esc(tQuand(x))}</span></button>`).join('')}<div class="tkx-lie-pied">${nouv}</div></details>`);
+  tete.insertAdjacentHTML('afterend', `<details class="t-ici tkx-lie" ${ret ? 'open' : ''}><summary><b>${T.length} tâche${T.length > 1 ? 's' : ''} ouverte${T.length > 1 ? 's' : ''}</b>${ret ? `<span class="t-retard petit">${ret} en retard</span>` : ''}<span class="gris petit">pour ${R === 'client' ? 'ce client' : (l === 'contrat' ? 'ce contrat' : R === 'facture' && (FACTURES.find(o => o.id === P) || {}).st === 'avoir' ? 'cet avoir' : 'cette ' + l)}</span></summary>
+    ${T.map(x => `<button type="button" class="t-ici-l" data-tmodif="${x.id}"><span>${x.urgent ? '<span class="t-urg">!</span>' : ''}${esc(x.t)}</span><span class="gris petit">${pp([tkxEnRetard(x) ? '<span class="t-retard">en retard</span>' : '', esc(tkxPrenom(x.qui)), esc(tQuand(x))].filter(Boolean))}</span></button>`).join('')}<div class="tkx-lie-pied">${nouv}</div></details>`);
 }
 
 /* ══ « MES TÂCHES » : le bloc de « Ma journée » du technicien (le menu et la barre du bas viennent de rlLignes) ══ */
@@ -15596,7 +15650,7 @@ function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni
 }
 function pdxToutPanneau(){
   const pans = cmdPaniers(); if (!pans.length) return toast('Rien à commander pour le moment.');
-  const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = Math.round(pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0) * 100) / 100;
+  const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = cmdHT({ lignes:pan.lignes });
     return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour la livraison gratuite' : 'livraison gratuite atteinte') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Tout préparer · ${pdxPl(pans.length, 'commande')}</h2>
     <span class="gris">Une ligne par fournisseur, tout est prêt. Chaque bon part avec son PDF, comme d’habitude. Décoche ce que tu préfères vérifier : une commande dont une ligne n’a pas de prix est décochée d’office.</span>
@@ -17272,8 +17326,8 @@ function bxNouVue(surPlace){
   const deja = N.cli ? LIEUX.filter(l => l.type === 'depot' && l.cli === N.cli && !l.ferme) : [], depots = bxActifs().filter(l => l.type === 'depot' && Object.keys(lieuArticles(l.id)).length);
   const kit = BX_KIT.map(([pid, q]) => ({ x:bxProd(pid), q })).filter(o => o.x);
   const html = `<span class="surtitre">Matériel</span><h2>Nouvelle réserve chez un client</h2>
-    <label class="champ">Client<input class="saisie" list="bxl-clients" data-bxl-nou="clinom" value="${N.cli ? esc(CLIENTS[N.cli].nom) : esc(N.cliTxt || '')}" placeholder="Chercher un client…" autocomplete="off"><datalist id="bxl-clients">${Object.entries(CLIENTS).map(([k, c]) => `<option value="${esc(c.nom)}"></option>`).join('')}</datalist></label>
-    ${N.cli ? '' : N.cliTxt ? `<div class="info petit fo-alerte" role="status">« ${esc(N.cliTxt)} » n’est pas dans tes clients : choisis-en un dans la liste (tape ses premières lettres).</div>` : '<div class="gris petit">Choisis d’abord le client : « Créer la réserve » s’allume ensuite.</div>'}
+    <label class="champ">Client<input class="saisie" list="bxl-clients" data-bxl-nou="clinom" value="${N.cli ? esc(CLIENTS[N.cli].nom) : esc(N.cliTxt || '')}" placeholder="Chercher un client…" autocomplete="off"><datalist id="bxl-clients">${Object.entries(CLIENTS).filter(([, c]) => !c.archive).map(([k, c]) => `<option value="${esc(c.nom)}"></option>`).join('')}</datalist></label>
+    ${N.cli ? '' : N.cliTxt ? `<div class="info petit fo-alerte" role="status">« ${esc(N.cliTxt)} » ${Object.values(CLIENTS).some(c => c.archive && prNorm(c.nom) === prNorm(N.cliTxt)) ? 'est un client archivé : remets-le d’abord dans la liste des clients (fiche › « Remettre dans la liste »).' : 'n’est pas dans tes clients : choisis-en un dans la liste (tape ses premières lettres).'}</div>` : '<div class="gris petit">Choisis d’abord le client : « Créer la réserve » s’allume ensuite.</div>'}
     ${deja.length ? `<div class="info petit fo-alerte">Il y a déjà une réserve chez ce client : <button type="button" class="lien" data-bxl="fiche|${deja[0].id}">${esc(deja[0].nom)} ›</button>. Tu peux en ouvrir une seconde.</div>` : ''}
     <label class="champ">Responsable<select data-bxl-nou="resp">${Object.entries(H_GENS).filter(([k]) => k !== 'client' && k !== 'auto').map(([k, g]) => `<option value="${k}" ${N.resp === k ? 'selected' : ''}>${esc(g.nom)}</option>`).join('')}</select></label>
     <label class="champ">Où, comment y accéder<input class="saisie" data-bxl-nou="note" value="${esc(N.note)}" placeholder="ex. local technique, clé à l’accueil"></label>
@@ -17399,7 +17453,7 @@ document.addEventListener('change', ev => {
   if (t.matches('[data-md-ck]')) { if (t.checked) BX.sel.add(t.dataset.mdCk); else BX.sel.delete(t.dataset.mdCk); return bxMaj(); }
   if (t.matches('[data-mdq]') && MD.dot) { const n = foNum(t.value); if (n != null && n >= 0) MD.dot.v[t.dataset.mdq] = n; else toast('Une quantité ne peut pas être négative.'); return foGarder(() => mdDotation(MD.dot.id)); }
   if (t.matches('[data-bxl-nou]') && BX.nou) { const k = t.dataset.bxlNou;
-    if (k === 'clinom') { const nt = prNorm(t.value), e = Object.entries(CLIENTS).find(([, c]) => c.nom === t.value) || (nt ? Object.entries(CLIENTS).find(([, c]) => prNorm(c.nom) === nt) : null);   /* le nom exact d'abord, puis sans casse, accent ni espace en trop : le clavier du téléphone ajoute une espace après une suggestion, et « n'est pas dans tes clients » mentirait · 13 novembre 2026 */
+    if (k === 'clinom') { const nt = prNorm(t.value), vifs = Object.entries(CLIENTS).filter(([, c]) => !c.archive), e = vifs.find(([, c]) => c.nom === t.value) || (nt ? vifs.find(([, c]) => prNorm(c.nom) === nt) : null);   /* un client archivé n'est pas proposé pour une réserve neuve (clients-17) */   /* le nom exact d'abord, puis sans casse, accent ni espace en trop : le clavier du téléphone ajoute une espace après une suggestion, et « n'est pas dans tes clients » mentirait · 13 novembre 2026 */
       BX.nou.cli = e ? e[0] : ''; BX.nou.cliTxt = e ? '' : t.value.trim();   /* ce qui a été tapé reste affiché, avec son explication · 13 novembre 2026 */
       if (Date.now() - (window.bxPtrT || 0) < 900) { const ok = document.querySelector('[data-bxl="nouok"]'); if (ok) ok.disabled = !BX.nou.cli; let fait = false; const go = () => { if (fait) return; fait = true; if (BX.nou) bxNouVue(true); }; document.addEventListener('click', () => setTimeout(go, 0), { once:true }); setTimeout(go, 700); return; }
       return bxNouVue(true); }
@@ -17488,7 +17542,7 @@ function fxPanier(pan){
     return `<div class="fx-pl"><span class="fo-n"><b>${nom}</b><span class="fx-ph"><span class="gris petit">${esc(fxPhrase(l))}</span>${detail ? '<button type="button" class="fx-ib" data-fx="info" aria-label="Pourquoi cette quantité ?" title="Pourquoi cette quantité ?" aria-expanded="false"><span aria-hidden="true">i</span></button>' : ''}</span>${detail ? `<span class="gris petit fx-det">${esc(detail)}</span>` : ''}${tard ? '<span class="fx-tard petit">Livré trop tard : retrait au comptoir ?</span>' : ''}${l.pu ? '' : '<span class="fx-sansprix petit">Pas de prix : ajoute-le pour que la commande se prépare.</span>'}
         ${mc ? `<span class="fx-mc petit">Chez ${esc(mc.four)} : ${eur(prixChez(l.x, pan.four) - mc.pa)} de moins · <button type="button" class="lien fx-lien" data-cm="depl|${k}|${esc(mc.four)}">Le prendre chez lui</button></span>` : ''}</span>
       <span class="fx-pq"><span class="mat-pas"><button type="button" data-fx="pas|${k}|-1" aria-label="Un de moins : ${nom}">−</button><input inputmode="decimal" data-cmq="${k}" value="${prNum(l.q)}" aria-label="Quantité de ${nom}"><button type="button" data-fx="pas|${k}|1" aria-label="Un de plus : ${nom}">+</button></span>
-        <span class="fx-pr"><span class="gris petit fx-u">${esc(prU(l.q, l.u))}${l.pu ? ' · ' + eur(l.q * l.pu) : ''}</span><button type="button" class="lien fx-lien" data-cm="hors|${k}" aria-label="Retirer ${nom} de la commande">Retirer</button></span></span></div>`; }).join('');
+        <span class="fx-pr"><span class="gris petit fx-u">${esc(prU(l.q, l.u))}${l.pu ? ' · ' + eur(cmdLigneHT(l)) : ''}</span><button type="button" class="lien fx-lien" data-cm="hors|${k}" aria-label="Retirer ${nom} de la commande">Retirer</button></span></span></div>`; }).join('');
   const franco = F.manque > 0 ? `<div class="fx-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(F.ht / f.franco * 100))}%"></i></div><span class="petit">Plus que <b>${eur(F.manque)}</b> pour la livraison gratuite — sinon ${eur(f.port)} de port</span>${F.idees.length ? `<span class="fx-idees petit">${F.idees.map(x => `<button type="button" class="lien fx-lien" data-cm="plus|${x.id}">＋ ${esc(x.nom)} (il t’en reste ${prNum(x.q)})</button>`).join('')}</span>` : ''}</div>`
     : f && f.franco ? '<div class="fx-franco ok petit">✓ Livraison gratuite</div>' : '';
   const mail = f && !f.mail ? `<div class="fx-mail"><span class="st st-r">Il manque son e-mail pour envoyer la commande</span><label class="fx-mailc"><span class="gris petit">E-mail des commandes de ${esc(f.nom)}</span><input class="saisie" type="email" inputmode="email" data-fxmail="${f.id}" placeholder="commandes@…" autocomplete="off"></label></div>` : '';
@@ -17680,8 +17734,8 @@ function cmdEdVue(){
     <div class="fx-ed">${E.lignes.map((l, j) => { const x = cmdArt(l);
       return `<div class="fx-el"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${l.ref && l.ref !== '—' ? 'Réf. ' + esc(l.ref) + ' · ' : ''}${esc(fxRaison(l, x))}</span></span>
         <span class="fx-eq"><span class="mat-pas"><button type="button" data-fx="edpas|${j}|-1" aria-label="Un de moins : ${esc(cmdNom(l))}">−</button><input inputmode="decimal" data-cedl="${j}|q" value="${prNum(l.q)}" aria-label="Quantité de ${esc(cmdNom(l))}"><button type="button" data-fx="edpas|${j}|1" aria-label="Un de plus : ${esc(cmdNom(l))}">+</button></span><span class="gris petit">${esc(prU(l.q, cmdU(l)))}</span></span>
-        <label class="fx-ep"><span class="gris petit">Prix HT</span><input inputmode="decimal" data-cedl="${j}|pu" value="${l.pu != null ? l.pu.toFixed(2).replace('.', ',') : ''}" placeholder="selon tarif" aria-label="Prix HT de ${esc(cmdNom(l))}"></label>
-        <b class="fx-et">${l.pu != null ? eur(l.q * l.pu) : '—'}</b><button type="button" class="lien fx-lien" data-ce="suppr|${j}" aria-label="Retirer ${esc(cmdNom(l))}">Retirer</button></div>`; }).join('') || '<div class="gris" style="padding:10px 2px">Aucune ligne : cherche un article ci-dessous.</div>'}</div>
+        <label class="fx-ep"><span class="gris petit">Prix unitaire HT</span><input inputmode="decimal" data-cedl="${j}|pu" value="${l.pu != null ? cmdPuTexte(l.pu) : ''}" placeholder="selon tarif" aria-label="Prix unitaire HT de ${esc(cmdNom(l))}"></label>
+        <b class="fx-et">${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</b><button type="button" class="lien fx-lien" data-ce="suppr|${j}" aria-label="Retirer ${esc(cmdNom(l))}">Retirer</button></div>`; }).join('') || '<div class="gris" style="padding:10px 2px">Aucune ligne : cherche un article ci-dessous.</div>'}</div>
     <div class="ced-ajout"><input class="saisie" data-cedrech="1" placeholder="＋ Ajouter un article : nom, référence…" autocomplete="off" aria-label="Ajouter un article"><div id="ced-res" class="ced-res"></div></div>
     <div class="ced-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
     ${f.franco ? (F > 0 ? `<div class="fx-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(ht / f.franco * 100))}%"></i></div><span class="petit">Plus que <b>${eur(F)}</b> pour la livraison gratuite — sinon ${eur(f.port)} de port</span></div>` : '<div class="fx-franco ok petit">✓ Livraison gratuite</div>') : ''}
@@ -17714,7 +17768,7 @@ function cmdFiche(id){
     ${cmdEtapes(c)}
     <div class="gris petit">${c.liv === 'comptoir' ? 'Retrait au comptoir' : c.liv === 'chantier' && i ? 'Livraison sur le chantier · ' + esc(CLIENTS[i.cli].adr) : 'Livraison à l’atelier'}${i ? ` · pour <button type="button" class="lien" data-tvoir="inter|${i.id}">${esc(interLib(i))}</button>` : ''}</div>
     <div class="fo-bloc">${c.lignes.map(l => { const t = l.inter && TACHES.find(o => o.id === l.inter), ii = t && INTS.find(o => o.id === t.inter);
-      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${c.st === 'brouillon' ? '' : ' · ' + (l.recu >= l.q ? '<span class="fo-down">tout est arrivé</span>' : l.recu ? `reçu ${prNum(l.recu)} sur ${prNum(l.q)}, <b class="fo-up">il en manque ${prNum(l.q - l.recu)}</b>` : 'pas encore arrivé')}${l.rupture && l.recu < l.q ? ` · <b class="fo-up">en rupture, prévu le ${jCourt(l.rupture)}</b>` : ''}${ii ? ` · pour ${esc(CLIENTS[ii.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${l.pu != null ? eur(l.q * l.pu) : '—'}</b><span class="gris petit">${l.pu != null ? eur(l.pu) + ' l’unité' : 'selon tarif'}</span></span></div>`; }).join('')}
+      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${c.st === 'brouillon' ? '' : ' · ' + (l.recu >= l.q ? '<span class="fo-down">tout est arrivé</span>' : l.recu ? `reçu ${prNum(l.recu)} sur ${prNum(l.q)}, <b class="fo-up">il en manque ${prNum(l.q - l.recu)}</b>` : 'pas encore arrivé')}${l.rupture && l.recu < l.q ? ` · <b class="fo-up">en rupture, prévu le ${jCourt(l.rupture)}</b>` : ''}${ii ? ` · pour ${esc(CLIENTS[ii.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</b><span class="gris petit">${l.pu != null ? eur(l.pu) + ' l’unité' : 'selon tarif'}</span></span></div>`; }).join('')}
       <div class="fo-r"><span class="fo-n"><b>Total HT</b><span class="gris petit">TTC ${eur(cmdHT(c) + cmdTVA(c))}</span></span><b>${eur(cmdHT(c))}</b></div></div>
     ${c.note ? `<div class="gris petit">Note au fournisseur : ${esc(c.note)}</div>` : ''}
     <div class="ms-boutons fx-boutons">${noir}${a && (a.t === 'retard' || a.t === 'silence') ? `<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>` : ''}<button type="button" class="btn gris" data-fx="cplus|${c.id}" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div>
@@ -19716,7 +19770,9 @@ mlCreneaux = function(n = 3){
       if (t && !L.some(o => o.d === d)) { L.push({ d, h, t }); break; } } }
   return L;
 };
-function mbxOptions(m, prop){ if (!prop || prop.id !== m.id) return; mbxLiberer(m.id);
+/* tenir un créneau en option ÉCRIT au planning : sans la case Planning (modifier), la réponse part quand même (c'est un courriel) mais rien n'est bloqué — et rien ne dit « tenu en option » (restes entreprise, tour 4) */
+const mbxPeutTenir = () => peut('planif', 'm');
+function mbxOptions(m, prop){ if (!prop || prop.id !== m.id || !mbxPeutTenir()) return; mbxLiberer(m.id);
   prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + mailNom(m), option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
 function mbxLiberer(id){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) BUREAU.splice(k, 1); }
 function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optExp < AUJ) BUREAU.splice(k, 1); }
@@ -19724,7 +19780,7 @@ function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].
   if (b.option) h = h.replace('class="pc bur ', 'class="pc bur mbx-opt ').replace('Créneau bloqué', 'Option · libre sous 48 h'); return h; }; })();
 /* la réponse du client : un message de démonstration arrive 4 secondes après l'envoi des créneaux */
 function mbxReponseClient(id){ const m = mlDe(id), p = m && m.attente && m.attente.prop; if (!m || !p || !p.length) return;
-  const c = p[0], r = mlM('m' + Date.now(), AUJ, hm(MAINT_MIN), { nom:m.de.nom, mail:m.de.mail }, (/^re\s*:/i.test(m.objet) ? m.objet : 'Re: ' + m.objet), 'Bonjour,\n\nLe ' + jlong(c.d) + ' à ' + mlH(c.h) + ' ira très bien.\n\nMerci,\n' + m.de.nom, { boite:m.boite, cren:{ choix:c, liste:p, orig:m.id } });
+  const c = p[0], r = mlM('m' + Date.now(), AUJ, hm(MAINT_MIN), { nom:m.de.nom, mail:m.de.mail }, (/^re\s*:/i.test(m.objet) ? m.objet : 'Re: ' + m.objet), 'Bonjour,\n\nLe ' + jlong(c.d) + ' à ' + mlH(c.h) + ' ira très bien.\n\nMerci,\n' + m.de.nom, { boite:m.boite, cren:{ choix:c, liste:p, orig:m.id, tenus:!!m.attente.tenus } });
   MAILS.push(r); m.attente = null; if (route === 'boiteMail') rendre(); toast(esc(m.de.nom) + ' a répondu : ' + jlong(c.d) + ' à ' + mlH(c.h) + '.', { lib:'Ouvrir', fn:() => { r.lu = true; courrierOuvrir(r.id); } }); }
 
 /* ── ce qui se passe quand une réponse part ── */
@@ -19732,12 +19788,12 @@ function mbxApresEnvoi(m, t){
   const mo = mlRep && mlRep.modele, h = hm(MAINT_MIN), R = mlLire(m), cli = mbxCliDe(m);
   if (mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id) MBX.crProp = { id:m.id, list:MBX.crProp.list.filter(c => String(t).includes(jlong(c.d) + ' à ' + mlH(c.h))) };
   m.rep = { d:AUJ, h, mo };
-  if (['creneau', 'devis', 'question', 'relance'].includes(mo)) { m.attente = { d:AUJ, h, mo, prop:mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id && MBX.crProp.list.length ? MBX.crProp.list : null }; if (mo === 'relance') m.relances = (m.relances || 0) + 1; }
+  if (['creneau', 'devis', 'question', 'relance'].includes(mo)) { m.attente = { d:AUJ, h, mo, prop:mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id && MBX.crProp.list.length ? MBX.crProp.list : null }; m.attente.tenus = !!m.attente.prop && mbxPeutTenir(); if (mo === 'relance') m.relances = (m.relances || 0) + 1; }
   else m.attente = null;
   if (mo === 'creneau') { mbxOptions(m, MBX.crProp); setTimeout(() => mbxReponseClient(m.id), 4000); }
   if (mo === 'confirm') m.prevenu = h;
   if (!m.fait && ['msgcli', 'msgfour', 'trier'].includes(R.sujet) && !m.attente) mlTraite(m, 'Répondu à ' + h.replace(':', ' h '));
-  journalAjout('marc', 'client', 'a répondu à ' + m.de.nom, { t:'client', id:cli || '', lib:cli ? CLIENTS[cli].nom : m.de.nom, cli:cli || '' }, { det:m.objet + (mo === 'creneau' && m.attente && m.attente.prop ? ' · ' + m.attente.prop.length + ' créneau' + (m.attente.prop.length > 1 ? 'x' : '') + ' proposé' + (m.attente.prop.length > 1 ? 's' : '') + ', tenu' + (m.attente.prop.length > 1 ? 's' : '') + ' en option' : '') });
+  journalAjout('marc', 'client', 'a répondu à ' + m.de.nom, { t:'client', id:cli || '', lib:cli ? CLIENTS[cli].nom : m.de.nom, cli:cli || '' }, { det:m.objet + (mo === 'creneau' && m.attente && m.attente.prop ? ' · ' + m.attente.prop.length + ' créneau' + (m.attente.prop.length > 1 ? 'x' : '') + ' proposé' + (m.attente.prop.length > 1 ? 's' : '') + (m.attente.tenus ? ', tenu' + (m.attente.prop.length > 1 ? 's' : '') + ' en option' : '') : '') });
 }
 
 mlActions = function(m, R){
@@ -19761,7 +19817,7 @@ function mbxStatutTextes(m){
   const R = mlLire(m), T = [];
   if (m.rep) T.push(`Répondu ${mbxRepQuand(m.rep)}`);
   if (R.relance) T.push(`Sans réponse depuis ${mbxNb(mbxOuvres(m.attente.d, AUJ), 'jour ouvré', 'jours ouvrés')}`);
-  else if (m.attente) T.push('En attente de sa réponse' + (m.attente.prop ? ' · ' + ['', 'un créneau tenu', 'deux créneaux tenus', 'trois créneaux tenus'][m.attente.prop.length] + ' en option' : ''));
+  else if (m.attente) T.push('En attente de sa réponse' + (m.attente.prop ? ' · ' + (m.attente.tenus ? ['', 'un créneau tenu', 'deux créneaux tenus', 'trois créneaux tenus'][m.attente.prop.length] + ' en option' : ['', 'un créneau proposé', 'deux créneaux proposés', 'trois créneaux proposés'][m.attente.prop.length]) : ''));
   if (m.prevenu) T.push('Client prévenu à ' + m.prevenu.replace(':', ' h '));
   if (m.confie && !m.confie.fini) T.push('Confié à ' + prenomDe(m.confie.qui));
   return T;
@@ -19904,7 +19960,7 @@ function courrierBandeau(m){
   else if (R.sujet === 'expedition' && R.cmd) det = `date de livraison actuellement dans OP GESTION : ${R.cmd.prevue ? jCourt(R.cmd.prevue) : 'aucune'}`;
   else if (R.sujet === 'paiement' && R.facture) { det = `${eur(R.ttc)} TTC, ${R.facture.st === 'payee' ? 'déjà payée' : 'pas encore réglée'}`;
     if (R.montant != null && R.facture.st !== 'payee') { const ok = Math.abs(R.montant - R.reste) < .01; note = ok ? `Il annonce ${eur(R.montant)} ; il reste ${eur(R.reste)} TTC à payer : ça correspond.` : R.montant < R.reste ? `Il annonce ${eur(R.montant)} pour ${eur(R.reste)} à payer : un acompte ? La facture ne sera pas soldée.` : `Il annonce ${eur(R.montant)}, plus que les ${eur(R.reste)} à payer : à vérifier.`; } }
-  else if (R.sujet === 'choixcren') note = `Il choisit le ${jlong(m.cren.choix.d)} à ${mlH(m.cren.choix.h)}, l’un des trois créneaux que tu lui avais tenus en option.`;
+  else if (R.sujet === 'choixcren') note = `Il choisit le ${jlong(m.cren.choix.d)} à ${mlH(m.cren.choix.h)}, l’un des trois créneaux que tu lui avais ${m.cren.tenus ? 'tenus en option' : 'proposés'}.`;
   else if (R.sujet === 'trier') det = `inconnu dans tes clients et tes fournisseurs${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}. Dis-lui qui c’est : ça range tout seul la suite.`;
   else if (R.qui === 'nouveau') det = `inconnu dans tes clients${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}`;
   else if (R.sujet === 'msgcli' || R.sujet === 'msgfour') det = 'pas de demande reconnue dans le texte : lis-le et réponds, ou garde-le en tâche.';
@@ -20689,22 +20745,27 @@ function axNdfForm() {
     <div class="ndf-sans ax-dbl" id="rn-dbl" hidden></div>
     <div class="actions"><button type="button" class="btn" data-rl="ndfok">Envoyer au bureau</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
 }
+/* les kilomètres passent par la même règle que les montants (restes technicien, tour 4) : « 1.500 » et « 1,500 » se lisaient 1,5 km en silence ; l'espace sépare les milliers (« 1 500 » = 1500).
+   Rend true si c'est clair, false si cxMontantRefus dit une phrase (la même que pour un montant), null si le champ est vide */
+function axKmClair(txt) { if (!String(txt == null ? '' : txt).trim()) return null; const r = cxMontantRefus(txt); return !(r && r !== 'Indique le montant.' && !/ne se lit pas/.test(r)); }
 /* « Kilomètres » : le montant se calcule, il n'y a ni ticket ni TVA */
 function axNdfNature() {
   const o = document.getElementById('rn-o'); if (!o) return; const km = o.value === AX_NATURES[4];
   document.getElementById('rn-euros').hidden = km; document.getElementById('rn-kms').hidden = !km; document.getElementById('rn-ph').hidden = km;
-  if (km) { const k = axNum(document.getElementById('rn-km').value);
-    document.getElementById('rn-kmtxt').textContent = k > 0 ? `${axN(k)} km × ${axTarif(AX.kmTarif)} = ${eur(axKmMontant(k, AX.kmTarif))} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le gérant.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le gérant (${axTarif(AX.kmTarif)}).`; }
+  if (km) { const kv = document.getElementById('rn-km').value, k = axKmClair(kv) ? axNum(kv) : NaN;
+    document.getElementById('rn-kmtxt').textContent = axKmClair(kv) === false ? cxMontantRefus(kv) : k > 0 ? `${axN(k)} km × ${axTarif(AX.kmTarif)} = ${eur(axKmMontant(k, AX.kmTarif))} · sans ticket, sans TVA. Le tarif au kilomètre est celui réglé par le gérant.` : `Le montant se calcule : kilomètres × le tarif au kilomètre réglé par le gérant (${axTarif(AX.kmTarif)}).`; }
 }
 function axNdfEnvoyer(forcer) {
   const g = id => document.getElementById(id), nat = g('rn-o').value, km = nat === AX_NATURES[4], pr = g('rn-pr').value.trim(), iid = g('rn-i').value, d = g('rn-d').value || AUJ;
-  const k = km ? axNum(g('rn-km').value) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, ''), m = km ? (k > 0 ? axKmMontant(k, AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
+  const kTxt = km ? g('rn-km').value : '', k = km && axKmClair(kTxt) !== false ? axNum(kTxt) : NaN, mTxt = km ? '' : g('rn-m').value.replace(/\s*(€|euros?)\s*$/i, '').replace(/[.,]\s*$/, ''), m = km ? (k > 0 ? axKmMontant(k, AX.kmTarif) : NaN) : axNum(mTxt), ph = km ? null : g('rn-p') && g('rn-p').files[0], t = km ? 0 : +g('rn-t').value;
   /* Rien n'est choisi d'avance (restes technicien 1) : « Carburant » pré-rempli titrait « Carburant · Péage A10 · AB-123-CD » un péage ou des gants. */
   if (!nat) { const o = g('rn-o'); if (o) o.focus(); return toast('Choisis d’abord ce que c’est dans la liste : carburant, repas, péage…'); }
   /* un montant écrit avec un « € », ou qu'on ne sait pas lire, reçoit une phrase qui dit QUOI écrire : « Indique le montant payé. » devant un champ déjà rempli laissait croire à un bug (achats-11) */
   /* même phrase que la Comptabilité pour « 5.000 » ou « 1,500 » : lus 5 € et 1,50 €, ils partaient au bureau sans un mot (restes technicien 3) */
   const refusN = !km && mTxt.trim() ? cxMontantRefus(mTxt) : '';
   if (!km && mTxt.trim() && (!(m > 0) || (refusN && refusN !== 'Indique le montant.'))) { const r = refusN; const z = g('rn-m'); if (z) z.focus(); return toast(r && r !== 'Indique le montant.' ? r : 'Écris le montant payé en chiffres, par exemple 12,50.'); }
+  /* la fonction qui enregistre refuse aussi, pas seulement le champ : même phrase que la Comptabilité, rien n'est enregistré */
+  if (km && axKmClair(kTxt) === false) { const z = g('rn-km'); if (z) z.focus(); return toast(cxMontantRefus(kTxt)); }
   if (km ? !(k > 0) : !(m > 0)) return toast(km ? 'Indique les kilomètres parcourus.' : 'Indique le montant payé.');
   if (d > AUJ) return toast('La date de la dépense ne peut pas être dans le futur.');
   if (!forcer && (km ? k > 1500 : m > 2000)) { const z = g('rn-dbl'); z.hidden = false;
@@ -20783,7 +20844,7 @@ document.addEventListener('click', ev => {
   if (a === 'reglages') return ouvrirPanneau(`<span class="surtitre">Notes de frais</span><h2>Réglages</h2><div class="gris ax-regle ax-regle-p">${axReglesLignes()}</div><div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`);
   if (a === 'kmtarif') return ouvrirPanneau(`<span class="surtitre">Notes de frais · kilomètres</span><h2>Tarif au kilomètre</h2><span class="gris">Ce que tu rembourses par kilomètre parcouru avec un véhicule personnel. Le barème dépend de la puissance du véhicule : à régler avec ton expert-comptable.</span>
     <label class="champ">Tarif, en € le kilomètre<input class="saisie" id="ax-km" inputmode="decimal" value="${String(AX.kmTarif).replace('.', ',')}"></label><div class="actions"><button type="button" class="btn" data-axa="kmok">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
-  if (a === 'kmok') { const txt0 = (g('ax-km') || {}).value, txt = String(txt0 == null ? '' : txt0).replace(/\s*(€|euros?)(\s*(\/|le|par)\s*km)?\s*$/i, '').trim() /* « 0,60 € » : l'unité écrite par un débutant se lit, elle ne le renvoie pas (restes achats 2) */, v = axNum(txt); /* « 1.500 » se lit 1 500 ou 1,5 : la phrase des autres montants le refuse, au lieu de poser un tarif 2,5 fois trop haut sans un mot (restes achats 1) */ const refus = /^0[.,]\d{3}$/.test(txt) ? '' /* le barème kilométrique a trois décimales (0,603) : un « 0 » devant ne se lit jamais comme un millier */ : String(txt || '').trim() ? cxMontantRefus(txt, 100) : ''; if (refus && refus !== 'Indique le montant.' && isFinite(v)) { const z = g('ax-km'); if (z) z.focus(); /* le champ accepte trois décimales : la phrase des montants (deux au plus) le contredirait (restes achats 3) */ return toast(/^Un montant a au plus deux/.test(refus) ? 'Un tarif au kilomètre a au plus trois décimales (0,603).' : refus); } if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); if (v < 0.05 || v > 10) { const z = g('ax-km'); if (z) z.focus(); return toast('Ce tarif au kilomètre paraît faux : il tourne autour de 0,60 €. Vérifie-le avec ton expert-comptable.'); } AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${axTarif(v)}.`); }
+  if (a === 'kmok') { const txt0 = (g('ax-km') || {}).value, txt = String(txt0 == null ? '' : txt0).replace(/\s*(€|euros?)(\s*(\/|le|par)\s*km)?\s*$/i, '').trim() /* « 0,60 € » : l'unité écrite par un débutant se lit, elle ne le renvoie pas (restes achats 2) */, v = axNum(txt); /* « 1.500 » se lit 1 500 ou 1,5 : la phrase des autres montants le refuse, au lieu de poser un tarif 2,5 fois trop haut sans un mot (restes achats 1) */ const refus = /^0[.,]\d{3}$/.test(txt) ? '' /* le barème kilométrique a trois décimales (0,603) : un « 0 » devant ne se lit jamais comme un millier */ : String(txt || '').trim() ? cxMontantRefus(txt, 100) : ''; if (refus && refus !== 'Indique le montant.' && isFinite(v)) { const z = g('ax-km'); if (z) z.focus(); /* le champ accepte trois décimales : la phrase des montants (deux au plus) le contredirait (restes achats 3) */ return toast(/^0{2,}[.,]\d+$/.test(txt) ? 'Le zéro de tête est en trop : tape ' + txt.replace(/^0+(?=0[.,])/, '') + '.' /* « 00,603 » a bien trois décimales : ce qui cloche est le zéro (restes achats 4) */ : /^\d{1,3}([. \u00a0]\d{3})+$/.test(txt) ? 'Un tarif au kilomètre se tape comme 0,603.' /* pas « écris 1500 ou 1,50 », phrase des montants (restes achats 4) */ : /^Un montant a au plus deux/.test(refus) ? 'Un tarif au kilomètre a au plus trois décimales (0,603).' : refus); } if (!(v > 0)) return toast('Indique un tarif, par exemple 0,60.'); if (v < 0.05 || v > 10) { const z = g('ax-km'); if (z) z.focus(); return toast('Ce tarif au kilomètre paraît faux : il tourne autour de 0,60 €. Vérifie-le avec ton expert-comptable.'); } AX.kmTarif = v; fermerPanneau(); rendre(); return toast(`Tarif au kilomètre : ${axTarif(v)}.`); }
   if (a === 'paie') { if (typeof ptOnglet !== 'undefined') { ptOnglet = 'mois'; TT.garder = true; } return aller('pointage'); }
   if (a === 'renvoyer') { if (!n || n.etat !== 'refusee') return; const av = { motif:n.motif, par:n.par, le:n.le }; axRenvoiNettoye(n); n.etat = 'attente'; n.renvoye = true; n.motif = null; axNotif('marc', `${prenomDe(n.qui)} renvoie sa note « ${n.objet} » après correction.`); axJ(n.qui, 'a renvoyé la note de frais', n.objet); rendre();
     return toast('Note renvoyée au bureau.', { lib:'Annuler', fn:() => { n.etat = 'refusee'; n.renvoye = false; Object.assign(n, av); rendre(); } }); }
@@ -21428,7 +21489,7 @@ eqFiche = function (k) {
       return `<div class="fo-r eqx-hr"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${eqxHabTexte(p, j)}</span>${anc.length ? `<details class="eqx-anc"><summary>Voir les anciennes (${anc.length})</summary>${anc.map(a => `<span class="gris petit">${a.fin ? 'jusqu’au ' + dFr(a.fin) : 'sans date de fin'}${a.passee ? ' · passée le ' + dFr(a.passee) : ''}${a.orga ? ' · ' + esc(a.orga) : ''}${a.piece ? ' · 📎 ' + esc(a.piece) : ''}</span>`).join('')}</details>` : ''}</span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouveler…</button>` : ''}</div>`; }).join('') || '<div class="gris petit">Aucune.</div>'}</div>
     <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
     ${droitsBlocFiche(p, k, admin, ajuste, pk)}
-    <div class="actions eqx-act">${p.invite ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button><button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
+    <div class="actions eqx-act">${p.invite ? `${p.actif ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : ''}<button type="button" class="btn gris" data-eqx="annulinv|${k}">Annuler l’invitation</button>` : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="${p.actif ? 'desact' : 'actif'}|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
     ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
 };
 
@@ -21629,8 +21690,8 @@ document.addEventListener('click', ev => {
     /* equipe-04 : chaque refus s'écrit SOUS son champ (un clavier de téléphone cache le toast), le champ est marqué en erreur et le curseur va au premier fautif */
     const dejaMail = v => EQUIPE.find(o => String(o.mail || '').trim().toLowerCase() === v.toLowerCase());
     const V = entVerifier([
-      ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : NOM_PERS_REFUS],
-      ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : NOM_PERS_REFUS],
+      ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : nomRefus(v)],
+      ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : nomRefus(v)],
       ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : '']]);
     if (!V) return;
     const pr = nomPersonneOk(V['eq-p']), no = nomPersonneOk(V['eq-n']), m = V['eq-m'];
@@ -21664,7 +21725,7 @@ document.addEventListener('click', ev => {
   if (a === 'modifok') {
     const p = eqDe(x), pr = nomPersonneOk(eqxVal('eqx-mp')), no = nomPersonneOk(eqxVal('eqx-mn')), m = eqxVal('eqx-mm'), t = eqxVal('eqx-mt'), ro = libelleSur(eqxVal('eqx-mr'), 40) || p.role, ter = document.getElementById('eqx-mter').checked;
     if (!eqxVal('eqx-mp') || !eqxVal('eqx-mn')) return toast('Prénom ET nom : les noms servent à savoir qui a reçu quoi.');
-    if (!pr || !no) return toast(NOM_PERS_REFUS);
+    if (!pr || !no) return toast(nomRefus(!pr ? eqxVal('eqx-mp') : eqxVal('eqx-mn')));
     if (t && !/^[0-9 +.()-]{6,20}$/.test(t)) return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.');
     const h = eqHomonyme(pr, no, x); if (h) { document.getElementById('eqx-mhomo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide.');
@@ -22863,7 +22924,7 @@ function dxVue(){
       <label class="champ">Client<select data-dx="cli"><option value="">Choisir le client…</option>${Object.entries(CLIENTS).filter(([k, o]) => k !== '__nv' && !o.archive).map(([k, o]) => `<option value="${k}" ${DX.cli === k ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}<option value="__nv" ${DX.nv ? 'selected' : ''}>＋ Nouveau client</option></select></label>
       ${DX.nv ? `<div class="seg" role="group" aria-label="Type de client"><button type="button" data-dxb="nvtype|part" aria-pressed="${DX.type === 'part'}">Particulier</button><button type="button" data-dxb="nvtype|pro" aria-pressed="${DX.type === 'pro'}">Professionnel</button></div>
         <div class="deux-champs"><label class="champ">${DX.type === 'pro' ? 'Raison sociale' : 'Nom'}<input data-dx="nv_nom" maxlength="120" value="${esc(DX.nom)}" autocomplete="off" placeholder="${DX.type === 'pro' ? 'ex. Hôtel de la Plage' : 'ex. Garnier'}"></label><label class="champ">${DX.type === 'pro' ? 'Contact (prénom, nom)' : 'Prénom'}<input data-dx="nv_prenom" maxlength="120" value="${esc(DX.prenom)}" autocomplete="off"></label>
-        <label class="champ">Téléphone<input data-dx="nv_tel" type="tel" maxlength="30" value="${esc(DX.tel)}"></label><label class="champ">E-mail<input data-dx="nv_mail" type="email" maxlength="120" value="${esc(DX.mail)}"></label></div>
+        <label class="champ">Téléphone<input data-dx="nv_tel" type="tel" maxlength="60" value="${esc(DX.tel)}"></label><label class="champ">E-mail<input data-dx="nv_mail" type="email" maxlength="120" value="${esc(DX.mail)}"></label></div>
         <label class="champ">Adresse du client<input data-dx="nv_adr" maxlength="160" value="${esc(DX.adr)}" placeholder="n°, rue, code postal, ville" autocomplete="off"></label>` : ''}
       <label class="champ">Adresse du chantier<input data-dx="chantier" value="${esc(dxAdr())}" placeholder="n°, rue, code postal, ville" autocomplete="off"></label><span class="gris petit" id="dx-chhint">${dxChHint()}</span>
       <div class="groupe">Ce qui a été constaté</div>
@@ -23244,12 +23305,15 @@ addEventListener('message', ev => {
    Justin : « une seule comptabilité ». La fenêtre « Comptabilité » avait son propre jeu de factures (26, 72 845 € à recevoir) pendant que l'application
    en avait 8 (1 475 €) — mêmes numéros, autres clients, autres montants ; un paiement ou une relance faits ici n'y arrivaient pas, une facture envoyée
    ici prenait un numéro déjà pris là-bas. L'application fait foi : elle donne à la fenêtre ses factures de vente, ses paiements, ses relances et
-   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement). Rien d'autre n'est envoyé. Seulement avec ?app=1. */
+   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement), plus l'argent reçu sur place avant facture. Rien d'autre n'est envoyé (ni achats, ni banque, ni paie, ni heures). Seulement avec ?app=1. */
 function opLiaDonnees(){
   const nom = k => (CLIENTS[k] || {}).nom, typ = k => (CLIENTS[k] || {}).type;
   return { prochain:numSuiv,
     factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), rembourse:f.st === 'annulee' && rembourseFait(f), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
-    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
+    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })),
+    /* l'argent reçu SUR PLACE par un technicien, avant toute facture (« Reçu I6 ») : un encaissement comme les autres pour la TVA et la caisse — l'application le compte déjà (cpEncOct). À
+       part de `enc` : il n'a pas de facture, et le cadre ne doit pas lui en inventer une. Quand la facture part, le reçu quitte cette liste et le cadre défait son écriture. */
+    recus:cpPaieTerrain().map(e => ({ id:e.int, num:e.fac, d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
   try { u += '?app=1&liaison=' + encodeURIComponent(JSON.stringify(opLiaDonnees())); } catch (e) { u += '?app=1'; } return u; }
@@ -23546,9 +23610,9 @@ rendreApresClic = function(){ cfRendreApresTap(); };   // le formulaire de contr
 const cfTelOk = t => { t = String(t || '').trim(); if (!t) return true; const c = t.replace(TEL_POSTE, ''); const n = c.replace(/\D/g, '').length; return /^\+?[\d\s.()\/,;-]+$/.test(c) && n >= 6 && n <= 20; };   // deux numéros (« 05 46 12 12 12 / 06 12 34 56 78 ») passent : un contact d'entreprise en donne souvent deux ; au-delà de 20 chiffres, ce n'est plus un numéro
 /* les CHIFFRES d'un numéro, « +33 6… », « 0033 6… » et « +33 (0)6… » ramenés à « 06… » : la seule façon de comparer deux numéros (recherche, doublon, rangement). Un numéro étranger garde son indicatif.
    `partiel` : une saisie en cours (« +33 6 ») n'a pas encore ses neuf chiffres, on ramène quand même l'indicatif (clients-18) */
-const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)/ : /^(?:0033|33)(?=\d{9}$)/, '0'); return n; };
+const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^\(?\s*(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)0?/ : /^(?:0033|33)0?(?=\d{9}$)/, '0'); return n; };   /* « (+33) 6… » et « +33 06… » (le 0 gardé par habitude) sont des numéros français comme les autres : même chiffres que « 06… » (recontrôle, clients-18) */
 /* à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » (clients, décision du 17 novembre) */
-const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
+const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^\(?\s*(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
 /* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, e-mail, « le client seul ») :
    son numéro à la française, le point de la carte des tournées et le secteur — sans ça la carte le plaçait au dépôt (clients-05, recontrôle casse 3) */
 function clientFinir(k){ const c = CLIENTS[k]; if (!c) return; c.tel = cfTelFmt(c.tel); cliPositionner(k, c.adr); }   /* cliPositionner : la seule décision de position (secteur et point de la carte) */
@@ -23845,17 +23909,17 @@ const MET_JEUX = (() => {
   };
 })();
 /* des phrases d'exemple écrites pour la climatisation : un autre métier lit un exemple de son métier */
-const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique, la porte d’entrée', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
-  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches, référence à préciser',
+const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
+  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches de colle',
   'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. L’installation ne fonctionne plus depuis ce matin.', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer l’appareil par un modèle plus puissant ; pose à prévoir.',
   /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
-  'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…',
+  'ex. échelle 3 plans, gants, fluide R32':'ex. une échelle, des gants', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, un article…',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
   'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
   /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
-  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
-  if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
+  if (!racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
   L.forEach(n => { const v = metiersEx()[n.getAttribute('placeholder')]; if (v) n.setAttribute('placeholder', v); });
 }
@@ -23986,20 +24050,22 @@ document.addEventListener('click', ev => {
 
 /* ══ lot « metiers-a » (3ᵉ passe) : textes de contrat et d'exemples par métier, corrections du référentiel ══ */
 /* [4] les exemples de saisie : la climatisation seule ne lit plus « la chaudière », le chauffage et la plomberie ne lisent plus « la clim » */
-const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
+/* [4 bis] à 320 px, la place d'une indication est de 204 px (lieu du contrat) à 238 px : les textes d'origine de la climatisation qui n'y tiennent pas sont raccourcis ICI (la clé reste le texte d'origine du champ), et la combinaison chauffage + climatisation (cvc) les reprend — elle gardait jusque-là l'original, coupé (metier-3d-exemples-320) */
+const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’un split', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service split', 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants', 'ex. condensateur, siphon, fluide…':'ex. condensateur, fluide…', 'ex. équipe clim, chantier Mimosas':'ex. équipe clim, Mimosas', 'ex. Split mural salle · R32 · 2021':'ex. Split mural · R32 · 2021', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.' };
+const MET_EX_CVC = Object.assign({}, MET_EX_CLIM, { 'ex. la chaudière du sous-sol':'ex. la chaudière, le split' });
 const MET_EX_FAM = {
-  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
-  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
+  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, joint…', 'ex. la chaudière du sous-sol':'ex. la chaudière, la cave', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.',
+    'ex. Remplacement de la pompe de relevage':'ex. Circulateur à remplacer', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
+  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le garage, la cuisine', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
 /* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
-MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
-MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
 /* une même indication s'écrit avec ou sans majuscule selon la fenêtre qui la porte (« Ex. condensateur… » dans les achats, « ex. condensateur… » dans « Nouvelle intervention ») : la correspondance est EXACTE, donc la seconde copie échappait à la table et rendait un exemple de climatisation à tous les métiers (metier-3d-recontrole-04). Chaque entrée « Ex. … » reçoit sa jumelle « ex. … » */
 [MET_EXEMPLES, ...Object.values(MET_EX_FAM)].forEach(T => Object.keys(T).forEach(k => { if (!/^Ex\. (?!:)/.test(k)) return; const j = 'ex. ' + k.slice(4), v = T[k]; if (!(j in T)) T[j] = v == null ? v : /^Ex\. /.test(v) ? 'ex. ' + v.slice(4) : v; }));
 function metiersEx(){
-  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM;
+  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM; if (f === 'cvc') return MET_EX_CVC;
   const T = Object.assign({}, MET_EXEMPLES), O = MET_EX_FAM[f] || {};
   Object.keys(O).forEach(k => { if (O[k] == null) delete T[k]; else T[k] = O[k]; }); return T;
 }
@@ -26407,25 +26473,25 @@ function secuReposer(k){ const p = eqDe(k); if (!p || !peut('admin', 'm')) retur
   secuProvisoireNeuf(k); secuFermerSessions(k, 'admin'); opsDemo();
   secuPanProv(k, '', null); toast('Mot de passe provisoire donné. À sa prochaine connexion, ' + esc(p.prenom) + ' choisira le sien.'); return true; }
 /* la fiche d'une personne : le bloc « Connexion » (jamais un mot de passe lisible) et les gestes d'un administrateur */
-function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLogin(p), perso = !!c.empreinte, verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee'), soi = k === acteur(), sec = secuPeut();
+function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLogin(p), soi = k === acteur(), perso = !!c.empreinte || soi, verrou = secuVerrouMaj(c), der = c.histo.find(h => h.resultat === 'approuvee'), sec = secuPeut();   /* tour 2 : quelqu'un qui lit sa PROPRE fiche est connecté : il a forcément choisi son mot de passe, on ne lui écrit pas « provisoire, à lui remettre en main propre » */
   /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le panneau d'un geste et dans le bloc « Démonstration ») */
   const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
-  const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : '<b>À activer à sa première connexion</b>';
+  const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : soi ? '<b>À activer depuis ton téléphone</b>' : '<b>À activer à sa première connexion</b>';
   const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : '';
   /* equipe-13 (décision du chef, 17/11) : deux gestes qui changent un mot de passe, deux noms qu'on ne confond pas, UNE phrase sous chacun.
      Pas pour son propre compte (equipe-01) : la session se couperait avant la lecture du provisoire. Le bouton « lien » de la fiche est repris ici
      (même geste data-eq=mdp) pour que les deux soient côte à côte ; un compte verrouillé n'en reçoit aucun (« Déverrouiller » d'abord). */
   /* restes équipe : un compte DÉSACTIVÉ ne se connecte pas, on ne lui offre donc ni provisoire ni lien (à côté de « Réactiver le compte ») ; sur sa PROPRE fiche, le gérant se lit à la première personne */
-  const mdpOutils = !p.actif ? `<small class="gris">${esc(p.prenom)} ne peut pas se connecter : réactive d’abord son compte pour lui donner un nouveau mot de passe.</small>` : (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">${soi ? 'Changer mon mot de passe' : 'Changer son mot de passe'}</span>
+  const mdpOutils = !p.actif ? `<small class="gris">${esc(p.prenom)} ne peut pas se connecter : réactive d’abord son compte${p.invite ? '.' : ' pour lui donner un nouveau mot de passe.'}</small>` : (sec && !soi) || !p.invite ? `<div class="cn-mdp"><span class="surtitre">${soi ? 'Changer mon mot de passe' : 'Changer son mot de passe'}</span>
       ${sec && !soi ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-cnx="repose|${esc(k)}">Lui donner un mot de passe provisoire</button><small class="gris">Un mot de passe s’affiche : remets-le-lui en main propre. Il en choisira un autre à sa prochaine connexion.</small></div>` : ''}
       ${!p.invite ? `<div class="cn-mdp-l"><button type="button" class="btn gris" data-eq="mdp|${esc(k)}">${soi ? 'M’envoyer un lien pour choisir un nouveau mot de passe' : 'Lui envoyer un lien pour choisir le sien'}</button><small class="gris">${soi ? 'Tu reçois un e-mail et tu choisis ton mot de passe toi-même.' : esc(p.prenom) + ' reçoit un e-mail et choisit son mot de passe lui-même : rien à lui remettre.'}</small></div>` : ''}</div>` : '';
   return `<div class="cn-acces"><span class="surtitre">Connexion</span>
     <div class="ligne"><span>Lien de l’entreprise</span><b class="mono">${esc(ESPACE_LIEN)}</b></div>
     <div class="ligne"><span>Identifiant</span><b class="mono">${esc(id)}</b></div>
-    <div class="ligne"><span>Mot de passe</span><b>${perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
+    <div class="ligne"><span>Mot de passe</span><b>${soi ? 'Personnel : tu l’as choisi toi-même.' : perso ? 'Personnel, choisi par ' + esc(p.prenom) + '.' : 'Provisoire : à lui remettre en main propre.'}</b></div>
     ${perso ? '' : '<small class="gris">' + esc(p.prenom) + ' le change à sa première connexion.</small>'}
     <div class="ligne"><span>Téléphone</span>${telTxt}</div>
-    <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : 'Jamais'}</b></div>
+    <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : soi ? 'En ce moment' : 'Jamais'}</b></div>
     ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
     ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}</div>
