@@ -28,16 +28,18 @@ const LONG60 = 'Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA
       await L.fin(c);
     }
   }
-  // 2. INTERVENTIONS, liste vide : « Rien ici. » ne disait ni pourquoi ni quoi faire. Une phrase par filtre ; sur « Toutes », la marche à suivre.
+  // 2. INTERVENTIONS, liste vide : « Rien ici. » ne disait ni pourquoi ni quoi faire. Une carte par filtre (titre + une phrase) ; « Toutes » et « À venir » proposent le geste.
+  //    (La carte elle-même est celle de la voie « restes interventions » ; ce contrôle garde que les cinq filtres la montrent, et jamais le « Rien ici. » nu.)
   if (sec('2')) {
     for (const profil of ['mac', 'iphone']) {
       const c = await L.ouvrir({ profil, qui: 'julie' });
       await c.p.evaluate(() => { INTS.length = 0; });
-      for (const [f, motif] of [['auj', /aujourd’hui/], ['avenir', /à venir/], ['plan', /planifier/], ['fait', /terminée/], ['tout', /Nouvelle intervention/]]) {
+      for (const [f, motif, geste] of [['auj', /aujourd’hui/, true], ['avenir', /à venir/, true], ['plan', /planifier/, false], ['fait', /terminée/, false], ['tout', /Aucune intervention/, true]]) {
         await L.aller(c.p, 'interventions'); await c.p.evaluate(x => document.querySelector(`[data-filtreint=${x}]`).click(), f); await L.calme(c.p, 400);
-        const t = await c.p.evaluate(() => { const z = [...document.querySelectorAll('#contenu .liste-bureau td.gris, #contenu .liste-tel > .gris')].filter(e => e.offsetParent); return z.map(e => e.textContent.trim()); });
-        v(`interventions vides ${profil} · ${f} : une seule phrase est affichée (population)`, t.length === 1, t);
-        v(`interventions vides ${profil} · ${f} : elle dit quoi (« ${(t[0] || '').slice(0, 60)} »)`, t.length === 1 && t[0] !== 'Rien ici.' && motif.test(t[0]), t);
+        const t = await c.p.evaluate(() => [...document.querySelectorAll('#contenu .t-vide')].filter(e => e.offsetParent).map(e => ({ titre: (e.querySelector('b') || {}).textContent || '', phrase: (e.querySelector('span') || {}).textContent || '', bouton: !!e.querySelector('[data-creer]') })));
+        v(`interventions vides ${profil} · ${f} : une seule carte est affichée (population)`, t.length === 1, t);
+        v(`interventions vides ${profil} · ${f} : elle dit quoi (« ${(t[0] || {}).titre} »)`, t.length === 1 && motif.test(t[0].titre + ' ' + t[0].phrase) && t[0].phrase.length > 25 && t[0].titre !== 'Rien ici.', t);
+        v(`interventions vides ${profil} · ${f} : ${geste ? 'le geste « Nouvelle intervention » est proposé' : 'pas de bouton de création (le filtre ne se remplit pas par là)'}`, t.length === 1 && t[0].bouton === geste, t);
       }
       await L.fin(c);
     }
@@ -65,6 +67,87 @@ const LONG60 = 'Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA
         v(`téléphone ${profil} · ${motif} : le numéro est lu (population)`, r.n === 1, r);
         v(`téléphone ${profil} · ${motif} : le numéro est tenu par des espaces insécables`, r.n === 1 && !r.coupable, r);
       }
+      await L.fin(c);
+    }
+  }
+  // 5. ACHATS au téléphone : la rangée des catégories sortait de l'écran sans signe (« Véhicules & carburant » n'existait pas pour qui ne devinait pas de glisser), et le filtre
+  //    « Sans justificatif » se lisait « Sans justific ». La rangée défile toujours mais son bord droit s'estompe ; les filtres passent à la ligne comme ceux des devis.
+  if (sec('5')) {
+    for (const profil of ['petit', 'android', 'iphone']) for (const nuit of [false, true]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit }), larg = L.PROFILS[profil].w;
+      await L.aller(c.p, 'comptabilite'); await c.p.evaluate(() => cxAller('fachats')); await L.calme(c.p, 700);
+      const r = await c.p.evaluate(() => { const g = document.querySelector('#contenu .cx-cats'), sg = document.querySelector('#contenu .cx-outils .seg'); if (!g || !sg) return null;
+        const mk = getComputedStyle(g).maskImage || getComputedStyle(g).webkitMaskImage, gr = g.getBoundingClientRect(), sr = sg.getBoundingClientRect();
+        return { puces: g.children.length, defile: g.scrollWidth > g.clientWidth + 1, fondu: !!mk && mk !== 'none', padD: parseFloat(getComputedStyle(g).paddingRight), droite: gr.right,
+          filtres: [...sg.querySelectorAll('button')].map(b => { const q = b.getBoundingClientRect(); return { t: b.textContent.trim(), dedans: q.left >= sr.left - 0.5 && q.right <= sr.right + 0.5, enBoite: b.scrollWidth <= b.clientWidth + 1 }; }), sgDefile: sg.scrollWidth - sg.clientWidth };
+      });
+      const tag = `achats ${profil} ${nuit ? 'nuit' : 'jour'}`;
+      v(`${tag} : la rangée des catégories et les filtres sont trouvés (population)`, !!r && r.puces >= 3 && r.filtres.length >= 4, r);
+      if (r) {
+        v(`${tag} : les catégories défilent (${r.puces} puces) et leur bord droit s'estompe`, !r.defile || r.fondu, r);
+        v(`${tag} : le dernier chip a de la marge pour sortir du fondu (${r.padD} px)`, !r.defile || r.padD >= 36, r);
+        v(`${tag} : chaque filtre est tout entier dans sa boîte (« ${r.filtres.map(f => f.t).join(' · ')} »)`, r.filtres.every(f => f.dedans && f.enBoite), r);
+        v(`${tag} : la boîte des filtres ne défile pas de côté`, r.sgDefile <= 1, r);
+      }
+      await L.fin(c);
+    }
+  }
+  // 6. FICHE CONTRAT / FACTURE à 320 px : « 1 tâche ouverte » se coupait en deux lignes (« 1 tâche / ouverte ») pendant que « pour ce contrat » gardait sa largeur.
+  if (sec('6')) {
+    for (const [h, motif] of [['contrat-x-c1', 'contrat'], ['facture-x-f128', 'facture']]) for (const profil of ['petit', 'android', 'iphone']) {
+      const c = await L.ouvrir({ profil, qui: 'julie' });
+      await L.aller(c.p, h);
+      const r = await c.p.evaluate(() => { const b = document.querySelector('#contenu .t-ici summary b'); if (!b) return null; const lh = parseFloat(getComputedStyle(b).lineHeight) || parseFloat(getComputedStyle(b).fontSize) * 1.3;
+        return { txt: b.textContent, h: b.getBoundingClientRect().height, lh, nowrap: getComputedStyle(b).whiteSpace }; });
+      v(`tâches de la fiche ${motif} ${profil} : le résumé est trouvé (population)`, !!r, r);
+      if (r) v(`tâches de la fiche ${motif} ${profil} : « ${r.txt} » tient sur UNE ligne (${Math.round(r.h)} px pour une ligne de ${Math.round(r.lh)})`, r.h < r.lh * 1.6 && r.nowrap === 'nowrap', r);
+      await L.fin(c);
+    }
+  }
+  // 7. NOM DE CLIENT LONG, lien « Nom › » : la flèche ne reste jamais seule sur sa ligne (espace insécable devant), sur les fiches qui portent le lien.
+  if (sec('7')) {
+    for (const [h, motif] of [['contrat-x-c1', 'contrat'], ['facture-x-f128', 'facture'], ['inter-x-i1', 'intervention']]) for (const profil of ['petit', 'iphone']) {
+      const c = await L.ouvrir({ profil, qui: 'julie' });
+      await c.p.evaluate(() => { Object.values(CLIENTS).forEach(k => { k.nom = 'Établissements Hospitaliers du Littoral Atlantique Sud-Ouest SA'; }); });
+      await L.aller(c.p, h);
+      const r = await c.p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .tete button.lien[data-go^="client-x-"]')][0]; if (!b) return null; const t = b.textContent;
+        const tn = b.firstChild; const rg = document.createRange(); rg.setStart(tn, tn.length - 1); rg.setEnd(tn, tn.length); const fl = rg.getClientRects()[0], rg2 = document.createRange(); rg2.setStart(tn, 0); rg2.setEnd(tn, 1); const d = rg2.getClientRects()[0];
+        const lignes = new Set([...(() => { const r2 = document.createRange(); r2.selectNodeContents(tn); return [...r2.getClientRects()].map(x => Math.round(x.top)); })()]);
+        return { fin: JSON.stringify(t.slice(-3)), insecable: / ›$/.test(t), lignes: lignes.size, seule: (() => { const r3 = document.createRange(); r3.setStart(tn, tn.length - 2); r3.setEnd(tn, tn.length - 1); const a = r3.getClientRects()[0]; return a ? Math.round(a.top) !== Math.round(fl.top) : false; })() }; });
+      v(`lien du client (${motif}) ${profil} : trouvé, nom de 60 signes (population)`, !!r, r);
+      if (r) { v(`lien du client (${motif}) ${profil} : « ${r.fin} » — la flèche est tenue au dernier mot par une espace insécable`, r.insecable, r); v(`lien du client (${motif}) ${profil} : la flèche ne reste pas seule sur sa ligne (${r.lignes} lignes)`, !r.seule, r); }
+      await L.fin(c);
+    }
+  }
+  // 8. FACTURES, liste vide : « Rien ici avec ces filtres. » s'écrivait aussi quand il n'y avait AUCUNE facture, sans dire quoi faire. Sans pièce : on dit pourquoi ; avec un filtre qui ne trouve rien : on dit d'ôter le filtre.
+  if (sec('8')) {
+    for (const profil of ['mac', 'iphone']) {
+      const c = await L.ouvrir({ profil, qui: 'julie' });
+      const lire = async (cat, avant) => { await c.p.evaluate(a => { eval(a); }, avant); await L.aller(c.p, 'comptabilite'); await c.p.evaluate(x => cxAller(x), cat); await L.calme(c.p, 600);
+        return c.p.evaluate(() => { const z = document.querySelector('#cx-liste .carte.cx-liste > p.gris'); return z ? z.textContent.trim() : null; }); };
+      // plein + recherche sans résultat : le message du filtre
+      const f = await lire('fventes', "CX.q = 'zzzqqq'; CX.st = 'tous'; CX.cat = 'ventes'");
+      v(`factures ${profil} · recherche sans résultat : « ${(f || '').slice(0, 60)} »`, /ces filtres/.test(f || '') && /efface|Toutes/.test(f || ''), f);
+      await c.p.evaluate(() => { CX.q = ''; });
+      // vide : plus aucune facture de vente (ni avoir) → la phrase de départ
+      const cnt = await c.p.evaluate(() => { window.__fac = FACTURES.slice(); FACTURES.length = 0; return cxDocs().filter(x => x.fam === 'ventes').length; });
+      v(`factures ${profil} · sans facture : la population de ventes est vide (${cnt})`, cnt === 0, cnt);
+      const g = await lire('fventes', "CX.q = ''; CX.st = 'tous'; CX.cat = 'ventes'");
+      v(`factures ${profil} · sans facture : « ${(g || '').slice(0, 70)} » dit que rien n'existe encore et comment elles viennent`, /Aucune pièce pour l’instant/.test(g || '') && /intervention/.test(g || '') && !/ces filtres/.test(g || ''), g);
+      await c.p.evaluate(() => { FACTURES.push(...window.__fac); });
+      await L.fin(c);
+    }
+  }
+  // 9. FICHE CLIENT › Factures au téléphone : la pastille d'état (« Envoyée · en attente ») forçait le tableau à défiler et sortait coupée.
+  if (sec('9')) {
+    for (const profil of ['petit', 'android', 'iphone']) for (const nuit of [false, true]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit });
+      await L.aller(c.p, 'client-x-cm'); await c.p.evaluate(() => { document.querySelector('[data-oc=factures]').click(); }); await L.calme(c.p, 600);
+      const r = await c.p.evaluate(() => { const t = document.querySelector('#contenu .tableau table.l'); if (!t) return null; const carte = t.closest('.tableau'), cr = carte.getBoundingClientRect();
+        const st = [...t.querySelectorAll('tbody .st')].filter(e => e.offsetParent); return { n: st.length, ws: st.map(e => getComputedStyle(e).whiteSpace), dedans: st.every(e => e.getBoundingClientRect().right <= cr.right + 0.5), defile: carte.scrollWidth - carte.clientWidth }; });
+      const tag = `client › factures ${profil} ${nuit ? 'nuit' : 'jour'}`;
+      v(`${tag} : le tableau et ses pastilles sont trouvés (population)`, !!r && r.n >= 1, r);
+      if (r) v(`${tag} : les pastilles passent à la ligne, restent dans la carte et rien ne défile de côté`, r.ws.every(w => w === 'normal') && r.dedans && r.defile <= 1, r);
       await L.fin(c);
     }
   }

@@ -3058,6 +3058,15 @@ new MutationObserver(() => { const o = document.body.classList.contains('menu-ou
 window.addEventListener('keydown', ev => { if (ev.key !== 'Escape' || ev.defaultPrevented || parent === window) return;
   if ($('#calque').innerHTML || document.body.classList.contains('menu-ouvert') || document.body.classList.contains('guide-on') || document.querySelector('.prev-bulle:not([hidden])')) return;
   try { parent.postMessage({ opc_echap:true }, '*'); } catch (e) {} }, true);
+/* [Retour] le bouton Retour du navigateur (Android, balayage de l'iPhone) ferme la fenêtre ouverte SANS quitter l'écran. L'historique est tenu par la page qui nous contient : elle ne voit pas nos panneaux ni
+   notre tiroir, donc on lui DIT quand une couche s'ouvre ou se ferme (opc_calque), et elle nous dit de la fermer (opc_fermer_calque) quand l'historique recule. Ouverte seule, la page ne dit rien et n'écoute rien. */
+{ const couche = () => !!$('#calque').innerHTML || (document.body.classList.contains('menu-ouvert') && getComputedStyle($('#menu')).position === 'fixed');
+  let dit = false;
+  const dire = () => { if (parent === window) return; const o = couche(); if (o === dit) return; dit = o; try { parent.postMessage({ opc_calque:o }, '*'); } catch (e) {} };
+  new MutationObserver(dire).observe($('#calque'), { childList:true });
+  new MutationObserver(dire).observe(document.body, { attributes:true, attributeFilter:['class'] });
+  addEventListener('message', ev => { if (window.parent === window || ev.source !== window.parent) return; const d = ev.data;
+    if (d && typeof d === 'object' && d.opc_fermer_calque) { fermer(); document.body.classList.remove('menu-ouvert'); dire(); } }); }
 /* ══ LA DÉMO — la journée du 31 octobre se joue toute seule, et une bulle dit ce qui se passe ══
    Justin, 10 novembre 2026 : « avec une démo ». Rien à toucher : chaque plan ouvre le bon écran, joue le moment de la journée
    (les vraies fonctions du moteur, pas une vidéo), éclaire ce qui vient de changer et l'explique en quelques phrases. On peut

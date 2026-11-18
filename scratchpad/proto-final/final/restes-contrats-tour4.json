@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "contrats",
+  "defaut": "Le TTC annoncé par l'aperçu de « Composer un contrat » n'est pas celui de la fiche, d'un centime, quand le prix tapé a plus de deux décimales (« 99.995 » : aperçu 100,00 HT / 119,99 TTC, fiche 120,00 ; « 12,345 » : 14,81 contre 14,82)",
+  "etat": "corrigé",
+  "changement": "L'aperçu (champ « Prix par an », article 4 « Prix et facturation ») lit le prix RANGÉ, ctrCentimes(B.prix), et non la saisie brute, pour le HT, le TTC et le prix par visite : un seul prix pour l'aperçu, la fiche, le PDF et la facture.",
+  "preuve": "restes-contrats-3-recontrole.js mac : 62 ✓ · 0 ✗ (avant : 5 ✗ identiques sur tous les profils) ; restes-contrats-4.js mac, mac nuit, ipad nuit, iphone, petit nuit : 25 ✓ · 0 ✗ ; mutation C25 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Doute du tour 3 : l'aperçu calcule le PRIX PAR VISITE sur la saisie brute (même famille que le TTC)",
+  "etat": "corrigé",
+  "changement": "prixVisite = ctrPart(ctrCentimes(B.prix), freq, 1) : la même fonction que la fiche (« à chaque visite »). Cas qui départage : « 100.005 » sur 2 visites, 50,00 sur la saisie brute, 50,01 sur le prix rangé 100,01.",
+  "preuve": "restes-contrats-4.js : six saisies (12,345 ×4, 99.995 ×2, 10.0049 ×6, 1.005 ×12, 100.005 ×4 et ×2) : HT, TTC et prix par visite de l'aperçu = ceux de la fiche, 0 ✗ ; mutation C26 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Doute du tour 3 : le plafond de 1 000 000 € se jugeait sur la saisie brute (« 1000000.004 » refusé alors que l'aperçu l'écrit 1 000 000,00 €)",
+  "etat": "corrigé",
+  "changement": "Le refus « Ce prix est trop grand » compare ctrCentimes(B.prix) à CTR_PRIX_MAX : ce qui est rangé est ce qui est jugé.",
+  "preuve": "restes-contrats-4.js : « 1000000.004 » accepté, « 1000000.006 » (1 000 000,01 € rangé) refusé ; mutation C27 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Liste des Contrats sur iPad en portrait : la colonne « Client » tombe à 61 px, le nom s'écrit quelques lettres par ligne (« Copr / opri / été »)",
+  "etat": "corrigé",
+  "changement": "La carte du tableau porte .ctr-liste (container: ctrl / inline-size) : sous 760 px de CARTE (et non d'écran) le tableau prend le repli du téléphone (N° et client, titre, prix et état dessous). Sur iPad portrait le menu prend 272 px, la carte n'en garde que 506 ; ordinateur et iPad paysage gardent le tableau complet.",
+  "preuve": "restes-contrats-3-recontrole-liste.js ipad, iphone, petit, avec données de départ et prix à sept chiffres : 18 ✓ · 0 ✗ (avant : 4 ✗) ; capture liste-ipad-nuit regardée (cartes lisibles, nom entier) et liste-mac-jour (tableau complet inchangé) ; mutation C28 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Compteur « HT par an, qui revient » coupé à droite quand le total dépasse un million d'euros à 320 et 390 px (« 1 999 999,98 € » : 162 px dans 140)",
+  "etat": "corrigé",
+  "changement": "Quand le total fait plus de 11 signes, la carte porte kpi-long : au téléphone le chiffre rapetisse avec l'écran (clamp 14 à 22 px) et peut passer à la ligne ; les totaux ordinaires gardent leurs 22 px.",
+  "preuve": "restes-contrats-3-recontrole-liste.js et restes-contrats-4.js : aucun compteur coupé ni sorti de sa carte sur iphone et petit ; capture liste-petit-nuit regardée (le total tient dans sa carte, lisible, un peu plus petit que les autres chiffres) ; mutation C29 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Doute du tour 3 : le PDF et le courriel réels d'un contrat restent hors du prototype (pas de serveur)",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien : ce n'est pas faisable dans le prototype.",
+  "preuve": "À contrôler dans la vraie application (le prototype n'a ni serveur ni courriel)."
+ }
+]
