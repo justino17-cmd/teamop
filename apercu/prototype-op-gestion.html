@@ -374,7 +374,8 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   /* l'action de la fiche est collée en bas de la feuille : « Relancer » et « Déjà fait » sont sous le pouce */
   #calque .tkx-haut{display:none}
   #calque .tkx-barre{display:flex;gap:8px;position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:0 -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--feuille);border-top:1px solid var(--trait2);z-index:3}
-  #calque .tkx-barre .btn{flex:1 1 0;min-height:48px;justify-content:center;text-align:center}
+  /* un nom de client long (« 💬 Prévenir Copropriété Les Mimosas ») passe à la ligne au lieu de pousser « ✓ Fait » hors de l'écran : min-width:0 laisse le bouton rétrécir, white-space:normal laisse son texte se couper */
+  #calque .tkx-barre .btn{flex:1 1 0;min-width:0;min-height:48px;justify-content:center;text-align:center;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}
 }
 @media (max-width:380px){#contenu .t-haut{flex-wrap:wrap}#contenu .t-pour{flex:1 1 100%;max-width:none}}
 /* ── produits ── */
