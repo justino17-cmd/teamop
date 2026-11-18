@@ -67,9 +67,10 @@ const tag = profil + (nuit ? '-nuit' : '-jour'), arrondi = x => Math.round(x * 1
   if (veut('B')) {
     // B1. « Marquer terminée » (menu de l'intervention) avec un paiement DÉJÀ noté par le technicien, sur une intervention prévue après octobre : même défaut que celui que le tour a réglé par « Terminer »
     await propre(false, 'marc');
-    const b1 = await p.evaluate(() => { const i = INTS.find(o => o.id === 'i8'), F = fiche('i8'); const avant = cpPaieTerrain().reduce((s, e) => s + e.ttc, 0);
-      F.paiement = { etat: 'acompte', mode: 'Espèces', montant: '50', ticket: false }; i.st = 'fait'; /* ce que fait le menu « Marquer terminée » */ const apres = cpPaieTerrain().reduce((s, e) => s + e.ttc, 0);
-      return { d: i.d, avant, apres, ligne: JOURNAL.some(j => j.action === 'a noté un paiement reçu sur place' && j.el && j.el.id === 'i8') }; });
+    // (tour 4 : le geste est joué par le VRAI menu de la carte, plus en posant i.st à la main)
+    const avant1 = await p.evaluate(() => { fiche('i8').paiement = { etat: 'acompte', mode: 'Espèces', montant: '50', ticket: false }; return cpPaieTerrain().reduce((s, e) => s + e.ttc, 0); });
+    await p.evaluate(() => { fermerMenu(); menuCarte('i8', 300, 300); }); await p.waitForTimeout(250); await L.toucher(c, p.locator('.ctx button', { hasText: /Marquer terminée/ }).first()); await L.calme(p, 400);
+    const b1 = await p.evaluate(av => { const i = INTS.find(o => o.id === 'i8'); return { d: i.d, avant: av, apres: cpPaieTerrain().reduce((s, e) => s + e.ttc, 0), ligne: JOURNAL.some(j => j.action === 'a noté un paiement reçu sur place' && j.el && j.el.id === 'i8') }; }, avant1);
     v('B1 · population : i8 est prévue après octobre (' + b1.d + ')', b1.d > '2026-10-31', b1);
     v('B1 · « Marquer terminée » avec 50 € déjà notés sur place : les 50 € sont comptés quelque part (Accueil, Comptabilité) — sinon l’argent n’existe nulle part', b1.apres - b1.avant === 50, b1);
     // B2. « Remettre à faire », le technicien corrige le montant, « Terminer » : la ligne de l'Historique dit ce que l'Accueil compte
