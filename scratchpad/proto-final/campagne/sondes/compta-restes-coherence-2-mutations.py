@@ -13,7 +13,7 @@ MUT = [
  ('1e le reçu est compté en chiffre d\'affaires au lieu d\'un acompte (706000)', CADRE, "['419100', null, 0, ht, 'Acompte reçu · '", "['706000', null, 0, ht, 'Acompte reçu · '"),
  ('2a le solde négatif ne se dit jamais crédit', CADRE, "const credit = !!T && T.credit > 0 && !(T.due > 0),", "const credit = false,"),
  ('2b l\'écran TVA garde « À payer à l\'État » pour un crédit', CADRE, "<div class=\"tot\"><span>${Z.mot}</span>", "<div class=\"tot\"><span>À payer à l’État</span>"),
- ('2c la tuile de l\'accueil dit « à payer » pour un crédit', CADRE, "<span>${Z.mois}</span><b>${Z.eur}</b><small>${Z.suite}</small>", "<span>TVA d’octobre</span><b>${Z.eur}</b><small>à payer le 23 novembre</small>"),
+ ('2c la tuile VIVANTE de l\'accueil garde « TVA d\'octobre » pour un crédit', CADRE, "${kpi('tva', tvaZ.mois, tvaZ.eur,", "${kpi('tva', 'TVA d’octobre', tvaZ.eur,"),
  ('2d la TVA arrêtée dit « à payer » pour un crédit', CADRE, "${tvaDit(T).credit ? 'Crédit de ' + tvaDit(T).eur + ' (l’État te doit cette somme)' : tvaDit(T).eur + ' à payer'}", "${tvaDit(T).eur + ' à payer'}"),
  ('2e un solde à PAYER se dit « crédit » (contre-épreuve)', CADRE, "const credit = !!T && T.credit > 0 && !(T.due > 0),", "const credit = true,"),
  ('3a la liste « À faire » promet de nouveau les heures d\'OP GESTION', CADRE, "opcSi('Les fiches se calculent avec les heures validées dans OP GESTION.', 'Les fiches se calculent en fin de mois, avec les heures, les absences et les primes d’octobre.')", "'Les fiches se calculent avec les heures validées dans OP GESTION.'"),
