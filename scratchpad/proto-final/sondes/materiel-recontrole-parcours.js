@@ -70,7 +70,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     await L.aller(p, 'achats'); await L.calme(p, 400);
     await R(() => { const b = document.querySelector('[data-ac="transfert|da1"]'); if (b) b.scrollIntoView({ block: 'center' }); });
     await clic('[data-ac="transfert|da1"]'); if (await R(() => !!document.querySelector('#calque [data-ac="transfertok|da1"]'))) await clic('#calque [data-ac="transfertok|da1"]');
-    await annuler(); const mc = await mem(); const c2 = await R(() => ({ btn: !!document.querySelector('[data-ac="transfert|da1"]'), cmd: COMMANDES.some(o => /2026-040/.test(o.num || '')) }));
+    // le transfert qui commande le reste annonce son « Annuler le transfert » DANS la feuille du brouillon (axMessageFenetre) ; le toast d'avant (« 2b », huit secondes) est périmé
+    await R(() => { const b = document.querySelector('#calque [data-axa="trfannul"]'); if (b) b.click(); else [...document.querySelectorAll('#toast button')].find(e => /Annuler/.test(e.textContent))?.click(); }); await L.calme(p, 600); const mc = await mem(); const c2 = await R(() => ({ btn: !!document.querySelector('[data-ac="transfert|da1"]'), cmd: COMMANDES.some(o => /2026-040/.test(o.num || '')) }));
     v('2c : après « Annuler » du transfert, plus de brouillon fantôme ouvert (feuille : « ' + mc.h2 + ' »), la demande se retraite à l\'écran (' + JSON.stringify(c2) + ')', !mc.panneau && c2.btn && !c2.cmd, { mc, c2 });
     v('2c : après « Annuler », un message dit « Annulé »', /Annulé/.test(mc.toast), mc);
   }
