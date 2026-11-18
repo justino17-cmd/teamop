@@ -1,0 +1,71 @@
+{
+ "noms": ["technicien"],
+ "date": "2026-11-18",
+ "regles": [
+  "technicien-02 : 1re intervention à 320 × 568 avec un message du bureau (83 px à 320, 232 px sur iPhone) — restes-technicien-3 (I) petit jour et nuit 27 ✓·0 ✗, iphone 27 ✓",
+  "Mes frais et achat en magasin : « 12 € », « 12€ », « 12,50 € », « 1 234,50 € », « 12 euros », espace insécable ou fine avant « € » (iOS) lus juste ; « 12 € TTC », « €12 », « 12 e », « 0 € », « -5 € » refusés avec une phrase — restes-technicien-recontrole-2 (M), iphone, petit, ipad, android, mac",
+  "Pastille « autres dates » ronde et titre aligné — restes-technicien-recontrole-alignement 3 ✓·0 ✗, -avis 8 ✓·0 ✗ (jour et nuit)",
+  "iPad : adresse sans espace dans un message du bureau — restes-technicien-recontrole-mot 2 ✓·0 ✗",
+  "technicien-05 : un seul mot « manque(nt) à bord » — il ne reste que trois commentaires qui contiennent « remettre à bord », aucun texte d'écran ; restes-technicien-3 (D), vehtemps-v5-camion 116 ✓·0 ✗, vehtemps-v2-fiche 278 ✓·0 ✗",
+  "technicien-11 : « Je l'ai pris » et « J'ai tout pris » sans réseau attendent dans la file, jamais deux fois la même pièce, la file part au retour du réseau — restes-technicien-3 (E) 27 ✓ ; la ligne « Part dès que le réseau revient » paraît dans Mes envois (restes-technicien-recontrole-2 F)",
+  "technicien-12 : « (0,5 L) » insécable, la recherche tapée avec une espace ordinaire trouve encore l'article dans Stock ET dans Articles — restes-technicien-recontrole-2 (E)",
+  "technicien-13 : 1re pièce de « Il manque à bord » au-dessus de la barre à 320 × 568 ; sans pièce qui manque, « Ton camion est complet » passe en tête et la page ne glisse pas (capture camion-sans-manque-petit-nuit regardée ; camion-pleine-kb regardée, ordre juste, rien ne chevauche)",
+  "technicien-14 : invite de recherche courte sur téléphone et sur iPad ouvert en portrait — restes-technicien-3 (H) tous profils",
+  "« Sophie Martin · RTT » au doigt à 320 px : zone qui répond 48 et 55 px pour deux absences d'un jour VOISINES (aucune ne mange la zone de l'autre) — restes-technicien-recontrole-2 (A) ; technicien-mise-en-page 198 ✓·0 ✗ (iphone, android, petit, jour et nuit), 42 ✓ sur mac",
+  "Mutations M1 à M10 (mutations-restes-technicien-3.py) rejouées : 10/10 tombent, page restaurée (git status propre)"
+ ],
+ "pasRegles": [
+  {
+   "nom": "technicien-14 : invite « Chercher un article, une référence, un fournisseur » (Articles) coupée — réglé à l'ouverture, pas après une rotation de l'iPad",
+   "defaut": "L'invite est choisie AU RENDU d'après innerWidth (< 1000). Écran ouvert en paysage (1180) puis iPad tourné en portrait SANS rien rouvrir : l'invite longue reste, 378 px pour 363 px de champ, coupée au bord. Rien ne rend l'écran quand la fenêtre change de côté.",
+   "constat": "restes-technicien-recontrole-2.js profil ipad (jour et nuit) : « R · après rotation vers le portrait SANS rien rouvrir : l'invite tient (378 px pour 363) » tombe. Même cause dans l'autre sens (portrait puis paysage garde l'invite courte : sans gravité). Piste : deux invites en CSS (un attribut data-court + une règle sur la largeur du champ), ou un écouteur resize qui change seulement le placeholder, jamais un rendu complet."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "« 5.000 € », « 5.000 », « 1.500 », « 1,500 » sont lus 5 € et 1,50 € dans Mes frais et dans l'achat en magasin (aucune phrase)",
+   "gravite": "moyenne (un montant faux de mille fois, enregistré et envoyé au bureau ; ancien, non causé par le tour 2, mais la correction a gardé le trou)",
+   "etapes": "Technicienne (sm) › Mes frais › « Note de frais » › nature au choix › montant « 5.000 € » (ou « 1.500 ») › Envoyer au bureau. Même chose : une demande « à acheter » › « J'ai acheté » › « 5.000 » ou « 1.500 € ».",
+   "constat": "axNdfEnvoyer et le « tickok » de l'achat appellent cxMontantRefus seulement quand le montant ne se lit PAS (!(m > 0)). cxNum lit « 5.000 » comme 5 (un seul séparateur = décimale), donc la phrase « « 5.000 » n'est pas clair : écris 5000 (sans point) ou 5,00 (avec la virgule) » — que la Comptabilité et le tarif d'achat affichent — n'est jamais dite ici. Note créée : ttc 5 / 1,5 (ids relevés par la sonde). Correctif de la voie : appeler cxMontantRefus(texte) dès que le champ est rempli et refuser quand il rend une phrase (garder le plafond max pour la confirmation actuelle). Sonde : restes-technicien-recontrole-2.js (M, M2), tombe aujourd'hui sur 5 contrôles."
+  },
+  {
+   "titre": "Hors réseau, la ligne de « Il manque à bord » ne change pas après « Je l'ai pris » (seul un toast de 2,5 s le dit)",
+   "gravite": "mineure (doute à soumettre à Justin)",
+   "etapes": "Technicienne › Mon camion, réseau coupé › « Je l'ai pris » sur une ligne.",
+   "constat": "Toast « Pas de réseau : ton envoi partira dès que ça revient », file +1, « Mes envois » (plus bas) porte « Part dès que le réseau revient » ; mais la ligne garde « Je l'ai pris » et le compteur « J'ai tout pris · 3 » reste à 3 — qui regarde la liste après le toast ne voit rien d'enregistré (captures camion-hors-reseau-petit-nuit). Un second toucher dit « Déjà noté ». Pas de perte de données."
+  },
+  {
+   "titre": "« 12 €. » (point final après le signe) est refusé avec la phrase « Ce montant ne se lit pas »",
+   "gravite": "mineure, phrase juste, rien créé",
+   "etapes": "Mes frais › « 12 €. ».",
+   "constat": "axMontantTxt retire « € » puis le point final, mais pas dans l'ordre inverse. Rien d'enregistré, une phrase est dite : à garder tel quel ou accepter, au choix de Justin."
+  },
+  {
+   "titre": "Sondes périmées par la voie Véhicules / Matériel, pas par le tour 2 (à rendre par leur voie)",
+   "gravite": "outillage",
+   "etapes": "node scratchpad/proto-final/sondes/vehtemps-v4-table.js ; node scratchpad/proto-final/sondes/materiel-camion.js ; node scratchpad/proto-final/sondes/materiel-recontrole-defauts.js",
+   "constat": "vehtemps-v4-table : 58 ✓·2 ✗ (le troisième chiffre de la table s'écrit désormais « 1 566 € payés en octobre (hors taxes) », la sonde attend « dépensés ») — vert 60 ✓ avant le commit 70c066e0 (Véhicules, tour 1). materiel-camion : 1 ✗ déjà connu (« l'atelier couvre toute la demande », voulu). materiel-recontrole-defauts : 05 « Annuler » rend « Trop tard pour annuler : le stock a encore bougé » — non jugé ici (voie Matériel), origine non établie (ce fichier n'existe pas dans l'état d'avant le tour 2, donc pas comparable)."
+  },
+  {
+   "titre": "technicien-absences-petit.js mesurait le rectangle de la case d'une absence (38 px) et criait « sous 44 px » alors que la zone qui répond fait 44 px et plus",
+   "gravite": "outillage, corrigé dans la sonde (aucune page touchée)",
+   "etapes": "node scratchpad/proto-final/campagne/sondes/technicien-absences-petit.js petit 0 puis 1",
+   "constat": "Avant : 1 ✓·1 ✗ jour et nuit (rejoué par technicien-tout.sh). Après : elle lit la zone qui RÉPOND (elementFromPoint sur la ligne du milieu, comme la sonde du correcteur) : 2 ✓·0 ✗ jour et nuit."
+  }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-technicien-3.js", "resultat": "iphone, petit, android, windows, mac720 : 27 ✓·0 ✗ (jour et nuit pour iphone, petit) ; ipad, mac : 25 ✓·0 ✗" },
+  { "fichier": "campagne/sondes/restes-technicien-recontrole-{alignement,avis,mot,puce,menu}.js, restes-technicien-recontrole.js, restes-technicien-1.js, restes-technicien-2.js", "resultat": "3, 8, 2, 11, 20, 67, 12, 15 ✓ — tous à 0 ✗" },
+  { "fichier": "campagne/sondes/technicien-tout.sh (jeu essentiel : 32 exécutions)", "resultat": "30 vertes ; 2 tombées = technicien-absences-petit (sonde périmée, rendue juste ensuite : 2 ✓·0 ✗ jour et nuit) ; parcours frais 27, heures 8, intervention 15, prévenir le bureau 24, tâche pour Marc 6, tâches et congés 30, valeurs longues 23/16, barre 32 ×3, menu-droits 83 et 70, droits 10, liens 10, parcours chef 21 ×2, balayage iphone 25, mise en page 198 et 42 : tous 0 ✗" },
+  { "fichier": "sondes/vehtemps-v5-camion.js, vehtemps-v2-fiche.js", "resultat": "116 ✓·0 ✗ ; 278 ✓·0 ✗" },
+  { "fichier": "campagne/sondes/mutations-restes-technicien-3.py", "resultat": "10/10 mutations tombent, page restaurée" },
+  { "fichier": "campagne/sondes/restes-technicien-recontrole-2.js (NEUVE : montants, recherche et insécable, Mon camion sans manque, hors réseau, absences voisines, rotation iPad)", "resultat": "petit nuit 30 ✓·5 ✗, ipad jour et nuit 29 ✓·6 ✗, android 30 ✓·5 ✗, mac nuit 25 ✓·5 ✗ : les ✗ sont exactement les défauts nommés plus haut (« 5.000 € », « 1.500 », « 1,500 » dans Mes frais ; « 5.000 » et « 1.500 € » à l'achat ; rotation iPad pour les deux ipad), aucun autre ; le cas « 12 €. » a été rangé en refus-avec-phrase après le premier passage" }
+ ],
+ "doutes": [
+  "Reprise des doutes du correcteur, inchangés : fiche client ouverte depuis un nom (passages des collègues visibles à un technicien ? Karim chef d'équipe n'a-t-il que six écrans ?) ; la puce « N messages du bureau › » aussi sur ordinateur ; l'unité « u » ; « Réessayer » et « Fermer » du cadre des documents (voie compositeur).",
+  "Hors réseau : faut-il que la ligne elle-même passe à « Part dès que le réseau revient » ? (nouveaux, 2)",
+  "« 12 €. » : accepter ou garder la phrase ? (nouveaux, 3)",
+  "Non vérifié ici : lecteur d'écran réel, vrai iPhone avec la police système (captures en police de remplacement), Windows au doigt, rotation réelle d'un iPad (émulée par un changement de taille de fenêtre : l'événement resize est le même, le moteur n'est pas Safari)."
+ ]
+}
