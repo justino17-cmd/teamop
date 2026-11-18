@@ -49,7 +49,8 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
     return out; });
   // le « Paiement en partie » de la fiche d'une facture, par les vrais boutons
   const fid = await p.evaluate(() => (FACTURES.find(x => ['envoyee', 'retard', 'partielle'].includes(x.st) && restant(x) > 20) || {}).id);
-  await L.aller(p, 'facture-x-' + fid); await L.toucher(c, '[data-action="partiel"]'); await p.waitForTimeout(400);
+  await L.aller(p, 'facture-x-' + fid); await p.evaluate(() => document.querySelector('[data-action="partiel"]').scrollIntoView({ block: 'center' })); await p.waitForTimeout(250);   /* au milieu de l'écran : Playwright défile au plus juste et laissait le bouton sous la barre d'onglets fixe (320 px) — un doigt, lui, fait défiler jusqu'où il veut (restes accueil, tour 3) */
+  await L.toucher(c, '[data-action="partiel"]'); await p.waitForTimeout(400);
   const n0 = await p.evaluate(() => JOURNAL.length); await p.evaluate(() => { document.getElementById('pp-m').value = '12,50'; document.getElementById('pp-mode').value = 'Carte'; });
   await L.toucher(c, '[data-action="partielOk"]'); await p.waitForTimeout(400);
   const part = await p.evaluate(n0 => ({ ajoutees: JOURNAL.length - n0, det: (JOURNAL[JOURNAL.length - 1] || {}).det }), n0);
