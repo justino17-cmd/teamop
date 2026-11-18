@@ -1,0 +1,152 @@
+{
+ "lot": "vehtemps",
+ "etape": "9 sur 9 (recontrôle adverse)",
+ "date": "2026-11-18",
+ "base": "tête 35f03b29 et suivantes (aucune page modifiée par ce recontrôle)",
+ "regles": [
+  "gerant-01",
+  "gerant-02",
+  "gerant-03",
+  "gerant-04",
+  "gerant-05",
+  "gerant-07",
+  "gerant-08",
+  "gerant-09",
+  "gerant-10",
+  "gerant-11",
+  "gerant-12",
+  "gerant-13",
+  "gerant-14",
+  "gerant-15",
+  "gerant-16",
+  "gerant-17",
+  "gerant-18",
+  "rejeu-01",
+  "salarie-01",
+  "salarie-02",
+  "salarie-04",
+  "salarie-05",
+  "salarie-08",
+  "salarie-09",
+  "salarie-10",
+  "salarie-11",
+  "salarie-12"
+ ],
+ "reglesRemarques": {
+  "gerant-08": "la somme des lignes = le total sur les 4 véhicules (mois, 12 mois) MAIS la correction a introduit « comptés 4 moiss » : voir casses[0]",
+  "gerant-17": "le correcteur numérote 18 défauts, l'original en compte 21 : « gerant-13..18 » du livrable ne sont pas les « gerant-13..18 » de la relecture. Ici les numéros sont ceux du LIVRABLE du correcteur (13 toast dépense, 14 garage, 15 assurance dite une fois, 16 matériel, 17 week-end de la grille, 18 « Sophie et Tom »).",
+  "salarie-05": "tenu sur iPhone 390 et Android 360 ; pas tenu sur 320 × 568 (voir pasRegles)",
+  "salarie-08": "confirmé « ne se reproduit pas » : toucher « Voir » sur une fiche de paie ouvre le document pour sm, kb et tl (iPhone, au toucher)",
+  "salarie-03, salarie-06, salarie-07": "laissés « à soumettre à Justin » par le correcteur : décisions de Justin, voir doutes"
+ },
+ "pasRegles": [
+  {
+   "n": "gerant-19 (relecture d'origine, moitié « feuille d'une personne »)",
+   "constat": "Léa en congé : la GRILLE écrit bien « — » le samedi 31 et le dimanche 1er, mais la FEUILLE d'une personne (Semaine › Léa, sept lignes, ttJoursListe) écrit encore « sam. 31 Congé payé » et « dim. 1 Congé payé » (mac, windows, mac720, iPhone, jour et nuit : 8 profils sur 8). Le défaut d'origine citait les deux écrans ; le correcteur n'a corrigé que ttCase. Reste incohérent avec « Mes heures » et la Paie (jours ouvrés seulement)."
+  },
+  {
+   "n": "gerant-20 (relecture d'origine)",
+   "constat": "Non traité (le livrable du correcteur n'en parle pas) : la feuille d'une personne dit « dim. 1 · pas encore » pour un jour à venir (ttJoursListe, `futur ? 'pas encore'`). Rejoué : toujours « pas encore ›» sur Karim, 8 profils."
+  },
+  {
+   "n": "gerant-16 (relecture d'origine)",
+   "constat": "Non traité : Temps de travail › Mois (mois fermé) › « Voir la paie » › « ‹ Retour · Temps de travail » ramène sur l'onglet « Aujourd'hui » (ptOnglet = 'auj'), pas sur « Mois » d'où l'on est parti. Rejoué au toucher sur mac : actif = « Aujourd'hui 1 »."
+  },
+  {
+   "n": "gerant-15 (relecture d'origine, toast du document)",
+   "constat": "Non traité : Papiers › ajouter le rapport du contrôle technique : le toast dit « Le procès-verbal de contrôle ajoutée pour GH-482-KL. » (autre mot que l'écran « Rapport du contrôle technique » ET « ajoutée » féminin sur un nom masculin). vxDocAjouter inchangé, 8 profils."
+  },
+  {
+   "n": "salarie-05 (petit écran 320 × 568)",
+   "constat": "Déclaré « NON tenu » par le correcteur et confirmé : « À régler » passe bien avant la carte de la journée, mais sa première ligne d'action finit à 625 px, la barre du bas commence à 488 : il faut défiler. Sur Android 360 × 740, la Semaine montre le nom et le total de la première personne mais la barre du bas coupe sa pastille d'état (bas de la ligne à 684, barre à 644)."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "« comptés 4 moiss » : faute d'accord sur la ligne d'assurance de CHAQUE fiche véhicule",
+   "gravite": "gênant",
+   "etapes": [
+    "Véhicules › n'importe quel véhicule (Trafic, Expert, Berlingo, Kangoo) › onglet Dépenses › dernière ligne « Assurance »",
+    "(même chose sur mac, windows, mac720, iPad, iPhone, Android, 320 px, jour et nuit)"
+   ],
+   "constat": "« 1 080 € par an, comptés 4 moiss · déjà dans le total ci-dessus ». Cause : la correction de gerant-08 écrit vxN(c.nbMois,'mois') ; vxN ajoute « s » au pluriel (vxN = (n,un,pl) => n+' '+(n>1 ? (pl||un+'s') : un)). Une seule occurrence dans le fichier. Correction : vxN(c.nbMois,'mois','mois'). Les 34 contrôles de vehtemps-corr-vehicules.js ne lisent pas ce mot ; vehtemps-rc-rejeu.js (contrôle « moiss ») et vehtemps-rc-balayage.js --comparer le voient (24 écrans neufs en jour, 12 en nuit contre l'avant)."
+  },
+  {
+   "titre": "Le mois fermé dit « elle sera régularisée » pour un homme",
+   "gravite": "détail",
+   "etapes": [
+    "Paie › verrouiller octobre",
+    "Temps de travail › Aujourd'hui (ou Semaine) › la journée du mercredi 28 de Tom (demande de correction) › « Voir la journée »"
+   ],
+   "constat": "L'encadré ajouté par gerant-04 écrit « Tom demande une correction : il a fini à 17:40 et non à 16:42. … Le mois est fermé : elle sera régularisée avec le mois suivant. » (ttFicheJour : « elle sera régularisée » écrit en dur, alors que la phrase d'à côté accorde déjà il/elle par ttFem). Le toast, lui, dit « Tom sera régularisé »."
+  },
+  {
+   "titre": "« Les dépenses · 6 » au-dessus de sept lignes",
+   "gravite": "détail",
+   "etapes": [
+    "Véhicules › Trafic (ou tout véhicule avec assurance répartie) › Dépenses › 12 mois"
+   ],
+   "constat": "Depuis gerant-08 la ligne « Assurance » est ajoutée à la liste (lignes + liss) mais l'en-tête compte toujours F.length : « LES DÉPENSES · 6 » au-dessus de 7 lignes (Trafic), « · 4 » sur 5 (Berlingo), « · 2 » sur 3 en « Ce mois-ci ». Les lignes ne se touchent pas : la ligne d'assurance n'ouvre rien."
+  },
+  {
+   "titre": "« Au garage jusqu'au lundi 2 novembre » écrit sur toutes les échéances d'entretien, pas seulement celle du garage",
+   "gravite": "détail",
+   "etapes": [
+    "Véhicules › Peugeot Expert › « Mettre au garage » › motif « Contrôle technique » › retour lundi 2 nov. › Enregistrer › rouvrir la fiche › onglet À faire"
+   ],
+   "constat": "Le correctif de gerant-03 (`v.statut==='atelier' && (e.k==='ct'||e.k==='entretien') && e.urg!=='v'`) fait dire « Au garage jusqu'au lundi 2 novembre » à la ligne « Courroie de distribution · 20 novembre » en plus de « Contrôle technique · 12 novembre », alors que le garage a été noté pour le seul contrôle technique. Le motif saisi n'est pas lu. Rendu visible au pixel : parcours-B-fiche-garage.png."
+  },
+  {
+   "titre": "« Le Expert et le Kangoo sont au garage » (élision) — PRÉEXISTANT, sur un écran du lot",
+   "gravite": "détail",
+   "etapes": [
+    "Mettre le Peugeot Expert au garage › Véhicules (liste)"
+   ],
+   "constat": "La phrase du haut de la liste dit « Le Expert » (vhCourt() rend « le Expert », ttNoms puis replace(/^le/,'Le')) : en français « L'Expert ». Même texte dans le fichier d'avant les corrections : ce n'est pas une régression, mais l'écran est celui du lot."
+  },
+  {
+   "titre": "Visionneur de document (fiche de paie) : le titre passe sous le bouton ✕ à 390 px — PRÉEXISTANT, hors lot",
+   "gravite": "détail",
+   "etapes": [
+    "Salariée (sm) sur iPhone › Heures › Mes fiches de paie › Voir"
+   ],
+   "constat": "« Fiche de paie septembre 2026 - Sophie Martin » est coupé par le rond ✕ en haut à droite (« Sophie Mar|tin »). Le document, lui, s'ouvre bien (salarie-08 ne se reproduit pas). Capture sal-bulletin-iphone.png / parcours-C-bulletin.png. Le visionneur est partagé par toute l'application : à confier au lot qui le possède."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-tout.sh (PROFILS=\"mac iphone android\", jour ET nuit)",
+   "resultat": "19 sondes, toutes à code 0 et 0 ✗ : camion 348 ✓ · voisins 234 · visites 37 · visites Véhicules 7 · liste 121 · fiche 139 · gestes de la fiche 97 · feuilles 1 460 · gestes des feuilles 204 · table « rien d'utile ne se perd » 60 · Temps de travail structure 81 · gestes du gérant 74 · journée d'une personne 68 · Mes heures 88 · gestes du salarié 69 · correcteur droits 40 · correcteur Véhicules 34 · correcteur Temps de travail 34 · correcteur téléphone 52 = 3 247 ✓ · 0 ✗. Les profils windows, ipad et petit n'ont PAS été rejoués par cette voie (voir doutes)."
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/fumee-routes.js",
+   "resultat": "396 ✓ · 0 ✗ (toutes les routes, iPhone ; aucune erreur JS, aucun « undefined », aucun débordement)."
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-rc-rejeu.js (NOUVEAU, écrit par le recontrôleur : rejoue autrement que le correcteur, au toucher)",
+   "resultat": "mac, ipad, android, petit, jour et nuit : 428 ✓ · 62 ✗ ; iPhone, windows, mac720, jour et nuit : 296 ✓ · 44 ✗. Tous les ✗ sont des constats réels et nommés (« moiss » 32+16, toast du document 8+4, « pas encore » 8+4, feuille d'une personne « Congé payé » le week-end 8+4, première personne sous la barre sur 320/360 : 6) ; aucun autre. Chaque ✗ ci-dessus est dans pasRegles ou casses."
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-rc-parcours.js (NOUVEAU : trois parcours au toucher)",
+   "resultat": "A gérant Windows 12 ✓ · 0 ✗ ; B gérant Mac 15 ✓ · 0 ✗ ; C salariée iPhone 10 ✓ · 0 ✗. Détail : A terminer / annuler / accepter / valider la semaine (confirmation qui nomme Karim) / Mois / Paie ; B plein de 120 € TTC → 100,00 € dans les dépenses, somme = total, supprimer / annuler, mettre au garage, remettre en service ; C je commence, Mon camion, Mes heures, fiche de paie qui s'ouvre et se ferme, « Confirmer quand même » devant une journée ouverte, confirmation."
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-rc-balayage.js (NOUVEAU : tous les rôles × écrans du lot × appareils, comparé à une copie « avant les corrections » obtenue en retirant les commits étape 8 du fichier)",
+   "resultat": "jour : 234 écrans (6 profils × marc, julie, sm, kb, tl, lr) ; nuit : 117 écrans (iPhone, Mac, iPad). 0 débordement latéral, 0 cible sous 44 px au doigt, 0 champ sous 16 px, 0 texte écrasé, 0 erreur JavaScript, nouveaux constats par rapport à l'avant : uniquement « moiss » (24 jour + 12 nuit). Détecteur éprouvé : un bouton de 30 px injecté est relevé."
+  },
+  {
+   "fichier": "mutations (vehtemps-mutations.js)",
+   "resultat": "NON rejouées (décision : 27 mutations longues, la machine a servi aux sondes ci-dessus ; le livrable du correcteur annonce 27 mutations qui mordent)."
+  }
+ ],
+ "doutes": [
+  "Décision pour Justin : la tuile « 1 566 € dépensés en octobre (hors taxes) » de la liste N'INCLUT PAS l'assurance répartie, alors que « Ce mois-ci » d'une fiche l'inclut (Trafic 635 € = 376 + 168,50 + 90 d'assurance). La somme des quatre fiches « Ce mois-ci » est 1 936 €, la tuile dit 1 566 €. Après un renouvellement groupé de 4 200 €, la tuile passe à 5 766 € (doute déjà levé par la relecture d'origine). Deux manières de compter pour le même mot.",
+  "La spécification et le livrable du correcteur numérotent différemment : la relecture gérant compte 21 défauts, le correcteur 18. Trois défauts de la relecture (feuille d'une personne le week-end, « pas encore », retour de la Paie sur Aujourd'hui) et le toast du document n'ont pas été traités ni déclarés « à soumettre » : à décider (je les crois sans enjeu de conformité, ce sont des mots et un onglet).",
+  "gerant-06 (à soumettre par le correcteur) : Temps de travail › Mois dit « 1 journée à terminer, 1 demande de correction à traiter, 6 personnes à valider, 4 personnes à faire confirmer » et Comptabilité › Paie une autre phrase, avec « sup. » encore écrit là où Temps de travail dit « en plus ». La Paie est un écran validé hors du lot.",
+  "salarie-03, 06, 07 (à soumettre par le correcteur) : à 320 px « Un souci avec le camion » tient sur trois lignes ; Véhicules sur iPhone mesure 1 515 px pour une cible de 1 200 ; la pastille « messages du bureau » au-dessus de la recherche de pièce de Mon camion est un rappel que la spécification voulait retirer.",
+  "La semaine en cours (qui n'est pas finie un samedi à 10 h 40) est validable : « Valider les 4 personnes en règle » l'inclut (doute de la relecture d'origine, non traité).",
+  "Sur 320 × 568 et sur Android 360 × 740, la première ligne d'« À régler » / de la Semaine reste sous la barre du bas : un petit défilement suffit, mais ce n'est pas « sans défiler ».",
+  "Les cases d'heure et de minute font 44 px (vérifié sur iPhone, Android, 320 px). Le visionneur de fiche de paie (titre sous le ✕ à 390 px) est partagé par toute l'application : défaut hors lot, à soumettre.",
+  "Non vérifié : mutations non rejouées ; profils windows et ipad rejoués par mon propre rejeu et le balayage mais pas par vehtemps-tout.sh ; aucun appareil réel (navigateur Chromium émulé, encoches posées, GPU logiciel) ; sondes uniquement sur 127.0.0.1, entreprise fictive."
+ ]
+}

@@ -3749,7 +3749,7 @@ body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
           <div class="hqui"><b id="h-nom">—</b><span id="h-role"> · patron</span></div>
         </div>
         <div class="hd-act">
-          <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
+          <button class="btn-icone" onclick="quitterConsole()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
         <div class="hd-tour" id="hd-tour">La Tour · v2.132</div>
@@ -4152,7 +4152,17 @@ function doLogin(){
     })
     .catch(function(){ _loginEnCours=false; $('lg-err').textContent='Serveur injoignable — réessayez dans un instant.'; });
 }
+/* v2.1xx (18 novembre 2026) : « Quitter la console » TUE le jeton côté serveur avant d'effacer l'appareil. Si le serveur n'a pas confirmé (réseau coupé, 5xx), on se
+   déconnecte quand même ICI, mais l'écran de connexion le DIT : la session reste valable jusqu'à son échéance, ce n'est pas « déconnecté partout ». */
+var _decoEnCours=false;
+function decoServeur(){ var t=TOKEN; if(!t) return Promise.resolve(true);
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ try{ctl&&ctl.abort();}catch(e){} },4000);
+  return fetch(API+'/api/monitor/logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},signal:ctl?ctl.signal:undefined})
+    .then(function(r){ clearTimeout(to); return r.ok||r.status===401; },function(){ clearTimeout(to); return false; }); }
+function quitterConsole(){ if(_decoEnCours) return; _decoEnCours=true;
+  decoServeur().then(function(ok){ _decoEnCours=false; try{ if(!ok) sessionStorage.setItem('tour_deco_echec','1'); }catch(e){} doLogout(); }); }
 function doLogout(){ try{ courrierDemonter(); localStorage.removeItem('tour_courrier'); }catch(e){} try{ indexedDB.deleteDatabase('tour_courrier_fichiers'); }catch(e){} try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} try{ opmDemonter(); }catch(e){} location.hash=''; location.reload(); }
+function decoEchecDire(){ try{ if(sessionStorage.getItem('tour_deco_echec')==='1'){ sessionStorage.removeItem('tour_deco_echec'); var e=document.getElementById('lg-err'); if(e) e.textContent='Déconnecté sur cet appareil, mais le serveur n’a pas confirmé : la session précédente reste valable jusqu’à son échéance. Reconnectez-vous puis quittez de nouveau pour la révoquer.'; } }catch(e){} }
 
 /* ══ LES RÉGLAGES D'AVANT, PAR CONSOLE — relus UNE fois, puis rangés au nouveau nom (v2.119) ══
    `tour_barre_gestion` / `tour_barre_messages` (la barre du bas choisie) deviennent `tour_barre` (celle de Gestion d'abord : c'est celle de presque tout
@@ -4664,7 +4674,7 @@ function ouvrirFeuille(quoi){
     });
     /* l'appui long sur la barre ne se devine pas : le réglage a aussi sa porte, là où on cherche tout */
     h+='<div class="groupe"><button type="button" onclick="ouvrirFeuille(\'barre\')"><span class="ic">'+svg('crayon',16)+'</span>Personnaliser la barre<span class="chev">›</span></button></div>';
-    h+='<div class="groupe"><button type="button" class="rouge" onclick="doLogout()">Quitter la console</button></div>';
+    h+='<div class="groupe"><button type="button" class="rouge" onclick="quitterConsole()">Quitter la console</button></div>';
   }
   f.innerHTML=h; f.hidden=false; sc.hidden=false; _feuilleOuverte=(quoi==='plus');
   if(quoi==='barre') barreRepeindre();
@@ -4709,7 +4719,7 @@ function tiroirHtml(){
   });
   h+='<div class="ti-pied">'+
     '<button type="button" class="ti" onclick="fermerTiroir(true);ouvrirFeuille(\'barre\')"><span class="ic">'+svg('crayon',20)+'</span><span class="lib">Personnaliser la barre</span></button>'+
-    '<button type="button" class="ti ti-quitter" onclick="doLogout()"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></span><span class="lib">Quitter la console</span></button>'+
+    '<button type="button" class="ti ti-quitter" onclick="quitterConsole()"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></span><span class="lib">Quitter la console</span></button>'+
     '<div class="ti-version">La Tour · '+TOUR_VERSION+'</div></div>';
   return h;
 }
@@ -14021,6 +14031,7 @@ function messReleve(){
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */
 (function(){
+  try{ decoEchecDire(); }catch(e0){}
   try{
     var st=localStorage.getItem('tour_token')?localStorage:sessionStorage;
     var t=st.getItem('tour_token');
