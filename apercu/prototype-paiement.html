@@ -370,6 +370,8 @@ const MODELES = [['Boulangerie Lemoine', 'M. Lemoine', 'Entretien de la chambre 
 /* ════ OUTILS ════ */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+/* on salue une personne : « Le syndic » reçoit un « Bonjour » tout court, pas « Bonjour Le syndic » */
+const salut = c => /^(le|la|les|l['’])(\s|(?<=['’]))/i.test(c) ? 'Bonjour' : 'Bonjour ' + esc(c);
 const eur = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
 const dObj = d => new Date(d + 'T12:00:00');
 const iso = x => x.toISOString().slice(0, 10);
@@ -675,11 +677,11 @@ function ecranTel(){
         <p>Paiement à réception, en ligne par le lien de la facture, ou par virement sur ${ENT.iban} (exemple). Pas d’escompte pour paiement anticipé. En cas de retard pour un professionnel : pénalités au taux légal en vigueur et indemnité forfaitaire de 40 € pour frais de recouvrement.</p></div>
       <p class="petit mute">Aperçu simplifié : le vrai PDF est celui d’OP GESTION, au nom et aux couleurs de l’entreprise.</p></div>`;
     case 'lire': { const m = S.boite.find(x => x.id === S.msg), g = facDe(m.fid), p = m.pid && payDe(m.pid), e = etatFac(g);
-      const corps = { facture:`Bonjour ${esc(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
-        relance:`Bonjour ${esc(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
-        recu:`Merci ${esc(g.contact)}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
-        rejet:`Bonjour ${esc(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
-        remboursement:`Bonjour ${esc(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
+      const corps = { facture:`${salut(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
+        relance:`${salut(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
+        recu:`${salut(g.contact).replace('Bonjour', 'Merci')}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
+        rejet:`${salut(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
+        remboursement:`${salut(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
       const payable = ['facture', 'relance', 'rejet'].includes(m.type) && reste(g) > .005 && !['sepa', 'litige', 'annulee'].includes(e) && !g.annonce;
       return `<div class="tel-corps"><button type="button" class="retour" data-cli="app|${m.canal === 'sms' ? 'sms' : 'boite'}">‹ ${m.canal === 'sms' ? 'Messages' : 'Boîte de réception'}</button><b>${esc(SUJET[m.type](g, m))}</b><p class="petit mute">${ENT.nom} · ${ENT.mail}</p><p>${corps}</p>
         ${['facture', 'relance', 'rejet'].includes(m.type) ? `<button type="button" class="btn ${payable ? 'plein' : ''}" data-cli="ouvrir|${g.id}">${payable ? (m.type === 'facture' ? 'Voir et payer la facture' : 'Payer maintenant') : 'Voir la facture'}</button>` : ''}</div>`; }

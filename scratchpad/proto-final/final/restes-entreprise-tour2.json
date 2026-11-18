@@ -1,0 +1,65 @@
+[
+  {
+    "nom": "tout-08 — Boîte mail en « Voir seul » : le SUIVI d'une demande (À traiter / En cours / Résolu, « Assigné à ») écrivait sans passer par aucun droit",
+    "defaut": "Reproduit (entreprise-restes1-recontrole g, avant correction : 3 ✓ · 1 ✗) : un clic sur « En cours » faisait passer la demande de aTraiter à enCours, sans refus ni phrase.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-courrier.js : suiviHtml rend, quand capacites().droits.ranger est faux, une ligne de LECTURE (la puce d'état + « Dernier geste ») sans bouton ni champ ; repeindreSuivi repeint cette puce ; changerSuivi refuse par droit('ranger') (hôte, clavier) avec la phrase de l'hôte.",
+    "preuve": "sondes/entreprise-restes1-recontrole.js g : 5 ✓ · 0 ✗ (Voir seul : puce « À traiter », 0 bouton, 0 champ ; toutes les cases : boutons et champ là, le geste agit). Mutation (branche lecture seule neutralisée) : 4 ✓ · 1 ✗. Capture lue (cap/entreprise-restes1-recontrole/g-suivi-lecture.png et g-suivi-complet.png, Mac) : la puce sous « Suivi » est nette, l'état complet inchangé."
+  },
+  {
+    "nom": "Boîte mail en « Voir seul » : les gestes du bandeau « OP GESTION a reconnu » (créer le client et son devis, confier, en faire une tâche, noter un paiement, ranger la pièce jointe, toujours ranger…) étaient proposés puis refusés un par un",
+    "defaut": "Trouvé en cherchant le frère du suivi : 27 gestes joués sur 9 messages, tous refusés par la garde des droits (phrase « Ce geste n'est pas ouvert à ton compte »), mais tous OFFERTS comme des boutons — un débutant touchait pour rien. La règle du module est « un geste refusé n'est pas proposé ».",
+    "changement": "apercu/prototype-op-gestion.html, courrierHoteApi.lecture : sans « Modifier » à la Boîte mail, le bandeau garde ce qu'il a compris et ses liens (ils ouvrent une fiche) mais n'a plus de gestes. La garde, elle, reste (un geste lancé par l'hôte est refusé avec sa phrase).",
+    "preuve": "sondes/entreprise-restes2-bandeau.js : 5 ✓ · 0 ✗ (Voir seul : 11 messages, 11 bandeaux, 11 liens, 0 geste ; garde par courrierAgir : refusée, aucun client de plus, aucun panneau ; Voir + Modifier : 28 gestes présents). Mutation (condition retirée) : 4 ✓ · 1 ✗ (28 gestes en Voir seul).",
+    "etat": "corrigé"
+  },
+  {
+    "nom": "Un refus de champ sur téléphone : la bulle recopiait le message du champ et recouvrait l'aide placée sous lui",
+    "defaut": "Reproduit (iPhone, Android, petit : « Site internet » = « pas un site », Enregistrer) : la phrase était dite deux fois, la bulle posée sur l'aide et le message.",
+    "changement": "apercu/prototype-op-gestion.html, entVerifier : sur écran étroit (≤ 760 px), quand le message du champ refusé est visible dans la feuille, au-dessus de la rangée collée, on ne répète pas la phrase (il est déjà dit aux lecteurs d'écran par son role=alert) ; hors de l'écran, la bulle le dit comme avant. Ordinateur inchangé.",
+    "preuve": "sondes/entreprise-restes2-toast.js : 11 ✓ · 0 ✗ (iPhone 390×844, Android 360×740 nuit, petit 320×568, 360×420, 320×330 nuit : message visible, aucune bulle ; Mac : la bulle dit toujours le refus). Mutation (retour anticipé retiré) : 3 ✗ aux petits écrans. Planche de captures lue (cap/entreprise-restes2-toast/planches/planche-001.png) : champ cerclé, message rouge net sous l'aide, rangée « Enregistrer / Annuler » dessous, rien de coupé, jour et nuit.",
+    "etat": "corrigé"
+  },
+  {
+    "nom": "doute — « Renommer… » et « Changer le logo… » d'une boîte restent proposés en « Voir seul » et « Voir + Modifier »",
+    "defaut": "Reproduit (restes1-recontrole h : 6 ✓ ; menus lus : Ouvrir / Renommer / Logo, Supprimer proposé seulement avec la case Supprimer).",
+    "etat": "à soumettre à Justin",
+    "changement": "rien. Ces deux gestes se rangent dans l'affichage de l'appareil (SAVED.names et SAVED.logos du module, pas dans les réglages partagés de l'entreprise) : ce sont des réglages d'affichage, pas des écritures partagées. À Justin de dire s'ils relèvent de « Modifier ».",
+    "preuve": "scratchpad/proto-final/sondes/entreprise-restes1-recontrole.js h"
+  },
+  {
+    "nom": "doute — le numéro « +33 (0)5 46 11 22 33 » est refusé comme téléphone de l'entreprise",
+    "defaut": "Non touché, décision déjà ouverte au tour 1.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "doute — une facture peut partir avec le seul SIRET (sans forme juridique, capital, immatriculation, assurance)",
+    "defaut": "Non touché : à faire valider côté droit français.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "doute — « Voir + Créer » (sans Modifier) compose un message, un devis ou un contrat mais ne peut ni répondre ni le rouvrir",
+    "defaut": "Non touché : répondre = Modifier est la règle posée par le chef.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "entreprise-achats-lisible : « 3 ✗ » au recontrôle du tour 1, puis « 1 ✗ » (population : profils mesurés → 4) au premier passage de ce tour",
+    "defaut": "Rejouée seule : 142 ✓ · 0 ✗. Le ✗ du premier passage venait de la charge de la machine (un profil sur six n'a pas répondu à temps) ; la phrase « Kilomètres : 0,60 € le km (exemple de démonstration…) » signalée au tour 1 n'existe plus dans la page.",
+    "etat": "ne se reproduit pas",
+    "changement": "rien",
+    "preuve": "sondes/entreprise-achats-lisible.js : 142 ✓ · 0 ✗ ; grep de la phrase : 0 occurrence"
+  },
+  {
+    "nom": "Boîte mail pour le bureau (la secrétaire voit-elle la Boîte mail ?) — ligne non cochée de vus-par-le-chef.md",
+    "defaut": "Décision (c)/(l) du chef : à soumettre, aucun changement de code.",
+    "etat": "déjà décidé",
+    "changement": "rien",
+    "preuve": "vus-par-le-chef.md ligne 14 : reste « à soumettre à Justin »"
+  }
+]
