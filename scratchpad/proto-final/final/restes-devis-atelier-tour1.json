@@ -1,0 +1,86 @@
+[
+ {
+  "nom": "(j) devis-atelier / compositeur — un numéro de devis ou de contrat composé ne se réutilise jamais",
+  "defaut": "Supprimer un brouillon composé dans l'atelier rendait son numéro : le devis suivant reprenait D-2026-042 (idem CTR-2026-012 pour un contrat), même après rechargement de la page. Le devis rapide donne son numéro à l'envoi, donc n'était pas touché.",
+  "etat": "corrigé",
+  "changement": "atelier/page.source : OPG.retenus + numRetenir/numRetenusLire/numRetenirDocs ; les deux suppressions (menu « ⋯ » de l'éditeur, menu de la liste) retiennent le numéro avant d'enlever le document ; sauverStock le range dans l'objet du rangement (nums, fusionné avec ce qu'un autre onglet a retenu), chargerStock le relit, prochainNumero le prend en plancher (même préfixe seulement). prototype-documents.html refabriquée. Règle aussi levée pour la ligne « numéro rendu à la suppression » de restes-compositeur-tour1/2 (même page).",
+  "preuve": "campagne/sondes/restes-devis-atelier-1.js : AVANT 4 ✓ · 3 ✗ (042 rendu, 043 rendu après rechargement, CTR-012 rendu) ; APRÈS 7 ✓ · 0 ✗ (devis : 042 → 043, → 044 gardé, → 045 après rechargement ; contrat : 012 → 013). atelier-numeros 13 ✓ · 0 ✗."
+ },
+ {
+  "nom": "devis-atelier-04 — « Envoyer (exemple) », « rien n'est vraiment parti », « Signé (exemple) », « Rejouer l'exemple »",
+  "defaut": "Dans OP GESTION l'atelier se disait encore maquette alors que les autres écrans d'envoi (Devis rapide, Relancer) disent « Envoyé à … » sans commentaire : deux discours.",
+  "etat": "corrigé",
+  "changement": "Seulement en mode application (APP) : bouton « Envoyer » / « Envoyer à signer », plus de phrase « Exemple : rien n'est vraiment envoyé », toast « Envoyé à <adresse>. », « Signé : la signature est posée dans le document. » (ou « … un bloc Signature a été ajouté… »), lien « Effacer la signature ». La page « Documents sur mesure » seule (artefact) garde « exemple » (atelier-seule : 52 ✓). ⚠️ C'était étiqueté « à soumettre » par le testeur : appliqué parce que la correction décrite était la mise en cohérence, sans rien décider de produit ; à redire à Justin (rien ne part VRAIMENT : c'est un prototype, comme pour les autres envois).",
+  "preuve": "campagne/sondes/restes-devis-atelier-2.js : 15 ✓ · 0 ✗ sur mac et sur iPhone de nuit (devis ET contrat : fenêtre d'envoi, toast, aperçu, signature, lien d'effacement) ; captures regardées (fenêtre d'envoi Mac jour, signé Mac, envoi du contrat iPhone nuit)."
+ },
+ {
+  "nom": "devis-atelier-15 — cibles au doigt de l'éditeur sur iPad (poignées de ligne, date du document)",
+  "defaut": "Annoncé « reporté » : poignées 21×25, date 103×21 sur iPad.",
+  "etat": "corrigé",
+  "changement": "Déjà corrigé par une zone de toucher étendue (pseudo-élément, `html[data-app] .rt::after`, `button.ct-date::after`) que la sonde ne voyait pas : elle mesurait le rectangle. La sonde mesure maintenant la zone qui RÉPOND (elementFromPoint, quatre directions) ; elle a révélé un vrai reste : les trois interrupteurs « PDF joint », « Lien pour accepter… » et « Ce que voit le client » faisaient 38 px de haut sur iPad → `html[data-app] .interr{min-height:44px}` sous (pointer:coarse). Poignées de ligne : 44 de large, et la hauteur du PAS entre deux lignes (31 px : deux zones de 44 se recouvriraient), dit dans la sonde.",
+  "preuve": "devis-atelier-atelier-mep.js ipad,iphone,android,petit nuit : 64 ✓ · 0 ✗ (avant : 3 ✗ sur iPad). Contre-épreuve : zone `.rt::after` retirée → 1 ✗ nommant les deux poignées (22×26) ; remise."
+ },
+ {
+  "nom": "devis-atelier-03 — un devis composé accepté ne crée ni intervention « à planifier » ni facture d'acompte",
+  "defaut": "Deux modèles de devis côte à côte (le rapide les crée, le composé non).",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : décision de produit (un seul modèle ou deux).",
+  "preuve": "parcours-e : 13 ✓ · 3 ✗, le ✗ « 24 → 24 interventions, 8 → 8 factures » est le témoin."
+ },
+ {
+  "nom": "devis-atelier-07 — conditions différentes entre devis rapide et devis composé",
+  "defaut": "Délai « 10 jours » (rapide) contre « 3 semaines » (composé) ; acompte de 30 % demandé d'office par l'atelier, aucun par défaut dans le rapide.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : ce sont les conditions COMMERCIALES de l'entreprise (une valeur par défaut à choisir : celle du rapide, celle de l'atelier, ou un réglage dans Mon entreprise).",
+  "preuve": "parcours-e : les deux ✗ témoins (délai, acompte) restent."
+ },
+ {
+  "nom": "devis-atelier-16 — un contrat composé et signé ne crée ni contrat OP GESTION ni visites",
+  "defaut": "Même famille que 03.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié.",
+  "preuve": "parcours-i : 4 ✓ · 1 ✗, le ✗ est le témoin (3 → 3 contrats, 24 → 24 interventions)."
+ },
+ {
+  "nom": "Signature d'un devis : seuil de validité (40 unités de tracé sur 600, cumulées sur tous les traits)",
+  "defaut": "Un petit trait de ~24 px sur téléphone, ou deux gestes de 4 + 38 unités, valide la signature.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié : seuil de produit, pas un défaut (le frôlement et l'appui simple sont déjà refusés). À garder, ou à relever (120 unités, 20 % du cadre, a été proposé) au risque de refuser des paraphes très courts.",
+  "preuve": "devis-atelier-recontrole.json § casses ; parcours-c 20 ✓ · 0 ✗ inchangé."
+ },
+ {
+  "nom": "Ligne de facture à valider dont le total dépasse 16 signes (1 219 259 233,35 €) sort de sa colonne de 128 px",
+  "defaut": "Valeur de l'ordre du milliard.",
+  "etat": "ne se reproduit pas",
+  "changement": "déjà plafonné par une autre voie (commit 12e827f2 « total d'une ligne de facture plafonné », et cfLigneBorner pour le devis rapide) ; rien modifié ici.",
+  "preuve": "Devis rapide BR1 : 12 345 × 98 765,43 € saisi → quantité plafonnée à 10 000, prix ramené à 100 € pour que le total vaille « 1 000 000,00 € », message « Cette ligne dépasse 1 000 000,00 € HT… », page sans glissement (1440/1440)."
+ },
+ {
+  "nom": "S01 variante 2 (securite/recontrole.json) — nom de client tapé non nettoyé dans le formulaire de l'atelier (≈ 22700)",
+  "defaut": "Le formulaire « nouveau client » de l'atelier rangeait le nom tel quel.",
+  "etat": "déjà décidé",
+  "changement": "corrigé par la voie sécurité (final/restes-securite-tour1.json : cliNet, neuf créations dont « atelier »). Vérifié : le nom injecté devient « img src=x onerror=… » en texte, rien ne s'exécute. La sonde atelier-roles.js (3 ✗) était PÉRIMÉE par cette correction (elle attendait le nom brut) : mise à jour.",
+  "preuve": "atelier-roles.js : 32 ✓ · 3 ✗ → 35 ✓ · 0 ✗."
+ },
+ {
+  "nom": "Artefact (artefact/recontrole.json) — PDF de l'atelier hors artefact, Blob d'un cadre (instanceof)",
+  "defaut": "Limites du pont de téléchargement, notées « pas une régression ».",
+  "etat": "déjà décidé",
+  "changement": "hors périmètre de cette voie (voie `artefact`, restes tour 1 et 2 : lien de téléchargement des cadres voisins).",
+  "preuve": "restes-artefact-tour1/2.json."
+ },
+ {
+  "nom": "Décisions (h) et (i) du chef — le mot « atelier » et le prix HT et TTC",
+  "defaut": "« atelier » ne désigne que le lieu ; un contrat dit HT ET TTC.",
+  "etat": "déjà décidé",
+  "changement": "vérifié, rien à refaire : aucun texte d'écran de la page principale, de l'atelier (page.source), du courrier, de la comptabilité ni des visites ne nomme l'atelier pour composer un devis (que des usages du lieu : « J'ai pris à l'atelier », « l'atelier en a 6 kg ») ; devis-atelier-mots.js 19 ✓ ; le contrat HT/TTC est fait par restes-contrats.",
+  "preuve": "grep des 25 000 lignes + devis-atelier-mots 19 ✓ · 0 ✗."
+ },
+ {
+  "nom": "Toast « Accord noté. Intervention à planifier… » encore affiché pendant la création du client suivant",
+  "defaut": "Cosmétique, disparaît seul (2,5 s).",
+  "etat": "ne se reproduit pas",
+  "changement": "rien modifié : comportement d'un toast court, noté « cosmétique » par le recontrôleur lui-même.",
+  "preuve": "—"
+ }
+]
