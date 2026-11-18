@@ -3024,7 +3024,7 @@ body.dp-ouvert{overflow:hidden}
 .dv-focus-t{display:flex;justify-content:space-between;align-items:center}.dv-focus-t h3{margin:0}
 .dv-tache{display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--trait)}.dv-tache .dv-c{flex:1}.dv-tache.fait b{color:var(--faible);text-decoration:line-through}
 .dv-lgs{display:flex;flex-direction:column}
-.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 88px 110px minmax(96px,max-content) 44px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
+.dv-lg{display:grid;grid-template-columns:minmax(0,1fr) 88px 110px 128px 44px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--trait)}
 .dv-lg .saisie{margin:0;min-width:0}.dv-lg .dv-q2,.dv-lg .dv-pu{text-align:right}.dv-pu.manque{border-color:var(--orange)}
 .dv-lg-t{font-size:12.5px;color:var(--doux);font-weight:600;border-bottom:1px solid var(--trait2)}.dv-lg-t span:nth-child(n+2){text-align:right}
 .dv-tot{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
@@ -3037,7 +3037,7 @@ body.dp-ouvert{overflow:hidden}
   .dv-lg .dv-x{grid-row:2;grid-column:4}
   .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:none}.dv-lg.lu>span:nth-child(2){grid-column:1;grid-row:2;font-size:13px}.dv-lg.lu b{grid-column:2;grid-row:1/3}}
 /* les lignes d'une facture à valider : mêmes champs que le devis, mais la quantité peut porter une unité (« 250 mL ») et la croix se touche au doigt */
-.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 96px 44px}
+.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 110px 128px 44px}   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
 .fac-lgs .dv-x{width:44px;height:44px}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
 @media (max-width:1250px){.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 88px 104px 44px}}
