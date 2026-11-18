@@ -67,7 +67,8 @@ const L = require('../lib.js');
   const tt = await toast();
   v('bureau-05 : le transfert a eu lieu (' + av.at + ' → ' + ap.at + '), un brouillon de commande est né, la demande est approuvée', ap.at > av.at && ap.cmd === av.cmd + 1 && ap.etat === 'approuvee', { av, ap });
   v('bureau-05 : le toast porte « Annuler » (' + tt.slice(-40) + ')', /Annuler/.test(tt) && !!(await R(() => document.querySelector('#toast button'))), tt);
-  await R(() => [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click()); await calme(500);
+  // le transfert qui commande le reste annonce son « Annuler le transfert » DANS la feuille du brouillon (axMessageFenetre, lot Achats) ; un toast d'avant peut traîner (huit secondes) : on vise le lien de la feuille d'abord
+  await R(() => { const l = document.querySelector('#calque [data-axa="trfannul"]'); if (l) l.click(); else [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await calme(500);
   const ann = await R(() => ({ at: stkAt(PRODUITS.find(x => x.id === 'p4'), 'v4'), mv: MVTS.length, cmd: COMMANDES.length, etat: DEM_ACHAT.find(o => o.id === 'da1').etat, cn: cmdNum }));
   v('bureau-05 : Annuler remet tout comme avant (stock, journal, commande, demande en attente, numéro de brouillon)', JSON.stringify(ann) === JSON.stringify({ at: av.at, mv: av.mv, cmd: av.cmd, etat: 'attente', cn: av.cn }), { av, ann });
   await L.ranger(p);
