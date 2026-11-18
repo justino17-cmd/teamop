@@ -1,0 +1,29 @@
+{
+ "noms": ["nuit"],
+ "regles": [
+  "nuit — le bouton principal ressort du secondaire (--fill #e9eef8 / --on-fill #0b1426 de nuit, jeton --fill-doux pour les puces, repères et avatars) : REJOUÉ sur marc, julie, sm, kb et le client, mac + iphone + android, toutes rubriques (150 écrans lus, 230 aplats principaux, 9 éléments restés au bleu nuit exprès) : texte ≥ 4,5:1, aplat contre sa carte ≥ 3:1, aucun secondaire plus clair que le principal, 0 erreur JavaScript. Regardé sur planches (marc mac et iphone, julie iphone, kb, client mac et iphone, 22 fenêtres) : un seul principal clair par zone d'action, secondaires bleu nuit lisibles, rien de coupé ni d'illisible.",
+  "nuit — les états que la sonde du correcteur ne lisait pas (elle ne prend que l'aplat #e9eef8 visible à plus de 50 % d'opacité) sont justes : survol (aplat #fff, texte ≥ 7:1, reste ≥ 3:1 contre sa carte, mac), bouton éteint (opacité .4, texte ≥ 3:1 une fois l'opacité appliquée au groupe, plus sombre que l'actif), bouton « Annuler » du toast (texte ≥ 4,5:1, aplat ≥ 3:1 contre le toast) — 101 ✓ · 0 ✗ sur mac, iphone, android. Contre-épreuve : 3 mutations sur 3 tombent (survol qui redevient bleu nuit, bouton éteint qui ne l'est plus, bouton du toast au bleu nuit).",
+  "nuit — fenêtres (nouvelle intervention, devis rapide, fiche client, feuille Menu, création au planning, compositeur, comptabilité plein écran, connexion, guide, pages documents et paiement ; mac, iphone, android) : 94 ✓ · 0 ✗ ; la connexion remplie ou vide, de nuit, est lisible une fois l'entrée posée (29 ✓ · 0 ✗, jour et nuit comparés : la planche du correcteur la montrait pâle parce qu'elle était prise en cours d'animation, ce n'est pas un défaut).",
+  "nuit — le JOUR ne bouge pas : 22 captures de jour de la page actuelle comparées, octet pour octet, à celles d'une copie où la décision est retirée (--fill-doux remis en --fill, jetons de nuit d'avant) : 22 identiques sur 22 ; la copie est bien différente (0 occurrence de var(--fill-doux) contre 21).",
+  "nuit — la comptabilité seule (prototype-comptabilite.html, « Regarder la démo ») : l'aplat clair porte une encre sombre (#0b1426) et le voile de l'icône est posé en sombre (rgba(11,20,38,.12)), lisible sur iPhone."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "hors nuit, jour ET nuit, déjà présent avant la correction : la comptabilité ouverte seule sur un iPhone de 390 px (prototype-comptabilite.html) : la pastille « Relevé à 05:55 » touche la fin de « OP COMPTABLE » dans l'en-tête (capture compta-choix-jour-iphone.png / compta-choix-iphone.png) ; à regarder par la voie de la comptabilité, pas par la voie « nuit »."
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/sondes/nuit-bouton-principal.js (QUI=marc,julie,sm,kb,client PROFILS=mac,iphone,android)", "resultat": "1044 ✓ · 0 ✗ (150 écrans, 230 aplats principaux, 9 puces au bleu nuit)" },
+  { "fichier": "scratchpad/proto-final/sondes/nuit-fenetres.js (PROFILS=mac,iphone,android)", "resultat": "94 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/sondes/nuit-jour-intact.js (page actuelle contre copie sans la décision)", "resultat": "22 identiques · 0 différentes" },
+  { "fichier": "scratchpad/proto-final/sondes/nuit-recontrole-etats.js (NOUVELLE : survol, éteint, toast ; PROFILS=mac,iphone,android)", "resultat": "101 ✓ · 0 ✗ (24 boutons principaux, 24 éteints, 8 survolés, 3 toasts)" },
+  { "fichier": "scratchpad/proto-final/sondes/nuit-recontrole-connexion.js (NOUVELLE : écran de connexion, jour et nuit)", "resultat": "29 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/sondes/nuit-recontrole-mutations.py (NOUVELLE : survol, éteint, toast)", "resultat": "3 mutations sur 3 tombent" }
+ ],
+ "doutes": [
+  "À SOUMETTRE À JUSTIN, non tranché (reprend l'entrée « à soumettre » du correcteur) : les pages paiement et documents (atelier) gardent leur bouton principal bleu (--accent, #0a5fc2 de jour, #6aabff de nuit) alors que la consigne du chef disait « le même bouton principal dans les quatre pages ». Constat du recontrôle : de JOUR aussi ces deux pages sont bleues (l'application, elle, est presque noire), donc le bleu de nuit reprend l'écran de jour déjà validé ; les passer au blanc de nuit seul les ferait différer de leur propre jour. Si Justin veut un seul bouton principal partout, c'est un jeton par page (--accent / --on-accent et --accent-ink), jour ET nuit.",
+  "Le module de courrier (prototype-courrier.js) garde son propre bouton principal (--tint, bleu iOS) : « Envoyer », « Principal » ne suivent donc pas le blanc de nuit de la page hôte ; même raison, module à part, hors du périmètre de la décision.",
+  "Même hiérarchie qu'avant la correction, jour et nuit : le guide des nouveautés montre deux boutons principaux à la fois (« Voir » et « Suivant »), et la liste des véhicules en montre un par ligne ; la décision n'a rien changé à cela.",
+  "Non vérifié : le profil 320 px (petit) et l'iPad de nuit pour cette correction (aucune largeur ni hauteur n'a changé : seul un filet de 1 px de nuit a été retiré, et .btn est à border:0) ; Windows et mac720 non rejoués ; l'appui prolongé et le focus clavier de nuit (anneau --lien posé hors du bouton, non mesuré)."
+ ]
+}
