@@ -1,0 +1,44 @@
+{
+ "lot": "guide",
+ "etape": "4 sur 4 (recontrôler)",
+ "arbre": "tête 3e2db8d1 fusionnée au 18/11/2026 ; aucune page modifiée",
+ "regles": ["tout-01", "tout-02", "tout-03", "tout-04", "tout-06", "tout-07"],
+ "pasRegles": [],
+ "nonDecides": [
+  { "n": "tout-05", "constat": "carte « Accueil : ce qui attend ta décision » non écrite : il faut en retirer une des six, choix de produit laissé à Justin." },
+  { "n": "tout-08", "constat": "« Mes notes de frais → Mes frais » au lieu de « Boxes → Mon camion » sur la première carte du technicien : arbitrage laissé à Justin (le vide entre phrase et « Voir » sur iPhone portrait est voulu : le bouton reste sous le pouce)." }
+ ],
+ "verifie": [
+  "tout-01 (téléphone en travers) : rejoué par mes propres captures iPhone 844×390 jour et nuit (gérant, bureau, technicienne ; cartes 1, 2, 3, 4), Android 740×360 nuit (carte 6), petit 568×320 jour et nuit (cartes 1, 2, 3, 6) avec les encoches vraies : « Voir » touchable (elementFromPoint) partout, texte jamais sous « Voir » (phrase la plus longue : 19 mots, Ma journée), pied dans l'écran, rien ne glisse de côté ; fenêtre de BUREAU basse 1280×440 (le palier joue la hauteur) : « Voir » touchable pour le gérant et la technicienne ; captures regardées",
+  "tout-02 : Julie par la vraie voie (fiche d'équipe → droits détaillés → « Achats et frais : créer » coché au clic → « Ouvrir l'application comme Julie » → guide) : « Mes demandes → Achats et frais » et « réunies ici » reviennent ; état de départ (iPhone) : trois lignes sans « Mes demandes », phrase « Tu suis ici… », « Voir » ouvre Achats et frais qui dit « Tu peux regarder cet écran, pas le modifier » : la carte et l'écran s'accordent",
+  "tout-03 : Tâches rangées par Sujet (« Factures », plus d'ancien nom), Historique : la puce « Factures » filtre (22 → 18 lignes), la palette retrouve toujours la Comptabilité par « factures et paiements »",
+  "tout-04 : cadre de la Comptabilité chargé (population 3 000+ signes) : première rubrique « Vue d'ensemble », menu de gauche, fenêtre Banque : retour « ‹ Vue d'ensemble » (nom accessible « Revenir à la vue d'ensemble »), le retour ramène à la vue d'ensemble ; capture regardée",
+  "tout-06 : Sophie, Ma journée porte « Je commence ma journée » et le toucher démarre la journée (« Bonne journée ! Commencée à 10:40 », « Pause / Je termine ») ; Mon camion : « J'ai utilisé chez un client » ouvre la fenêtre, un article + Envoyer ajoutent un envoi « En attente du bureau » (1 → 2)",
+  "tout-07 : phrases relues sur capture (Comptabilité « se retrouvent ici », Tâches « te propose la tâche et la termine seule », 18 mots)",
+  "autour : Karim (chef d'équipe, jamais joué avant) : les six « Voir » mènent au bon écran, 0 erreur ; Julie, Karim, Sophie, Marc sans erreur de console sur tous les parcours"
+ ],
+ "casses": [
+  { "titre": "Compact en paysage : un vide entre le titre et la phrase", "gravite": "détail",
+    "etapes": "iPhone en travers (844×390) ou Android 740×360 : guide, cartes à phrase (Comptabilité, Tâches, Mes congés).",
+    "constat": "« Voir » (46 px) à droite sur deux rangées de grille : la rangée du titre s'étire et laisse une bande vide d'une vingtaine de pixels entre le titre et la phrase. Lisible, rien de coupé ; pas corrigé (je ne modifie aucune page)." }
+ ],
+ "sondes": [
+  { "fichier": "guide-tout.sh (complet, mon passage)", "resultat": "0 famille en échec : mots mac 279 ✓, mots iphone 199 ✓, lib 3 ✓, voir mac 168 ✓, voir iphone 172 ✓, fermer mac 81 ✓, fermer iphone 71 ✓, paysage 284 ✓, corrigés 23 ✓, première connexion 7 ✓ + 7 ✓, mise en page petit/android/iphone 330 ✓ chacun, ipad 294 ✓, mac/mac720/windows 234 ✓ chacun, voir android+petit 43 ✓, voir ipad 84 ✓ — tout à 0 ✗" },
+  { "fichier": "fumee-routes.js", "resultat": "396 ✓ · 0 ✗" },
+  { "fichier": "guide-recontrole-paysage.js (neuve)", "resultat": "9 ✓ · 0 ✗" },
+  { "fichier": "guide-recontrole-longues.js (neuve)", "resultat": "3 ✓ · 0 ✗" },
+  { "fichier": "guide-recontrole-camion.js (neuve)", "resultat": "2 ✓ · 0 ✗" },
+  { "fichier": "menu-visites.js (voisine du renommage de la Comptabilité)", "resultat": "8 ✓ · 0 ✗" },
+  { "fichier": "menu-renommages.js (voisine)", "resultat": "15 ✓ · 3 ✗ — IDENTIQUE avant les corrections (rejoué sur 3e2db8d1~1) : trois contrôles qui comparent la liste du menu du gérant, d'un autre lot, pas causés par celui-ci" }
+ ],
+ "nonCouvert": [
+  "mutations de guide-mutations.js non rejouées ; jour/nuit de Julie en paysage non capturé (même gabarit que le gérant) ; windows non joué en paysage (même moteur que mac) ; formulaire « nouvelle tâche » (liste des sujets) non ouvert : seul le tableau T_CATS lu par guide-corriges.js le couvre"
+ ],
+ "doutes": [
+  "tout-05 : l'Accueil (ce qui attend ma décision) n'a toujours pas de carte propre dans le guide du gérant : retirer Mon entreprise ou Stock ? À toi de trancher.",
+  "tout-08 : première carte du technicien : « Mes notes de frais → Mes frais » ou « Boxes → Mon camion » ? Je laisse l'actuelle.",
+  "Le bouton « Factures et paiements » reste en haut à droite de la Comptabilité en grand (ordinateur) alors que la première carte du guide enterre ce nom : une personne qui suit la carte le retrouve sur l'écran où elle arrive. Renommer en « Factures » comme au téléphone ?",
+  "La carte « Ma journée » parle du bouton « Je commence ma journée » : une fois la journée commencée (Karim dans la maquette l'est déjà) il devient « Je termine » : voulu, mais la carte vue en fin de journée parle d'un bouton absent.",
+  "menu-renommages : trois contrôles tombent depuis avant ce lot (liste du menu du gérant) : à regarder par le lot du menu."
+ ]
+}

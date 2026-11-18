@@ -856,6 +856,8 @@ var CSS = `
   .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
   .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
   .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
+  /* la rangée « Réponse rapide » n'a plus un bouton à offrir : on la retire ENTIÈRE (sinon son libellé de bureau reste seul, et au téléphone sa marge de 26 px et ses deux écarts de flex laissent un blanc entre le suivi et la rangée Catégorie) */
+  .opc[data-ranger="0"] .rquick{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
