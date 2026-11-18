@@ -171,6 +171,8 @@ const L = require('../lib.js');
   // ── les deux défauts de Julie (tuile et pastille sans le droit) ──
   await L.fin(c);
   const cj = await L.ouvrir({ profil, qui: 'julie' }), pj = cj.p, Rj = (f, a) => pj.evaluate(f, a);
+  // Julie voit désormais Dépôts et camions (lot Droits : la case « Voir » décide seule) : on lui FERME la rubrique pour jouer le cas « tuile vers une rubrique fermée »
+  await Rj(() => { ROUTE_DROIT.boxes.equipe = ['@securite']; });
   await L.aller(pj, 'stock'); await L.calme(pj, 400);
   const t11 = await Rj(() => ({ cam: (document.querySelector('.ms-kpis') || { children: [] }).children.length, botCam: !!document.querySelector('.ms-kpis button[data-ms="t|cam"]'), permis: rlPermis('boxes'), txt: [...document.querySelectorAll('.ms-kpis .kpi')].map(e => e.tagName + ':' + e.textContent.replace(/\s+/g, ' ').trim()) }));
   v('bureau-11 : Julie n\'a pas « Dépôts et camions » (population : ' + t11.permis + ') : la tuile « manquent dans les camions » n\'est pas un bouton', t11.permis === false && !t11.botCam && t11.cam === 3, t11);
