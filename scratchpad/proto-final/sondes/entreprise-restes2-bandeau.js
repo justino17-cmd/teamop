@@ -19,7 +19,7 @@ const RELEVE = async () => { const h = [...document.querySelectorAll('*')].find(
       v(`${nom} : le bandeau ne propose AUCUN geste (${gestes})`, gestes === 0, gestes);
       // la garde tient encore quand le geste vient de l'hôte et non du bouton
       const g = await p.evaluate(async () => { const av = DROITS_REFUS.length, ca = Object.keys(CLIENTS).length, ta = Array.isArray(TACHES) ? TACHES.length : 0;
-        courrierAgir('mbx:devis|s:b1:m5', { id:'s:b1:m5' }); await new Promise(z => setTimeout(z, 600)); return { refus:DROITS_REFUS.slice(av).map(o => o.cat + '.' + o.x + ' ' + o.verbe), clients:[ca, Object.keys(CLIENTS).length], panneau:!!document.querySelector('#calque .panneau'), route }; });
+        courrierAgir('mbx:confier|s:b1:m5', { id:'s:b1:m5' });   /* un geste qui n'écrit QUE dans le courrier : sa case est la seule en cause (tour 3 : « devis » lit désormais la case Devis, pas celle de la Boîte mail) */ await new Promise(z => setTimeout(z, 600)); return { refus:DROITS_REFUS.slice(av).map(o => o.cat + '.' + o.x + ' ' + o.verbe), clients:[ca, Object.keys(CLIENTS).length], panneau:!!document.querySelector('#calque .panneau'), route }; });
       v(`${nom} : un geste lancé par l'hôte (sans bouton) est refusé par la garde`, g.refus.length >= 1 && g.refus.every(o => /^com\./.test(o)) && g.clients[0] === g.clients[1] && !g.panneau && g.route === 'boiteMail', g);
     } else v(`${nom} : les gestes du bandeau sont là (${gestes})`, gestes >= 10, gestes);
     await L.fin(c);

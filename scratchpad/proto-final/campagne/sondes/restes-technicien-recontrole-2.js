@@ -24,6 +24,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
       await R(() => { const o = document.getElementById('rn-o'); const k = [...o.options].findIndex(x => x.value && !/km|kilom/i.test(x.value + x.textContent)); o.selectedIndex = k; o.dispatchEvent(new Event('change', { bubbles: true })); }); await p.fill('#rn-m', saisie); await L.toucher(c, '[data-rl="ndfok"]'); await L.calme(p, 300);
       const t = await R(() => (document.getElementById('toast') || {}).textContent || ''), nouv = await R(i0 => NDF.filter(n => !i0.includes(n.id)).map(n => ({ id: n.id, ttc: n.ttc })), ids0), cree = nouv.length > 0;
       v(`[${J}] M · « ${saisie.replace(/[\u00a0\u202f]/g, '␣')} » ${attendu === null ? 'ne crée rien et dit une phrase' : 'est lu ' + attendu}`, attendu === null ? (!cree && /\S/.test(t)) : (cree && Math.abs(nouv[0].ttc - attendu) < 0.011), { t: t.slice(0, 120), nouv });
+      if (saisie === '5.000 €') { v(`[${J}] M · « 5.000 € » dit la phrase de la Comptabilité (pas clair : 5000 ou 5,00)`, /pas clair/.test(t) && /5000/.test(t), t.slice(0, 160)); await L.capture(c, CAP + `frais-5000-${J}.png`); }
       if (cree) await R(i0 => { for (let i = NDF.length - 1; i >= 0; i--) if (!i0.includes(NDF[i].id)) NDF.splice(i, 1); rendre(); }, ids0);
       else await R(() => { const d = document.getElementById('rn-dbl'); if (d && !d.hidden) { const b = d.querySelector('[data-axa="grosnon"]'); if (b) b.click(); } });
     }

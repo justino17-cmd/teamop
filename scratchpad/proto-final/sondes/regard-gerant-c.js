@@ -136,7 +136,108 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
       v(`cartes de dépôts, montants longs (${profil}) : population — au moins 3 montants`, r.n >= 3, r);
       v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne passe sur deux lignes`, r.coupes === 0, r);
       v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne sort de sa carte`, r.dehors === 0, r);
+      const q = await c.p.evaluate(() => { const T = [...document.querySelectorAll('.md-c .client-chiffres')].filter(e => e.offsetWidth > 0); let chev = 0, n = 0; T.forEach(t => { const S = [...t.children]; S.forEach((e, i) => { if (!i) return; n++; if (S[i - 1].querySelector('b').getBoundingClientRect().right > e.getBoundingClientRect().left + 0.5 || S[i - 1].getBoundingClientRect().right > e.getBoundingClientRect().left + 0.5) chev++; }); }); return { rangees: T.length, jonctions: n, chev }; });
+      v(`cartes de dépôts, montants longs (${profil}) : population — au moins 3 rangées de chiffres`, q.rangees >= 3, q);
+      v(`cartes de dépôts, montants longs (${profil}) : un montant ne passe jamais sur la colonne voisine`, q.chev === 0, q);
       await L.fin(c); }
+  }
+  // 11. (320 px) Le segmenté Commandes / Articles / Fournisseurs ne touche pas les bords de sa pilule : au moins 4 px de chaque côté du contenu de chaque bouton
+  if (veut(11)) {
+    for (const profil of ['petit', 'android', 'iphone']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { prVue = 'articles'; }); await aller(c, 'produits');
+      const r = await c.p.evaluate(() => [...document.querySelectorAll('.fx-seg button')].map(b => { const rb = b.getBoundingClientRect(), g = document.createRange(); g.selectNodeContents(b); const t = g.getBoundingClientRect(); return { mot: b.getAttribute('aria-label'), gauche: Math.round(t.left - rb.left), droite: Math.round(rb.right - t.right) }; }));
+      v(`segmenté Matériel (${profil}) : population — trois onglets`, r.length === 3, r);
+      v(`segmenté Matériel (${profil}) : au moins 4 px entre le contenu et le bord de chaque bouton`, r.every(x => x.gauche >= 4 && x.droite >= 4), r);
+      await L.fin(c);
+    }
+  }
+  // 12. Le bouton noir de l'en-tête tient sur UNE ligne, sur les trois onglets où il est court (« Nouvelle commande », « Ajouter un article »)
+  if (veut(12)) {
+    for (const profil of ['petit', 'android', 'iphone']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' });
+      for (const vue of ['commandes', 'articles']) {
+        await c.p.evaluate(x => { prVue = x; }, vue); await aller(c, 'produits');
+        const r = await c.p.evaluate(() => { const b = document.querySelector('.fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb)'); if (!b) return null; const g = document.createRange(); g.selectNodeContents(b); const lh = parseFloat(getComputedStyle(b).lineHeight) || 18; return { texte: b.textContent.trim(), lignes: Math.round(g.getBoundingClientRect().height / lh) }; });
+        v(`bouton noir de l'en-tête, ${vue} (${profil}) : population — le bouton existe`, !!r, r);
+        v(`bouton noir de l'en-tête, ${vue} (${profil}) : une seule ligne`, r && r.lignes === 1, r);
+      }
+      await L.fin(c);
+    }
+  }
+  // l'état d'une liste « A · B · C » à points médians (.pts) : un point n'est visible QUE s'il suit un élément de la même ligne
+  // racine : la zone jugée (une fenêtre ouverte recouvre la liste derrière elle, dont les points ne sont alors pas « peints »)
+  const orphelins = (p, racine) => p.evaluate(r => { const C = [...document.querySelectorAll((r || 'body') + ' .pts')].filter(e => e.offsetWidth > 0); let n = 0, mal = [];
+    C.forEach(c => { const cr = c.getBoundingClientRect(), E = [...c.querySelectorAll('.pts-e')]; E.forEach((e, i) => { if (!i) return; const d = e.querySelector('.pts-d').getBoundingClientRect(), er = e.getBoundingClientRect(), pr = E[i - 1].getBoundingClientRect(), neuf = er.top > pr.top + 2; n++;
+      e.querySelector('.pts-d').scrollIntoView({ block: 'center' }); const d2 = e.querySelector('.pts-d').getBoundingClientRect(), el = document.elementFromPoint(d2.left + d2.width / 2, d2.top + d2.height / 2), visible = !!el && !!el.closest('.pts-d');   // le point est-il PEINT ? (la coupe du conteneur le retire du test de survol)
+      if (neuf && visible) mal.push(e.textContent.trim().slice(0, 30) + ' : point visible en tête de ligne'); if (!neuf && !visible) mal.push(e.textContent.trim().slice(0, 30) + ' : point caché au milieu d’une ligne'); }); });
+    return { conteneurs: C.length, points: n, mal }; }, racine);
+  // 13. Titres de groupe des Articles : le « · N » reste avec le mot qui le précède ; aucun point seul en tête ou en bout de ligne
+  if (veut(13)) {
+    for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { prVue = 'articles'; }); await aller(c, 'produits');
+      const r = await c.p.evaluate(() => [...document.querySelectorAll('.fx-arts summary.groupe')].map(sm => { const t = sm.querySelector('.pts-e:last-child'); if (!t) return null; const n = t.firstChild.nextSibling || t.lastChild, g = document.createRange(), tx = t.textContent, i = tx.lastIndexOf('·'); const w = [...t.childNodes].filter(x => x.nodeType === 3).pop(); g.setStart(w, w.textContent.lastIndexOf('·') + 1); g.setEnd(w, w.textContent.length); const a = g.getBoundingClientRect();
+        const h = document.createRange(); h.setStart(w, 0); h.setEnd(w, 1); return { titre: sm.textContent.trim().slice(0, 40), memeLigne: Math.abs(a.top - h.getBoundingClientRect().top) < 3 }; }).filter(Boolean));
+      v(`titres de groupe (${profil}) : population — au moins 10 titres`, r.length >= 10, r.length);
+      v(`titres de groupe (${profil}) : le « · N » reste sur la ligne de son dernier mot`, r.every(x => x.memeLigne), r.filter(x => !x.memeLigne).map(x => x.titre));
+      const o = await orphelins(c.p, '.fx-arts'); v(`titres de groupe (${profil}) : population — des séparateurs jugés`, o.points >= 10, o);
+      v(`titres de groupe (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal);
+      await L.fin(c);
+    }
+  }
+  // 14. Fiche article : la ligne bleue des lieux ne finit jamais sur un point médian ; un article posé dans 3 lieux au nom long
+  if (veut(14)) {
+    for (const profil of ['petit', 'android', 'iphone', 'ipad', 'mac', 'windows']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' });
+      await c.p.evaluate(() => { const x = PRODUITS.find(o => !o.retire); x.q = 20; x.loc = {}; LIEUX.filter(l => l.type !== 'atelier').slice(0, 3).forEach(l => { x.loc[l.id] = 3; }); window._xa = x.id; }); await aller(c, 'stock');
+      await c.p.evaluate(() => prFiche(window._xa)); await L.calme(c.p, 700);
+      const r = await c.p.evaluate(() => ({ n: document.querySelectorAll('#calque .ms-rep .ms-lien').length }));
+      v(`fiche article, lieux (${profil}) : population — au moins 3 lieux`, r.n >= 3, r);
+      const o = await orphelins(c.p, '#calque'); v(`fiche article, lieux (${profil}) : population — au moins 2 séparateurs jugés`, o.points >= 2, o);
+      v(`fiche article, lieux (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal);
+      await L.fin(c);
+    }
+  }
+  // 15. Sur un appareil tactile le clavier ne monte pas tout seul dans la recherche du Stock (iPad compris) ; sur ordinateur le curseur y est déjà
+  if (veut(15)) {
+    for (const [profil, attendu] of [['ipad', false], ['iphone', false], ['android', false], ['mac', true], ['windows', true]]) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'stock'); await c.p.waitForTimeout(300);
+      const r = await c.p.evaluate(() => ({ actif: document.activeElement && document.activeElement.id, tactile: matchMedia('(pointer:coarse)').matches, champ: !!document.getElementById('ms-q') }));
+      v(`recherche du Stock (${profil}) : population — le champ existe`, r.champ, r);
+      v(`recherche du Stock (${profil}) : ${attendu ? 'le curseur y est déjà (ordinateur)' : 'le clavier ne monte pas tout seul (tactile)'}`, (r.actif === 'ms-q') === attendu, r);
+      await L.fin(c);
+    }
+  }
+  // 16. Stock vide : « Ajouter un article » et « Choisir parmi… » ont la même largeur
+  if (veut(16)) {
+    for (const profil of ['iphone', 'android', 'petit', 'ipad', 'mac']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { PRODUITS.length = 0; }); await aller(c, 'stock');
+      const r = await c.p.evaluate(() => [...document.querySelectorAll('.ms-vide .ms-vb .btn')].map(b => Math.round(b.getBoundingClientRect().width)));
+      v(`stock vide (${profil}) : population — deux boutons`, r.length === 2, r);
+      v(`stock vide (${profil}) : les deux boutons ont la même largeur`, r.length === 2 && Math.abs(r[0] - r[1]) <= 1, r);
+      await L.fin(c);
+    }
+  }
+  // 17. Stock › Articles : la ligne de lieux d'un article (« Atelier 5 · Sophie 2 · +2 lieux ») ne laisse jamais un point médian seul, avec des noms et des quantités longs
+  if (veut(17)) {
+    for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' });
+      await c.p.evaluate(() => { PRODUITS.forEach((x, n) => { if (n % 2 === 0) { x.q = 1523.5; x.loc = {}; LIEUX.filter(l => l.type !== 'atelier').slice(0, 4).forEach(l => { x.loc[l.id] = 2.5; }); } }); }); await aller(c, 'stock');
+      const o = await orphelins(c.p, '#contenu');
+      v(`lignes de lieux du Stock (${profil}) : population — au moins 20 séparateurs jugés`, o.points >= 20, o);
+      v(`lignes de lieux du Stock (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal.slice(0, 5));
+      await L.fin(c);
+    }
+  }
+  // 18. Fiche d'un camion : « 2 sur 3 · il manque 1 · à l'atelier : 5 » et « titre · quand » (Pour les prochaines visites) sans point médian seul, noms longs
+  if (veut(18)) {
+    for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { PRODUITS.forEach((x, n) => { x.nom = 'Raccord à compression en laiton chromé pour tube multicouche 20 ' + n; }); }); await aller(c, 'boxes');
+      await c.p.evaluate(() => bxFiche('v1')); await L.calme(c.p, 700);
+      const o = await orphelins(c.p, '#calque');
+      v(`fiche camion, lignes à points médians (${profil}) : population — au moins 4 séparateurs jugés`, o.points >= 4, o);
+      v(`fiche camion, lignes à points médians (${profil}) : aucun point médian seul en tête ou en bout de ligne`, o.mal.length === 0, o.mal.slice(0, 5));
+      await L.fin(c);
+    }
   }
   process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
