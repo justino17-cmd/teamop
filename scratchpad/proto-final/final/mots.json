@@ -540,6 +540,27 @@
    "fichier": "scratchpad/proto-final/atelier/page.source"
   },
   {
+   "ecran": "Équipe › carte d’une personne",
+   "avant": "'<span class=\"st st-p\">Admin</span>'",
+   "apres": "'<span class=\"st st-p\">Administrateur</span>'",
+   "raison": "« Admin » est une abréviation : le mot entier tient dans la pastille à 320 px",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › factures en retard",
+   "avant": "En retard · éch. ${dAnnee(x.ech, x.d)}",
+   "apres": "En retard · échéance ${dAnnee(x.ech, x.d)}",
+   "raison": "« éch. » est une abréviation que personne ne dit",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › factures à payer",
+   "avant": "À payer · éch. ${dAnnee(x.ech, x.d)}",
+   "apres": "À payer · échéance ${dAnnee(x.ech, x.d)}",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
    "ecran": "Devis et contrats › fiche de l’interlocuteur",
    "avant": "ch('mail','Courriel',",
    "apres": "ch('mail','E-mail',",
