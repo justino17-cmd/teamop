@@ -1,0 +1,32 @@
+{
+ "noms": [
+  "(j) devis rapide et contrat d'OP GESTION ne reprennent plus le numéro d'un brouillon composé supprimé (opd_nums)",
+  "devis-atelier-04 — toast « Signature effacée. » sans « exemple »",
+  "devis-atelier-15 — plancher de 44 px des interrupteurs sans rapetisser les 48 px"
+ ],
+ "regles": [
+  "(j) côté OP GESTION : composer D-2026-042 puis le supprimer (menu ⋯ de l'éditeur) → dvNum() = 043 et ctrNum() = 013, sur Mac (recontrole-1 11 ✓ · 0 ✗). Joué en plus par la sonde neuve tour2-recontrole-2 (18 ✓ · 0 ✗) : suppression puis fermeture IMMÉDIATE de l'atelier ; rechargement de l'hôte seul (la mémoire vient de opg_proto_atelier_nums) ; numéro retapé D-2026-26073 puis supprimé, lu côté PARENT ; DEUX ONGLETS (B chargé avant, sur #devis puis sur #clients : le cadre de l'atelier est monté partout, il adopte la liste de l'autre onglet et renvoie les numéros) ; valeurs forgées (n négatif, flottant, chaîne, 1e9, préfixe piégé, __proto__, tableau, null) ne font ni lever ni descendre dvNum. Contre-épreuve : concat de opdNums retiré dans une copie → 6 ✗ (N1, N2, N3, N4, N4b).",
+  "devis-atelier-04 : tous les messages du parcours, lus par un observateur (la sonde du correcteur ne lisait que le PREMIER toast resté à l'écran, « Signé : … », et ne prouvait donc pas le nouveau texte) : « Devis créé… », « Envoyé à durand@mail.fr. », « Signé : la signature est posée dans le document. », « Signature effacée. » — aucun « exemple », « rejouer » ni « rien n'est vraiment parti » ; mac jour et iPhone nuit. Les autres toasts à « exemple » de l'atelier (Signé, Envoyé) portent déjà leur garde APP ; recontrole-1 11 ✓, restes-2 15 ✓ (mac, iPhone nuit), devis-atelier-mots 19 écrans ✓.",
+  "devis-atelier-15 : mesuré sur les VRAIS interrupteurs (sonde neuve tour2-recontrole-1, 81 ✓ · 0 ✗ sur ipad, iphone, android, petit, mac) : fenêtre d'envoi (PDF joint, Lien), aperçu (Ce que voit le client), clauses du contrat composé (48 px partout sur tactile, 7 sur 7), et un .interr dans CHAQUE conteneur que la feuille nomme (population déduite de la feuille : 7 conteneurs, tous ≥ 44, aucun sous 44). Souris (mac) : 38 et 36 d'origine, la règle tactile ne s'applique pas. Contre-épreuve : ancienne règle `html[data-app] .interr` remise dans une copie → clauses 48 → 44 détectées (1 ✗ + la sonde 3 ne trouve plus la règle).",
+  "Aucune casse en voisinage : atelier-devis ipad 41 ✓, atelier-contrat iphone 23 ✓, atelier-numeros mac et android 13 ✓, atelier-retour android 19 ✓, atelier-roles 35 ✓, atelier-echecs 28 ✓, atelier-miseenpage ipad 40 ✓ · iphone 40 ✓ · windows 18 ✓ ; restes-1 mac+iphone 7 ✓, restes-2 mac+iphone nuit 15 ✓, restes-3 28 ✓, recontrole-2 21 ✓. La page fabriquée (fabriquer.sh) est identique au dépôt."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "Gravité basse, déjà noté au tour 1 et RESTÉ ouvert : sur iPhone (nuit comme jour), « Ce que voit le client » empile deux bulles : « Signé : la signature est posée dans le document. » reste affichée pendant qu'apparaît « Signature effacée. », et la seconde recouvre le nom « Clim Services 17 » de l'en-tête (capture T2-efface-iphone-nuit.png regardée). Les deux textes ne se contredisent plus en mots, mais pendant quelques secondes l'écran affirme « signé » et « effacé » ensemble. Piste : toast() devrait remplacer la bulle précédente plutôt que l'empiler (règle commune à tous les messages de l'atelier : à décider avec la voie qui possède toast()).",
+  "Gravité très basse, pré-existant : la mémoire des numéros du parent (opg_proto_atelier_nums) ne se remplit que quand l'atelier envoie opd_nums ; un rangement d'AVANT ce correctif (atelier déjà retenu, clé du parent absente) ne la reçoit qu'à la première ouverture du cadre. Sans portée : le prototype n'a pas d'utilisateur réel."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-devis-atelier-recontrole-1.js mac", "resultat": "11 ✓ · 0 ✗ (le correcteur avait rapporté mac et iPhone nuit)" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-1.js mac, iphone ; restes-devis-atelier-2.js mac, iphone nuit", "resultat": "7 ✓ · 0 ✗ ; 15 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-3.js ; restes-devis-atelier-recontrole-2.js iphone,ipad,android", "resultat": "28 ✓ · 0 ✗ ; 21 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-tour2-recontrole-1.js ipad,iphone,android,petit,mac (NOUVELLE)", "resultat": "ipad, iphone, android, petit, mac : 81 ✓ · 0 ✗ ; iPad nuit 18 ✓ ; mutation de la règle : 1 ✗" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-tour2-recontrole-2.js mac et iphone nuit (NOUVELLE)", "resultat": "18 ✓ · 0 ✗ chacun ; mutation (numéros retenus ignorés) : 12 ✓ · 6 ✗" },
+  { "fichier": "sondes/atelier-devis, -contrat, -numeros, -retour, -roles, -echecs, -miseenpage (profils ci-dessus) ; campagne/sondes/devis-atelier-mots.js mac", "resultat": "toutes vertes, 0 ✗ ; mots : 19 écrans, 0 reste d'échafaudage" }
+ ],
+ "doutes": [
+  "Toujours à soumettre à Justin (non tranchés, rien modifié) : devis rapide et devis composé = deux modèles (10 jours / 3 semaines, acompte 0 / 30 %, pas d'intervention à planifier ni de facture d'acompte pour un devis composé accepté, contrat composé sans contrat OP GESTION) ; seuil de validité d'une signature tracée (40 unités sur 600) ; le mot « exemple » reste ailleurs dans OP GESTION (Lien copié (exemple), Plan du client (exemple), AMM du stock, IBAN et QR du paiement).",
+  "Non rejoué : « Créer avec l'IA » du contrat (non atteignable depuis l'écran de départ) ; deux onglets pour les CONTRATS (même chemin que les devis, joué pour les devis seulement) ; atelier-grand ipad (788 au lieu de 794) et atelier-seule (compoDevis2), pré-existants et sans lien, propriétaires autres.",
+  "Les mesures tactiles viennent de l'émulation du Chromium de l'image (pointer:coarse émulé) : aucun vrai iPad, Android ni Windows tactile."
+ ]
+}
