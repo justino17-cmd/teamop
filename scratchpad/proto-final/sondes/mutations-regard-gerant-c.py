@@ -18,6 +18,8 @@ M = [  # (nom, section de la sonde, avant, après)
  ('adresse e-mail de la fiche fournisseur coupée', [7], "html .fx-lg .saisie[type=email]{width:min(70%,340px)}", "html .fx-lg .saisie[type=email]{width:min(52%,240px)}"),
  ('numéro de commande coupé au tiret', [8], ".replace('-', '\\u2011')}</span>", "}</span>"),
  ('tuiles de la fiche camion à largeurs égales', [9], "html .kpis.md-kpis{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr) minmax(0,1fr)}\n  html .md-kpis .kpi b{font-size:clamp(17px,5vw,22px);white-space:nowrap}", "html .kpis.md-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}"),
+ ('montant d\'une carte de dépôt coupé avant la virgule', [10], "html .md-c .client-chiffres b{white-space:nowrap}", "html .md-c .client-chiffres b{overflow-wrap:anywhere}"),
+ ('tuile de la fiche camion à 320 px : police non réduite', [9], "html .md-kpis .kpi{padding-inline:8px}html .md-kpis .kpi b{font-size:15px}", "html .md-kpis .kpi{padding-inline:8px}"),
  ('« · 6 » seul sur sa ligne', [8], "${BX.cfg.okLib}\\u00a0·\\u00a0${n}", "${BX.cfg.okLib} · ${n}"),
 ]
 def ferme():

@@ -1,0 +1,24 @@
+{
+ "noms": ["artefact"],
+ "regles": [
+  "Casse 1 (« Revenir au mode test » au clavier) : restes-artefact-tour1-recontrole.js 160 ✓ · 0 ✗, rejoué ici.",
+  "Casse 2 (« Voir comme l'application » pendant la visite parlée) : tour1-recontrole-b 6 ✓ · 0 ✗ ; restes-artefact-tour2.js 32 ✓ · 0 ✗.",
+  "Nouveau du correcteur (lien « Revenir au mode test » sur l'écran de chargement) : tour1-recontrole-c 36 ✓ · 0 ✗ ; captures iphone-nuit et mac-jour relues : lien en haut à gauche, lisible, sans toucher le logo.",
+  "Fichiers nés dans un cadre voisin (pont strict) : tour2 B et C verts ; cadres voisins 26 ✓ · 0 ✗, courrier 14 ✓ · 0 ✗."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [],
+ "sondes": [
+  {"fichier": "sondes/restes-artefact-tour2.js", "resultat": "32 ✓ · 0 ✗"},
+  {"fichier": "sondes/restes-artefact-tour1-recontrole.js", "resultat": "160 ✓ · 0 ✗"},
+  {"fichier": "sondes/restes-artefact-tour1-recontrole-b.js", "resultat": "6 ✓ · 0 ✗"},
+  {"fichier": "sondes/restes-artefact-tour1-recontrole-c.js", "resultat": "36 ✓ · 0 ✗"},
+  {"fichier": "sondes/artefact-tout.sh (RECENSEMENT=0, neuf sondes)", "resultat": "63+26+14+144+10+16+24+5+132 ✓ · 0 ✗, code 0"}
+ ],
+ "doutes": [
+  "Les recensements de gestes d'artefact-tout.sh (RECENSEMENT) n'ont pas été rejoués (200 s chacun, rien de ces corrections ne touche une route).",
+  "Les mutations 1 et 2 du correcteur tombent par délai de la sonde de clavier et non par échec net : à durcir un jour par un délai court.",
+  "Sur la capture de l'écran de chargement le logo est encore vide : il se dessine progressivement, instant de capture, pas un défaut."
+ ]
+}

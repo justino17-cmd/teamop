@@ -243,7 +243,8 @@ async function autres() {
     await base('planning'); if (await L.toucher(c, '[data-plvue="carte"]')) { await L.calme(p, 600);
       const choisi = await L.toucher(c, '[data-crsel]'); await L.calme(p, 600); const feuille = await p.evaluate(() => !!document.getElementById('cr-ftel'));
       if (choisi && feuille) { const h0 = (await etat(p)).h; await C.retour(p); const e1 = await etat(p), reste = await p.evaluate(() => !!document.getElementById('cr-ftel'));
-        dit('doutes', { calque: 'feuille de la carte du planning (#cr-ftel, une tournée choisie)', profil: PROFIL, constat: 'Retour ' + (e1.h !== h0 ? 'quitte le Planning (' + h0 + ' → ' + e1.h + ')' : 'reste sur le Planning') + ', feuille ' + (reste ? 'restée' : 'fermée') });
+        // réglé le 18/11 (restes du Retour, tour 1) : la feuille est un genre de CAL_GENRES (« feuille ») — Retour la ferme et laisse le Planning
+        v(nom + ' : [feuille de la carte] Retour ferme la feuille de la tournée et reste sur le Planning', !reste && e1.h === h0, { h0, e1, reste });
       } else dit('notes', { carte: 'pas de feuille', choisi, feuille, profil: PROFIL }); } }
   await rangerTout(p);
   // la visite parlée lancée DEPUIS l'application (immLancer) : Retour la ferme, sans erreur ; on note où l'on est

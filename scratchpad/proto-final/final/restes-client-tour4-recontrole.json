@@ -1,0 +1,32 @@
+{
+ "noms": [
+  "Barre du bas de la fiche d'une tâche : « Relancer maintenant » et les libellés courts sur une ligne, « Fait / Déjà fait » garde sa largeur",
+  "Un nom de client très long (62 à 80 signes) : le bouton « Prévenir … » coupé à deux lignes avec « … »",
+  "Cinq doutes pour Justin (inchangés, décisions de produit)"
+ ],
+ "regles": [
+  "Barre « Relancer maintenant » / « Relancer le devis » / « Voir les créneaux libres » + « Déjà fait » : une ligne (44 px) à 390 px, rejouée iPhone jour et nuit, Android nuit (Julie) : restes-client-4-relancer.js 4 ✓ · 0 ✗ chacun ; capture r4-relancer-iphone relue (« ✉ Relancer le devis » sur une ligne, « Déjà fait » plus étroit, rien de coupé).",
+  "Barre « Prévenir … » : toutes les tâches du jeu + une tâche par client + un nom inventé de 62 signes : restes-client-3-recontrole.js 12 ✓ · 0 ✗ (iPhone nuit), 10 ✓ · 0 ✗ (petit nuit ; Android jour Julie ; petit jour technicienne). Captures relues : r3-barre-zzlong-iphone-nuit, r3-barre-zzlong-petit (jour), r3-barre-mi-android (jour) : deux lignes, « … » à la fin, « ✓ Fait » entier, rien ne sort de l'écran.",
+  "Le geste survit au <span class=\"tkx-lib\"> (le toucher tombe maintenant sur le span) : sonde neuve restes-client-4-recontrole.js touche au milieu de chaque bouton de la barre et vérifie que le geste part. Les SIX sortes jouées (relance du devis, de la facture, du renouvellement du contrat, créneaux libres, Prévenir, Fait) : 17 ✓ · 0 ✗ (iPhone nuit marc, petit nuit marc), 15 ✓ (Android jour Julie), 9 ✓ (iPhone jour technicienne sm, iPhone nuit chef d'équipe kb : « Fait » seul pleine largeur), 3 ✓ · 0 ✗ (iPad jour, Mac nuit : barre masquée). Tous les écouteurs de ces gestes passent par closest(), aucun ne lit ev.target.dataset.",
+  "Nom de 80 signes, population ajoutée par moi (plus long que celui du correcteur) : boutons dans l'écran, ≤ 64 px, pas de défilement latéral.",
+  "Rien ne casse à côté : restes-client-1 39 ✓, restes-client-2 16 ✓, restes-client-2-recontrole 22 ✓, restes-client-2-recontrole-barre 4 ✓, restes-client-2-recontrole-paiement 4 ✓ (iPhone nuit et petit jour) ; restes-taches-absences-1-recontrole 17 ✓ ×2.",
+  "Contre-épreuve : sans le line-clamp, ma sonde tombe (bouton de 127 px de haut à 320 px, nom de 80 signes) : la sonde mord."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "Hors de ce périmètre, et déjà là AVANT le tour 4 (rejoué sur e742b9e1~1 : 29 ✓ · 3 ✗, mêmes trois) : restes-taches-absences-2-recontrole.js tombe sur 3 contrôles (« date de fin avant le début » : le message dit « non » mais le bouton d'enregistrement n'est pas grisé, pour le sélecteur d'absence ax-/am- et « Modifier les dates »), à iPhone nuit comme petit jour. Soit une régression de la voie taches-absences, soit une sonde écrite avant un correctif non poussé : à voir par cette voie, pas par « client »."
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-client-4-recontrole.js (neuve)", "resultat": "17 ✓ · 0 ✗ iPhone nuit / petit nuit ; 15 ✓ Android jour Julie ; 9 ✓ iPhone jour sm et iPhone nuit kb ; 3 ✓ iPad et Mac" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-client-3-recontrole.js", "resultat": "12 ✓ iPhone nuit ; 10 ✓ petit nuit, Android jour Julie, petit jour sm" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-client-4-relancer.js", "resultat": "4 ✓ iPhone, iPhone nuit, Android nuit Julie" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-client-1.js, -2.js, -1-recontrole, -2-recontrole, -2-recontrole-barre, -2-recontrole-paiement", "resultat": "39 ✓, 16 ✓, 22 ✓, 4 ✓, 4 ✓ (iPhone nuit et petit jour), 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-2-recontrole.js", "resultat": "3 ✗ déjà présents avant le tour 4 (voir « nouveaux »)" }
+ ],
+ "doutes": [
+  "Les cinq doutes du tour 3 restent à soumettre à Justin : (1) trois façons de nommer l'appel d'une copropriété (« Appeler Syndic Foncia » dans la fiche, « Prévenir Copropriété Les Mimosas » dans la barre, deux boutons proches sur la même fiche : vu sur la capture Android) ; (2) le menu « Marc Leblanc · Mon compte · Se déconnecter » de l'espace client ; (3) la carte « Votre demande est envoyée » qui disparaît quand « Proposer un contrat » est fait sans créer de contrat ; (4) « Bonjour M. Pierre Delmas, » dans le cadre Documents ; (5) un expéditeur dont l'adresse ne porte pas son nom recevrait encore « Bonjour <nom> ».",
+  "Sur la fiche d'une tâche « Prévenir … » au téléphone, « ✓ Fait » apparaît deux fois à l'écran (le grand bouton vert dans le corps de la fiche et celui de la barre collée) : voulu (la barre reste sous le pouce), mais un débutant peut y voir un doublon ; décision de produit.",
+  "La contre-épreuve de restes-client-4-relancer.js est faible : sans la règle « .btn.gris{flex:0 0 auto} » elle reste verte (les deux boutons courts tiennent de toute façon). La garde réelle de « Fait ne rétrécit jamais » est la sonde restes-client-4-recontrole.js sur le nom de 80 signes."
+ ]
+}
