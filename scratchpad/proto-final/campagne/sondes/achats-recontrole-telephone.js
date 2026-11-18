@@ -35,6 +35,7 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
   const mn = await E(() => { const r = s => { const e = document.querySelector(s); if (!e || !e.offsetParent) return null; const b = e.getBoundingClientRect(); return { haut: Math.round(b.top), bas: Math.round(b.bottom) }; };
     return { note: r('#contenu .ach-n'), regl: r('#contenu .ach-regl'), reglB: r('#contenu .ach-regl-b'), h: innerHeight }; });
   console.log('  ', JSON.stringify(mn));
+  if (!tel) v('N0 ordinateur et tablette : « Réglages › » n’est pas affiché (les deux lignes de réglage sont sur la page, il les répétait), les deux lignes y sont', !mn.reglB && !!mn.regl, mn);
   if (tel) {
     v('N1 téléphone : la première note se voit dans le premier écran', mn.note && mn.note.haut < mn.h - 120, mn);
     v('N2 téléphone : les lignes de réglage ne sont pas sur la page, « Réglages › » oui', !mn.regl && !!mn.reglB, mn);
@@ -71,7 +72,7 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
   await p.fill('#ax-km', ''); await p.click('#ax-km'); await p.keyboard.type('1.500', { delay: 10 }); const av2 = await E(() => AX.kmTarif);
   await L.toucher(c, '[data-axa="kmok"]'); await L.calme(p, 300); const ap2 = await E(() => AX.kmTarif);
   console.log('  tarif « 1.500 » : avant', av2, 'après', ap2, ' message :', await toast(p));
-  v('K4 un tarif de 1 500 € le kilomètre n’est pas accepté sans un mot (faute de frappe probable)', ap2 <= 5 || ap2 === av2, { av2, ap2 });
+  { const mt = await toast(p); v('K4 « 1.500 » (1 500 ou 1,5 ?) est refusé avec la phrase « n’est pas clair », le tarif ne bouge pas (restes achats 1 : il devenait 1,50 € sans un mot)', ap2 === av2 && /pas clair/.test(mt), { av2, ap2, mt }); }
   await E(() => { try { fermerPanneau(); } catch (e) {} AX.kmTarif = 0.6; });
   // ── le réglage « sans ticket » du gérant change les boutons des notes
   const err = c.err.filter(x => !/ERR_/.test(x)); v('aucune erreur JavaScript', err.length === 0, err.slice(0, 3));

@@ -45,10 +45,10 @@ const { L, ouvrirAchats, toast, panneau, txt, CAP } = require('./achats-outils.j
   const pn = await ouvertNouvelle(); v('09 la fenêtre du gérant s’appelle « Nouvelle demande d’achat » et dit à quoi elle sert', /Nouvelle demande d’achat/.test(pn) && /Note ce que quelqu’un de l’équipe/.test(pn), pn.slice(0, 160)); await E(() => fermerPanneau());
   v('10-1 un seul mot : « sans justificatif » sur le lien, pas « sans facture »', /sans justificatif/.test(page) && !/sans facture/.test(page));
   const n10 = await E(() => [axSansJustif(), cxDocs().filter(x => x.fam === 'achats' && x.src === 'ndf' && !x.piece).length]);
-  v('10-2 une note de frais encore à valider (sans ticket) ne compte pas parmi les achats sans justificatif', n10[1] >= 1 && n10[0] === await E(() => ACHATS.filter(a => !a.piece || (!!a.tva && a.piece !== 'facture')).length), n10);
+  v('10-2 une note de frais encore à valider (sans ticket) ne compte pas parmi les achats sans justificatif', n10[1] >= 1 && n10[0] === await E(() => ACHATS.filter(a => !a.piece).length), n10);
   await L.toucher(c, '[data-cx="sec|factures|achats|sanspiece"]'); await L.calme(p, 600);
   const lst = await txt(p, '#cx-liste'), chip = await txt(p, '#contenu');
-  v('10-3 la liste où mène le lien ne contient aucune note de frais, ses puces disent « Sans justificatif »', !/Note de frais/.test(lst) && /Sans justificatif/.test(chip) && !/Sans facture/.test(chip) && !/sans facture/.test(lst), lst.slice(0, 120));
+  v('10-3 la liste où mène le lien ne contient aucune note de frais, ses puces disent « Sans justificatif »', !/Note de frais/.test(lst) && /Sans justificatif/.test(chip) && (await E(() => [...document.querySelectorAll('#contenu [data-cx^="st|"][aria-pressed="true"]')].map(e => e.textContent.trim()).join('|'))) === 'Sans justificatif' && !/sans facture/.test(lst) && !/ticket reçu/.test(lst), lst.slice(0, 120));   // restes achats 1 : « sans facture » (la TVA) est une AUTRE liste, avec son propre filtre ; celle-ci ne garde que ce qui n'a ni facture ni ticket
   // ── achats-08 / 02 / 11 : les notes
   await E(() => { acOnglet = 'notes'; }); await L.aller(p, 'achats');
   if (tel) {

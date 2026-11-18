@@ -82,7 +82,7 @@ v('   la vue ouverte (Accueil), et elle seule, est marquée et annoncée (aria-c
 v('   une section par groupe du menu, en capitales dessinées (pas tapées)', (J.h.match(/<div class="ti-sec">/g) || []).length, 7);   // v2.110 (25 octobre 2026) : + Site   // lot 1 (21 octobre 2026) : + Juridique, Équipe d’agents
 v('⛔ aucun id dans le tiroir (bdg-surv, app-n-… sont déjà au menu du bureau : setBdg viserait le mauvais)', (J.h.match(/\sid="/g) || []).length, 0);
 vrai('   le pied : « Personnaliser la barre » (ferme le tiroir, ouvre la feuille) et « Quitter », puis la version',
-  /onclick="fermerTiroir\(true\);ouvrirFeuille\('barre'\)"/.test(J.h) && /class="ti ti-quitter" onclick="doLogout\(\)"/.test(J.h) && /<div class="ti-version">La Tour · v9\.99<\/div>/.test(J.h));
+  /onclick="fermerTiroir\(true\);ouvrirFeuille\('barre'\)"/.test(J.h) && /class="ti ti-quitter" onclick="quitterConsole\(\)"/.test(J.h) && /<div class="ti-version">La Tour · v9\.99<\/div>/.test(J.h));
 vrai('   chaque vue s\'ouvre par tiroirAller (qui referme avant d\'ouvrir)', J.lignes.length && J.h.match(/onclick="tiroirAller\('/g).length === J.lignes.length);
 v('   un compte à une seule application : pas d\'interrupteur', /class="app-sw"/.test(J.h), false);
 

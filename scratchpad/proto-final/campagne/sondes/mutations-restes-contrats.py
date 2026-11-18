@@ -32,8 +32,10 @@ MUT = [
  M("C18 « Mettre fin » ne note plus les visites de départ à l'ancien contrat (recontrôle 1)", "    ctrFigerVisites(k);   // AVANT de changer l'état", "    //   // AVANT de changer l'état", "restes-contrats-1-recontrole.js"),
  M("C19 le TTC d'un prix « abc » redit NaN (recontrôle 1)", "return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };", "return Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100; };", "restes-contrats-1-recontrole.js"),
  M("C20 la visite d'un contrat terminé écrase de nouveau son nom (320 px)", ".ctr-vl{flex-wrap:wrap}", ".ctr-vl{flex-wrap:nowrap}", "restes-contrats-1-recontrole-ecrans.js", "petit"),
- M("C21 un prix à trois décimales se range tel quel (recontrôle 1)", "prix:Math.round(Number(B.prix) * 100) / 100 || 0, fact:B.fact, st:'envoye'", "prix:Number(B.prix) || 0, fact:B.fact, st:'envoye'", "restes-contrats-1-recontrole.js"),
+ M("C21 un prix à trois décimales se range tel quel (recontrôle 1)", "prix:ctrCentimes(B.prix) || 0, fact:B.fact, st:'envoye'", "prix:Number(B.prix) || 0, fact:B.fact, st:'envoye'", "restes-contrats-1-recontrole.js"),
  M("C22 une visite sortie du planning redit une date (recontrôle 1)", "(fini && !v.fait ? '' : ' · ' + jlong(v.d))}</span><span class=\"st ${v.fait", "' · ' + jlong(v.d)}</span><span class=\"st ${v.fait", "restes-contrats-1-recontrole-ecrans.js", "petit"),
+ M("C23 le prix rangé redit l'arrondi flottant : 1.005 range 1,00 € alors que l'aperçu dit 1,01 € (tour 3)", "if (/^\\d+(\\.\\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2');", "if (false) return 0;", "restes-contrats-2-recontrole.js"),
+ M("C24 la carte Facturation d'un contrat repasse sur une ligne forcée (320 px)", ".ctr-fact{flex-wrap:wrap}", ".ctr-fact{flex-wrap:nowrap}", "restes-contrats-2-recontrole-facturation.js", "petit"),
  M("C17 la liste composée ne dit plus le TTC (décision i)", "${x.type !== 'devis' && x.ttc > 0 ? `<small>${eur(x.ttc / 100)} TTC</small>` : ''}", "", "restes-contrats-composes.js"),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''
