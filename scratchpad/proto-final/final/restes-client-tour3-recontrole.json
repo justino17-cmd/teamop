@@ -1,0 +1,39 @@
+{
+ "noms": [
+  "Barre du bas de la fiche « Prévenir » : « ✓ Fait » ne sort plus de l'écran pour la copropriété",
+  "Paiement : le courriel de reçu ne dit plus « Merci Le syndic. »",
+  "Défaut d'instrument : « créée par undefined le undefined » (sonde du tour 2)",
+  "Cinq doutes à soumettre à Justin (nommage de l'appel d'une copropriété, menu « Marc Leblanc · Mon compte », carte « Votre demande est envoyée », « Bonjour M. Pierre Delmas », expéditeur inconnu)"
+ ],
+ "regles": [
+  "Barre « Prévenir Copropriété Les Mimosas » + « ✓ Fait » : rejouée sur 8 clients et un nom inventé, iPhone nuit, petit (320) nuit, Android nuit, iPhone jour, iPad ; les deux boutons tiennent dans l'écran, la barre ne défile pas de côté, aucun libellé coupé (restes-client-2-recontrole-barre.js : 4 ✓ · 0 ✗ sur chaque téléphone, 2 ✓ sur iPad). La contre-épreuve (règle d'avant remise) fait tomber 2 contrôles : la sonde mord.",
+  "Reçu de prototype-paiement.html : « Merci. » pour « Le syndic », « Merci Mme Roux. » pour une personne ; 5 modèles de client rejoués par les vraies fonctions de la page (restes-client-2-recontrole-paiement.js : 4 ✓ · 0 ✗). Aucun autre « Merci ${contact} » dans les pages, le courrier ni la source du cadre Documents.",
+  "Défaut d'instrument corrigé : « créée par Marc Leblanc le 31/10 » sur la fiche (capture relue).",
+  "Rien d'autre ne casse à côté : restes-client-2-recontrole 22 ✓ (mac, iphone nuit, petit nuit), restes-client-1-recontrole 89 ✓ (mac) puis 41 ✓ (iphone nuit, petit nuit), restes-client-2 16 ✓ ×3, restes-client-1 39 ✓ ×3 ; sonde neuve restes-client-3-recontrole.js (toutes les tâches du jeu + une tâche « Prévenir » par client) à 0 ✗ sur les contrôles de tenue dans l'écran, de libellé non coupé, de hauteur de doigt, pour marc, julie, sm, kb, iPhone/petit/Android/iPad/Mac, jour et nuit ; au bureau la barre reste masquée."
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "La correction de la barre met « ✉ Relancer maintenant », « ✉ Relancer le devis », « 💬 Prévenir M. Durand » et six autres libellés courts sur DEUX lignes à 390 px, alors qu'ils tenaient sur une (« Relancer maintenant » est le geste le plus courant du patron)",
+   "gravite": "faible (esthétique : rien de coupé, rien ne déborde, les doigts restent à 50 px) — mais c'est une régression du cas ordinaire pour réparer un cas rare",
+   "etapes": "Mode application, patron, iPhone 390 px : ouvrir la tâche « Relancer le paiement de la facture FAC-2026-0128 » : la barre du bas montre « ✉ Relancer / maintenant » sur deux lignes dans un bouton de moitié, « Déjà fait » aussi large. Avant la correction (règle d'avant remise, capture r3-avant-t13.png) : « ✉ Relancer maintenant » sur une ligne, « Déjà fait » plus étroit. Idem pour « Relancer le devis », « Prévenir M. Durand », « Prévenir Marc Durand », « Prévenir Mme Bernard ».",
+   "constat": "Cause : la règle « #calque .tkx-barre .btn » garde flex:1 1 0 (base nulle : les deux boutons se partagent 50/50) ; avec white-space:normal, tout libellé plus long que la moitié passe à la ligne au lieu de prendre la place que son voisin laisse. Correction essayée puis retirée (je ne modifie pas les pages) : flex:1 1 auto à la place de flex:1 1 0, le reste inchangé — « Relancer maintenant » revient sur une ligne (capture r3-essai-t13.png), « Prévenir Copropriété Les Mimosas » passe encore sur trois lignes avec « Fait » entier à droite, la sonde restes-client-3-recontrole.js tombe à 12 ✓ · 0 ✗ sur iPhone nuit, 8 ✓ sur Mac, 10 ✓ sur Android et petit. Sur l'état poussé la même sonde rend 11 ✓ · 1 ✗ (contrôle « les libellés courts restent sur UNE ligne »)."
+  }
+ ],
+ "nouveaux": [
+  "Nom de client long (38 signes, « Climatisation Atlantique Services SARL », cas plausible pour une SARL) : à 320 px le bouton « 💬 Prévenir … » passe sur cinq lignes (~100 px) et la barre prend le tiers de l'écran, ne laissant que ~140 px à la fiche ; avec un nom de 62 signes, le bouton fait 127 px de haut et les bouts arrondis rognent la dernière ligne (capture r3-barre-zzlong-petit.png avant le second essai). Rien de coupé pour les noms réels du jeu (le plus long : « Copropriété Les Mimosas », trois lignes). Piste : couper le nom à deux lignes avec des points de suspension (line-clamp), le nom entier restant dans la carte « Client » juste au-dessus. À soumettre à Justin : cas rare, nom inventé."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-client-2-recontrole-barre.js", "resultat": "4 ✓ · 0 ✗ (iphone nuit, petit nuit, android nuit, iphone jour) ; 2 ✓ (ipad)" },
+  { "fichier": "campagne/sondes/restes-client-2-recontrole-paiement.js", "resultat": "4 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-client-2-recontrole.js", "resultat": "22 ✓ · 0 ✗ (mac, iphone nuit, petit nuit)" },
+  { "fichier": "campagne/sondes/restes-client-1-recontrole.js", "resultat": "89 ✓ · 0 ✗ (mac) ; 41 ✓ · 0 ✗ (iphone nuit, petit nuit)" },
+  { "fichier": "campagne/sondes/restes-client-2.js", "resultat": "16 ✓ · 0 ✗ (mac, iphone nuit, petit nuit)" },
+  { "fichier": "campagne/sondes/restes-client-1.js", "resultat": "39 ✓ · 0 ✗ (mac, iphone nuit, petit nuit)" },
+  { "fichier": "campagne/sondes/restes-client-3-recontrole.js (neuve)", "resultat": "état poussé : 11 ✓ · 1 ✗ à 390 px (la casse ci-dessus), 10 ✓ · 0 ✗ à 320 px, 360 px, au bureau et à l'iPad pour marc, julie, sm, kb ; avec flex:1 1 auto : 12 ✓ · 0 ✗ (iphone nuit), 8 ✓ (mac), 10 ✓ (android nuit, petit nuit). Mutation : règle d'avant remise → 2 ✗ de plus (tenue dans l'écran, défilement de côté)." }
+ ],
+ "doutes": [
+  "Cinq doutes du tour 3 restent à Justin, inchangés : trois façons de nommer l'appel d'une copropriété (« Appeler Syndic Foncia », « Prévenir Copropriété Les Mimosas », « Appeler Copropriété Les Mimosas : facture… ») ; le menu de l'espace client « Marc Leblanc · Mon compte · Se déconnecter » (bloc de la session de revue) ; la carte « Votre demande est envoyée » qui disparaît quand « Proposer un contrat » est fait sans créer de contrat ; « Bonjour M. Pierre Delmas, » dans le cadre Documents ; un expéditeur dont l'adresse ne porte pas son nom recevrait encore « Bonjour <nom> ».",
+  "Je n'ai pas vérifié le cadre Documents (fabriqué depuis atelier/page.source, hors de la voie) ni le Courrier au-delà des sondes existantes."
+ ]
+}
