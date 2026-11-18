@@ -5340,7 +5340,7 @@ function vueFiche(id){
       <div class="carte"><h3>Appareils chez ce client</h3>${c.appareils.length ? '' : '<div class="gris petit">Aucun appareil enregistré pour l’instant.</div>'}${c.appareils.map(a=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
-      <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="decimal" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
+      <div class="carte"><h3>Relevés</h3><div class="trois-champs">${RELEVES[F.metier].map(([l,v,u])=>`<label class="champ">${l}${u?' ('+u+')':''}<input inputmode="${u==='°C'?'text':'decimal'}" data-releve="${esc(l)}" data-id="${id}" value="${esc(cfReleve(F, i, l, v))}" placeholder="ex. ${esc(v)}"></label>`).join('')}</div></div>
       ${i.prevues && i.prevues.length ? `<div class="carte"><h3 data-vis="inter-pieces">Pièces prévues par le bureau</h3>${i.prevues.map(p => `<div class="pp-l"><label class="case"><input type="checkbox" data-posee="${esc(p.nom)}" data-id="${id}" ${F.pieces.some(x=>x.nom===p.nom)?'checked':''}>${esc(p.nom)} <span class="gris" style="margin-left:auto">× ${p.q}</span></label>${matPieceLigne(i, p)}</div>`).join('')}<div class="faible mini" style="margin-top:6px">Coche ce que tu as posé : le bureau le met sur la facture. Ce qui n’est pas prévu, ajoute-le juste en dessous.</div></div>` : ''}
       <div class="carte"><h3>Pièces et produits utilisés</h3>${F.pieces.map((p,k)=>`<div class="ligne" style="flex-wrap:wrap"><span style="min-width:0;flex:1 1 170px;overflow-wrap:anywhere">${esc(p.nom)}</span><span style="display:flex;gap:10px;align-items:center;flex:none;white-space:nowrap;margin-left:auto"><b>${esc(p.q)}</b><button type="button" class="lien" data-action="pieceSuppr" data-k="${k}" data-id="${id}" aria-label="Retirer ${esc(p.nom)}">Retirer</button></span></div>`).join('')}
         <div class="pu-ajout"><input class="saisie" id="p-nom" list="catalogue" placeholder="Chercher dans le stock…"><datalist id="catalogue">${CATALOGUE.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist><input class="saisie" id="p-q" placeholder="Qté"><button type="button" class="btn gris" data-action="pieceAjout" data-id="${id}">Ajouter</button></div>
@@ -9374,12 +9374,15 @@ document.addEventListener('change', ev => {
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
     if (!isNaN(v) && v >= DV_PU_MAX) { toast('Ce prix est trop grand : un montant en euros inférieur à ' + eur(DV_PU_MAX) + ' (35 ou 35,50). Le précédent est conservé.'); rendre(); return; }   /* même plafond que le forfait de création */
+    { const lg = f.lignes[+t.dataset.prix];   /* le plafond vaut aussi pour le TOTAL de la ligne : 9 999 × 999 999,99 € donnait près de 10 milliards, sans un mot */
+      if (!isNaN(v) && v * qteDe(lg) > DV_PU_MAX) { toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse le prix ou la quantité. Le prix précédent est conservé.'); rendre(); return; } }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mq = v.match(/^(\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(\S.{0,9}))?$/), nq = mq ? parseFloat(mq[1].replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')) : NaN;
     if (!(nq > 0) || nq >= 1e6) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, ou 0,5 L.'); return; }
+    if (l.pu != null && nq * l.pu > DV_PU_MAX) { t.value = l.q; toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse la quantité ou le prix. La quantité précédente est conservée.'); return; }   /* un total ne dépasse jamais le plafond sans le dire */
     l.q = v; l.qn = nq; rendreApresClic(); }
   else if (t.dataset.tva) { FACTURES.find(x => x.id === t.dataset.tva).tva = +t.value; rendre(); }
   else if (t.dataset.voirint) { voirInt = t.value; rendre(); }
@@ -9404,8 +9407,11 @@ document.addEventListener('input', ev => { const t = ev.target; if (t.dataset &&
   if (t.dataset.releve) { const G = fiche(t.dataset.id); let val = t.value;
     const ex = ((RELEVES[G.metier] || []).find(r => r[0] === t.dataset.releve) || [])[1];
     if (/^\d+([.,]\d+)?$/.test(ex || '')) {   /* un relevé qui s'exprime en nombre (kg, °C, bar…) n'accepte que ça : « abc » partirait tel quel dans le compte rendu du client */
-      const net = val.replace(/[^\d.,-]/g, '').replace(/(?!^)-/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
-      if (net !== val) { t.value = net; val = net; toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').'); } }
+      /* « 3 sur 18 » et « 10-12 » sont deux nombres, pas un : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. On refuse et on garde l'ancienne valeur. */
+      const deux = /\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|\d-\d|\d[.,]\d+[.,]\d/.test(val.replace(/^\s*-/, ''));
+      if (deux) { const av = (G.releves || {})[t.dataset.releve] || ''; t.value = av; val = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ».'); }
+      else { const net = val.replace(/[^\d.,-]/g, '').replace(/(?!^)-/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
+      if (net !== val) { t.value = net; val = net; toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').'); } } }
     (G.releves = G.releves || {})[t.dataset.releve] = val; }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();

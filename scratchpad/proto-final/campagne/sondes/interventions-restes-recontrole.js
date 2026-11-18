@@ -110,8 +110,13 @@ const I = require('./interventions-outils.js'), L = I.L;
     r = await coller('2,4 kg'); v('D « 2,4 kg » (unité tapée) devient « 2,4 »', r.champ === '2,4', r);
     r = await coller('  '); v('D des espaces seuls laissent un champ vide', r.champ === '', r);
     r = await coller(''); v('D effacer le champ le laisse vide (sans message)', r.champ === '' && r.fiche === '', r);
-    const clav = await ev(() => document.querySelector('input[data-releve]').getAttribute('inputmode')); console.log('  · clavier du relevé :', clav);
+    const clav = await ev(() => document.querySelector('input[data-releve="Soufflage"]').getAttribute('inputmode')); console.log('  · clavier du relevé en °C :', clav);
     v('D (doute) clavier « decimal » : sur iPhone il n’a pas de touche « − » : une température négative ne se tape pas', clav !== 'decimal', clav);
+    const clavKg = await ev(() => document.querySelector('input[data-releve="Charge de fluide"]').getAttribute('inputmode')); v('D un relevé sans signe moins (kg) garde le clavier décimal', clavKg === 'decimal', clavKg);
+    const mess = await coller('3 sur 18').then(() => ev(() => (document.getElementById('toast') || {}).textContent || '')); v('D « 3 sur 18 » est refusé AVEC un message', /Un seul nombre/.test(mess), mess);
+    r = await coller('10-12'); v('D « 10-12 » est refusé : le champ garde sa valeur d’avant, pas de recollage', r.champ === '' , r);
+    r = await coller('-5'); v('D « -5 » (température négative) reste accepté', r.champ === '-5', r);
+    r = await coller('2,4 kg'); v('D « 2,4 kg » reste accepté (unité tapée)', r.champ === '2,4', r); await coller('');
     // autres métiers : chaque relevé numérique, valeur valide gardée, mot refusé ; chaque relevé en mots libre
     const bilan = await ev(() => { const out = []; for (const m of Object.keys(RELEVES)) for (const [l, ex] of RELEVES[m]) out.push([m, l, ex, /^\d+([.,]\d+)?$/.test(ex)]); return out; });
     console.log('  · relevés de tous les métiers :', JSON.stringify(bilan.map(b => b[0] + ':' + b[1] + (b[3] ? '#' : ''))));
