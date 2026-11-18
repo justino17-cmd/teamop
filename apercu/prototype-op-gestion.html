@@ -20756,7 +20756,10 @@ function entPanneau(html){
   const h = P.querySelector('h2'); if (h) h.insertAdjacentHTML('afterend', `<div class="info petit" role="status">Tu peux regarder cette fiche ; c’est ${esc(entPremierAdmin())} qui la modifie.</div>`);
 }
 function entEffacer(){ document.querySelectorAll('#calque .erreur').forEach(e => { e.hidden = true; e.textContent = ''; }); document.querySelectorAll('#calque [aria-invalid]').forEach(e => e.removeAttribute('aria-invalid')); }
-function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = document.getElementById(id); if (e) { e.textContent = msg; e.hidden = false; } if (c) c.setAttribute('aria-invalid', 'true'); }
+/* un refus ne survit pas à la correction qui le dément (parcours 9, 17 novembre 2026) : dès que la personne retape le champ fautif, SON message et son liseré partent — avant, « Écris son prénom ET son nom » restait sous un prénom déjà écrit, jusqu'au prochain « Envoyer » */
+function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = document.getElementById(id); if (e) { e.textContent = msg; e.hidden = false; } if (c) { c.setAttribute('aria-invalid', 'true');
+  const lever = () => { c.removeEventListener('input', lever); c.removeEventListener('change', lever); c.removeAttribute('aria-invalid'); const m = document.getElementById(id + '-err'); if (m) { m.hidden = true; m.textContent = ''; } };
+  c.addEventListener('input', lever); c.addEventListener('change', lever); } }
 /* regles : [[id, valeur => message ou '']] ; rend les valeurs (rognées) ou null après avoir écrit chaque message sous son champ, mis le focus sur le premier et dit le premier en toast */
 function entVerifier(regles){
   entEffacer(); const V = {}, E = [];
