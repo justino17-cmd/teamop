@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "taches-absences",
+  "defaut": "« La date de fin est avant la date de début » ne grise pas le bouton d'enregistrement (Nouvelle absence, Proposer d'autres dates, Modifier les dates)",
+  "etat": "corrigé",
+  "changement": "Les trois aperçus (aApercu, aApercuModif, aApercuDates) grisent le bouton dans la branche « fin avant début » avant de rendre la main : le message et le bouton disent la même chose, comme pour un week-end.",
+  "preuve": "restes-taches-absences-2-recontrole.js 35 ✓ · 0 ✗ (3 ✗ avant) ; mutations : bouton retiré de aApercuDates 33 ✓ · 2 ✗, d'aApercuModif 34 ✓ · 1 ✗ ; captures relues (fin-avant-debut petit-nuit : message ambre, bouton « Envoyer la proposition » grisé, dans la largeur)"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Le glisser ne prévient pas qu'un samedi ou une demande en attente sera refusé (le refus ne vient qu'au lâcher)",
+  "etat": "corrigé",
+  "changement": "aGlisseSuivre rejoue les refus d'aAppliquer pendant le geste : cases rouges (ac-cible-non) et phrase de l'étiquette « jours non travaillés : rien ne bougera » ou « une demande attend ces jours : rien ne bougera ». Un jour ouvré libre ne se plaint de rien. Pour une demande glissée (qui ouvre une proposition) seul le week-end est annoncé, la demande elle-même n'est pas un obstacle.",
+  "preuve": "Même sonde : 3 contrôles neufs « glisser PENDANT » (samedi, demande en attente, jour libre) ; mutation « non = autre seul » : 33 ✓ · 2 ✗ ; captures restes2-recontrole-glisser-pendant-mac-jour.png relue : case rouge, étiquette lisible"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Garde `aLecture()` absente de l'écouteur data-axok (Modifier les dates, enregistrer)",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun : un technicien ne peut pas ouvrir le panneau, la liste de gardes de l'écouteur de clic contient déjà « amodifok » et le glisser est gardé ; la sonde (rôle technicien) le confirme.",
+  "preuve": "restes-taches-absences-2-recontrole.js : « technicien : aucun bouton de gestion » et « un glisser ne déplace rien » ✓"
+ },
+ {
+  "nom": "menu",
+  "defaut": "touchcancel non prouvé sur appareil réel ; message de la page sous la Comptabilité plein écran ; deux boutons à trois traits au téléphone",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : le premier est à regarder sur un vrai téléphone, le second ne se produit par aucun geste réel, le troisième est la décision (e).",
+  "preuve": "doutes du recontrôle du tour 2, inchangés"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Pastille « Tâches » (1) contre « Aujourd'hui 7 · En retard 2 »",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé (décision du tour 1 maintenue : le chiffre est juste, jamais expliqué).",
+  "preuve": "—"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Cases d'un jour du calendrier et barres « mois par mois » sous 44 px ; Retour du navigateur depuis une fiche de tâche",
+  "etat": "déjà décidé",
+  "changement": "Aucun (décisions b et a).",
+  "preuve": "—"
+ },
+ {
+  "nom": "taches-absences",
+  "defaut": "Glisser au doigt (appui long) non rejoué",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : même chemin (aGlisseSuivre/aAppliquer) que la souris, mais le geste tactile n'est pas prouvé ici ; à regarder sur un vrai téléphone.",
+  "preuve": "doute du recontrôle du tour 2"
+ }
+]

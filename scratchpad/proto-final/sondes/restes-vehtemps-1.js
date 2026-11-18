@@ -16,6 +16,9 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
       const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, 'vehicules');
       // — « moiss », et le nombre de lignes de « Les dépenses · N » —
       const ids = await ev(c, () => VEHICULES.map(x => x.id)); v(nom + 'population : quatre véhicules', ids.length === 4, ids);
+      const bandeV = await ev(c, () => { const g = document.querySelector('#contenu .seg[aria-label="Véhicules"]'), z = document.querySelector('#contenu').getBoundingClientRect(), r = g && g.getBoundingClientRect(); return g ? { g:r.width, z:z.width, n:g.querySelectorAll('button').length, w:[...g.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().width)) } : null; });
+      v(nom + 'population : la bande d’onglets de Véhicules (3 onglets)', !!bandeV && bandeV.n === 3, bandeV);
+      if (bandeV) v(nom + 'la bande d’onglets de Véhicules ' + (profil === 'mac' || profil === 'windows' || profil === 'ipad' ? 'prend la largeur de ses onglets (pas toute la ligne)' : 'garde toute la largeur (le téléphone n’est pas touché)'), (profil === 'mac' || profil === 'windows') ? bandeV.g < bandeV.z * 0.6 : (profil === 'iphone' || profil === 'android' || profil === 'petit') ? bandeV.g > bandeV.z * 0.85 : true, bandeV);
       for (const id of ids) {
         await ev(c, i => { fermerPanneau(); vehFiche(i); }, id); await L.calme(c.p, 350); await L.toucher(c, '#calque [data-vh="fonglet|depenses"]');
         for (const per of ['mois', '12m', 'tout']) {
@@ -70,6 +73,10 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
         await L.toucher(c, '#contenu [data-vh^="groupe|"]'); await c.p.fill('#calque #vx-fm', '4200'); await L.toucher(c, '#calque .btn.large'); await L.calme(c.p, 600);
         const t1 = await tuile(); const euros1 = L.cents(t1.n) / 100;
         v(nom + 'après un renouvellement de 4 200 €, la tuile reste ce qui a été PAYÉ (' + euros0 + ' → ' + euros1 + ') et nomme la part « dont l’assurance de l’année : 4 200 € »', Math.round(euros1 - euros0) === 4200 && /dont l’assurance de l’année : 4 200 €/.test(t1.l), t1);
+        const rg = await ev(c, () => { const k = document.querySelector('#contenu .vh-k'), t = k.querySelector('[data-vh="cout"]').getBoundingClientRect(), r = k.getBoundingClientRect(), h = [...k.querySelectorAll('.kpi')].map(e => Math.round(e.getBoundingClientRect().height)); return { t:Math.round(t.width), r:Math.round(r.width), h }; });
+        const tel = ['iphone', 'android', 'petit'].includes(profil);
+        v(nom + (tel ? 'au téléphone, la tuile « payés… dont l’assurance » passe seule sur sa ligne (' + rg.t + ' px sur ' + rg.r + ')' : 'à l’ordinateur, les trois tuiles restent côte à côte (' + rg.t + ' px sur ' + rg.r + ')'), tel ? rg.t >= rg.r * 0.95 : rg.t < rg.r * 0.5, rg);
+        v(nom + 'aucune tuile ne dépasse 140 px de haut (la phrase ne s’écrit pas sur sept lignes)', Math.max(...rg.h) <= 140, rg.h);
         await L.capture(c, CAP + 'veh-tuile-assurance-' + nom.trim().replace(/[ ·]+/g, '-') + '.png');
         await L.toucher(c, '#contenu [data-vh="cout"]'); const pc = await panneau(c);
         v(nom + '« Ce que coûtent les véhicules » dit la même chose : « payés en octobre (hors taxes) » et la part de l’assurance', /payés en octobre \(hors taxes\)/.test(pc) && /dont l’assurance de l’année : 4 200 €/.test(pc), pc.slice(0, 260));
@@ -82,6 +89,9 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
       const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, 'pointage');
       // — la phrase sous le titre dit ce que les chiffres disent —
       const H = await ev(c, () => ({ phrase:([...document.querySelectorAll('#contenu *')].filter(e => !e.children.length && /^Aujourd’hui, /.test(e.textContent))[0] || { innerText:'' }).innerText, k:[...document.querySelectorAll('#contenu .tt-k1 .kpi')].map(e => e.innerText.replace(/\s+/g, ' ').trim()) }));
+      const bandeT = await ev(c, () => { const g = document.querySelector('#contenu .seg[aria-label="Temps de travail"]'), z = document.querySelector('#contenu').getBoundingClientRect(), r = g && g.getBoundingClientRect(); return g ? { g:r.width, z:z.width, n:g.querySelectorAll('button').length, w:[...g.querySelectorAll('button')].map(b => Math.round(b.getBoundingClientRect().width)) } : null; });
+      v(nom + 'population : la bande d’onglets de Temps de travail (3 onglets)', !!bandeT && bandeT.n === 3, bandeT);
+      if (bandeT) v(nom + 'la bande d’onglets de Temps de travail ' + (profil === 'mac' || profil === 'windows' ? 'prend la largeur de ses onglets' : 'garde toute la largeur (le téléphone n’est pas touché)'), (profil === 'mac' || profil === 'windows') ? bandeT.g < bandeT.z * 0.6 : (profil === 'iphone' || profil === 'android' || profil === 'petit') ? bandeT.g > bandeT.z * 0.85 : true, bandeT);
       const nAtt = parseInt((H.k.find(x => /pas encore commencé/.test(x)) || '').match(/\d+/), 10);
       v(nom + 'population : des personnes « pas encore commencé » dans les chiffres', nAtt >= 1, H.k);
       v(nom + 'la phrase du haut dit « ' + nAtt + ' pas encore commencé » comme les chiffres', new RegExp(nAtt + ' pas encore commencé').test(net(H.phrase)), H.phrase);
@@ -131,7 +141,7 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
       // — Mois : une semaine à cheval dit « dont X en octobre », et la somme des lignes retombe sur le chiffre du haut —
       await L.toucher(c, '#contenu [data-tt="onglet|mois"]'); await L.calme(c.p, 400);
       const bilan = net(await ev(c, () => document.querySelector('#contenu').innerText));
-      v(nom + 'Mois : la phrase « Il reste … » cite la semaine en cours, à valider une fois finie', /la semaine en cours, à valider une fois finie/.test(bilan), bilan.slice(0, 400));
+      v(nom + 'Mois : la phrase « Il reste … » cite la semaine en cours, à valider une fois finie', /[Ll]a semaine en cours(,| est) à valider une fois finie/.test(bilan), bilan.slice(0, 400));
       const vm = await ev(c, () => PT_GENS.filter(k => paieVariables(k).semaines.some(w => w.mois !== w.tot)));
       v(nom + 'population : au moins une personne a une semaine à cheval sur deux mois', vm.length >= 1, vm);
       for (const k of vm.slice(0, 3)) {
@@ -146,6 +156,17 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
       // — « Valider ce qui est en règle » (Mois) ne prend que les semaines finies —
       const vt = await ev(c, () => { const av = { ...PT_VALIDE }; const cur = lundi(AUJ); ttViaPaie('validertout'); const apres = { ...PT_VALIDE }; return { cur:PT_GENS.some(k => apres[k + cur]), neuves:Object.keys(apres).filter(k => !av[k]).length, finies:Object.keys(apres).filter(k => !av[k]).every(k => ttSemFinie(k.slice(-10))) }; });
       v(nom + 'Mois › « Valider ce qui est en règle » : aucune semaine en cours n’est validée, seules des semaines finies', vt.cur === false && vt.finies === true, vt);
+      // — le mois fermé : « il sera régularisé » pour Tom (homme), « elle sera régularisée » pour une femme —
+      const reg = await ev(c, () => { ttViaPaie('verrouok'); const d = paieJourSignale('tl'); const r = {}; for (const [k, dd] of [['tl', d]]) { fermerPanneau(); ttFicheJour(k, dd); const z = document.querySelector('#calque .panneau'); r[k] = z ? z.innerText.replace(/\s+/g, ' ') : ''; fermerPanneau(); }
+        const sg = Object.keys(PAIE.signales); return { r, sg, fem:ttFem('sm') }; });
+      v(nom + 'population : Tom a une demande de correction sur un mois fermé', /demande une correction/.test(reg.r.tl), reg.r.tl.slice(0, 200));
+      v(nom + 'le mois fermé : « il sera régularisé avec le mois suivant » pour Tom (jamais « elle »)', /il sera régularisé avec le mois suivant/.test(reg.r.tl) && !/elle sera régularisée/.test(reg.r.tl), reg.r.tl.slice(0, 400));
+      const regF = await ev(c, () => { const k0 = PAIE.signales.sm; PAIE.signales.sm = PAIE.signales.tl || { txt:'x' }; const d = paieJourSignale('tl'); fermerPanneau(); ttFicheJour('sm', d); const z = document.querySelector('#calque .panneau'); const t = z ? z.innerText.replace(/\s+/g, ' ') : ''; fermerPanneau(); if (k0) PAIE.signales.sm = k0; else delete PAIE.signales.sm; return t; });
+      v(nom + 'contre-épreuve : pour une salariée, « elle sera régularisée »', regF === '' || /elle sera régularisée/.test(regF) || !/demande une correction/.test(regF), regF.slice(0, 200));
+      // — la Paie : « en plus » et « payée avec novembre », jamais « sup. » ni « se termine en » —
+      const P = await ev(c, () => { const o = {}; for (const k of ['kb', 'sm']) { fermerPanneau(); paieReleve(k); const z = document.querySelector('#calque .panneau'); o[k] = z ? z.innerText.replace(/\s+/g, ' ') : ''; o[k + 'Doc'] = paieDoc(k).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '); } fermerPanneau(); return o; });
+      v(nom + 'population : le relevé de Karim et le document se lisent', P.kb.length > 200 && P.kbDoc.length > 200, [P.kb.length, P.kbDoc.length]);
+      v(nom + 'le relevé de la Paie : « en plus » et « payée avec novembre », jamais « sup. » ni « se termine en »', /en plus/.test(P.kb) && /payée avec novembre/.test(P.kb) && !/\bsup\./.test(P.kb + P.kbDoc + P.sm + P.smDoc) && !/se termine en/.test(P.kb + P.sm), P.kb.slice(0, 500));
       v(nom + 'aucune erreur de page (temps de travail)', c.err.filter(x => !/ERR_/.test(x)).length === 0, c.err.slice(0, 3)); await L.fin(c);
     }
     /* ═══════════════ RETOUR DE LA PAIE ═══════════════ */
@@ -168,6 +189,20 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
         v(nom + 'contre-épreuve : revenir à Temps de travail par le menu (sans passer par la Paie) rouvre « Aujourd’hui »', /^Aujourd/.test(ap2), ap2);
       }
       v(nom + 'aucune erreur de page (retour)', c.err.filter(x => !/ERR_/.test(x)).length === 0, c.err.slice(0, 3)); await L.fin(c);
+    }
+    /* ═══════════════ LE VISIONNEUR D'UNE FICHE DE PAIE (titre sous la croix) ═══════════════ */
+    if (PARTIES.includes('visionneur')) {
+      const c = await L.ouvrir({ profil, nuit, qui:'sm', calme:true }); await L.aller(c.p, 'mesheures');
+      await L.toucher(c, '#contenu [data-tt="mhonglet|fiches"]'); await L.toucher(c, '#contenu [data-paie^="bulletin|"]'); await L.calme(c.p, 700);
+      const R = await ev(c, () => { const z = document.querySelector('#docplein'); if (!z) return null; const b = z.querySelector('.dp-barre b'), x = z.querySelector('.dp-x'), rg = document.createRange(); rg.selectNodeContents(b);
+        const rects = [...rg.getClientRects()].map(r => ({ g:r.left, d:r.right, h:r.top, b:r.bottom })), rx = x.getBoundingClientRect(), pb = b.getBoundingClientRect();
+        return { titre:b.textContent, rects, x:{ g:rx.left, d:rx.right, h:rx.top, b:rx.bottom }, boite:{ g:pb.left, d:pb.right }, largeur:innerWidth, dedans:rects.every(r => r.d <= pb.right + 0.5) }; });
+      v(nom + 'population : le visionneur de la fiche de paie est ouvert, avec son titre et sa croix', !!R && R.rects.length >= 1, R && R.titre);
+      if (R) { const chevauche = R.rects.some(r => r.d > R.x.g && r.g < R.x.d && r.b > R.x.h && r.h < R.x.b);
+        v(nom + 'le titre « ' + R.titre + ' » ne passe pas sous la croix (' + R.rects.length + ' ligne(s))', !chevauche && R.dedans, R);
+        v(nom + 'le titre reste dans l’écran (' + R.largeur + ' px)', R.rects.every(r => r.d <= R.largeur && r.g >= 0), R.rects); }
+      await L.capture(c, CAP + 'visionneur-' + nom.trim().replace(/[ ·]+/g, '-') + '.png');
+      v(nom + 'aucune erreur de page (visionneur)', c.err.filter(x => !/ERR_/.test(x)).length === 0, c.err.slice(0, 3)); await L.fin(c);
     }
   }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);
