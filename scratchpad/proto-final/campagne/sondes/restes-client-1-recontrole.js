@@ -15,7 +15,7 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
   const cap = async n => L.capture(c, CAP + `rc1-${tag}-${n}.png`);
   const vue = async (cli, ec) => { await p.evaluate(({ cli, ec }) => { RL_CLI.cli = cli; EC.tab = ec; rendre(); window.scrollTo(0, 0); }, { cli, ec }); await L.calme(p, 300); };
   const CLIS = await p.evaluate(() => Object.keys(CLIENTS));
-  v('population : sept clients', CLIS.length === 7, CLIS);
+  v('population : au moins sept clients', CLIS.length >= 7, CLIS);
 
   // ── N · navigation unique et nom de l'entreprise lisible, à toutes les largeurs
   if (SEC.includes('N')) {
@@ -51,12 +51,20 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
         } catch (e) { o[k + (prevenir ? ' prévenir' : ' écrire')] = 'ERREUR ' + e.message; } } }
       return o; }, CLIS);
     const nb = Object.keys(ecrits).length;
-    v('S · population : 14 brouillons « prévenir / écrire » lus', nb === 14 && Object.values(ecrits).every(x => /^Bonjour/.test(x)), ecrits);
+    v('S · population : brouillons (2 par client) « prévenir / écrire » lus', nb === 2 * CLIS.length && Object.values(ecrits).every(x => /^Bonjour/.test(x)), ecrits);
     const mauvais = Object.entries(ecrits).filter(([k, x]) => /^Bonjour (Syndic|Service|Cabinet|Direction|Accueil|Comptabilit)/i.test(x));
     v('S · « Prévenir le client » / « Écrire au client » ne saluent pas un syndic', mauvais.length === 0, mauvais);
     // 2) la fiche de tâche : « Prévenir » du bandeau (tkxPrenomClient)
     const tk = await p.evaluate(clis => Object.fromEntries(clis.map(k => [k, tkxPrenomClient(CLIENTS[k])])), CLIS);
     v('S · tkxPrenomClient ne rend pas un organisme (utilisé dans « Bonjour ${pre} »)', !/Syndic|Service|Cabinet|Direction/i.test(JSON.stringify(tk)), tk);
+    // 2 bis) le MÊME geste par le vrai bouton « 💬 Prévenir … » d'une tâche « Prévenir … » liée à chaque client (tMailClient n'a aucun bouton rendu : data-tprev / data-tecrire ne s'écrivent nulle part)
+    const rb = await p.evaluate(async clis => { const o = {}; for (const k of clis) { const id = 'tzz' + k; TACHES.push({ id, t: 'Prévenir du retard de la pièce', qui: 'marc', d: AUJ, h: null, urgent: false, lien: { t: 'client', id: k, lib: CLIENTS[k].nom, cli: k } });
+        tDetail(id); await new Promise(r => setTimeout(r, 200)); const b = document.querySelector('#calque .panneau [data-tkxprev]'); if (!b) { o[k] = 'PAS DE BOUTON'; try { fermerPanneau(); } catch (e) {} continue; }
+        const lib = b.textContent.trim(); b.click(); await new Promise(r => setTimeout(r, 250)); const q = document.querySelector('#calque .panneau'), ta = q && q.querySelector('textarea');
+        o[k] = lib + ' → ' + (ta ? ta.value : (q ? q.innerText : '')).replace(/\s+/g, ' ').slice(0, 30); try { fermerPanneau(); } catch (e) {} }
+      TACHES.splice(0, TACHES.length, ...TACHES.filter(x => !/^tzz/.test(x.id))); return o; }, CLIS);
+    v('S · population : un bouton « Prévenir » par client', Object.values(rb).every(x => x !== 'PAS DE BOUTON') && Object.keys(rb).length >= 7, rb);
+    v('S · le bouton « Prévenir » et son mot ne saluent pas un organisme (par le vrai geste)', !Object.values(rb).some(x => /Prévenir (Syndic|Service|Cabinet|Direction|Accueil)|Bonjour (Syndic|Service|Cabinet|Direction|Accueil)/i.test(x)), rb);
     // 3) réponses types aux courriels : le modèle commence par « Bonjour <nom de l'expéditeur> »
     const rep = await p.evaluate(() => { const o = [];
       for (const m of MAILS) { if (!m.de || /^Toi$/.test(m.de.nom)) continue; let t; try { t = mbxMod(m); } catch (e) { continue; }
@@ -106,7 +114,7 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
       const offre = await p.evaluate(() => !!document.querySelector('[data-ecctr]') && document.querySelector('[data-ecctr]').offsetParent !== null);
       if (!offre) { res.push({ k, offre: false }); continue; }
       await clic(p, '[data-ecctr]'); await L.calme(p, 250); await p.fill('#ed-m', 'Je voudrais un contrat pour ' + k); await clic(p, '.panneau [data-ec="demandeok|contrat"]'); await L.calme(p, 350);
-      const a = await p.evaluate(k => ({ taches: TACHES.filter(x => /^Proposer un contrat/.test(x.t) && !x.fait).map(x => x.lien.id), carte: /Votre demande est envoyée/.test(document.getElementById('contenu').innerText), bouton: !!document.querySelector('[data-ecctr]') }), k);
+      const a = await p.evaluate(k => ({ taches: TACHES.filter(x => /^Proposer un contrat/.test(x.t) && !x.fait).map(x => x.lien.id), carte: /Votre demande est envoyée/i.test(document.getElementById('contenu').innerText), bouton: !!document.querySelector('[data-ecctr]') }), k);
       res.push({ k, offre: true, ...a }); }
     const faits = res.filter(r => r.offre);
     v('D · population : au moins deux clients se voient proposer le contrat', faits.length >= 2, res.map(r => r.k + (r.offre ? '+' : '-')).join(' '));
@@ -114,11 +122,11 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
     v('D · la carte « Votre demande est envoyée » remplace le bouton', faits.every(r => r.carte && !r.bouton), faits);
     // un client qui n'a rien demandé ne voit pas la carte d'un autre
     const ceux = CLIS.filter(k => !faits.some(r => r.k === k)); let fuite = [];
-    for (const k of ceux) { await vue(k, 'contrats'); if (/Votre demande est envoyée/.test(await p.evaluate(() => document.getElementById('contenu').innerText))) fuite.push(k); }
+    for (const k of ceux) { await vue(k, 'contrats'); if (/Votre demande est envoyée/i.test(await p.evaluate(() => document.getElementById('contenu').innerText))) fuite.push(k); }
     v('D · un client qui n\'a rien demandé ne lit pas la demande d\'un autre', fuite.length === 0, { fuite, ceux });
     // le bureau fait sa tâche : la carte s'en va, le bouton revient (client sans contrat)
     const k0 = faits[0].k; await p.evaluate(k => { TACHES.filter(x => /^Proposer un contrat/.test(x.t) && x.lien.id === k).forEach(x => { x.fait = true; }); }, k0); await vue(k0, 'contrats');
-    const ap = await p.evaluate(() => ({ carte: /Votre demande est envoyée/.test(document.getElementById('contenu').innerText), bouton: !!document.querySelector('[data-ecctr]'), texte: document.getElementById('contenu').innerText.replace(/\s+/g, ' ').slice(0, 160) }));
+    const ap = await p.evaluate(() => ({ carte: /Votre demande est envoyée/i.test(document.getElementById('contenu').innerText), bouton: !!document.querySelector('[data-ecctr]'), texte: document.getElementById('contenu').innerText.replace(/\s+/g, ' ').slice(0, 160) }));
     v('D · tâche faite : la carte disparaît (et le client sait où il en est)', !ap.carte, ap);
     // depuis l'ACCUEIL et les autres entrées : « contrat » demandé par l'autre chemin, pas de double
     const entrees = await p.evaluate(() => [...document.querySelectorAll('[data-ec*="contrat"],[data-ecctr]')].map(e => e.getAttribute('data-ec') || 'ecctr'));
@@ -136,7 +144,7 @@ const clic = (p, s) => p.evaluate(x => { const e = document.querySelector(x); if
     const bad = []; for (const h of routes) { const r = await lire(h); if (r.route !== 'espaceclient' || r.role !== 'client') bad.push(h + '→' + r.route + '/' + r.role); else if (r.t.some(m => m !== PHR && /métier|3D|existe pas|ton |ta |tes /.test(m))) bad.push(h + ' dit ' + r.t.join('|')); }
     v('R · le client reste chez lui, jamais une phrase du métier ni un tutoiement, sur toutes les routes tapées', bad.length === 0, bad);
     // les autres rôles : on les LIT (ce qu'ils voient ne devait pas changer)
-    await p.evaluate(() => { rlChanger('gerant', { muet: true }); }).catch(() => {}); await L.calme(p, 600);
+    await p.evaluate(() => { rlChanger('patron', { muet: true }); }).catch(() => {}); await L.calme(p, 600);
     const ro = await p.evaluate(() => ROLE);
     const g = []; for (const h of ['registre', 'carteBox', 'devisXylo']) { const r = await lire(h); g.push({ h, route: r.route, t: r.t.join('|').slice(0, 90) }); }
     v('R · population : le rôle a bien changé (' + ro + ')', ro !== 'client', ro);
