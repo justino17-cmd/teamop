@@ -12,10 +12,11 @@ MUT = [
  ('M3 « Je l\'ai pris » sans réseau repart comme avant', 'restes-technicien-3.js iphone 0', 'hors = navigator.onLine === false; let enFile = 0;', 'hors = false; let enFile = 0;'),
  ('M4 320 × 568 : la carte du véhicule reste avant la liste', 'restes-technicien-3.js petit 0', 'html .mc-page>#mc-vehicule{order:1}', 'html .mc-page>#mc-vehicule{order:0}'),
  ('M5 achat en magasin : « € » n\'est plus retiré', 'restes-technicien-3.js iphone 0', "const mTxtA = axMontantTxt(g('ax-m').value)", "const mTxtA = g('ax-m').value"),
- ('M6 invite d\'Articles longue sur téléphone', 'restes-technicien-3.js petit 0', "tel() ? 'Article, référence, fournisseur' : ", "tel() ? 'Chercher un article, une référence, un fournisseur' : "),
+ ('M6 invite d\'Articles longue sur iPad (la mesure de 378 px pour 363)', 'restes-technicien-3.js ipad 0', "tel() || innerWidth < 1000 ? (innerWidth < 340 ? 'Article, fournisseur'", "tel() ? (innerWidth < 340 ? 'Article, fournisseur'"),
  ('M7 « (0,5 L) » : l\'espace insécable disparaît (escN et mcNom)', 'restes-technicien-3.js iphone 0', "const escN = s => esc(s).replace(/(\\d) (?=(?:L|kg|g|mL|cl|m|cm|mm|µF|u)\\b)/g, '$1\\u00a0');", "const escN = s => esc(s);"),
  ('M8 « à remettre à bord » revient sur Ma journée', 'restes-technicien-3.js iphone 0', "${sxPl(n, 'article')} ${n > 1 ? 'manquent' : 'manque'} à bord", "${sxPl(n, 'article')} à remettre à bord"),
  ('M9 la phrase « Il est 10:40… » revient sur 320 × 568', 'restes-technicien-3.js petit 0', '.ptx-carte.mj-pt .ptx-hnow{display:none}', '.ptx-carte.mj-pt .ptx-hnow{display:block}'),
+ ('M10 absence d\'un jour (« Sophie Martin · RTT », 38 px à 320) : la zone qui répond ne s\'agrandit plus', 'technicien-mise-en-page.js petit 0', '.acm-x[style*="--n:1;"]::after{content:"";position:absolute;top:0;bottom:0;left:-3px;right:-3px}', ''),
 ]
 tombees = 0
 for nom, sonde, a, b in MUT:

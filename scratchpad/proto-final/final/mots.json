@@ -253,6 +253,314 @@
    "fichier": "apercu/prototype-comptabilite.html"
   },
   {
+   "ecran": "Équipe › carte d’une personne",
+   "avant": "${r.ints.length} interv. cette semaine",
+   "apres": "${r.ints.length} intervention${r.ints.length > 1 ? 's' : ''} cette semaine",
+   "raison": "une abréviation que personne ne dit : « interventions » en toutes lettres",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Historique › journal de sécurité",
+   "avant": "'account.locked':': compte verrouillé'",
+   "apres": "'account.locked':'a vu son compte verrouillé'",
+   "raison": "« Léa Roux : compte verrouillé » : une phrase entière, sans deux-points au milieu",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Historique › journal de sécurité",
+   "avant": "'session.hijack_suspected':': connexion utilisée depuis un autre navigateur'",
+   "apres": "'session.hijack_suspected':'a vu sa connexion utilisée depuis un autre navigateur'",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Sécurité › pied de page",
+   "avant": "Une connexion inhabituelle (autre appareil, autre réseau, hors des heures de travail, mots de passe faux juste avant) n’aboutit qu’après",
+   "apres": "Une connexion est inhabituelle si elle vient d’un autre appareil ou d’un autre réseau. C’est aussi le cas hors des heures de travail ou après des mots de passe faux. Elle n’aboutit qu’après",
+   "raison": "une phrase de 27 mots coupée en trois",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats › transfert puis commande",
+   "avant": ", et les ${prNum(s.reste)}",
+   "apres": ". Les ${prNum(s.reste)}",
+   "raison": "une phrase de 29 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Achats › transfert puis commande (autre fenêtre)",
+   "avant": ", et les ${axN(s.reste)}",
+   "apres": ". Les ${axN(s.reste)}",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis › aide",
+   "avant": "• À la fin d’une intervention, si le technicien coche « Un autre passage est nécessaire », le devis se prépare tout seul avec les pièces notées.",
+   "apres": "• En fin d’intervention, le technicien coche « Un autre passage est nécessaire ». Le devis se prépare tout seul, avec les pièces notées.",
+   "raison": "une phrase de 27 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Devis › aide",
+   "avant": "• Accepté et signé en ligne : l’intervention passe « à planifier » et la facture d’acompte, s’il y en a une, se prépare.",
+   "apres": "• Quand le devis est accepté et signé en ligne, l’intervention passe « à planifier ». La facture d’acompte, s’il y en a une, se prépare.",
+   "raison": "une phrase de 24 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Contrats › titre",
+   "avant": "Tes contrats d’entretien avec tes clients : OP GESTION prépare",
+   "apres": "Tes contrats d’entretien avec tes clients. OP GESTION prépare",
+   "raison": "une phrase de 25 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Mon entreprise › horaires et tarifs",
+   "avant": "Ta journée de travail, ton tarif et tes déplacements : le planning",
+   "apres": "Ta journée de travail, ton tarif et tes déplacements. Le planning",
+   "raison": "une phrase de 21 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Temps de travail › phrase du mois",
+   "avant": "ttPl(B.sig, 'demande') + ' de correction à traiter'",
+   "apres": "ttPl(B.sig, 'correction') + ' à traiter'",
+   "raison": "une phrase de 24 mots ramenée à 22",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Produits › photographier une facture",
+   "avant": "Dans cette démonstration, le fichier est lu sur place",
+   "apres": "Ici, le fichier est lu sur place",
+   "raison": "« Ici » dit la même chose en un mot",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée (13 pas)",
+   "avant": "Dans cette démonstration, ",
+   "apres": "Ici, ",
+   "raison": "la visite dit « Ici » pour « rien ne part vraiment » : plus court, sans mot de revue",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › envoi",
+   "avant": "Dans cette démonstration, l’envoi est simulé : je touche Envoyer.",
+   "apres": "Ici, rien ne part vraiment : je touche Envoyer.",
+   "raison": "« simulé » est un mot de revue",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › réponse du client",
+   "avant": "Dans cette démonstration, je simule sa réponse : je touche D’accord.",
+   "apres": "Ici, je joue sa réponse : je touche D’accord.",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › dictée",
+   "avant": "Dans cette démonstration, la voix est simulée.",
+   "apres": "Ici, la voix est remplacée par un texte écrit d’avance.",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › chapitre Comptabilité",
+   "avant": "Sa démonstration, et le retour",
+   "apres": "Sa visite parlée, et le retour",
+   "raison": "un seul mot : « visite »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › chapitre Comptabilité",
+   "avant": "avec son menu et sa propre démonstration parlée, « La démo »",
+   "apres": "avec son menu et sa propre visite parlée, « La démo »",
+   "raison": "idem (« La démo » est le nom du bouton)",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée",
+   "avant": "Je remets la démonstration comme avant.",
+   "apres": "Je remets tout comme avant.",
+   "raison": "un mot de revue en moins",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › relance",
+   "avant": "dans cette démonstration, rien ne part, mais elle est comptée",
+   "apres": "ici, rien ne part, mais elle est comptée",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › paiement",
+   "avant": "dans cette démonstration, le client vient de payer",
+   "apres": "ici, le client vient de payer",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › fin",
+   "avant": "du patron au client",
+   "apres": "du gérant au client",
+   "raison": "un seul nom pour la personne qui dirige : gérant",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › fin",
+   "avant": "choisis une personne en haut, patron, gestion, technicien ou client, et refais",
+   "apres": "choisis une personne en haut (gérant, gestion, technicien ou client) et refais",
+   "raison": "idem, et la liste se lit comme le sélecteur du haut",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Sélecteur de rôle (haut de page, revue)",
+   "avant": "patron:{ ic:'👔', l:'Patron', qui:'marc'",
+   "apres": "patron:{ ic:'👔', l:'Gérant', qui:'marc'",
+   "raison": "« Marc Leblanc · patron » dans la bulle de la visite devient « · gérant »",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › devis xylophage",
+   "avant": "Je dis si vous serez un ou deux techniciens sur place.",
+   "apres": "Je dis s’il y aura un ou deux techniciens sur place.",
+   "raison": "la visite tutoie ; « vous » était un oubli",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › clients",
+   "avant": "ce qu’il leur reste à payer, et le prochain passage. monsieur et madame Durand doivent",
+   "apres": "ce qu’il leur reste à payer et le prochain passage. Monsieur et Madame Durand doivent",
+   "raison": "une majuscule manquait en début de phrase",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › planning",
+   "avant": "Je clique sur Annuler.",
+   "apres": "Je touche Annuler.",
+   "raison": "« toucher » partout",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › commande",
+   "avant": "quand le fournisseur clique sur le lien, puis à livrée",
+   "apres": "quand le fournisseur confirme par le lien, puis à livrée",
+   "raison": "« toucher » et « confirmer » : le fournisseur n’a pas de doigt à poser",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › statistiques",
+   "avant": "Tu y lis ce que tu as facturé, ce que tu as encaissé, ce que valent tes devis",
+   "apres": "Tu y lis ce que tu as facturé et encaissé, ce que valent tes devis",
+   "raison": "une phrase de 24 mots ramenée à 19",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › statistiques",
+   "avant": "9 interventions faites, 33 pour cent de devis acceptés, et 20 jours pour être payé.",
+   "apres": "9 interventions faites. Puis 33 pour cent de devis acceptés et 20 jours pour être payé.",
+   "raison": "une phrase de 25 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › planning",
+   "avant": "de 11 heures 30 à 12 heures 30, et le compteur « à planifier » est passé à 2.",
+   "apres": "de 11 heures 30 à 12 heures 30. Le compteur « à planifier » est passé à 2.",
+   "raison": "une phrase de 23 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › fiche d’intervention",
+   "avant": "les appareils, les photos, puis les contrôles, le compte rendu",
+   "apres": "les appareils et les photos. Puis les contrôles, le compte rendu",
+   "raison": "une phrase de 26 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › clients",
+   "avant": "ce qu’il a déjà payé, ce qu’il te doit, et la date de son prochain passage",
+   "apres": "ce qu’il a payé, ce qu’il te doit et la date de son prochain passage",
+   "raison": "une phrase de 23 mots ramenée à 21",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › achats",
+   "avant": "range ce qui est bientôt fini par fournisseur, avec la quantité déjà calculée sur ce que tu utilises.",
+   "apres": "range ce qui est bientôt fini, fournisseur par fournisseur. La quantité est déjà calculée sur ce que tu utilises.",
+   "raison": "une phrase de 24 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › temps de travail",
+   "avant": "pour envoyer les heures à la paie, et UN seul bouton change avec la situation",
+   "apres": "pour envoyer les heures à la paie. UN seul bouton change avec la situation",
+   "raison": "une phrase de 23 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › véhicules",
+   "avant": "arrive dans 12 jours, et l’assurance des 4 véhicules tient en une seule ligne.",
+   "apres": "arrive dans 12 jours. L’assurance des 4 véhicules tient en une seule ligne.",
+   "raison": "une phrase de 25 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › devis xylophage",
+   "avant": "sur place, le logiciel calcule le prix, et le devis arrive dans la catégorie Devis.",
+   "apres": "sur place. Le logiciel calcule le prix, et le devis arrive dans la catégorie Devis.",
+   "raison": "une phrase de 24 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Visite parlée › retour au bureau",
+   "avant": "Si Sophie ne peut vraiment pas finir, « Je ne peux pas finir » prévient le bureau et crée une intervention de retour.",
+   "apres": "Si Sophie ne peut vraiment pas finir, elle touche « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.",
+   "raison": "une phrase de 23 mots coupée en deux",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Atelier › listes de pourcentages (TVA, acompte, zoom)",
+   "avant": "const VV_TVA=[[2000,'20 %'],[1000,'10 %']",
+   "apres": "const VV_TVA=[[2000,'20 %'],[1000,'10 %']",
+   "raison": "typographie : espace insécable avant « % », partout où la page l’écrit (55 endroits)",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Atelier › textes d’aide",
+   "avant": "autre client'} : écris",
+   "apres": "autre client'} : écris",
+   "raison": "typographie : espace insécable avant « : » et « ; » dans les clauses des contrats, les aides et les états vides",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Atelier › tout le texte affiché",
+   "avant": "boot();\n</script>",
+   "apres": "boot();\n/* typographie française sur le texte AFFICHÉ",
+   "raison": "la même typographie que le prototype passe sur ce que l’atelier écrit lui-même",
+   "fichier": "scratchpad/proto-final/atelier/page.source"
+  },
+  {
+   "ecran": "Équipe › carte d’une personne",
+   "avant": "'<span class=\"st st-p\">Admin</span>'",
+   "apres": "'<span class=\"st st-p\">Administrateur</span>'",
+   "raison": "« Admin » est une abréviation : le mot entier tient dans la pastille à 320 px",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › factures en retard",
+   "avant": "En retard · éch. ${dAnnee(x.ech, x.d)}",
+   "apres": "En retard · échéance ${dAnnee(x.ech, x.d)}",
+   "raison": "« éch. » est une abréviation que personne ne dit",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
+   "ecran": "Statistiques › factures à payer",
+   "avant": "À payer · éch. ${dAnnee(x.ech, x.d)}",
+   "apres": "À payer · échéance ${dAnnee(x.ech, x.d)}",
+   "raison": "idem",
+   "fichier": "apercu/prototype-op-gestion.html"
+  },
+  {
    "ecran": "Devis et contrats › fiche de l’interlocuteur",
    "avant": "ch('mail','Courriel',",
    "apres": "ch('mail','E-mail',",
@@ -722,6 +1030,12 @@
    "texte": "La démo",
    "regle": "echafaudage",
    "pourquoi": "DOUTE À SOUMETTRE À JUSTIN : « La démo » et « Tests guidés » sont deux boutons de la Comptabilité (une visite parlée et des essais guidés), pas un reste d’échafaudage : on les garde tant qu’il ne dit pas de les retirer du mode application."
+  },
+  {
+   "ecran": "Devis › conditions (délais proposés)",
+   "texte": "Date à convenir ensemble, selon vos disponibilités.",
+   "regle": "vouvoiement-equipe",
+   "pourquoi": "phrase imprimée dans le devis que le CLIENT reçoit : elle le vouvoie, comme tout le document."
   }
  ]
 }

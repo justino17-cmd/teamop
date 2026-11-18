@@ -34,6 +34,7 @@ LAISSES = [
   { 'ecran': 'Frais › justificatif de carburant', 'texte': 'merci de votre visite', 'regle': 'vouvoiement-equipe', 'pourquoi': 'c’est le texte imprimé sur le ticket de la station, lu et recopié tel quel : ce n’est pas OP GESTION qui parle.' },
   { 'ecran': 'Temps de travail, Équipe, Paie', 'texte': '41h50', 'regle': 'doute-h', 'pourquoi': 'DOUTE À SOUMETTRE À JUSTIN : les totaux d’heures s’écrivent « 41h50 » (compact, pour les tuiles et les colonnes), alors que les heures de la journée s’écrivent « 13 h 05 » et les durées « 1 h 30 ». Un seul usage serait plus net, mais les 51 emplois de ptH tiennent dans des tuiles étroites : à décider avec lui avant de toucher la mise en page.' },
   { 'ecran': 'Comptabilité (cadre) › en-tête du pilotage', 'texte': 'La démo', 'regle': 'echafaudage', 'pourquoi': 'DOUTE À SOUMETTRE À JUSTIN : « La démo » et « Tests guidés » sont deux boutons de la Comptabilité (une visite parlée et des essais guidés), pas un reste d’échafaudage : on les garde tant qu’il ne dit pas de les retirer du mode application.' },
+  { 'ecran': 'Devis › conditions (délais proposés)', 'texte': 'Date à convenir ensemble, selon vos disponibilités.', 'regle': 'vouvoiement-equipe', 'pourquoi': 'phrase imprimée dans le devis que le CLIENT reçoit : elle le vouvoie, comme tout le document.' },
 ]
 d = json.load(open(CH)) if os.path.exists(CH) else {}
 d['synonymes'] = SYN; d['laisses'] = LAISSES

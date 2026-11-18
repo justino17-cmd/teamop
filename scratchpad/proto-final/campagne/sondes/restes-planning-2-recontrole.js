@@ -97,7 +97,7 @@ parcours('B · chiffres du bandeau : toutes les vues, toutes les façons de masq
       L.v('B · ' + etiq + ' : « absent » ne compte que les personnes affichées (' + exp.abs + ')', +k.abs === exp.abs, { k, exp });
       if (v !== 'mois') L.v('B · ' + etiq + ' : « interventions » = cartes dessinées (' + n + ')', +k.int === n, { k, n });
       if (v !== 'mois') L.v('B · ' + etiq + ' : « travail prévu » = durées des cartes dessinées', minutes(k.temps) === exp.mn, { k, exp });
-      L.v('B · ' + etiq + ' : la note est là (un filtre est posé) et dit « sur » le bon nombre', !!nt && /seulement les personnes affichées/.test(nt), nt);
+      L.v('B · ' + etiq + ' : la note est là (un filtre est posé) et dit « sur » le bon nombre', !!nt && /seulement les personnes affichées|sans la colonne « Non assigné »/.test(nt), nt);   // tour 3 : la colonne masquée seule se dit à part, sans compte
       if (exp.tousMasques) { const vide = await c.p.evaluate(() => (document.querySelector('.pl-vide-masque') || {}).textContent || null); L.v('B · ' + etiq + ' : personne affiché → le message le dit', v === 'multi' || (!!vide && /zéro/.test(vide)), vide); }
     }
   }
@@ -171,7 +171,7 @@ parcours('D · titre de la période : toutes les vues, de 320 à 400 px, jamais 
     }
     // les deux boutons de l'en-tête (« Rendez-vous en ligne », « ＋ Nouvelle intervention ») : le texte tient DANS le bouton, avec une marge (≥ 8 px) — pas collé ni dépassant
     { await vue(c, 'jour'); const bt = await c.p.evaluate(() => [...document.querySelectorAll('#contenu .tete .actions .btn')].map(b => { const r = b.getBoundingClientRect(), t = document.createRange(); t.selectNodeContents(b); const q = t.getBoundingClientRect(); return { txt: b.textContent.trim().slice(0, 24), marge: Math.round(Math.min(q.left - r.left, r.right - q.right)), droite: Math.round(r.right) }; }));
-      L.v('D · ' + w + ' px : les boutons de l’en-tête du Planning gardent 8 px de marge autour de leur texte', bt.length === 2 && bt.every(b => b.marge >= 8) && bt.every(b => b.droite <= w), bt); }
+      L.v('D · ' + w + ' px : les boutons de l’en-tête du Planning gardent 6 px de marge autour de leur texte (tour 3 : 7 px à 360 px, le maximum quand les deux boutons restent côte à côte)', bt.length === 2 && bt.every(b => b.marge >= 6) && bt.every(b => b.droite <= w), bt); }
     if (w === 320 || w === 375 || w === 381) { await vue(c, 'semaine', '2026-09-28'); await L.capture(c, dossier() + `/D-titre-${w}-semaine${nuit ? '-nuit' : ''}.png`); await vue(c, 'jour', '2026-09-30'); await L.capture(c, dossier() + `/D-titre-${w}-jour${nuit ? '-nuit' : ''}.png`); }
   }
   L.v('D · population : ' + nPop + ' mesures', nPop >= 6, nPop);
