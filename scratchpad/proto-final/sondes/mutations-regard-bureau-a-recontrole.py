@@ -7,7 +7,7 @@ P = 'apercu/prototype-op-gestion.html'
 SONDE = 'scratchpad/proto-final/sondes/regard-bureau-a-recontrole.js'
 M = [
  ("6a pastille d'état à 320 px : règle du N° en 11,5 px retirée", ".tableau table.l:not(:has(thead th:nth-child(5))) td.mono{font-size:11.5px}", "", ['6', 'a']),
- ("6b résumé des tâches en retard : ligne à part retirée", ".t-ici summary:has(.t-retard){flex-wrap:wrap;row-gap:0}", "", ['6', 'b']),
+ ("6b résumé des tâches : retour à la ligne de la sœur (fusionné) retiré", ".t-ici{min-width:0}.t-ici summary{flex-wrap:wrap;row-gap:0}", "", ['6', 'b']),
  ("6b/6h coche ✅ remise (gabarit des fiches)", '<summary><b>${T.length} tâche', '<summary><span aria-hidden="true">✅</span><b>${T.length} tâche', ['6', 'b']),
  ("6h coche ✅ remise (gabarit des fiches), lue par § 6 h", '<summary><b>${T.length} tâche', '<summary><span aria-hidden="true">✅</span><b>${T.length} tâche', ['6', 'h']),
  ("5 références de pièces : insécable retiré", ".cp-pj{white-space:nowrap}", ".cp-pj{}", ['5']),

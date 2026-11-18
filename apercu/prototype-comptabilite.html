@@ -615,7 +615,7 @@ const PCG = [
   ['310000', 'Stock de matériel et fournitures'],
   ['401000', 'Fournisseurs'], ['404000', 'Fournisseurs d’immobilisations'], ['408000', 'Fournisseurs · factures non parvenues'],
   ['411000', 'Clients'], ['418000', 'Clients · factures à établir'],
-  ['421000', 'Personnel · rémunérations dues'], ['428200', 'Dettes provisionnées pour congés à payer'],
+  ['419100', 'Clients · avances et acomptes reçus'], ['421000', 'Personnel · rémunérations dues'], ['428200', 'Dettes provisionnées pour congés à payer'],
   ['431000', 'Sécurité sociale (URSSAF)'], ['437000', 'Autres organismes sociaux (retraite, prévoyance)'], ['438200', 'Charges sociales sur congés à payer'],
   ['442100', 'Prélèvement à la source'], ['444000', 'État · impôt sur les sociétés'],
   ['445510', 'TVA à décaisser'], ['445620', 'TVA déductible sur immobilisations'], ['445660', 'TVA déductible sur autres biens et services'], ['445668', 'TVA déductible en attente de paiement (prestations)'], ['445670', 'Crédit de TVA à reporter'],
@@ -825,6 +825,14 @@ function tvaMois(ym){
   const nette = brute - ded - credPrec;
   return { ym, parTaux:Object.fromEntries(Object.entries(parTaux).map(([t, p]) => [t, { base:p.base / 100, tva:p.tva / 100 }])), baseTot:Object.values(parTaux).reduce((s, p) => s + p.base, 0) / 100,
     brute:brute / 100, dedImmo:dedImmo / 100, dedAbs:dedAbs / 100, ded:ded / 100, credPrec:credPrec / 100, due:Math.max(0, nette) / 100, credit:Math.max(0, -nette) / 100 };
+}
+/* LE SOLDE DE TVA SE DIT DANS UN SEUL ENDROIT. `tvaMois` rend `due` (≥ 0) ET `credit` (≥ 0) : quand les achats dépassent les ventes, due vaut 0 et credit porte la somme. Écrire « À payer 0,00 € »
+   à côté d'un crédit de 2 975,16 € faisait croire au patron qu'il n'avait rien à gagner, alors que l'État lui doit de l'argent (18 novembre 2026). Tout écran qui montre ce solde passe ici :
+   « À payer » seulement quand il y a quelque chose à payer, « Crédit de TVA » (« l'État te doit ») sinon. */
+function tvaDit(T){
+  const credit = !!T && T.credit > 0 && !(T.due > 0), m = credit ? T.credit : ((T && T.due) || 0);
+  return { credit, m, eur:eur(m), mot:credit ? 'Crédit de TVA' : 'À payer à l’État', court:credit ? 'crédit de ' + eur(m) : eur(m) + ' à payer', phrase:credit ? 'l’État te doit ' + eur(m) : eur(m) + ' à payer',
+    mois:credit ? 'Crédit de TVA d’octobre' : 'TVA d’octobre', suite:credit ? 'l’État te doit cette somme : elle se reporte sur ta prochaine déclaration' : 'à payer le 23 novembre' };
 }
 const moisPrec = ym => { const [a, m] = ym.split('-').map(Number); return m === 1 ? (a - 1) + '-12' : a + '-' + String(m - 1).padStart(2, '0'); };
 const moisSuiv = ym => { const [a, m] = ym.split('-').map(Number); return m === 12 ? (a + 1) + '-01' : a + '-' + String(m + 1).padStart(2, '0'); };
@@ -1325,7 +1333,7 @@ VUES.accueil = () => {
       <button type="button" class="kpi" data-a="aller" data-r="banque"><span>Trésorerie</span><b>${eur(treso)}</b><small>banque et caisse, en comptabilité</small></button>
       <button type="button" class="kpi" data-a="aller" data-r="tiers" data-tab="clients"><span>Clients à encaisser</span><b>${eur(clients)}</b><small>${retard ? 'dont ' + eur(retard) + ' en retard' : 'rien en retard'}</small></button>
       <button type="button" class="kpi" data-a="aller" data-r="tiers" data-tab="fournisseurs"><span>Fournisseurs à payer</span><b>${eur(fourn)}</b><small>factures reçues, pas encore payées</small></button>
-      <button type="button" class="kpi" data-a="aller" data-r="tva"><span>TVA d’octobre</span><b>${eur(T.brute ? T.due : (TVA_DECL['2026-10'] || { l:T }).l.due)}</b><small>à payer le 23 novembre</small></button>
+      <button type="button" class="kpi" data-a="aller" data-r="tva">${(Z => `<span>${Z.mois}</span><b>${Z.eur}</b><small>${Z.suite}</small>`)(tvaDit(T.brute ? T : (TVA_DECL['2026-10'] || { l:T }).l))}</button>
     </div>
     <div class="grille g2">
       <div class="carte"><h2>Avant de clôturer octobre · ${faits}/${F.length}</h2>
@@ -1671,7 +1679,7 @@ VUES.tva = () => {
         ${ligne('16', 'Total de la TVA brute due', null, T.brute, 1)}
         ${ligne('19', 'Biens constituant des immobilisations', null, T.dedImmo)}${ligne('20', 'Autres biens et services', null, T.dedAbs)}${T.credPrec ? ligne('22', 'Report du crédit de la précédente déclaration', null, T.credPrec) : ''}
         ${ligne('23', 'Total TVA déductible', null, r2(T.ded + T.credPrec), 1)}
-        ${T.due ? ligne('28', 'TVA nette due', null, T.due, 1) : ligne('25', 'Crédit de TVA', null, T.credit, 1)}${ligne('32', 'Total à payer', null, T.due, 1)}
+        ${T.due ? ligne('28', 'TVA nette due', null, T.due, 1) : ligne('25', 'Crédit de TVA', null, T.credit, 1)}${T.due ? ligne('32', 'Total à payer', null, T.due, 1) : ''}
       </tbody></table></div>
       <p class="mute petit" style="margin-top:8px">Calculée à partir des comptes : ${nbEnc} encaissement${nbEnc > 1 ? 's' : ''} de clients dans le mois (445710) et la TVA des achats (445660, 445620). Numéros de ligne du formulaire 3310-CA3-SD de 2026, relus sur le formulaire officiel ; à garder sous les yeux avant le dépôt.</p></div>
       <div class="carte" style="display:flex;flex-direction:column;gap:10px"><h2>Où on en est</h2>
@@ -1712,9 +1720,9 @@ function ouvrirImmo(id){
 /* ─── la paie ─── */
 VUES.paie = () => {
   const P6 = PIECES.find(p => p.id === 'P6');
-  return tete('Social', 'Paie', 'La paie se prépare dans OP GESTION (heures, absences, primes), le cabinet fait les fiches de paie, et son journal de paie arrive ici chaque mois.') +
+  return tete('Social', 'Paie', opcSi('La paie se prépare dans OP GESTION (heures, absences, primes)', 'La paie se prépare avec les heures, les absences et les primes du mois') + ', le cabinet fait les fiches de paie, et son journal de paie arrive ici chaque mois.') +
     `<div class="carte"><h2>Le chemin de la paie</h2><div class="etapes">
-      ${[['OP GESTION', 'Les heures pointées, corrigées et confirmées par chaque salarié, le mois verrouillé.'], [DOSSIER.cab, 'Calcule les fiches de paie et les cotisations, dépose la déclaration sociale (DSN).'], ['La comptabilité', 'Reçoit le journal de paie : une écriture par mois au journal PA.'], ['La banque', 'Les salaires nets fin de mois ; URSSAF, retraite et prélèvement à la source le 15 du mois suivant.']].map(([t, d], i) => `<div class="etape ok"><span class="rond">${i + 1}</span><span class="txt"><b>${t}</b><span class="mute petit">${d}</span></span></div>`).join('')}</div></div>
+      ${[[opcSi('OP GESTION', 'Les heures'), opcSi('Les heures pointées, corrigées et confirmées par chaque salarié, le mois verrouillé.', 'Les heures, absences et primes du mois, confirmées par chaque salarié.')], [DOSSIER.cab, 'Calcule les fiches de paie et les cotisations, dépose la déclaration sociale (DSN).'], ['La comptabilité', 'Reçoit le journal de paie : une écriture par mois au journal PA.'], ['La banque', 'Les salaires nets fin de mois ; URSSAF, retraite et prélèvement à la source le 15 du mois suivant.']].map(([t, d], i) => `<div class="etape ok"><span class="rond">${i + 1}</span><span class="txt"><b>${t}</b><span class="mute petit">${d}</span></span></div>`).join('')}</div></div>
     <div class="defile"><table class="t"><thead><tr><th>Mois</th><th class="n">Salaires bruts</th><th class="n masque-tel">Charges patronales</th><th class="n">Net versé</th><th class="n masque-tel">Dû aux organismes</th><th>Comptabilité</th></tr></thead><tbody>
       ${MOIS_LISTE.map(m => { const p = PAIE_MOIS[m], e = E.find(x => x.j === 'PA' && x.date === finMois(m) && x.etat !== 'supprimee'); return `<tr><td>${nomMois(m)}</td><td class="n">${nb(p.brut)}</td><td class="n masque-tel">${nb(p.patron)}</td><td class="n">${nb(p.net)}</td><td class="n masque-tel">${nb(r2(p.urssaf + p.retraite + p.pas))}</td>
         <td>${e ? `<button type="button" class="lien" data-a="ecr" data-id="${e.id}">${e.num || 'au brouillard'}</button>` : `<button type="button" class="btn petit" data-a="piece" data-id="P6">Passer le journal</button>`}</td></tr>`; }).join('')}</tbody></table></div>
@@ -2015,7 +2023,7 @@ function toutTraiter(){
 
 /* ─── la paie du mois ─── */
 function paieCalculer(){ tic('06:10'); PAIE.fiches = {}; SALARIES.forEach(k => { PAIE.fiches[k] = paieBulletin(k, '2026-10'); }); PAIE.calc = { le:horloge() };
-  fil('Paie', `Les 6 fiches de paie d’octobre sont calculées · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, 'Les heures validées dans OP GESTION (heures supplémentaires semaine par semaine, absences, paniers, primes, notes de frais) ont donné les fiches. ' + (typeof UI !== 'undefined' && UI.pilote ? 'Le pilote les validera à 16 h si leurs contrôles passent.' : 'Elles attendent ta validation.'), [], 'paie-calc'); }
+  fil('Paie', `Les 6 fiches de paie d’octobre sont calculées · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, opcSi('Les heures validées dans OP GESTION (heures supplémentaires semaine par semaine, absences, paniers, primes, notes de frais) ont donné les fiches. ', 'Les heures supplémentaires (semaine par semaine), les absences, les paniers, les primes et les notes de frais d’octobre ont donné les fiches. ') + (typeof UI !== 'undefined' && UI.pilote ? 'Le pilote les validera à 16 h si leurs contrôles passent.' : 'Elles attendent ta validation.'), [], 'paie-calc'); }
 function paieValider(){
   if (!PAIE.calc) return 'Les fiches ne sont pas encore calculées.'; if (PAIE.valide) return 'La paie d’octobre est déjà validée.';
   if (periodeClose(AUJ)) return 'Octobre est clôturé : la paie ne peut plus y entrer.';
@@ -2043,7 +2051,7 @@ function tvaDeclarer(ym){
       l:[col && ['445710', null, col > 0 ? col : 0, col < 0 ? -col : 0], abs && ['445660', null, abs < 0 ? -abs : 0, abs > 0 ? abs : 0], imm && ['445620', null, imm < 0 ? -imm : 0, imm > 0 ? imm : 0], net && ['445510', null, net < 0 ? -net : 0, net > 0 ? net : 0]] });
     const m = valider(e); if (m) { e.etat = 'supprimee'; return m; } TVA_DECL[ym].l = tvaMois(ym); }
   TVA_DECL[ym].decl = AUJ; TVA_DECL[ym].pret = true; const T = TVA_DECL[ym].l; trace('TVA ' + deMois(ym) + ' arrêtée : déclaration prête à déposer');   // pret : calculée et écrite, PAS déposée (« déclarée » le faisait croire)
-  fil('TVA', `TVA d’octobre arrêtée · ${eur(T.due)} à payer`, `Collectée sur les paiements reçus ce mois-ci (${eur(T.brute)}), moins celle qui se récupère sur les achats (${eur(T.ded)}) : ${eur(T.due)}. L’écriture solde la TVA du mois vers « TVA à payer ». La déclaration est prête : elle se dépose au plus tard le lundi 23 novembre, et l’impôt est prélevé à cette date. Dans ce prototype, rien n’est transmis.`, [TVA_DECL[ym].liq], 'tva');
+  fil('TVA', `TVA d’octobre arrêtée · ${tvaDit(T).court}`, `Collectée sur les paiements reçus ce mois-ci (${eur(T.brute)}), moins celle qui se récupère sur les achats (${eur(T.ded)}) : ${tvaDit(T).credit ? 'crédit de ' + tvaDit(T).eur + ', que l’État te doit' : eur(T.due)}. L’écriture solde la TVA du mois vers « ${tvaDit(T).credit ? 'Crédit de TVA à reporter' : 'TVA à payer'} ». La déclaration est prête : elle se dépose au plus tard le lundi 23 novembre${tvaDit(T).credit ? ', sans rien à prélever' : ', et l’impôt est prélevé à cette date'}. Dans ce prototype, rien n’est transmis.`, [TVA_DECL[ym].liq], 'tva');
   return '';
 }
 
@@ -2054,8 +2062,8 @@ function aVerifier(){
     choix:[['immo-oui|' + P.id, `Oui, l’étaler sur ${P.immo.duree} ans`, true], ['immo-non|' + P.id, 'Non, c’est une petite dépense']] }));
   RELEVE.filter(r => !r.pointe && !r.nouveau && r.averifier).forEach(r => L.push({ k:'ligne|' + r.id, kind:'ligne', ic:'banque', fam:'cyan', t:`${r.lib} · ${eur(Math.abs(r.m))}`, ligne:r,
     d:r.averifier === 'client' ? `Un virement de ${eur(r.m)} le ${dCourt(r.date)} ne correspond à aucune facture ouverte : associe-le à la main à sa facture.` : `Le ${dCourt(r.date)}, la banque a prélevé ${eur(Math.abs(r.m))}. Ni facture, ni règle connue. Le nom du créancier, sur le relevé, fait penser à une assurance.` }));
-  if (PAIE.calc && !PAIE.valide && opcPaieOuverte()) L.push({ k:'paie', kind:'paie', ic:'paie', fam:'indigo', t:`Les 6 fiches de paie d’octobre sont prêtes · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, d:'Calculées avec les heures validées dans OP GESTION. Ouvre-les, vérifie, puis valide : l’écriture, les virements et la déclaration sociale suivent tout seuls.', choix:[['aller|paie', 'Vérifier et valider', true]] });
-  if (toutLu() && !L.some(x => x.kind === 'immo' || x.kind === 'ligne') && !(TVA_DECL['2026-10'] || {}).decl) L.push({ k:'tva', kind:'tva', ic:'tva', fam:'ambre', t:`La TVA d’octobre est prête · ${eur(tvaMois('2026-10').due)} à payer`, d:'Calculée sur les paiements reçus et les achats du mois. Arrête-la d’un geste : la déclaration sera prête à déposer, au plus tard le lundi 23 novembre.' + (typeof terrainReste === 'function' && terrainReste().length ? ' La journée n’est pas finie : mieux vaut attendre ce soir, chaque paiement reçu d’ici là compte encore dans la TVA du mois.' : ''), choix:[['tva-auto|2026-10', 'Arrêter la TVA', true], ['aller|tva', 'Voir le détail']] });
+  if (PAIE.calc && !PAIE.valide && opcPaieOuverte()) L.push({ k:'paie', kind:'paie', ic:'paie', fam:'indigo', t:`Les 6 fiches de paie d’octobre sont prêtes · ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets`, d:opcSi('Calculées avec les heures validées dans OP GESTION. ', 'Calculées avec les heures, les absences et les primes d’octobre. ') + 'Ouvre-les, vérifie, puis valide : l’écriture, les virements et la déclaration sociale suivent tout seuls.', choix:[['aller|paie', 'Vérifier et valider', true]] });
+  if (toutLu() && !L.some(x => x.kind === 'immo' || x.kind === 'ligne') && !(TVA_DECL['2026-10'] || {}).decl) L.push({ k:'tva', kind:'tva', ic:'tva', fam:'ambre', t:`La TVA d’octobre est prête · ${tvaDit(tvaMois('2026-10')).court}`, d:'Calculée sur les paiements reçus et les achats du mois. Arrête-la d’un geste : la déclaration sera prête à déposer, au plus tard le lundi 23 novembre.' + (typeof terrainReste === 'function' && terrainReste().length ? ' La journée n’est pas finie : mieux vaut attendre ce soir, chaque paiement reçu d’ici là compte encore dans la TVA du mois.' : ''), choix:[['tva-auto|2026-10', 'Arrêter la TVA', true], ['aller|tva', 'Voir le détail']] });
   return L;
 }
 const nbAVerifier = () => questions().length + (!toutLu() && !UI.pilote ? 1 : 0);   // questions() : direct.js — ce que le pilote fera seul n'est pas une question
@@ -2133,7 +2141,7 @@ function paieControles(){
   const F = paieFichesDe('2026-10'), S = paieFichesDe('2026-09'), b = paieTotal(F, 'brut'), b9 = paieTotal(S, 'brut'), ec = b9 ? Math.abs(b - b9) / b9 * 100 : 0;
   const hs = Math.max(...F.map(x => x.v.h25 + x.v.h50)), nonValides = SALARIES.filter(k => PAIE_OCT_VARS[k].valide === false).map(k => PAIE_SAL[k].nom);   // un vrai contrôle : il était vrai en dur, donc incapable d'échouer
   return [
-    { ok:nonValides.length === 0, t:'Toutes les heures du mois sont validées dans OP GESTION', d:nonValides.length ? 'Il manque la validation des heures de ' + nonValides.join(', ') + '.' : '6 salariés, 4 semaines complètes et la dernière jusqu’au 31.' },
+    { ok:nonValides.length === 0, t:opcSi('Toutes les heures du mois sont validées dans OP GESTION', 'Toutes les heures du mois sont validées'), d:nonValides.length ? 'Il manque la validation des heures de ' + nonValides.join(', ') + '.' : '6 salariés, 4 semaines complètes et la dernière jusqu’au 31.' },
     { ok:F.every(x => x.netPaye > 0), t:'Aucune fiche à zéro ou négative', d:'Chaque salarié a un net à payer.' },
     { ok:hs <= 60, t:'Pas d’heures supplémentaires hors norme', d:`Le plus haut : ${nb(hs)} h sur le mois. (Le plafond annuel d’heures supplémentaires n’est pas contrôlé ici.)` },
     { ok:ec <= 12, t:'Masse salariale proche du mois dernier', d:`${eur(b)} contre ${eur(b9)} en septembre (${ec < .05 ? 'identique' : (b > b9 ? '+' : '−') + nb(ec) + ' %'}).` }
@@ -2147,7 +2155,7 @@ const JOUR = [
     ok:() => !nouvellesLignes().length, faire:() => { const r = synchroniserBanque(); SIM.res.banque = `${plur(r.n, 'ligne lue', 'lignes lues')} : ${r.auto} rangée${r.auto > 1 ? 's' : ''} tout de suite${r.attente ? `, ${r.attente} en attente de leur facture` : ''}${r.averifier ? `, ${plur(r.averifier, 'question')}` : ''}.`; return ''; }, tags:['vir-hp', 'vir-client', 'psp', 'frais'] },
   { k:'pieces', h:'06:05', src:'Pièces', ic:'pieces', fam:'violet', ou:'boîte factures@ et photos du terrain', t:'Les factures reçues et le ticket photographié sont lus', d:'Quatre documents arrivés par e-mail (trois factures et un avoir), un ticket de gazole photographié par Karim.',
     ok:() => !PIECES.some(p => p.statut === 'a_traiter'), faire:() => { const r = lirePieces(); SIM.res.pieces = `${plur(r.auto, 'document écrit', 'documents écrits')} avec ${r.auto > 1 ? 'leur' : 'son'} justificatif${r.averifier ? `, ${plur(r.averifier, 'question')}` : ''}. Les lignes de banque qui attendaient leur facture se rangent.`; return ''; }, tags:['piece-P1', 'piece-P2', 'piece-P3', 'piece-P4', 'prlv-fourn', 'cb-station'] },
-  { k:'paie-calc', h:'06:10', src:'Paie', ic:'paie', fam:'indigo', ou:'heures validées dans OP GESTION', t:'Les heures d’octobre deviennent les fiches de paie', d:'Heures supplémentaires semaine par semaine, absences, paniers, primes et notes de frais des six salariés.',
+  { k:'paie-calc', h:'06:10', src:'Paie', ic:'paie', fam:'indigo', ou:opcSi('heures validées dans OP GESTION', 'heures, absences et primes d’octobre'), t:'Les heures d’octobre deviennent les fiches de paie', d:'Heures supplémentaires semaine par semaine, absences, paniers, primes et notes de frais des six salariés.',
     ok:() => !!PAIE.calc, faire:() => { paieCalculer(); SIM.res['paie-calc'] = opcPaieOuverte() ? `6 fiches calculées : ${eur(paieTotal(paieFichesDe('2026-10'), 'netPaye'))} de nets à payer.` : 'Les fiches sont calculées.'; return ''; }, tags:['paie-calc'] },
   { k:'q-immo', h:'06:15', src:'Pilote', ic:'ordinateur', fam:'ardoise', pilote:true, vers:'averifier', ou:'une facture reçue par e-mail', t:'Un ordinateur à 1 290 € : un achat qui dure', d:'La facture d’Informatique Littoral demandait un avis : dépense d’un coup, ou étalée sur trois ans ?',
     ok:() => (PIECES.find(p => p.id === 'P5') || {}).statut === 'traitee', peut:() => (PIECES.find(p => p.id === 'P5') || {}).statut === 'a_verifier' ? '' : 'Les documents ne sont pas encore lus.',
@@ -2168,7 +2176,7 @@ const JOUR = [
     faire:() => { const m = paieValider(); if (m) return m; SIM.res.paie = opcPaieOuverte() ? `Paie validée : écriture passée, ${eur(PAIE.vire.total)} virés aux salariés, DSN prête.` : 'La paie est validée.'; decision('paie', 'Paie d’octobre validée', 'Les quatre contrôles sont passés : heures validées, aucune fiche anormale, pas d’heures hors norme, masse salariale proche de septembre.', [PAIE.ecr]); return ''; }, tags:['paie', 'vir-salaires'] },
   { k:'tva', h:'17:00', src:'TVA', ic:'tva', fam:'ambre', pilote:true, vers:'tva', ou:'pilote automatique', t:'La TVA d’octobre est arrêtée', d:'TVA des ventes payées dans le mois, moins celle des achats.',
     ok:() => !!(TVA_DECL['2026-10'] || {}).decl, peut:() => !toutLu() ? 'La banque et les documents ne sont pas encore lus.' : aVerifier().some(x => x.kind === 'immo' || x.kind === 'ligne') ? 'Une question attend une réponse.' : '',
-    faire:() => { const m = tvaDeclarer('2026-10'); if (m) return m; const T = TVA_DECL['2026-10'].l; SIM.res.tva = `${eur(T.due)} à payer : la déclaration est prête à déposer.`; decision('tva', `TVA d’octobre arrêtée · ${eur(T.due)}`, 'Tout le mois est lu et aucune question n’attend : le calcul est complet.', [TVA_DECL['2026-10'].liq]); return ''; }, tags:['tva'] },
+    faire:() => { const m = tvaDeclarer('2026-10'); if (m) return m; const T = TVA_DECL['2026-10'].l; SIM.res.tva = `${tvaDit(T).court} : la déclaration est prête à déposer.`; decision('tva', `TVA d’octobre arrêtée · ${tvaDit(T).credit ? 'crédit de ' + tvaDit(T).eur : tvaDit(T).eur}`, 'Tout le mois est lu et aucune question n’attend : le calcul est complet.', [TVA_DECL['2026-10'].liq]); return ''; }, tags:['tva'] },
   { k:'cloture', h:'18:00', src:'Clôture', ic:'clotures', fam:'ardoise', pilote:true, vers:'clotures', ou:'pilote automatique', t:'Octobre se ferme et part au cabinet', d:'Banque à jour, documents lus, paie validée, rien d’inexpliqué, écritures toutes validées, TVA arrêtée.',
     ok:() => PER['2026-10'] === 'cloturee', peut:() => aFaire().every(x => x.ok) ? '' : 'Il reste : ' + aFaire().filter(x => !x.ok).map(x => x.k === 'paie' && !opcPaieOuverte() ? 'une étape réservée au patron' : x.manque).filter((m, i, a) => a.indexOf(m) === i).join(', ') + '.',
     faire:() => { const m = cloturerEnvoyer(); if (m) return m; SIM.res.cloture = `Octobre est clôturé ; ${DOSSIER.cab} a reçu le dossier complet.`; decision('cloture', 'Octobre clôturé et envoyé au cabinet', 'Les six étapes du mois étaient vertes.', []); return ''; }, tags:['cloture'] }
@@ -2386,7 +2394,7 @@ aFaire = () => {
     { k:'paie', ok:!!PAIE.valide, t:'Paie d’octobre validée', manque:'la paie à valider', d:PAIE.valide ? 'Fiches validées, salaires virés, DSN préparée.' : PAIE.calc ? 'Les fiches sont calculées : à vérifier puis valider.' : 'Les fiches se calculent quand la nuit est traitée.' },
     { k:Math.abs(att) < .005 && (nouv || banq) ? 'banque' : 'grand-livre', gl:Math.abs(att) < .005 && (nouv || banq) ? undefined : '471000', ok:Math.abs(att) < .005 && !nouv && !banq, t:'Rien d’inexpliqué sur la banque', manque:Math.abs(att) < .005 ? (nouv ? 'la banque à lire' : 'des lignes de banque en attente d’une réponse') : 'un mouvement de banque à expliquer', d:Math.abs(att) < .005 ? (nouv || banq ? 'Pas encore : des lignes de banque attendent d’être lues et expliquées.' : 'Chaque mouvement sait ce qu’il est.') : `${eur(Math.abs(att))} attendent une explication${UI.expert ? ' (compte d’attente 471)' : ''}.` },
     { k:'brouillard', ok:!brouillardOct().length, t:'Tout est validé', manque:'des écritures à valider', d:brouillardOct().length ? `${plur(brouillardOct().length, 'écriture')} ${UI.expert ? 'au brouillard' : 'pas encore validée' + (brouillardOct().length > 1 ? 's' : '')}.` : 'Chaque écriture a son numéro définitif.' },
-    { k:'tva', ok:!!D.decl, t:'TVA d’octobre arrêtée', manque:'la TVA à arrêter', d:D.decl ? (D.pret ? `${eur(D.l.due)} : déclaration prête à déposer, au plus tard le lundi 23 novembre.` : `${eur(D.l.due)} : déclaration notée comme déposée.`) : 'Elle s’arrête en fin de journée ; la déclaration se dépose au plus tard le lundi 23 novembre.' }
+    { k:'tva', ok:!!D.decl, t:'TVA d’octobre arrêtée', manque:'la TVA à arrêter', d:D.decl ? (D.pret ? `${tvaDit(D.l).credit ? 'Crédit de ' + tvaDit(D.l).eur : tvaDit(D.l).eur} : déclaration prête à déposer, au plus tard le lundi 23 novembre.` : `${tvaDit(D.l).credit ? 'Crédit de ' + tvaDit(D.l).eur : tvaDit(D.l).eur} : déclaration notée comme déposée.`) : 'Elle s’arrête en fin de journée ; la déclaration se dépose au plus tard le lundi 23 novembre.' }
   ];
 };
 
@@ -2404,6 +2412,7 @@ function enClair(l){
   if (c === '445660' || c === '445620') return deb ? `${m} de TVA payée sur cet achat : l’État te la rend, elle diminue ta TVA à payer.` : `${m} de TVA récupérable passent dans la déclaration (ou sont repris par un avoir).`;
   if (c === '445510') return l.cr ? `${m} de TVA à payer à l’État, prélevés le 23 novembre.` : `${m} de TVA payés à l’État.`;
   if (c === '445670') return deb ? `${m} de crédit de TVA, à reporter sur le mois suivant.` : `Le crédit de TVA du mois précédent est utilisé (${m}).`;
+  if (c === '419100') return l.cr ? `${m} reçus d’avance : l’argent est encaissé, la facture n’est pas encore partie.` : `Les ${m} reçus d’avance sont repris : la facture les remplace.`;
   if (c === '467100') return deb ? `${m} payés par carte : le prestataire de paiement les versera sur ton compte.` : `Le prestataire de cartes a versé ${m} de paiements.`;
   if (c === '511200') return deb ? `Un chèque de ${m} attend d’être déposé à la banque.` : `${m} de chèques déposés à la banque.`;
   if (c === '421000') return l.cr ? `${m} dus aux salariés (salaires nets, ou frais à leur rembourser).` : `${m} versés aux salariés.`;
@@ -2445,7 +2454,7 @@ VUES.accueil = () => {
   const lu = toutLu(), nouv = nouvellesLignes(), pa = PIECES.filter(p => p.statut === 'a_traiter');
   const treso = solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }), clients = oplDus();
   const retard = lignesDe(l => l.c === '411000' && !l.let && l.d > 0).filter(x => x.e.ech && x.e.ech < AUJ).reduce((s, x) => s + x.l.d - oplDejaRegle(x), 0);   /* acompte reçu sur une facture échue : « dont X en retard » ne dépasse plus ce qui est dû · 13 novembre 2026 */
-  const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), D = TVA_DECL['2026-10'] || {}, tva = D.decl ? D.l.due : tvaMois('2026-10').due;
+  const fourn = -solde('401000', { au:AUJ }) - solde('404000', { au:AUJ }), D = TVA_DECL['2026-10'] || {}, tva = D.decl ? D.l.due : tvaMois('2026-10').due, tvaZ = tvaDit(D.decl ? D.l : tvaMois('2026-10'));
   const res = -(solde('6', { au:AUJ }) + solde('7', { au:AUJ })), P = partAuto('2026-10'), pct = P.n ? Math.round(P.auto / P.n * 100) : 0;
   const AV = questions(), PV = prevus(), F = aFaireVu(), oct = PER['2026-10'] === 'cloturee', faits = F.filter(x => x.ok).length, reste = JOUR.filter(e => !e.ok()).length, fait = FIL.filter(f => f.h.includes(':') && !((f.src === 'Paie' || f.tag === 'vir-salaires') && !opcPaieOuverte())).length;
   const haut0 = UI.mode === 'choix' ? `<div class="carte hero" id="hero"><div class="h-t"><span class="surtitre">Démonstration · données fictives</span><h2>La comptabilité qui se tient toute seule</h2>
@@ -2464,7 +2473,7 @@ VUES.accueil = () => {
       ${kpi('banque', 'Argent en banque', eur(treso), 'banque et caisse, au 31/10')}
       ${kpi('ventes', 'Les clients te doivent', eur(clients), retard ? `dont ${eur(retard)} en retard` : 'rien en retard')}
       ${kpi('achats', 'Tu dois aux fournisseurs', eur(fourn), 'factures reçues, pas encore payées')}
-      ${kpi('tva', 'TVA d’octobre', eur(tva), D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
+      ${kpi('tva', tvaZ.mois, tvaZ.eur, tvaZ.credit ? 'l’État te doit cette somme · ' + (D.decl ? (D.pret ? 'à déposer d’ici le 23/11' : 'déposée') : 'à déposer au plus tard le 23/11') : D.decl ? (D.pret ? 'arrêtée · à déposer d’ici le 23/11' : 'déposée · prélevée le 23/11') : 'à déposer au plus tard le 23/11')}
       ${kpi('resultat', 'Bénéfice de l’année', eur(res), (PAIE.valide ? 'janvier à octobre, avant impôt' : 'avant impôt · octobre n’a pas encore sa paie') + (LIA ? opcSi(' · paie et achats d’exemple', ' · paie et achats estimés') : ''))}
       ${kpi('fil', 'Fait tout seul en octobre', pct + ' %', P.auto === P.n ? `${P.n} écritures, toutes seules` : `${P.auto} écritures sur ${P.n}`)}
     </div>
@@ -2569,17 +2578,17 @@ VUES.achats = () => {
 };
 
 /* ─── la paie ─── */
-function ouvrirBulletin(k){ UI.bulletinsVus.add(k); ouvrir(haut(esc(PAIE_SAL[k].nom), 'Fiche de paie · octobre 2026 · ' + esc(PAIE_SAL[k].emploi), 'Paie') + paieBulletinDoc(k, '2026-10') + '<p class="mute petit">Calculée toute seule avec les heures validées dans OP GESTION. Le salarié la retrouve dans « Mes heures » dès que la paie est validée.</p>', true); }
+function ouvrirBulletin(k){ UI.bulletinsVus.add(k); ouvrir(haut(esc(PAIE_SAL[k].nom), 'Fiche de paie · octobre 2026 · ' + esc(PAIE_SAL[k].emploi), 'Paie') + paieBulletinDoc(k, '2026-10') + '<p class="mute petit">' + opcSi('Calculée toute seule avec les heures validées dans OP GESTION.', 'Calculée toute seule avec les heures, les absences et les primes d’octobre.') + ' Le salarié la retrouve dans « Mes heures » dès que la paie est validée.</p>', true); }
 VUES.paie = () => {
   const F = PAIE.calc ? paieFichesDe('2026-10') : null, D = PAIE, C = paieControles();
-  const et = [['Heures du mois reçues d’OP GESTION', true, '6 salariés : heures supplémentaires semaine par semaine, absences, paniers, primes, notes de frais.'],
+  const et = [[opcSi('Heures du mois reçues d’OP GESTION', 'Heures du mois'), true, '6 salariés : heures supplémentaires semaine par semaine, absences, paniers, primes, notes de frais.'],
     ['Fiches de paie calculées', !!D.calc, D.calc ? 'Calculées toutes seules ce matin à ' + D.calc.le + '.' : 'Elles se calculent dès que la nuit est traitée.'],
     ['Contrôlées et validées', !!D.valide, D.valide ? 'Validées à ' + D.valide.le + ' : l’écriture de paie est passée.' : UI.pilote ? 'Le pilote les valide si les quatre contrôles passent.' : 'Ouvre deux ou trois fiches, puis valide.'],
     ['Salaires virés', !!D.vire, D.vire ? `${eur(D.vire.total)} en un seul fichier de virements${F && D.vire.total - paieTotal(F, 'netPaye') > 0.005 ? ' : les nets (' + eur(paieTotal(F, 'netPaye')) + ') plus ' + eur(r2(D.vire.total - paieTotal(F, 'netPaye'))) + ' de notes de frais remboursées' : ''} ; sa ligne sur le relevé de la banque s’est rangée toute seule.` : 'Un fichier de virements part à la banque au moment de la validation.'],
     ['Déclaration sociale (DSN) préparée', !!D.dsn, D.dsn ? 'Prête : à déposer au plus tard le lundi 16 novembre (le 15 tombe un dimanche).' : 'Préparée au moment de la validation.'],
     ['Cotisations payées', false, 'Le 15 novembre (reporté au lundi 16) : URSSAF, retraite et impôt prélevé à la source, par prélèvement.']];
   const mois = MOIS_LISTE.slice(0, 9).map(m => { const G = paieFichesDe(m); return { m, brut:paieTotal(G, 'brut'), net:paieTotal(G, 'netPaye'), pat:paieTotal(G, 'totP') }; });
-  return tete('Paie', 'Paie', 'Les heures pointées et validées dans OP GESTION deviennent les fiches de paie. Elles passent leurs contrôles, puis l’écriture, les virements et la déclaration sociale suivent.') +
+  return tete('Paie', 'Paie', opcSi('Les heures pointées et validées dans OP GESTION deviennent les fiches de paie. ', 'Les heures, les absences et les primes du mois deviennent les fiches de paie. ') + 'Elles passent leurs contrôles, puis l’écriture, les virements et la déclaration sociale suivent.') +
     `<div class="grille g2"><div class="carte"><h2>La paie d’octobre</h2><div class="etapes">${et.map(([t, ok, d], i) => `<div class="etape ${ok ? 'ok' : ''}"><span class="rond">${ok ? '✓' : i + 1}</span><span class="txt"><b>${t}</b><span class="mute petit">${d}</span></span>${i === 1 && !ok ? '<button type="button" class="btn petit" data-a="paie-calc">Calculer maintenant</button>' : ''}${i === 2 && !ok && D.calc ? '<button type="button" class="btn petit" data-a="paie-valider">Valider la paie</button>' : ''}</div>`).join('')}</div></div>
       <div class="carte" id="paie-controles"><h2>Les contrôles avant validation</h2>${C.length ? `<div class="etapes">${C.map(c => `<div class="etape ${c.ok ? 'ok' : ''}"><span class="rond">${c.ok ? '✓' : '!'}</span><span class="txt"><b>${c.t}</b><span class="mute petit">${c.d}</span></span></div>`).join('')}</div><p class="mute petit" style="margin-top:8px">Si un contrôle ne passe pas, le pilote ne valide rien : il te demande.</p>` : '<p class="mute petit">Ils se font dès que les fiches sont calculées : heures validées, aucune fiche anormale, pas d’heures hors norme, masse salariale proche du mois dernier.</p>'}</div></div>` +
     (F ? `<div class="kpis"><div class="kpi"><span>Salaires bruts</span><b>${eur(paieTotal(F, 'brut'))}</b><small>6 salariés</small></div><div class="kpi"><span>Nets versés</span><b>${eur(paieTotal(F, 'netPaye'))}</b><small>après impôt à la source</small></div><div class="kpi"><span>Charges patronales</span><b>${eur(paieTotal(F, 'totP'))}</b><small>après réductions</small></div><div class="kpi"><span>Coût total</span><b>${eur(paieTotal(F, 'cout'))}</b><small>${(() => { const ec = r2(paieTotal(F, 'cout') - paieTotal(F, 'brut') - paieTotal(F, 'totP')), pn = paieTotal(F, 'paniers'), fr = r2(ec - pn); return ec > .004 ? 'brut + charges + ' + [pn > .004 ? eur(pn) + ' de paniers repas' : '', fr > .004 ? eur(fr) + ' de frais remboursés' : ''].filter(Boolean).join(' + ') : 'pour l’entreprise'; })()}</small></div></div>
@@ -2588,8 +2597,8 @@ VUES.paie = () => {
         <tr class="total"><td>Total</td><td class="masque-tel"></td><td class="n masque-tel">${nb(paieTotal(F, 'brut'))}</td><td class="n">${nb(paieTotal(F, 'netPaye'))}</td><td class="n masque-tel">${nb(paieTotal(F, 'cout'))}</td><td></td></tr></tbody></table></div>` : '') +
     `<div class="grille g2"><div class="carte"><h2>D’où viennent les chiffres</h2><ul class="liste">
         <li><b>Le salaire de base</b> vient du contrat, saisi une fois dans la fiche du salarié.</li>
-        <li><b>Les heures supplémentaires</b> viennent des heures pointées dans OP GESTION, comptées semaine par semaine au-delà de 35 h, à 25 % puis 50 %.</li>
-        <li><b>Les absences</b> (congé, maladie) viennent des demandes validées dans OP GESTION. Dans le bâtiment, les congés des salariés affiliés sont versés par la caisse de congés payés : l’entreprise cotise chaque mois. Dans cet exemple, tous les salariés sont supposés affiliés (à confirmer avec la caisse pour la secrétaire).</li>
+        <li><b>Les heures supplémentaires</b> ${opcSi('viennent des heures pointées dans OP GESTION, comptées', 'sont comptées')} semaine par semaine au-delà de 35 h, à 25 % puis 50 %.</li>
+        <li><b>Les absences</b> (congé, maladie) ${opcSi('viennent des demandes validées dans OP GESTION', 'du mois sont reprises')}. Dans le bâtiment, les congés des salariés affiliés sont versés par la caisse de congés payés : l’entreprise cotise chaque mois. Dans cet exemple, tous les salariés sont supposés affiliés (à confirmer avec la caisse pour la secrétaire).</li>
         <li><b>Les paniers repas</b> : un par jour travaillé sur un chantier, sans cotisations jusqu’à 10,40 € en 2026.</li>
         <li><b>Les notes de frais</b> photographiées sont remboursées avec le salaire, sans charges.</li>
         <li><b>Les cotisations</b> suivent ${opcSi('des taux d’exemple (barèmes 2026, données fictives) : un vrai calcul suit', 'des taux simplifiés (barèmes 2026) : le calcul définitif suit')} les barèmes en vigueur et la convention collective, à faire valider par l’expert-comptable.</li></ul></div>
@@ -2614,10 +2623,10 @@ VUES.banque = () => {
   return tete('Trésorerie', 'Banque', 'Ce que la banque a envoyé, et ce qu’OP GESTION en a fait. Chaque ligne du relevé trouve son écriture toute seule ; celle qui n’y arrive pas devient une question dans « À vérifier ».') + `<div class="carte banque-solde"><span class="mute petit">Solde du compte en banque</span><b style="display:block;font-size:24px">${eur(solde('512000', { au:AUJ }))}</b><span class="mute petit">C’est ce chiffre-là, sans la caisse. La vue d’ensemble, elle, affiche « Argent en banque » : ce compte plus la caisse (${eur(solde('530000', { au:AUJ }))}), soit ${eur(solde('512000', { au:AUJ }) + solde('530000', { au:AUJ }))}.</span></div>` + carte + replie('banque', 'Le relevé ligne par ligne', sansTete(banqueDetail()));
 };
 VUES.tva = () => {
-  const D = TVA_DECL['2026-10'] || {}, T = D.decl ? D.l : tvaMois('2026-10'), oct = UI.tvaMois === '2026-10';
-  const carte = D.decl ? `<div class="carte synchro fait" id="tva-auto">${tuile('coche', 'vert', 'g')}<div class="s-c"><h2>TVA d’octobre arrêtée</h2><span>${eur(T.due)} à payer. ${D.pret ? 'La déclaration est prête à déposer : au plus tard le lundi 23 novembre, date à laquelle l’impôt est prélevé.' : 'Tu as noté la déclaration comme déposée ; l’impôt est prélevé le lundi 23 novembre.'} Ici, rien n’est transmis.</span></div></div>`
-    : `<div class="carte tva-auto" id="tva-auto"><h2>Ta TVA d’octobre est ${toutLu() ? 'prête' : 'presque prête'}</h2><div class="tva-calc"><div><span>TVA sur les ventes payées ce mois-ci</span><b>${eur(T.brute)}</b></div><div><span>moins la TVA payée sur tes achats</span><b>− ${eur(T.ded)}</b></div>${T.credPrec ? `<div><span>moins le crédit du mois précédent</span><b>− ${eur(T.credPrec)}</b></div>` : ''}<div class="tot"><span>À payer à l’État</span><b>${eur(T.due)}</b></div></div>
-      <p class="mute petit">Pourquoi « ventes payées » ? Pour des travaux et des prestations, la TVA est due quand le client paie, pas quand la facture part. Une facture impayée ne te fait donc pas avancer de TVA. Date limite de cette entreprise : le 21 du mois suivant, reporté au lundi 23 novembre ; la tienne est affichée dans ton espace professionnel des impôts. ${toutLu() ? '' : 'La nuit n’est pas encore traitée : des paiements et des achats attendent d’être lus.'}</p>
+  const D = TVA_DECL['2026-10'] || {}, T = D.decl ? D.l : tvaMois('2026-10'), oct = UI.tvaMois === '2026-10', Z = tvaDit(T);
+  const carte = D.decl ? `<div class="carte synchro fait" id="tva-auto">${tuile('coche', 'vert', 'g')}<div class="s-c"><h2>TVA d’octobre arrêtée</h2><span>${Z.credit ? 'Crédit de ' + Z.eur + ' : l’État te doit cette somme, elle se reporte sur ta prochaine déclaration.' : Z.eur + ' à payer.'} ${D.pret ? 'La déclaration est prête à déposer : au plus tard le lundi 23 novembre' + (Z.credit ? ' ; rien n’est prélevé.' : ', date à laquelle l’impôt est prélevé.') : 'Tu as noté la déclaration comme déposée' + (Z.credit ? ' ; rien n’est prélevé.' : ' ; l’impôt est prélevé le lundi 23 novembre.')} Ici, rien n’est transmis.</span></div></div>`
+    : `<div class="carte tva-auto" id="tva-auto"><h2>Ta TVA d’octobre est ${toutLu() ? 'prête' : 'presque prête'}</h2><div class="tva-calc"><div><span>TVA sur les ventes payées ce mois-ci</span><b>${eur(T.brute)}</b></div><div><span>moins la TVA payée sur tes achats</span><b>− ${eur(T.ded)}</b></div>${T.credPrec ? `<div><span>moins le crédit du mois précédent</span><b>− ${eur(T.credPrec)}</b></div>` : ''}<div class="tot"><span>${Z.mot}</span><b>${Z.eur}</b></div></div>
+      <p class="mute petit">${Z.credit ? 'Tu as payé plus de TVA sur tes achats que tu n’en as reçu sur tes ventes : l’État te doit la différence. Ce crédit se reporte sur ta prochaine déclaration (ou se demande en remboursement). ' : ''}Pourquoi « ventes payées » ? Pour des travaux et des prestations, la TVA est due quand le client paie, pas quand la facture part. Une facture impayée ne te fait donc pas avancer de TVA. Date limite de cette entreprise : le 21 du mois suivant, reporté au lundi 23 novembre ; la tienne est affichée dans ton espace professionnel des impôts. ${toutLu() ? '' : 'La nuit n’est pas encore traitée : des paiements et des achats attendent d’être lus.'}</p>
       <div class="outils" style="margin-top:12px"><button type="button" class="btn" data-a="tva-auto" data-k="2026-10">Arrêter la TVA d’octobre</button><span class="mute petit">Arrêter, c’est figer le calcul du mois : la déclaration est alors prête à déposer.</span></div></div>`;
   if (UI.expert) return apresTete(tvaDetail(), oct ? carte : '');
   return tete('Fiscal', 'TVA', 'La déclaration se prépare toute seule à partir des paiements reçus et des factures d’achat. Le pilote l’arrête quand le mois est complet ; sans lui, tu l’arrêtes d’un geste.') + carte + replie('tva', 'La déclaration ligne par ligne (CA3)', sansTete(tvaDetail()));
@@ -2703,13 +2712,13 @@ VUES.pilotage = () => {
 
 /* ─── comment ça marche ─── */
 VUES.aide = () => tete('Apprendre', 'Comment ça marche', 'La comptabilité de ton entreprise, de A à Z, sans jargon. Ce qu’OP GESTION fait tout seul, ce qu’il te demande, et pourquoi.') +
-  `<div class="carte"><h2>En une phrase</h2><p style="max-width:80ch">Tout ce qui se passe dans OP GESTION (une intervention terminée, une facture envoyée, un paiement, un ticket, des heures pointées) et tout ce qui passe sur ton compte en banque devient une <b>écriture comptable</b>, toute seule. Le pilote automatique tranche les cas simples, valide la paie et la TVA quand leurs contrôles passent, et ferme le mois. Le cabinet comptable relit au lieu de ressaisir.</p></div>
+  `<div class="carte"><h2>En une phrase</h2><p style="max-width:80ch">Tout ce qui se passe dans OP GESTION (une intervention terminée, une facture envoyée, un paiement, un ticket${opcSi(', des heures pointées', '')}) et tout ce qui passe sur ton compte en banque devient une <b>écriture comptable</b>, toute seule. Le pilote automatique tranche les cas simples, valide la paie et la TVA quand leurs contrôles passent, et ferme le mois. Le cabinet comptable relit au lieu de ressaisir.</p></div>
   <div class="carte"><h2>Le chemin d’un euro</h2><div class="chaine">${['Intervention terminée', 'Facture envoyée', 'Paiement du client', 'Banque', 'TVA du mois', 'Fin de mois', 'Cabinet comptable'].map((x, i) => (i ? '<i aria-hidden="true">→</i>' : '') + `<span>${x}</span>`).join('')}</div>
     <ol class="liste">
       <li><b>L’intervention se termine</b> dans OP GESTION : la facture part au client et s’écrit au journal des ventes. Le client te doit le prix TTC ; ton chiffre d’affaires augmente du prix HT ; la TVA est mise « en attente ».</li>
       <li><b>Le client paie</b> : par carte sur le téléphone du technicien, par le lien de sa facture, par virement ou par chèque. La facture est soldée (on dit « lettrée ») et sa TVA devient due ce mois-ci.</li>
       <li><b>L’argent arrive en banque</b> : la banque envoie ses mouvements chaque nuit, chaque ligne retrouve son écriture. C’est le « rapprochement bancaire ».</li>
-      <li><b>En fin de mois</b>, la paie se calcule avec les heures d’OP GESTION, la TVA se prépare avec les paiements reçus et les achats, et le mois se ferme.</li>
+      <li><b>En fin de mois</b>, la paie se calcule avec ${opcSi('les heures d’OP GESTION', 'les heures, les absences et les primes du mois')}, la TVA se prépare avec les paiements reçus et les achats, et le mois se ferme.</li>
       <li><b>Le cabinet reçoit tout</b> : le fichier des écritures, la balance, les justificatifs. Le 31 décembre, il fait le bilan et la déclaration de résultat.</li></ol></div>
   <div class="carte"><h2>Ce qui se fait tout seul, et ce qui s’écrit</h2><div class="defile"><table class="t pile-tel"><thead><tr><th>Ce qui se passe</th><th>Ce qu’OP GESTION écrit</th><th>En clair</th></tr></thead><tbody>
     <tr><td>Intervention terminée et facturée</td><td class="mono">411 / 706 + 44574</td><td>le client te doit le TTC, tu as gagné le HT, la TVA attend le paiement</td></tr>
@@ -3427,7 +3436,7 @@ function cmptPdf(num){
 /* la pastille « Relié à OP GESTION » dit où en est la lecture, et relit à la demande */
 function cmptLecture(){
   const n = nouvellesLignes().length, pa = PIECES.filter(p => p.statut === 'a_traiter').length;
-  ouvrir(haut('Relié à OP GESTION', 'Ce que la comptabilité lit toute seule', 'Lecture') + `<div class="carte"><p>Dernière lecture : <b>31/10 à ${esc(SIM.h)}</b>. La comptabilité lit les factures, les paiements, les heures et les notes de frais d’OP GESTION, et la banque chaque nuit.</p>
+  ouvrir(haut('Relié à OP GESTION', 'Ce que la comptabilité lit toute seule', 'Lecture') + `<div class="carte"><p>Dernière lecture : <b>31/10 à ${esc(SIM.h)}</b>. La comptabilité lit ${opcSi('les factures, les paiements, les heures et les notes de frais', 'les factures, les paiements et l’argent reçu sur place')} d’OP GESTION, et la banque chaque nuit.</p>
     <p class="mute petit">${n || pa ? `À lire : ${cmptPluriel(n, 'ligne de banque', 'lignes de banque')} et ${cmptPluriel(pa, 'document')}.` : 'Tout est lu : rien n’attend.'}</p></div>
     <div class="outils"><button type="button" class="btn" data-cmpt="relire">Relire maintenant</button><button type="button" class="btn gris" data-a="aller" data-r="terrain">La journée en direct</button></div>`);
 }
@@ -3444,7 +3453,7 @@ const cmptHeroMini = () => `<div class="carte cmpt-hero-mini" id="hero"><span cl
 function cmptCreux(){ if (!CMPT.seuilOn) return null; try { const P = previsions(UI.prevHab || false), j = P.J.find(x => x.s < CMPT.seuil); return j ? { d:j.d, s:j.s, deja:j.d === AUJ } : null; } catch (e) { return null; } }
 function cmptAttendHtml(){
   const D = TVA_DECL['2026-10'] || {}, AV = questions(), retard = FACTURES.filter(f => { const F = factureDe(f.num); return F && !F.lettree && F.e.ech && F.e.ech < AUJ; }), L = [];
-  if (!PAIE.valide) L.push(['Valider la paie d’octobre', PAIE.calc ? 'Les fiches sont prêtes : relis-les, puis valide.' : 'Les fiches se calculent avec les heures validées dans OP GESTION.', 'paie', 'Voir']);
+  if (!PAIE.valide) L.push(['Valider la paie d’octobre', PAIE.calc ? 'Les fiches sont prêtes : relis-les, puis valide.' : opcSi('Les fiches se calculent avec les heures validées dans OP GESTION.', 'Les fiches se calculent en fin de mois, avec les heures, les absences et les primes d’octobre.'), 'paie', 'Voir']);
   if (!D.decl) L.push(['Arrêter la TVA d’octobre', 'Calculée toute seule : tu l’arrêtes quand le mois est complet.', 'tva', 'Voir']);
   if (retard.length) L.push([`${cmptPluriel(retard.length, 'facture')} en retard`, retard.map(f => nomTiers(f.cli)).join(' · '), 'ventes|retard', 'Voir']);
   if (AV.length) L.push([`${cmptPluriel(AV.length, 'question t’attend', 'questions t’attendent')}`, 'Ce que la comptabilité ne tranche pas sans toi.', 'averifier', 'Répondre']);
@@ -3569,11 +3578,11 @@ VUES.tva = () => {
   const prec = ['2026-09', '2026-08', '2026-07'].map(m => [m, TVA_DECL[m]]).filter(([, d]) => d && d.l);
   const peutDeposer = D.liq && reste.vide;
   const frise = `<div class="carte cmpt-frise" id="cmpt-tva-suite"><h2>La suite, en trois étapes</h2><div class="etapes">
-      <div class="etape ok"><span class="rond">✓</span><span class="txt"><b>Arrêtée</b><span class="mute petit">${eur(T.due)} à payer, écrits dans la comptabilité le ${dCourt(D.decl)}.</span></span></div>
+      <div class="etape ok"><span class="rond">✓</span><span class="txt"><b>Arrêtée</b><span class="mute petit">${tvaDit(T).credit ? 'Crédit de ' + tvaDit(T).eur + ' (l’État te doit cette somme)' : tvaDit(T).eur + ' à payer'}, écrit${tvaDit(T).credit ? '' : 's'} dans la comptabilité le ${dCourt(D.decl)}.</span></span></div>
       <div class="etape ${declaree ? 'ok' : ''}"><span class="rond">${declaree ? '✓' : 2}</span><span class="txt"><b>${declaree ? 'Déposée sur impots.gouv.fr' : 'À déposer sur impots.gouv.fr'}</b><span class="mute petit">${declaree ? 'Notée comme déposée.' : 'Au plus tard le ' + lim + '. Ici, rien n’est transmis : tu notes que c’est fait.'}</span></span>${declaree ? '' : `<span class="cmpt-b"><button type="button" class="btn gris petit" data-cmpt="impots">Ouvrir mon espace impôts</button>${peutDeposer ? `<button type="button" class="btn petit" data-a="tva-declarer" data-k="${ym}">Je l’ai déposée</button>` : `<button type="button" class="btn petit" data-a="tva-complement" data-k="${ym}">Compléter l’écriture</button>`}</span>`}</div>
-      <div class="etape"><span class="rond">3</span><span class="txt"><b>Payée</b><span class="mute petit">Le prélèvement de ${eur(T.due)} part le ${prels} : il sera reconnu tout seul sur le relevé de la banque, et la TVA notée payée.</span></span></div></div>
+      <div class="etape"><span class="rond">3</span><span class="txt"><b>${tvaDit(T).credit ? 'Rien à payer' : 'Payée'}</b><span class="mute petit">${tvaDit(T).credit ? 'Aucun prélèvement : le crédit de TVA se reporte sur le mois suivant.' : `Le prélèvement de ${eur(T.due)} part le ${prels} : il sera reconnu tout seul sur le relevé de la banque, et la TVA notée payée.`}</span></span></div></div>
     <div class="cmpt-outils" style="margin-top:12px"><label class="cmpt-bascule"><input type="checkbox" data-cmpt="rappel" ${CMPT.rappelTva ? 'checked' : ''}> <span>Rappel : un message le 16/11 (sept jours avant) puis le 22/11</span></label><button type="button" class="btn gris" data-cmpt="treso-tva">Voir l’effet sur ma trésorerie</button></div>
-    ${prec.length ? `<p class="mute petit" style="margin:12px 0 0"><b>Mois précédents :</b> ${prec.map(([m, d]) => `${MOIS_C[+m.slice(5) - 1]} ${eur(d.l.due)}${d.paye ? ' payée le ' + dCourt(d.paye) : ''}`).join(' · ')}</p>` : ''}</div>`;
+    ${prec.length ? `<p class="mute petit" style="margin:12px 0 0"><b>Mois précédents :</b> ${prec.map(([m, d]) => `${MOIS_C[+m.slice(5) - 1]} ${tvaDit(d.l).credit ? 'crédit ' : ''}${tvaDit(d.l).eur}${d.paye ? ' payée le ' + dCourt(d.paye) : ''}`).join(' · ')}</p>` : ''}</div>`;
   return h.slice(0, k) + frise + h.slice(k);
 };
 
@@ -3744,9 +3753,37 @@ function oplSync(P, init){
     if (rec && s.relances > (rec.relances || 0)) { rec.relances = s.relances; rec.relanceLe = dCourt(AUJ).slice(0, 5); n++; }
     { const cible = s.paye ? F.ttc : s.recu; if (oplTotalPaye(s.num) > cible + .004 && oplDefaire(s.num, cible)) { n++; F = factureDe(s.num); } }   // l'application a annulé un paiement : on le défait avant de comparer
     if (!F.lettree && s.pay) { const vise = s.paye ? F.ttc : s.recu, deja = oplRecu(s.num); if (vise > deja + .004 && oplEncaisser(s.num, vise - deja, s.pay.mode, s.pay.d)) n++; }
-  }); } finally { OPL_EN_COURS = false; }
+  }); n += oplRecusSync(P); } finally { OPL_EN_COURS = false; }
   if (n && !init) { try { rendre(); } catch (e) {} }
 }
+/* ── L'ARGENT REÇU SUR PLACE, AVANT FACTURE (« Reçu I6 ») · 18 novembre 2026 ──
+   Un technicien note qu'il a reçu 40 € en espèces sur une intervention terminée dont la facture n'est pas encore partie. L'application le compte (« reçu en octobre »,
+   TVA collectée) ; le cadre l'ignorait : 3,65 € de TVA collectée en moins. Même chemin que les autres encaissements d'ici (`encaisserTerrain`) : l'argent entre dans
+   la caisse (530000) ou la tuile de son moyen (carte, chèque, banque), la TVA est collectée À L'ENCAISSEMENT (une prestation), et comme aucune facture n'existe
+   encore, le reste est un ACOMPTE du client (419100), pas un chiffre d'affaires : le produit naît avec la facture. Quand la facture part, le reçu quitte la liste de
+   l'application : on contrepasse l'écriture, et l'encaissement revient par la facture, au même montant. 530000 reste la caisse du bureau : il n'y a pas de compte de caisse
+   « chez le technicien » dans ce cadre — c'est déjà ainsi que `encaisserTerrain` range les espèces d'une intervention. */
+function oplRecusOk(r){
+  return r && typeof r === 'object' && /^[A-Za-z0-9_-]{1,40}$/.test(r.id || '') && oplISO(r.d) && Number.isFinite(+r.ttc) && +r.ttc > 0 && +r.ttc < 1e6 && Number.isFinite(+r.tva) && +r.tva >= 0 && +r.tva <= 100;
+}
+const oplRecuCle = r => r.id + '|' + r2(+r.ttc) + '|' + oplMode(r.mode) + '|' + r.d;
+function oplRecusSync(P){
+  const R = (Array.isArray(P.recus) ? P.recus : []).filter(oplRecusOk), voulus = new Set(R.map(oplRecuCle)); let n = 0;
+  E.filter(e => e.recuSP && !e.contrePar && e.etat !== 'supprimee' && !voulus.has(e.recuSP)).forEach(e => {   // facturé, annulé ou corrigé depuis : l'écriture s'en va
+    const c = contrepasser(e, AUJ); valider(c); n++;
+    const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (k >= 0) { RELEVE.splice(k, 1); RELEVE.forEach((x, i) => { x.id = 'R' + (i + 1); }); }
+    fil('OP GESTION', 'Argent reçu sur place repris · ' + e.piece + ' · ' + eur(r2(e.lignes[0].d)), 'La facture est partie depuis OP GESTION : elle reprend cet argent. L’écriture d’origine reste, avec son écriture inverse ; le paiement revient avec la facture.', [c.id], 'encaissement'); });
+  R.forEach(r => { const cle = oplRecuCle(r); if (E.some(e => e.recuSP === cle && !e.contrePar && e.etat !== 'supprimee')) return;
+    const mode = oplMode(r.mode), ttc = r2(+r.ttc), tva = r2(ttc - ttc / (1 + (+r.tva) / 100)), ht = r2(ttc - tva), d = r.d > AUJ ? AUJ : r.d, qui = String(r.nom || 'Client').slice(0, 80), piece = String(r.num || 'Reçu').slice(0, 40);
+    const tres = { carte:'467100', chq:'511200', esp:'530000', vir:'512000' }[mode], j = { carte:'PS', chq:'BQ', esp:'CA', vir:'BQ' }[mode];
+    const e = ecr({ j, date:d, piece, lib:({ carte:'Paiement par carte reçu sur place · ', chq:'Chèque reçu sur place · ', esp:'Espèces reçues sur place · ', vir:'Virement noté sur place · ' }[mode]) + qui, orig:mode === 'carte' ? 'carte' : mode === 'esp' ? 'caisse' : 'banque', etat:'brouillard', pj:null, par:'OP GESTION (encaissement sur place)',
+      l:[[tres, null, ttc, 0], ['419100', null, 0, ht, 'Acompte reçu · ' + piece + ' · ' + qui], tva > 0 && ['445710', null, 0, tva, 'TVA collectée · ' + piece, { taux:+r.tva, base:ht }]] });
+    if (valider(e)) { e.etat = 'supprimee'; return; } e.opl = true; e.recuSP = cle; n++;
+    if (mode === 'vir') RELEVE.push({ id:'R' + (RELEVE.length + 1), date:d, lib:'VIR SEPA ' + qui.toUpperCase() + ' ' + piece, m:ttc, pointe:ref(e, 0) });
+    fil('OP GESTION', 'Argent reçu sur place · ' + piece + ' · ' + qui + ' · ' + eur(ttc), 'Un technicien a reçu cet argent sur place, avant la facture : il entre en comptabilité comme un acompte, et la TVA (' + eur(tva) + ') est due ce mois-ci, puisque le client a payé.', [e.id], 'encaissement'); });
+  return n;
+}
+
 /* une facture ENVOYÉE puis annulée par un avoir (OP GESTION) : la facture et l'avoir se rapprochent sur le compte du client (lettrage), le client ne doit plus rien et aucun paiement
    n'a eu lieu. Sans ça, la facture restait « à encaisser » ici pendant que l'application disait « plus rien à recevoir » (compta-ventes-06). */
 function oplAnnuler(s, S, F){

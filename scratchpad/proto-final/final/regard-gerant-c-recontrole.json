@@ -77,5 +77,23 @@
   16,
   17,
   18
- ]
+ ],
+ "tour3": {
+  "date": "2026-11-18",
+  "sonde_rejouee": "regard-gerant-c.js EN ENTIER, code final : 245 ✓ · 0 ✗, code de sortie 0",
+  "mutations": "1 à 29 : 29 sur 29 tombent (1 à 14 en un lot, 15 à 29 en un second après réécriture du motif de la 15, que la correction du bouton avait déplacé)",
+  "reparees": "6 : le contrôle mesurait la boîte du <h3>, pas son texte (nowrap fait sortir le texte de sa boîte) — il lit maintenant le texte ; 7 et 11 : réécrites pour défaire les DEUX règles qui gardent le même défaut (plafond + grille ; nowrap + colonne max-content)",
+  "nouveaux": [
+   19,
+   20,
+   21,
+   22
+  ],
+  "non_regarde": "mac et windows nuit, android/iphone jour non recapturés après les corrections de ce tour (corrections vérifiées par la sonde et par captures petit/android nuit) ; sm et kb : rubriques fermées",
+  "laisses": [
+   "Stock › Ranger › « Un achat au comptoir » : le segmenté passe sur trois lignes à 320 px (lisible, rien de coupé) — à soumettre à Justin",
+   "Compter un lieu à 320 px : le pied de la feuille (phrase + deux boutons empilés) prend ~155 px sur 568 — lisible, à soumettre",
+   "Fiche fournisseur : « Choisir l'heure » sur deux lignes à 820 px (iPad) — lisible, laissé"
+  ]
+ }
 }
