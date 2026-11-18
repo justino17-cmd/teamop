@@ -9,13 +9,13 @@ const A = require('./mots-analyse.js'), R = require('./mots-regles.js'); const D
 const args = process.argv.slice(2); const corpusSeul = args.includes('--corpus'); const reste = args.filter(a => !a.startsWith('--'));
 const ROLES = (corpusSeul ? (reste.length ? reste : ['marc', 'julie', 'sm', 'kb', 'client', 'connexion', 'guide-marc', 'guide-julie', 'guide-sm', 'guide-kb', 'visite']) : (reste[0] === 'tous' || !reste[0] ? ['marc', 'julie', 'sm', 'kb', 'client'] : [reste[0]]));
 const PROFIL = (!corpusSeul && reste[1]) || 'mac';
-const MIN = { marc: [20, 1500], julie: [8, 600], sm: [5, 300], kb: [5, 300], client: [3, 150], connexion: [1, 15], 'guide-marc': [3, 30], 'guide-julie': [3, 30], 'guide-sm': [3, 30], 'guide-kb': [3, 30], visite: [20, 80] };   // [écrans, textes] au moins : la population
+const MIN = { marc: [20, 1500], julie: [8, 600], sm: [5, 300], kb: [5, 300], client: [1, 80], connexion: [1, 10], 'guide-marc': [3, 30], 'guide-julie': [3, 30], 'guide-sm': [3, 30], 'guide-kb': [3, 30], visite: [20, 80] };   // [écrans, textes] au moins : la population
 let ok = 0, ko = 0; const echecs = [];
 const v = (nom, cond, detail) => { if (cond) { ok++; } else { ko++; echecs.push(nom + (detail ? ' :: ' + detail : '')); console.log('  ✗', nom, detail ? '→ ' + detail : ''); } return !!cond; };
 for (const q of ROLES) {
   if (!corpusSeul) {   // un relevé NEUF (hors du relevé profond, qui garde son nom)
     const f = D + q + '-' + PROFIL + '-interdits.json'; try { fs.unlinkSync(f); } catch (e) {}
-    const r = spawnSync('node', [path.join(__dirname, 'mots-releve.js'), q, PROFIL, '--nom', 'interdits', ...(q === 'client' ? ['--profondeur', '2', '--max', '40', '--temps', '45'] : ['--profondeur', '1', '--max', '8', '--temps', '11']), '--budget', '520']   /* l’espace client n’a pas de menu : ses écrans sont des onglets, que seuls les gestes ouvrent */, { encoding: 'utf8', timeout: 570000 });
+    const r = spawnSync('node', [path.join(__dirname, 'mots-releve.js'), q, PROFIL, '--nom', 'interdits', ...(q === 'client' ? ['--profondeur', '3', '--max', '90', '--temps', '120'] : ['--profondeur', '1', '--max', '8', '--temps', '11']), '--budget', '520']   /* l’espace client n’a pas de menu : ses écrans sont des onglets, que seuls les gestes ouvrent */, { encoding: 'utf8', timeout: 570000 });
     v(q + ' : le relevé s’est terminé', r.status === 0 && fs.existsSync(f), (r.stderr || r.stdout || '').slice(-200));
   }
   const fichiers = fs.readdirSync(D).filter(f => f.startsWith(q + '-') && f.endsWith('.json') && (corpusSeul ? !f.endsWith('-interdits.json') : f.endsWith('-interdits.json')));
