@@ -26378,6 +26378,8 @@ const SECU_VUES = { fiches:['paie-fiches', 'paiemois'], salaries:['paie-fiches',
 const SECU_VUE = { invite:null, affiche:null };
 const secuVueOuverte = o => { if (!SECU_VUES[o] || !secuMasqueActif()) return true; const k = secuQui(); return !!k && secuFenetreValide(k); };
 function secuVueVerrou(o){ const cle = SECU_VUES[o][0], phrase = secuPhrase(cle, { v:o });
+  /* sur un téléphone la carte tombe sous les deux rangées d'onglets, derrière la barre du bas : on l'amène dans l'écran (sans mouvement si la personne a demandé moins d'animations) */
+  setTimeout(() => { const z = document.querySelector('[data-secvue]'); if (z && z.getBoundingClientRect().bottom > innerHeight - 100) z.scrollIntoView({ block:'center', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }, 80);
   if (SECU_VUE.invite !== o && !SECU.conf) { SECU_VUE.invite = o; setTimeout(() => { if (route === 'comptabilite' && CP.onglet === o && !SECU.conf && !secuVueOuverte(o)) secuGarde(cle, () => rendre(), { v:o }); }, 0); }
   return `<div class="carte sec-verrou" data-secvue="${o}"><h2>Une confirmation est nécessaire</h2><p>Pour ${esc(phrase)}, OP GESTION vérifie que c’est bien toi, avec ton téléphone. Rien n’est affiché avant.</p>
     <div class="actions"><button type="button" class="btn" data-secv="confirmer|${o}">Confirmer sur mon téléphone</button><button type="button" class="btn gris" data-secv="retour|${o}">Revenir en arrière</button></div></div>`; }
