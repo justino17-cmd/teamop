@@ -1,0 +1,16 @@
+[
+ {
+  "nom": "contrats",
+  "defaut": "Prix en centimes : l'aperçu dit 1,01 € pour « 1.005 » et le contrat était rangé à 1,00 € (Math.round(1.005 * 100) tombe à 100)",
+  "etat": "corrigé",
+  "changement": "Nouvelle fonction ctrCentimes(x) (à côté de ctrTTC) : un prix écrit en chiffres et point décimal s'arrondit par la forme décimale (Number(Math.round(Number(t + 'e2')) + 'e-2'), la même lecture que eur()), tout autre forme garde l'ancien arrondi. Elle sert aux DEUX endroits : le prix minimum de 1 € exigé à la création et le prix rangé dans le contrat.",
+  "preuve": "restes-contrats-2-recontrole.js : 42 ✓ · 0 ✗ sur mac et petit nuit (avant : 41 ✓ · 1 ✗ — « prix 1.005 : l'aperçu dit 1.01, le rangé 1 ») ; sondes du tour 1 rejouées (57 ✓, 31 ✓, 10 ✓) ; mutation C23 (retirer la forme décimale) mord ; C21 mise à jour sur le nouveau texte, mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Fiche d'un contrat à 320 px : la carte « Facturation » écrase ses libellés quand le prix a cinq chiffres ou plus (« 1 028,81 € HT à chaque visite » sur 4 lignes dans 93 px)",
+  "etat": "corrigé",
+  "changement": "Les deux lignes de la carte portent la classe ctr-fact : flex-wrap:wrap, libellé en flex:1 1 9em (min-width:0), montant poussé à droite ; quand le montant ne tient pas à côté, il passe SOUS le libellé (même parade que .ctr-vl, la carte des visites). Aucun changement quand tout tient (ordinateur inchangé, capture regardée).",
+  "preuve": "restes-contrats-2-recontrole-facturation.js : petit nuit 17 ✓ · 0 ✗, petit 17 ✓ · 0 ✗, iphone 17 ✓ · 0 ✗, mac 17 ✓ · 0 ✗ (avant : petit 13 ✓ · 4 ✗) ; restes-contrats-2-recontrole-visites.js petit et iphone nuit 7 ✓ · 0 ✗ (le « texte écrasé » qui tombait sur la carte Facturation est réglé) ; captures regardées : facturation-visite-12345.67-petit-nuit.png, facturation-an-123456.78-petit-jour.png, facturation-mois-12345.67-mac-jour.png (libellé sur une ligne, montant dessous à droite, rien ne dépasse) ; mutation C24 (retirer le wrap) mord"
+ }
+]

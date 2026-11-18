@@ -1,0 +1,121 @@
+[
+ {
+  "nom": "technicien-02 : 1re intervention à 320 × 568 avec un message du bureau (40 px visibles)",
+  "defaut": "À 320 × 568, journée non commencée et message non lu, la 1re intervention commençait à 40 px au-dessus de la barre du bas.",
+  "etat": "corrigé",
+  "changement": "983d82e0 : la carte « Le camion » passe après la liste « Il manque à bord » sur Mon camion et la phrase « Il est 10:40… » est masquée sur 320 × 568 (Ma journée) ; la 1re intervention montre maintenant 83 px à 320 (232 px sur iPhone).",
+  "preuve": "restes-technicien-3.js (I) petit jour et nuit 27 ✓·0 ✗, iphone 27 ✓ ; technicien-mise-en-page petit/iphone/android jour+nuit 198 ✓·0 ✗ ; mutation M9 tombe. Capture camion-petit lue."
+ },
+ {
+  "nom": "Mes frais : « 12 € », « 12,5 € », « 12, » refusés avec « Indique le montant payé. »",
+  "defaut": "Casse du commit e411402f (cxNum ne retirait pas « € »).",
+  "etat": "corrigé",
+  "changement": "c6250a3a : montant lu sans habillage (« € », « euro(s) », virgule finale) dans Mes frais ET dans l'achat en magasin ; phrase juste de cxMontantRefus quand le champ ne se lit pas.",
+  "preuve": "restes-technicien-3.js (C) 6 cas verts sur iphone, ipad, petit ; technicien-parcours-frais 27 ✓·0 ✗ ; mutation M5 tombe (3 ✗)."
+ },
+ {
+  "nom": "Pastille « autres dates » ovale (32 × 28) et titre décalé de 6 px",
+  "defaut": "La classe .info de la feuille (encadré d'information) s'appliquait à la pastille.",
+  "etat": "corrigé",
+  "changement": "c6250a3a : .a-dec-i.info{padding:0;border:0} (pastille ronde 26 × 26, titre au même x que validé et refusé, aussi sur la tâche confiée).",
+  "preuve": "restes-technicien-recontrole-alignement.js 3 ✓·0 ✗, restes-technicien-recontrole-avis.js 8 ✓·0 ✗ (contrastes jour et nuit) ; mutation M1 tombe."
+ },
+ {
+  "nom": "iPad : une adresse sans espace dans un message du bureau fait glisser la page (1 218 px pour 820)",
+  "defaut": "La carte « Messages du bureau » n'avait pas d'overflow-wrap.",
+  "etat": "corrigé",
+  "changement": "c6250a3a : min-width:0 et overflow-wrap:anywhere sur le texte des messages (Ma journée).",
+  "preuve": "restes-technicien-recontrole-mot.js 2 ✓·0 ✗ (ipad, iphone, petit, mac) ; mutation M2 tombe."
+ },
+ {
+  "nom": "technicien-05 : UN mot, « manque(nt) à bord » (décision du chef, 12 h 05)",
+  "defaut": "« à remettre à bord » restait sur Ma journée et dans Véhicules.",
+  "etat": "corrigé",
+  "changement": "983d82e0 : « 3 articles manquent à bord » partout, sondes mises à jour (0 occurrence de « à remettre à bord » dans la page).",
+  "preuve": "restes-technicien-3.js (D) ; vehtemps-v5-camion et -visites rejouées au tour 1 ; mutation M8 tombe."
+ },
+ {
+  "nom": "technicien-11 : « Je l'ai pris » sans réseau disait « Envoyé au bureau »",
+  "defaut": "matPrendre n'avait aucune garde sans réseau, contrairement à matEnvoyer.",
+  "etat": "corrigé",
+  "changement": "983d82e0 : sans réseau la prise attend dans MAT.file, toast « Pas de réseau : ton envoi partira dès que ça revient », jamais deux fois la même pièce ; « J'ai tout pris » de même.",
+  "preuve": "restes-technicien-3.js (E) iphone 27 ✓·0 ✗ ; mutation M3 tombe (3 ✗)."
+ },
+ {
+  "nom": "technicien-12 : « Nettoyant échangeur (0,5 L) » se coupe entre « (0,5 » et « L) »",
+  "defaut": "Espace ordinaire entre le nombre et l'unité.",
+  "etat": "corrigé",
+  "changement": "983d82e0 : escN (espace insécable avant l'unité, à l'affichage seulement) dans Mon camion, Stock et Articles ; la donnée et la recherche ne changent pas. Aujourd'hui : la sonde ne compte plus ce qui est en nowrap (« 4 kg » à droite d'une ligne de Stock ne peut pas se couper), elle comptait trois faux défauts.",
+  "preuve": "restes-technicien-3.js (F) tous profils verts ; mutation M7 tombe."
+ },
+ {
+  "nom": "technicien-13 : à 320 px la 1re pièce de « Il manque à bord » est sous la barre",
+  "defaut": "Capture camion-petit-jour : première ligne à 539 px pour une barre à 488.",
+  "etat": "corrigé",
+  "changement": "983d82e0 : la carte « Il manque à bord » passe avant « Le camion » à 320 × 568.",
+  "preuve": "restes-technicien-3.js (G) petit 27 ✓ ; mutation M4 tombe. Capture camion-petit-jour et nuit REGARDÉES : titre, « J'ai tout pris · 3 » et la 1re pièce au-dessus de la barre."
+ },
+ {
+  "nom": "technicien-14 : invite « Chercher un article, une référence, un fournisseur » coupée",
+  "defaut": "378 px de texte pour 332 / 302 / 262 px de champ.",
+  "etat": "corrigé",
+  "changement": "983d82e0 (téléphone) puis c021eb16 (iPad : la même invite de 378 px dans 363 px de champ ; l'invite courte vaut sous 1 000 px de large, comme celle de Stock).",
+  "preuve": "restes-technicien-3.js (H) ipad jour 25 ✓·0 ✗, mac720 27 ✓, mac 25 ✓ ; mutation M6 (remise à l'envers sur iPad) tombe. Capture articles-ipad-nuit regardée."
+ },
+ {
+  "nom": "« Sophie Martin · RTT » (absence d'un jour, Mes congés) à 320 px : zone qui répond 38 × 66",
+  "defaut": "Décision du chef du 17/11, 12 h 30 : c'est une vraie cible, elle passe à 44 px au doigt (décision b écarte seulement les CASES d'un jour).",
+  "etat": "corrigé",
+  "changement": "c021eb16 : sous (pointer:coarse), une absence d'UN jour du mois répond sur 3 px de plus de chaque côté (pseudo-élément, overflow visible ; le libellé reste coupé par .ac-bl). Les cases vides voisines restent de l'information.",
+  "preuve": "technicien-mise-en-page.js : 196 ✓·2 ✗ avant, 198 ✓·0 ✗ après (petit, iphone, android, jour et nuit) ; mutation M10 tombe (1 ✗). Capture conges-petit jour et nuit regardées : rien n'a bougé à l'œil."
+ },
+ {
+  "nom": "materiel-camion.js ✗ « sans intervention : … entre dans le panier avec « Demandé par Sophie » »",
+  "defaut": "Rouge depuis 6f320b6d (Matériel).",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé (voie Matériel). Mesuré ici : l'article choisi par la sonde est à l'atelier en quantité (5 pour une demande de 1) ; depuis 6f320b6d « l'atelier couvre toute la demande : rien à acheter, un transfert suffit », donc aucune ligne de panier (ligne:false). Le comportement est voulu ; c'est la sonde qui est périmée (elle doit choisir un article absent de l'atelier pour ce second cas, ou attendre « 1 u est déjà à l'atelier » au lieu d'une ligne).",
+  "preuve": "materiel-camion.js 70 ✓·1 ✗ rejoué avec le détail de la demande (nbd 5, at 5, ligne false)."
+ },
+ {
+  "nom": "Doute : la fiche client ouverte depuis un nom montre-t-elle les passages des collègues à un technicien ? Karim (chef d'équipe) n'a-t-il que les six écrans de Sophie ?",
+  "defaut": "Héritée du correcteur, non tranchée.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun changement : décision de produit (droits d'un technicien et d'un chef d'équipe).",
+  "preuve": "—"
+ },
+ {
+  "nom": "technicien-08 : l'unité « u » reste",
+  "defaut": "Décision du chef (12 h 05).",
+  "etat": "déjà décidé",
+  "changement": "Aucun : « u » est l'unité de la vraie application et d'une facture. À dire à Justin dans la liste des doutes.",
+  "preuve": "—"
+ },
+ {
+  "nom": "technicien-09 : cases d'un jour à 320 px (38 × 66) ; Retour qui ferme la fenêtre ET quitte l'écran",
+  "defaut": "Décisions (a) et (b).",
+  "etat": "déjà décidé",
+  "changement": "Aucun (voie « retour » ; cases d'information).",
+  "preuve": "—"
+ },
+ {
+  "nom": "Hérité : « Réessayer » et « Fermer » du cadre des documents comptés recouverts par une sonde sur iPhone",
+  "defaut": "Voie du compositeur, machine chargée.",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : hors périmètre technicien (cadre des documents) ; capture de Ma journée propre.",
+  "preuve": "—"
+ },
+ {
+  "nom": "Doute : la puce « N messages du bureau › » s'affiche aussi sur ordinateur",
+  "defaut": "Les messages y sont déjà visibles sous les interventions.",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : gardée pour que l'écran soit le même partout (décision de produit).",
+  "preuve": "restes-technicien-recontrole-puce.js 11 ✓·0 ✗."
+ },
+ {
+  "nom": "Non vérifié ici",
+  "defaut": "Lecteur d'écran réel (VoiceOver, TalkBack), Windows au doigt, vrai iPhone avec la police système (les captures utilisent la police de remplacement du navigateur).",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun.",
+  "preuve": "—"
+ }
+]

@@ -1,0 +1,65 @@
+[
+ {
+  "nom": "planning",
+  "defaut": "La note du bandeau compte « Non assigné » comme une personne (« 4 sur 5 » pour 4 personnes dont une masquée)",
+  "etat": "corrigé",
+  "changement": "kpiPhrase() (apercu/prototype-op-gestion.html) : « N sur M » ne compte que les personnes (TECHS avec identifiant) ; la colonne « Non assigné » masquée se dit à part (« sans la colonne « Non assigné » ») ; le titre de la période en Sur mesure compte aussi des personnes. UNE phrase lue par la note sous les tuiles ET par le panneau qu'elles ouvrent.",
+  "preuve": "campagne/sondes/restes-planning-3.js T1 : mac 23 ✓ · 0 ✗ (T1+T2), iphone/android/petit nuit 71 ✓ · 0 ✗ ; mutation M1 (recompter la colonne) tombe : 7 ✓ · 5 ✗ ; captures T1-une-personne-* relues (mac, iphone, android, petit, nuit)"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Sur mesure, une personne écartée UN JOUR : « seulement les personnes affichées (5 sur 5) »",
+  "etat": "corrigé",
+  "changement": "Même fonction : une personne écartée certains jours est nommée avec le jour (« sans Sophie le dimanche 1er novembre », « sans Sophie 3 jours » au-delà) ; jamais un compte complet à côté du mot « seulement » ; « Tout afficher » lève aussi les jours écartés.",
+  "preuve": "restes-planning-3.js T2 (9 contrôles : un jour, trois jours, une masquée + une autre écartée, tuile = cartes dessinées) ; mutation M2 tombe : 7 ✓ · 3 ✗ ; captures T2-un-jour-* relues"
+ },
+ {
+  "nom": "planning",
+  "defaut": "iPad portrait (768 à 890 px) : la vue « Carte » hors de vue à droite du sélecteur",
+  "etat": "corrigé",
+  "changement": "Déjà posé par le commit 0dbf8a154 (17/11) : sous 900 px le sélecteur de vues passe sur deux rangées de trois (flex-wrap, flex 1 1 30 %), rien ne défile ; vérifié et gardé ce tour.",
+  "preuve": "restes-planning-3.js T3 sur ipad : 82 ✓ · 0 ✗ (8 largeurs 768 à 1024 × 5 vues : six boutons dans le cadre, l'actif aussi, aucun libellé coupé, page qui ne glisse pas) ; mutation M3 tombe : 57 ✓ · 25 ✗ ; captures T3-selecteur-768/820/890 relues"
+ },
+ {
+  "nom": "planning",
+  "defaut": "En-tête du Planning de 320 à 420 px : « ＋ Nouvelle intervention » touche ou dépasse son bouton",
+  "etat": "corrigé",
+  "changement": "Rangée flex-wrap, boutons à min-width:max-content : côte à côte tant que les deux libellés tiennent sur une ligne (dès 360 px, police 13 px, marges 7 px), sinon l'un sous l'autre sur toute la largeur (320 à 345 px) ; jamais deux lignes dans un bouton.",
+  "preuve": "restes-planning-3.js T4 : iphone, android, petit (nuit) 71 ✓ · 0 ✗ chacun (12 largeurs 320 à 430 × jour et carte, marge de texte ≥ 6 px) ; mutation M4 tombe : 38 ✓ · 12 ✗ ; captures T4-entete-320/360/390/420-nuit relues"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Sondes du tour 2 (restes-planning-2.js, restes-planning-2-recontrole.js) qui exigeaient l'ancien texte « (4 sur 5) » / « seulement… » en Sur mesure",
+  "etat": "corrigé",
+  "changement": "Mises à jour pour la phrase décidée (tour 3) ; les deux casses du tour 2 qu'elles gardaient rouges sont maintenant vertes.",
+  "preuve": "restes-planning-2.js mac 53 ✓ · 0 ✗ ; restes-planning-2-recontrole.js mac B 263 ✓ · 0 ✗"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Première page du téléphone : l'emploi du temps n'est pas au premier regard (carte « tâches pour toi », aide avant la grille) ; la Carte démarre sous le pli",
+  "etat": "déjà décidé",
+  "changement": "Décision (l) : on ne change rien, gardé à soumettre à Justin.",
+  "preuve": "REPRISE.md, décisions du chef"
+ },
+ {
+  "nom": "planning",
+  "defaut": "« Ordre proposé » absent ; vue Mois « 216 interventions » (passé généré + prévu) ; Vue d'ensemble à 320 px ; 11 communes seulement ; client hors liste placé au dépôt",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : décisions de contenu, déjà soumises aux tours 1 et 2.",
+  "preuve": "restes-planning-tour2-recontrole.json (pasRegles, doutes)"
+ },
+ {
+  "nom": "planning",
+  "defaut": "Bulles de trajet sur téléphone de 320 à 360 px (peu ou pas de bulle)",
+  "etat": "à soumettre à Justin",
+  "changement": "Rien changé : le temps de route est dit dans la fiche de l'étape, aucune bulle ne recouvre un repère ni un bouton (mesuré au tour 2).",
+  "preuve": "restes-planning-tour2-recontrole.json"
+ },
+ {
+  "nom": "planning",
+  "defaut": "communeDe choisit la première commune de la liste après le code postal (« 17180 Périgny, La Rochelle » rend La Rochelle) ; #planning gardé dans l'adresse pour un rôle sans droit",
+  "etat": "à soumettre à Justin",
+  "changement": "Doutes du tour 2, sans conséquence visible ; rien changé.",
+  "preuve": "restes-planning-tour2-recontrole.json (doutes)"
+ }
+]
