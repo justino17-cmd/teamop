@@ -217,7 +217,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       large). · **tout-11** : après « Facture envoyée toute seule » et « Notes de frais », la barre « Retour · Mon entreprise » reste
       visible. · La fiche « Droits » ne glisse plus de côté à 360 et 320 px (bloc « Mot de passe provisoire »). · Les deux sondes
       périmées (menu avec « Sécurité », sept champs) se mettent à jour sans affaiblir leur contrôle.
-- [ ] **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
+- [x] (restes technicien, tour 2 : technicien-05, 11, 12, 13, 14 corrigés, 08 sans changement — 983d82e0, c021eb16 ; `final/restes-technicien-tour2.json`) **Matériel — décisions du chef du 17/11, 12 h 05 (materiel, vehtemps, technicien)** : · **technicien-05** : UN seul mot pour
       les pièces qui ne sont pas dans le camion : « manque à bord » (« Il manque à bord · 3 » sur Mon camion, « 3 articles manquent
       à bord » sur Ma journée et dans Véhicules) ; « à remettre à bord » disparaît partout, sondes et spécification de Véhicules
       comprises (la sonde vehtemps-v5-camion se met à jour, elle ne décide pas du mot). · **technicien-08** : l'unité « u » RESTE
