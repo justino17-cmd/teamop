@@ -1,0 +1,42 @@
+{
+  "noms": ["technicien"],
+  "regles": [
+    "« 5.000 € », « 1.500 », « 1,500 » (Mes frais) : refusés avec « n'est pas clair : écris 5000 (sans point) ou 5,00 (avec la virgule) », rien n'est enregistré — tenu sur iphone jour/nuit, ipad jour/nuit, android, mac jour/nuit, petit (320) nuit ; mutations : porte ignorée (8 contrôles tombent) et phrase muette (7 tombent)",
+    "même refus à la porte « J'ai acheté » (achat en magasin) — tenu iphone jour, petit nuit ; mutations : porte ignorée (4 tombent), phrase muette (4 tombent) ; les montants justes passent toujours (« 12 € », « 12,50 », « 1 234,50 », « 1 500 », « 1.234,56 »), et « 0 » et « abc » sont refusés avec une phrase",
+    "invite de recherche d'Articles (gérant) et de Stock (gérant) : suit la rotation dans les DEUX sens sur iPad (1180×820 ↔ 820×1180), iPhone (844×390 ↔ 390×844) et Android (915×412 ↔ 412×915), tient dans le champ à chaque taille, et la valeur tapée (« gant ») survit à la rotation ; mutation : écouteur resize retiré (4 tombent sur iPad)",
+    "Mon camion hors réseau, « 12 € », « Ma journée », puces, avis, alignement : sondes restes-technicien-1, -2, -3, recontrole, -mot, -puce, -avis, -alignement à zéro ✗ sur iphone jour et ipad nuit"
+  ],
+  "pasRegles": [
+    {
+      "nom": "Mon camion hors réseau : la ligne garde « Je l'ai pris » et le compteur ne bouge pas (seul un toast de 2,5 s le dit)",
+      "defaut": "Pas de perte de données (la file part au retour du réseau, « Mes envois » le dit), mais la ligne elle-même ne change pas.",
+      "constat": "à soumettre à Justin : décision d'affichage (la ligne passerait à « Part dès que le réseau revient »). Non rejoué ici, non modifié."
+    },
+    {
+      "nom": "« 12 €. » (point final après le signe) refusé avec « Ce montant ne se lit pas »",
+      "defaut": "Rien d'enregistré, une phrase est dite ; sans gravité.",
+      "constat": "à soumettre à Justin : accepter ou garder la phrase."
+    }
+  ],
+  "casses": [],
+  "nouveaux": [
+    {
+      "titre": "Mes frais, « Kilomètres avec mon véhicule » : « 1.500 » et « 1,500 » sont lus 1,5 km en silence",
+      "gravite": "faible (la phrase de confirmation dit « 1,5 km, 0,90 € » : une personne attentive voit l'erreur, mais la note part au bureau)",
+      "etapes": "Mes frais > Nouvelle note de frais > nature « Kilomètres avec mon véhicule » > kilomètres « 1.500 » (puissance 5 CV) > Envoyer au bureau.",
+      "constat": "Une note de 1,5 km à 0,90 € est créée (toast « Note envoyée : 1,5 km, 0,90 €. Pas de ticket à joindre. »), alors que la même ambiguïté sur un montant (« 5.000 ») est désormais refusée, et que le tarif au kilomètre (« 1.500 ») l'est aussi. Mesuré identique sur iphone, ipad, mac, petit (jour et nuit). Cause : axNdfEnvoyer ne passe pas les kilomètres (axNum de « rn-km ») par la phrase de cxMontantRefus (la correction du tour 3 se limite à `!km`). Capture : cap/restes-technicien-recontrole-3/km-1_500-android-jour.png. Piste : refuser « 1.500 » et « 1,500 » avec la même phrase (« écris 1500 ou 1,5 »), « 1 500 » et « 12,5 » restant lus. Non corrigé : ce recontrôle ne modifie aucune page."
+    }
+  ],
+  "sondes": [
+    { "fichier": "scratchpad/proto-final/campagne/sondes/restes-technicien-recontrole-3.js (neuve : montants Mes frais + achat en magasin, kilomètres, rotation Stock/Articles)", "resultat": "iphone jour 39 ✓ · 2 ✗ ; petit nuit 30 ✓ · 2 ✗ ; ipad nuit 31 ✓ · 2 ✗ ; mac jour 22 ✓ · 2 ✗ ; les 2 ✗ de chaque profil sont le défaut « 1.500 km » ci-dessus, aucun autre" },
+    { "fichier": "campagne/sondes/restes-technicien-recontrole-2.js", "resultat": "iphone jour 34 ✓ · 0 ✗, iphone nuit 34 ✓ · 0 ✗, ipad jour 36 ✓ · 0 ✗" },
+    { "fichier": "campagne/sondes/restes-technicien-3.js", "resultat": "iphone jour 27 ✓ · 0 ✗, android nuit 27 ✓ · 0 ✗, petit jour 27 ✓ · 0 ✗, ipad nuit 25 ✓ · 0 ✗" },
+    { "fichier": "campagne/sondes/restes-technicien-recontrole.js / -mot / -puce / -avis / -alignement / restes-technicien-1 / -2", "resultat": "67 ✓·0 ✗ ; 2 ✓·0 ✗ ; 11 ✓·0 ✗ ; 8 ✓·0 ✗ ; 3 ✓·0 ✗ ; 12 ✓·0 ✗ ; 15 ✓·0 ✗ — iphone jour ET ipad nuit" },
+    { "fichier": "campagne/sondes/restes-technicien-recontrole-menu.js", "resultat": "iphone jour 20 ✓·0 ✗ ; ipad jour ET nuit : « population : le tiroir est ouvert » tombe (3 ✗), cause = la sonde cherche un bouton « Menu » alors que le menu est permanent sur iPad : « Nouveautés » et « Se déconnecter » sont visibles (nv 1006-1050, déconnexion 1122-1166 sur 1180). Sonde à corriger, pas une page." }
+  ],
+  "doutes": [
+    "Les deux « à soumettre » du correcteur (camion hors réseau, « 12 €. ») restent à la décision de Justin.",
+    "« 1,500 km » est ambigu aussi en français courant (1,5 km exact) : la phrase de refus est la bonne réponse, pas une lecture.",
+    "Les sondes périmées de la voie Véhicules / Matériel (vehtemps-v4-table, materiel-camion, materiel-recontrole-defauts) ne sont pas revues ici."
+  ]
+}

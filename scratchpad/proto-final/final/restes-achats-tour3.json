@@ -4,35 +4,35 @@
   "defaut": "Avec un tarif à trois décimales, kilomètres × tarif tombe sur un demi-centime pour un kilométrage sur quinze ; la phrase calculait avec eur() (arrondi du navigateur), la note avec axR2 (Math.round) : 85 km disait 51,25 € puis enregistrait 51,26 € ; à 255 km c'était le montant enregistré (153,76) qui était faux. La phrase d'avant saisie utilisait encore eur(AX.kmTarif).",
   "etat": "corrigé",
   "changement": "UN seul calcul en centimes entiers, axKmMontant(k, tarif) = Math.round(k × millièmes ÷ 10) ÷ 100, lu par la phrase du formulaire, la note, le toast (qui lit la note) et le seuil de confirmation ; la phrase d'avant saisie écrit axTarif(AX.kmTarif) (« 0,603 € »).",
-  "preuve": "achats-restes2-adverse-km.js : 13 ✓ · 5 ✗ avant, 18 ✓ · 0 ✗ après (mac jour, iphone nuit technicienne). campagne/sondes/achats-restes3.js K1-K4 : 9 600 montants (2 000 km × 4 tarifs + kilomètres à demi) = arithmétique entière, 85 km 51,26 / 45 km 27,14 / 255 km 153,77 ; la capture du formulaire a été regardée."
+  "preuve": "achats-restes2-adverse-km.js : 13 ✓ · 5 ✗ avant, 18 ✓ · 0 ✗ après (mac jour, iphone nuit technicienne). campagne/sondes/achats-restes3.js K1-K4 : 9 600 montants (2 000 km × 4 tarifs + kilomètres à demi) = arithmétique entière, 85 km 51,26 / 45 km 27,14 / 255 km 153,77 ; la capture du formulaire a été regardée. Mutations : phrase en eur(k × tarif), note en axR2, phrase d'avant saisie en eur() tombent (K5 ×2, K5, K4) ; K5 rejoue la phrase, la note et le toast de bout en bout pour 85, 45 et 255 km."
  },
  {
   "nom": "La tâche « Retrouver le ticket » dit « la TVA ne se récupère pas » pour un achat sans TVA (casse faible)",
   "defaut": "LIENS_SOURCES ajoutait la fin de phrase sans regarder a.tva : une cotisation ou un péage exonéré enregistré sans justificatif la portait à tort.",
   "etat": "corrigé",
   "changement": "« ni facture ni ticket » seul ; « : la TVA ne se récupère pas » seulement si l'achat a de la TVA.",
-  "preuve": "campagne/sondes/achats-restes3.js T1-T3 (deux achats posés : sans TVA, avec TVA) ; achats-restes2-adverse.js S13c sur mac, ipad, petit, iphone nuit : 0 ✗."
+  "preuve": "campagne/sondes/achats-restes3.js T1-T3 (deux achats posés : sans TVA, avec TVA) ; achats-restes2-adverse.js S13c sur mac, ipad, petit, iphone nuit : 0 ✗. Mutation (phrase toujours dite) : T2 tombe."
  },
  {
   "nom": "La phrase de refus d'un tarif à quatre décimales contredit l'écran (faible)",
   "defaut": "« 0,6034 » et « 00,603 » recevaient « Un montant a au plus deux chiffres après la virgule » alors que le même champ accepte « 0,603 ».",
   "etat": "corrigé",
   "changement": "Pour le champ du tarif seulement : « Un tarif au kilomètre a au plus trois décimales (0,603). » ; les autres champs de montant gardent leur phrase.",
-  "preuve": "campagne/sondes/achats-restes3.js R1-R3 (refus, tarif inchangé ; 0,603 accepté) ; achats-restes2-adverse.js K3 : 0 ✗."
+  "preuve": "campagne/sondes/achats-restes3.js R1-R3 (refus, tarif inchangé ; 0,603 accepté) ; achats-restes2-adverse.js K3 : 0 ✗. Mutation (phrase des deux chiffres) : R1 et R2 tombent."
  },
  {
   "nom": "Comptes fournisseurs : la tuile « achats sans facture » ne se retrouve pas dans les pastilles de la liste et la page ne le dit pas (faible)",
   "defaut": "La tuile compte, comme la Comptabilité, les notes de frais validées avec ticket et TVA ; la liste des fournisseurs ne contient pas les notes : 6 en tuile, quatre pastilles « 1 sans facture », aucun mot pour l'écart.",
   "etat": "corrigé",
   "changement": "Le libellé de la tuile dit « achats sans facture, dont 2 notes de frais » quand il y en a (au singulier pour une) ; le chiffre reste celui de la liste où la tuile mène.",
-  "preuve": "campagne/sondes/achats-restes3.js F0-F2 : tuile = pastilles + notes dites ; achats-restes2-adverse.js S10 : 0 ✗ ; capture restes3-fournisseurs-{mac-jour, iphone-nuit} regardée."
+  "preuve": "campagne/sondes/achats-restes3.js F0-F2 : tuile = pastilles + notes dites ; achats-restes2-adverse.js S10 : 0 ✗ ; capture restes3-fournisseurs-{mac-jour, iphone-nuit} regardée. Mutation (libellé sans « dont ») : F1 tombe."
  },
  {
   "nom": "La puce de filtre active est ramenée 16 px (iPad 30 px) trop à gauche du centre de sa rangée (faible)",
   "defaut": "offsetLeft se mesure depuis le plus proche ancêtre positionné (la page), pas depuis la rangée ; la garde « déjà visible » était écrite à l'envers.",
   "etat": "corrigé",
   "changement": "La position de la puce se mesure contre sa rangée (getBoundingClientRect moins celui de la rangée, plus scrollLeft) ; la garde « déjà visible » est dans le bon sens, une puce déjà entière n'est plus bougée.",
-  "preuve": "campagne/sondes/achats-restes3.js P1-P2 sur petit, iphone nuit, ipad (puce entière dans la rangée, centrée à 8 px près quand c'est possible) ; achats-restes2-adverse.js P4 sur ipad : 49 ✓ · 0 ✗ (3 ✗ avant)."
+  "preuve": "campagne/sondes/achats-restes3.js P1-P2 sur petit, iphone nuit, ipad (puce entière dans la rangée, centrée à 8 px près quand c'est possible) ; achats-restes2-adverse.js P4 sur ipad : 49 ✓ · 0 ✗ (3 ✗ avant). Mutation (ancien code offsetLeft) : P2 tombe deux fois sur ipad (sur petit le décalage de 16 px ne sort pas des 8 px tolérés : la garde vit sur ipad)."
  },
  {
   "nom": "Doute 1 : les deux mots « sans justificatif » et « sans facture »",

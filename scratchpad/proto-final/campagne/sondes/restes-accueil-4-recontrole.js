@@ -45,7 +45,7 @@ const tag = profil + (nuit ? '-nuit' : '-jour');
   await menu('i9', /Remettre à faire/); const f1 = await etat('i9');
   v('F · « Remettre à faire » : l’argent de i9 ne compte plus à l’Accueil', f1.st !== 'fait' && Math.abs(f0.tout - f1.tout - 35.5) < 0.005 && f1.terrain.length === 0, { f0: f0.tout, f1: f1.tout });
   const texHF = await (async () => { await hReset(); return texteVue('historique'); })();
-  v('F · (constat) la ligne « 35,50 € · Carte » reste dans l’Historique : c’est ce qui s’est passé, ce n’est pas un argent compté', f1.lignes.length === 1, f1.lignes);
+  v('F · (décision du tour 5) la ligne « 35,50 € · Carte » part avec l’argent : l’Historique et l’Accueil disent la même chose', f1.lignes.length === 0, f1.lignes);
   await menu('i9'); const f2 = await etat('i9');
   v('F · « Marquer terminée » de nouveau : 35,50 € comptés UNE fois, une seule ligne', f2.st === 'fait' && Math.abs(f2.tout - f1.tout - 35.5) < 0.005 && f2.lignes.length === 1 && f2.terrain.length === 1, f2);
   // le technicien change le montant entre-temps (fiche), puis le bureau re-« Marquer terminée » : la ligne dit le montant compté
