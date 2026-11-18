@@ -19,6 +19,8 @@ jouer "voir · mac · les quatre personnes"            PROFIL=mac QUI=marc,julie
 jouer "voir · iphone · les quatre personnes"         PROFIL=iphone QUI=marc,julie,sm,kb -- guide-voir.js
 jouer "fermer · mac · gérant et technicienne"        PROFIL=mac QUI=marc,sm -- guide-fermer.js
 jouer "fermer · iphone · bureau et technicienne"     PROFIL=iphone QUI=julie,sm -- guide-fermer.js
+jouer "paysage · téléphone en travers (encoches vraies et dures)" -- guide-paysage.js
+jouer "corrigés · relecture « tout » rejouée"        -- guide-corriges.js
 jouer "première connexion · mac · gérant"            PROFIL=mac QUI=marc -- guide-premiere-connexion.js
 jouer "première connexion · iphone · technicienne"   PROFIL=iphone QUI=sm -- guide-premiere-connexion.js
 if [ "$R" = "rapide" ]; then

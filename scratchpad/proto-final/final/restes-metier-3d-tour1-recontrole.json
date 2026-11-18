@@ -1,0 +1,50 @@
+{
+ "noms": ["metier-3d (restes, tour 1)"],
+ "regles": [
+  "recontrole-01 · la phrase « Le stock du camion de … » suit l'applicateur : rejouée pour Mac, iPhone de nuit, technicienne (sm), secrétariat (julie), chef (lr) ; chaque applicateur offert (≥ 3) nomme SON prénom et aucun autre, id #rg-camion unique, la phrase garde le dernier choix après un geste sur une box, « Produits posés » parle du même camion (metier-3d-restes-1-recontrole.js C : 49 ✓ · 0 ✗ ; mutation : mise à jour retirée → 32 ✓ · 13 ✗)",
+  "recontrole-02 · « Tous les sites » ne sort plus de sa colonne : Mac jour/nuit 1200-1360, 1280 (mac720), Windows 1366, iPad 820 et 1180 nuit, iPhone 390, petit 320 nuit : le tableau n'apparaît que pour une liste > 930 px, aucune cellule hors de la carte, aucune page qui glisse (metier-3d-restes-1-recontrole.js S : 47 ✓ · 0 ✗ ; mutation seuil 760 → 40 ✓ · 7 ✗) ; captures relues (cartes propres, nuit comprise) ; recontrole-b rejoué 1200 à 1340 sans en-tête coupé",
+  "recontrole-03 · « Pourquoi ? » de la demande d'achat neutre pour tous les métiers sauf clim seule et démonstration (cvc) : restes-1 partie A 82 ✓ · 0 ✗ ; contre-épreuve clim gardée",
+  "recontrole-04 · « Nouvelle intervention » / achats : « ex. condensateur, siphon, fluide… » remplacé par métier dans les DEUX casses : restes-1 82 ✓ · 0 ✗, metier-3d-creation 42 ✓ · 0 ✗, recontrole-e 31 ✓ · 0 ✗ (mutation du jumelage : 11 ✗ sur la sonde de balayage statique)"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "« Enregistrer cette vue » (Planning › Mes vues › « ＋ Enregistrer la vue actuelle ») propose « ex. équipe clim, chantier Mimosas » à TOUS les métiers",
+   "gravite": "gênant",
+   "etapes": "Planning, vue à plusieurs jours, « Mes vues », « ＋ Enregistrer la vue actuelle », lire l'exemple du champ « Son nom ». Mesuré pour 3D, nettoyage, plomberie (la climatisation le garde à juste titre).",
+   "constat": "Le champ #vue-nom porte « ex. équipe clim, chantier Mimosas » (ligne 9247) ; la table MET_EXEMPLES a bien une entrée pour ce texte mais écrite « Ex. : équipe clim, chantier Mimosas » (majuscule ET deux-points), qui ne correspond jamais : la même famille de défaut que recontrole-04, que le jumelage « Ex. → ex. » ne couvre pas à cause de son exception (?!:). Correction : ajouter la clé exacte 'ex. équipe clim, chantier Mimosas' dans MET_EXEMPLES (valeur : 'ex. équipe du matin, chantier Mimosas')."
+  },
+  {
+   "titre": "Fiche client › Appareils › « Ajouter un appareil » propose « ex. Daikin FTXM35R » et « ex. Split mural salle · R32 · 2021 » à tous les métiers",
+   "gravite": "gênant",
+   "etapes": "Clients, ouvrir un client, onglet « Appareils », « Ajouter un appareil », lire les deux champs (#app-nom, #app-det). Mesuré : 3D, nettoyage, plomberie, climatisation identiques ; l'invite du détail parle de « type, gaz, année » aussi.",
+   "constat": "Lignes 14470-14471 : aucune entrée dans MET_EXEMPLES ni dans les familles. Un nettoyeur ou un dératiseur lit un split Daikin R32. Correction : exemples par famille (nuis : « ex. Pulvérisateur · 5 L · 2022 » / nett : « ex. Autolaveuse · 2021 » / plomb « ex. Chauffe-eau 200 L · 2020 »…) et, pour la 3D et le nettoyage, un libellé de détail sans « gaz »."
+  },
+  {
+   "titre": "« Saisir un passage » : sous « Produits posés », deux phrases se contredisent quand le camion est vide",
+   "gravite": "détail",
+   "etapes": "Registre sanitaire, Restaurant La Marée, « Saisir un passage », applicateur Tom (camion vide).",
+   "constat": "« Il n'y a aucun biocide dans le camion de Tom… » puis, juste dessous, « Le stock du camion de Tom descend de ce que tu poses. » : la seconde n'a pas de sens sans produit. Et sur iPhone la ligne portant « Voir le Stock › » est plus haute que la première (le bouton en ligne grossit la ligne : « poses. » tombe 27 px plus bas que « tu »). Capture : /tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-metier-3d/camion-iphone-nuit-marc.png"
+  }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/metier-3d-restes-1.js", "resultat": "82 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-a.js", "resultat": "132 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-b.js", "resultat": "sortie 0, aucun en-tête coupé de 1200 à 1340" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-c.js", "resultat": "47 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-d.js", "resultat": "15 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-e.js", "resultat": "31 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-f.js", "resultat": "10 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-creation.js", "resultat": "42 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js C", "resultat": "camion, 5 profils et rôles (marc Mac, marc iPhone nuit, sm Mac, sm iPhone, julie) : 49 ✓ · 0 ✗ (kb et lr n ont aucun site au registre : population, écartés)" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js S", "resultat": "47 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js M clim/d3/nett/plomb", "resultat": "5 ✓ · 0 ✗ chacun (21 à 23 champs, 17 fenêtres ouvertes par un vrai bouton)" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js T", "resultat": "23 ✓ · 6 ✗ : les 6 ✗ sont les deux défauts nouveaux ci-dessus, sur chacun des 6 jeux de métier non climatisation ; mutation du jumelage : 16 ✓ · 11 ✗" }
+ ],
+ "doutes": [
+  "metier-3d-06 (devis xylophage prérempli), -08 (demander un autre métier en mode application), -09 (« RAS », « N° d'AMM ») et -10 (types d'intervention de la climatisation) restent à soumettre à Justin, rien n'a été touché : ce ne sont pas des erreurs mais des décisions.",
+  "À 1280 px de fenêtre (portable courant) « Tous les sites » s'affiche en cartes, pas en tableau (liste de 926 px) : voulu par le seuil 930, mais c'est le cas de beaucoup de portables ; à valider.",
+  "La liste de cartes à 826 px (iPad paysage) laisse beaucoup de blanc à droite des textes ; propre, pas laid."
+ ]
+}

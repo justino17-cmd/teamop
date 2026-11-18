@@ -1,0 +1,37 @@
+[
+ {
+  "nom": "artefact",
+  "defaut": "Casse 1 du recontrôle tour 1 : « Revenir au mode test » inatteignable au clavier (enfant de body hors de la fenêtre modale #cnx).",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : le lien est posé DANS #cnx, en premier (cnxTestPoser, un observateur le reporte sur chaque écran de connexion qui recrée #cnx) ; commit 1bec0d60, vérifié ici.",
+  "preuve": "restes-artefact-tour1-recontrole.js 160 ✓ · 0 ✗ (dont le clavier, mac et windows) ; mutation 1 (lien remis dans body) : la sonde ne finit plus (délai 150 s au lieu de 25 s), donc ne passe pas."
+ },
+ {
+  "nom": "artefact",
+  "defaut": "Casse 2 : pendant la visite parlée, « Voir comme l'application » restait atteignable et un toucher perdait la visite.",
+  "etat": "corrigé",
+  "changement": "règle body.gd-on .rl-voir{display:none!important} ; la bande des rôles reste ; le bouton revient à la fin de la visite ; commit 1bec0d60.",
+  "preuve": "restes-artefact-tour1-recontrole-b.js 6 ✓ · 0 ✗ ; restes-artefact-tour2.js 32 ✓ · 0 ✗ ; mutation 3 : 15 ✓ · 1 ✗."
+ },
+ {
+  "nom": "artefact",
+  "defaut": "Nouveau, trouvé en rejouant la partie C : sur l'écran de chargement qui suit la connexion, le lien « Revenir au mode test » sortait du coin et se retrouvait dans la colonne, au-dessus du logo (la règle #cnx.charge > :not(.cn-orbe){position:relative} l'emportait sur son position:fixed).",
+  "etat": "corrigé",
+  "changement": "apercu/prototype-op-gestion.html : :not(#cnx-test) ajouté à cette règle ; la sonde -c ne comptait pas son propre enfant (‹) comme tel : filtre corrigé.",
+  "preuve": "restes-artefact-tour1-recontrole-c.js : 34 ✓ · 2 ✗ avant, 36 ✓ · 0 ✗ après (iPhone jour et nuit) ; captures iphone-jour/nuit-3-chargement relues : lien en haut à gauche, lisible, sans toucher le logo."
+ },
+ {
+  "nom": "artefact",
+  "defaut": "Fichiers nés dans un cadre voisin (PDF de l'atelier) refusés par le pont strict.",
+  "etat": "corrigé",
+  "changement": "déjà poussé (1bec0d60) : blobPourPont dans prototype-documents.html, donneesPourPont dans la page principale.",
+  "preuve": "restes-artefact-tour2.js B et C verts ; mutations 4, 5, 6 : toutes tombent (2 ✗ chacune)."
+ },
+ {
+  "nom": "artefact",
+  "defaut": "Mutations de ce lot.",
+  "etat": "corrigé",
+  "changement": "aucune page changée par les mutations (git status apercu propre ; deux mutations laissées par un arrêt de la sonde ont été restaurées avant commit).",
+  "preuve": "4 sur 4 mordent pour les mutations 3 à 6 ; 1 et 2 tombent par délai (la sonde de clavier se fige au lieu d'échouer), à lire comme « mord » mais à durcir un jour par un délai court dans la sonde."
+ }
+]
