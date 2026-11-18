@@ -35,11 +35,18 @@
   "preuve": "accueil-restes-3.js partie T : 320, 360, 390 px et 320 px avec valeur longue (12 345,67 €) : montant et unité sur une ligne, dans les deux tuiles Facturé et Encaissé ; mutation « unité à la ligne » : la sonde tombe."
  },
  {
-  "nom": "Un détail connexe du tour 2 : accueil-parcours P7 (sonde périmée) et la lecture du journal « Dépannage climatisation »",
-  "defaut": "la sonde visait une ligne du journal par son numéro (j45), devenu une autre ligne après l'insertion de lignes par d'autres lots.",
+  "nom": "Fiche d'une facture envoyée, 320 px (trouvé en rejouant la sonde corrections petit) : « Annuler cette facture par un avoir » sortait de 13 px de la carte et la page glissait de côté",
+  "defaut": "le bouton (white-space:nowrap de .btn, libellé de 34 signes) mesurait 333 px dans un écran de 320 : page à 333 px de large, bouton coupé au bord droit de la carte. Hors de l'Accueil (écran des factures) mais vu et mesuré ici.",
   "etat": "corrigé",
-  "changement": "déjà réparé au tour 2 (la ligne se cherche par son contenu) ; rejoué dans accueil-tout.sh.",
-  "preuve": "voir la ligne « accueil-parcours » de accueil-tout.sh ci-dessous."
+  "changement": "le bouton prend la largeur de sa carte et passe sur deux lignes (max-width:100%, white-space:normal, marge intérieure verticale) ; inchangé aux largeurs où il tient.",
+  "preuve": "accueil-restes-3.js partie V : 320, 360, 390 px, bouton dans sa carte, scrollX = 0, innerWidth = largeur du profil (4 ✓ · 0 ✗) ; mutation « bouton sans repli » : la sonde tombe ; capture restes3-avoir-petit.png regardée (deux lignes centrées, dans la carte)."
+ },
+ {
+  "nom": "Deux sondes d'avant périmées, réparées (pas des défauts de la page)",
+  "defaut": "accueil-corrections petit : Playwright défilait le bouton « Paiement en partie » au plus juste, sous la barre d'onglets fixe à 320 px (« <div class=carte> intercepts pointer events », le tap expirait, toucher rend false sans le dire) ; accueil-restes-1-recontrole « toutes petit nuit » : la sonde traitait « petit » (320 px, au doigt) comme un bureau à 900 px et exigeait la gouttière de 44 px, alors que les graduations sont masquées sur tablette au doigt (761-900 px) : marge 0 voulue.",
+  "etat": "corrigé",
+  "changement": "corrections : le bouton est amené au milieu de l'écran avant le tap ; recontrôle : « petit » rejoint ipad, iphone et android dans la liste des profils au doigt.",
+  "preuve": "accueil-corrections petit 27 ✓ · 0 ✗ ; accueil-restes-1-recontrole toutes petit nuit 95 ✓ · 0 ✗ ; accueil-tout.sh : 50 exécutions, 48 à 0 ✗ au premier passage, les deux autres réparées ci-dessus."
  },
  {
   "nom": "accueil-07 — « À faire maintenant » : 17 lignes de même poids ; chiffres des Statistiques d'un mois d'avant octobre fabriqués par le prototype",
