@@ -5107,6 +5107,7 @@ addEventListener('scroll', cacherApercu, true);
 function fermerMenu(){ document.querySelectorAll('.ctx').forEach(e => e.remove()); }
 function debutGesteAvant(){ cacherApercu(); }
 function ouvrirMenu(x, y, titre, items){
+  items = items.filter(Boolean);   /* une entrée absente (« null ») ne laisse ni bouton ni trou dans les numéros */
   fermerMenu(); const ouvertA = Date.now(), m = document.createElement('div'); m.className = 'ctx'; m.dataset.ouvertA = ouvertA; m.setAttribute('role','menu');
   m.innerHTML = (titre ? `<div class="t">${titre}</div>` : '') + items.map((it,k) => it === '---' ? '<hr>' : `<button type="button" role="menuitem" data-k="${k}" class="${it.danger?'danger':''}"><span class="i">${it.ic||''}</span>${it.l}${it.s?`<span class="s">${it.s}</span>`:''}</button>`).join('');
   document.body.appendChild(m);
@@ -5124,9 +5125,9 @@ function menuCarte(id, x, y){
     { ic:'👤', l:'Changer de personne', s:'›', garde:true, fn:() => menuPersonnes(id, x, y) },
     { ic:'⧉', l:'Dupliquer', s:'›', garde:true, fn:() => menuDupliquer(id, x, y) },
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
-    i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
+    i.st === 'annulee' ? null : i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
-    { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
+    i.st === 'annulee' ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
     { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
   ]);
 }
@@ -5383,6 +5384,7 @@ function vueFiche(id){
   <div class="tete"><div><span><span class="st ${ST[i.st][1]}">${ST[i.st][0]}</span> <span class="gris petit">${jlong(i.d)} · ${i.h}\u00a0–\u00a0${fin(i.h,i.dur)} · ${insec(t.nom)}</span></span><h1>${esc(i.titre)}</h1>
     <button type="button" class="lien" data-go="client-x-${i.cli}" style="font-size:18px;min-height:32px">${esc(c.nom)}&nbsp;›</button><span class="gris">${esc(c.adr)}</span></div>
     <div class="actions"><button type="button" class="btn gris" data-action="modifInt" data-id="${i.id}">✎ Modifier</button><a class="btn gris" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.adr)}" target="_blank" rel="noopener noreferrer">Y aller</a>${c.tel ? `<a class="btn gris" href="${lienTel(c.tel)}">Appeler</a>` : ''}</div></div>`;
+  if (i.st === 'annulee') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"><span class="st st-g">Annulée</span><h2>Cette intervention est annulée</h2><p class="gris" style="margin:0">Rien à terminer : aucun compte rendu ne part, aucune facture n’est préparée et le stock ne bouge pas. Le bureau a été informé.</p></div>`;
   if (F.etat === 'bureau') return tete + finiEcran(i, F);
   if (F.etat === 'reprendre') return tete + `<div class="carte" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><span class="st st-o">À reprendre · ${esc(F.motif)}</span><h2>Le bureau est prévenu</h2>${F.mot ? '<p style="margin:0">« ' + esc(F.mot) + ' »</p>' : ''}
     <p class="gris" style="margin:0">Une intervention de retour est créée « à planifier ». Le compte rendu dira « intervention à reprendre », jamais « réparé ». Aucune facture n’est préparée.</p>
@@ -9183,6 +9185,7 @@ function majCollant(id){ const c = document.getElementById('collant'); if (!c) r
 /* ══ LES ACTIONS ══ */
 const ACTIONS = {
   terminer(b){ const id = b.dataset.id, F = fiche(id), man = manque(F), i = INTS.find(o => o.id === id);
+    if (i && i.st === 'annulee') return toast(ANNULEE_REFUS);
     if (man.length) { ouvrirPanneau(`<h2>Il manque encore des choses</h2><p class="mq-i">Avant de terminer, il manque :</p><ul class="mq-l">${man.map(m=>'<li>'+esc(m)+'</li>').join('')}</ul><p class="gris mq-s">Si tu ne peux pas tout faire, utilise « Je ne peux pas finir » : le bureau est prévenu et une intervention de retour est créée.</p>`); return; }
     F.etat = 'bureau'; F.envoye = true; i.st = 'fait';
     if (F.paiement && F.paiement.etat !== 'rien' && !F.paiement.recuLe) { F.paiement.recuLe = AUJ; F.paiement.recuH = hm(MAINT_MIN); }   /* le jour où l'argent est reçu : aujourd'hui, quel que soit le jour prévu de l'intervention */
@@ -9198,8 +9201,9 @@ const ACTIONS = {
       const mt = fa && fa.num !== '—' ? (dejaPartie ? encaisserPaieTech(fa, P) : ENCAISSEMENTS.filter(e => e.int === id && e.fac === fa.num).reduce((s, e) => s + e.ttc, 0)) : cpPaieTerrain().filter(e => e.int === id).reduce((s, e) => s + e.ttc, 0);
       journalPaieTerrain(i, P.etat === 'rien' ? null : P, mt); }
     rendre(); scrollTo({ top:0 }); toast(fa ? (kcomp ? 'Terminée : le compte rendu part au client. La visite est comprise dans le contrat ' + kcomp.num + ' ; la facture ne porte que les pièces posées.' : 'Terminée : le compte rendu part au client, la facture est préparée.') : kcomp ? 'Terminée : le compte rendu part au client. Visite comprise dans le contrat ' + kcomp.num + ' : pas de facture à part.' : 'Terminée : le compte rendu part au client. Intervention en garantie : pas de facture.'); },
-  pasFini(b){ feuillePasFini(b.dataset.id); },
+  pasFini(b){ if (intAnnulee(b.dataset.id)) return toast(ANNULEE_REFUS); feuillePasFini(b.dataset.id); },
   envoiePb(b){ const id = b.dataset.id, F = fiche(id), i = INTS.find(o => o.id === id), r = document.querySelector('input[name="motif"]:checked');
+    if (i && i.st === 'annulee') return toast(ANNULEE_REFUS);
     if (!r) return toast('Choisis d’abord la raison pour laquelle tu ne peux pas finir.');
     if (r.value === 'Pièce à commander' && !((document.getElementById('mot-bureau') || {}).value || '').trim()) { const z = document.getElementById('mot-bureau'); if (z) z.focus(); return toast('Dis quelle pièce il te faut dans « Un mot pour le bureau » (ou utilise « Il me manque une pièce » sur la fiche).'); }
     F.etat = 'reprendre'; F.motif = r ? r.value : ''; i.st = 'reprendre';
@@ -10383,6 +10387,7 @@ function stkPoser(x, l, d){ if (l === 'atelier') return; x.loc = x.loc || {}; x.
 /* appliquer un mouvement : la seule porte qui change une quantité de stock (plafonnée à ce qui est vraiment là) */
 function stkAppliquer(m){
   const x = PRODUITS.find(p => p.id === m.pid); if (!x) return 0;
+  if (m.type === 'sortie' && m.inter && intAnnulee(m.inter)) return 0;   /* dernière porte : quel que soit le chemin, une sortie liée à une intervention annulée ne retire rien */
   if (m.type === 'entree') { stkPoser(x, m.vers, m.q); x.q = stkR(x.q + m.q); return m.q; }
   if (m.type === 'correction') { const q = Math.max(m.q, -stkAt(x, m.de)); stkPoser(x, m.de, q); x.q = stkR(x.q + q); m.q = q; return q; }
   const q = Math.min(m.q, stkAt(x, m.de)); if (q <= 0) return 0; m.q = q;
@@ -13231,7 +13236,7 @@ document.addEventListener('click', ev => {
     if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:acteur(), quand:'31/10', quoi:'planifiée' }; });
     journalAjout('marc', 'inter', 'a planifié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:jlong(d) + ' à ' + h + ' · ' + tech(t).nom });
     rendre(); scrollTo({ top:0 }); return toast(`Planifiée ${jlong(d)} à ${h} avec ${tech(t).nom.split(' ')[0]} : elle apparaît dans sa journée.`); }
-  if (a === 'visitefin' && i) { const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
+  if (a === 'visitefin' && i) { if (i.st === 'annulee') return toast(ANNULEE_REFUS); const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
     F.etat = 'bureau'; i.st = 'fait'; dvInit();
     const x = { id:'BR' + Date.now().toString(36).toUpperCase(), num:null, cli:i.cli, objet:'Devis suite à la visite du ' + jcourt(i.d), d:AUJ, e:'brouillon', source:`Visite de ${tech(i.tech).nom} le ${jcourt(i.d)}`, int0:i.id,
       lignes:[...F.besoin.split(/\n|;/).map(z => z.trim()).filter(Boolean).slice(0, 6).map(z => [z.replace(/^[-•]\s*/, ''), 1, null]), ['Déplacement', 1, 29.17]],
@@ -14472,17 +14477,41 @@ function planAvert(i, avecChev){
   const c = avecChev ? chevauche(i) : null;
   return (c ? `<br><span style="color:var(--orange)">⚠ Chevauche « ${esc(c.titre)} » (${c.h})</span>` : '') + (i.d < AUJ && i.st !== 'fait' && i.st !== 'annulee' ? '<br><span style="color:var(--orange)">⚠ Cette date est passée et l’intervention n’est pas faite.</span>' : '');
 }
+/* UNE fiche annulée ne se termine par AUCUNE porte (bouton de la fiche, menu « Marquer terminée », « Je ne peux pas finir », fin de visite, registre biocide) : rien ne part au client, aucune facture ne naît,
+   aucune sortie de stock ne se prépare. · 18 novembre 2026, recontrôle des parcours (R4) */
+const intAnnulee = id => { const o = INTS.find(x => x.id === id); return !!o && o.st === 'annulee'; };
+const ANNULEE_REFUS = 'Cette intervention est annulée : rien à terminer, aucune facture. Rétablis-la d’abord si elle a bien lieu.';
+/* L'annulation dit vrai et range derrière elle : la sortie de pièces que le technicien avait notée pour ce travail quitte « Envois à accepter » (le stock ne bouge pas pour un travail qui n'a pas eu lieu),
+   le technicien reçoit une notification, l'Historique garde sa ligne. Aucun e-mail ne part au client : le texte ne le promet plus, il demande au bureau de le prévenir.
+   « Rétablir » rend TOUT (l'état, les envois en attente, et retire la notification et la ligne d'Historique qu'elle avait écrites). */
+function annulerInt(i){
+  if (i.st === 'annulee') return;   /* l'appelant a déjà fait memo() : « Rétablir » défait ce seul geste */
+  const envois = MVTS_ATT.map((m, k) => ({ m, k })).filter(o => o.m.inter === i.id);
+  envois.slice().reverse().forEach(o => MVTS_ATT.splice(o.k, 1));
+  i.st = 'annulee';
+  const cli = CLIENTS[i.cli].nom;
+  let nt = null; if (i.tech) { notifier(i.tech, `${H_NOM(acteur())} a annulé ton intervention chez ${cli} (${i.d === AUJ ? 'aujourd’hui' : jlong(i.d)} à ${i.h}).${envois.length ? ' Les pièces que tu avais notées ne sortent pas du stock.' : ''}`); nt = NOTIFS[NOTIFS.length - 1]; }
+  journalAjout('marc', 'inter', 'a annulé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:(i.tech ? tech(i.tech).nom + ' · ' : '') + jlib(i.d) + ' à ' + i.h + (envois.length ? ' · ' + (envois.length > 1 ? envois.length + ' envois de pièces retirés' : 'un envoi de pièces retiré') : '') });
+  const jr = JOURNAL[JOURNAL.length - 1];
+  rendre();
+  toast(`Annulée : ${esc(i.titre)}.${i.tech ? ' ' + esc(tech(i.tech).nom.split(' ')[0]) + ' reçoit une notification.' : ''} Aucun e-mail ne part au client : préviens-le.`, { lib:'Rétablir', fn:() => {
+    annuler();
+    const k = NOTIFS.indexOf(nt); if (nt && k >= 0) NOTIFS.splice(k, 1);
+    const j = JOURNAL.indexOf(jr); if (j >= 0) JOURNAL.splice(j, 1);
+    envois.forEach(o => { if (!MVTS_ATT.includes(o.m) && !matDejaEnvoye(o.m)) MVTS_ATT.splice(Math.min(o.k, MVTS_ATT.length), 0, o.m); });
+    rendre(); } });
+}
 function planConfirmer(quoi, id){
   const i = INTS.find(o => o.id === id); if (!i) return;
   ouvrirPanneau(quoi === 'annuler'
-    ? `<h2>Annuler cette intervention ?</h2><p class="gris" style="margin:0">« ${esc(i.titre)} » · ${esc(CLIENTS[i.cli].nom)} · ${jlong(i.d)} à ${i.h}.<br>Elle reste dans la liste, marquée « Annulée », et le client est prévenu par e-mail.</p><div class="actions"><button type="button" class="btn" data-planconf="annuler|${i.id}">Oui, annuler l’intervention</button><button type="button" class="btn gris" data-ferme="1">Non, la garder</button></div>`
+    ? `<h2>Annuler cette intervention ?</h2><p class="gris" style="margin:0">« ${esc(i.titre)} » · ${esc(CLIENTS[i.cli].nom)} · ${jlong(i.d)} à ${i.h}.<br>Elle reste dans la liste, marquée « Annulée », et ${i.tech ? esc(tech(i.tech).nom.split(' ')[0]) + ' est prévenu' + aE(i.tech) + '. Aucun e-mail ne part au client : c’est à toi de le prévenir.' : 'aucun e-mail ne part au client : c’est à toi de le prévenir.'}</p><div class="actions"><button type="button" class="btn" data-planconf="annuler|${i.id}">Oui, annuler l’intervention</button><button type="button" class="btn gris" data-ferme="1">Non, la garder</button></div>`
     : `<h2>Supprimer cette intervention ?</h2><p class="gris" style="margin:0">« ${esc(i.titre)} » · ${esc(CLIENTS[i.cli].nom)} · ${jlong(i.d)} à ${i.h}.<br>Elle disparaît du planning, sans prévenir le client. Tu pourras la rétablir juste après.</p><div class="actions"><button type="button" class="btn" data-planconf="supprimer|${i.id}">Oui, supprimer</button><button type="button" class="btn gris" data-ferme="1">Non, la garder</button></div>`);
 }
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-planconf]'); if (!b) return;
   const [quoi, id] = b.dataset.planconf.split('|'), i = INTS.find(o => o.id === id); fermerPanneau(); if (!i) return;
   memo();
-  if (quoi === 'annuler') { i.st = 'annulee'; rendre(); toast(`Annulée : ${esc(i.titre)}. Le client est prévenu par e-mail.`, { lib:'Rétablir', fn:() => annuler() }); }
+  if (quoi === 'annuler') annulerInt(i);
   else { INTS = INTS.filter(o => o !== i); rendre(); toast(`Supprimée : ${esc(i.titre)}`, { lib:'Rétablir', fn:() => annuler() }); }
 });
 
@@ -15865,6 +15894,7 @@ function sxToast(msg, actions, photo, lib){
 const sxMvt = o => ({ id:sxId('m'), d:AUJ, h:hNow(), qui:sxQui(), ...o });
 const sxAuto = m => m.type === 'sortie' && m.motif === 'Utilisé chez le client' && m.inter && lieu(m.de).tech === m.qui;
 function sxDepose(m){
+  if (m.inter && intAnnulee(m.inter)) return 'rien';   /* aucun geste de stock ne naît d'une intervention annulée */
   if (STK_VALID && !(SX.autoUsage && sxAuto(m)) && !droitsAtelier(m.qui || sxQui())) { if (matDejaEnvoye(m)) return 'doublon'; MVTS_ATT.unshift(m); return 'attente'; }   // un envoi identique qui attend déjà ne se double pas
   if (STK_VALID) m.valPar = 'auto';
   if (stkAppliquer(m) > 0) { MVTS.unshift(m); return 'applique'; }
@@ -16567,6 +16597,7 @@ function msEnvois(){
 function msAccepter(ids, tout){
   if (!msAccepte()) return;
   const snap = sxPhoto(), faits = [], reste = [];
+  MVTS_ATT.filter(m => m.inter && intAnnulee(m.inter)).forEach(m => { if (!ids || ids.includes(m.id)) MVTS_ATT.splice(MVTS_ATT.indexOf(m), 1); });   /* un envoi resté en file pour une intervention annulée n'est jamais appliqué : le stock ne bouge pas pour un travail qui n'a pas eu lieu */
   MVTS_ATT.filter(m => !ids || ids.includes(m.id)).forEach(m => { const q = stkAppliquer(m); if (q > 0) { MVTS_ATT.splice(MVTS_ATT.indexOf(m), 1); m.valPar = 'marc'; MVTS.unshift(m); faits.push(m); } else reste.push(m); });
   if (!faits.length) return toast('Rien à accepter : il n’y en a plus à cet endroit. Tu peux les refuser en disant pourquoi.');
   faits.forEach(m => { if (m.qui !== 'marc') notifier(m.qui, `Ton geste « ${sxNom(m.pid)} × ${prNum(m.q)} » est accepté : ton stock est à jour.`); });
