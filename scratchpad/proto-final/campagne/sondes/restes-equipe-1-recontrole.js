@@ -99,8 +99,8 @@ const cartes = p => p.evaluate(() => [...document.querySelectorAll('#contenu .eq
       await ferme(); if (!ph) { await p.evaluate(() => { const k = EQUIPE[EQUIPE.length - 1].k; if (EQUIPE[EQUIPE.length - 1].prenom === 'Paul') EQUIPE.pop(); try { rendre(); } catch (e) {} }); } }
     v('B (population) huit valeurs jouées', res.length === 8, res.length);
     const refuses = res.filter(x => x.refuse);
-    v('B un refus qui dit « tirets seulement » n\'est pas rendu à quelqu\'un qui n\'a tapé que des lettres, espaces et tirets : « -Marie » (tiret en tête)', !res[0].refuse, res[0]);
-    v('B idem pour le point et l\'apostrophe en TÊTE (la phrase promet ce qu\'elle refuse : le signe est permis ailleurs)', !res[1].refuse && !res[2].refuse, [res[1], res[2]]);
+    // tour 2 : la phrase DIT LA VRAIE RAISON — le premier signe n'est pas une lettre ou un chiffre (« Commence par une lettre ou un chiffre. »), jamais « tirets seulement » à qui n'a tapé que des tirets
+    v('B « -Marie », « .Marie », « ’Marie » : refusés, et la phrase parle du PREMIER signe (pas de « tirets seulement » à qui n\'a tapé que des tirets)', [0, 1, 2].every(i => res[i].refuse && /Commence par une lettre/.test(res[i].ph) && !/tirets seulement/.test(res[i].ph)), res.slice(0, 3));
     v('B « O\'Neil », « Marie-Ève », « Jean 3 », 60 signes : acceptés', [3, 4, 5, 6].every(i => !res[i].refuse), res.slice(3, 7));
     v('B 61 signes : refusé, et la phrase dit 60', res[7].refuse && /60/.test(res[7].ph), res[7]);
   });
