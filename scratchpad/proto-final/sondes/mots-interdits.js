@@ -15,13 +15,13 @@ const v = (nom, cond, detail) => { if (cond) { ok++; } else { ko++; echecs.push(
 for (const q of ROLES) {
   if (!corpusSeul) {   // un relevé NEUF (hors du relevé profond, qui garde son nom)
     const f = D + q + '-' + PROFIL + '-interdits.json'; try { fs.unlinkSync(f); } catch (e) {}
-    const r = spawnSync('node', [path.join(__dirname, 'mots-releve.js'), q, PROFIL, '--nom', 'interdits', '--profondeur', '1', '--max', '8', '--temps', '11', '--budget', '520'], { encoding: 'utf8', timeout: 570000 });
+    const r = spawnSync('node', [path.join(__dirname, 'mots-releve.js'), q, PROFIL, '--nom', 'interdits', ...(q === 'client' ? ['--profondeur', '2', '--max', '40', '--temps', '45'] : ['--profondeur', '1', '--max', '8', '--temps', '11']), '--budget', '520']   /* l’espace client n’a pas de menu : ses écrans sont des onglets, que seuls les gestes ouvrent */, { encoding: 'utf8', timeout: 570000 });
     v(q + ' : le relevé s’est terminé', r.status === 0 && fs.existsSync(f), (r.stderr || r.stdout || '').slice(-200));
   }
   const fichiers = fs.readdirSync(D).filter(f => f.startsWith(q + '-') && f.endsWith('.json') && (corpusSeul ? !f.endsWith('-interdits.json') : f.endsWith('-interdits.json')));
   let ecrans = 0; const C = new Map(); const parEcran = {};
   for (const f of fichiers) { const r = JSON.parse(fs.readFileSync(D + f));
-    if (q === 'visite') { (r.pas || []).forEach((x, i) => { (parEcran['pas ' + i] = parEcran['pas ' + i] || []).push([x.texte, 'visite']); }); ecrans += (r.pas || []).length; continue; }
+    if (q === 'visite') { (r.pas || []).forEach((x, i) => { const l = (parEcran['pas ' + i] = parEcran['pas ' + i] || []); if (x.morceaux) Object.values(x.morceaux).flat().forEach(t => l.push([t, 'visite'])); else l.push([x.texte, 'visite']); }); ecrans += (r.pas || []).length; continue; }
     for (const [nom, e] of Object.entries(r.ecrans || {})) { if (!nom.startsWith('(')) ecrans++; const lst = (parEcran[nom] = parEcran[nom] || []);
       const lire = o => { (o.lignes || []).forEach(l => lst.push([l, 'écran'])); (o.attrs || []).forEach(a => lst.push([a, 'attribut'])); };
       lire(e); for (const [k, cd] of Object.entries(e.cadres || {})) { lire(cd); (Array.isArray(cd.gestes) ? cd.gestes : []).forEach(g => gest(g, lst)); } (Array.isArray(e.gestes) ? e.gestes : []).forEach(g => gest(g, lst)); } }
