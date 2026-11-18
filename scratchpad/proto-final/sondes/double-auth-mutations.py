@@ -108,8 +108,8 @@ M = [
  (213, 'recensement : le panneau « Expliquer » ne se ferme plus à l’expiration des 5 minutes', 'da-recensement-banque', [("if (SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {", "if (false && SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {")]),
  (214, 'recensement : la règle commune est déclarée « jamais voilée » (toutes les sorties s’écrivent)', 'da-recensement-banque', [("const secuBanqueVoilee = () => !secuVueOuverte('banque');", "const secuBanqueVoilee = () => false;")]),
  (215, 'recensement : la Vue d’ensemble et la Clôture ne se re-masquent plus à l’expiration', 'da-recensement-banque', [("const SECU_BANQUE_DANS = ['ensemble', 'cloture', 'fachats'];", "const SECU_BANQUE_DANS = [];")]),
- (216, 'verrou : le bouton de la carte de verrou repasse en nowrap (déborde à 320 px)', 'da-recontrole-parcours:4', [(".sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:normal;", ".sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:nowrap;")]),
- (217, 'verrou : le bouton de la carte de verrou n’est plus plafonné ni rétrécissable (règle retirée)', 'da-recontrole-parcours:4', [(".sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:normal;text-align:center;line-height:1.2;padding-block:8px}", "")]),
+ (216, 'verrou : la règle commune des boutons d’actions repasse en nowrap (le bouton de la carte de verrou garde son texte sur une ligne à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;", "\n.actions .btn{max-width:100%;white-space:nowrap;text-align:center;")]),
+ (217, 'verrou : la règle commune des boutons d’actions est retirée (le défaut d’origine : 11 px de débord de la carte de verrou à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;line-height:1.2;padding-top:6px;padding-bottom:6px}", "\n")]),
 ]
 
 def copier(n):
