@@ -10,9 +10,11 @@ const LIRE = (zone) => { const R = document.querySelector(zone) || document.body
 (async () => {
   // ── 1. connexion : on arrive sans session, on lit, puis on touche chaque bouton visible (une fenêtre de plus au plus), page rechargée entre deux
   let c = await L.ouvrir({ profil: PROFIL, qui: null, attente: 1800 }); let p = c.p; const dial = []; p.on('dialog', d => { dial.push(d.message()); d.dismiss().catch(() => {}); });
+  const attendreCnx = () => p.waitForSelector('#cnx:not(.charge) button', { timeout: 15000 }).catch(() => {});   // l'écran de connexion se montre après son « Chargement… » (≈ 2 s) : lire avant ne relève que ce mot
+  await attendreCnx();
   const cnx = { ecrans: {} }; const base = await p.evaluate(LIRE, '#cnx'); cnx.ecrans['connexion'] = Object.assign(base, { gestes: [] });
   const sigs = await p.evaluate(() => [...document.querySelectorAll('#cnx button, #cnx a, #cnx [role=button], #cnx summary, #cnx input[type=checkbox]')].filter(e => e.offsetParent).map((e, i) => ({ i, t: (e.getAttribute('aria-label') || e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 50) })));
-  for (const s of sigs) { try { await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1500);
+  for (const s of sigs) { try { await p.reload({ waitUntil: 'load' }); await attendreCnx(); await p.waitForTimeout(300);
       const r = await p.evaluate(({ i, t }) => { const e = [...document.querySelectorAll('#cnx button, #cnx a, #cnx [role=button], #cnx summary, #cnx input[type=checkbox]')].filter(x => x.offsetParent)[i]; if (!e) return 'absent'; e.click(); return 'ok'; }, s);
       if (r !== 'ok') continue; await p.waitForTimeout(700); const apres = await p.evaluate(LIRE, 'body'); const avant = new Set(base.lignes); const g = { geste: s.t, nouveau: apres.lignes.filter(x => !avant.has(x)).slice(0, 80), attrs: apres.attrs.slice(0, 40) };
       const t = await p.evaluate(() => { const e = document.getElementById('toast'); return e && e.classList.contains('on') ? e.textContent.trim() : ''; }); if (t) g.toast = t; if (dial.length) g.dialogue = dial.splice(0);

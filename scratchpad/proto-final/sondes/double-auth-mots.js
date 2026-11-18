@@ -34,7 +34,7 @@ const SECOURS = /code[s]? de (secours|récupération|dépannage)|recovery|se con
 
   console.log('\n── 1. les phrases témoins de l’annexe A, mot pour mot, sur LEUR écran ──');
   const T = {
-    securite:['Sécurité', 'Qui s’est connecté de façon inhabituelle ou s’est fait refuser, et quels comptes sont verrouillés.', 'Comptes verrouillés', 'Une connexion est inhabituelle quand elle vient d’un autre appareil ou d’un autre réseau, hors des heures de travail, ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.', 'Verrouillé depuis hier à 18:02 : bloquée depuis son téléphone', 'Déverrouiller'],
+    securite:['Sécurité', 'Qui s’est connecté de façon inhabituelle ou s’est fait refuser, et quels comptes sont verrouillés.', 'Comptes verrouillés', 'Une connexion est inhabituelle si elle vient d’un autre appareil ou d’un autre réseau. C’est aussi le cas hors des heures de travail ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.', 'Verrouillé depuis hier à 18:02 : bloquée depuis son téléphone', 'Déverrouiller'],
     equipe:['Téléphone à activer', 'Verrouillé', '1 compte verrouillé : Léa Roux.'],
     'fiche-julie':['Provisoire : à lui remettre en main propre.', 'Julie le change à sa première connexion.', 'À activer à sa première connexion'],
     fiche:['Connexion', 'Nouveau téléphone', 'Déverrouiller', 'Déconnecter partout', 'Verrouillé depuis hier à 18:02 (bloquée depuis son téléphone)', 'Copier le lien et l’identifiant', 'Reposer un mot de passe provisoire'],
