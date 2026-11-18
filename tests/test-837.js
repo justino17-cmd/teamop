@@ -365,10 +365,16 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html', 'blog/logiciel-entreprise-de-nettoyage.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
+  /* Un EXTRAIT, pas un fichier, quand la phrase vit aussi dans `contenu/blog/articles.json` (le résumé de l'article) : exclure ce fichier entier
+     laisserait passer le prochain article. `blog/contrat-de-nettoyage-de-bureaux.html` (18 novembre 2026, publié sur `main` par le travail du
+     blog) : « que le contrat atteint 5 000 € HT au total » est le SEUIL de l'obligation de vigilance d'un donneur d'ordre, un montant de la loi,
+     pas un prix de TEAM OP. Arrivé sur `main` sans sa ligne ici : toutes les demandes de fusion repassaient au rouge. */
+  const EXTRAITS_PERMIS = ['que le contrat atteint 5 000 € HT au total'];
   const ht = [];
   for (const f of relus) {
     let t = ''; try { t = fs.readFileSync(path.join(RACINE, f), 'utf8'); } catch (e) { continue; }
     t = sansCommentaires(t).replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\u202f\u00a0]/g, ' ');
+    for (const x of EXTRAITS_PERMIS) t = t.split(x).join(' ');
     const m = DIT_HT.exec(t) || HORS_TAXES.exec(t);
     if (m) ht.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }

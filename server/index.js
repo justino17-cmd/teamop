@@ -1569,6 +1569,33 @@ function identifiantsPorte(req, res, next) {
 }
 app.use('/api/compte/identifiants', cleEquipeObserve, identifiantsPorte);
 
+/* ⛔⛔ `/api/subscribe` ET `/api/notify` : LA PREUVE DE CLÉ D'ÉQUIPE, FERMÉE SUR DEMANDE — 18 novembre 2026 (chantier S1).
+   Elles n'étaient qu'OBSERVÉES : connaître le `teamId` d'une entreprise (ni secret ni révocable) suffisait à pousser une notification sur les
+   téléphones de ses salariés (le texte est libre, l'adresse est bornée à notre domaine) ou à y abonner un appareil qui lirait ensuite ce qui part.
+   Même mécanique que la Réception (`cleEquipeObserve` pose `req.cleEquipe`, ici on refuse), même refus en JSON `{error}`.
+   ⛔ LES APPAREILS D'ABORD, LA PORTE ENSUITE : la version d'application en service n'envoie PAS la preuve sur `/api/notify`. La fermeture est donc
+   DÉSACTIVÉE par défaut ; elle ne s'active que par `"notifPreuveExigee": true` dans la configuration du serveur, une fois les pages publiées et le
+   parc à jour. Ouverte, la route se comporte exactement comme avant.
+   Deux espaces ne portent pas de clé d'équipe et passent toujours : les canaux d'OP MESSAGES (`opmsg-user-…`, des comptes de PERSONNES — l'autre
+   modèle d'identité, application séparée) et la bêta, prouvée par son JETON d'accès. Tout autre identifiant hors annuaire est refusé. */
+const NOTIF_PREUVE_ROUTES = ['/api/subscribe', '/api/notify'];
+function notifPorte(req, res, next) {
+  if (config.notifPreuveExigee !== true) return next();
+  let t = ''; try { t = String((req.body || {}).teamId || ''); } catch (e) {}
+  if (t.indexOf('opmsg-user-') === 0) return next();
+  if (t === BETA_ESPACE && betaJetonCompte(req.get('x-teamop-beta'))) return next();
+  let motif = '';
+  if (ESPACES_INTOUCHABLES.includes(t)) motif = 'technique';
+  else if (req.cleEquipe !== 'valide') motif = req.cleEquipe || 'absent';
+  else if (cleEstPublique(t)) motif = 'partagee';
+  if (!motif) return next();
+  const rt = String(req.baseUrl || req.path || '').toLowerCase().replace(/^\/api\//, '').slice(0, 24) || '?';
+  mailRefus.n++; mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1; mailRefus.ts = Date.now();
+  mailRefus.parRoute[rt] = (mailRefus.parRoute[rt] || 0) + 1;
+  return res.status(403).json({ error: 'Cet appareil n\'a pas pu prouver la clé de son entreprise — ferme puis rouvre l\'application (ou reconnecte-toi avec ton lien), et réessaie.', code: 'preuve_cle' });
+}
+app.use(NOTIF_PREUVE_ROUTES, notifPorte);
+
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,
    c'est un banc d'essai de mots de passe contre Gmail ou Outlook, relayé par l'IP du VPS —
