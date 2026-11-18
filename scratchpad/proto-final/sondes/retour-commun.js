@@ -68,6 +68,7 @@ exports.GENRES = [
   { k: 'cadre', nom: 'panneau de la Comptabilité plein cadre (Réglages)', ecran: 'comptabilite', rend: true,
     prepare: async c => { await c.p.evaluate(() => { cpSysteme = true; rendre(); }); await c.p.waitForTimeout(1700); await L.calme(c.p, 300); },   // le plein cadre : la porte du menu pose cpSysteme, aller() par programme garde l'ancienne page
     ouvrir: async c => { await c.p.waitForTimeout(300); const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) return false; await f.evaluate(() => { const b = document.querySelector('[data-a="reglages"]'); if (b) b.click(); }); await c.p.waitForTimeout(500); return await f.evaluate(() => !!document.querySelector('#calque').innerHTML); },
+    reste: async c => { const f = L.cadre(c.p, /prototype-comptabilite\.html/); return f ? await f.evaluate(() => !!document.querySelector('#calque').innerHTML || document.body.classList.contains('menu-ouvert')) : 'cadre absent'; },
     croix: async c => { const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) return false; await f.evaluate(() => fermer()); await c.p.waitForTimeout(500); return true; } },
   { k: 'nouveautes', nom: 'guide des nouveautés', ecran: 'accueil',
     ouvrir: async c => { if (etroit(c)) { if (!await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) return false; return L.toucher(c, '#calque .nv-menu[data-nv="ouvrir"]'); } return L.toucher(c, '#menu .nv-menu[data-nv="ouvrir"]'); },

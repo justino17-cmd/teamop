@@ -19,7 +19,9 @@ const menuDOM = c => S(c, () => [...document.querySelectorAll('#menu a[href^="#"
     const f0 = net(await txt(c, '#calque'));
     v('A2 (écran) la feuille dit le nombre de comptes (' + e0.actifs + ' sur ' + e0.places + '), que l’invitation part par e-mail et que le mot de passe provisoire se remet en main propre', f0.includes(e0.actifs + ' comptes sur ' + e0.places + ' places') && /invitation par e-mail/.test(f0) && /remets-le-lui en main propre/.test(f0), f0.slice(0, 500));
     await clic(c, '#calque [data-eq="inviterok"]'); await p.waitForTimeout(500);
-    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi (aucun compte créé)', /Écris son prénom ET son nom/.test(await toast(c)) && (await S(c, () => EQUIPE.length)) === e0.n, await toast(c));
+    /* le refus se dit SOUS le champ (restes équipe, tour 2, 18 novembre : sur téléphone la bulle ne répète plus un message déjà lisible sous le doigt) — au bureau, c'est la bulle qui le dit en plus : on lit les deux endroits */
+    const dit3 = net((await toast(c)) + ' ' + await S(c, () => (document.getElementById('eq-p-err') || {}).textContent || ''));
+    v('A3 (écran) envoyer SANS rien écrire refuse en disant pourquoi — sous le champ ou en bulle — (aucun compte créé)', /Écris son prénom ET son nom/.test(dit3) && (await S(c, () => EQUIPE.length)) === e0.n, dit3);
     const err0 = await S(c, () => [...document.querySelectorAll('#calque .erreur')].filter(e => !e.hidden && e.textContent.trim()).length);
     await p.fill('#eq-p', 'Nadia'); await p.fill('#eq-n', 'Fournier'); await p.fill('#eq-m', 'nadia@climservices17.fr'); await p.fill('#eq-r', 'Assistante'); await p.waitForTimeout(300);
     await S(c, () => { document.getElementById('eq-prof').value = 'secr'; document.getElementById('eq-terrain').checked = false; });

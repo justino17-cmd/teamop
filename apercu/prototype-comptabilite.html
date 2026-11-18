@@ -497,7 +497,7 @@ body.guide-on .panneau{padding-bottom:calc(var(--guide-h,170px) + 48px)}
 @media (max-width:760px) and (max-height:700px){.guide{max-height:min(66vh,calc(100vh - 190px))}}
 @media (max-width:420px){.t{font-size:13.5px}.t td,.t th{padding:8px 6px}.t td.n{font-size:13px}.t td.ret{padding-left:14px}.replie-c .kpis{grid-template-columns:minmax(0,1fr)}}
 /* le nom du système tient en entier (iPhone 390 : « OP COMPTAB… ») : la date de la pastille cède la place, jamais le nom · 13 novembre 2026 */
-@media (max-width:440px){ .barre .chip .chip-date{display:none} .barre .logo b{overflow:visible;text-overflow:clip} }
+@media (max-width:440px){ .barre .chip .chip-date{display:none} .barre .logo b{overflow:visible;text-overflow:clip} .barre .logo small{display:none} .barre .logo b{font-size:13px;letter-spacing:0;white-space:nowrap} .barre .chip{padding-inline:12px} } /* iPhone 390 : « OP COMPTABLE » passait sous la pastille « Relevé à … » (14 novembre → 18 novembre, vu par la voie nuit) */
 /* ─── très petit téléphone (320 à 380 px) ─── */
 @media (max-width:380px){
   .masque-etroit{display:none!important}.seul-etroit{display:block!important}
