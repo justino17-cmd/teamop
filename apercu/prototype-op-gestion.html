@@ -5656,8 +5656,16 @@ function qteLire(v){
 /* Une ligne préparée par OP GESTION dit ce qu'elle compte : la main-d'œuvre « 2 h » vaut 2 × le prix de L'HEURE (qn posé), une pièce dont la quantité porte une unité (« 0,5 L » : un flacon de 0,5 L, vendu au flacon) se compte pour UNE unité de vente — et retaper le MÊME texte redonne ce total
    (q0/qn0), au lieu de changer de règle selon l'origine de la ligne (recontrôle, tour 2 : 108,00 € devenait 216,00 € dès qu'on retapait « 2h »). */
 const lignePiece = p => /[a-z]/i.test(String(p.q)) ? { d:p.nom, q:p.q, pu:p.pu != null ? p.pu : null, piece:true, q0:p.q, qn0:1, qn:1 } : { d:p.nom, q:p.q, pu:p.pu != null ? p.pu : null, piece:true };
-const totLigne = l => (l.pu || 0) * qteDe(l);
-const htDe = f => lignesDe(f).reduce((s,l) => s + totLigne(l), 0);
+/* UN total de ligne, arrondi au CENTIME comme on l'affiche (la règle du devis, `dvLigneHT`) : non arrondi, « 2,5 × 10,33 € » s'affichait 25,83 € sur trois lignes et le Total HT en
+   comptait 25,825 chacune — les lignes lues à l'écran faisaient 207,49 € pour un Total HT de 207,47 € sur un document remis au client (recontrôle, tour 3). */
+const totLigne = l => Math.round((l.pu || 0) * qteDe(l) * 100 + 1e-7) / 100;
+const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 100 + 1e-7) / 100;
+/* Une durée tapée EN MINUTES (« 90 min », « 45 mn ») : sa valeur en minutes, ou null. Elle ne vaut des heures que sur une ligne facturée à l'heure (`ligneHeure`) :
+   « 90 min » lu comme « 90 » au prix de l'HEURE écrivait 5 850,00 € pour 97,50 € dus, sans un mot (recontrôle, tour 3). */
+const dureeMinutes = v => { const m = String(v).trim().match(/^(\d{1,4}(?:[.,]\d+)?)\s?(?:min(?:ute)?s?|mn)$/i); return m ? parseFloat(m[1].replace(',', '.')) : null; };
+const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || /main.d.œuvre|\bheures?\b/i.test(String(l.d || ''));
+/* « même texte = même total » ne tient pas à la casse ni aux espaces : « 0,5 l » et « 0,5L » sont le flacon de « 0,5 L » (recontrôle, tour 3). */
+const qteNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[\s\u00a0\u202f]/g, '');
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
    Non arrondi, l'acompte de 30 % d'un devis de 413,17 € HT à 10 % (123,95 € HT) valait 136,345 € : le client payait « 136,35 € » et l'encaissement, la caisse et la
    trésorerie recevaient 136,345 € — un demi-centime d'argent qui n'existe pas. · 17 novembre 2026, parcours 2 */
@@ -9046,6 +9054,12 @@ const CAL_GENRES = [
   { k:'atelier',     ouvert:() => !!document.querySelector('#opdz:not([hidden])'),      ferme:() => opdFermer('fin') },   // l'atelier de devis et de contrats
   { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
   { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
+  /* les cinq calques que le recontrôle du 18 novembre a trouvés « oubliés » : un Retour quittait l'écran en les laissant posés */
+  { k:'securite',    ouvert:() => !opsLarge() && !!document.querySelector('#opsec[data-ouvert]'), ferme:() => opsFermer() },   // OP Security : le téléphone simulé en plein écran (sur grand écran c'est un volet permanent, pas un calque)
+  { k:'confirmation', ouvert:() => !!document.getElementById('sec-conf'),                 ferme:() => secuConfFermer(true) },   // « Confirme sur ton téléphone » : Retour = « Annuler », la demande est annulée comme au bouton
+  { k:'feuille',     ouvert:() => !!document.getElementById('cr-ftel'),                  ferme:() => { const b = document.querySelector('#cr-ftel [data-crsel]'); if (b) b.click(); } },   // la fiche d'une tournée posée en bas de la carte du planning (téléphone)
+  /* la Comptabilité plein cadre est une page À PART dans un cadre : elle DIT à l'hôte quand elle a un panneau ou le tiroir de son menu ouvert (opc_calque), et l'hôte lui dit de le fermer (opc_fermer_calque) */
+  { k:'cadre',       ouvert:() => cpCalque && !!document.querySelector('#cpsys:not([hidden])'), ferme:() => { cpCalque = false; try { const f = document.querySelector('#cpsys iframe'); if (f) f.contentWindow.postMessage({ opc_fermer_calque:true }, '*'); } catch (e) {} } },
 ];
 const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false, hash:'' };
 const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
@@ -9102,7 +9116,7 @@ addEventListener('popstate', ev => {
    eux-mêmes (lireHash) : la restauration automatique ne sert à rien ici, et elle défait ce que la règle promet — l'écran dessous reste où il était. */
 try { history.scrollRestoration = 'manual'; } catch (e) {}
 { const veille = () => { if (CAL.prevu) return; CAL.prevu = true; queueMicrotask(() => { CAL.prevu = false; calSync(); }); };
-  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class'] });
+  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class', 'data-ouvert'] });
   try { const e = history.state; if (e && typeof e.cal === 'number' && e.cal > 0) calReculer(e.cal); } catch (e) {}   // rechargé fenêtre ouverte : l'entrée orpheline est reculée
 }
 
@@ -9455,7 +9469,9 @@ document.addEventListener('change', ev => {
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
-    const lu = qteLire(v), nq = (l.q0 != null && v === l.q0) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
+    const mn = dureeMinutes(v);
+    if (mn !== null && !(mn > 0 && ligneHeure(l))) { t.value = l.q; toast(mn > 0 ? 'Une durée en minutes se compte sur une ligne facturée à l’heure : écris-la en heures (1h30), ou une quantité. Je garde ' + (l.q || '1') + '.' : 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }
+    const lu = mn !== null ? mn / 60 : qteLire(v), nq = (l.q0 != null && qteNorm(v) === qteNorm(l.q0)) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
     if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
     if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + prNum(DV_Q_MAX) + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
     if (l.pu != null && nq * l.pu > DV_PU_MAX) { t.value = l.q; toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse la quantité ou le prix. La quantité précédente est conservée.'); return; }   /* un total ne dépasse jamais le plafond sans le dire */
@@ -12374,8 +12390,9 @@ const GESTES = {
   opd:{ k:'ventes', c:'devis contrat', m:'doc' },
   mabarre:{ d:'l' }, metf:{ d:'l' }, htype:{ d:'l' }, creer:{ k:'inter', d:'c' }, rdv:{ k:'planif', d:'m' }, fogarder:{ k:'stock', d:'m' },
   /* boîte mail */
-  mbx:{ k:'com', c:'add addstop addpas addfin', m:'confok reco', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
-  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout', m:'reco confok', l:'cmd annonce boites' },
+  /* les gestes du bandeau « OP GESTION a reconnu » écrivent AILLEURS que dans le courrier : chacun lit la case de ce qu'il écrit (le devis, les achats, l'intervention, la fiche client), pas seulement la Boîte mail (restes entreprise, tour 3) */
+  mbx:{ k:'com', c:'add addstop addpas addfin devis@ventes encaisser@ventes confcren@inter cestclient@crm cestfour@achats', m:'confok reco annonce@ventes ranger@crm photoint@inter', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
+  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout creerint@inter planifdv@inter', m:'reco confok accord@ventes livraison@achats rappro@achats', l:'cmd annonce boites' },
   mm:{ k:'com', d:'l' }, courrier:{ k:'com', d:'l' }, mailenvoi:{ k:'com', d:'l' },
   /* comptabilité */
   cp:{ k:'compta', m:'payer envoi', l:'fac rouvrir aide onglet go jf frais paiement remis depot chq regimes fec fecdl' },
@@ -14680,8 +14697,9 @@ function xyLu(k, v){
   return n;
 }
 /* [n°4][n°7][n°8] ce que le cadre Comptabilité dit à la fenêtre : le mode qu'on y a choisi, et la touche Échap tapée dedans */
-var cpProg = null, cpSysEcho = false;
+var cpProg = null, cpSysEcho = false, cpCalque = false;   /* cpCalque : la Comptabilité plein cadre a un panneau ou son tiroir ouvert (lu par CAL_GENRES, « cadre ») */
 addEventListener('message', e => { const z = document.getElementById('cpsys'), f = z && z.querySelector('iframe'); if (!f || e.source !== f.contentWindow || !e.data) return;
+  if (e.data.opc_pret) cpCalque = false; else if ('opc_calque' in e.data) { cpCalque = e.data.opc_calque === true; calSync(); }   /* un cadre rechargé repart sans couche ; sinon la page l'historise comme tout calque */
   const m = e.data.opc_mode_choisi;
   if (m === 'jour' || m === 'nuit' || m === 'auto') { cpSysEcho = true; try { mode = m; appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); } finally { cpSysEcho = false; } }
   if (e.data.opc_echap && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
@@ -19874,8 +19892,10 @@ function courrierAgir(id, x){
 }
 const courrierHoteApi = {
   telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
-  /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2) */
-  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; return b && !peut('com', 'm') ? { ...b, actions:[] } : b; },
+  /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2). Avec « Modifier » à la Boîte mail seule, il ne garde que les gestes dont la case de destination est ouverte (tour 3) */
+  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm')) return { ...b, actions:[] };
+    /* chaque geste lit la case de ce qu'il écrit (la table GESTES) : on ne propose que ceux que la garde laisserait passer */
+    return { ...b, actions:b.actions.filter(o => { const i = o.id.indexOf(':'), g = geste(o.id.slice(0, i), o.id.slice(i + 1).split('|')[0]); return !g || !g.cat || peut(g.cat, g.x); }) }; },
   agir:(id, x) => courrierAgir(id, x),
   pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
     return R.qui === 'client' ? { texte:'Client', ton:'b' } : R.qui === 'four' ? { texte:'Fournisseur', ton:'v' } : R.qui === 'nouveau' ? { texte:'Nouveau contact', ton:'o' } : null; },
@@ -23753,7 +23773,7 @@ const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
   'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
   /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
-  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin, chantier Mimosas', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
   if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
@@ -23889,7 +23909,7 @@ document.addEventListener('click', ev => {
 const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
 const MET_EX_FAM = {
   chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz à condensation', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
+    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
   plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
