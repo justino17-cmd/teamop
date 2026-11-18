@@ -2513,6 +2513,8 @@ td.mono,.mono{white-space:nowrap}.ligne>b{white-space:nowrap}
 .opg-tab.grise{opacity:.35;cursor:not-allowed}
 .ligne-clic.grise{opacity:.5;cursor:not-allowed;margin-bottom:6px}.ligne-clic.grise small{color:var(--faible);font-weight:650;text-transform:uppercase;font-size:11px}
 .panneau .ligne-clic{margin-bottom:6px}
+/* Une ligne d'une liste dans un panneau ne rétrécit JAMAIS sous son texte : le panneau est une colonne flex qui défile, et `.ligne-clic` porte un min-height explicite (58 px) qui retire le plancher « taille du contenu » — liste longue, les lignes se tassaient à 58 px et leurs textes se superposaient (« Interventions sur la période », 8 lignes sur 15 coupées). La liste défile, les lignes gardent leur hauteur (recontrôle du Planning, tour 3, 18/11/2026). */
+.panneau .ligne-clic,.panneau .kpi-l,.panneau > .btn{flex-shrink:0}
 .plus-grp{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--faible);padding:12px 2px 6px}
 .a-refaire{display:flex;flex-direction:column;gap:12px}
 /* ══ STATISTIQUES ══ */
