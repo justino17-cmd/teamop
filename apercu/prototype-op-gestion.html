@@ -6717,7 +6717,7 @@ const H_GENS = {
   lr:{ nom:'Léa Roux', role:'Technicienne', c:'#8b5cf6' }, tl:{ nom:'Tom Leroy', role:'Technicien', c:'#d97706' },
   client:{ nom:'Le client', role:'depuis son lien', c:'#7b8496', ini:'↗' }, auto:{ nom:'OP GESTION', role:'automatique', c:'#15213a', ini:'OP' }
 };
-const H_TYPES = { inter:['Interventions','var(--bleu)'], planning:['Planning','var(--orange)'], facture:['Factures et paiements','var(--vert)'], devis:['Devis','var(--violet)'], contrat:['Contrats','var(--sarcelle)'], client:['Clients','color-mix(in srgb,#5e5ce6 50%,var(--encre))']   /* l'indigo en dur tombait à 2,83:1 sur le fond nuit ; mêlé à l'encre du thème il s'éclaircit de nuit et se fonce de jour · 13 novembre 2026 */, tache:['Tâches','var(--lien)'], equipe:['Équipe et accès','var(--doux)'], securite:['Sécurité','var(--rouge)'] };
+const H_TYPES = { inter:['Interventions','var(--bleu)'], planning:['Planning','var(--orange)'], facture:['Factures','var(--vert)'], devis:['Devis','var(--violet)'], contrat:['Contrats','var(--sarcelle)'], client:['Clients','color-mix(in srgb,#5e5ce6 50%,var(--encre))']   /* l'indigo en dur tombait à 2,83:1 sur le fond nuit ; mêlé à l'encre du thème il s'éclaircit de nuit et se fonce de jour · 13 novembre 2026 */, tache:['Tâches','var(--lien)'], equipe:['Équipe et accès','var(--doux)'], securite:['Sécurité','var(--rouge)'] };
 const hAv = k => { const g = H_GENS[k] || H_GENS.auto; return `<span class="av p" style="--tc:${g.c}">${g.ini || g.nom.split(' ').map(x => x[0]).join('').slice(0, 2)}</span>`; };
 /* le journal d'exemple : il suit les vraies pièces du prototype (interventions, factures, règlements, contrats) */
 let JOURNAL = (() => {
@@ -6938,7 +6938,7 @@ function tFaire(x, quoi){
 }
 /* Justin, 1er novembre 2026 : « qu'est-ce qui était prévu ? une intervention, un devis ? … tout ranger : devis, facture,
    intervention, paiement ». Chaque tâche a un SUJET, déduit de ce à quoi elle est liée ; les listes se rangent par sujet. */
-const T_CATS = [['devis','Devis','💰'],['facture','Factures et paiements','🧾'],['inter','Interventions','🧰'],['commande','Commandes de pièces','📦'],['contrat','Contrats','📑'],['client','Clients','👤'],['autre','Autres','📌']];
+const T_CATS = [['devis','Devis','💰'],['facture','Factures','🧾'],['inter','Interventions','🧰'],['commande','Commandes de pièces','📦'],['contrat','Contrats','📑'],['client','Clients','👤'],['autre','Autres','📌']];
 const tCat = x => x.cat || (x.type === 'commande' ? 'commande' : x.lien ? ({ devis:'devis', facture:'facture', inter:'inter', contrat:'contrat', client:'client' })[x.lien.t] || 'autre' : 'autre');
 function tObjet(x){ // ce à quoi la tâche se rapporte, en clair
   if (x.type === 'commande') { const i = x.inter && INTS.find(o => o.id === x.inter); return 'Commande' + (i ? ' pour l’intervention du ' + T_JLC(i.d) : ''); }
@@ -14616,7 +14616,7 @@ document.addEventListener('click', ev => { if (typeof RL_ACTIF === 'undefined' |
 let tkxFiltre = { retard:false, urgent:false, sansdate:false }, tkxRang = 'sujet', tkxSansFiltre = false, tkxSansPastilles = false;
 let tkxSugSel = new Set(), tkxSugEdit = {}, tkxPlusTard = {}, tkxResume = true, tkxRappelsVus = new Set(), tkxLienChoisi = null, tkxIgn = new Set(), tkxRetourTache = null, TKX_AVIS = [];
 const TKX_REGLES = { auto:false, quis:{ devis:'julie', facture:'julie', ticket:'julie', demande:'marc', vehicules:'kb', equipe:'marc', temps:'marc', mail:'julie', contrat:'marc', inter:'marc' } };
-const TKX_FAM = [['devis', 'Devis à relancer', '💰'], ['facture', 'Factures et paiements', '🧾'], ['ticket', 'Tickets à retrouver', '🛒'], ['demande', 'Demandes d’achat à décider', '🛒'], ['vehicules', 'Véhicules', '🚐'], ['equipe', 'Habilitations et équipe', '👥'], ['temps', 'Pointage', '⏱️'], ['mail', 'E-mails', '📧'], ['contrat', 'Contrats', '📑'], ['inter', 'Interventions et rendez-vous', '🧰']];
+const TKX_FAM = [['devis', 'Devis à relancer', '💰'], ['facture', 'Factures', '🧾'], ['ticket', 'Tickets à retrouver', '🛒'], ['demande', 'Demandes d’achat à décider', '🛒'], ['vehicules', 'Véhicules', '🚐'], ['equipe', 'Habilitations et équipe', '👥'], ['temps', 'Pointage', '⏱️'], ['mail', 'E-mails', '📧'], ['contrat', 'Contrats', '📑'], ['inter', 'Interventions et rendez-vous', '🧰']];
 IC.tkxtaches = '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>';
 
 /* ─── qui est « moi » dans Tâches : le patron est Marc, Julie et les techniciens sont eux-mêmes ─── */
@@ -26659,26 +26659,26 @@ const NV_CARTES = {
   patron:[
     { k:'menu', t:'Où sont passées mes rubriques ?', voir:'menu', mot:'Menu',
       lignes:[['Tableau de bord', 'Accueil'], ['Factures et paiements', 'Comptabilité', 'comptabilite'], ['Boxes', 'Dépôts et camions', 'boxes']], tel:['Le bouton « Plus »', 'Menu, en haut à gauche'] },
-    { k:'compta', t:'Comptabilité : tout au même endroit', d:'Factures, paiements, achats, paie et TVA se suivent au même endroit, rangés comme chez ton comptable.', voir:'comptabilite', mot:'Comptabilité' },
+    { k:'compta', t:'Comptabilité : tout au même endroit', d:'Factures, paiements, achats, paie et TVA se retrouvent ici, rangés comme chez ton comptable.', voir:'comptabilite', mot:'Comptabilité' },
     { k:'stock', t:'Stock : où est chaque article', d:'Tape le nom d’un article : tu vois où il est et combien il en reste.', voir:'stock', mot:'Stock' },
-    { k:'taches', t:'Tâches : elles arrivent seules', d:'Un devis à relancer, une facture en retard : OP GESTION te propose la tâche, qui se termine seule.', voir:'taches', mot:'Tâches' },
+    { k:'taches', t:'Tâches : elles arrivent seules', d:'Un devis à relancer, une facture en retard : OP GESTION te propose la tâche et la termine seule.', voir:'taches', mot:'Tâches' },
     { k:'equipe', t:'Équipe : qui peut faire quoi', d:'Pour chaque personne, tu choisis ce qu’elle voit et peut faire, et son menu s’adapte tout seul.', voir:'equipe', mot:'Équipe' },
     { k:'entreprise', t:'Mon entreprise : réglée une fois', d:'Tes mentions légales, ton logo, ta banque et tes horaires s’écrivent ici une fois, puis servent partout.', voir:'entreprise', mot:'Mon entreprise' }
   ],
   gestion:[
     { k:'menu', t:'Où sont passées mes rubriques ?', voir:'menu', mot:'Menu',
-      lignes:[['Factures et paiements', 'Comptabilité', 'comptabilite'], ['Produits, fournisseurs, bons de commande', 'Fournisseurs, matériel & produits', 'produits'], ['Mes demandes', 'Achats et frais', 'achats']], tel:['Le bouton « Plus »', 'Menu, en haut à gauche'] },
-    { k:'compta', t:'Comptabilité : tout au même endroit', d:'Factures, paiements, achats et TVA se suivent au même endroit, rangés comme chez ton comptable.', voir:'comptabilite', mot:'Comptabilité' },
+      lignes:[['Factures et paiements', 'Comptabilité', 'comptabilite'], ['Produits, fournisseurs, bons de commande', 'Fournisseurs, matériel & produits', 'produits'], ['Mes demandes', 'Achats et frais', 'achats', () => peut('achats', 'c')], ['Boxes', 'Dépôts et camions', 'boxes']], tel:['Le bouton « Plus »', 'Menu, en haut à gauche'] },
+    { k:'compta', t:'Comptabilité : tout au même endroit', d:'Factures, paiements, achats et TVA se retrouvent ici, rangés comme chez ton comptable.', voir:'comptabilite', mot:'Comptabilité' },
     { k:'devis', t:'Devis : composer en grand', d:'« Composer un devis » ouvre une grande page claire : tu remplis, tu vérifies le prix, tu envoies.', voir:'devis', mot:'Devis', si:() => peut('ventes', 'c') },
-    { k:'achats', t:'Achats et frais : les demandes', d:'Les demandes de matériel et les notes de frais de l’équipe sont réunies ici.', voir:'achats', mot:'Achats et frais' },
+    { k:'achats', t:'Achats et frais : les demandes', d:() => peut('achats', 'c') ? 'Les demandes de matériel et les notes de frais de l’équipe sont réunies ici.' : 'Tu suis ici les demandes de matériel et les notes de frais de l’équipe.', voir:'achats', mot:'Achats et frais' },
     { k:'produits', t:'Fournisseurs, matériel & produits', d:'Les commandes, les articles et les fournisseurs sont réunis ici, en trois parties.', voir:'produits', mot:'Fournisseurs' },
     { k:'taches', t:'Mes tâches : elles arrivent seules', d:'Ce qu’on t’a confié arrive ici, et chaque tâche se termine seule quand le travail est fait.', voir:'taches', mot:'tâches' }   /* « OP GESTION te propose » est écrit sur l'écran du gérant seul : la phrase du bureau ne le promet pas */
   ],
   tech:[
     { k:'menu', t:'Où sont passées mes rubriques ?', voir:'menu', mot:'Menu',
       lignes:[['Mes notes de frais', 'Mes frais', 'techfrais'], ['Pointage', 'Mes heures', 'mesheures'], ['Boxes', 'Mon camion', 'moncamion']], tel:['Le bouton « Plus »', 'Menu, en haut à gauche'] },
-    { k:'journee', t:'Ma journée, dans l’ordre', d:'Tes interventions arrivent dans l’ordre : tu y vas, tu appelles, tu remplis le compte rendu, le client signe.', voir:'majournee', mot:'Ma journée' },
-    { k:'camion', t:'Mon camion : ce qui manque', d:'Cherche une pièce, vois ce qui manque à bord, et préviens le bureau en un geste.', voir:'moncamion', mot:'Mon camion' },
+    { k:'journee', t:'Ma journée, dans l’ordre', d:'Touche « Je commence ma journée » : tes interventions arrivent dans l’ordre, du trajet jusqu’à la signature du client.', voir:'majournee', mot:'Ma journée' },
+    { k:'camion', t:'Mon camion : ce qui manque', d:'Cherche une pièce, vois ce qui manque à bord, et dis au bureau ce que tu as utilisé.', voir:'moncamion', mot:'Mon camion' },
     { k:'heures', t:'Mes heures : un seul bouton', d:'Tu relis tes journées et tu confirmes tes heures d’un seul bouton, en fin de mois.', voir:'mesheures', mot:'Mes heures' },
     { k:'frais', t:'Mes frais : ticket en photo', d:'Photographie ton ticket, ou écris la demande d’achat : le bureau te répond directement dans cet écran.', voir:'techfrais', mot:'Mes frais' },
     { k:'conges', t:'Mes congés, sur ton téléphone', d:'Tu vois tes jours restants, tu fais ta demande de congé, et la réponse arrive au même endroit.', voir:'absences', mot:'Mes congés' }
@@ -26691,14 +26691,14 @@ const nvEtroit = () => innerWidth <= 760;
 const nvIcone = k => { if (k === 'menu') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
   const c = rlLignes().find(x => x.k === k); return c ? emoLigne(c) : IC[k] ? svg(k) : '<span class="emo" aria-hidden="true">✨</span>'; };
 /* les lignes de la première carte : ce que la personne voyait avant et comment ça s'appelle maintenant — seulement les écrans qu'elle a le droit d'ouvrir ; au téléphone, « Plus » d'abord */
-function nvLignes(c){ const L = c.lignes.filter(l => !l[2] || nvVoit(l[2])).map(l => [l[0], l[1]]);
+function nvLignes(c){ const L = c.lignes.filter(l => (!l[2] || nvVoit(l[2])) && (!l[3] || l[3]())).map(l => [l[0], l[1]]);
   return (nvEtroit() ? [c.tel, ...L] : L).slice(0, 3); }
 const nvVoit = k => !k || rlPermis(k);
 function nvCartes(){ const r = nvRole(); if (!r) return [];
   return NV_CARTES[r].filter(c => c.k === 'menu' || ((!c.voir || nvVoit(c.voir)) && (!c.si || c.si()))); }
 /* les pages = les cartes, avec leur HTML (`c`) : la phrase, ou les trois lignes de la première carte */
 function nvPages(){ return nvCartes().map(c => ({ k:c.k, t:c.t, voir:c.voir, mot:c.mot, ic:nvIcone(c.k === 'menu' ? 'menu' : c.voir),
-  c: c.k === 'menu' ? `<ul class="nv-lignes" aria-label="Ce qui s’appelait comment avant">${nvLignes(c).map(([a, n]) => `<li><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><span class="nv-sr">, maintenant : </span><b class="nv-apres">${esc(n)}</b></li>`).join('')}</ul>` : `<p class="nv-phrase">${esc(c.d)}</p>` })); }
+  c: c.k === 'menu' ? `<ul class="nv-lignes" aria-label="Ce qui s’appelait comment avant">${nvLignes(c).map(([a, n]) => `<li><span class="nv-avant">${esc(a)}</span><span class="nv-fl" aria-hidden="true">→</span><span class="nv-sr">, maintenant : </span><b class="nv-apres">${esc(n)}</b></li>`).join('')}</ul>` : `<p class="nv-phrase">${esc(typeof c.d === 'function' ? c.d() : c.d)}</p>` })); }
 let NV = null;
 function nvHtml(){ const P = NV.pages, n = P.length;
   return `<div class="nv-tete"><span class="surtitre">Nouveautés</span><span class="nv-compte" aria-live="polite"><span data-nv-i>1</span> sur ${n}</span><button type="button" class="nv-x" data-nv="fermer" aria-label="Fermer le guide des nouveautés">✕</button></div>
@@ -26814,6 +26814,27 @@ document.head.insertAdjacentHTML('beforeend', `<style id="nv-style">
   .nv-apres{flex:1 1 100%}
 }
 @media (max-width:760px) and (min-height:660px){.nv-aide{display:block;padding:0 16px}}
+/* un téléphone tenu en travers (390, 360 ou 320 px de haut) : la carte tenait dans 84 px de plus que l'écran et « Voir » passait sous le pli, sans le moindre indice (iPhone, 844 × 390 : « Voir » invisible ; Android, 640 × 360 : rogné de 5 px).
+   On joue la hauteur, pas la largeur : l'icône rétrécit, l'aide s'éteint, les lignes de la première carte restent sur une rangée, et « Voir » passe À DROITE du texte au lieu de dessous — la carte perd une rangée entière */
+@media (max-height:480px){
+  #nv{padding-top:calc(6px + env(safe-area-inset-top,0px))}
+  .nv-feuille{gap:6px;padding-top:10px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .nv-aide{display:none}
+  .nv-carte{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding-top:2px;padding-bottom:2px}
+  .nv-carte > *{grid-column:1}
+  .nv-carte .nv-voir{grid-column:2;grid-row:1 / span 2;align-self:center;margin:0;min-height:46px;min-width:112px;padding:0 18px}
+  .nv-haut{gap:10px}
+  .nv-ic{width:34px;height:34px;border-radius:10px}
+  .nv-ic svg{width:18px;height:18px}
+  .nv-carte h2{font-size:19px}
+  .nv-carte .nv-phrase{font-size:16px;line-height:1.4}
+  .nv-lignes{overflow:visible}   /* « hidden » rendait la liste compressible : la rangée de la grille se calait sur 91 px pour une liste de 133, et elle débordait sur le titre */
+  .nv-lignes li{padding:6px 12px;font-size:14px;flex-wrap:nowrap;align-items:baseline}
+  .nv-lignes li:first-child{border-radius:16px 16px 0 0}.nv-lignes li:last-child{border-radius:0 0 16px 16px}
+  .nv-avant{flex:1 1 52%}.nv-fl{display:inline}.nv-apres{flex:1 1 40%}
+  .nv-pied .btn{min-height:44px}
+  .nv-points-nav{min-height:8px}
+}
 @keyframes nvFond{from{opacity:0}}
 @keyframes nvMonte{from{opacity:0;transform:translateY(18px) scale(.98)}}
 @keyframes nvMonteTel{from{transform:translateY(100%)}}
