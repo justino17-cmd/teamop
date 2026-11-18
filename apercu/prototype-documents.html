@@ -241,7 +241,7 @@ html[data-app] #b-plus.peut-suppr{display:inline-flex}      /* à l'ordinateur, 
 .ent{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 18px;align-items:center}
 .ent-logo{--lg-fond:var(--c);--lg-texte:#fff;line-height:0}
 .ent-logo svg{width:var(--logo);height:var(--logo);display:block}
-/* les initiales du logo sont du texte DANS un SVG que la page met à l'échelle (transform, --s) : sans cette ligne Chromium garde la mise en page du texte à l'échelle d'avant (« CS » minuscule dans un coin du carré, « 17 » absent) quand on passe d'« Ajuster » à 100 % */
+/* les initiales du logo sont du texte DANS un SVG que la page met à l'échelle (transform, --s) : sans cette ligne Chromium garde la mise en page du texte à l'échelle d'avant (« CS » minuscule dans un coin du carré, « 17 » absent) quand on passe d'« Ajuster » à 100 % */
 svg[role="img"] text{text-rendering:geometricPrecision}
 .ent-id b{display:block;font-size:1.35em;line-height:1.2;color:var(--c);letter-spacing:-.01em}
 .ent-id span{display:block;color:var(--p-doux);font-size:.92em}
@@ -1431,7 +1431,7 @@ html[data-app] #vue-accueil{display:none!important}
    Justin, 16 novembre 2026 : « composer un devis, c'est trop petit ». Mesuré avant : une fenêtre de 1 100 px posée sur un voile gris, et une page d'aperçu de 333 px
    (texte rendu à 5 px). Maintenant le compositeur occupe TOUT l'écran : à gauche les étapes (qui défilent), à droite la PAGE du document sur un fond de bureau (qui défile,
    avec son réglage de taille). Ce qui défile est la colonne des étapes, jamais la fenêtre. Trois formes, décidées sur la largeur de l'écran :
-   · ≥ 1 032 px : deux colonnes (étapes 40 %, de 480 à 620 px ; la page garde au moins 480 px) et « Créer » remonte dans la barre du haut, à côté du total ;
+   · ≥ 1 032 px : deux colonnes (étapes 40 %, de 480 à 620 px ; la page garde au moins 480 px) et « Créer » remonte dans la barre du haut, à côté du total ;
    · moins : une seule colonne, une barre « Total · Aperçu » au-dessus des étapes, « Créer » en bas ; « Aperçu » ouvre la page en grand, réglable ;
    · téléphone : pareil, champs et boutons au doigt (44 à 48 px). */
 @keyframes vvFondu{from{opacity:0}to{opacity:1}}
@@ -1656,7 +1656,7 @@ html[data-app] #vue-accueil{display:none!important}
         <button type="button" class="bt icone" id="b-annuler" data-act="annuler" aria-label="Annuler" title="Annuler (⌘Z)"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
         <button type="button" class="bt icone" id="b-retablir" data-act="retablir" aria-label="Rétablir" title="Rétablir (⇧⌘Z)"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
         <span class="sep"></span>
-        <button type="button" class="bt" id="b-zoom" data-act="menu-zoom" aria-label="Zoom : 100 %" title="Zoom" aria-haspopup="menu" aria-expanded="false"><span id="zoom-lib">100 %</span><svg class="ic" aria-hidden="true" style="width:14px;height:14px"><use href="#i-chevron-down"/></svg></button>
+        <button type="button" class="bt" id="b-zoom" data-act="menu-zoom" aria-label="Zoom : 100 %" title="Zoom" aria-haspopup="menu" aria-expanded="false"><span id="zoom-lib">100 %</span><svg class="ic" aria-hidden="true" style="width:14px;height:14px"><use href="#i-chevron-down"/></svg></button>
       </div>
       <div class="b-droite">
         <button type="button" class="bt" data-act="modeles" aria-label="Modèles" title="Modèles"><svg class="ic" aria-hidden="true"><use href="#i-layout"/></svg><span class="lib">Modèles</span></button>
@@ -1829,7 +1829,7 @@ function identNet(d){
 }
 const logosLire=t=>{ const o={}; if(t&&typeof t==='object') Object.keys(t).forEach(k=>{ if(RE_REFLOGO.test(k)&&typeof t[k]==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(t[k])) o[k]=t[k] }); return o };
 function logosUtiles(){ const o={}; S.docs.forEach(d=>{ const r=d.ident&&d.ident.logo; if(r&&S.logos[r]) o[r]=S.logos[r] }); return o }
-// puC = prix en CENTIMES ; tvaBp = taux en centièmes de pour cent (2000 = 20 %)
+// puC = prix en CENTIMES ; tvaBp = taux en centièmes de pour cent (2000 = 20 %)
 const CATALOGUE=[
   {ref:'CL-M25',cat:'Matériel',des:'Climatiseur mural réversible 2,5 kW — fourniture',unite:'u',puC:79000,tvaBp:2000},
   {ref:'CL-M35',cat:'Matériel',des:'Climatiseur mural réversible 3,5 kW — fourniture',unite:'u',puC:92000,tvaBp:2000},
@@ -1996,7 +1996,7 @@ const AMOD={
     visites:['Visites d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il nettoie les filtres, contrôle le fonctionnement et vérifie les raccordements. Il remet ensuite un compte rendu au client.','Le prestataire effectue {{frequence}} : nettoyage des filtres, contrôle de l’appareil et compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose les dates de visite au client, qui peut les décaler en le prévenant à l’avance.\nLe client donne accès aux appareils le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','Les dates sont fixées avec le client, qui donne accès aux appareils. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %), pour l’ensemble des visites.\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant une visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.'],
     obligations:['Obligations du client','Le client utilise les appareils normalement et signale sans attendre un bruit, une fuite ou une panne.\nPendant la durée du contrat, il prévient le prestataire avant de faire intervenir une autre entreprise sur les appareils.','Le client utilise normalement les appareils, signale vite tout problème et prévient le prestataire avant de faire venir une autre entreprise.']},
   pro:{
@@ -2005,13 +2005,13 @@ const AMOD={
     depannage:['Dépannage','En cas de panne, le client prévient le prestataire par téléphone au {{tel}} ou par e-mail à {{email}}.\nLe prestataire intervient dès que possible, en commençant par les pannes qui arrêtent l’activité du client. Les pièces remplacées sont facturées à part, après accord du client sur un devis.','Le client signale une panne au {{tel}} ou à {{email}}. Le prestataire intervient dès que possible ; les pièces sont facturées à part, sur devis.'],
     acces:['Accès et sécurité','Le client donne accès aux installations aux jours convenus et indique les consignes de sécurité du site.\nLe prestataire respecte ces consignes et intervient aux heures d’ouverture du client, sauf accord contraire.','Le client donne accès aux installations et indique les consignes de sécurité ; le prestataire les respecte.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC, payé {{paiement}}.']},
+    prix:['Prix et paiement','Le prix de la maintenance est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Chaque facture est payable à la date qu’elle indique.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC, payé {{paiement}}.']},
   pac:{
     objet:['Objet du contrat','{{entreprise}} (le prestataire) entretient la pompe à chaleur de {{client}} (le client), installée à l’adresse suivante : {{adresse}}.\nLa prestation comprend : {{prestation}}.','{{entreprise}} entretient la pompe à chaleur de {{client}} installée à l’adresse suivante : {{adresse}}.'],
     visites:['Visite d’entretien','Le prestataire effectue {{frequence}}.\nÀ chaque visite, il contrôle le circuit, les réglages et le bon fonctionnement de la pompe à chaleur, puis remet un compte rendu au client.','Le prestataire effectue {{frequence}} : contrôle du circuit et des réglages, puis compte rendu.'],
     acces:['Rendez-vous et accès','Le prestataire propose la date de la visite au client, qui peut la décaler en le prévenant à l’avance.\nLe client donne accès à la pompe à chaleur le jour convenu. S’il est absent sans avoir prévenu, la visite peut être facturée.','La date est fixée avec le client, qui donne accès à l’appareil. Une absence non signalée peut être facturée.'],
     duree:['Durée','Le contrat commence le {{debut}} et dure {{duree}}.\nIl s’arrête à cette échéance, sauf accord écrit des deux parties pour le prolonger.','Le contrat commence le {{debut}} et dure {{duree}}.'],
-    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
+    prix:['Prix et paiement','Le prix de l’entretien est de {{prix}} HT par an, soit {{prixttc}} TTC (TVA à {{tva}} %).\nIl est payé {{paiement}}. Le prestataire remet une facture au client.','Le prix est de {{prix}} HT par an, soit {{prixttc}} TTC. Il est payé {{paiement}}, sur facture.'],
     pannes:['Pannes et réparations','L’entretien ne comprend ni les réparations ni les pièces à remplacer.\nSi le prestataire constate une panne ou une pièce usée pendant la visite (article {{art:visites}}), il le dit au client et lui propose un devis avant toute intervention.','Les réparations et les pièces ne sont pas comprises : le prestataire propose un devis avant toute intervention.']}};
 const CONTRATS={
   part:{nom:'Contrat d’entretien de climatisation — particulier',modele:'classique',couleur:'#1b3a6b',
@@ -2064,8 +2064,8 @@ function graines(){
 const REGLES={
   qteM:{f:1,dec:3,min:1,max:100000000,nom:'La quantité',ex:'2 ou 12,5',neg:'ne peut pas être négative',zero:'doit être supérieure à 0',maxTxt:'100 000',vide:true},
   puC:{dec:2,min:0,max:100000000,nom:'Le prix unitaire',ex:'49,90',neg:'ne peut pas être négatif — pour un rabais, utilise une remise',maxTxt:'1 000 000 €',vide:true},
-  remBp:{f:1,dec:2,min:0,max:10000,nom:'La remise',ex:'10 ou 7,5',neg:'ne peut pas être négative',depasse:'ne peut pas dépasser 100 %',videOk:true},
-  tvaBp:{dec:2,min:0,max:10000,nom:'Le taux de TVA',ex:'20, 10, 5,5 ou 0',neg:'ne peut pas être négatif',depasse:'ne peut pas dépasser 100 %',vide:true}
+  remBp:{f:1,dec:2,min:0,max:10000,nom:'La remise',ex:'10 ou 7,5',neg:'ne peut pas être négative',depasse:'ne peut pas dépasser 100 %',videOk:true},
+  tvaBp:{dec:2,min:0,max:10000,nom:'Le taux de TVA',ex:'20, 10, 5,5 ou 0',neg:'ne peut pas être négatif',depasse:'ne peut pas dépasser 100 %',vide:true}
 };
 function lireDecimal(brut,dec){
   let s=String(brut==null?'':brut).replace(/[\s  ]/g,'').replace(/[€%]/g,'');
@@ -2392,8 +2392,8 @@ function colsDe(b,d){
   c.push({k:'des',t:'Désignation',w:38}); c.push({k:'qte',t:'Qté',w:7,num:1});
   if(k.unite!==false) c.push({k:'unite',t:'Unité',w:8});
   c.push({k:'pu',t:ttc?'Prix unitaire TTC':'Prix unitaire HT',w:13,num:1});
-  if(k.remise!==false) c.push({k:'rem',t:'Remise %',w:8,num:1});
-  if(k.tva!==false&&!fr) c.push({k:'tva',t:'TVA %',w:7,num:1});
+  if(k.remise!==false) c.push({k:'rem',t:'Remise %',w:8,num:1});
+  if(k.tva!==false&&!fr) c.push({k:'tva',t:'TVA %',w:7,num:1});
   c.push({k:'tot',t:ttc?'Total TTC':'Total HT',w:14,num:1});
   const T=b.titres||{}, W=b.largeurs||{};
   c.forEach(z=>{ z.t0=z.t; const u=typeof T[z.k]==='string'?T[z.k].trim():''; if(u) z.t=u.slice(0,40); if(typeof W[z.k]==='number'&&W[z.k]>0) z.w=W[z.k] });
@@ -2417,8 +2417,8 @@ function htLigne(b,l,x,cols){
       case 'qte': inner=edLigne(x,b,'qteM',fmtQte(l.qteM),{row:R,num:1,label:'Quantité',ph:'1'}); break;
       case 'unite': inner=edLigne(x,b,'unite',l.unite||'',{row:R,label:'Unité',ph:'u'}); break;
       case 'pu': inner=edLigne(x,b,'puC',ttc?fmtMontant(ttcDe(l.puC,l.tvaBp)):fmtMontant(l.puC),{row:R,num:1,label:ttc?'Prix unitaire TTC':'Prix unitaire HT',ph:'0,00'}); break;
-      case 'rem': inner=edLigne(x,b,'remBp',l.remBp?fmtPct(l.remBp):'',{row:R,num:1,label:'Remise en pourcentage',ph:'0 %'}); break;
-      case 'tva': inner=edLigne(x,b,'tvaBp',fmtPct(l.tvaBp||0),{row:R,num:1,label:'Taux de TVA',ph:'20 %'}); break;
+      case 'rem': inner=edLigne(x,b,'remBp',l.remBp?fmtPct(l.remBp):'',{row:R,num:1,label:'Remise en pourcentage',ph:'0 %'}); break;
+      case 'tva': inner=edLigne(x,b,'tvaBp',fmtPct(l.tvaBp||0),{row:R,num:1,label:'Taux de TVA',ph:'20 %'}); break;
       case 'tot': { const ht=calc.lignes[R]||0; inner=`<span class="tot-l">${fmtMontant(ttc?ttcDe(ht,l.tvaBp):ht)}</span>`; break }
     }
     return `<td${c.num?' class="num"':''}>${first?grip:''}${inner}${last?kebab:''}</td>`;
@@ -2616,7 +2616,7 @@ window.addEventListener('popstate',()=>{
 const pile=()=>$('#pile'), bureau=()=>$('#bureau');
 /* — accueil — */
 const clientDe=d=>{const b=d.blocs.find(x=>x.type==='client');return b&&b.client||null};
-/* la TVA d'un contrat d'entretien : 10 % chez un particulier, 20 % chez un professionnel — la règle des factures d'OP GESTION ; sans client, on ne la devine pas (0) */
+/* la TVA d'un contrat d'entretien : 10 % chez un particulier, 20 % chez un professionnel — la règle des factures d'OP GESTION ; sans client, on ne la devine pas (0) */
 const tvaContrat=d=>{const c=clientDe(d);return c?(c.pro?20:10):0};
 const ttcContrat=d=>{const p=d.vars&&d.vars.prix, t=tvaContrat(d);return Number.isFinite(p)&&p>0&&t?Math.round(p*(1+t/100)):0};
 function rendreAccueil(){
@@ -2672,7 +2672,7 @@ function echelle(){
   return +z||1;
 }
 function appliquerZoom(){
-  const s=echelle(); pile().style.setProperty('--s',s.toFixed(4)); $('#zoom-lib').textContent=Math.round(s*100)+' %'; $('#b-zoom').setAttribute('aria-label','Zoom : '+Math.round(s*100)+' %'); majOverlays();
+  const s=echelle(); pile().style.setProperty('--s',s.toFixed(4)); $('#zoom-lib').textContent=Math.round(s*100)+' %'; $('#b-zoom').setAttribute('aria-label','Zoom : '+Math.round(s*100)+' %'); majOverlays();
 }
 /* ── le cycle de dessin : calcul → mesure → pagination → HTML → fusion douce dans la page (le curseur et le focus ne bougent pas) ── */
 let _raf=0, _compo=false;
@@ -3180,8 +3180,8 @@ function ouvrirTotaux(ancre){
   const d=D(), m=d.meta, rm=m.remise||{mode:'pct',val:0}, ac=m.acompte||{mode:'pct',val:3000};
   const cvt=(mode,v)=>mode==='pct'?rawPct(v):rawMontant(v);
   const el=ouvrirPop(ancre||$('#actions'),`<h3>Remise, acompte, TVA</h3>
-    <div class="champ">Remise sur le total <div class="seg" data-seg="rm" role="group" aria-label="Remise : en pourcentage ou en euros"><button type="button" data-m="pct" aria-pressed="${rm.mode==='pct'}">en %</button><button type="button" data-m="eur" aria-pressed="${rm.mode==='eur'}">en €</button></div><input name="rm" aria-label="Remise sur le total" inputmode="decimal" autocomplete="off" value="${esc(rm.val?cvt(rm.mode,rm.val):'')}" placeholder="Aucune"></div>
-    <div class="champ">Acompte à la commande <div class="seg" data-seg="ac" role="group" aria-label="Acompte : en pourcentage ou en euros"><button type="button" data-m="pct" aria-pressed="${ac.mode==='pct'}">en %</button><button type="button" data-m="eur" aria-pressed="${ac.mode==='eur'}">en €</button></div><input name="ac" aria-label="Acompte à la commande" inputmode="decimal" autocomplete="off" value="${esc(ac.val?cvt(ac.mode,ac.val):'')}" placeholder="Pas d’acompte"></div>
+    <div class="champ">Remise sur le total <div class="seg" data-seg="rm" role="group" aria-label="Remise : en pourcentage ou en euros"><button type="button" data-m="pct" aria-pressed="${rm.mode==='pct'}">en %</button><button type="button" data-m="eur" aria-pressed="${rm.mode==='eur'}">en €</button></div><input name="rm" aria-label="Remise sur le total" inputmode="decimal" autocomplete="off" value="${esc(rm.val?cvt(rm.mode,rm.val):'')}" placeholder="Aucune"></div>
+    <div class="champ">Acompte à la commande <div class="seg" data-seg="ac" role="group" aria-label="Acompte : en pourcentage ou en euros"><button type="button" data-m="pct" aria-pressed="${ac.mode==='pct'}">en %</button><button type="button" data-m="eur" aria-pressed="${ac.mode==='eur'}">en €</button></div><input name="ac" aria-label="Acompte à la commande" inputmode="decimal" autocomplete="off" value="${esc(ac.val?cvt(ac.mode,ac.val):'')}" placeholder="Pas d’acompte"></div>
     <label class="interr haut"><input type="checkbox" role="switch" name="fr"${m.franchise?' checked':''}><span>TVA non applicable, art. 293 B du CGI<small>Retire la TVA partout et pose la mention.</small></span></label>
     <div class="rangee"><button type="button" class="bt" data-annuler>Annuler</button><button type="button" class="bt primaire" data-ok>Appliquer</button></div>`,{label:'Réglages des totaux'});
   const modes={rm:rm.mode,ac:ac.mode};
@@ -3192,7 +3192,7 @@ function ouvrirTotaux(ancre){
     const lire=(i,mode,nom)=>{ const t=i.value.trim(); if(t==='') return {ok:true,v:0}; const r=lireDecimal(t,2);
       if(r.code!=='ok') { champErr(i,r.code==='decimales'?`${nom} accepte au plus 2 décimales.`:`« ${t.slice(0,16)} » n’est pas un nombre : écris par exemple ${mode==='pct'?'10 ou 7,5':'250 ou 49,90'}.`); return null }
       if(r.neg){ champErr(i,`${nom} ne peut pas être ${nom==='La remise'?'négative':'négatif'}.`); return null }
-      if(mode==='pct'&&r.n>10000){ champErr(i,`${nom} ne peut pas dépasser 100 %.`); return null } return {ok:true,v:r.n} };
+      if(mode==='pct'&&r.n>10000){ champErr(i,`${nom} ne peut pas dépasser 100 %.`); return null } return {ok:true,v:r.n} };
     const R=lire(iR,modes.rm,'La remise'), A=lire(iA,modes.ac,'L’acompte'); if(!R||!A) return;
     const avantFr=!!d.meta.franchise;
     const essai=clone(d); essai.meta.franchise=fr; essai.meta.remise={mode:modes.rm,val:R.v}; essai.meta.acompte={mode:modes.ac,val:A.v}; const c=calculer(essai);
@@ -3250,7 +3250,7 @@ ACTIONS['annuler']=()=>annuler(); ACTIONS['retablir']=()=>retablir();
 ACTIONS['menu-zoom']=t=>{
   if(POP&&POP.ancre===t){fermerPop();return}
   const z=S.ui.zoom, ch=v=>()=>{ S.ui.zoom=v; appliquerZoom(); sauverStock() };
-  ouvrirMenu(t,[{lib:APP?'Ajuster à la largeur':'Ajuster à la fenêtre',coche:z==='ajuster',fn:ch('ajuster')},{sep:1},...[.75,1,1.25,1.5].map(v=>({lib:Math.round(v*100)+' %',coche:+z===v,fn:ch(v)}))]);
+  ouvrirMenu(t,[{lib:APP?'Ajuster à la largeur':'Ajuster à la fenêtre',coche:z==='ajuster',fn:ch('ajuster')},{sep:1},...[.75,1,1.25,1.5].map(v=>({lib:Math.round(v*100)+' %',coche:+z===v,fn:ch(v)}))]);
 };
 ACTIONS['onglet']=t=>{ S.ui.onglet=t.dataset.v; majPanneau() };
 ACTIONS['bloc-dupliquer']=()=>S.sel&&dupliquerBloc(S.sel);
@@ -3401,7 +3401,7 @@ function htPanBloc(d,b){
       <section class="pg"><h4>Ajouter</h4>${pBtn('ligne-plus','plus','Une ligne de prix')}${pBtn('section-plus','section','Une section (titre et sous-total)')}${pBtn('option-plus','plus','Une ligne en option')}</section>`+htPanTableauPlus(d,b);
       break }
     case 'photo':
-      h+=`<section class="pg"><h4>Largeur <span class="val">${+b.largeur||100} %</span></h4><input type="range" min="20" max="100" step="5" value="${+b.largeur||100}" data-pin="largeur" aria-label="Largeur de la photo"></section>
+      h+=`<section class="pg"><h4>Largeur <span class="val">${+b.largeur||100} %</span></h4><input type="range" min="20" max="100" step="5" value="${+b.largeur||100}" data-pin="largeur" aria-label="Largeur de la photo"></section>
       <section class="pg"><h4>Alignement</h4>${pSeg('Alignement de la photo','bl','align',[['gauche','Gauche'],['centre','Centre'],['droite','Droite']],b.align||'centre')}</section>
       <section class="pg"><h4>Coins</h4>${pSeg('Coins de la photo','bl','coins',[['droits','Droits'],['doux','Doux'],['ronds','Ronds']],b.coins||'doux')}</section>
       <section class="pg"><label class="champ">Légende<input data-pin="legende" value="${esc(b.legende||'')}" maxlength="120" autocomplete="off" placeholder="Sous la photo"></label>${pBtn('photo-choisir','image',b.src?'Changer la photo':'Choisir une photo')}${b.src?pBtn('photo-retirer','trash','Retirer la photo'):''}</section>`;
@@ -3469,7 +3469,7 @@ const PIN={
     if(ratio<4.5){ if(err){ err.hidden=false; err.textContent='Cette couleur est trop claire : le texte blanc des titres et du total ne se lirait pas. Choisis-en une plus foncée.' } return }
     if(err) err.hidden=true; rgSet('couleur',c,'couleur-libre'); $$('.pas[data-k="couleur"]',t.closest('.pastilles')).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===c)));
   },
-  largeur(t){ blSet(S.sel,'largeur',+t.value,'lg:'+S.sel); const v=t.closest('.pg').querySelector('.val'); if(v) v.textContent=t.value+' %' },
+  largeur(t){ blSet(S.sel,'largeur',+t.value,'lg:'+S.sel); const v=t.closest('.pg').querySelector('.val'); if(v) v.textContent=t.value+' %' },
   legende(t){ blSet(S.sel,'legende',t.value,'lgd:'+S.sel) }
 };
 document.addEventListener('input',e=>{ const t=e.target, p=t.dataset&&t.dataset.pin; if(p&&PIN[p]) PIN[p](t,e) });
@@ -4449,7 +4449,7 @@ function optContexte(d){
   const c=clientDe(d), ob=d.blocs.find(b=>b.type==='objet'), co=d.blocs.find(b=>b.type==='conditions'), m=d.meta||{};
   return {entreprise:identDe(d).nom||'',client:c?{nom:c.nom||'',ville:c.ville||''}:null,objet:ob?ob.texte||'':'',
     lignes:optLignes(d).map(l=>({id:l.id,type:l.kind==='section'?'section':(l.kind==='option'?'option':'ligne'),designation:l.des||'',quantite:(l.qteM||0)/1000,unite:l.unite||'',prixUnitaireHT:(l.puC||0)/100,tvaPct:(l.tvaBp||0)/100})),
-    conditions:{delai:co?co.delai||'':'',paiement:co?co.paiement||'':''},acompte:m.acompte?(m.acompte.mode==='pct'?(m.acompte.val||0)/100+' %':(m.acompte.val||0)/100+' €'):'',remise:m.remise?(m.remise.mode==='pct'?(m.remise.val||0)/100+' %':(m.remise.val||0)/100+' €'):'',validiteJours:m.validite||0};
+    conditions:{delai:co?co.delai||'':'',paiement:co?co.paiement||'':''},acompte:m.acompte?(m.acompte.mode==='pct'?(m.acompte.val||0)/100+' %':(m.acompte.val||0)/100+' €'):'',remise:m.remise?(m.remise.mode==='pct'?(m.remise.val||0)/100+' %':(m.remise.val||0)/100+' €'):'',validiteJours:m.validite||0};
 }
 function optPrompt(d,ch){
   if(d.type==='contrat') return optPromptCtr(d,ch);
@@ -5011,8 +5011,8 @@ let VV=null;
 const ALIGNES=['gauche','centre','droite'], TAILLES_LOGO=['s','m','l'], CASES_ENT=[['tel','Téléphone'],['mail','E-mail'],['site','Site web'],['siret','SIRET'],['tva','N° de TVA']];
 const VV_CATS=['Matériel','Main-d’œuvre','Entretien','Déplacement','Mon matériel','Autre'];
 const VV_UNITES=['u','h','forfait','ml','m','m²','kg','L','jour'];
-const VV_TVA=[[2000,'20 %'],[1000,'10 %'],[550,'5,5 %'],[0,'0 %']];
-const VV_ACOMPTES=[['0','Aucun'],['30','30 %'],['40','40 %'],['autre','Autre']];
+const VV_TVA=[[2000,'20 %'],[1000,'10 %'],[550,'5,5 %'],[0,'0 %']];
+const VV_ACOMPTES=[['0','Aucun'],['30','30 %'],['40','40 %'],['autre','Autre']];
 const VV_DELAIS=['Sous 2 semaines après acceptation du devis.','Intervention sous 48 h après acceptation du devis.','Date à convenir ensemble, selon vos disponibilités.','3 semaines après acceptation du devis.'];
 const VV_PAIEMENTS=['Acompte à la commande, solde à la fin des travaux.','Par virement ou carte bancaire, à réception de la facture.','Comptant à la fin de l’intervention.','Par chèque, virement ou carte bancaire.'];
 const VV_DELAI_DEF='3 semaines après acceptation du devis.', VV_PAIE_DEF='Par virement ou carte bancaire. Solde à la réception de la facture.';
@@ -5264,7 +5264,7 @@ function vvCorpsContrat(V){
   return vvEtape('client',1,'Client',client,V)+vvEtape('infos',2,'Titre et informations',infos,V)+vvEtape('arts',3,'Articles du contrat',arts,V)+vvEtape('pres',4,'Présentation',vvPresentation(V,'contrat'),V);
 }
 /* Le réglage de taille de la page : « Ajuster » (la largeur de la colonne, ou de l'écran) ou une taille fixe. Même mot dans la colonne de droite et dans l'aperçu plein écran. */
-const VV_ZOOMS=[['ajuster','Ajuster'],[.75,'75 %'],[1,'100 %'],[1.5,'150 %']];
+const VV_ZOOMS=[['ajuster','Ajuster'],[.75,'75 %'],[1,'100 %'],[1.5,'150 %']];
 const vvZoomHtml=V=>`<div class="seg vv-zoom" role="group" aria-label="Taille de la page">${VV_ZOOMS.map(([z,l])=>`<button type="button" data-vv="zoom" data-v="${z}" aria-pressed="${String(V.zoom)===String(z)}"${z==='ajuster'?' aria-label="Ajuster la page à la largeur"':''}>${l}</button>`).join('')}</div>`;
 function viergeCorps(V){
   const ct=V.type==='contrat', mot=ct?'contrat':'devis';
@@ -5369,7 +5369,7 @@ function vvResumes(f){
     r('objet',String(V.objet).trim()?vvTxt(V.objet,70):'Facultatif');
     const R=vvCalc(V), n=V.lignes.length;
     r('matos',n?vvPl(n,'article')+' · '+fmtMontant(R.htNet)+' HT':'Aucun article pour l’instant');
-    const ac=V.acK==='0'?'Pas d’acompte':'Acompte '+(V.acK==='autre'?(V.acV||'…')+' %':V.acK+' %'), j=validerJours(V.validite);
+    const ac=V.acK==='0'?'Pas d’acompte':'Acompte '+(V.acK==='autre'?(V.acV||'…')+' %':V.acK+' %'), j=validerJours(V.validite);
     r('cond',ac+' · valable '+(j.ok?vvPl(j.v,'jour'):'… jours')+(String(V.mot).trim()?' · un mot':''));
   }
 }
@@ -5439,7 +5439,7 @@ function vvPiedHtml(V){
   if(APP) return `<span class="vv-pied-tot"><small>${ct?'Contrat':'Total TTC'}</small><b id="${ct?'vv-pied-n':'vv-pied-ttc'}"></b></span><button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
   return `<button type="button" class="bt contour" data-fen-x>Annuler</button>${ct?'':`<span class="vv-pied-tot"><small>Total TTC</small><b id="vv-pied-ttc"></b></span>`}<button type="button" class="bt primaire" data-act="vierge-creer">${ic('check')}${ct?'Créer le contrat':'Créer le devis'}</button>`;
 }
-/* la taille de la page : une seule variable (--vs), posée sur CHAQUE zone qui défile (la colonne de droite et l'aperçu plein écran) : « Ajuster » prend la largeur de la zone, plafonnée à 125 %.
+/* la taille de la page : une seule variable (--vs), posée sur CHAQUE zone qui défile (la colonne de droite et l'aperçu plein écran) : « Ajuster » prend la largeur de la zone, plafonnée à 125 %.
    Les deux zones sont réglées à chaque appel : quand on tourne la tablette avec l'aperçu ouvert, celle qui reste visible ne dépend pas de celle qu'on vient de fermer.
    Rend l'échelle de la zone VISIBLE (celle qui a une largeur). */
 function vvEchelle(f){
@@ -5455,7 +5455,7 @@ function vvEchelle(f){
   });
   if(!s) return 0;
   const nl=f.fen.querySelector('.vv-grand-n'); if(nl) nl.hidden=!(s>fitVu+.02);      // « Fais glisser pour lire » n'a de sens que si la page dépasse l'écran
-  f.fen.querySelectorAll('[data-vv="zoom"]').forEach(b=>{ b.setAttribute('aria-pressed',String(String(b.dataset.v)===String(V.zoom))); if(b.dataset.v==='ajuster') b.textContent='Ajuster · '+Math.round(fitVu*100)+' %' });
+  f.fen.querySelectorAll('[data-vv="zoom"]').forEach(b=>{ b.setAttribute('aria-pressed',String(String(b.dataset.v)===String(V.zoom))); if(b.dataset.v==='ajuster') b.textContent='Ajuster · '+Math.round(fitVu*100)+' %' });
   return s;
 }
 function vvGrand(f,ouvrir){
@@ -5465,11 +5465,11 @@ function vvGrand(f,ouvrir){
   vvAp(f);
   g=document.createElement('div'); g.className='vv-grand'; g.setAttribute('role','dialog'); g.setAttribute('aria-label','Aperçu de la première page');
   const w=Math.max(240,Math.min(f.fen.clientWidth-24,794)); g.style.setProperty('--vs',(w/794).toFixed(4));
-  if(APP){      // le document entier, à la largeur de l'écran, avec le réglage de taille : on lit le texte en passant à 100 % ou 150 %, et la page défile
+  if(APP){      // le document entier, à la largeur de l'écran, avec le réglage de taille : on lit le texte en passant à 100 % ou 150 %, et la page défile
     g.className='vv-grand vv-grand-plein';
     g.innerHTML=`<div class="vv-grand-t"><b>${V.type==='contrat'?'Ton contrat':'Ton devis'}, en grand</b><button type="button" class="bt primaire" data-vv="grand-x">Fermer</button></div><div class="vv-grand-z">${vvZoomHtml(V)}<p class="vv-grand-n">Fais glisser pour lire la page ; « Ajuster » la montre en entier.</p></div><div class="vv-grand-c"><div class="vv-ap-cadre" id="vv-ap-g">${miniature(viergeDoc(V),true)}</div></div>`;
     f.fen.appendChild(g);
-    /* au téléphone, « Ajuster » rend la page entière à 45 % : le texte y fait 5 px, illisible sans pincer (Justin : « composer un devis, c'est trop petit »). On ouvre donc sur 100 % (texte à 12 px, la page défile de côté) ;
+    /* au téléphone, « Ajuster » rend la page entière à 45 % : le texte y fait 5 px, illisible sans pincer (Justin : « composer un devis, c'est trop petit »). On ouvre donc sur 100 % (texte à 12 px, la page défile de côté) ;
        « Ajuster » reste à un toucher pour la vue d'ensemble, et un réglage choisi par la personne n'est jamais remplacé. */
     const zn=g.querySelector('.vv-grand-c'), cs=getComputedStyle(zn), fit=(zn.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))/794;
     V.zoomAvant=V.zoom; if(!V.zoomVoulu&&V.zoom==='ajuster'&&fit<.7) V.zoom=1;
@@ -5848,7 +5848,7 @@ function htEditeurStyle(d,k){
   const cur=String(o.couleur||'').toLowerCase();
   return `<div class="sty-ed" role="group" aria-label="Réglages du style ${esc(nm)}">
     <label class="champ">Police<select data-chg="sty-police" data-s="${k}" aria-label="Police du style ${esc(nm)}">${roles}${POLICES.map(f=>`<option value="${f.v}" style="font-family:${esc(f.p)}"${o.police===f.v?' selected':''}>${esc(f.n)}</option>`).join('')}</select></label>
-    <p class="sous">Taille <span class="val">${Math.round(e.s*100)} %</span></p><input type="range" min="60" max="320" step="5" value="${Math.round(e.s*100)}" data-pin="sty-taille" data-s="${k}" aria-label="Taille du style ${esc(nm)}, en pourcentage du texte">
+    <p class="sous">Taille <span class="val">${Math.round(e.s*100)} %</span></p><input type="range" min="60" max="320" step="5" value="${Math.round(e.s*100)}" data-pin="sty-taille" data-s="${k}" aria-label="Taille du style ${esc(nm)}, en pourcentage du texte">
     <p class="sous">Graisse</p><div class="seg" role="group" aria-label="Graisse du style ${esc(nm)}">${[[400,'Normal'],[500,'Moyen'],[600,'Demi-gras'],[700,'Gras']].map(([w,l])=>`<button type="button" data-act="sty" data-s="${k}" data-p="graisse" data-v="${w}" aria-pressed="${(o.graisse||e.w)===w}">${l}</button>`).join('')}</div>
     <p class="sous">Couleur</p><div class="pastilles" role="group" aria-label="Couleur du style ${esc(nm)}">
       <button type="button" class="pas auto" data-act="sty" data-s="${k}" data-p="couleur" data-v="" aria-pressed="${cur===''}" aria-label="Couleur selon le modèle" title="Selon le modèle">A</button>
@@ -5857,7 +5857,7 @@ function htEditeurStyle(d,k){
       ${COULEURS_TXT.slice(0,2).map((c,i)=>`<button type="button" class="pas" style="--pc:${c}" data-act="sty" data-s="${k}" data-p="couleur" data-v="${c}" aria-pressed="${cur===c}" aria-label="${NOMS_COULEUR_TXT[i]}" title="${NOMS_COULEUR_TXT[i]}"></button>`).join('')}
       <label class="pas libre" title="Couleur libre"><input type="color" data-pin="sty-couleur" data-s="${k}" value="${/^#[0-9a-f]{6}$/i.test(cur)?cur:'#18202f'}" aria-label="Couleur libre du style ${esc(nm)}"></label></div>
     <label class="interr"><input type="checkbox" role="switch" data-act="sty-case" data-s="${k}"${e.t?' checked':''}><span>Tout en capitales</span></label>
-    <p class="sous">Espacement des lettres <span class="val">${e.e>0?'+':''}${Math.round(e.e*100)} %</span></p><input type="range" min="-2" max="20" step="1" value="${Math.round(e.e*100)}" data-pin="sty-esp" data-s="${k}" aria-label="Espacement des lettres du style ${esc(nm)}">
+    <p class="sous">Espacement des lettres <span class="val">${e.e>0?'+':''}${Math.round(e.e*100)} %</span></p><input type="range" min="-2" max="20" step="1" value="${Math.round(e.e*100)}" data-pin="sty-esp" data-s="${k}" aria-label="Espacement des lettres du style ${esc(nm)}">
     <button type="button" class="bt contour btn-l" data-act="sty-reinit" data-s="${k}"${ov?'':' disabled'}>${ic('undo')}Revenir au style du modèle</button></div>`;
 }
 /* ── l'onglet Document est long : chaque groupe se replie (bouton aria-expanded, clavier : Entrée / Espace). L'état — seulement les groupes REPLIÉS — se range sur l'appareil,
@@ -5922,7 +5922,7 @@ function htPanDocBase(d){
     ${fl.show?`<p class="sous">Mot</p><div class="seg" role="group" aria-label="Mot du filigrane">${presets.map(w=>`<button type="button" data-act="rg" data-k="filigrane.texte" data-v="${w}" aria-pressed="${fl.texte===w}">${w[0]+w.slice(1).toLowerCase()}</button>`).join('')}</div>
       <label class="champ" style="margin-top:8px">Ou ton propre texte<input data-pin="filig-texte" value="${esc(fl.texte)}" maxlength="24" autocomplete="off" aria-label="Texte du filigrane"></label>
       <p class="sous">Sens</p>${pSeg('Sens du filigrane','rg','filigrane.angle',[['diag','En diagonale'],['droit','Droit']],fl.angle)}
-      <p class="sous">Opacité <span class="val" id="val-filig">${fl.opacite} %</span></p><input type="range" min="3" max="40" step="1" value="${fl.opacite}" data-pin="filig-op" aria-label="Opacité du filigrane">
+      <p class="sous">Opacité <span class="val" id="val-filig">${fl.opacite} %</span></p><input type="range" min="3" max="40" step="1" value="${fl.opacite}" data-pin="filig-op" aria-label="Opacité du filigrane">
       ${pCase('Le montrer aussi dans l’aperçu et chez le client','rg-case','filigrane.client',fl.client!==false)}`:''}</section>
   <section class="pg">${pBtn('rg-reinit','undo','Remettre les réglages d’origine')}</section>`;
 }
@@ -5931,7 +5931,7 @@ function htPanDocBase(d){
 function htPanTableauPlus(d,b){
   const cols=colsDe(b,d), l=b.look||{}, T=b.titres||{};
   const seg=(nom,k,opts,cur)=>`<p class="sous">${nom}</p><div class="seg" role="group" aria-label="${nom}">${[['auto','Auto']].concat(opts).map(([v,t])=>`<button type="button" data-act="bl" data-k="look.${k}" data-v="${v}" aria-pressed="${(cur||'auto')===v}">${t}</button>`).join('')}</div>`;
-  return `<section class="pg"><h4>Largeur des colonnes</h4>${cols.map(c=>`<div class="col-reg"><label for="cw-${c.k}"><span>${esc(c.t)}</span><span class="val" id="cwv-${c.k}">${Math.round(+c.p)} %</span></label><input id="cw-${c.k}" type="range" min="${colMin(c.k)}" max="${100-cols.reduce((s,z)=>z===c?s:s+colMin(z.k),0)}" step="1" value="${Math.round(+c.p)}" data-pin="colw" data-k="${c.k}" aria-label="Largeur de la colonne ${esc(c.t)}, en pourcentage de la page"></div>`).join('')}
+  return `<section class="pg"><h4>Largeur des colonnes</h4>${cols.map(c=>`<div class="col-reg"><label for="cw-${c.k}"><span>${esc(c.t)}</span><span class="val" id="cwv-${c.k}">${Math.round(+c.p)} %</span></label><input id="cw-${c.k}" type="range" min="${colMin(c.k)}" max="${100-cols.reduce((s,z)=>z===c?s:s+colMin(z.k),0)}" step="1" value="${Math.round(+c.p)}" data-pin="colw" data-k="${c.k}" aria-label="Largeur de la colonne ${esc(c.t)}, en pourcentage de la page"></div>`).join('')}
     <p class="note">À la souris, tire la séparation entre deux colonnes, en haut du tableau. La somme fait toujours la largeur de la page.</p>${pBtn('col-auto','undo','Largeurs automatiques',b.largeurs?'':' disabled')}</section>
   <section class="pg"><h4>Titres des colonnes</h4>${cols.map(c=>`<label class="champ">${esc(c.t0)}<input data-pin="coltitre" data-k="${c.k}" value="${esc(T[c.k]||'')}" maxlength="40" autocomplete="off" placeholder="${esc(c.t0)}"></label>`).join('')}${pBtn('col-titres-reinit','undo','Remettre les titres d’origine',b.titres&&Object.keys(b.titres).length?'':' disabled')}</section>
   <section class="pg"><h4>Style du tableau</h4>${seg('En-tête','entete',[['plein','Plein'],['filet','Filet'],['doux','Doux']],l.entete)}${seg('Traits','traits',[['lignes','Lignes'],['grille','Grille'],['aucun','Aucun']],l.traits)}${seg('Densité','densite',[['compacte','Compacte'],['normale','Normale'],['aeree','Aérée']],l.densite)}${seg('Coins','coins',[['droits','Droits'],['doux','Doux'],['ronds','Ronds']],l.coins)}<p class="note">« Auto » suit la mise en page choisie.</p></section>`;
@@ -6009,13 +6009,13 @@ Object.assign(PIN,{
     if(err) err.hidden=true; rgSet('couleur2',c,'couleur2-libre'); $$('.pas[data-k="couleur2"]',t.closest('.pastilles')).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===c)));
   },
   tailleP(t){ rgSet('tailleP',+t.value,'tp'); const v=$('#val-taille'); if(v) v.textContent=(+t.value)+' px' },
-  'sty-taille'(t){ styleSet(t.dataset.s,'taille',Math.round(+t.value)/100,'sty:'+t.dataset.s+'taille'); const v=t.previousElementSibling&&t.previousElementSibling.querySelector('.val'); if(v) v.textContent=Math.round(+t.value)+' %' },
-  'sty-esp'(t){ styleSet(t.dataset.s,'espacement',Math.round(+t.value)/100,'sty:'+t.dataset.s+'esp'); const v=t.previousElementSibling&&t.previousElementSibling.querySelector('.val'); if(v) v.textContent=(+t.value>0?'+':'')+Math.round(+t.value)+' %' },
+  'sty-taille'(t){ styleSet(t.dataset.s,'taille',Math.round(+t.value)/100,'sty:'+t.dataset.s+'taille'); const v=t.previousElementSibling&&t.previousElementSibling.querySelector('.val'); if(v) v.textContent=Math.round(+t.value)+' %' },
+  'sty-esp'(t){ styleSet(t.dataset.s,'espacement',Math.round(+t.value)/100,'sty:'+t.dataset.s+'esp'); const v=t.previousElementSibling&&t.previousElementSibling.querySelector('.val'); if(v) v.textContent=(+t.value>0?'+':'')+Math.round(+t.value)+' %' },
   'sty-couleur'(t){ styleSet(t.dataset.s,'couleur',t.value.toLowerCase(),'sty:'+t.dataset.s+'coul') },
   pied1(t){ rgSet('pied.ligne1',t.value,'pied1') }, pied2(t){ rgSet('pied.ligne2',t.value,'pied2') },
   'filig-texte'(t){ rgSet('filigrane.texte',t.value.slice(0,24),'filigt') },
-  'filig-op'(t){ rgSet('filigrane.opacite',+t.value,'filigo'); const v=$('#val-filig'); if(v) v.textContent=t.value+' %' },
-  colw(t){ const b=blocDe(S.sel); if(!b) return; colFixerUne(b,t.dataset.k,+t.value); colsDe(b,D()).forEach(c=>{ const s=$('#cwv-'+c.k), i=$('#cw-'+c.k); if(s) s.textContent=Math.round(+c.p)+' %'; if(i&&i!==t) i.value=Math.round(+c.p) }) },
+  'filig-op'(t){ rgSet('filigrane.opacite',+t.value,'filigo'); const v=$('#val-filig'); if(v) v.textContent=t.value+' %' },
+  colw(t){ const b=blocDe(S.sel); if(!b) return; colFixerUne(b,t.dataset.k,+t.value); colsDe(b,D()).forEach(c=>{ const s=$('#cwv-'+c.k), i=$('#cw-'+c.k); if(s) s.textContent=Math.round(+c.p)+' %'; if(i&&i!==t) i.value=Math.round(+c.p) }) },
   coltitre(t){ blSet(S.sel,'titres.'+t.dataset.k,t.value,'ct:'+S.sel+t.dataset.k); const b=blocDe(S.sel), r=$('[data-act="col-titres-reinit"]'); if(b&&r) r.disabled=!(b.titres&&Object.values(b.titres).some(x=>String(x).trim())) }
 });
 /* les listes déroulantes (polices) réagissent au CHOIX, pas à la frappe */
@@ -7025,7 +7025,7 @@ function htPanObjet(d,o){
   h+=slider(ligne?'Épaisseur':'Épaisseur du contour','contour.w',0,12,o.contour.w,' px');
   h+=`<section class="pg">${pCase('Pointillé','ob-case','contour.pt',!!o.contour.pt)}</section>`;
   if(!ligne&&(o.type!=='forme'||o.forme==='rect'||o.forme==='arrondi')) h+=slider(o.type==='image'?'Coins arrondis':'Rayon des coins','rayon',0,120,o.rayon,' px');
-  h+=slider('Opacité','opacite',10,100,o.opacite,' %');
+  h+=slider('Opacité','opacite',10,100,o.opacite,' %');
   h+=`<section class="pg">${pCase('Ombre légère','ob-case','ombre',!!o.ombre)}</section>`;
   h+=`<section class="pg"><h4>Position et taille <span class="val">en mm</span></h4><div class="ob-grille">${num('Gauche','x',mmDe(o.x),-200,300,.5)}${num('Haut','y',mmDe(o.y),-200,400,.5)}${num('Largeur','w',mmDe(o.w),3,500,.5)}${ligne?'':num('Hauteur','h',mmDe(o.h),3,500,.5)}${num('Rotation (°)','rot',Math.round(o.rot||0),-180,180,1)}</div><p class="err" id="ob-num-err" role="alert" hidden></p></section>`;
   h+=`<section class="pg"><h4>Plan</h4>${pSeg('Plan','ob','plan',[['devant','Devant le texte'],['derriere','Derrière le texte']],o.plan,'g2')}<div class="tbar" style="margin-top:8px"><button type="button" class="bt contour btn-l" data-act="ob-ordre" data-v="avant">Avancer</button><button type="button" class="bt contour btn-l" data-act="ob-ordre" data-v="arriere">Reculer</button><button type="button" class="bt contour btn-l" data-act="ob-ordre" data-v="devant">Premier plan</button><button type="button" class="bt contour btn-l" data-act="ob-ordre" data-v="derriere">Arrière-plan</button></div><p class="note">Un objet ne déplace pas le texte : placé devant, il le recouvre ; placé derrière, le texte reste lisible par-dessus.</p></section>`;
@@ -7058,7 +7058,7 @@ ACTIONS['ob-choisir']=t=>{ selectionnerObjet(t.dataset.id); const o=objDe(t.data
 const OB_MIN={x:-200,y:-200,w:3,h:3,rot:-180};
 document.addEventListener('input',e=>{
   const t=e.target; if(!t.dataset||!S.selObj) return; const o=objDe(S.selObj); if(!o) return;
-  if(t.dataset.obR){ const k=t.dataset.obR; objSet(o.id,k,+t.value,'obr:'+o.id+':'+k); const v=t.closest('.pg').querySelector('.val'); if(v) v.textContent=t.value+(k==='opacite'?' %':' px') }
+  if(t.dataset.obR){ const k=t.dataset.obR; objSet(o.id,k,+t.value,'obr:'+o.id+':'+k); const v=t.closest('.pg').querySelector('.val'); if(v) v.textContent=t.value+(k==='opacite'?' %':' px') }
   else if(t.dataset.obCol){ const k=t.dataset.obCol; objSet(o.id,k,t.value.toLowerCase(),'obc:'+o.id+':'+k,true); t.closest('.pastilles').querySelectorAll('.pas[data-act]').forEach(b=>b.setAttribute('aria-pressed','false')); t.parentNode.classList.add('choisi') }
 });
 document.addEventListener('change',e=>{
@@ -7210,7 +7210,7 @@ function htPanColonnes(d,b){
     <p class="note">Passer de 3 à 2 retire la dernière colonne ; les autres gardent leur contenu.</p></section>
   <section class="pg"><h4>Contenu</h4>${types}</section>
   <section class="pg"><h4>Largeurs</h4><div class="seg g2" role="group" aria-label="Largeurs des colonnes">${pre.map(([v,l])=>`<button type="button" data-act="col-preset" data-v="${v}" aria-pressed="${cur?cur[0]===v:false}">${l}</button>`).join('')}</div>
-    ${g.w.slice(0,g.n-1).map((w,i)=>`<div class="col-reg"><label for="csep-${i}"><span>Séparation ${i+1}</span><span class="val" id="csepv-${i}">${Math.round(cum[i])} %</span></label><input id="csep-${i}" type="range" min="${COL_MIN}" max="${100-COL_MIN}" step="1" value="${Math.round(cum[i])}" data-pin="colsep" data-i="${i}" aria-label="Position de la séparation ${i+1}"></div>`).join('')}
+    ${g.w.slice(0,g.n-1).map((w,i)=>`<div class="col-reg"><label for="csep-${i}"><span>Séparation ${i+1}</span><span class="val" id="csepv-${i}">${Math.round(cum[i])} %</span></label><input id="csep-${i}" type="range" min="${COL_MIN}" max="${100-COL_MIN}" step="1" value="${Math.round(cum[i])}" data-pin="colsep" data-i="${i}" aria-label="Position de la séparation ${i+1}"></div>`).join('')}
     <p class="note">À la souris ou au doigt, tire la séparation entre deux colonnes, sur la page.</p></section>
   <section class="pg"><h4>Gouttière <span class="val" id="val-gout">${g.g} px</span></h4><input type="range" min="8" max="60" step="1" value="${g.g}" data-pin="gout" aria-label="Espace entre les colonnes, en pixels">
     ${pCase('Filet vertical entre les colonnes','bl-case','filet',g.filet)}</section>
@@ -7220,7 +7220,7 @@ PIN.gout=t=>{ blSet(S.sel,'gout',+t.value,'cg:'+S.sel); const v=$('#val-gout'); 
 PIN.colsep=t=>{
   const b=blocDe(S.sel); if(!b||b.type!=='colonnes') return; const g=colGeo(b), i=+t.dataset.i, somme=g.w[i]+g.w[i+1], av=g.w.slice(0,i).reduce((a,v)=>a+v,0);
   let a=Math.max(COL_MIN,Math.min(somme-COL_MIN,+t.value-av)); const w=g.w.slice(); w[i]=Math.round(a*10)/10; w[i+1]=Math.round((somme-a)*10)/10;
-  muter('colsep:'+b.id+':'+i,()=>{ b.w=w },{sys:1}); const v=$('#csepv-'+i); if(v) v.textContent=Math.round(av+w[i])+' %';
+  muter('colsep:'+b.id+':'+i,()=>{ b.w=w },{sys:1}); const v=$('#csepv-'+i); if(v) v.textContent=Math.round(av+w[i])+' %';
 };
 ACTIONS['col-n']=t=>{ const b=blocDe(S.sel); if(!b) return; const n=+t.dataset.v, g=colGeo(b); if(n===g.n) return; if(n===3) colAjouter(b.id); else colRetirer(b.id,2); majPanneau() };
 ACTIONS['col-type']=t=>{ const b=blocDe(S.sel); if(!b) return; const k=+t.dataset.k.slice(1), v=t.dataset.v; if(colGeo(b).t[k]===v) return; muter('coltype:'+b.id+k,()=>{ b.t[k]=v }); majPanneau() };
