@@ -375,8 +375,10 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
   /* l'action de la fiche est collée en bas de la feuille : « Relancer » et « Déjà fait » sont sous le pouce */
   #calque .tkx-haut{display:none}
   #calque .tkx-barre{display:flex;gap:8px;position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin:0 -16px calc(-22px - env(safe-area-inset-bottom,0px));padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--feuille);border-top:1px solid var(--trait2);z-index:3}
-  /* un nom de client long (« 💬 Prévenir Copropriété Les Mimosas ») passe à la ligne au lieu de pousser « ✓ Fait » hors de l'écran : min-width:0 laisse le bouton rétrécir, white-space:normal laisse son texte se couper */
-  #calque .tkx-barre .btn{flex:1 1 0;min-width:0;min-height:48px;justify-content:center;text-align:center;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}
+  /* la barre se partage selon le TEXTE, pas 50/50 : « Relancer maintenant » reste sur une ligne, « Fait » garde sa largeur (il ne rétrécit jamais), et le bouton d'action prend le reste. Un nom de client long (« 💬 Prévenir Copropriété Les Mimosas ») passe à la ligne au lieu de pousser « ✓ Fait » hors de l'écran : min-width:0 laisse le bouton rétrécir ; au-delà de DEUX lignes, la fin du nom est remplacée par « … » (le nom entier est dans la carte « Client » juste au-dessus) */
+  #calque .tkx-barre .btn{flex:1 1 auto;min-width:0;min-height:48px;justify-content:center;text-align:center;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}
+  #calque .tkx-barre .btn.gris{flex:0 0 auto}
+  #calque .tkx-barre .tkx-lib{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;min-width:0;overflow-wrap:anywhere}
 }
 @media (max-width:380px){#contenu .t-haut{flex-wrap:wrap}#contenu .t-pour{flex:1 1 100%;max-width:none}}
 /* ── produits ── */
@@ -15034,7 +15036,7 @@ function tkxAction(x){
   if (A) { const h = P.querySelector('.t-qui-l'); const doublon = A.at.includes('data-trelfac') && P.querySelector('[data-trelfac]');
     if (!doublon && h) h.insertAdjacentHTML('afterend', `<div class="t-gestes tkx-haut"><button type="button" class="btn" ${A.at}>${A.lib}</button></div>`);
     const fait = P.querySelector('.t-gestes-b [data-tfait]');
-    P.insertAdjacentHTML('beforeend', `<div class="tkx-barre"><button type="button" class="btn" ${A.at}>${A.lib}</button>${fait ? `<button type="button" class="btn gris" data-tfait="${x.id}">${esc(fait.textContent)}</button>` : ''}</div>`); }
+    P.insertAdjacentHTML('beforeend', `<div class="tkx-barre"><button type="button" class="btn" ${A.at}><span class="tkx-lib">${A.lib}</span></button>${fait ? `<button type="button" class="btn gris" data-tfait="${x.id}">${esc(fait.textContent)}</button>` : ''}</div>`); }
   else if (!x.fait && P.querySelector('.t-gestes-b [data-tfait]') && x.type !== 'commande') { const f = P.querySelector('.t-gestes-b [data-tfait]'); P.insertAdjacentHTML('beforeend', `<div class="tkx-barre"><button type="button" class="btn vert" data-tfait="${x.id}">${esc(f.textContent)}</button></div>`); }
   /* paiement ou accord annoncé par le client : on le dit avant de laisser relancer */
   const N = tkxAnnonce(x);
