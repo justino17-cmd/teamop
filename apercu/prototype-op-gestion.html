@@ -7704,7 +7704,7 @@ function aPanneauNouveau(tid){
 function aApercu(){ // ce que l'absence touche, avant d'enregistrer
   const el = document.getElementById('an-apercu'); if (!el) return;
   const a = { tech:document.getElementById('an-t').value, du:document.getElementById('an-du').value, au:document.getElementById('an-au').value, demi:document.getElementById('an-demi').value || null };
-  if (!a.du || !a.au || a.au < a.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
+  if (!a.du || !a.au || a.au < a.du) { const b0 = document.querySelector('[data-anouvok]'); if (b0) b0.disabled = true; el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
   const c = aConflits(a), autre = ABSENCES.find(x => x.tech === a.tech && x.du <= a.au && a.du <= x.au), btn = document.querySelector('[data-anouvok]');
   // mêmes règles que la demande du technicien : rien à poser un week-end, et une demande déjà en attente sur ces jours se traite d'abord
   // (sinon l'accorder plus tard doublerait l'absence et débiterait le solde en plus : défaut des recontrôles du 17 novembre)
@@ -7784,7 +7784,7 @@ function aPanneauModif(d){ // l'employeur propose d'autres dates ; la personne a
 function aApercuModif(d){
   const el = document.getElementById('am-apercu'); if (!el) return;
   const p = { tech:d.tech, du:document.getElementById('am-du').value, au:document.getElementById('am-au').value, demi:document.getElementById('am-demi').value || null };
-  if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
+  if (!p.du || !p.au || p.au < p.du) { const b0 = document.querySelector('[data-amodifok]'); if (b0) b0.disabled = true; el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
   const c = aConflits(p), avant = aJours(d), apres = aJours(p), btn = document.querySelector('[data-amodifok]');
   // même règle que les autres formulaires de dates : une proposition qui ne tombe que sur un week-end poserait une absence de 0 jour à l'acceptation
   if (btn) btn.disabled = !apres;
@@ -7948,7 +7948,7 @@ function aPanneauDates(a){
 }
 function aApercuDates(a){ const el = document.getElementById('ax-apercu'); if (!el) return;
   const p = { tech:a.tech, du:document.getElementById('ax-du').value, au:document.getElementById('ax-au').value, demi:document.getElementById('ax-demi').value || null };
-  if (!p.du || !p.au || p.au < p.du) { el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
+  if (!p.du || !p.au || p.au < p.du) { const b0 = document.querySelector('[data-axok]'); if (b0) b0.disabled = true; el.innerHTML = '<div class="a-alerte"><b>La date de fin est avant la date de début.</b></div>'; return; }
   const c = aConflits(p), autre = ABSENCES.find(x => x !== a && x.tech === a.tech && x.du <= p.au && p.du <= x.au), btn = document.querySelector('[data-axok]');
   // mêmes règles que « Nouvelle absence » (aApercu) : rien un week-end, et une demande en attente sur ces jours se traite d'abord (sinon l'accorder doublerait l'absence)
   const attente = DEMANDES_ABS.find(x => x.tech === a.tech && x.du <= p.au && p.du <= x.au);
@@ -7989,9 +7989,13 @@ function aGlisseSuivre(x, y, auto){ if (!aG) return; aG.x = x; aG.y = y;
   const j = aJourSous(x, y); if (j && j.t === aG.a.tech) aG.off = aEcart(aG.j0, j.d);
   const du = ajoute(aG.a.du, aG.off), au = ajoute(aG.a.au, aG.off);
   const autre = aG.k === 'a' && ABSENCES.find(o => o !== aG.a && o.tech === aG.a.tech && o.du <= au && du <= o.au);
+  // les refus d'aAppliquer se disent PENDANT le geste, pas seulement au lâcher : la case rouge et la phrase de l'étiquette (sinon la cible a l'air valide et rien ne se passe)
+  const sansJour = !!aG.off && !aJours({ tech:aG.a.tech, du, au, demi:du === au ? aG.a.demi || null : null });
+  const attente = aG.k === 'a' && !!aG.off && DEMANDES_ABS.find(o => o.tech === aG.a.tech && o.du <= au && du <= o.au);
+  const non = !!autre || sansJour || !!attente;
   document.querySelectorAll('.ac-cible').forEach(e => e.classList.remove('ac-cible', 'ac-cible-non'));
-  document.querySelectorAll(`[data-acd][data-act="${aG.a.tech}"]`).forEach(e => { const d = e.dataset.acd; if (d >= du && d <= au) { e.classList.add('ac-cible'); if (autre) e.classList.add('ac-cible-non'); } });
-  aG.f.innerHTML = `<b>${aG.a.type}</b> · ${aCourte(du)}${du !== au ? ' → ' + aCourte(au) : ''}${aG.off ? ` <small>(${aG.off > 0 ? '+' : ''}${aG.off} j)</small>` : ''}${autre ? `<br><small class="t-retard">déjà une absence (${aTypeBas(autre.type)}) ces jours-là</small>` : aG.k === 'd' && aG.off ? '<br><small>lâche : tu proposeras ces dates</small>' : ''}`;
+  document.querySelectorAll(`[data-acd][data-act="${aG.a.tech}"]`).forEach(e => { const d = e.dataset.acd; if (d >= du && d <= au) { e.classList.add('ac-cible'); if (non) e.classList.add('ac-cible-non'); } });
+  aG.f.innerHTML = `<b>${aG.a.type}</b> · ${aCourte(du)}${du !== au ? ' → ' + aCourte(au) : ''}${aG.off ? ` <small>(${aG.off > 0 ? '+' : ''}${aG.off} j)</small>` : ''}${autre ? `<br><small class="t-retard">déjà une absence (${aTypeBas(autre.type)}) ces jours-là</small>` : sansJour ? '<br><small class="t-retard">jours non travaillés : rien ne bougera</small>' : attente ? '<br><small class="t-retard">une demande attend ces jours : rien ne bougera</small>' : aG.k === 'd' && aG.off ? '<br><small>lâche : tu proposeras ces dates</small>' : ''}`;
   aG.f.style.left = Math.max(8, Math.min(innerWidth - aG.f.offsetWidth - 8, x + 14)) + 'px'; aG.f.style.top = Math.max(8, y - 58) + 'px';
 }
 function aGlisseFin(){ if (!aG) return; const g = aG; aG = null; clearInterval(g.tic); g.f.remove(); document.body.classList.remove('ac-glisse');
