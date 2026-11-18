@@ -46,7 +46,7 @@ console.log('\n── 3300 · la déconnexion de la Tour ──');
   const jours = (sess.find(x => x[0] === Bs.token)[1].exp - Date.now()) / 86400000;
   vrai('« rester connecté » dure 7 jours (pas 30)', jours > 6.9 && jours <= 7.001, jours);
   vrai('aucun jeton dans le journal du serveur', !journal.includes(Bs.token) && !journal.includes(A.token));
-  /* la VRAIE doLogout de tour.html */
+  /* la VRAIE quitterConsole+doLogout de tour.html */
   const SRC = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
   const i0 = SRC.indexOf('var _decoEnCours=false;'), i1 = SRC.indexOf('function decoEchecDire'), i2 = SRC.indexOf('\n', i1);
   vrai('(population) les fonctions sont trouvées', i0 > 0 && i1 > i0 && i2 > i1);
@@ -55,7 +55,7 @@ console.log('\n── 3300 · la déconnexion de la Tour ──');
     const store = o => ({ getItem: k => (k in o ? o[k] : null), setItem: (k, x) => { o[k] = String(x); }, removeItem: k => { delete o[k]; } });
     const ctx = { API: api, TOKEN: token, fetch, AbortController, setTimeout, clearTimeout, sessionStorage: store(ss), localStorage: store(st), indexedDB: { deleteDatabase() {} },
       courrierDemonter() {}, opmDemonter() {}, location: { hash: '#x', reload() { recharge++; } }, document: { getElementById: id => id === 'lg-err' ? err : null }, Promise };
-    vm.createContext(ctx); vm.runInContext(SRC.slice(i0, i2) + '\nthis.__fin=function(){return doLogout();}', ctx);
+    vm.createContext(ctx); vm.runInContext(SRC.slice(i0, i2) + '\nthis.__fin=function(){return quitterConsole();}', ctx);
     ctx.sessionStorage.setItem('tour_token', token);
     ctx.__fin(); for (let k = 0; k < 100 && !recharge; k++) await dormir(50);
     vm.runInContext('decoEchecDire()', ctx);
@@ -63,7 +63,7 @@ console.log('\n── 3300 · la déconnexion de la Tour ──');
   };
   const C = await login(false);
   const r1 = await joue(B, C.token);
-  v('doLogout : l’appareil est vidé, la page recharge, rien à dire', [r1.recharge, r1.jeton, r1.msg], [1, undefined, '']);
+  v('quitterConsole : l’appareil est vidé, la page recharge, rien à dire', [r1.recharge, r1.jeton, r1.msg], [1, undefined, '']);
   v('⛔ …et le jeton est mort côté serveur', await moi(C.token), 401);
   const D2 = await login(false);
   const r2 = await joue('http://127.0.0.1:1', D2.token);
