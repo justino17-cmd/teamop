@@ -44,7 +44,7 @@ for nom, fichier, rempl, sonde, env in M:
             sortie = 'DÉLAI'; code = 99
         b = re.findall(r'(\d+) ✓\s+·?\s*(\d+) ✗', sortie); res = b[-1] if b else ('?', '?')
         tombees = [l.strip()[:150] for l in sortie.splitlines() if l.strip().startswith('✗')][:2]
-        mord = code != 0 and res[1] not in ('0', '?')
+        mord = code != 0 and (res[1] not in ('0', '?') or bool(tombees))   # un ✗ nommé sans bilan final (sonde sortie avant) compte aussi
         print(f"#{nom} : diff {d or '(aucun)'} → {res[0]} ✓ · {res[1]} ✗ code={code} {'MORD' if mord else 'NE MORD PAS'}")
         for t in tombees: print('     ', t)
         bilan.append((nom, 'mord' if mord else 'ne mord pas'))

@@ -53,6 +53,7 @@ const lire = s => { let m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/.exec
     // ── 2. un toucher → l'écran de connexion ; le lien de retour ──
     etape(`${T} 2 : toucher le bouton puis attendre l'écran de connexion`); await L.toucher(c, c.p.locator('.rl-bande [data-apv]').first()); e = await pret(c, 30000);
     v(`${T} 2 : le bouton mène à l'écran de connexion (app, carte, lien de retour)`, e.app && e.cnx && e.lien && !e.bande, e);
+    if (!e.lien) { /* le lien n'est pas là : le ✗ ci-dessus le dit, inutile de mesurer ce qui n'existe pas (la mesure planterait au lieu d'échouer) */ await L.fin(c); continue; }
     const k = await c.p.evaluate(() => { const l = document.getElementById('cnx-test'), r = l.getBoundingClientRect(), cn = document.getElementById('cnx');
       const cs = getComputedStyle(l), colonne = cn.querySelector('.cn-col');
       // tout ce que le lien pourrait chevaucher : les éléments visibles de l'écran de connexion (hors le conteneur plein écran lui-même et ses enveloppes)
