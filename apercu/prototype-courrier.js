@@ -2350,7 +2350,7 @@ var MARKUP = `
      Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
   var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
   function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
-  function histCible(){ return isPhone()?((app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)):0; }
+  function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0); }   // le message en cours d'écriture ou la fenêtre « Ajouter une boîte » est un niveau sur TOUS les formats (sur ordinateur aussi, Retour le fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
     HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
@@ -4420,7 +4420,7 @@ var MARKUP = `
   sur(window,"popstate",function(){
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
-    if(HIST.niv<=0||!isPhone()) return;
+    if(HIST.niv<=0) return;
     // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
     if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
     HIST.niv--;
