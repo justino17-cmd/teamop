@@ -14520,7 +14520,7 @@ ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; 
 ACTIONS.clientAppForm = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = n >= 0 ? c && c.appareils[n] : null; if (!c || (n >= 0 && !a)) return;
   ouvrirPanneau(`<h2>${a ? 'Modifier l’appareil' : 'Ajouter un appareil'}</h2><span class="gris">Chez ${esc(c.nom)}.</span>
     <label class="champ">Nom de l’appareil<input id="app-nom" maxlength="80" value="${esc(a ? a.nom : '')}" placeholder="ex. Daikin FTXM35R" autocomplete="off"></label>
-    <label class="champ">Détail (type, gaz, année, numéro de série)<input id="app-det" maxlength="160" value="${esc(a ? a.det : '')}" placeholder="ex. Split mural salle · R32 · 2021" autocomplete="off"></label>
+    <label class="champ">${metiersFamille() === 'clim' || metiersFamille() === 'cvc' ? 'Détail (type, gaz, année, numéro de série)' : 'Détail (type, emplacement, année, numéro de série)'}<input id="app-det" maxlength="160" value="${esc(a ? a.det : '')}" placeholder="ex. Split mural salle · R32 · 2021" autocomplete="off"></label>
     <div class="alerte" id="app-err" role="alert" hidden></div>
     <div class="actions"><button type="button" class="btn" data-action="clientAppEnreg" data-cli="${k}" data-n="${n}">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   setTimeout(() => document.getElementById('app-nom')?.focus(), 50); };
@@ -21890,6 +21890,9 @@ function rgBoxHtml(p){
     <div class="rg-past" role="group" aria-label="État de ${p.id}">${F.map(([v, l, c]) => `<button type="button" class="rg-p ${c}" data-rg="etat|${p.id}|${v}" aria-pressed="${e === v}">${l}</button>`).join('')}<button type="button" class="rg-p g" data-rg="autre|${p.id}" aria-pressed="${aut}" aria-expanded="${aut || S.autre === p.id}">Autre</button></div>
     ${aut || S.autre === p.id ? `<div class="rg-past rg-sous" role="group" aria-label="Autre état de ${p.id}">${[['z', 'Remise à neuf'], ['a', 'Absente'], ['d', 'Dégradée']].map(([v, l]) => `<button type="button" class="rg-p g" data-rg="etat|${p.id}|${v}" aria-pressed="${e === v}">${l}</button>`).join('')}</div>` : ''}</div>`;
 }
+/* la phrase sous « Produits posés » parle du même camion que la liste au-dessus : camion vide, elle ne promet pas une baisse de stock (metier-3d-restes-2) ; le bouton « Voir le Stock » a sa ligne à lui, sinon il grossit la ligne de la phrase au téléphone */
+function rgCamionHtml(){ const S = rgSaisie, vide = !Object.keys(RG_CAMION[S.appl] || {}).length, nom = `<span id="rg-camion">${esc(rgPrenom(S.appl))}</span>`;
+  return vide ? `Le stock du camion de ${nom} ne bouge pas.` : `Le stock du camion de ${nom} descend de ce que tu poses.`; }
 function rgProdsHtml(){
   const S = rgSaisie, cam = RG_CAMION[S.appl] || {}, ids = Object.keys(cam), pre = rgPrenom(S.appl);
   if (!ids.length) return `<div class="info petit">Il n’y a aucun biocide dans le camion de ${esc(pre)}. Un passage sans produit reste valable (simple contrôle).</div>`;
@@ -21913,7 +21916,7 @@ function rgSaisieRendre(){
     <div class="rg-bandeau"><span class="gris petit" id="rg-resume"></span><button type="button" class="btn gris petit" data-rg="toutok">Tout est intact</button></div>
     <div class="rg-boxes">${zones.map(z => `<div class="rg-zone"><div class="rg-zt"><b>${esc(z)}</b><button type="button" class="lien" data-rg="zoneok|${esc(z)}">Toute la zone RAS</button></div>${P.filter(p => p.zone === z).map(rgBoxHtml).join('')}</div>`).join('')}</div>
     <h3 class="rg-h3">Produits posés</h3><div id="rg-prods">${rgProdsHtml()}</div>
-    <span class="gris petit">Le stock du camion de <span id="rg-camion">${esc(rgPrenom(S.appl))}</span> descend de ce que tu poses. ${tech ? '' : '<button type="button" class="lien" data-rg="stock">Voir le Stock ›</button>'}</span>
+    <span class="gris petit" id="rg-camion-ph" style="display:block">${rgCamionHtml()}</span>${tech ? '' : '<div style="margin-top:4px"><button type="button" class="lien" data-rg="stock">Voir le Stock ›</button></div>'}
     <label class="champ">Observations<textarea id="rg-obs" rows="2" placeholder="ex. traces près des poubelles"></textarea></label>
     ${ouvertes.length ? `<div class="info petit"><b>Toujours à faire chez le client</b>${ouvertes.map(r => `<br>« ${esc(r.txt)} » · déjà signalée le ${jCourt(r.p.d)}`).join('')}<br>Elles seront rappelées dans le compte rendu de ce passage.</div>` : ''}
     <label class="champ">Recommandation au client (facultatif)<input id="rg-reco" placeholder="ex. boucher l’accès sous la porte" autocomplete="off"></label>
@@ -22101,7 +22104,7 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('change', ev => {
   const t = ev.target, f = t.dataset && t.dataset.rgf; if (!f || !rgSaisie) return; const S = rgSaisie;
-  if (f === 'appl') { S.appl = t.value; S.lignes = [{ pid:'', lot:'', q:'' }]; const c = rgCertif(S.appl), e = rgGet('rg-cert'); e.className = 'rg-cert ' + (c.ok ? 'ok' : 'ko'); e.textContent = (c.ok ? '✓ ' : '⚠ ') + c.txt; const cam = rgGet('rg-camion'); if (cam) cam.textContent = rgPrenom(S.appl) /* la phrase « Le stock du camion de … » nomme celui dont le camion baissera : elle suit l'applicateur choisi (metier-3d-recontrole-01) */; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
+  if (f === 'appl') { S.appl = t.value; S.lignes = [{ pid:'', lot:'', q:'' }]; const c = rgCertif(S.appl), e = rgGet('rg-cert'); e.className = 'rg-cert ' + (c.ok ? 'ok' : 'ko'); e.textContent = (c.ok ? '✓ ' : '⚠ ') + c.txt; const cam = rgGet('rg-camion-ph'); if (cam) cam.innerHTML = rgCamionHtml() /* la phrase « Le stock du camion de … » nomme celui dont le camion baissera : elle suit l'applicateur choisi (metier-3d-recontrole-01) */; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
   const l = S.lignes[+t.closest('.rg-pl').dataset.i];
   if (f === 'pid') { l.pid = t.value; l.lot = l.pid ? ((RG_CAMION[S.appl] || {})[l.pid] || [[]])[0][0] : ''; l.q = ''; rgGet('rg-prods').innerHTML = rgProdsHtml(); return; }
   if (f === 'lot') l.lot = t.value;
@@ -23705,7 +23708,9 @@ const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel',
   /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
   'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
-  'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus' };
+  'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
+  /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin, chantier Mimosas', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
   if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
@@ -23841,13 +23846,13 @@ document.addEventListener('click', ev => {
 const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
 const MET_EX_FAM = {
   chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.' },
+    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz à condensation', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
   plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
-    'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.' }
+    'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
 /* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
-MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…' };
-MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…' };
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
 /* une même indication s'écrit avec ou sans majuscule selon la fenêtre qui la porte (« Ex. condensateur… » dans les achats, « ex. condensateur… » dans « Nouvelle intervention ») : la correspondance est EXACTE, donc la seconde copie échappait à la table et rendait un exemple de climatisation à tous les métiers (metier-3d-recontrole-04). Chaque entrée « Ex. … » reçoit sa jumelle « ex. … » */
 [MET_EXEMPLES, ...Object.values(MET_EX_FAM)].forEach(T => Object.keys(T).forEach(k => { if (!/^Ex\. (?!:)/.test(k)) return; const j = 'ex. ' + k.slice(4), v = T[k]; if (!(j in T)) T[j] = v == null ? v : /^Ex\. /.test(v) ? 'ex. ' + v.slice(4) : v; }));
 function metiersEx(){
