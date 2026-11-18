@@ -1,0 +1,45 @@
+{
+ "noms": ["interventions"],
+ "regles": [
+  "Total d'une ligne de facture plafonné à 1 000 000 € HT, par le prix ET par la quantité, avec message et ancienne valeur gardée (iphone, mac, ipad nuit, android, windows, petit ; mutations a et b : la sonde tombe)",
+  "Relevé numérique : « 3 sur 18 » et « 10-12 » refusés avec un message, valeur d'avant gardée dans le champ ET dans la fiche ; « -5 », « 2,4 kg », « 12 », « 12 kg », « 5 °C » acceptés (mutation c : 4 ✗)",
+  "Clavier texte pour les relevés en °C seulement (kg, bar, ppm, m² restent décimaux) ; vérifié côté responsable d'équipe et côté technicien (mutation d : tombe)",
+  "R22 « null.click » : défaut de sonde, R22 rejoué vert (interventions-recontrole.js)",
+  "Prix négatif (remise) × 9999, prix effacé, quantité « 0,5 L », « 1,00 » au plafond : acceptés comme avant"
+ ],
+ "pasRegles": [
+  { "nom": "Casse 4 : deux numéros +33 (22 chiffres) refusés", "defaut": "règle des 20 chiffres", "constat": "Non touché (consigne) ; seul ✗ de restes-recontrole sur ipad nuit, android et mac." },
+  { "nom": "Durée « 1 h 30 » contre « 1h30 »", "defaut": "duree() lue par 34 appels", "constat": "Non touché (consigne) ; à Justin." }
+ ],
+ "casses": [
+  {
+   "titre": "Relevé numérique : « 1 200 » et « 1 234,5 » (espace des milliers) sont maintenant refusés — « Un seul nombre ici », champ vidé",
+   "gravite": "faible",
+   "etapes": ["Responsable d'équipe, fiche d'intervention, relevé en nombre (ici Soufflage ; le même contrôle vaut pour kg, bar, ppm, m²)", "Taper ou coller « 1 200 »", "Le champ revient à l'ancienne valeur (vide) avec le message « pas 3 sur 18 ni 10-12 » : avant le correctif, 1200 était gardé"],
+   "constat": "La règle « deux nombres » (\\d\\s+\\d) prend l'espace des milliers pour un séparateur. Plausible pour « Surface faite » (nettoyage, 1 200 m²) ou un CO en ppm. Piste : accepter \\d{1,3}( \\d{3})+ comme un seul nombre. Mesuré sur iphone, mac, android, petit nuit (sonde interventions-restes-tour2-recontrole.js)."
+  },
+  {
+   "titre": "Relevé en °C : le signe moins typographique (« − » U+2212 ou « – » tiret demi-cadratin) est supprimé en silence, « −5 » devient « 5 »",
+   "gravite": "faible",
+   "etapes": ["iPhone ou Android, relevé de température, clavier texte (neuf depuis ce correctif)", "Saisir « −5 » avec un tiret typographique (correction automatique, ou collage)", "Le champ garde « 5 » ; le message dit seulement « écris des chiffres » : la mesure est fausse de 10 °C"],
+   "constat": "Le nettoyage ne garde que le trait d'union « - ». Le clavier texte rend ce cas atteignable ; avant, le clavier décimal ne permettait pas du tout le signe. Piste : convertir − et – en « - » avant le nettoyage."
+  }
+ ],
+ "nouveaux": [
+  "Sonde interventions-parcours-facture.js F3 : le ✗ venait de la sonde, pas de la page. Sur ordinateur (mac), l'en-tête de la colonne des lignes porte aussi « Total HT » suivi du total de la 1re ligne, et la sonde lisait la première occurrence (54,17 € au lieu de 118,84 €). Corrigée : elle lit la DERNIÈRE occurrence ; 20 ✓ · 0 ✗ sur mac, windows, ipad, iphone. Sans lien avec le plafond du tour 2.",
+  "Nouvelle sonde campagne/sondes/interventions-restes-tour2-recontrole.js (26 contrôles par profil)"
+ ],
+ "sondes": [
+  { "fichier": "interventions-restes-tour2.js", "resultat": "16 ✓ · 0 ✗ sur ipad nuit, android, windows, petit (le correcteur avait fait iphone, iphone nuit, mac, mac nuit)" },
+  { "fichier": "interventions-restes-recontrole.js", "resultat": "ipad nuit 139 ✓ · 1 ✗, android 139 ✓ · 1 ✗, mac 150 ✓ · 1 ✗ : le seul ✗ est la casse 4 (+33, doute)" },
+  { "fichier": "interventions-parcours-facture.js", "resultat": "mac 19 ✓ · 1 ✗ avant correction de la sonde (F3), puis 20 ✓ · 0 ✗ sur mac, windows, ipad, iphone" },
+  { "fichier": "interventions-restes-tour2-recontrole.js", "resultat": "iphone, mac, android, petit nuit : 22 ✓ · 4 ✗ (les deux casses ci-dessus, 2 contrôles chacune)" },
+  { "fichier": "mutations (apercu/prototype-op-gestion.html, restauré, git diff vide)", "resultat": "a plafond du prix retiré : 1 ✗ ; b plafond de la quantité retiré : 1 ✗ ; c refus de deux nombres retiré : 4 ✗ ; d clavier °C remis décimal : 1 ✗" }
+ ],
+ "doutes": [
+  "Casse 4 : les 20 chiffres d'un numéro (deux +33 font 22) : à Justin",
+  "Durée « 1 h 30 » / « 1h30 » : à Justin",
+  "Le plafond du total d'une ligne n'a été rejoué que sur la facture ; le Devis (saisie au clavier, DV_Q_MAX × DV_PU_MAX) et les contrats ont leurs propres bornes, non rejouées ici",
+  "interventions-recontrole.js (parcours complet) rejoué sur mac jour (123 ✓ · 0 ✗) ; non rejoué sur windows et petit"
+ ]
+}

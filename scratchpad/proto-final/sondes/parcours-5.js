@@ -38,9 +38,9 @@ const ctFin = async c => { await L.aller(c.p, 'comptabilite'); await c.p.waitFor
 
     /* ── B. le gérant valide ── */
     await P.passer(c, 'marc', 'achats');
-    await clic(c, '[data-ac="onglet|notes"]'); await p.waitForTimeout(400);
+    await clic(c, '[data-ac="onglet|notes"]:visible');   /* au téléphone, le compteur « notes à valider » du haut est masqué : c'est l'onglet visible qu'on touche */ await p.waitForTimeout(400);
     const ach = net(await txt(c, '#contenu'));
-    v('B1 (écran) Achats et frais › Notes de frais : « 4 notes de frais à valider », la note de Sophie : « Carburant · GH-482-KL · 58,40 € », « TVA 9,73 € sur le ticket »', /4 notes de frais à valider/.test(ach) && /Carburant · GH-482-KL · 58,40 €/.test(ach) && /TVA 9,73 € sur le ticket/.test(ach), ach.slice(ach.indexOf('À valider'), ach.indexOf('À valider') + 300));
+    v('B1 (écran) Achats et frais › Notes de frais : « 4 notes de frais à valider », la note de Sophie : « Carburant · GH-482-KL · 58,40 € », « TVA 9,73 € sur le ticket »', /(4 notes de frais à valider|À valider · 4)/.test(ach) && /Carburant · GH-482-KL · 58,40 €/.test(ach) && /TVA 9,73 € sur le ticket/.test(ach), ach.slice(ach.indexOf('À valider'), ach.indexOf('À valider') + 300));
     v('B1b (arithmétique) la TVA : 58,40 − 58,40 ÷ 1,20 = 9,73 ; « Valider les 3 notes avec ticket » = 58,40 + 16,50 + 8,20 = 83,10 €', Math.round(5840 - 5840 / 1.2) === 973 && 5840 + 1650 + 820 === 8310 && /Valider les 3 notes avec ticket · 83,10 €/.test(ach), ach.slice(ach.indexOf('Valider les'), ach.indexOf('Valider les') + 80));
     await cap(c, '5-B1-notes-' + P.PROFIL);
     await clic(c, '[data-ac="ndfok|' + n1.id + '"]'); await p.waitForTimeout(700);

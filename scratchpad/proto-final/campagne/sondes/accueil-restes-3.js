@@ -6,9 +6,9 @@
 //  F. LE CAS « FACTURE DÉJÀ PARTIE » : facture envoyée AVANT « Terminée » avec un encaissement d'un autre moyen (carte du client) ; le technicien note des espèces : la ligne de
 //     l'Historique ne dit QUE ces espèces (jamais le total de la facture), l'encaissement s'inscrit une fois, pour ce qui reste à payer et pas plus ;
 //  C. le graphique des 12 mois ne défile plus pour la seule marge du fondu (590-625 px, iPad 890-900) ; T. la tuile « Encaissé » du bilan à 320 px : « TTC » reste à côté du montant.
-// node accueil-restes-3.js [parties : M D F C T, collées] [profil] [nuit] ; « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
+// node accueil-restes-3.js [parties : M D F C T V, collées] [profil] [nuit] ; « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const O = require('./accueil-outils.js'), L = O.L, v = L.v;
-const partie = (process.argv[2] || 'MDFCT').toUpperCase(), profil = process.argv[3] || 'mac', nuit = process.argv.includes('nuit'), veut = k => partie.includes(k);
+const partie = (process.argv[2] || 'MDFCTV').toUpperCase(), profil = process.argv[3] || 'mac', nuit = process.argv.includes('nuit'), veut = k => partie.includes(k);
 const tag = profil + (nuit ? '-nuit' : '-jour'), arrondi = x => Math.round(x * 100) / 100;
 (async () => {
   const c = await L.ouvrir({ profil, qui: 'marc', nuit }), p = c.p;
@@ -118,6 +118,20 @@ const tag = profil + (nuit ? '-nuit' : '-jour'), arrondi = x => Math.round(x * 1
       v(`T · ${w} px${val ? ' · valeur longue' : ''} · population : les deux tuiles Facturé et Encaissé sont là`, t.length >= 2, t);
       v(`T · ${w} px${val ? ' · valeur longue' : ''} · le montant et l’unité tiennent sur UNE ligne, dans la tuile (${t.map(x => x.txt).join(' | ')})`, t.every(x => x.memeLigne && x.dedans), t);
       if (w === 320 && !val) await cap('bilan-320');
+      await L.ranger(p);
+    }
+  }
+  // ── V. la fiche d'une facture envoyée, à 320 px : « Annuler cette facture par un avoir » reste dans la carte (le bouton sortait de 13 px, la page glissait de côté)
+  if (veut('V')) {
+    await propre(false, null); await p.evaluate(() => { sessionOuvrir('marc'); });
+    const fid = await p.evaluate(() => (FACTURES.find(x => ['envoyee', 'retard', 'partielle'].includes(x.st)) || {}).id);
+    v('V · population : une facture envoyée existe', !!fid, fid);
+    for (const w of [320, 360, 390]) {
+      await p.setViewportSize({ width: w, height: 800 }); await p.waitForTimeout(200);
+      await L.aller(p, 'facture-x-' + fid); await L.calme(p, 600);
+      const m = await p.evaluate(async w => { scrollTo(9999, 0); await new Promise(r => setTimeout(r, 250)); const sx = scrollX; scrollTo(0, 0); const b = document.querySelector('[data-action="avoir"]'), k = b && b.closest('.carte'), r = b && b.getBoundingClientRect(), q = k && k.getBoundingClientRect();
+        return { bouton: !!b, sx, iw: innerWidth, dedans: !!b && r.right <= q.right + .5 && r.right <= w, h: r && Math.round(r.height) }; }, w);
+      v(`V · ${w} px · le bouton « Annuler par un avoir » existe, dans sa carte, et la page ne glisse pas de côté`, m.bouton && m.dedans && m.sx === 0 && m.iw === w, m);
       await L.ranger(p);
     }
   }

@@ -47,7 +47,8 @@ const PROFILS = (process.env.PROFILS || 'mac,iphone').split(',');
       const p6 = await ev(c, () => ({ pastilles:[...document.querySelectorAll('.tt-sem .st')].filter(e => e.offsetParent).map(e => e.textContent.trim()), tab:(document.querySelector('[data-tt="onglet|auj"] .t-nb') || {}).textContent }));
       v(nom + ' · 6 : la semaine est-elle en règle ? — 0 geste de plus : une pastille par ligne et le nombre sur l\'onglet', N === 0 && p6.pastilles.length >= 4 && /\d/.test(p6.tab || ''), p6);
       /* 7. valider les semaines en règle : 2 pour la semaine (Semaine puis le bouton) + le panneau « Valider » = confirmation */
-      N = 0; await T(c, '[data-tt^="valider|"]'); const pan = await ev(c, () => (document.querySelector('#calque h2') || {}).textContent); await T(c, '[data-tt^="validerok|"]');
+      /* la semaine EN COURS ne se valide pas (décision du chef du 17/11) : on valide la semaine finie d'avant ; ‹ n'est pas un geste de la validation */
+      await T(c, '[data-tt="nav|-1"]'); N = 0; await T(c, '[data-tt^="valider|"]'); const pan = await ev(c, () => (document.querySelector('#calque h2') || {}).textContent); await T(c, '[data-tt^="validerok|"]');
       const val = await ev(c, () => Object.keys(PT_VALIDE).filter(k => PT_VALIDE[k]).length); v(nom + ' · 7 : valider les personnes en règle — ' + N + ' gestes depuis l\'onglet Semaine (le bouton, puis « Valider » dans le panneau) ; des semaines sont validées', N === 2 && val >= 1, { N, pan, val });
       await L.fin(c); }
     { const c = await ouvrir('marc', profil); await sauf(c, 'pointage');

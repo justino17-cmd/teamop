@@ -6,24 +6,34 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   const profil = process.argv[2] || 'mac', nuit = process.argv[3] === 'nuit', c = await L.ouvrir({ profil, qui: 'marc', nuit }), p = c.p;
   const cap = n => L.capture(c, X.CAP + `rc-qte-${profil}${nuit ? '-nuit' : ''}-${n}.png`);
   const eurN = s => Math.round(parseFloat(String(s).replace(/[  ]/g, '').replace(',', '.').replace(/[^\d.\-]/g, '')) * 100);
-  await p.evaluate(() => { FACTURES.unshift({ id: 'fx-prep', num: '—', cli: 'md', objet: 'Lignes préparées · 30/10', lignes: [
-    { d: 'Main-d’œuvre entretien', note: 'sur place · facturé 2h, à l’heure entamée', q: '2h', pu: 108 }, { d: 'Nettoyant échangeur', q: '0,5 L', pu: 10.33, piece: true }, { d: 'Déplacement', q: '1', pu: 29.17 }], ht: 0, tva: 10, st: 'avalider', emise: '—', ech: '—' }); });
+  // les lignes sont PRÉPARÉES par OP GESTION (factureDepuis, fin d'une intervention facturée au temps), pas fabriquées à la main : c'est ce que la vraie personne retouche
+  await p.evaluate(() => { const i = INTS.find(o => o.cli && o.st !== 'annulee' && !o.fact) || INTS[0], F = fiche(i.id);
+    FACTURES.filter(f => f.int === i.id).forEach(f => { f.id = 'old-' + f.id; });
+    i.fact = { mode: 'temps', tva: 10 }; F.debut = '08:00'; F.fin = '09:50'; F.pieces = [{ nom: 'Nettoyant échangeur', q: '0,5 L', pu: 10.33 }];
+    factureDepuis(i); FACTURES.find(f => f.id === 'f-' + i.id).id = 'fx-prep'; });
   await X.fiche(c, 'fx-prep');
   const tot = k => p.evaluate(k => Math.round(totLigne(FACTURES.find(f => f.id === 'fx-prep').lignes[k]) * 100), k);
   const tape = async (k, v) => { const l = p.locator('[data-fqte="' + k + '"]').first(); await l.fill(v); await l.press('Tab'); await L.calme(p, 350); };
-  const a0 = await tot(0), b0 = await tot(1);
-  console.log('  · préparées : « 2h » à 108,00 € →', a0 / 100, '| « 0,5 L » à 10,33 € →', b0 / 100);
+  const a0 = await tot(0), b0 = await tot(2);
+  console.log('  · préparées : « 2h » (65 € l’heure) →', a0 / 100, '| « 0,5 L » à 10,33 € →', b0 / 100);
   // la même écriture, tapée : même total que la ligne préparée ?
-  await tape(1, '1'); await tape(1, '0,5 L'); const b1 = await tot(1);
+  await tape(2, '1'); await tape(2, '0,5 L'); const b1 = await tot(2);
   L.v('Q1 · « 0,5 L » tapé en retouchant la pièce donne le MÊME total que la pièce préparée « 0,5 L » (10,33 €)', b1 === b0, { prepare: b0, retape: b1 });
   await tape(0, '1'); await tape(0, '2h'); const a1 = await tot(0);
-  L.v('Q2 · « 2h » retapé en retouchant la main-d’œuvre donne le MÊME total que la ligne préparée « 2h » (108,00 €)', a1 === a0, { prepare: a0, retape: a1 });
+  L.v('Q2 · « 2h » retapé en retouchant la main-d’œuvre donne le MÊME total que la ligne préparée « 2h » (130,00 €)', a1 === a0, { prepare: a0, retape: a1 });
+  for (const [v, att] of [['3 h', 19500], ['1h30', 9750], ['1 h 30', 9750], ['2h30', 16250]]) { await tape(0, '1'); await tape(0, v); const t3 = await tot(0); L.v('Q2b · « ' + v + ' » sur la main-d’œuvre préparée = ' + att / 100 + ' € (le prix de l’heure × les heures)', t3 === att, { tape: v, total: t3 / 100 }); }
   await cap('lignes-prepares');
   // ── une durée tapée comme on la dit : « 2h30 » ne doit pas se compter pour 2 en silence ──
   await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-prep'); f.lignes = [{ d: 'Main-d’œuvre', q: '1', pu: 100 }]; }); await X.fiche(c, 'fx-prep');
   for (const v of ['2h30', '2 h 30', '1,5h']) { await tape(0, '1'); await tape(0, v); const t = await tot(0), q = await p.evaluate(() => FACTURES.find(x => x.id === 'fx-prep').lignes[0].q);
     const attendu = { '2h30': 25000, '2 h 30': 25000, '1,5h': 15000 }[v];
     L.v('Q9 · « ' + v + ' » : soit refusé avec une phrase (quantité gardée « 1 »), soit compté pour son vrai nombre d’heures (' + attendu / 100 + ' €) — jamais un autre total accepté en silence', t === attendu || q === '1', { tape: v, total: t / 100, qteGardee: q }); }
+  // une durée qui ne se lit pas, ou deux nombres, se REFUSE avec une phrase (la quantité reste « 1 »)
+  for (const v of ['2h90', '2 x 5']) { await tape(0, '1'); await tape(0, v); const q = await p.evaluate(() => FACTURES.find(x => x.id === 'fx-prep').lignes[0].q), ph = await X.toasts(p);
+    L.v('Q9b · « ' + v + ' » est refusé : la quantité reste « 1 » et une phrase le dit', q === '1' && /commence par un nombre/.test(ph), { tape: v, qteGardee: q, phrase: ph }); }
+  // un seul plafond de quantité, celui du devis : 10 000 passe, 10 001 est refusé avec sa phrase
+  for (const [v, ok] of [['10000', true], ['10001', false], ['1000000', false]]) { await tape(0, '1'); await tape(0, v); const q = await p.evaluate(() => FACTURES.find(x => x.id === 'fx-prep').lignes[0].q), ph = await X.toasts(p);
+    L.v('Q9c · plafond de quantité : « ' + v + ' » ' + (ok ? 'passe' : 'est refusé avec « trop grand »'), ok ? q === v.replace(/ /g, '') : (q === '1' && /trop grand/.test(ph)), { tape: v, qteGardee: q, phrase: ph }); }
   // ── la suite d'une quantité tapée : un total, partout ──
   await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-prep'); f.lignes = [{ d: 'Main-d’œuvre', q: '1', pu: 100 }]; });
   await X.fiche(c, 'fx-prep'); await tape(0, '2 h');
