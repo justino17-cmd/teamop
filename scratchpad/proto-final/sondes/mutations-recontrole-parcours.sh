@@ -2,8 +2,8 @@
 # CONTRE-ÉPREUVE du recontrôle des parcours (18 novembre 2026) : on casse EXPRÈS trois endroits de la page, dans une COPIE de apercu/ (jamais dans le dépôt),
 # et on regarde quelle sonde tombe. Une mutation qui ne fait tomber ni parcours-1, ni parcours-2, ni parcours-10 prouve un TROU des douze parcours
 # (ils jouent des valeurs rondes : jamais de quantité décimale, jamais de paiement en deux fois) ; c'est recontrole-parcours.js qui doit alors tomber.
-#   A : la fenêtre de paiement du client demande le TOTAL de la facture au lieu du reste dû       → seul R=5 tombe (R5-6) ; parcours-1 et -2 restent verts
-#   B : une quantité décimale « 2,5 » se lit « 2 » (parseInt)                                      → seul R=1 tombe (R1-8) ; parcours-1, -2 et -10 restent verts
+#   A : la fenêtre de paiement du client demande le TOTAL au lieu du reste dû       → depuis le 18 novembre les parcours 2 (chèque de 100,07 puis carte) et 10 (chèque de 60,01 puis carte) tombent, et R=5 aussi
+#   B : une quantité décimale « 2,5 » se lit « 2 » (parseInt)                      → depuis le 18 novembre le parcours 1 (« Liquide de nettoyage » 2,5 × 12,49) et le 10 (« Nettoyant » 2,5) tombent, et R=1 aussi
 #   C : le TTC s'arrondit vers le bas au lieu du centime le plus proche                          → parcours-2 tombe (7 ✗) ET R=1 (R1-11) : celle-là, les parcours la voyaient déjà
 # ⛔ 127.0.0.1 seulement. Un seul navigateur à la fois. Rend une ligne par couple (mutation, sonde) puis FINI.
 ICI="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$ICI/../../.." && pwd)"
