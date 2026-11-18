@@ -90,6 +90,15 @@ M = [
  (194, 'le texte à copier contient le mot de passe provisoire', 'da-equipe', [("'3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe", "'3. Ton mot de passe provisoire : ' + (SECU.comptes[k].prov || SECU.comptes[k].demoClair || ''), '4. Installe")]),
  (195, 'S1 neutralisée sans toucher au texte (if (false && …)) : seule la lecture à l’exécution la voit', 'da-sensibles', [("  if (!secuGarde('banque-ouvrir', () => entPanBanque())) return;\n", "  if (false && !secuGarde('banque-ouvrir', () => entPanBanque())) return;\n")]),
  (196, 'S10 neutralisée sans toucher au texte : les cases de droits changent sans confirmation', 'da-sensibles', [("  if (t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }\n", "  if (false && t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }\n")]),
+ # ── étape 5 (corrections) : chaque défaut remis doit faire tomber la sonde qui le garde ; « sonde:SECTION » = la sonde jouée avec ONLY=SECTION ──
+ (200, 'tout-10 : la vue (Fiches de paie, Salariés, Charges, Banque) n\u2019est plus gardée dans vueComptabilite', 'da-vues', [("const verrou = !!SECU_VUES[O] && !secuVueOuverte(O);", "const verrou = false;")]),
+ (201, 'tout-11 : « Envoyer › » (cpEnvoyer) n\u2019est plus gardé (neutralisé sans toucher au texte)', 'da-vues', [("if (!secuGarde('compta-export', () => cpEnvoyer())) return;", "if (false && !secuGarde('compta-export', () => cpEnvoyer())) return;")]),
+ (202, 'tout-11 : le FEC (cpFecTelecharger) n\u2019est plus gardé', 'da-vues', [("if (!secuGarde('compta-export', () => cpFecTelecharger())) return;", "if (false && !secuGarde('compta-export', () => cpFecTelecharger())) return;")]),
+ (203, 'tout-11 : la Banque sort de la table des vues sensibles', 'da-vues', [(", banque:['compta-banque', 'paiements'] };", " };")]),
+ (204, 'tout-10 : la vue ne se re-masque plus à l\u2019expiration des 5 minutes', 'da-vues', [("if (SECU_FEN_AVANT && !v && SECU_VUE.affiche && route === 'comptabilite') {", "if (false && SECU_FEN_AVANT && !v && SECU_VUE.affiche && route === 'comptabilite') {")]),
+ (205, 'tout-10 : la confirmation se rouvre à chaque redessin de la carte de verrou', 'da-vues', [("if (SECU_VUE.invite !== o && !SECU.conf) {", "if (!SECU.conf) {")]),
+ (206, 'tout-01 : le libellé de la ligne de la fiche Connexion n\u2019est plus protégé et la valeur ne passe plus à la ligne', 'da-corrections:tout-01', [(".ligne.eqx-l>span:first-child,.cn-acces .ligne>span:first-child{flex:none}", ".ligne.eqx-l>span:first-child{flex:none}"), (".ligne.eqx-l>b,.cn-acces .ligne>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}", ".ligne.eqx-l>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}.cn-acces .ligne>b{white-space:nowrap}")]),
+ (207, 'tout-03 : le nombre n\u2019est plus amené dans l\u2019écran sous la boîte rouge', 'da-corrections:tout-03', [("if (d.raisons.length) setTimeout(cnxNombreEnVue, 520);", "")]),
 ]
 
 def copier(n):
@@ -113,6 +122,7 @@ def muter(racine, edits):
 
 def jouer(racine, sonde, delai=560):
     env = dict(os.environ, RACINE=racine)
+    if ':' in sonde: sonde, env['ONLY'] = sonde.split(':', 1)   # « da-corrections:tout-03 » : une seule section de la sonde
     fichier = ('double-auth-%s.js' % sonde[3:]) if sonde.startswith('da-') else ('secu-%s.js' % sonde)
     proc = subprocess.Popen(['node', os.path.join(SONDES, fichier)], cwd=DEPOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     t0 = time.time(); tombe = None; ok = 0
@@ -135,7 +145,7 @@ if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if '--intact' in sys.argv:
         # contrôle d'avant-mutation : chaque sonde utilisée doit être verte sur la copie intacte
-        for sonde in sorted(set(m[2] for m in M)):
+        for sonde in sorted(set(m[2].split(':')[0] for m in M)):
             racine = copier(0); tombe, ok, d = jouer(racine, sonde, 900)
             print(('VERT   ' if not tombe else 'ROUGE  ') + 'sonde %s sur la copie intacte (%d ✓ avant arrêt, %d s) %s' % (sonde, ok, d, tombe or '')); sys.stdout.flush()
         sys.exit(0)

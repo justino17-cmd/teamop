@@ -14,7 +14,8 @@ const ouvrirFiche = async (c, k) => { await L.aller(c.p, 'equipe'); await c.p.wa
 const monCompte = async c => { if (!(await c.p.$('[data-cnx="moncompte"] >> visible=true'))) { const m = await c.p.$('#barre-bas [data-go="menu"], button:has-text("Menu"):visible, [aria-label="Menu"]'); if (m) { await m.click(); await c.p.waitForTimeout(500); } }
   const mc = await c.p.$('[data-cnx="moncompte"] >> visible=true'); await mc.scrollIntoViewIfNeeded(); await mc.click(); await c.p.waitForTimeout(800); };
 
-const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la section a planté', false, String(e.message).split('\n')[0].slice(0, 200)); try { await L.fermer(); } catch (_) {} } };   // un défaut qui bloque une section ne cache pas les suivantes
+const sect = async (nom, f) => { if (process.env.ONLY && !nom.includes(process.env.ONLY)) return;   // ONLY=tout-03 : une seule section (pour les mutations)
+  try { await f(); } catch (e) { v(nom + ' : la section a planté', false, String(e.message).split('\n')[0].slice(0, 200)); try { await L.fermer(); } catch (_) {} } };   // un défaut qui bloque une section ne cache pas les suivantes
 (async () => {
   console.log('\n── tout-01 · la fiche d\'une personne : le bloc « Connexion » tient dans la feuille (iphone, android, petit ; jour et nuit) ──');
   for (const [profil, nuit] of [['iphone', false], ['android', true], ['petit', false]]) await sect('tout-01 ' + profil, async () => {
@@ -28,7 +29,7 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     await L.fermer(); });
 
   console.log('\n── tout-02 · une seule horloge : la couche sécurité part de l\'heure de l\'entreprise, pas de celle de la machine ──');
-  await sect('bloc 1', async () => { const c = await S.ouvrir({ profil:'mac' }); await S.tous(c); await entrer(c, 'marc');
+  await sect('tout-02', async () => { const c = await S.ouvrir({ profil:'mac' }); await S.tous(c); await entrer(c, 'marc');
     const h = await c.p.evaluate(() => { const ref = new Date(AUJ + 'T00:00:00').getTime() + MAINT_MIN * 60000, n = secuMaint(); const d = new Date(n); return { ecartMin:Math.round((n - ref) / 60000), jour:d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), AUJ }; });
     v('tout-02 · secuMaint() est à moins de 10 minutes de l\'heure de l\'application (le temps de la séance), le même jour', Math.abs(h.ecartMin) < 10 && h.jour === h.AUJ, h);
     const lig = await c.p.evaluate(() => { const hist = SECU.comptes.marc.histo[0], d = new Date(hist.ts); return hist ? { hhmm:String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), appMin:MAINT_MIN } : null; });
@@ -38,7 +39,7 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     await L.fermer(); });
 
   console.log('\n── tout-04 · Mon compte › Changer mon mot de passe : le même compteur que la connexion (5 refus, verrou) ──');
-  await sect('bloc 2', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb'); const rg = await entrer(c, 'kb'); v('population : Karim connecté', rg);
+  await sect('tout-04', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb'); const rg = await entrer(c, 'kb'); v('population : Karim connecté', rg);
     await monCompte(c); await c.p.click('[data-sec2="mdp"]'); await c.p.waitForTimeout(500);
     const essai = async (a0, a1, a2) => { if (!(await c.p.$('#sec-m0'))) return null; await c.p.fill('#sec-m0', a0); await c.p.fill('#sec-m1', a1); await c.p.fill('#sec-m2', a2); await c.p.click('[data-sec2="mdp-ok"]'); await c.p.waitForTimeout(300); return c.p.evaluate(() => (document.getElementById('sec-merr') || {}).textContent || null); };
     const rep = []; for (let i = 0; i < 4; i++) rep.push(await essai('faux-faux-faux-' + i, 'cheval agrafe batterie 2', 'cheval agrafe batterie 2'));
@@ -52,7 +53,7 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     await L.fermer(); });
 
   console.log('\n── tout-09 · une connexion = UNE ligne d\'historique (mot de passe provisoire : écran C compris) ──');
-  await sect('bloc 3', async () => { const c = await S.ouvrir({ profil:'mac' }); await c.p.evaluate(() => secuProvisoireNeuf('kb'));
+  await sect('tout-09 provisoire', async () => { const c = await S.ouvrir({ profil:'mac' }); await c.p.evaluate(() => secuProvisoireNeuf('kb'));
     const prov = await c.p.evaluate(() => SECU.comptes.kb.prov), n0 = await c.p.evaluate(() => SECU.comptes.kb.histo.filter(h => h.resultat === 'approuvee').length);
     await S.connecter(c, 'karim', prov); const n = await S.lireNombre(c); await S.approuver(c, 'kb', n, PIN); await c.p.waitForTimeout(500); await fermeTel(c);
     v('population : l\'écran C (choisir son mot de passe) est atteint', await S.attendreSel(c, '#cn-form-premier', 3000));
@@ -63,12 +64,12 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     const dbl = await c.p.evaluate(() => { const l = [...document.querySelectorAll('.sec-histo li, .sec-histo .ligne, .sec-histo > *')].map(e => e.textContent.replace(/\s+/g, ' ').trim()); return l.filter((x, i) => l.indexOf(x) !== i); });
     v('tout-09 · Mon compte › Historique : aucune ligne en double', dbl.length === 0, dbl);
     await L.fermer(); });
-  await sect('bloc 4', async () => { const c = await S.ouvrir({ profil:'mac' }); const av = await c.p.evaluate(() => SECU.comptes.marc.histo.length); await S.tous(c); await entrer(c, 'marc');
+  await sect('tout-09 gérant', async () => { const c = await S.ouvrir({ profil:'mac' }); const av = await c.p.evaluate(() => SECU.comptes.marc.histo.length); await S.tous(c); await entrer(c, 'marc');
     const ap = await c.p.evaluate(() => SECU.comptes.marc.histo.filter(h => h.resultat === 'approuvee')); v('tout-09 · le gérant dont les téléphones ont été activés d\'un coup : une seule connexion approuvée dans son historique', ap.length === 1, ap.length);
     await L.fermer(); });
 
   console.log('\n── tout-05 · « Ce n\'est pas moi » avec une session ouverte : le téléphone dit ce qui vient de se passer ──');
-  await sect('bloc 5', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb'); await entrer(c, 'kb');
+  await sect('tout-05', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb'); await entrer(c, 'kb');
     await S.telephone(c, 'kb'); await c.p.waitForTimeout(300); const btn = await c.p.$('#opsec .sec-demo button:has-text("Simuler une connexion pirate")'); await btn.scrollIntoViewIfNeeded(); await btn.click(); await c.p.waitForTimeout(600);
     await S.deverrouiller(c, 'kb', PIN); await c.p.waitForTimeout(400);
     await c.p.click('#opsec [data-ops="pas-moi"]'); await c.p.click('#opsec [data-ops="bloquer"]'); await c.p.waitForTimeout(900);
@@ -79,7 +80,7 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     await L.fermer(); });
 
   console.log('\n── tout-06 · « Ouvrir l\'application comme Sophie » ne lui prend pas son guide des nouveautés ──');
-  await sect('bloc 6', async () => { const c = await S.ouvrir({ profil:'mac' }); await S.tous(c); await entrer(c, 'marc'); await fermeTel(c);
+  await sect('tout-06', async () => { const c = await S.ouvrir({ profil:'mac' }); await S.tous(c); await entrer(c, 'marc'); await fermeTel(c);
     const av = await c.p.evaluate(() => localStorage.getItem('opg_proto_nv_vu_sm')); await L.aller(c.p, 'equipe'); await c.p.waitForTimeout(600); await S.avancer(c, 6);
     await (await c.p.$('[data-eqx="fiche|sm"], [data-eq="fiche|sm"]')).click(); await c.p.waitForTimeout(700);
     await c.p.click('[data-cnx="comme|sm"]'); await c.p.waitForTimeout(500); await S.confirmer(c, 'marc'); await c.p.waitForTimeout(2600);
@@ -90,7 +91,7 @@ const sect = async (nom, f) => { try { await f(); } catch (e) { v(nom + ' : la s
     await L.fermer(); });
 
   console.log('\n── tout-07 · 5 PIN faux : l\'ordinateur ne promet pas un nombre que plus aucun téléphone ne peut valider ──');
-  await sect('bloc 7', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb');
+  await sect('tout-07', async () => { const c = await S.ouvrir({ profil:'mac' }); const kb = await S.provisoire(c, 'kb');
     await S.connecter(c, 'karim', kb); await S.lireNombre(c); await S.telephone(c, 'kb');
     for (let i = 0; i < 5; i++) { if (!(await vis(c, '#opsec [data-ops="pin-touche"]'))) break; for (const d of '000000') await c.p.click('#opsec [data-ops="pin-touche"][data-k="' + d + '"]', { timeout:4000 }); await c.p.waitForTimeout(300); }
     v('population : le téléphone est effacé après 5 PIN faux', await c.p.evaluate(() => !!SECU.comptes.kb.tel.efface));
