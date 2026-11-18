@@ -14400,7 +14400,7 @@ document.addEventListener('click', ev => {
   const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
   if (a === 'ouvrir') { cpSysteme = true; rendre(); }
   else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
-  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; calRevenirA(d) || aller(d); }
+  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; /* un panneau ou le tiroir du cadre ouvert est une entrée d'historique : elle part D'ABORD (un recul), puis on recule d'une entrée de plus vers l'écran d'avant — sans quoi calRevenirA refuse et aller() AJOUTE une entrée : [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité qui se rouvre */ if (!calAvantAller(() => calRevenirA(d) || aller(d))) calRevenirA(d) || aller(d); }
 }, true);
 document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
