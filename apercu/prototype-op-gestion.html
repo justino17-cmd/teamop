@@ -23762,17 +23762,17 @@ const MET_JEUX = (() => {
   };
 })();
 /* des phrases d'exemple écrites pour la climatisation : un autre métier lit un exemple de son métier */
-const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique, la porte d’entrée', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
-  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches, référence à préciser',
+const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
+  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches de colle',
   'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. L’installation ne fonctionne plus depuis ce matin.', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer l’appareil par un modèle plus puissant ; pose à prévoir.',
   /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
-  'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…',
+  'ex. échelle 3 plans, gants, fluide R32':'ex. une échelle, des gants', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, un article…',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
   'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
   /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
-  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
-  if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
+  if (!racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
   L.forEach(n => { const v = metiersEx()[n.getAttribute('placeholder')]; if (v) n.setAttribute('placeholder', v); });
 }
@@ -23903,20 +23903,22 @@ document.addEventListener('click', ev => {
 
 /* ══ lot « metiers-a » (3ᵉ passe) : textes de contrat et d'exemples par métier, corrections du référentiel ══ */
 /* [4] les exemples de saisie : la climatisation seule ne lit plus « la chaudière », le chauffage et la plomberie ne lisent plus « la clim » */
-const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
+/* [4 bis] à 320 px, la place d'une indication est de 204 px (lieu du contrat) à 238 px : les textes d'origine de la climatisation qui n'y tiennent pas sont raccourcis ICI (la clé reste le texte d'origine du champ), et la combinaison chauffage + climatisation (cvc) les reprend — elle gardait jusque-là l'original, coupé (metier-3d-exemples-320) */
+const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’un split', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service split', 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants', 'ex. condensateur, siphon, fluide…':'ex. condensateur, fluide…', 'ex. équipe clim, chantier Mimosas':'ex. équipe clim, Mimosas', 'ex. Split mural salle · R32 · 2021':'ex. Split mural · R32 · 2021', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.' };
+const MET_EX_CVC = Object.assign({}, MET_EX_CLIM, { 'ex. la chaudière du sous-sol':'ex. la chaudière, le split' });
 const MET_EX_FAM = {
-  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
-  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
+  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, joint…', 'ex. la chaudière du sous-sol':'ex. la chaudière, la cave', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.',
+    'ex. Remplacement de la pompe de relevage':'ex. Circulateur à remplacer', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
+  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le garage, la cuisine', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
 /* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
-MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
-MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage', 'Ex. condensateur, siphon, fluide…':'Ex. appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
 /* une même indication s'écrit avec ou sans majuscule selon la fenêtre qui la porte (« Ex. condensateur… » dans les achats, « ex. condensateur… » dans « Nouvelle intervention ») : la correspondance est EXACTE, donc la seconde copie échappait à la table et rendait un exemple de climatisation à tous les métiers (metier-3d-recontrole-04). Chaque entrée « Ex. … » reçoit sa jumelle « ex. … » */
 [MET_EXEMPLES, ...Object.values(MET_EX_FAM)].forEach(T => Object.keys(T).forEach(k => { if (!/^Ex\. (?!:)/.test(k)) return; const j = 'ex. ' + k.slice(4), v = T[k]; if (!(j in T)) T[j] = v == null ? v : /^Ex\. /.test(v) ? 'ex. ' + v.slice(4) : v; }));
 function metiersEx(){
-  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM;
+  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM; if (f === 'cvc') return MET_EX_CVC;
   const T = Object.assign({}, MET_EXEMPLES), O = MET_EX_FAM[f] || {};
   Object.keys(O).forEach(k => { if (O[k] == null) delete T[k]; else T[k] = O[k]; }); return T;
 }
