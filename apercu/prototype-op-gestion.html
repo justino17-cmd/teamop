@@ -10091,7 +10091,12 @@ let COMMANDES = [
 let cmdNum = 40, cmdOnglet = 'cours', CMD_PANIER = {}, CMD_DEPL = {}, CMD_HORS = new Set();
 const cmdArt = l => l.pid ? PRODUITS.find(x => x.id === l.pid) : null;
 const cmdNom = l => l.nom || (cmdArt(l) || {}).nom || '—';
-const cmdHT = c => Math.round(c.lignes.reduce((s, l) => s + l.q * l.pu, 0) * 100) / 100;
+/* UN total de ligne de commande, arrondi au CENTIME comme celui du devis (`dvLigneHT`) et de la facture (`totLigne`) : « 3 × 12,345 € » s'affichait 37,04 € sur la ligne
+   et le Total HT en comptait 37,035 — le bon de commande ne retombait pas sur ses lignes (compta-ventes, tour 6, décision du chef du 18/11). */
+const cmdLigneHT = l => Math.round((Number(l.q) || 0) * (Number(l.pu) || 0) * 100 + 1e-7) / 100;
+const cmdHT = c => Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT(l), 0) * 100 + 1e-7) / 100;
+/* le prix d'une ligne de commande s'écrit comme il est stocké : deux décimales au moins, davantage si le prix en porte (sinon « 12,345 » s'affichait « 12,35 » et le total ne s'expliquait plus) */
+const cmdPuTexte = p => { const t = String(Math.round(p * 1e6) / 1e6), d = (t.split('.')[1] || '').length; return p.toFixed(Math.max(2, d)).replace('.', ','); };
 const cmdOuverte = c => ['envoyee', 'confirmee', 'partielle'].includes(c.st);
 /* ce qui est déjà commandé et pas encore arrivé, pour un article */
 const enCommande = x => COMMANDES.filter(cmdOuverte).reduce((s, c) => s + c.lignes.filter(l => l.pid === x.id).reduce((t, l) => t + Math.max(0, l.q - l.recu), 0), 0);
@@ -10149,7 +10154,7 @@ const prixChez = (x, four) => four === x.four ? x.pa : ((x.offres || {})[four] !
 function cmdMoinsCher(x, four){ if (!x) return null; const ici = prixChez(x, four);
   const o = Object.entries(Object.assign({ [x.four]:x.pa }, x.offres || {})).filter(([n, pa]) => n !== four && pa && foDe(n) && ici && pa < ici - .005).sort((a, b) => a[1] - b[1])[0];
   return o ? { four:o[0], pa:o[1], pct:foPct(ici, o[1]) } : null; }
-function cmdFranco(pan){ const f = foDe(pan.four), ht = pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0);
+function cmdFranco(pan){ const f = foDe(pan.four), ht = cmdHT({ lignes:pan.lignes });
   if (!f || !f.franco || ht >= f.franco) return { ht, manque:0, f };
   const dans = new Set(pan.lignes.map(l => l.x && l.x.id)), idees = PRODUITS.filter(x => !x.retire && x.four === pan.four && !dans.has(x.id) && !dansBrouillon(x.id) && x.seuil > 0 && x.q <= x.seuil * 1.8 && x.pa).sort((a, b) => a.q / a.seuil - b.q / b.seuil).slice(0, 2);
   return { ht, manque:Math.round((f.franco - ht) * 100) / 100, f, idees }; }
@@ -10163,7 +10168,7 @@ function cmdFranco(pan){ const f = foDe(pan.four), ht = pan.lignes.reduce((s, l)
    jour seule → retard et silence se relancent → la RÉCEPTION (bon de livraison, reliquat) monte le stock → la FACTURE est rapprochée →
    elle rejoint les achats. « Recommander » refait une commande à l'identique. */
 let cmdFiltre = 'traiter', cmdRech = '', CMD_ED = null;
-const cmdTVA = c => Math.round(c.lignes.reduce((s, l) => s + l.q * (l.pu || 0) * (l.tva != null ? l.tva : 20) / 100, 0) * 100) / 100;
+const cmdTVA = c => Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT(l) * (l.tva != null ? l.tva : 20) / 100, 0) * 100 + 1e-7) / 100;
 const cmdU = l => (cmdArt(l) || {}).u || l.u || 'u';
 const cmdBrouillonDe = four => COMMANDES.find(c => c.st === 'brouillon' && c.four === four);
 const dansBrouillon = k => COMMANDES.some(c => c.st === 'brouillon' && c.lignes.some(l => (l.pid || 'lib-' + l.ref) === k));
@@ -10210,7 +10215,7 @@ function cmdDoc(o){
     <div class="bc-blocs"><div><small>Fournisseur</small><b>${esc(o.four)}</b>${f.compte ? `<span>Compte client ${esc(f.compte)}</span>` : ''}${f.mail ? `<span>${esc(f.mail)}</span>` : ''}</div>
       <div><small>Livraison</small><b>${esc(liv)}</b>${o.souh ? `<span>Souhaitée le ${dFr(o.souh)}</span>` : ''}${i ? `<span>Réf. chantier : ${esc(cli.nom)} · ${esc(i.titre)}</span>` : ''}</div></div>
     <table class="bc-t"><thead><tr><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Total HT</th></tr></thead>
-      <tbody>${o.lignes.map(l => `<tr><td><b>${esc(cmdNom(l))}</b>${l.ref && l.ref !== '—' ? `<span>Réf. ${esc(l.ref)}</span>` : ''}</td><td>${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}</td><td>${l.pu != null ? eur(l.pu) : 'selon tarif'}</td><td>${l.pu != null ? eur(l.q * l.pu) : '—'}</td></tr>`).join('')}</tbody></table>
+      <tbody>${o.lignes.map(l => `<tr><td><b>${esc(cmdNom(l))}</b>${l.ref && l.ref !== '—' ? `<span>Réf. ${esc(l.ref)}</span>` : ''}</td><td>${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}</td><td>${l.pu != null ? eur(l.pu) : 'selon tarif'}</td><td>${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</td></tr>`).join('')}</tbody></table>
     <div class="bc-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
     ${o.note ? `<div class="bc-note"><small>Note</small>${esc(o.note)}</div>` : ''}
     <div class="bc-pied"><span>Merci de confirmer cette commande (votre référence et la date de livraison) par le lien joint à l’e-mail, ou en y répondant.</span><span>Bon pour commande · ${esc(tNom('marc'))}, ${esc(ENTREPRISE.nom)}</span></div></div>`;
@@ -15635,7 +15640,7 @@ function pdxEnvoiSilencieux(c){   // ce que cmdEnvoyer fait, sans la fenêtre ni
 }
 function pdxToutPanneau(){
   const pans = cmdPaniers(); if (!pans.length) return toast('Rien à commander pour le moment.');
-  const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = Math.round(pan.lignes.reduce((s, l) => s + l.q * (l.pu || 0), 0) * 100) / 100;
+  const ligne = pan => { const F = cmdFranco(pan), f = foDe(pan.four), sans = pan.lignes.filter(l => l.pu == null).length, ht = cmdHT({ lignes:pan.lignes });
     return `<div class="fo-r pdx-tp"><label class="pdx-cb"><input type="checkbox" data-pdxtp="${esc(pan.four)}" data-ht="${ht}" ${sans ? '' : 'checked'} aria-label="Envoyer la commande de ${esc(pan.four)}"><span class="fo-n"><b>${esc(pan.four)}</b><span class="gris petit">${pdxPl(pan.lignes.length, 'ligne')}${F.f && F.f.franco ? ' · ' + (F.manque > 0 ? 'il manque ' + eur(F.manque) + ' pour la livraison gratuite' : 'livraison gratuite atteinte') : ''}${f && f.mail ? '' : ' · pas d’e-mail : notée comme commandée'}${sans ? ` · <b class="fo-up">${pdxPl(sans, 'ligne')} sans prix : à vérifier</b>` : ''}</span></span></label><span class="fo-dr"><b>${eur(ht)}</b><button type="button" class="lien" data-pdx="tpbon|${esc(pan.four)}">Voir le bon</button></span></div>`; };
   ouvrirPanneau(`<span class="surtitre">Commandes</span><h2>Tout préparer · ${pdxPl(pans.length, 'commande')}</h2>
     <span class="gris">Une ligne par fournisseur, tout est prêt. Chaque bon part avec son PDF, comme d’habitude. Décoche ce que tu préfères vérifier : une commande dont une ligne n’a pas de prix est décochée d’office.</span>
@@ -17525,7 +17530,7 @@ function fxPanier(pan){
     return `<div class="fx-pl"><span class="fo-n"><b>${nom}</b><span class="fx-ph"><span class="gris petit">${esc(fxPhrase(l))}</span>${detail ? '<button type="button" class="fx-ib" data-fx="info" aria-label="Pourquoi cette quantité ?" title="Pourquoi cette quantité ?" aria-expanded="false"><span aria-hidden="true">i</span></button>' : ''}</span>${detail ? `<span class="gris petit fx-det">${esc(detail)}</span>` : ''}${tard ? '<span class="fx-tard petit">Livré trop tard : retrait au comptoir ?</span>' : ''}${l.pu ? '' : '<span class="fx-sansprix petit">Pas de prix : ajoute-le pour que la commande se prépare.</span>'}
         ${mc ? `<span class="fx-mc petit">Chez ${esc(mc.four)} : ${eur(prixChez(l.x, pan.four) - mc.pa)} de moins · <button type="button" class="lien fx-lien" data-cm="depl|${k}|${esc(mc.four)}">Le prendre chez lui</button></span>` : ''}</span>
       <span class="fx-pq"><span class="mat-pas"><button type="button" data-fx="pas|${k}|-1" aria-label="Un de moins : ${nom}">−</button><input inputmode="decimal" data-cmq="${k}" value="${prNum(l.q)}" aria-label="Quantité de ${nom}"><button type="button" data-fx="pas|${k}|1" aria-label="Un de plus : ${nom}">+</button></span>
-        <span class="fx-pr"><span class="gris petit fx-u">${esc(prU(l.q, l.u))}${l.pu ? ' · ' + eur(l.q * l.pu) : ''}</span><button type="button" class="lien fx-lien" data-cm="hors|${k}" aria-label="Retirer ${nom} de la commande">Retirer</button></span></span></div>`; }).join('');
+        <span class="fx-pr"><span class="gris petit fx-u">${esc(prU(l.q, l.u))}${l.pu ? ' · ' + eur(cmdLigneHT(l)) : ''}</span><button type="button" class="lien fx-lien" data-cm="hors|${k}" aria-label="Retirer ${nom} de la commande">Retirer</button></span></span></div>`; }).join('');
   const franco = F.manque > 0 ? `<div class="fx-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(F.ht / f.franco * 100))}%"></i></div><span class="petit">Plus que <b>${eur(F.manque)}</b> pour la livraison gratuite — sinon ${eur(f.port)} de port</span>${F.idees.length ? `<span class="fx-idees petit">${F.idees.map(x => `<button type="button" class="lien fx-lien" data-cm="plus|${x.id}">＋ ${esc(x.nom)} (il t’en reste ${prNum(x.q)})</button>`).join('')}</span>` : ''}</div>`
     : f && f.franco ? '<div class="fx-franco ok petit">✓ Livraison gratuite</div>' : '';
   const mail = f && !f.mail ? `<div class="fx-mail"><span class="st st-r">Il manque son e-mail pour envoyer la commande</span><label class="fx-mailc"><span class="gris petit">E-mail des commandes de ${esc(f.nom)}</span><input class="saisie" type="email" inputmode="email" data-fxmail="${f.id}" placeholder="commandes@…" autocomplete="off"></label></div>` : '';
@@ -17717,8 +17722,8 @@ function cmdEdVue(){
     <div class="fx-ed">${E.lignes.map((l, j) => { const x = cmdArt(l);
       return `<div class="fx-el"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${l.ref && l.ref !== '—' ? 'Réf. ' + esc(l.ref) + ' · ' : ''}${esc(fxRaison(l, x))}</span></span>
         <span class="fx-eq"><span class="mat-pas"><button type="button" data-fx="edpas|${j}|-1" aria-label="Un de moins : ${esc(cmdNom(l))}">−</button><input inputmode="decimal" data-cedl="${j}|q" value="${prNum(l.q)}" aria-label="Quantité de ${esc(cmdNom(l))}"><button type="button" data-fx="edpas|${j}|1" aria-label="Un de plus : ${esc(cmdNom(l))}">+</button></span><span class="gris petit">${esc(prU(l.q, cmdU(l)))}</span></span>
-        <label class="fx-ep"><span class="gris petit">Prix HT</span><input inputmode="decimal" data-cedl="${j}|pu" value="${l.pu != null ? l.pu.toFixed(2).replace('.', ',') : ''}" placeholder="selon tarif" aria-label="Prix HT de ${esc(cmdNom(l))}"></label>
-        <b class="fx-et">${l.pu != null ? eur(l.q * l.pu) : '—'}</b><button type="button" class="lien fx-lien" data-ce="suppr|${j}" aria-label="Retirer ${esc(cmdNom(l))}">Retirer</button></div>`; }).join('') || '<div class="gris" style="padding:10px 2px">Aucune ligne : cherche un article ci-dessous.</div>'}</div>
+        <label class="fx-ep"><span class="gris petit">Prix unitaire HT</span><input inputmode="decimal" data-cedl="${j}|pu" value="${l.pu != null ? cmdPuTexte(l.pu) : ''}" placeholder="selon tarif" aria-label="Prix unitaire HT de ${esc(cmdNom(l))}"></label>
+        <b class="fx-et">${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</b><button type="button" class="lien fx-lien" data-ce="suppr|${j}" aria-label="Retirer ${esc(cmdNom(l))}">Retirer</button></div>`; }).join('') || '<div class="gris" style="padding:10px 2px">Aucune ligne : cherche un article ci-dessous.</div>'}</div>
     <div class="ced-ajout"><input class="saisie" data-cedrech="1" placeholder="＋ Ajouter un article : nom, référence…" autocomplete="off" aria-label="Ajouter un article"><div id="ced-res" class="ced-res"></div></div>
     <div class="ced-tot"><span>Total HT</span><b>${eur(ht)}</b><span>TVA</span><b>${eur(tva)}</b><span>Total TTC</span><b>${eur(ht + tva)}</b></div>
     ${f.franco ? (F > 0 ? `<div class="fx-franco"><div class="cmd-barre"><i style="width:${Math.min(100, Math.round(ht / f.franco * 100))}%"></i></div><span class="petit">Plus que <b>${eur(F)}</b> pour la livraison gratuite — sinon ${eur(f.port)} de port</span></div>` : '<div class="fx-franco ok petit">✓ Livraison gratuite</div>') : ''}
@@ -17751,7 +17756,7 @@ function cmdFiche(id){
     ${cmdEtapes(c)}
     <div class="gris petit">${c.liv === 'comptoir' ? 'Retrait au comptoir' : c.liv === 'chantier' && i ? 'Livraison sur le chantier · ' + esc(CLIENTS[i.cli].adr) : 'Livraison à l’atelier'}${i ? ` · pour <button type="button" class="lien" data-tvoir="inter|${i.id}">${esc(interLib(i))}</button>` : ''}</div>
     <div class="fo-bloc">${c.lignes.map(l => { const t = l.inter && TACHES.find(o => o.id === l.inter), ii = t && INTS.find(o => o.id === t.inter);
-      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${c.st === 'brouillon' ? '' : ' · ' + (l.recu >= l.q ? '<span class="fo-down">tout est arrivé</span>' : l.recu ? `reçu ${prNum(l.recu)} sur ${prNum(l.q)}, <b class="fo-up">il en manque ${prNum(l.q - l.recu)}</b>` : 'pas encore arrivé')}${l.rupture && l.recu < l.q ? ` · <b class="fo-up">en rupture, prévu le ${jCourt(l.rupture)}</b>` : ''}${ii ? ` · pour ${esc(CLIENTS[ii.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${l.pu != null ? eur(l.q * l.pu) : '—'}</b><span class="gris petit">${l.pu != null ? eur(l.pu) + ' l’unité' : 'selon tarif'}</span></span></div>`; }).join('')}
+      return `<div class="fo-r"><span class="fo-n"><b>${esc(cmdNom(l))}</b><span class="gris petit">${prNum(l.q)} ${esc(prU(l.q, cmdU(l)))}${c.st === 'brouillon' ? '' : ' · ' + (l.recu >= l.q ? '<span class="fo-down">tout est arrivé</span>' : l.recu ? `reçu ${prNum(l.recu)} sur ${prNum(l.q)}, <b class="fo-up">il en manque ${prNum(l.q - l.recu)}</b>` : 'pas encore arrivé')}${l.rupture && l.recu < l.q ? ` · <b class="fo-up">en rupture, prévu le ${jCourt(l.rupture)}</b>` : ''}${ii ? ` · pour ${esc(CLIENTS[ii.cli].nom)}` : ''}</span></span><span class="fo-dr"><b>${l.pu != null ? eur(cmdLigneHT(l)) : '—'}</b><span class="gris petit">${l.pu != null ? eur(l.pu) + ' l’unité' : 'selon tarif'}</span></span></div>`; }).join('')}
       <div class="fo-r"><span class="fo-n"><b>Total HT</b><span class="gris petit">TTC ${eur(cmdHT(c) + cmdTVA(c))}</span></span><b>${eur(cmdHT(c))}</b></div></div>
     ${c.note ? `<div class="gris petit">Note au fournisseur : ${esc(c.note)}</div>` : ''}
     <div class="ms-boutons fx-boutons">${noir}${a && (a.t === 'retard' || a.t === 'silence') ? `<button type="button" class="btn gris" data-cm="relance|${c.id}">Relancer</button>` : ''}<button type="button" class="btn gris" data-fx="cplus|${c.id}" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div>
@@ -23892,17 +23897,17 @@ const MET_JEUX = (() => {
   };
 })();
 /* des phrases d'exemple écrites pour la climatisation : un autre métier lit un exemple de son métier */
-const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique, la porte d’entrée', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
-  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches, référence à préciser',
+const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel', 'Ex. : la clim fait du bruit depuis ce matin':'Ex. : en panne depuis ce matin', 'ex. la chaudière du sous-sol':'ex. le local technique', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’une pièce',
+  'Ex. : équipe clim, chantier Mimosas':'Ex. : équipe du matin, chantier Mimosas', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Clim Pièces Atlantique':'ex. ton fournisseur habituel', 'ex. Fluide R32, 2 bouteilles':'ex. 2 cartouches de colle',
   'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. L’installation ne fonctionne plus depuis ce matin.', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer l’appareil par un modèle plus puissant ; pose à prévoir.',
   /* achats et recherche d'article : le fluide et le condensateur sont de la climatisation, les autres métiers lisent un exemple à eux (chaque famille a le sien plus bas) */
-  'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, lot de visserie', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, une référence…',
+  'ex. échelle 3 plans, gants, fluide R32':'ex. une échelle, des gants', 'Ex. condensateur, siphon, fluide…':'Ex. une pièce, un article…',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
   'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
   /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
-  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
-  if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
+  if (!racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
   L.forEach(n => { const v = metiersEx()[n.getAttribute('placeholder')]; if (v) n.setAttribute('placeholder', v); });
 }
@@ -24033,20 +24038,22 @@ document.addEventListener('click', ev => {
 
 /* ══ lot « metiers-a » (3ᵉ passe) : textes de contrat et d'exemples par métier, corrections du référentiel ══ */
 /* [4] les exemples de saisie : la climatisation seule ne lit plus « la chaudière », le chauffage et la plomberie ne lisent plus « la clim » */
-const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
+/* [4 bis] à 320 px, la place d'une indication est de 204 px (lieu du contrat) à 238 px : les textes d'origine de la climatisation qui n'y tiennent pas sont raccourcis ICI (la clé reste le texte d'origine du champ), et la combinaison chauffage + climatisation (cvc) les reprend — elle gardait jusque-là l'original, coupé (metier-3d-exemples-320) */
+const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon', 'ex. Remplacement de la pompe de relevage':'ex. Remplacement d’un split', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service split', 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants', 'ex. condensateur, siphon, fluide…':'ex. condensateur, fluide…', 'ex. équipe clim, chantier Mimosas':'ex. équipe clim, Mimosas', 'ex. Split mural salle · R32 · 2021':'ex. Split mural · R32 · 2021', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.' };
+const MET_EX_CVC = Object.assign({}, MET_EX_CLIM, { 'ex. la chaudière du sous-sol':'ex. la chaudière, le split' });
 const MET_EX_FAM = {
-  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
-  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
+  chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, joint…', 'ex. la chaudière du sous-sol':'ex. la chaudière, la cave', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m.',
+    'ex. Remplacement de la pompe de relevage':'ex. Circulateur à remplacer', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
+  plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le garage, la cuisine', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
 /* hygiène (3D) et nettoyage : ils n'avaient que les exemples génériques — leurs achats et leurs recherches d'article parlaient de fluide R32 */
-MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage, produit biocide', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage, appât, piège…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
-MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges, produit pour les sols', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs, produit pour les sols…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
+MET_EX_FAM.nuis = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, postes d’appâtage', 'Ex. condensateur, siphon, fluide…':'Ex. poste d’appâtage…', 'ex. Daikin FTXM35R':'ex. Pulvérisateur 5 L', 'ex. Split mural salle · R32 · 2021':'ex. local technique · 2022' };
+MET_EX_FAM.nett = { 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, éponges', 'Ex. condensateur, siphon, fluide…':'Ex. éponges, sacs…', 'ex. Daikin FTXM35R':'ex. Autolaveuse 50 cm', 'ex. Split mural salle · R32 · 2021':'ex. hall d’accueil · 2021' };
 /* une même indication s'écrit avec ou sans majuscule selon la fenêtre qui la porte (« Ex. condensateur… » dans les achats, « ex. condensateur… » dans « Nouvelle intervention ») : la correspondance est EXACTE, donc la seconde copie échappait à la table et rendait un exemple de climatisation à tous les métiers (metier-3d-recontrole-04). Chaque entrée « Ex. … » reçoit sa jumelle « ex. … » */
 [MET_EXEMPLES, ...Object.values(MET_EX_FAM)].forEach(T => Object.keys(T).forEach(k => { if (!/^Ex\. (?!:)/.test(k)) return; const j = 'ex. ' + k.slice(4), v = T[k]; if (!(j in T)) T[j] = v == null ? v : /^Ex\. /.test(v) ? 'ex. ' + v.slice(4) : v; }));
 function metiersEx(){
-  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM;
+  const f = metiersFamille(); if (f === 'clim') return MET_EX_CLIM; if (f === 'cvc') return MET_EX_CVC;
   const T = Object.assign({}, MET_EXEMPLES), O = MET_EX_FAM[f] || {};
   Object.keys(O).forEach(k => { if (O[k] == null) delete T[k]; else T[k] = O[k]; }); return T;
 }
