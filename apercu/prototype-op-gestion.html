@@ -573,12 +573,15 @@ html .ms-pied{padding:2px 8px}
 html .ms-vide{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:22px 20px}html .ms-vide b{font-size:17px}
 html .ms-vic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--surf2);color:var(--doux);border:1px solid var(--trait)}html .ms-vic svg{width:24px;height:24px}
 html .ms-vb{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+html .ms-vb:has(>.btn:nth-child(2)){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));align-self:stretch}   /* les deux boutons du stock vide ont la même largeur, côte à côte sur ordinateur, l'un sous l'autre au téléphone (regard gérant C) */
 html .ms-vb .btn{max-width:100%;white-space:normal;line-height:1.25;padding-block:8px;text-align:center}   /* « Choisir parmi les articles habituels de mon métier » sortait de la carte à 360 px : le libellé passe à la ligne au lieu de se couper (regard gérant C) */
 input.saisie{text-overflow:ellipsis}   /* une invite trop longue pour son champ finit par « … » au lieu d'être coupée net */
 html .ms-g{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 12px;border-bottom:1px solid var(--trait)}html .ms-liste>.ms-g:last-child{border-bottom:0}
 html .ms-g.att{background:color-mix(in srgb,var(--orange) 7%,transparent);border-radius:12px}
 html .ms-gi{width:32px;height:32px;border-radius:50%}html .ms-gi svg{width:18px;height:18px}
 html .ms-g>.fo-n{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .ms-ph{overflow-wrap:anywhere;font-size:15.5px;line-height:1.35}
+/* une liste « A · B · C » dont le point médian ne reste JAMAIS seul en bout de ligne ni en tête de la suivante : chaque point est dans un cadre de 14 px qui sort à gauche du conteneur (overflow caché), donc le point du premier élément d'une ligne disparaît tout seul au retour à la ligne (regard gérant C : « à l'atelier 5 · » et « Climatisation · 1 » finissaient sur un « · » orphelin) */
+html .pts{display:block;overflow:hidden}html .pts-i{display:flex;flex-wrap:wrap;margin-left:-14px}html .pts-e{min-width:0;max-width:100%;overflow-wrap:anywhere;line-height:1.45}   /* un lien dans une rangée flex n'est plus « inline » : le plancher tactile de 44 px (.lien) compte alors, chaque lieu a sa ligne de 44 px — voulu, c'est une cible au doigt */html .pts-e:first-child{padding-left:14px}html .pts-d{display:inline-block;width:14px;text-align:center}
 html .ms-lien{min-height:28px;padding:0;font:inherit;color:var(--lien);text-decoration:none;font-weight:600;text-align:left;display:inline}html .ms-lien:hover{text-decoration:underline}
 html .ms-ann{align-self:flex-start;min-height:44px;color:var(--lien);font-weight:650}
 html .ms-att{border:0;min-height:44px;cursor:pointer}
@@ -638,6 +641,7 @@ html .md-c{min-height:0;gap:6px;justify-content:flex-start}
 html .md-t{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 10px}html .md-t>b{font-size:17px;flex:1 1 150px;min-width:0;overflow-wrap:anywhere}   /* un nom long garde sa largeur : c'est la pastille qui passe dessous */
 html .md-t .st{flex:none;max-width:100%;white-space:normal;line-height:1.25;text-align:right;margin-left:auto}
 html .md-l2,html .md-l3{overflow-wrap:anywhere}
+html .md-c .client-chiffres,html .fx-c .client-chiffres{grid-template-columns:minmax(0,1fr) minmax(max-content,1fr) minmax(0,1.3fr)}   /* la colonne du montant ne peut pas être plus étroite que lui : « 281 859 021,34 € » (sans retour à la ligne) passait SUR le « 3 » de la colonne voisine à 360 px (regard gérant C, Android nuit) */
 html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{white-space:nowrap}   /* un montant ne se coupe pas : « 281 859 021 / ,34 € » sur deux lignes (regard gérant C, nuit, iPhone) */
 html .md-o{color:var(--orange);font-weight:650}html .md-rg{color:var(--rouge);font-weight:650}
 html .md-nb{white-space:nowrap}html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
@@ -752,7 +756,6 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   html .fx-photo .fx-lib{display:none}html .fx-plusb::before{content:'⋯';font-size:24px;line-height:1;letter-spacing:0}
   html .fx-tete .actions>.fx-photo:first-child{margin-left:auto}
   html .fx-seg{display:flex;width:100%}html .fx-seg button{flex:1 1 auto;min-width:0;padding:0 8px;font-size:14.5px}
-@media (max-width:340px){html .fx-seg button{padding:0 2px!important;gap:2px!important;font-size:12.5px!important}html .fx-seg .pr-nb{min-width:16px;padding:0 3px;font-size:11px}}   /* 320 px (iPhone SE) : « Commandes 6 », « Articles 29 » et « Fournisseurs 5 » tiennent dans leur bouton sans que le compteur touche le mot du voisin (le contenu dépassait de 4 px) */
   html .fx-acmd{padding:14px 14px}
   html #contenu:has(>.fx-seg){gap:10px}html .fx-arts .groupe{padding:8px 12px 2px}   /* téléphone : l'écart entre les rangées de l'en-tête et le titre de groupe se resserrent — la première ligne d'article remonte de ~25 px */
   /* l'en-tête de « À commander » tient sur UNE rangée (le titre et sa phrase à gauche, « Tout préparer » à droite) : la première ligne à commander remonte de ~55 px, sur un écran où chaque ligne compte */
@@ -781,6 +784,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
 }
+@media (max-width:340px){html .fx-seg button{padding:0 5px!important;gap:3px!important;font-size:12px!important}html .fx-seg .pr-nb{min-width:0;padding:0 2px;font-size:10.5px}html .fx-seg .pr-nb:not(.chaud){background:none;padding:0}html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){padding-inline:8px;font-size:14px}}   /* 320 px (iPhone SE) : « Commandes 6 », « Articles 29 » et « Fournisseurs 5 » tiennent dans leur bouton sans que le compteur touche le mot du voisin (le contenu dépassait de 4 px) ; puis le mot touchait le bord de la pilule (1 px) : les compteurs sans alerte perdent leur pastille et tout rentre avec 5 px de marge ; le bouton principal de l'en-tête (« ＋ Ajouter un article », « ＋ Nouvelle commande ») passe à 14 px et 8 px de marge pour tenir sur UNE ligne (regard gérant C) */
 @media (max-width:520px){
   html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .saisie[type=email],html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
   html .fx-ep{width:100%}html .fx-eq,html .fx-ep,html .fx-et{flex:1 1 100%;text-align:left}
@@ -16414,7 +16418,7 @@ const msLieuxDe = x => [['atelier', stkAt(x, 'atelier')], ...Object.entries(x.lo
 function matLigneArticle(x, lf){
   const L = msLieuxDe(x), e = matEtat(x), l = lf && lf !== 'tous' ? lieu(lf) : null, cible = l && l.dot && DOTATION[l.dot] ? DOTATION[l.dot][x.id] : 0;
   const sous = l ? (stkAt(x, lf) > 0 ? `Il y en a aussi ${L.filter(([k]) => k !== lf).slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') || 'nulle part ailleurs'}` : (L.length ? `Pas ici · ${L.slice(0, 2).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ')}` : 'Il n’y en a nulle part'))
-    : L.slice(0, innerWidth <= 380 ? 2 : 3).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + ' ' + prNum(v)).join(' · ') + (L.length > (innerWidth <= 380 ? 2 : 3) ? ` · +${L.length - (innerWidth <= 380 ? 2 : 3)} lieu${L.length - (innerWidth <= 380 ? 2 : 3) > 1 ? 'x' : ''}` : '') || 'Nulle part pour l’instant';
+    : (() => { const nb = innerWidth <= 380 ? 2 : 3, it = L.slice(0, nb).map(([k, v]) => esc(sxLieuCourt(lieu(k))) + '\u00a0' + prNum(v)); if (L.length > nb) it.push(`+${L.length - nb}\u00a0lieu${L.length - nb > 1 ? 'x' : ''}`); return it.length ? msPts(it) : 'Nulle part pour l’instant'; })();   // msPts : le point médian ne finit jamais une ligne ni ne commence la suivante (« · +2 lieux » restait seul sous « Atelier 1514,5 · Sophie 2 »)
   const q = l ? (cible ? `${prNum(stkAt(x, lf))} sur ${prNum(cible)}` : sxQte(stkAt(x, lf), x)) : sxQte(x.q, x);
   return `<button type="button" class="sk-l ms-l" data-pr="fiche|${x.id}"><span class="ms-ic" aria-hidden="true">${svg(msIcCat(x))}</span><span class="fo-n"><b>${escN(x.nom)}</b><span class="gris petit">${sous}</span></span><span class="fo-dr"><b>${q}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</span></button>`;
 }
@@ -16443,7 +16447,7 @@ function vueStock(){
   if (stkOnglet === 'valider') { stkOnglet = 'ensemble'; setTimeout(msEnvois, 0); }
   else if (stkOnglet === 'inventaire') { stkOnglet = 'ensemble'; const l = invLieu; invLieu = null; INV = {}; setTimeout(() => matCompter(l), 0); }
   const jr = stkOnglet === 'mvts';
-  if (!tel() && !jr && document.activeElement === document.body && !document.querySelector('#calque .panneau')) setTimeout(() => { const i = document.getElementById('ms-q'); if (i && document.activeElement === document.body) i.focus({ preventScroll:true }); }, 0);   // sur ordinateur, le curseur est déjà dans la recherche
+  if (!tel() && !jr && !matchMedia('(pointer:coarse)').matches && !(navigator.maxTouchPoints > 0 && !matchMedia('(hover:hover)').matches) && document.activeElement === document.body && !document.querySelector('#calque .panneau')) setTimeout(() => { const i = document.getElementById('ms-q'); if (i && document.activeElement === document.body) i.focus({ preventScroll:true }); }, 0);   // sur ordinateur, le curseur est déjà dans la recherche ; sur un appareil tactile (iPad compris, même large) non : le clavier montait tout seul (regard gérant C)
   return `<div class="tete ms-tete"><div><span class="surtitre">Matériel</span><h1>Stock</h1><span class="gris">Ce qu’il te reste, et où il est.</span></div>
     <div class="actions"><button type="button" class="btn" data-ms="maj"${matVis('stock-maj')}>＋ Mettre à jour le stock</button><button type="button" class="btn gris ms-plusb" data-ms="plus" aria-haspopup="menu" aria-label="Plus d’actions">Plus ▾</button></div></div>
   ${msBandeau()}${msTuiles()}
@@ -16714,12 +16718,13 @@ function sxRegistre(){
 /* ══ LA FICHE D’UN ARTICLE — UNE seule fenêtre, ouverte de partout (Stock, Articles, une commande, un lieu, le journal) ══ */
 const MS_FICHE = { seuil:null, prix:null };
 function msConseilSeuil(x){ const f = foDe(x.four), dj = f && f.dj != null ? f.dj : 2, cs = sxConsoSem(x.id); if (!(cs > 0)) return null; const c = Math.max(1, Math.ceil(cs * (1 + dj / 7))); return c > x.seuil ? c : null; }   // un conseil ne propose que de prévenir PLUS TÔT : plus bas, ce serait te laisser tomber en panne
+const msPts = A => `<span class="pts"><span class="pts-i">${A.map((h, i) => `<span class="pts-e">${i ? '<span class="pts-d" aria-hidden="true">·</span>' : ''}${h}</span>`).join('')}</span></span>`;   // voir « .pts » dans la feuille ; le dernier élément s'écrit avec ses espaces insécables s'il doit rester soudé
 function prFiche(id){
   const x = PRODUITS.find(o => o.id === id); if (!x) return; const t = document.getElementById('toast'); if (t) t.classList.remove('on');
   const e = matEtat(x), tech = ROLE === 'tech', P = PACKS[x.p] || { nom:'', ic:'' }, L = LIEUX.filter(l => stkAt(x, l.id) > 0), cs = sxConsoSem(x.id), cons = msConseilSeuil(x), ed = MS_FICHE.seuil === id, edp = MS_FICHE.prix === id, M = prMarge(x), f = foDe(x.four);
   const ou = LIEUX.filter(l => stkAt(x, l.id) > 0), usage = pdxUsageListes(x), gestes = MVTS.filter(m => m.pid === x.id).slice(0, 5), autres = Object.entries(x.offres || {}).filter(([n, pa]) => n !== x.four && x.pa && pa < x.pa).sort((a, b) => a[1] - b[1]);
   const moins = autres[0], hausse = x.paAvant && x.pa ? foPct(x.paAvant, x.pa) : 0, conseilPv = !tech && prVend(x) && x.pa ? foArr(x.pa / .6) : null;
-  const rep = L.length ? L.map(l => `<button type="button" class="lien ms-lien" data-sk="lieu|${l.id}">${esc(l.type === 'atelier' ? 'à l’atelier' : l.type === 'vehicule' ? 'dans le camion de ' + prenomDe(l.tech) : 'dans la réserve')} ${prNum(stkAt(x, l.id))}</button>`).join(' · ') : '<span class="gris">Il n’y en a nulle part pour l’instant.</span>';
+  const rep = L.length ? msPts(L.map(l => `<button type="button" class="lien ms-lien" data-sk="lieu|${l.id}">${esc(l.type === 'atelier' ? 'à l’atelier' : l.type === 'vehicule' ? 'dans le camion de ' + prenomDe(l.tech) : 'dans la réserve')} ${prNum(stkAt(x, l.id))}</button>`)) : '<span class="gris">Il n’y en a nulle part pour l’instant.</span>';
   const noir = tech ? `<button type="button" class="btn" data-ms="fusage|${x.id}">J’ai utilisé</button>` : (e && ['plus', 'bientot'].includes(e.k)) ? `<button type="button" class="btn" data-ms="fcmd|${x.id}">Commander</button>` : `<button type="button" class="btn" data-ms="fq|sortir|${x.id}">Sortir du stock</button>`;
   const bout = sxEstFluide(x) ? sxBoutsDe(x.id) : [];
   ouvrirPanneau(`<span class="surtitre">${esc(P.nom.split(/ \/|,/)[0])} › ${esc(x.cat)}</span><h2>${esc(x.nom)}</h2>
@@ -16736,7 +16741,7 @@ function prFiche(id){
         : `<button type="button" class="lien ms-lien" data-ms="fprixo|${x.id}">Changer un prix</button>`}
       ${moins ? `<div class="ligne"><span class="gris">Chez d’autres fournisseurs</span><span class="fo-dr"><b>${esc(moins[0])} ${eur(moins[1])}</b><button type="button" class="lien ms-lien" data-ms="fchez|${x.id}|${esc(moins[0])}">Passer chez lui</button></span></div>` : ''}
       ${conseilPv && prVend(x) && x.pv < conseilPv - .05 ? `<div class="gris petit">Pour garder 40 % de marge, vends-le ${eur(conseilPv)} HT.</div>` : ''}</div>`}
-    ${bout.length ? `<div class="carte"><h3>Bouteilles</h3>${bout.map(b => { const s = sxBoutEtat(b); return `<div class="ligne"><span><b>${esc(b.id)}</b><br><span class="gris petit">${esc(lieuNom(b.lieu))} · capacité ${prNum(b.cap)} kg</span></span><span class="fo-dr"><b>il reste ${prNum(b.reste)} kg</b><span class="st ${s[1]}">${s[0]}</span></span></div>`; }).join('')}<button type="button" class="lien ms-lien" data-sx="fluides">Registre des fluides ›</button></div>` : ''}
+    ${bout.length ? `<div class="carte"><h3>Bouteilles</h3>${bout.map(b => { const s = sxBoutEtat(b); return `<div class="ligne"><span><b>${esc(b.id)}</b><br><span class="gris petit">${msPts([esc(lieuNom(b.lieu)), `capacité\u00a0${prNum(b.cap)}\u00a0kg`])}</span></span><span class="fo-dr"><b>il reste ${prNum(b.reste)} kg</b><span class="st ${s[1]}">${s[0]}</span></span></div>`; }).join('')}<button type="button" class="lien ms-lien" data-sx="fluides">Registre des fluides ›</button></div>` : ''}
     <details class="ms-acc"><summary>Où il est</summary>${ou.map(l => `<div class="ligne"><span>${esc(l.nom)}</span><span class="fo-dr"><b>${prNum(stkAt(x, l.id))}</b>${tech ? '' : `<button type="button" class="lien ms-lien" data-ms="fq|deplacer|${x.id}|${l.id}">Déplacer</button>`}</span></div>`).join('') || '<div class="gris">Nulle part.</div>'}</details>
     <details class="ms-acc"><summary>Derniers gestes</summary>${gestes.map(m => `<div class="ms-ph ligne">${msPhraseHtml(m)}</div>`).join('') || '<div class="gris">Aucun geste.</div>'}${gestes.length ? `<button type="button" class="lien ms-lien" data-ms="fhisto|${x.id}">Tout voir</button>` : ''}</details>
     <details class="ms-acc"><summary>Dans tes documents</summary><div class="gris">Utilisé dans ${pdxPl(usage.inters.length, 'intervention')} et ${pdxPl(usage.devis.length, 'devis', 'devis')}.</div></details>
@@ -17030,8 +17035,8 @@ function mdRouvrir(id){
 /* ── la fiche d'un lieu : le bon modèle de l'existant, hiérarchisé — ce qui manque d'abord ── */
 function mdLigne(id, o, atl){
   const x = o.x, m = o.cible != null ? stkR(o.cible - o.a) : 0, ate = stkAt(x, 'atelier'), l = lieu(id), e = atl ? matEtat(x) : null;
-  const sub = o.cible != null ? (m > 0 ? `<b class="${o.a <= 0 ? 'md-rg' : 'md-o'}">${prNum(o.a)} sur ${prNum(o.cible)} · il manque ${prNum(m)}</b>` : `${prNum(o.a)} sur ${prNum(o.cible)}`) : esc(x.ref);
-  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}${m > 0 && !atl ? ` · <span class="md-nb">à l’atelier : ${prNum(ate)}</span>` : ''}</span></span>
+  const cl = o.a <= 0 ? 'md-rg' : 'md-o', sub = o.cible != null ? (m > 0 ? msPts([`<b class="${cl}">${prNum(o.a)}\u00a0sur\u00a0${prNum(o.cible)}</b>`, `<b class="${cl}">il\u00a0manque\u00a0${prNum(m)}</b>`].concat(!atl ? [`<span class="md-nb">à\u00a0l’atelier\u00a0: ${prNum(ate)}</span>`] : [])) : `${prNum(o.a)} sur ${prNum(o.cible)}`) : esc(x.ref);   // msPts : « il manque 1 · » finissait la ligne sur un point médian seul
+  return `<div class="md-lg${BX.hl === x.id ? ' bxl-hl' : ''}"><span class="fo-n"><button type="button" class="lien md-nom" data-pr="fiche|${x.id}">${esc(x.nom)}</button><span class="gris petit">${sub}</span></span>
     <span class="fo-dr"><b>${sxQte(o.a, x)}</b>${e ? `<span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}${m > 0 && !l.ferme ? `<button type="button" class="lien md-aj" data-md="aj|${id}|${x.id}" aria-label="Ajouter ${esc(x.nom)} à ${esc(l.nom)}">＋ Ajouter</button>` : ''}</span></div>`;
 }
 function bxFiche(id, hl){
@@ -17057,7 +17062,7 @@ function bxFiche(id, hl){
     ${l.ferme ? `<div class="md-btns">${noir}</div>` : ''}
     ${tout > 6 ? `<input class="saisie md-chq" type="search" data-md-q="1" value="${esc(BX.q)}" placeholder="Chercher dans ${esc(mdDe(l))}" aria-label="Chercher dans ${esc(mdDe(l))}" autocomplete="off">` : ''}
     <div class="carte md-liste"${matVis('depots-liste')}>${haut.length ? `<div class="groupe md-o">${atl ? 'Bientôt fini' : 'Il manque'} · ${haut.length}</div>${haut.map(o => mdLigne(id, o, atl)).join('')}` : ''}${bas.length ? `<div class="groupe">${atl ? 'En stock' : dep ? 'Sur place' : 'À bord'} · ${bas.length}</div>${bas.map(o => mdLigne(id, o, atl)).join('')}` : ''}${L.length ? '' : `<div class="gris" style="padding:14px 12px">${tout ? 'Aucun article ne correspond.' : 'Il n’y a rien ici pour l’instant.'}</div>`}</div>
-    ${dem ? `<div class="groupe">Pour les prochaines visites</div><div class="carte md-liste">${dem.L.map(m => `<div class="md-lg"><span class="fo-n"><b>${esc(matQte(m.manque, m.x))}</b><span class="gris petit">${esc(m.int.titre)} · ${esc(matInterQuand(m.int))}</span></span></div>`).join('')}</div>` : ''}
+    ${dem ? `<div class="groupe">Pour les prochaines visites</div><div class="carte md-liste">${dem.L.map(m => `<div class="md-lg"><span class="fo-n"><b>${esc(matQte(m.manque, m.x))}</b><span class="gris petit">${msPts([esc(m.int.titre), esc(matInterQuand(m.int))])}</span></span></div>`).join('')}</div>` : ''}
     <div class="groupe">Derniers gestes</div><div class="carte md-liste">${hist.map(m => `<div class="md-hg"><span class="ms-ph">${msPhraseHtml(m)}</span><span class="gris petit">${esc(jCourt(m.d))} · ${m.h}</span></div>`).join('') || '<div class="gris" style="padding:14px 12px">Aucun geste pour l’instant.</div>'}</div>
     ${hist.length ? `<button type="button" class="lien" data-md="tout|${id}">Tout voir dans Stock ›</button>` : ''}
     ${contrat ? `<button type="button" class="lien" data-go="contrat-x-${contrat.id}">Voir le contrat d’entretien ›</button>` : ''}`, true);
@@ -17511,8 +17516,9 @@ function fxArticles(){
   const cles = Object.keys(G).sort((a, b) => ordre(G[a][0]) - ordre(G[b][0]));
   const classe = A => PDX.tri === 'rangement' ? A.slice().sort((a, b) => (PR_CONSO[b.id] || 0) - (PR_CONSO[a.id] || 0) || a.nom.localeCompare(b.nom, 'fr')) : pdxTrier(A);
   const ouvert = L.length <= 40 || q || f !== 'tout';
-  const groupes = cles.map((k, i) => { const A = G[k], x0 = A[0], titre = String(x0.cat).replace(/ \(.*\)$/, '') + (packs.length > 1 && prPack === 'tous' ? ' · ' + metiersCourt(x0.p) : '');
-    return `<details class="ms-cat" ${ouvert || i === 0 ? 'open' : ''}><summary class="groupe">${esc(titre)} · ${A.length}</summary>${classe(A).map(fxLigneArt).join('')}</details>`; }).join('');
+  const groupes = cles.map((k, i) => { const A = G[k], x0 = A[0], cat = String(x0.cat).replace(/ \(.*\)$/, ''), pack = packs.length > 1 && prPack === 'tous' ? metiersCourt(x0.p) : '', fin = '\u00a0·\u00a0' + A.length;   // le « · 1 » reste soudé au dernier mot (« · 1 » seul en tête de ligne)
+    const titre = pack ? msPts([esc(cat), esc(pack) + fin]) : msPts([esc(cat) + fin]);
+    return `<details class="ms-cat" ${ouvert || i === 0 ? 'open' : ''}><summary class="groupe">${titre}</summary>${classe(A).map(fxLigneArt).join('')}</details>`; }).join('');
   const plusMetiers = packs.length > 1 ? `<button type="button" class="btn gris" data-fx="metier" aria-haspopup="menu">${prPack === 'tous' ? 'Tous mes métiers' : esc(metiersCourt(prPack))} ▾</button>` : '';
   const bandeau = nAC && f !== 'ac' ? `<div class="carte dv-focus ms-bandeau"><div class="dv-tache"><span class="t-etat" aria-hidden="true"></span><span class="dv-c"><b>${pdxPl(nAC, 'article')} ${nAC > 1 ? 'attendent' : 'attend'} ${nAC > 1 ? 'leur' : 'son'} prix</b><span class="gris petit">Tant qu’il n’a pas de prix, un article ne part pas dans les devis.</span></span><span class="ms-bd"><button type="button" class="btn gris petit" data-fx="completer">Les compléter</button></span></div></div>` : '';
   const vide = !tous.length ? `<div class="carte ms-vide"><span class="ms-vic">${svg('article')}</span><b>Aucun article.</b><span class="gris">Choisis ceux de ton métier, ils se rangent tout seuls.</span><span class="ms-vb"><button type="button" class="btn" data-fx="habituels">Choisir parmi les articles habituels de mon métier</button><button type="button" class="btn gris" data-pr="nouveau|${PACKS_ENT[0]}|">＋ Ajouter un article</button></span></div>`
