@@ -307,9 +307,9 @@ body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pou
 /* un total à sept chiffres (« 1 999 999,98 € ») ne tient pas dans une carte de téléphone à 22 px : il rapetisse avec l'écran au lieu d'être coupé (restes contrats, tour 4) */
 .kpis .kpi.kpi-long b{overflow-wrap:anywhere}
 @media (max-width:760px){.kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}}
-/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
+/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 840 px (tour 5) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
 .ctr-liste{container:ctrl / inline-size}
-@container ctrl (max-width:760px){
+@container ctrl (max-width:840px){
   table.l.ctr-tab{min-width:0!important}
   .ctr-tab th:nth-child(n+3),.ctr-tab td:nth-child(n+3){display:none}
   .ctr-tab .ctr-m{display:block;margin-top:3px;line-height:1.5}
@@ -3082,8 +3082,8 @@ body.dp-ouvert{overflow:hidden}
   .dv-lg .dv-x{grid-row:2;grid-column:4}
   .dv-lg.lu{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:none}.dv-lg.lu>span:nth-child(2){grid-column:1;grid-row:2;font-size:13px}.dv-lg.lu b{grid-column:2;grid-row:1/3}}
 /* les lignes d'une facture à valider : mêmes champs que le devis, mais la quantité peut porter une unité (« 250 mL ») et la croix se touche au doigt */
-.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 100px 110px 128px 44px}   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
-.fac-lgs .dv-x{width:44px;height:44px}.fac-lgs .dv-lg .dv-q2{padding-left:6px;padding-right:6px}   /* « 90 minutes » (14 signes au plus) se relit en entier dans la quantité */
+.fac-lgs .dv-lg{grid-template-columns:minmax(0,1fr) 100px 110px 128px 44px}   /* quantité à 100 px (88 avant) : « 12 345,5 » et « 90 min » s'y relisent en entier */   /* 128 px FIXES : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre ; 128 px tiennent « 18 808 628,25 € » (devis-atelier-13) */
+.fac-lgs .dv-x{width:44px;height:44px}
 .fac-lgs .saisie.manque{border-color:var(--orange)}.fac-note{padding:0 0 8px;margin-top:-2px}
 /* sous 1250 px l'en-tête de colonnes est caché : sans mot au-dessus, « 2 h » et « 100 » côte à côte laissaient deviner lequel est la quantité (recontrôle, tour 2). Chaque champ reprend son mot, juste au-dessus ; à l'ordinateur ces étiquettes n'existent pas (l'en-tête suffit). */
 .fac-et{display:none}
@@ -5920,6 +5920,7 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
 const ctrCentimes = x => { const t = String(x == null ? '' : x).trim(); if (/^\d+(\.\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2'); return Math.round(Number(t) * 100) / 100; };   // le prix qu'on RANGE se lit comme l'aperçu l'écrit : « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999… et rangeait 1,00 € ; la forme à exposant (« 1e5 ») garde l'ancien arrondi
+const ctrPrixApercu = x => { const c = ctrCentimes(x); return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait (« 1e999 » donnait « ∞ € HT », « -5 » donnait « −5,00 € », 1 234 567 890 123 s'écrivait sans prévenir) s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
 const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
@@ -5959,7 +5960,7 @@ function vueContratNouveau(){
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || B.cli === k).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
-    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > 0 ? 'soit ' + eur(ctrTTC(ctrCentimes(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes.'}</span></label></div>
+    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > CTR_PRIX_MAX ? 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.' : ctrPrixApercu(B.prix) ? 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes (au moins 1 €).'}</span></label></div>
     <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
@@ -5970,14 +5971,14 @@ function vueContratNouveau(){
   ${pdfContrat(B, null)}</div>`;
 }
 function pdfContrat(B, k){
-  const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = ctrPart(ctrCentimes(B.prix) || 0, Number(B.freq) || 1, 1);   // le prix PAR VISITE se lit sur le prix RANGÉ (au centime), comme la fiche du contrat
+  const c = CLIENTS[B.cli], Mo = MODELES[B.modele], prixVisite = ctrPart(ctrPrixApercu(B.prix), Number(B.freq) || 1, 1);   // le prix PAR VISITE se lit sur le prix RANGÉ (au centime), comme la fiche du contrat
   const sig = k && k.st !== 'envoye' ? (k.sigImg ? `<img class="sig" src="${k.sigImg}" alt="Signature du client">` : `<b style="font-family:'Snell Roundhand','Segoe Script',cursive;font-size:22px">${esc(c.contact.split(',')[0])}</b>`) + `<span class="mini" style="color:#15803d">Signé électroniquement le ${k.signe}</span>` : '<i>à signer</i>';
   return `<div class="pdf" ${k ? '' : 'data-brouillon="1" data-sans-mail="1"'}><div class="pdf-tete">${logoEnt('div')}<div><b style="font-size:15px">${ENTREPRISE.nom}</b><br>${ENTREPRISE.adr}<br>SIRET ${ENTREPRISE.siret}</div><div style="text-align:right;margin-left:auto"><h4>Contrat d’entretien</h4><b>${k?k.num:'CTR-2026-' + String(9 + CONTRATS.length).padStart(3,'0')}</b></div></div>
     <h6>Entre les soussignés</h6><div><b>${ENTREPRISE.nom}</b>, représentée par ${ENTREPRISE.patron}, ci-après « le prestataire », et <b>${esc(c.nom)}</b>, ${esc(c.adr)}, ci-après « le client ».</div>
     <h6>1 · Objet</h6><div>${esc(Mo.nom)} : ${esc(B.lieu || metiersCtr(B.modele).objet)}.</div>
     <h6>2 · Ce qui est compris</h6><div>${Mo.presta.map(p=>'• '+esc(p)).join('<br>')}${B.pieces?'<br>• ' + esc(metiersCtr(B.modele).pieces):''}</div>
     <h6>3 · Visites</h6><div>${B.freq} visite${B.freq>1?'s':''} par an, planifiée${B.freq>1?'s':''} par le prestataire et annoncée${B.freq>1?'s':''} au client au moins 7 jours avant.${B.delai?' ' + esc(metiersCtr(B.modele).panne):''}</div>
-    <h6>4 · Prix et facturation</h6><div>${eur(ctrCentimes(B.prix) || 0)} HT par an, soit ${eur(ctrTTC(ctrCentimes(B.prix) || 0, B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
+    <h6>4 · Prix et facturation</h6><div>${eur(ctrPrixApercu(B.prix))} HT par an, soit ${eur(ctrTTC(ctrPrixApercu(B.prix), B))} TTC (TVA ${ctrTva(B)} %)${B.freq>1?`, soit ${eur(prixVisite)} HT par visite`:''}. Facturation ${FACT_LIB[B.fact]}.${B.revision?' Prix révisé chaque année à la date anniversaire, selon l’évolution de l’indice des prix publié par l’Insee.':''}</div>
     <h6>5 · Durée</h6><div>Un an à compter du ${B.debut.split('-').reverse().join('/')}, reconduit chaque année. Chaque partie peut y mettre fin par écrit au moins un mois avant l’échéance.</div>
     <div class="deux" style="margin-top:8px"><div class="zone-sig"><span class="mini">Pour le prestataire</span><b>${ENTREPRISE.patron}</b></div><div class="zone-sig"><span class="mini">Le client · lu et approuvé</span>${sig}</div></div>
     <div class="pdf-pied">${ENTREPRISE.nom} · ${ENTREPRISE.adr} · SIRET ${ENTREPRISE.siret} · ${ENTREPRISE.tel} · ${ENTREPRISE.mail}</div></div>`;
@@ -23281,12 +23282,15 @@ addEventListener('message', ev => {
    Justin : « une seule comptabilité ». La fenêtre « Comptabilité » avait son propre jeu de factures (26, 72 845 € à recevoir) pendant que l'application
    en avait 8 (1 475 €) — mêmes numéros, autres clients, autres montants ; un paiement ou une relance faits ici n'y arrivaient pas, une facture envoyée
    ici prenait un numéro déjà pris là-bas. L'application fait foi : elle donne à la fenêtre ses factures de vente, ses paiements, ses relances et
-   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement). Rien d'autre n'est envoyé. Seulement avec ?app=1. */
+   son prochain numéro (à l'ouverture, dans l'adresse du cadre ; ensuite à chaque changement), plus l'argent reçu sur place avant facture. Rien d'autre n'est envoyé (ni achats, ni banque, ni paie, ni heures). Seulement avec ?app=1. */
 function opLiaDonnees(){
   const nom = k => (CLIENTS[k] || {}).nom, typ = k => (CLIENTS[k] || {}).type;
   return { prochain:numSuiv,
     factures:FACTURES.filter(f => f.num !== '—').map(f => ({ num:f.num, cli:f.cli, nom:nom(f.cli), type:typ(f.cli), objet:f.objet, ht:cpR(f.st === 'avoir' ? f.ht : htDe(f)), taux:f.tva, st:f.st, emise:cxIso(f.emise), ech:cxIso(f.ech) || '', mode:f.mode || '', paye:cxIso(f.paye) || '', recu:cpR(f.recu || 0), rembourse:f.st === 'annulee' && rembourseFait(f), relances:f.relances || 0, avoir:f.st === 'avoir' ? '' : ((av => av ? av.num : '')(FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num))) })),
-    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
+    enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })),
+    /* l'argent reçu SUR PLACE par un technicien, avant toute facture (« Reçu I6 ») : un encaissement comme les autres pour la TVA et la caisse — l'application le compte déjà (cpEncOct). À
+       part de `enc` : il n'a pas de facture, et le cadre ne doit pas lui en inventer une. Quand la facture part, le reçu quitte cette liste et le cadre défait son écriture. */
+    recus:cpPaieTerrain().map(e => ({ id:e.int, num:e.fac, d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
   try { u += '?app=1&liaison=' + encodeURIComponent(JSON.stringify(opLiaDonnees())); } catch (e) { u += '?app=1'; } return u; }
