@@ -5112,7 +5112,7 @@ function menuCarte(id, x, y){
     { ic:'👤', l:'Changer de personne', s:'›', garde:true, fn:() => menuPersonnes(id, x, y) },
     { ic:'⧉', l:'Dupliquer', s:'›', garde:true, fn:() => menuDupliquer(id, x, y) },
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
-    i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; rendre(); toast('Remise à faire', ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
+    i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
     { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
     { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
@@ -6860,6 +6860,16 @@ function argentSurPlaceCompter(i){
   journalPaieTerrain(i, P, cpPaieTerrain().filter(e => e.int === i.id).reduce((s, e) => s + e.ttc, 0));
   const ajoutees = JOURNAL.slice(n);
   return () => { if (posee) { delete P.recuLe; delete P.recuH; } if (!deja) delete P.journale; ajoutees.forEach(l => { const k = JOURNAL.indexOf(l); if (k >= 0) JOURNAL.splice(k, 1); }); };
+}
+/* L'inverse : quand l'argent n'est plus compté (« Remettre à faire », « Recommencer la mission »), sa ligne de l'Historique part avec lui — l'Historique et l'Accueil disent la même chose, et « Terminer » de nouveau
+   repose UNE ligne (restes accueil, tour 5). Rend la fonction qui la remet (« Annuler » du toast) ; null s'il n'y avait aucune ligne. */
+function argentSurPlaceRetirer(id){
+  const P = (fiche(id) || {}).paiement, jadis = !!(P && P.journale), pris = [];
+  JOURNAL.forEach((l, k) => { if (l.action === 'a noté un paiement reçu sur place' && l.el && l.el.id === id) pris.push({ l, k }); });
+  pris.slice().reverse().forEach(({ l }) => JOURNAL.splice(JOURNAL.indexOf(l), 1));
+  if (P) delete P.journale;
+  if (!pris.length) return null;
+  return () => { pris.forEach(({ l, k }) => JOURNAL.splice(Math.min(k, JOURNAL.length), 0, l)); if (P && jadis) P.journale = true; };
 }
 (() => { const avant = poser; poser = function(i, tid, d, h, dur, forcer){
   const a = { tech:i.tech, d:i.d, h:i.h, dur:i.dur }, r = avant.apply(this, arguments);
@@ -9189,7 +9199,7 @@ const ACTIONS = {
   reprise(b){ const id = b.dataset.id; fiche(id).etat = 'encours'; INTS.find(o => o.id === id).st = 'encours';
     INTS = INTS.filter(o => !(o.id === 'n-ret-' + id && o.st === 'aplanifier')); // le retour déjà placé par le bureau, lui, reste
     rendre(); },
-  recommencer(){ M.etat = 'encours'; M.motif = null; if (M.paiement) delete M.paiement.journale; INTS.find(o => o.id === 'i1').st = 'encours'; INTS = INTS.filter(i => !/^n-(ent|ven|ret)-i1$/.test(i.id) && !(i.demande && i.demande.depuis === 'i1')); delete SUITE_ETAT.i1; delete M.envoye; delete M.mot; if (RDV && RDV.int === 'i1') RDV = null;
+  recommencer(){ M.etat = 'encours'; M.motif = null; argentSurPlaceRetirer('i1'); if (M.paiement) { delete M.paiement.encaisse; delete M.paiement.recuLe; delete M.paiement.recuH; delete M.paiement.journale; }   /* l'encaissement part avec la facture : sans effacer le drapeau, « Terminer » rejoué ne recomptait plus rien */ INTS.find(o => o.id === 'i1').st = 'encours'; INTS = INTS.filter(i => !/^n-(ent|ven|ret)-i1$/.test(i.id) && !(i.demande && i.demande.depuis === 'i1')); delete SUITE_ETAT.i1; delete M.envoye; delete M.mot; if (RDV && RDV.int === 'i1') RDV = null;
     const f0 = FACTURES.find(f => f.id === 'f-i1'); ENCAISSEMENTS = ENCAISSEMENTS.filter(e => e.int !== 'i1' && !(f0 && e.fac === f0.num)); // l’encaissement part avec sa facture
     FACTURES = FACTURES.filter(f => f.id !== 'f-i1');
     const dv = typeof DV !== 'undefined' && DV && DV.find(x => x.suite === 'i1');   // le devis de la mission repart avec elle : « envoyé », pas « accepté »
