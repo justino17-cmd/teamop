@@ -624,7 +624,7 @@ html .md-c{min-height:0;gap:6px;justify-content:flex-start}
 html .md-t{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 10px}html .md-t>b{font-size:17px;flex:1 1 150px;min-width:0;overflow-wrap:anywhere}   /* un nom long garde sa largeur : c'est la pastille qui passe dessous */
 html .md-t .st{flex:none;max-width:100%;white-space:normal;line-height:1.25;text-align:right;margin-left:auto}
 html .md-l2,html .md-l3{overflow-wrap:anywhere}
-html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{overflow-wrap:anywhere}
+html .md-c .client-chiffres{margin-top:auto}html .md-c .client-chiffres>span{min-width:0}html .md-c .client-chiffres b{white-space:nowrap}   /* un montant ne se coupe pas : « 281 859 021 / ,34 € » sur deux lignes (regard gérant C, nuit, iPhone) */
 html .md-o{color:var(--orange);font-weight:650}html .md-rg{color:var(--rouge);font-weight:650}
 html .md-nb{white-space:nowrap}html .md-sous{margin-top:2px}html .md-kpis{margin:12px 0 4px}html .md-kpis .kpi{min-width:0;cursor:default}html .md-kpis .kpi span{overflow-wrap:break-word;line-height:1.25}
 html .md-btns{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 6px}html .md-btns .btn{min-height:48px}
@@ -789,6 +789,7 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
 }
 @media (max-width:340px){   /* sans l'icône (cachée à cette largeur) : deux colonnes */
   html .ms-l.sk-l:not(.fx-a){grid-template-columns:minmax(0,1fr) auto}html .ms-l.sk-l:not(.fx-a)>.fo-n{grid-column:1}html .ms-l.sk-l:not(.fx-a) .fo-dr b{grid-column:2}html .ms-l.sk-l:not(.fx-a) .fo-dr .st{grid-column:1 / span 2}
+  html .md-kpis .kpi{padding-inline:8px}html .md-kpis .kpi b{font-size:15px}   /* « 228 394,90 € » (111 px à 17 px) dépassait sa tuile de 102 px utiles à 320 px */
 }
 /* ── ce que d'autres écrans empruntent encore à Dépôts (carte « Réserve sur place » d'une intervention et d'un client, raccourci de « Ma journée », ligne repérée) ── */
 .bxl-vert{color:var(--vert);font-weight:650}

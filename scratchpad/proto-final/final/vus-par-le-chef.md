@@ -5,7 +5,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
 - [x] (compositeur, restes tour 1 : commit 400cee8 — texte SVG sous `text-rendering:geometricPrecision`, sonde au pixel) **Aperçu d'un devis au téléphone (atelier, « Ton devis, en grand », 100 %)** — iPhone : dans le carré du logo, les
       initiales sont minuscules (« cs » dans un coin) alors que sur Mac on lit « CS 17 » en grand. À mesurer (taille de police
       rendue dans le carré, aux quatre réglages de taille) et à corriger dans `atelier/page.source`.
-- [ ] **Stock › Articles au téléphone** — iPhone 390 px : la pastille d'état (« Commandé · arrive le 4/11 ») passe sur deux
+- [x] (regard gérant C, 17-18/11 : grille sous 430 px, `regard-gerant-c.js` §3, 100 ✓) **Stock › Articles au téléphone** — iPhone 390 px : la pastille d'état (« Commandé · arrive le 4/11 ») passe sur deux
       lignes et tasse le nom de l'article sur deux lignes (« Anode / magnésium »). Sous ~430 px, la pastille prend sa propre
       ligne sous le nom.
 - [x] **Mes heures** — « Absences : 1 jour (rtt) » : écrire « RTT ». *(restes-1 : `paieAbsTxt` passe par `aTypeBas` ; sonde restes-taches-absences-1.js partie F, mutation F)*
@@ -24,7 +24,7 @@ Chaque ligne : ce qui a été vu, où, sur quel appareil. Une ligne réglée se 
       assez pour montrer l'entrée entière. Attendu : la même hauteur choisie ou non (le gras ne doit pas changer le retour à la
       ligne), et l'entrée choisie ENTIÈRE dans la zone qui défile. À mesurer sur chaque entrée du menu, les trois rôles, 1280 à
       1440 px de large et 720 à 900 px de haut.
-- [ ] **Bandeaux « 2 envois à accepter » (Stock) et « Avant les visites » (Dépôts et camions)** — le rond vide à gauche
+- [x] (regard gérant C : le rond est retiré, ces bandeaux ne se cochent pas ; `regard-gerant-c.js` §1) **Bandeaux « 2 envois à accepter » (Stock) et « Avant les visites » (Dépôts et camions)** — le rond vide à gauche
       (`.t-etat`, le rond « à faire » des tâches) ressemble à une case à cocher : si on ne peut pas le cocher ici, il trompe.
       À vérifier au doigt et à la souris ; s'il n'agit pas, le remplacer par une icône d'information ou le retirer.
 - [x] (restes entreprise 1 : Mon entreprise pose `background:var(--alerte-fond)` (le jeton du gérant A) ; Équipe, rouge : `:root:not([data-mode="nuit"]) .alerte` mêle le rouge au blanc, regardé sur Mac et iPhone ; REGARD gérant A, 17/11 : le fond est devenu un jeton, `--alerte-fond` — crème d'ambre claire de jour, inchangé de nuit — posé sur les bandeaux des TÂCHES « Retards d'équipe » et des ABSENCES « À régler avant de valider » ; reste à le poser sur les deux de cette ligne, qui ne sont pas des rubriques du gérant A : `background:var(--alerte-fond)`) **Bandeaux d'alerte teintés** — « Tes factures peuvent partir. Il reste à compléter… » (Mon entreprise, ambre) et
