@@ -83,8 +83,8 @@ const S = {
       v(`R3 ${w}×${h} : le tableau « Tous les sites » existe (population)`, !!m && m.nLignes === 3, JSON.stringify(m));
       if (!m) continue; v(`R3 ${w}×${h} (liste ${m.cw} px, ${m.mode}) : aucune cellule coupée, aucun en-tête coupé`, m.coupe.length === 0 && m.enTete.length === 0, JSON.stringify(m));
       v(`R3 ${w}×${h} : la page ne glisse pas de côté (${m.doc} sur ${m.fen})`, m.doc <= m.fen + 1, JSON.stringify(m));
-      // la cohérence du seuil : sous 760 px de liste, des cartes ; au-dessus, le tableau
-      v(`R3 ${w}×${h} : le mode suit la largeur de la LISTE (${m.cw} px → ${m.mode})`, (m.cw <= 760) === (m.mode === 'cartes'), JSON.stringify(m));
+      // la cohérence du seuil : sous 930 px de liste, des cartes ; au-dessus, le tableau
+      v(`R3 ${w}×${h} : le mode suit la largeur de la LISTE (${m.cw} px → ${m.mode})`, (m.cw <= 930) === (m.mode === 'cartes'), JSON.stringify(m));
       if ([1440, 1024, 820, 770, 480].includes(w)) await L.capture(c, O.CAP + `rc-R3-${w}.png`); }
     // l'en-tête du registre : le titre et le bouton, sans mot coupé
     for (const [w, h] of [[1440, 900], [1024, 768], [820, 1180], [761, 800], [700, 800], [390, 844], [320, 568]]) { await p.setViewportSize({ width: w, height: h }); await L.calme(p, 400);
