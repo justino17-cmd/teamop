@@ -204,6 +204,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ligne-clic:hover{border-color:var(--trait2)}
 div.ligne-clic:hover{border-color:var(--trait)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{max-width:100%;white-space:normal;text-align:center;line-height:1.2;padding-top:6px;padding-bottom:6px}   /* « Envoyer à contact@lamaree-exemple.fr » sortait de l'écran à 320 px, coupé net : une commande qui ne tient pas passe à la ligne au lieu de se couper (regard gérant F) */
 .alerte{padding:13px 15px;border-radius:16px;background:color-mix(in srgb,var(--rouge) 11%,transparent);border:1px solid color-mix(in srgb,var(--rouge) 35%,transparent)}
 /* de jour, une teinte sombre posée à 11 % sur le verre donne un gris-rose terne à côté des cartes blanches (vu par le chef, 17 novembre) : on mêle la teinte à du BLANC, le fond devient un rose clair franc ; la nuit garde le voile d'avant */
 :root:not([data-mode="nuit"]) .alerte{background:color-mix(in srgb,var(--rouge) 9%,#fff);border-color:color-mix(in srgb,var(--rouge) 32%,#fff)}
@@ -1090,6 +1091,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .cb-seg{flex-wrap:wrap;overflow:visible;width:auto;flex:0 1 auto}
 .cb-zone{display:flex;align-items:center;gap:8px;flex:1 1 150px;min-width:0}
 .cb-vers{display:none}
+.cb-planc>.gris.petit{display:block;margin-top:2px}   /* « 8 box affichées sur 10 » collé à « Voir les 8 box à regarder ↓ » sur la même ligne : sa propre ligne (regard gérant F) */
 .cb-zone select{min-height:44px;border-radius:12px;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);padding:0 10px;font-size:16px;flex:1;min-width:0;max-width:100%}
 .cb-plus{position:relative}
 .cb-plus>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center}
@@ -6124,14 +6126,21 @@ document.addEventListener('click', ev => {
   if (b.dataset.pdfdl || b.dataset.pdfmail) {
     const doc = b.closest('#docplein') ? document.querySelector('#docplein .doc-feuille > .pdf, #docplein .doc-feuille > .bil') : b.closest('.doc-barre') && b.closest('.doc-barre').previousElementSibling; if (!doc) return;
     const nom = docNom(doc);
-    if (b.dataset.pdfdl) pdfTelecharger(doc, nom);
+    if (b.dataset.pdfdl) { pdfTelecharger(doc, nom); docTrace(doc, 'tel'); }
     else if (doc.dataset.brouillon && b.closest('#calque') && dvBoutonEnvoi(b)) { const g = dvBoutonEnvoi(b); g.scrollIntoView({ block:'nearest' }); toast('Pas encore envoyé : touche « ' + esc(g.textContent.trim()) + ' », en bas de cette fenêtre.'); }
     else if (doc.dataset.brouillon) toast('Pas encore envoyé : utilise le bouton de la page (« Valider et envoyer », « Aperçu et envoi » ou « Envoyer à signer »).');
-    else { const e = docDestinataire(doc); docPleinFermer(); panneauEnvoi({ titre:'Envoyer le PDF', a:e.a, objet:e.objet || nom.replace(/\.pdf$/, ''), corps:e.corps, pj:nom }); }
+    else { const e = docDestinataire(doc); docPleinFermer(); panneauEnvoi({ titre:'Envoyer le PDF', a:e.a, objet:e.objet || nom.replace(/\.pdf$/, ''), corps:e.corps, pj:nom, apres:a => docTrace(doc, 'env', a) }); }
     return;
   }
   if (b.dataset.afaire) { const [t, s] = b.dataset.afaire.split('|'); afaireAjouter(t, s); b.disabled = true; b.textContent = '✓ Dans « À faire »'; }
 });
+/* la trace d'un geste sur un document (« a préparé le PDF du registre », « a envoyé le plan au client ») : le document dit lui-même ce qu'il est
+   (data-trace="rg|<site>" ou "cb|<site>"), la barre commune ne connaît aucun écran */
+function docTrace(doc, geste, a){
+  const [t, k] = (doc.dataset.trace || '').split('|'); if (!t || !D3_CLI[k]) return;
+  if (t === 'rg') journalAjout(rlQui(), 'registre', geste === 'env' ? 'a envoyé le registre au client' : 'a préparé le PDF du registre', { lib:'Registre · ' + D3_CLI[k].nom, cli:RG_SITES[k] }, { det:geste === 'env' ? 'PDF joint · ' + a : rgNomPdf(k) });
+  else if (t === 'cb') cbJournal(geste === 'env' ? 'a envoyé le plan des box au client' : 'a préparé le plan des box en PDF', D3_CLI[k].nom, geste === 'env' ? 'à ' + a : undefined);
+}
 /* le nom et le destinataire d'un document se lisent sur le document lui-même */
 function docNom(doc){
   if (doc.dataset.nom) return doc.dataset.nom;
@@ -21945,7 +21954,7 @@ function rgDoc(k, per){
   const prods = P.flatMap(p => p.poses.map(([pid, lot, q]) => ({ p, x:D3_PROD[pid], lot, q })));
   const etatLe = id => { for (const p of P.slice().reverse()) if (p.etats[id] != null) return p.etats[id]; return 0; };
   const appl = [...new Set(P.map(p => p.tech))].map(nom => { const a = rgCleDe(nom); return esc(nom) + (a && rgCertif(a).ok ? ' · ' + esc(rgCertif(a).txt) : ''); });
-  return `<div class="pdf rg-doc"><div class="pdf-tete">${logoEnt('span')}<div><h4>Registre sanitaire</h4><span class="mini">${esc(ENTREPRISE.nom)} · ${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</span></div></div>
+  return `<div class="pdf rg-doc" data-nom="${esc(rgNomPdf(k))}" data-a="${esc(CLIENTS[RG_SITES[k]].mail)}" data-objet="Registre sanitaire — ${esc(c.nom)}" data-corps="Bonjour,&#10;&#10;Voici le registre sanitaire de ${esc(c.nom)} : passages, produits posés avec leur lot, recommandations.&#10;&#10;Bonne journée,&#10;${esc(ENTREPRISE.nom)}" data-trace="rg|${k}"><div class="pdf-tete">${logoEnt('span')}<div><h4>Registre sanitaire</h4><span class="mini">${esc(ENTREPRISE.nom)} · ${esc(ENTREPRISE.adr)}<br>SIRET ${esc(ENTREPRISE.siret)}</span></div></div>
     <div class="deux"><div><h6>Site suivi</h6><b>${esc(c.nom)}</b><br><span class="mini">${esc(c.adr)}<br>Contrat : ${esc(c.contrat)}</span></div><div><h6>Période</h6><b>du ${rgJA(deb)} au ${rgJA(fin)}</b><br><span class="mini">${rgPl(P.length, 'passage', 'passages')}${rgQ.trim() ? '<br>Produits filtrés : « ' + esc(rgQ.trim()) + ' »' : ''}</span></div></div>
     <h6>Passages</h6><div class="rg-scroll"><table><thead><tr><th>Date</th><th>Applicateur</th><th>Activité</th><th>Observations</th></tr></thead><tbody>${P.slice().reverse().map(p => `<tr><td>${jCourt(p.d)}</td><td>${esc(p.tech)}</td><td>${d3Activite(p)[0]}</td><td>${esc(p.obs)}${p.contact ? '<br><span class="mini">Présent sur place : ' + esc(p.contact) + (p.sig ? ' (signature recueillie)' : '') + '</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="4">Aucun passage sur la période.</td></tr>'}</tbody></table></div>
     <h6>Produits biocides posés</h6><div class="rg-scroll"><table><thead><tr><th>Date</th><th>Produit</th><th>Lot</th><th>Quantité</th></tr></thead><tbody>${prods.filter(o => { const q = rgN(rgQ).trim(); return !q || rgN([o.x.nom, o.x.tp, rgAmm(o.x), o.lot].join(' ')).includes(q); }).reverse().map(o => `<tr><td>${jCourt(o.p.d)}</td><td>${esc(o.x.nom)}<br><span class="mini">${o.x.tp} · AMM ${esc(rgAmm(o.x))}</span></td><td>${esc(o.lot)}</td><td>${rgQte(o.x, o.q)}</td></tr>`).join('') || '<tr><td colspan="4">Aucun produit posé.</td></tr>'}</tbody></table></div>
@@ -21961,8 +21970,7 @@ function rgPdf(k, remplace){
   ouvrirPanneau(`<span class="surtitre">Aperçu du PDF</span><h2>Registre · ${esc(D3_CLI[k].nom)}</h2>
     <div class="rg-per" role="group" aria-label="Période du document">${[['12', '12 derniers mois'], ['an', 'Cette année'], ['tout', 'Tout']].map(([v, l]) => `<button type="button" class="puce-c" data-rg="pdfper|${k}|${v}" aria-pressed="${rgPdfPer === v}">${l}</button>`).join('')}</div>
     ${rgDoc(k, rgPdfPer)}
-    <div class="actions"><button type="button" class="btn" data-rg="pdftel|${k}">Télécharger</button><button type="button" class="btn gris" data-rg="pdfenv|${k}" aria-expanded="false">Envoyer au client</button></div>
-    <div class="carte rg-cache" id="rg-env"><label class="champ">Adresse du client<input id="rg-mail" type="email" value="${esc(cli.mail)}" autocomplete="off"></label><span class="gris petit">Le PDF part en pièce jointe, au nom de ${esc(ENTREPRISE.nom)}. Tu peux changer l’adresse avant d’envoyer.</span><div class="actions"><button type="button" class="btn" data-rg="pdfenvok|${k}">Envoyer</button></div></div>`, true);
+    <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`, true);   /* le document porte déjà « Voir en grand · Télécharger · Envoyer par e-mail » (docBarres) : la fenêtre ne répète plus « Télécharger » et « Envoyer au client » dessous — cinq boutons pour deux gestes (regard gérant F) ; la trace du journal part de data-trace (docTrace) */
 }
 function rgQr(txt){   // un code d'exemple, tiré du texte : l'application génère le vrai
   let h = 2166136261; for (const ch of txt) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
@@ -22300,14 +22308,14 @@ const cbU = (pid, q) => D3_PROD[pid].u === 'g' ? q + ' g' : q + (q > 1 ? ' plaqu
 function cbPdf(){
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c];
   ouvrirPanneau(`<h2>Plan des box en PDF</h2><span class="gris">Aperçu : aucun fichier n’est fabriqué ici. Dans l’application, le plan A4 part au nom de l’entreprise, avec la légende, les numéros, la date du dernier relevé et la signature du technicien.</span>
-    <div class="bil" role="document" data-nom="Plan des box ${esc(D.nom)}.pdf" data-objet="Plan des box — ${esc(D.nom)}">
+    <div class="bil" role="document" data-nom="Plan des box ${esc(D.nom)}.pdf" data-objet="Plan des box — ${esc(D.nom)}" data-a="${esc(CB_MAIL[c] || '')}" data-corps="Bonjour,&#10;&#10;Voici le plan des box de ${esc(D.nom)} et la situation au dernier relevé.&#10;&#10;Bonne journée,&#10;${esc(ENTREPRISE.nom)}" data-trace="cb|${c}">
       <header class="bil-tete"><div class="bil-ent">${logoEnt('div')}<div><b>${ENTREPRISE.nom}</b><span>${ENTREPRISE.adr}</span></div></div>
         <div class="bil-titre"><small>Plan des box</small><b>${esc(D.nom)}</b><span>${esc(D.adr)} · relevé du ${jCourt(der.d)}</span></div></header>
       <div class="cb-pp">${D3_ZONES[c].map(([n, x, y, w, h]) => `<span class="cb-ppz" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"><i>${esc(n)}</i></span>`).join('')}${P.map(p => `<span class="cb-ppb" style="left:${p.x}%;top:${p.y}%">${p.id.slice(1)}</span>`).join('')}</div>
       <section><h5>Légende · ${P.length} box</h5><table><thead><tr><th>N°</th><th>Type</th><th>Zone</th><th>État au dernier relevé</th></tr></thead><tbody>${P.map(p => { const e = cbEtat(c, p.id); return `<tr><td>${p.id}</td><td>${esc(D3_TYPES[p.t][0])}</td><td>${esc(p.zone)}${p.repere ? ' · ' + esc(p.repere) : ''}</td><td>${e == null ? 'pas encore relevée' : esc(d3Lib(e))}</td></tr>`; }).join('')}</tbody></table></section>
       <div class="cb-sign"><span>Signature du technicien : ${esc(der.tech)}</span><i></i></div>
       <footer class="bil-pied"><span>${ENTREPRISE.nom} · plan édité avec OP GESTION le ${jlong(AUJ)}.</span></footer></div>
-    <div class="actions"><button type="button" class="btn" data-cbx="pdf-ok">Enregistrer en PDF</button><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`, true);
+    <div class="actions"><button type="button" class="btn gris" data-ferme="1">Fermer</button></div>`, true);   /* « Enregistrer en PDF » doublait « Télécharger le PDF » de la barre du document : un seul geste, et la trace du journal part de data-trace (docTrace) */
 }
 function cbEnvoi(){
   const c = d3Cli, D = D3_CLI[c], der = d3Dernier(c), P = cbPostes(c), att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbEtat(c, p.id)))).length;
