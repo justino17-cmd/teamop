@@ -26,6 +26,15 @@ const fs = require('fs'); fs.mkdirSync(CAP, { recursive: true });
   v('K3 les trois kilométrages qui divergeaient à 0,603 : 85 km = 51,26 ; 45 km = 27,14 ; 255 km = 153,77', K.ex.join('|') === '51.26|27.14|153.77', K.ex);
   const av = await E(() => { AX.kmTarif = 0.603; axNdfForm(); const o = document.getElementById('rn-o'); o.value = AX_NATURES[4]; o.dispatchEvent(new Event('change', { bubbles: true })); return document.getElementById('rn-kmtxt').textContent; });
   v('K4 avant la saisie, la phrase du formulaire écrit le tarif à trois décimales (« 0,603 € »)', /0,603 €/.test(av) && !/\(0,60 €\)/.test(av), av);
+  // de bout en bout : la phrase du formulaire, la note enregistrée et le toast disent le même montant (les trois kilométrages qui divergeaient)
+  await E(() => { AX.kmTarif = 0.603; });
+  for (const km of [85, 45, 255]) {
+    await E(() => { axNdfForm(); const o = document.getElementById('rn-o'); o.value = AX_NATURES[4]; o.dispatchEvent(new Event('change', { bubbles: true })); const cv = document.getElementById('rn-cv'); if (cv && !cv.value) cv.value = '5'; }); await L.calme(p, 250);
+    await p.fill('#rn-km', String(km)); await E(() => document.getElementById('rn-km').dispatchEvent(new Event('input', { bubbles: true }))); await L.calme(p, 200);
+    const ph = await E(() => document.getElementById('rn-kmtxt').textContent), annonce = ((ph.match(/= ([\d\s\u00a0\u202f,]+)\s?€/) || [])[1] || '').replace(/[\s\u00a0\u202f]/g, '');
+    await E(() => document.querySelector('[data-rl="ndfok"]').click()); await L.calme(p, 500);
+    const t = await toast(p), n = await E(k => { const o = NDF.find(x => x.km && x.km.km === k); return o ? o.ttc : null; }, km), ttc = n == null ? '' : n.toFixed(2).replace('.', ',');
+    v('K5 ' + km + ' km à 0,603 : phrase du formulaire = note enregistrée = toast (' + ttc + ' €)', !!ttc && annonce === ttc && t.replace(/[\s\u00a0\u202f]/g, '').includes(ttc + '€'), { annonce, ttc, t }); }
   await E(() => { fermerPanneau(); AX.kmTarif = 0.6; });
 
   // ───────── T. « Retrouver le ticket » ─────────
@@ -44,7 +53,7 @@ const fs = require('fs'); fs.mkdirSync(CAP, { recursive: true });
     const t = await toast(p), ok = await E(() => AX.kmTarif); await E(() => { try { fermerPanneau(); } catch (e) {} }); return { t, ok }; };
   const r4 = await lire('0,6034'), r00 = await lire('00,603'), rok = await lire('0,603');
   v('R1 « 0,6034 » : refusé, la phrase parle de TROIS décimales, le tarif ne bouge pas', /trois décimales/.test(r4.t) && !/deux chiffres/.test(r4.t) && r4.ok === 0.6, r4);
-  v('R2 « 00,603 » : même phrase', /trois décimales/.test(r00.t) && r00.ok === 0.6, r00);
+  v('R2 « 00,603 » : phrase du zéro de tête (restes achats 4)', /^Le zéro de tête est en trop : tape 0,603\.$/.test(r00.t) && r00.ok === 0.6, r00);
   v('R3 « 0,603 » reste accepté', rok.ok === 0.603 && /0,603/.test(rok.t), rok);
   await E(() => { AX.kmTarif = 0.6; });
 

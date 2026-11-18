@@ -17,10 +17,16 @@ exports.cents = L.cents;
 // l'argent se recalcule à la main, au centime : ttc(ht, tva%) en centimes entiers
 exports.ttc = (ht, tva) => Math.round(Math.round(ht * 100) * (1 + tva / 100));
 // démarrer : le prototype en mode application, ouvert comme `qui` (gérant par défaut)
-exports.demarrer = async (o) => L.ouvrir(Object.assign({ profil:PROFIL, qui:'marc', attente:1400, init:INIT, nuit:exports.NUIT }, o || {}));
+exports.demarrer = async (o) => { const c = await L.ouvrir(Object.assign({ profil:PROFIL, qui:'marc', attente:1400, init:INIT, nuit:exports.NUIT }, o || {}));
+  /* la double authentification : toute ouverture de session (les parcours appellent sessionOuvrir directement, pas seulement passer()) voile la banque tant que le téléphone n'a pas confirmé. La sonde n'est pas là pour jouer le téléphone :
+     elle pose la confirmation sur chaque session qu'elle ouvre (échéance lointaine). Le téléphone lui-même est joué par les sondes de la voie double-auth. */
+  await c.p.evaluate(() => { const o = sessionOuvrir; window.sessionOuvrir = function (k) { const r = o.apply(this, arguments); try { SECU.confirmeA[k] = secuMaint() + 1e12; } catch (e) {} return r; }; });
+  return c; };
 // passer la main : la personne se déconnecte, l'autre se connecte (même page, mêmes données) ; rend { ROLE, route, SESSION }
 exports.passer = async (c, k, vers) => {
-  const ok = await c.p.evaluate(k => { try { sessionFermer('deconnexion'); } catch (e) {} return sessionOuvrir(k); }, k);
+  /* depuis la double authentification, se déconnecter remet SECU.auto à faux : la banque de la Comptabilité se voile (« confirme sur ton téléphone ») pour la personne qui revient. La sonde n'est pas là pour jouer le téléphone :
+     elle pose la confirmation valable pour la session qu'elle ouvre (une échéance lointaine, la fenêtre de 5 minutes ne tombe pas au milieu d'un parcours). Le test de la confirmation vit dans les sondes de la voie double-auth. */
+  const ok = await c.p.evaluate(k => { try { sessionFermer('deconnexion'); } catch (e) {} const r = sessionOuvrir(k); try { SECU.confirmeA[k] = secuMaint() + 1e12; } catch (e) {} return r; }, k);
   await L.calme(c.p, 700);
   const e = await c.p.evaluate(() => ({ ROLE, route, SESSION, cnx:!!document.getElementById('cnx') }));
   if (vers) await L.aller(c.p, vers);
