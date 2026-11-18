@@ -59,7 +59,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     const apres = await R(() => ({ panneau: !!document.querySelector('#calque .panneau'), t: (document.getElementById('toast') || {}).textContent || '', carte: (document.querySelector('[data-ac="transfert|da1"]') || {}).textContent || null, contenu: document.getElementById('contenu').innerText.length }));
     v('05 : après le transfert, le toast porte « Annuler » (le brouillon de commande s\'ouvre par-dessus : voulu)', /Annuler/.test(apres.t), apres);
     await cap('transfert-fait');
-    await R(() => [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click()); await calme(500);
+    await R(() => { const l = document.querySelector('#calque [data-axa="trfannul"]'); if (l) l.click(); else [...document.querySelectorAll('#toast button')].find(b => /Annuler/.test(b.textContent)).click(); }); await calme(500);
     const ann = await R(() => ({ panneau: !!document.querySelector('#calque .panneau'), toast: (document.getElementById('toast') || {}).textContent || '', surToast: document.getElementById('toast') && document.getElementById('toast').classList.contains('on'), bouton: !!document.querySelector('[data-ac="transfert|da1"]'), etat: DEM_ACHAT.find(o => o.id === 'da1').etat }));
     await cap('apres-annuler');
     v('05 : après « Annuler », l\'écran se redessine : la demande est de nouveau à traiter (bouton « Transférer » revenu, état « attente »)', ann.bouton && ann.etat === 'attente', ann);
@@ -170,7 +170,11 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
     await c.ctx.setOffline(false);
     // ── tech-12 : le nom d'un article ne se coupe pas en pleine parenthèse ──
     await L.aller(p, 'moncamion'); await calme(400);
-    const t12 = await R(() => [...document.querySelectorAll('#contenu .mc-liste .fo-n b, #contenu .mc-l .fo-n b')].map(e => { const lh = parseFloat(getComputedStyle(e).lineHeight) || 20; return { t: e.textContent.trim().slice(0, 50), l: Math.round(e.getBoundingClientRect().height / lh), w: e.getBoundingClientRect().width }; }).filter(o => /\(\S*\s*L\)|\(0,5/.test(o.t) || o.l > 1));
+    // un nom peut passer sur deux lignes ; il ne doit pas se couper DANS la parenthèse : on mesure les rectangles de « (0,5 L) » seul (un seul rectangle = jamais coupé)
+    const t12 = await R(() => [...document.querySelectorAll('#contenu .mc-liste .fo-n b, #contenu .mc-l .fo-n b')].map(e => { const n = e.firstChild, k = n && n.textContent.indexOf('('); if (!n || k < 0) return null; const r = document.createRange(); r.setStart(n, k); r.setEnd(n, n.textContent.length); return { t: e.textContent.trim().slice(0, 50), rectangles: [...r.getClientRects()].filter(q => q.width > 0).length }; }).filter(o => o && o.rectangles > 1));
+    // contre-épreuve : la même mesure, sur un nom écrit avec une espace ordinaire dans un conteneur étroit, DOIT voir la coupure (sinon elle ne regarde rien)
+    const c12 = await R(() => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:0;top:0;width:30px;font:16px sans-serif'; d.innerHTML = '<b>Nettoyant (0,5 L)</b>'; document.body.appendChild(d); const n = d.firstChild.firstChild, k = n.textContent.indexOf('('), r = document.createRange(); r.setStart(n, k); r.setEnd(n, n.textContent.length); const q = [...r.getClientRects()].filter(x => x.width > 0).length; d.remove(); return q; });
+    v('tech-12 contre-épreuve : la mesure voit une parenthèse coupée (' + c12 + ' rectangles)', c12 > 1, c12);
     v('tech-12 : aucun nom d\'article ne passe sur plusieurs lignes en séparant « (0,5 » de « L) » : ' + JSON.stringify(t12), t12.length === 0, t12);
     // ── tech-13 : à 320 px la première pièce manquante est au-dessus de la barre du bas ──
     const t13 = await R(() => { const l = document.querySelector('[data-vis="camion-manque"] .mc-l'), bar = document.querySelector('.tabbar, #onglets, nav.onglets, .barre-bas'); const r = l && l.getBoundingClientRect(), rb = bar && bar.getBoundingClientRect(); return { ligne: r && Math.round(r.top), bas: rb ? Math.round(rb.top) : null, h: innerHeight }; });
