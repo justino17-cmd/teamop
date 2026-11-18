@@ -8662,7 +8662,7 @@ function vueComptabilite(){
     <div class="actions"><button type="button" class="btn gris" data-cp="aide">Comment ça marche ?</button>${CP.envoye ? '' : `<button type="button" class="btn" data-cp="envoi">Envoyer octobre à ${esc(CP_EXPERT.qui.split(' ')[0])}</button>`}</div></div>
   ${clos}
   <div class="kpis">
-    <button type="button" class="kpi" data-cp="onglet|ecritures"><b>${eur(facHT)}</b><span>facturé en octobre (HT) · ${facOct.length} facture${facOct.length > 1 ? 's' : ''}</span></button>
+    <button type="button" class="kpi" data-cp="onglet|ecritures"><b>${eur(facHT)}</b><span>facturé en octobre (HT) · ${cxFacLib(facOct)}</span></button>
     <button type="button" class="kpi" data-cp="go|encaissements"><b style="color:var(--vert)">${eur(encTTC)}</b><span>encaissé en octobre (TTC)${terrain.length ? ` <i class="cp-k">+ ${eur(cpR(terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cp="onglet|ensemble"><b>${eur(cpR(facHT - achHT))}</b><span>facturé moins achats (HT, indicatif, avant salaires)</span></button>
     <button type="button" class="kpi" data-cp="onglet|banque"><b>${eur(cpR(soldeBq + enRoute + enMain))}</b><span>trésorerie · banque ${eur(soldeBq)}${enRoute ? ' + en route ' + eur(enRoute) : ''}${enMain ? ' + en main ' + eur(enMain) : ''}</span></button>
@@ -11755,6 +11755,8 @@ function cxMentionsManquantes(){
   return [!E.forme && 'la forme juridique', cxSociete() && !E.capital && 'le capital social', !E.rcs && 'l’immatriculation (RCS ou répertoire des métiers)', !(E.assureur && E.assurc && E.assurZone) && 'l’assurance professionnelle (assureur, coordonnées, zone)'].filter(Boolean);
 }
 /* ce que la page d'une facture dit qu'il lui manque : le SIRET d'abord (sans lui la facture ne PART pas, et il se règle dans la même carte « mentions légales »), puis les mentions légales (parcours 10, 17 novembre 2026 : la page listait « forme juridique, immatriculation, assurance » et se taisait sur le SIRET, que l'aperçu refusait ensuite) */
+/* « 8 factures » après un avoir était faux : l'avoir est un document à part, il ne se compte pas parmi les factures (parcours 11, 17 novembre 2026) */
+const cxFacLib = L => { const a = L.filter(f => f.st === 'avoir').length, n = L.length - a; return n + ' facture' + (n > 1 ? 's' : '') + (a ? ' · ' + a + ' avoir' + (a > 1 ? 's' : '') : ''); };
 const cxFactureManque = () => [...(entrepriseManque().some(m => m.k === 'siret') ? ['le SIRET'] : []), ...cxMentionsManquantes()];
 const CX_ETATS = { non:['À régler', 'st-r'], att:['À surveiller', 'st-o'], avenir:['À préparer', 'st-b'], ok:['En règle', 'st-v'], auto:['Fait par OP GESTION', 'st-p'], info:['Bon à savoir', 'st-g'] };
 const cxVerifies = conf => conf.filter(c => c.v);
@@ -11889,7 +11891,7 @@ function cxVueTableau(K, D, DD, conf){
       ${t.length ? `<span class="cx-tt${rt.length ? ' rt' : ''}">${t.length} à traiter${rt.length ? ' · ' + rt.length + ' en retard' : ''}</span>` : '<span class="cx-tt ok">À jour</span>'}</span><span class="cx-chev" aria-hidden="true">›</span></button>`; }).join('');
   const ok = cxSuivis(conf).filter(c => c.s === 'ok').length, nc = conf.filter(c => c.s === 'non').length;
   return `<div class="kpis cx-kpis">
-    <button type="button" class="kpi" data-cx="sec|fventes|ventes"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${K.facOct.length} facture${K.facOct.length > 1 ? 's' : ''}</span></button>
+    <button type="button" class="kpi" data-cx="sec|fventes|ventes"><b>${eur(K.facHT)}</b><span>facturé en octobre (HT) · ${cxFacLib(K.facOct)}</span></button>
     <button type="button" class="kpi" data-cx="sec|paiements"><b style="color:var(--vert)">${eur(K.encTTC)}</b><span>encaissé en octobre (TTC)${K.terrain.length ? ` <i class="cp-k">+ ${eur(cpR(K.terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cx="sec|fachats|achats"><b>${eur(K.charges)}</b><span>dépenses d’octobre (TVA récupérable exclue), payées ou non</span></button>
     <button type="button" class="kpi" data-cx="sec|resultat"><b style="color:${K.resultat < 0 ? 'var(--rouge)' : 'inherit'}">${eur(K.resultat)}</b><span>résultat provisoire d’octobre : facturé moins dépenses, ${PAIE.compta ? 'salaires et charges sociales compris' : 'sans salaires ni charges sociales'}</span></button>
