@@ -1,0 +1,28 @@
+{
+ "noms": ["planning"],
+ "regles": [
+  "Panneau d'une tuile du bandeau (« Interventions sur la période ») : les lignes gardent leur hauteur et la liste défile (règle `.panneau .ligne-clic, .panneau .kpi-l, .panneau > .btn { flex-shrink:0 }`). Rejoué : restes-planning-4.js 2 ✓ · 0 ✗ sur mac, mac nuit, iphone, windows nuit, ipad, android nuit, petit nuit ; restes-planning-3-recontrole.js parcours G (le défaut d'origine) 7 ✓ · 0 ✗ sur mac, iphone, petit nuit, ipad ; mutation d'origine (règle retirée) : la sonde tombe (« 58 pour 63 »)",
+  "Le BAS de la liste (ce que le défilement nouveau pouvait cacher) : la dernière ligne est entière au bas du panneau, aucune ligne ne sort du panneau, aucun texte de ligne coupé en largeur ni en hauteur, la page ne glisse pas de côté, un toucher sur une ligne du fond ouvre sa fiche, la fermeture rend la page ; 3 vues (Semaine, Mois à 216 interventions, Vue d'ensemble) × toutes les tuiles : restes-planning-4-recontrole-fond.js 8 ✓ · 0 ✗ sur mac, mac nuit, windows nuit, ipad, iphone, android nuit, petit nuit ; captures fond-iphone et fond-mac-nuit relues : lignes entières, dernière ligne dégagée, badges alignés, rien de coupé",
+  "Les autres écrans qui partagent la règle (elle est posée sur le composant, ~99 panneaux dans la page) : balayage des gestes de 18 écrans du gérant, une page neuve par geste, chaque panneau ouvert mesuré AVEC et SANS la règle : mac 80 panneaux · 8 éléments visés · 0 coupé par un ancêtre qui masque son débordement · 0 inatteignable · 0 débordement latéral · 0 erreur ; iphone 93 panneaux · 346 éléments visés · mêmes 0 (restes-planning-4-recontrole.js, 10 lots de 5 contrôles, tous verts)",
+  "Sondes des tours précédents rejouées sur le code fusionné : restes-planning-3.js iphone 71 ✓ · 0 ✗ ; restes-planning-2.js mac 53 ✓ · 0 ✗ ; planning-mise-en-page.js iphone 31 ✓ · 0 ✗"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "Sonde neuve : campagne/sondes/restes-planning-4-recontrole-fond.js (le bas des listes de panneaux, sept profils) et sa mutation campagne/sondes/mutations-restes-planning-4-recontrole.py (règle retirée : 7 ✓ · 1 ✗, « 8 lignes au texte coupé » en Semaine, 13 en Mois) ; sonde neuve campagne/sondes/restes-planning-4-recontrole.js (balayage des panneaux de tout écran, avec/sans la règle). Première version de la sonde du fond trop faible (la mutation la laissait verte : elle ne regardait pas la HAUTEUR du texte) : corrigée, la mutation tombe maintenant",
+  "Rien de cassé à côté trouvé : le panneau « d'une intervention du fond » de la liste ouvre bien la fiche (#inter-…), pas de régression sur les autres panneaux"
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-planning-4.js", "resultat": "mac, mac nuit, iphone, windows nuit, ipad, android nuit, petit nuit : 2 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-planning-4-recontrole-fond.js", "resultat": "mac, mac nuit, windows nuit, ipad, iphone, android nuit, petit nuit : 8 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-planning-4-recontrole.js", "resultat": "mac 15 écrans (80 panneaux) et iphone (93 panneaux) : 5 ✓ · 0 ✗ par lot" },
+  { "fichier": "campagne/sondes/mutations-restes-planning-4.py", "resultat": "la sonde tombe" },
+  { "fichier": "campagne/sondes/mutations-restes-planning-4-recontrole.py", "resultat": "la sonde du fond tombe (7 ✓ · 1 ✗)" },
+  { "fichier": "campagne/sondes/restes-planning-3-recontrole.js (G)", "resultat": "mac, iphone, petit nuit, ipad : 7 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/restes-planning-3.js · restes-planning-2.js · planning-mise-en-page.js", "resultat": "iphone 71 ✓ · mac 53 ✓ · iphone 31 ✓, 0 ✗" }
+ ],
+ "doutes": [
+  "Inchangés depuis le tour 3, décisions de dessin ou de contenu à soumettre à Justin : « Carte » seule sur sa rangée du sélecteur à 320 px ; « Mes vues » seul à droite sur iPad en Sur mesure ; cinquième tuile coupée à droite au téléphone (rangée qui défile, voulu) ; « Ordre proposé » absent ; vue Mois à 216 interventions ; Vue d'ensemble à 320 px ; 11 communes seulement ; client hors liste placé au dépôt ; bulles de trajet à 320-360 px ; première page du téléphone (carte « tâches pour toi » avant l'emploi du temps)",
+  "Limite de la mesure : le balayage des panneaux ne touche que 22 gestes par écran (les premiers qui portent un data-) ; les panneaux qui ne s'ouvrent qu'après plusieurs étapes ne sont pas tous atteints. Le risque est faible : sur 173 panneaux mesurés, la règle ne change que ceux du Planning (lignes de liste en colonne flex)"
+ ]
+}

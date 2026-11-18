@@ -1,0 +1,70 @@
+{
+ "noms": [
+  "(j) un numéro de devis ou de contrat composé ne se réutilise jamais",
+  "devis-atelier-04 — plus de « exemple » dans l'atelier d'OP GESTION",
+  "devis-atelier-15 — cibles au doigt de l'éditeur sur iPad (interrupteurs)"
+ ],
+ "regles": [
+  "(j) dans l'ATELIER : supprimer un brouillon composé (menu « ⋯ » de l'éditeur) ne rend plus son numéro, ni dans la séance ni après rechargement, devis ET contrat, sur Mac et iPhone ; un numéro retapé à la main (D-2026-064) puis supprimé ne revient pas non plus (restes-devis-atelier-1 : 7 ✓ · 0 ✗ ; recontrole-1 § A3 ✓). La « suppression par le menu de la liste » n'existe pas dans OP GESTION (la liste de l'atelier y est masquée : `html[data-app] #vue-accueil{display:none}`) : la seule porte est celle de l'éditeur, couverte ; « Dupliquer » est dans le même menu de liste, donc hors de portée aussi. La page fabriquée est identique à la source (fabriquer.sh → cmp : IDENTIQUE).",
+  "devis-atelier-04 : « Envoyer », « Envoyer à signer », « Envoyé à <adresse>. », « Signé : … », « Effacer la signature », aucune phrase « rien n'est vraiment parti » — rejoué sur Mac jour et iPhone nuit : restes-devis-atelier-2 15 ✓ · 0 ✗ ; captures regardées (aperçu client, Mac et iPhone nuit). La page « Documents sur mesure » seule garde « exemple » (atelier-seule : le reste de la sonde passe).",
+  "devis-atelier-15 : devis-atelier-atelier-mep.js ipad,iphone,android,petit nuit : 64 ✓ · 0 ✗ ; l'interrupteur « PDF joint » passe de 38 à 44 px sur iPad (mesuré dans la vraie page, règle retirée en mémoire puis relue).",
+  "Rejeu complet de l'atelier (atelier-tout.sh, 18 min) : devis 41 ✓ ×3 (mac, iphone, ipad) ; contrat 23 ✓ ×3 ; rôles et pont 35 ✓ ; retour 19 ✓ ×3 ; numéros 13 ✓ ×2 ; échecs 28 ✓ ; mise en page 18 / 18 / 40 / 40 / 40 / 36 ✓ (mac, windows, ipad, iphone, android, petit) ; compositeur en grand 82 / 76 / 76 / 76 / 76 / 76 ✓ (tout sauf iPad, voir pasRegles) — aucune de ces suites ne tombe à cause de la voie."
+ ],
+ "pasRegles": [
+  {
+   "nom": "(j) — la même règle, de l'autre côté du cadre : le devis rapide et le contrat d'OP GESTION reprennent le numéro d'un brouillon composé supprimé",
+   "defaut": "L'atelier retient ses numéros donnés (OPG.retenus, rangé dans SON rangement), mais le prototype principal calcule les siens ailleurs : `dvNum()` (apercu/prototype-op-gestion.html ≈ 8241) et `ctrNum()` (≈ 23218) prennent « le plus grand numéro des devis + des documents que l'atelier liste (ATD.docs, opdNums) » + 1. Le brouillon supprimé n'est plus dans cette liste : son numéro revient donc au devis rapide (« Devis rapide » → D-2026-042) et au contrat créé depuis OP GESTION (CTR-2026-012). Un client peut recevoir deux « 042 » : le composé qu'on a vu à l'écran puis supprimé n'est pas parti, mais le défaut annoncé par (j) (« le devis suivant reprenait D-2026-042 ») subsiste pour le devis rapide, qui est la voie ordinaire de création.",
+   "constat": "restes-devis-atelier-recontrole-1.js : composer D-2026-042 (dvNum() = 043), le supprimer → dvNum() = D-2026-042 ✗ ; composer CTR-2026-012 (ctrNum() = 013), le supprimer → ctrNum() = CTR-2026-012 ✗ ; identique sur iPhone nuit. Correction attendue : que le prototype lise aussi la mémoire de l'atelier (le plus grand numéro DÉJÀ DONNÉ, par préfixe : le champ `nums` rangé avec ses documents, ou le même plafond tenu côté parent dans opdDonnees()) — l'atelier lui-même est juste (D-2026-043 au suivant)."
+  },
+  {
+   "nom": "devis-atelier-04 — le message de « Effacer la signature » dit encore « rejouer l'exemple » dans OP GESTION",
+   "defaut": "Après « Effacer la signature » dans « Ce que voit le client », le toast dit « Signature effacée : tu peux rejouer l'exemple » (page.source, ACTIONS['ap-rejouer'], ≈ 3726 : `toast('Signature effacée : tu peux rejouer l’exemple')`, sans la condition APP des trois autres textes). Le correcteur a changé le bouton, le toast d'envoi et le toast de signature, pas celui-ci : le parcours se contredit dans la même fenêtre (« Signé : … » puis « … rejouer l'exemple »).",
+   "constat": "restes-devis-atelier-recontrole-1.js § B : le texte de l'écran contient « rejouer » ; capture recontrole1-efface-mac.png et -iphone-nuit.png regardées : deux bulles empilées, « Signé : la signature est posée dans le document. » puis « Signature effacée : tu peux rejouer l’exemple ». Correction : `toast(APP?'Signature effacée.':…)`. La sonde restes-devis-atelier-2 ne lisait pas ce message (elle s'arrête à la présence du lien)."
+  },
+  {
+   "nom": "devis-atelier-15 — la règle neuve `html[data-app] .interr{min-height:44px}` RAPETISSE 13 interrupteurs de 48 à 44 px sur les téléphones et l'iPad",
+   "defaut": "Elle est écrite sous (pointer:coarse) avec une spécificité (0,2,1) qui bat les règles plus généreuses déjà en place : `.interr{min-height:48px}` du palier téléphone (page.source ≈ 655), `.clause .interr` et `.ac-l .interr` (48 sous coarse, ≈ 855), `.vierge .interr` (≈ 1395). Elle ne fait donc que remonter le seul cas voulu (38 → 44 sur iPad, fenêtre d'envoi et « Ce que voit le client ») et abaisse tout le reste. 44 px reste au plancher tactile, mais le rythme des clauses, de la liste d'articles et de la feuille vierge change sur tous les téléphones sans que personne l'ait décidé.",
+   "constat": "restes-devis-atelier-recontrole-2.js (règle retirée de la feuille EN MÉMOIRE, hauteur relue sur un interrupteur posé dans chaque contexte) : iPhone 390 px 5 contextes ✗ (48 → 44), Android 360 px 5 ✗, iPad 820 px 3 ✗ (clause, liste d'articles, vierge ; 48 → 44) = 13 ✗ ; iPad « .interr nu » 38 → 44 ✓ et « vv-libre » 38 → 44 ✓ (le gain voulu). Correction : `min-height:max(44px, …)` ne marche pas seul ; poser la règle sous `(pointer:coarse) and (min-width:761px)` et seulement sur les contextes à 38 (le `.interr` nu et `.vv-libre .interr`), ou la mettre à une spécificité plus basse que les règles de 48."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "La correction de (j) ne couvre pas le devis rapide ni le contrat du prototype principal",
+   "gravite": "moyenne (un numéro déjà vu à l'écran peut être redonné à un vrai devis envoyé à un client ; même famille que la règle « un numéro ne se réutilise jamais »)",
+   "etapes": "1. Documents sur mesure → nouveau devis → le composer (D-2026-042). 2. « ⋯ » → Supprimer ce brouillon. 3. Ventes → Nouveau devis rapide : il prend D-2026-042. Idem pour un contrat composé (CTR-2026-012) puis un contrat créé depuis OP GESTION.",
+   "constat": "voir pasRegles n° 1 ; sonde restes-devis-atelier-recontrole-1.js, 3 ✗ dont 2 pour ce défaut, rejouée Mac jour et iPhone nuit."
+  },
+  {
+   "titre": "Toast « Signature effacée : tu peux rejouer l'exemple » dans OP GESTION",
+   "gravite": "basse (texte, mais c'est exactement le défaut que la correction 04 annonce réglé)",
+   "etapes": "Atelier → devis → Envoyer → Aperçu → Ce que voit le client → Accepter et signer → Effacer la signature.",
+   "constat": "voir pasRegles n° 2 ; captures regardées."
+  },
+  {
+   "titre": "Interrupteurs rapetissés de 48 à 44 px (13 cas) par la règle ajoutée pour l'iPad",
+   "gravite": "basse (reste au plancher de 44 px, mais change l'apparence des clauses et de la liste d'articles sur tous les téléphones)",
+   "etapes": "Atelier en mode application sur iPhone, Android ou iPad → fenêtre des clauses d'un contrat, liste d'articles, feuille vierge : la hauteur de la ligne d'un interrupteur passe de 48 à 44.",
+   "constat": "voir pasRegles n° 3 ; restes-devis-atelier-recontrole-2.js : 13 ✗."
+  }
+ ],
+ "nouveaux": [
+  "Pré-existant, NON lié à la voie (bisecté : déjà rouge avant le commit 9e8134e0 de cette voie ; la bascule se trouve dans la fusion b52abedd, planning) : atelier-grand.js ipad ouvre la page du compositeur à 788 px au lieu des 794 de la sonde (4 ✗ : « à l'ouverture la page fait 794 px » et « 100 % choisi d'office », jour et nuit). La page tient dans sa colonne (aucun glissement de côté, 72 ✓ sur le reste) : la sonde est probablement périmée par la marge de 16 px des cadres, à trancher par le propriétaire de la voie « compositeur en grand ».",
+  "Pré-existant, NON lié : atelier-seule.js (page « Documents sur mesure » seule contre sa référence figée doc-origine.html) tombe sur 4 ✗ « compoDevis2 » (mac et iPhone, jour et nuit) : l'étiquette `.vv-mini` d'une ligne d'article est passée de « Prix HT (€) » à « Prix unitaire HT (€) » (96 → 109 px, commit 953cb468, voie compta-ventes tour 3). Écart VOULU, la référence de la sonde est à remettre à jour.",
+  "Deux bulles de message s'empilent et la seconde recouvre l'en-tête du client dans « Ce que voit le client » sur iPhone (« Signé : … » puis « Signature effacée … ») : transitoire (disparaissent seules), noté, pas corrigé ici."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-devis-atelier-1.js mac, iphone", "resultat": "7 ✓ · 0 ✗ chacun" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-2.js mac, iphone nuit", "resultat": "15 ✓ · 0 ✗ chacun" },
+  { "fichier": "campagne/sondes/devis-atelier-atelier-mep.js ipad,iphone,android,petit nuit", "resultat": "64 ✓ · 0 ✗" },
+  { "fichier": "sondes/atelier-tout.sh (rejeu complet)", "resultat": "toutes vertes sauf atelier-grand ipad (4 ✗, pré-existant) et atelier-seule (4 ✗, pré-existant, étiquette modifiée exprès)" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-recontrole-1.js mac, iphone nuit (NOUVELLE)", "resultat": "8 ✓ · 3 ✗ chacun : numéros du devis rapide et du contrat du parent, mot « rejouer »" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-recontrole-2.js iphone,ipad,android (NOUVELLE)", "resultat": "8 ✓ · 13 ✗ : les interrupteurs rapetissés de 48 à 44 px" },
+  { "fichier": "campagne/sondes/restes-devis-atelier-recontrole-3.js (relevé, NOUVELLE)", "resultat": "relevé sans verdict : l'écran de départ du contrat ne dit pas « exemple »" }
+ ],
+ "doutes": [
+  "À soumettre à Justin (déjà dans le rapport du correcteur, non tranchés) : l'atelier et le devis rapide donnent deux modèles (pas d'intervention « à planifier » ni de facture d'acompte pour un devis composé accepté ; contrat composé signé sans contrat OP GESTION ni visites) ; conditions commerciales différentes (délai 10 jours / 3 semaines, acompte 0 / 30 %) ; seuil de validité de la signature tracée (40 unités).",
+  "Le correcteur a appliqué la mise en cohérence des mots d'envoi (04) alors que le testeur l'avait étiquetée « à soumettre » : à redire à Justin, rien n'est vraiment envoyé (prototype). Et le mot « exemple » reste dans d'autres écrans d'OP GESTION (lien du registre « Lien copié (exemple) », « Plan du client (exemple) », AMM « (exemple) » du stock, IBAN et QR du paiement) : si la règle « plus de exemple dans OP GESTION » doit être générale, elle reste à décider hors de cette voie.",
+  "Non vérifié : la fenêtre « Créer avec l'IA » du contrat (« Composer un exemple », « L'IA n'est pas disponible ici ») n'est pas atteignable depuis l'écran de départ du contrat d'OP GESTION dans mes essais (le compositeur s'ouvre directement) ; si elle l'est par un autre chemin, elle dit « exemple » pour une IA absente du prototype.",
+  "Non vérifié : le cas de deux onglets (un brouillon supprimé dans l'un, un autre composé dans le second) pour les numéros retenus : le code relit et fusionne `nums` du rangement à chaque sauvegarde, sondes du correcteur à l'appui (atelier-numeros 13 ✓), non rejoué à deux onglets ici."
+ ]
+}
