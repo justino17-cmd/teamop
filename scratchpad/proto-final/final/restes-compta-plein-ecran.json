@@ -1,0 +1,23 @@
+{
+ "corriges": [
+  {"titre": "Deux boutons à trois traits dans la Comptabilité plein écran au téléphone",
+   "avant": "NE SE REPRODUIT PLUS : sur iPhone, petit 320, Android, jour et nuit, la sonde compte 1 seul bouton à trois traits (le « Menu » d'OP GESTION dans la barre du cadre, 44 px). Le ≡ de l'en-tête OP COMPTABLE est déjà masqué par html.cadre .barre .ouvrir-menu (prototype-comptabilite.html, décision compta-ventes-22 appliquée après le recontrôle qui avait vu deux boutons).",
+   "apres": "inchangé : choix gardé = le bouton « Menu » d'OP GESTION (celui du cadre), parce qu'il ouvre la feuille des rubriques d'OP GESTION (seul accès au menu d'OP GESTION depuis la Comptabilité plein écran) ; la barre du bas « Plus » de la Comptabilité porte déjà ses propres rubriques. Il ouvre bien la feuille AU-DESSUS du cadre (mesuré, 6 profils jour/nuit). Ordinateur et iPad : aucun bouton « Menu » dans la barre.",
+   "preuve": "sondes/restes-compta-plein-ecran.js (contrôles 'UN SEUL bouton…', 'ouvre la feuille…', 'ordinateur/tablette inchangés') ; mutation A (retrait de la règle du ≡) tombe : 71 ✓ · 6 ✗ ; mutations D et E (menu absent au téléphone / présent au bureau) tombent."},
+  {"titre": "Message de la page posé pendant la Comptabilité plein écran passé sous le cadre",
+   "avant": "La bulle #toast était déjà au-dessus (z-index 9200, règle existante). Mais la carte « Copie ce texte à la main » (#sortie-carte : copie de secours, numéro après un lien tel:) restait à z-index 92, donc peinte DERRIÈRE le cadre (9000) : texte et croix invisibles et sans toucher. Mesuré avant : 67 ✓ · 10 ✗ (les 10 profils jour/nuit : elementFromPoint rend l'IFRAME).",
+   "apres": "règle ajoutée body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200} (même empilement que la bulle, au-dessus de la fenêtre ouverte depuis la Comptabilité à 9100). Après : 77 ✓ · 0 ✗ sur iPhone, petit 320, Android, iPad, Mac, jour ET nuit ; croix de fermeture et bouton « Annuler » de la bulle reçoivent le toucher.",
+   "preuve": "sondes/restes-compta-plein-ecran.js ; mutations B (retrait de la règle neuve) 67 ✓ · 10 ✗ et C (retrait de la règle de la bulle) 57 ✓ · 20 ✗ tombent ; contre-épreuve : hors Comptabilité plein écran la bulle garde z-index 90 et le « Menu » de la page reste visible ; captures relues : petit-nuit-carte, iphone-jour-message, mac-nuit-carte (cap/compta-plein-ecran/)."}
+ ],
+ "sondes": [
+  "campagne/sondes/restes-compta-plein-ecran.js : 77 ✓ · 0 ✗ (10 profils jour/nuit)",
+  "voisines Comptabilité : restes-taches-absences-1-bureau-tel 15 ✓ · 0 ✗ ; compta-ventes-annulee-cadre 9 ✓ ; compta-reste-cadre-parcours 32 ✓ ; compta-reste-cadre-mots 40 ✓ ; compta-ventes-cadre-explore sans ✗",
+  "contrôles de sauvegarde : compiler-pages, verifier-syntaxe (41 pages), tests 835/836/837/1008/2994 à 0 ✗, verif-secrets code 0"
+ ],
+ "mutations": ["A ≡ du cadre visible : tombe (71 ✓ · 6 ✗)", "B règle sortie-carte retirée : tombe (67 ✓ · 10 ✗)", "C règle bulle retirée : tombe (57 ✓ · 20 ✗)", "D menu absent au téléphone : tombe (65 ✓ · 12 ✗)", "E menu aussi au bureau : tombe (73 ✓ · 4 ✗)", "toutes sur copies d'apercu/ en /tmp, git diff vide hors correctif"],
+ "doutes": [
+  "Défaut 1 : ne se reproduit plus (déjà réglé par la règle html.cadre) ; rien changé, seul le choix du bouton est documenté.",
+  "campagne/sondes/compta-reste-cadre-coherence.js tombe (7 ✗ avant mon changement, mêmes chiffres : banque, TVA, paie du cadre contre OP GESTION) : sans rapport avec cette étape (aucune donnée touchée), sonde périmée ou écart de données à voir par la voie Comptabilité.",
+  "Un message de la page posé par un autre mécanisme à z-index < 9000 (ex. .ctx 80, .ac-flot 95) n'a pas de chemin connu depuis la Comptabilité plein écran ; non modifié."
+ ]
+}

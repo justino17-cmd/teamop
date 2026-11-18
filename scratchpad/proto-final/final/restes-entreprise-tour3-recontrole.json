@@ -1,0 +1,44 @@
+{
+  "noms": [
+    "Boîte mail : le bandeau « OP GESTION a reconnu » ne propose et n'exécute que les gestes dont la case de destination est ouverte (devis, achats, interventions, clients)",
+    "Boîte mail, 320 px : le lien « Chauffage Distribution Atlantique › » du bandeau tient dans la carte",
+    "Boîte mail en « Voir seul » : plus de blanc de 26 px (rangée « Réponse rapide » retirée entière)",
+    "doutes et note de sondes du tour 3 (Renommer / Changer le logo ; numéro +33 ; SIRET seul ; Voir + Créer ; secrétaire ; clavier d'iPhone ; droits-table 3 ✗)"
+  ],
+  "regles": [
+    "bandeau filtré par la case de destination : rejoué (entreprise-restes3-bandeau 9 ✓ · 0 ✗) ; étendu par une matrice que le correcteur n'avait pas jouée : les quatre destinations ensemble en Voir seul, en Voir + Modifier sans Créer, en Voir + Créer sans Modifier, Boîte mail en 1110 : chaque geste offert est joué (16, 21, 20 gestes) et aucun n'est refusé par la garde ; Boîte mail en Voir seul, tout le reste ouvert : 0 geste offert sur 11 messages (entreprise-restes3-recontrole a : 7 ✓ · 0 ✗)",
+    "les quatre verbes que la démonstration ne montre à personne (« C'est un client », « C'est un fournisseur », « Confirmer le créneau », « Ajouter aux photos de l'intervention ») : on les a fait naître (message à trier non traité, choix de créneau, intervention liée) ; chacun n'est offert que par SA case (Clients, Achats, Interventions), et lancé par l'hôte sans la case il est refusé et ne crée ni client, ni fournisseur, ni intervention (recontrole f : 14 ✓ · 0 ✗)",
+    "lien du bandeau à la ligne : rejoué (entreprise-restes3-lien 42 ✓ · 0 ✗, sept profils jour et nuit, noms réels puis très long) ; captures petit jour, petit nuit (nom de 60 signes sur trois lignes, chevron à droite et net, bouton dessous intact) lues",
+    "rangée « Réponse rapide » retirée : rejoué (entreprise-restes3-blanc 30 ✓ · 0 ✗) ; à côté : sans Modifier (Voir + Créer) la rangée est retirée et aucun bouton rapide n'est visible sur iPhone nuit et Mac (recontrole e : 4 ✓) ; la rangée ne contient que les boutons « réponse rapide » (une seule fabrique dans le module), donc rien d'utile ne part avec ; avec Modifier elle revient (contre-épreuve de la sonde du correcteur)",
+    "bandeau dont des gestes sont filtrés : aucune rangée de gestes vide qui garde sa marge, rien ne dépasse, la page ne glisse pas, sur iPhone, petit 320 nuit, Mac, iPad nuit (recontrole d : 16 ✓ · 0 ✗) ; captures lues",
+    "sondes voisines rejouées à zéro ✗ : entreprise-restes2-recontrole (88 ✓), entreprise-restes2-bandeau (5), entreprise-restes1-recontrole (70), mail-gestes (25), mail-liens (11), mail-reconnaissance (70), mail-corr-lecture (22), mail-recontrole-fin (12), droits-lecture-seule (36), entreprise-lecture-seule (56)",
+    "droits-table : 4 ✓ · 3 ✗, les 3 ✗ de la note du correcteur à l'identique (verbes d'Achats et de Stock, familles sxdadd / sxdcop) : ce n'est pas le fait de cette voie"
+  ],
+  "pasRegles": [],
+  "casses": [],
+  "nouveaux": [
+    {
+      "titre": "Boîte mail : « Proposer un créneau » / « Proposer une visite », une fois le message ENVOYÉ, pose des options (créneaux bloqués 48 h) au planning des techniciens, avec la case Planning en Voir seul",
+      "gravite": "moyenne (droits : une écriture au planning par un chemin de plus ; l'écart existait avant les corrections du tour 3, qui ont réglé les verbes de leur liste mais pas celui-ci)",
+      "etapes": "Entreprise fictive, personne fabriquée avec Boîte mail 1110 et toutes les autres catégories (Planning comprise) en 1000 ; Boîte mail ; ouvrir « Demande de devis » (m5) ; « Proposer une visite » ; Envoyer. Sonde : entreprise-restes3-recontrole.js c.",
+      "constat": "BUREAU passe de 0 à 3 options (« Option · … », libres sous 48 h) ; DROITS_REFUS ne note rien. Avec la case Planning ouverte, la contre-épreuve donne 0 → 3 aussi, donc la sonde mesure bien l'écriture. Cause : courrierAgir sort pour « ml:creneau » (comme pour répondre, relancer, prévenir) AVANT le clic caché qui passe par la garde, et la famille « ml » ne nomme pas « creneau » dans GESTES ; mbxApresEnvoi appelle mbxOptions, qui fait BUREAU.push. Le bandeau propose donc le geste à qui ne peut pas écrire au planning, et l'envoi écrit. La règle du module (« un geste refusé n'est pas proposé ») et celle de la table (un verbe porte la catégorie de sa destination) ne l'ont pas rattrapé. Correction possible : nommer « ml:creneau@planif » (modification) dans GESTES pour que le filtre du bandeau le retire, ET faire passer l'envoi des créneaux par la même garde (mbxOptions ne pose rien sans planif.m) ; à soumettre à Justin d'abord si on préfère laisser proposer des créneaux sans les tenir en option."
+    }
+  ],
+  "sondes": [
+    { "fichier": "sondes/entreprise-restes3-bandeau.js", "resultat": "9 ✓ · 0 ✗" },
+    { "fichier": "sondes/entreprise-restes3-lien.js", "resultat": "42 ✓ · 0 ✗" },
+    { "fichier": "sondes/entreprise-restes3-blanc.js", "resultat": "30 ✓ · 0 ✗" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js a", "resultat": "7 ✓ · 0 ✗ (matrice de cases, Boîte mail en Voir seul)" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js b", "resultat": "2 ✓ · 0 ✗ (Marc ; Julie, SM et KB n'ont pas la Boîte mail : hors population, dit)" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js c", "resultat": "3 ✓ · 1 ✗ : le défaut « nouveaux » ci-dessus (0 → 3 options au planning sans la case Planning)" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js d", "resultat": "16 ✓ · 0 ✗" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js e", "resultat": "4 ✓ · 0 ✗" },
+    { "fichier": "sondes/entreprise-restes3-recontrole.js f", "resultat": "14 ✓ · 0 ✗ (verbes que la démonstration ne montre à personne, rendus naissants)" }
+  ],
+  "doutes": [
+    "(nouveau, mineur) Avec « Voir + Créer » (sans Modifier) à la Boîte mail, le bouton de la barre du bas s'appelle « Répondre » mais ouvre un menu qui ne propose que « Transférer » et « Annuler » (répondre est caché par la case Modifier, transférer reste par Créer). Cohérent avec la règle du chef, mais l'étiquette promet ce que le menu ne donne pas : renommer « Transférer » dans ce cas, ou garder ? à soumettre à Justin (même doute que « Voir + Créer » du tour 1)",
+    "les doutes du tour 3 restent à soumettre à Justin, sans changement : « Renommer… » / « Changer le logo… » d'une boîte en Voir seul (réglages d'affichage de l'appareil) ; le numéro « +33 (0)5 46 11 22 33 » refusé comme téléphone de l'entreprise ; une facture qui part avec le seul SIRET (à faire valider par l'agent juriste) ; la secrétaire voit-elle la Boîte mail (décision (c)/(l) du chef) ; refus de champ avec le clavier d'un vrai iPhone ouvert (non vérifiable ici : pas de clavier émulé)",
+    "limite connue de la correction, gardée : « Créer le client et son devis » lit la case Devis (Ventes › Créer) et pas, en plus, celle de Clients — un verbe n'a qu'une catégorie dans la table ; avec Ventes en Créer et Clients en Voir seul le bandeau propose un geste qui crée un client. D'après la table (non mesuré avec cette combinaison précise : la matrice joue les quatre destinations ensemble) ; à décider avec Justin si un geste peut porter deux cases",
+    "non vérifié : une mutation de la page pour prouver que mes nouvelles vérifications mordent (« tu ne modifies aucune page ») ; leurs populations (messages lus, gestes joués, options comptées avant / après) et les contre-épreuves de la sonde c (case Planning ouverte → 0 → 3) tiennent lieu de preuve"
+  ]
+}

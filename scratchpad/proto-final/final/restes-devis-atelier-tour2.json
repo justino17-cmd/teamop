@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "(j) devis rapide et contrat d'OP GESTION reprenaient le numéro d'un brouillon composé supprimé (casse du recontrôle tour 1)",
+  "defaut": "dvNum() et ctrNum() du prototype lisaient le plus grand numéro des documents listés par l'atelier : le brouillon supprimé n'y était plus, son numéro (D-2026-042, CTR-2026-012) revenait au devis rapide et au contrat.",
+  "etat": "corrigé",
+  "changement": "L'atelier envoie avec sa liste la mémoire des numéros DÉJÀ DONNÉS (message opd_nums {devis:{p,n},contrat:{p,n}}, depuis OPG.retenus, numRetenirDocs au passage) ; le prototype la valide (opdNumsNet), ne la fait que monter (opdNumsRecus), la range dans opg_proto_atelier_nums (comme la liste) et opdNums() la compte, par préfixe : dvNum et ctrNum la prennent donc en plancher. Fichiers : atelier/page.source (opdDocsEnvoyer) → prototype-documents.html refabriquée ; apercu/prototype-op-gestion.html (ATD.nums, opdNums).",
+  "preuve": "campagne/sondes/restes-devis-atelier-recontrole-1.js : 11 ✓ · 0 ✗ sur mac et sur iPhone nuit (devis rapide 042 → 043, contrat 012 → 013, numéro retapé 064 → 065). Mutation (concat des numéros retenus retiré dans opdNums) : 2 ✗ nommant dvNum et ctrNum, restauré. restes-devis-atelier-1 7 ✓, atelier-numeros 13 ✓."
+ },
+ {
+  "nom": "devis-atelier-04 — toast « Signature effacée : tu peux rejouer l'exemple » dans OP GESTION",
+  "defaut": "Le toast de « Effacer la signature » disait encore « rejouer l'exemple », sans la condition APP des trois autres textes : deux bulles qui se contredisaient (« Signé : … » puis « … rejouer l'exemple »).",
+  "etat": "corrigé",
+  "changement": "atelier/page.source, ACTIONS['ap-rejouer'] : toast(APP?'Signature effacée.':…) ; la page « Documents sur mesure » seule garde son texte d'exemple.",
+  "preuve": "restes-devis-atelier-recontrole-1.js § B : le message et tout l'écran ne contiennent plus « exemple/rejouer » (2 ✓ sur mac et iPhone nuit) ; la sonde restes-devis-atelier-2 15 ✓ · 0 ✗ inchangée."
+ },
+ {
+  "nom": "devis-atelier-15 — la règle des interrupteurs rapetissait 13 interrupteurs de 48 à 44 px",
+  "defaut": "`html[data-app] .interr{min-height:44px}` (spécificité 0,2,1) battait les règles de 48 px du palier téléphone, des clauses, de la liste d'articles et de la feuille vierge.",
+  "etat": "corrigé",
+  "changement": "La règle est devenue un PLANCHER : `@media (pointer:coarse){ :where(html[data-app]) .interr{min-height:44px} }`, posée tôt (après `.interr small`) à la spécificité d'un `.interr` nu, donc battue par toute règle plus généreuse. Le gain voulu (38 → 44 sur iPad pour « PDF joint », « Lien pour accepter… », « Ce que voit le client ») est conservé.",
+  "preuve": "campagne/sondes/restes-devis-atelier-3.js (neuve, garde) : 28 ✓ · 0 ✗ sur ipad, iphone, android ; contre-épreuve intégrée : règle retirée en mémoire → le .interr nu retombe à 38 sur iPad. restes-devis-atelier-recontrole-2.js (sonde mise à jour pour trouver la règle réécrite) : 21 ✓ · 0 ✗ (avant : 13 cas à 44 au lieu de 48). atelier-mep ipad/iphone/android/petit déjà vert au tour 1 : non rejoué."
+ },
+ {
+  "nom": "devis-atelier-03 / 07 / 16 — deux modèles de devis (rapide / composé), conditions différentes (10 jours / 3 semaines, acompte 0 / 30 %), contrat composé sans contrat OP GESTION",
+  "defaut": "Décisions de produit, non tranchées.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié.",
+  "preuve": "restes-devis-atelier-tour1.json : témoins de parcours-e et parcours-i toujours rouges par construction."
+ },
+ {
+  "nom": "Signature d'un devis : seuil de validité du tracé (40 unités sur 600)",
+  "defaut": "Un petit trait ou deux gestes très courts valident la signature.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié (seuil de produit).",
+  "preuve": "tour 1."
+ },
+ {
+  "nom": "Mot « exemple » restant ailleurs dans OP GESTION (« Lien copié (exemple) », « Plan du client (exemple) », AMM du stock, IBAN et QR du paiement) ; mise à jour de l'étiquette d'envoi décidée sans validation (04)",
+  "defaut": "Règle « plus de exemple dans OP GESTION » à décider hors de cette voie.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié.",
+  "preuve": "doutes du recontrôle tour 1."
+ },
+ {
+  "nom": "Pré-existants, hors voie : atelier-grand.js ipad (page du compositeur 788 px au lieu de 794) ; atelier-seule.js « compoDevis2 » (étiquette « Prix unitaire HT » : référence à remettre à jour) ; deux bulles empilées sur iPhone dans « Ce que voit le client »",
+  "defaut": "Signalés par le recontrôle comme non liés.",
+  "etat": "à soumettre à Justin",
+  "changement": "rien modifié ici : sondes périmées (propriétaire : voie compositeur en grand) ; bulles transitoires, la seconde bulle ne contredit plus la première depuis la correction du toast.",
+  "preuve": "non rejoué."
+ },
+ {
+  "nom": "Non vérifié : deux onglets pour les numéros retenus ; fenêtre « Créer avec l'IA » du contrat",
+  "defaut": "Doutes du recontrôle tour 1.",
+  "etat": "ne se reproduit pas",
+  "changement": "rien modifié ; la fusion à la hausse de nums est la même qu'au tour 1 (atelier-numeros 13 ✓ rejoué), non joué à deux onglets.",
+  "preuve": "atelier-numeros.js 13 ✓ · 0 ✗."
+ }
+]
