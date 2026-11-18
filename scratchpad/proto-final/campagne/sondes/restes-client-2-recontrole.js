@@ -35,7 +35,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   v('A · 20 noms sans équivoque (personnes proches d\'un organisme, organismes proches d\'une personne) bien salués', ecart.length === 0, ecart);
   // (« Le Goff » seul, « Mme Pro », « Sophie Distribution » : ambigus, relevés sans verdict)
   // B) la fiche de tâche « Prévenir » pour la copropriété : libellé long, deux boutons
-  const rb = await p.evaluate(async () => { const x = { id: 'tzzmi', t: 'Prévenir du retard de la pièce', qui: 'marc', d: AUJ, h: null, urgent: false, lien: { t: 'client', id: 'mi', lib: CLIENTS.mi.nom, cli: 'mi' } }; TACHES.push(x);
+  const rb = await p.evaluate(async () => { const x = { id: 'tzzmi', t: 'Prévenir du retard de la pièce', qui: 'marc', d: AUJ, h: null, urgent: false, creePar: 'marc', creeLe: '31/10', lien: { t: 'client', id: 'mi', lib: CLIENTS.mi.nom, cli: 'mi' } }; TACHES.push(x);
     tDetail('tzzmi'); await new Promise(r => setTimeout(r, 400)); const P = document.querySelector('#calque .panneau'); if (!P) return { ko: 'PAS DE FENÊTRE' };
     const bts = [...P.querySelectorAll('[data-tkxprev]')].map(b => { const r = b.getBoundingClientRect(), cs = getComputedStyle(b); return { t: b.textContent.trim(), x: Math.round(r.left), d: Math.round(r.right), w: Math.round(r.width), h: Math.round(r.height), lh: parseFloat(cs.lineHeight) || 0, vis: b.offsetParent !== null }; });
     const barre = P.querySelector('.tkx-barre'), rbar = barre ? barre.getBoundingClientRect() : null, fait = P.querySelector('.tkx-barre [data-tfait]'), rf = fait ? fait.getBoundingClientRect() : null;
@@ -55,7 +55,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   await p.evaluate(() => { try { fermerPanneau(); fermerPanneau(); } catch (e) {} TACHES = TACHES.filter(x => x.id !== 'tzzmi'); });
   // C) une 3ᵉ relance : la tâche « Appeler … » suit-elle, et que dit la fiche ?
   const C = await p.evaluate(async () => { const out = {}; for (const k of ['mi', 'vp', 'hp', 'md', 'cm']) { const f = FACTURES.find(o => o.cli === k && o.st !== 'payee') || FACTURES.find(o => o.cli === k); if (!f) { out[k] = 'PAS DE FACTURE IMPAYÉE'; continue; }
-      f.relances = 3; const x = { id: 'tzr' + k, t: 'Relancer ' + f.num, qui: 'marc', d: AUJ, h: null, urgent: false, lien: { t: 'facture', id: f.id, lib: f.num, cli: k }, note: 'Déjà relancée deux fois.' }; TACHES.push(x);
+      f.relances = 3; const x = { id: 'tzr' + k, t: 'Relancer ' + f.num, qui: 'marc', d: AUJ, h: null, urgent: false, creePar: 'marc', creeLe: '31/10', lien: { t: 'facture', id: f.id, lib: f.num, cli: k }, note: 'Déjà relancée deux fois.' }; TACHES.push(x);
       const av = TACHES.length; try { tFaire(x, 'relance envoyée'); } catch (e) { out[k] = 'ERREUR ' + e.message; continue; }
       const s = TACHES.slice(av)[0] || TACHES.find(o => o.suiteDe === x.id); out[k] = s ? s.t : 'PAS DE SUITE'; if (s) { tDetail(s.id); await new Promise(r => setTimeout(r, 300)); const P = document.querySelector('#calque .panneau'); out[k + 'f'] = P ? [...P.querySelectorAll('a.btn,button.btn')].map(b => b.textContent.trim()).filter(t => /Appeler|Prévenir|Terminé|fait/i.test(t)) : 'PAS DE FENÊTRE'; try { fermerPanneau(); } catch (e) {} } }
     return out; });
