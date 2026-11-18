@@ -1,0 +1,62 @@
+{
+ "noms": [
+  "Un refus de saisie s'affiche deux fois sur téléphone (toast recopiant la phrase écrite sous le champ, et cachant « Joindre l'attestation »)",
+  "Le refus du nom est une phrase de 7 lignes dans une demi-colonne sur téléphone",
+  "Sur la fiche d'un compte DÉSACTIVÉ, les deux gestes de mot de passe sont proposés",
+  "Sur sa propre fiche, le gérant lit « Marc reçoit un e-mail… » (troisième personne)",
+  "Le bandeau « 1 compte verrouillé : Léa Roux. [Voir] » dit « Voir » seul ; le filtre « Invités » vide ne dit pas quoi faire",
+  "« Valable 72 heures (jusqu'au 20/11 à 12:30) » calculé sur l'horloge réelle (ne se reproduit pas)"
+ ],
+ "regles": [
+  "Bulle qui recopie le refus (téléphone) : rejoué sur iPhone, petit (320 px), Android (360 px), jour et nuit : sur Inviter (une erreur, trois erreurs, valeurs longues) et Ajouter une habilitation (fin avant obtention, nom vide fenêtre défilée en bas) le refus est dit une fois (phrase à l'écran OU bulle), jamais deux, jamais zéro ; la bulle ne recouvre ni phrase, ni libellé, ni bouton ; corriger un champ efface son refus seul. Mutation 1 (retour à .ent-pan) : la sonde tombe (2 ✗ de doublon). Mon entreprise (même fonction entVerifier) : entreprise-restes2-toast 11 ✓, entreprise-restes2-bandeau 5 ✓, entreprise-restes1-recontrole 5 ✓, equipe-entreprise iPhone 60 ✓, entreprise-structure 201 ✓, champs 116 ✓.",
+  "Compte désactivé, fiche d'un compte ACTIF puis désactivé (Tom) : ni « mot de passe provisoire » ni « lien pour choisir le sien » (bloc Connexion, rangée d'actions et carte du filtre « Désactivés »), une seule phrase « Tom ne peut pas se connecter : réactive d'abord… », « Réactiver le compte » présent, « Ouvrir l'application comme » absent ; contre-épreuve : réactivé, les deux gestes reviennent, la phrase part, « Lui envoyer un lien » dit à qui il est parti. Un Responsable (lecture seule) ne voit ni la phrase ni aucun geste d'écriture VISIBLE (la feuille de style cache les gestes). Mutations 4 et 5 : la sonde tombe.",
+  "« Voir ce compte » / « Voir ces comptes » : un compte verrouillé puis deux (Léa et Karim) : le bandeau dit « 2 comptes verrouillés : Karim Benali, Léa Roux. », bouton 44 px au moins, aucun débordement (320 px compris), le bouton mène à Sécurité qui montre bien les deux comptes. Mutation 6 : la sonde tombe.",
+  "Filtres vides : « Invités » (« Aucune invitation en attente. Pour inviter quelqu'un, touche « ＋ Inviter une personne ». ») et « Désactivés » (« Aucun compte désactivé : tout le monde peut se connecter. ») rejoués pour de vrai (le correcteur n'avait pas joué le second : des cartes y étaient) ; phrase dans l'écran, sans débordement, regardée sur capture (petit, nuit). Mutation 7 : la sonde tombe.",
+  "Fiche de soi, partie bouton et bulle : « M'envoyer un lien pour choisir un nouveau mot de passe », bulle « tu choisis toi-même ton nouveau mot de passe », la phrase « utilise le lien ci-dessous » est bien AU-DESSUS du lien ; pas de « mot de passe provisoire » ni d'« Ouvrir l'application comme Marc ». (La partie « bloc Connexion » reste en troisième personne : voir pasRegles.)",
+  "« Valable 72 heures » : ne se reproduit pas, confirmé (31/10 + 3 jours = 03/11)."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Le refus du nom est une phrase de 7 lignes dans une demi-colonne sur téléphone",
+   "defaut": "casse 3 du recontrôle",
+   "constat": "La phrase passe à 3 lignes à 390 px mais prend 4 lignes à 360 px (Android : 73 px de haut dans une colonne de 159 px, 67 signes), alors que le critère écrit par le correcteur est « 3 lignes au plus ». Sa propre sonde, campagne/sondes/restes-equipe-1.js, tombe sur Android (14 ✓ · 1 ✗, jour et nuit) ; il ne l'avait jouée que sur iPhone, 320 px, iPad et Mac. Capture regardée : restes-inviter-erreurs-android-nuit.png. Piste : une phrase plus courte (« Lettres, chiffres, espaces et tirets (60 au plus). », 50 signes) ou le message sous les DEUX champs. Sonde de rejeu : restes-equipe-1-recontrole.js android (✗ « A la phrase du nom tient en TROIS lignes au plus »)."
+  },
+  {
+   "nom": "Sur sa propre fiche, le gérant lit « Marc reçoit un e-mail… » (troisième personne)",
+   "defaut": "doute 3 du recontrôle",
+   "constat": "Corrigé pour le bouton, la phrase du lien et la bulle, mais le bloc Connexion de la MÊME fiche reste à la troisième personne : « Mot de passe : Provisoire : à lui remettre en main propre. Marc le change à sa première connexion. », puis « Téléphone : À activer à sa première connexion » et « Dernière connexion : Jamais » pour la personne qui est en train d'utiliser l'application. Capture regardée : rc-restes-soi-iphone-nuit.png. Piste : sur la fiche de soi (k === acteur()), dire « Tu changes ton mot de passe à ta première connexion » ou ne pas écrire cette ligne, et le prototype devrait donner à Marc un mot de passe choisi (« Personnel, choisi par Marc. ») puisqu'il est connecté. Sonde : restes-equipe-1-recontrole.js section E."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une invitée désactivée se voit proposer « Renvoyer l'invitation » et « un nouveau mot de passe »",
+   "gravite": "mineure",
+   "etapes": "Équipe > Inviter une personne (Inès Garnier) > sa fiche > Désactiver le compte > rouvrir sa fiche. Les deux définitions de la rangée d'actions (fiche et carte) font `p.invite ? Renvoyer + Annuler : p.actif ? lien : ''` : l'invitation passe AVANT l'état actif, donc la correction du compte désactivé ne l'atteint pas.",
+   "constat": "Fiche de l'invitée désactivée : « Inès ne peut pas se connecter : réactive d'abord son compte pour lui donner un nouveau mot de passe » (elle n'en a jamais eu), et les boutons « Renvoyer l'invitation » et « Annuler l'invitation » à côté de « Réactiver le compte » : renvoyer un courriel d'invitation à un compte qui ne peut pas se connecter est la même incohérence que la casse 2. Boutons relevés : Copier le lien et l'identifiant, Nouveau téléphone, Déconnecter partout, Renvoyer l'invitation, Annuler l'invitation, Réactiver le compte. Sonde : restes-equipe-1-recontrole.js section D (✗ « invitée désactivée »), capture rc-restes-invitee-desactivee-iphone-nuit.png."
+  }
+ ],
+ "nouveaux": [
+  "Le refus du nom ne dit pas la règle du premier signe : « -Marie », « .Marie » et « ’Marie » sont refusés avec « Lettres, chiffres, espaces et tirets seulement (60 signes au plus). » alors que tiret, point et apostrophe sont permis AILLEURS dans le nom (« Marie-Ève », « O'Neil » passent) ; et la nouvelle phrase ne cite plus ni le point ni l'apostrophe, qu'elle accepte. Cause : NOM_PERS_OK exige une lettre ou un chiffre en premier. Rare, mineur ; une phrase « Commence par une lettre ou un chiffre ; lettres, chiffres, espaces, points, apostrophes et tirets ensuite. » serait vraie.",
+  "La fiche d'un compte désactivé laisse « Nouveau téléphone » et « Déconnecter partout » (et « Déverrouiller » pour un compte verrouillé) à côté de « Réactiver le compte » : sans effet visible ni danger, à trancher avec Justin (voir doutes)."
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/restes-equipe-1.js", "resultat": "iPhone 15 ✓ · 0 ✗ ; iPhone nuit 15/0 ; Mac 15/0 ; Mac nuit 15/0 ; petit 15/0 ; iPad nuit 15/0 ; Android nuit 14 ✓ · 1 ✗ (phrase du nom à 73 px : pasRegles 1)" },
+  { "fichier": "campagne/sondes/restes-equipe-1-recontrole.js (neuve)", "resultat": "iPhone 58 ✓ · 4 ✗ ; petit 57 ✓ · 4 ✗ ; Android 57 ✓ · 5 ✗ ; Mac 54 ✓ · 4 ✗ ; iPad nuit 55 ✓ · 4 ✗ ; les ✗ communs : B (premier signe) x2, D invitée désactivée, E fiche de soi (3e personne) ; Android en plus : phrase du nom à 4 lignes. Sections : A bulle, B nom, C filtres vides, D désactivé, E soi, F Voir ce compte, G lecteur. Elle sort en 1 tant que ces défauts existent." },
+  { "fichier": "campagne/sondes/restes-equipe-1-recontrole-b.js (neuve)", "resultat": "Responsable (Julie) devant un compte désactivé, comparé à un compte actif : 4 ✓ · 0 ✗ (aucun geste d'écriture visible) ; relevé en clair des fiches « invitée désactivée » et « Léa verrouillée ET désactivée »" },
+  { "fichier": "campagne/sondes/mutations-restes-equipe-1.py (neuve)", "resultat": "8 mutations de la page copiée : 1, 3, 4, 5, 6, 7 font tomber la sonde sur des contrôles que la page actuelle PASSE (mutations qui mordent) ; 8 (fiche de soi, bouton) tombe sur un ✗ déjà présent (E), donc peu discriminante ; 2 (borne innerHeight de la bulle) ÉQUIVALENTE : #calque .panneau est découpée au bas de l'écran (bottom == innerHeight à 320 et 390 px), la borne est redondante" },
+  { "fichier": "campagne/sondes/equipe-parcours.js", "resultat": "iPhone 63 ✓ · 3 ✗ AVANT (elle lisait la bulle seule : P2 formulaire vide, P2 e-mail faux, P6b nom vide, alors que la phrase est à l'écran et la bulle ne la recopie plus) ; adaptée (lit la bulle OU la phrase écrite sous le champ) : iPhone 66 ✓ · 0 ✗, Mac 66 ✓ · 0 ✗" },
+  { "fichier": "sondes/double-auth-equipe.js", "resultat": "48 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/equipe-recontrole-rejeu.js / equipe-recontrole-admin.js / equipe-corrections.js / equipe-mots.js / equipe-roles.js / equipe-entreprise.js (iPhone ou défaut)", "resultat": "19 / 11 / 32 / 65 / 34 / 60 ✓, 0 ✗" },
+  { "fichier": "campagne/sondes/equipe-mise-en-page.js, equipe-gestes.js", "resultat": "mise en page iPhone 92 ✓ · 0 ✗, petit nuit 92 ✓ · 0 ✗ ; gestes iPhone 121 ✓ · 0 ✗" },
+  { "fichier": "sondes/double-auth-sensibles.js / double-auth-appareils.js / double-auth-mots.js / droits-soi-meme.js / parcours-9.js / campagne/sondes/equipe-droits-supprimer.js", "resultat": "111 / 348 / 135 / 10 / 24 / 7 ✓, 0 ✗" },
+  { "fichier": "sondes/entreprise-tout.sh (RAPIDE=1)", "resultat": "structure 201 ✓, champs 116 ✓, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, restes2-bandeau 5, restes2-toast 11, restes1-recontrole g 5, achats-lisible 142 ✓ (rejouée seule ; 33 ✓ · 1 ✗ sous charge : « profils mesurés » 4 au lieu de 6). Tombent sans lien apparent avec l'Équipe (non rejouées sur le commit parent) : entreprise-rapide (exception « reading 'mail' » ligne 30, une fabrique de document) ; entreprise-destinations (9 fabriques de documents lues au lieu de 10)" },
+  { "fichier": "sondes/droits-fiche.js ; campagne/sondes/coque-connexion.js", "resultat": "droits-fiche 21 ✓ · 2 ✗ (case « Supprimer » de Clients) et coque-connexion 39 ✓ · 1 ✗ (titre du guide « Où sont passées mes rubriques ? ») : tombent IDENTIQUEMENT sur le commit parent 49b2fbbb^ (worktree jetable), donc pas causées par ce lot" }
+ ],
+ "doutes": [
+  "Sur iPad (820 px) et au bureau, la bulle redit toujours la phrase écrite sous le champ (la règle est celle des téléphones, max-width:760px) ; elle ne recouvre rien (vérifié), c'est un doublon de présentation, pas un défaut — à garder ou à étendre à toute fenêtre à feuille, décision à Justin.",
+  "Léa verrouillée ET désactivée : la fiche écrit « utilise « Déverrouiller », après avoir vérifié son identité en personne » ET « Léa ne peut pas se connecter : réactive d'abord son compte… », avec les deux boutons Déverrouiller et Réactiver : ni contradictoire ni dit dans l'ordre (réactiver puis déverrouiller ?).",
+  "Clavier virtuel réel (iOS, Android) : non vérifiable ici. La bulle est levée quand la phrase est « dans l'écran » ; avec le clavier ouvert, une phrase sous le champ peut passer SOUS le clavier, et la bulle ne la dit plus. À regarder sur un vrai téléphone.",
+  "Les décisions du correcteur « à soumettre à Justin » (droit « Voir les heures de toute l'équipe », deuxième administrateur, recrue invitée remplaçante au départ guidé, « Rôle (un simple nom) », 6 cases sans geste et 27 mutations non rejouées) n'ont pas été rejouées par ce recontrôle : aucune n'est une casse de ce lot.",
+  "Quatre sondes de la machine tombent hors du périmètre de ce lot (entreprise-rapide, entreprise-destinations, droits-fiche, coque-connexion) : les deux dernières tombent déjà avant le commit ; les deux premières (fabriques de documents, non rejouées sur le parent) restent à confier à la voie qui les a obsolétisées."
+ ]
+}

@@ -1,0 +1,83 @@
+{
+  "role": "bureau (lib.ouvrir({ qui:'julie' }), mode application) — second regard sur regard-bureau-a.json",
+  "voie": "final-regard",
+  "suffixe": "bureau-a-recontrole",
+  "date": "2026-11-18",
+  "population": {
+    "sonde_rejouee": "scratchpad/proto-final/sondes/regard-bureau-a.js : 182 ✓ · 0 ✗ (neuf sections)",
+    "sonde_nouvelle": "scratchpad/proto-final/sondes/regard-bureau-a-recontrole.js (voisins : .t-ici sur 4 rôles × 2 largeurs × 7 fiches, rangées .cx-cats / .cx-outils .seg de la Comptabilité sur 3 téléphones jour et nuit, tableaux des 8 fiches client, 8 factures × 6 profils) : sections 1 et 5 = 60 ✓ · 2 ✗, section 2 = 84 ✓ · 0 ✗ (seuil de population ensuite corrigé de 60 à 30 : 36 rangées trouvées), sections 3 et 4 = 73 ✓ · 1 ✗. Les 3 ✗ sont les 2 casses/restes ci-dessous, réels (rejoués à la main, capture à l'appui) : la sonde devient verte le jour où ils sont réglés.",
+    "captures": "~1 050 captures : les 105 scènes du bureau sur Mac jour (toutes) + 37 scènes ciblées (facture ×3 états, fiche client et ses onglets, fiche à planifier, contrats, devis brouillon/en attente/accepté/refusé, Achats, Factures, vides, états pleins à valeurs longues) sur les six profils jour ET nuit (Mac, Windows, iPad, iPhone, Android, 320 px) + 10 écrans « sans défaut » tirés au hasard (graine 1811) ; 6 planches de 24 à 36 vignettes et une quinzaine de captures plein format regardées à l'œil",
+    "voisins_joues": "règles partagées : .t-ici summary b (fiches client jusqu'à « 4 tâches ouvertes », intervention, facture, contrat ; marc, julie, kb, sm à 320 et 360 px), .cx-cats et .cx-outils .seg (Factures, Achats, Paiements : Sens + Moyen), tableaux de .tableau au téléphone (les 8 clients), table.fac-lig (les 8 factures, 6 profils : quatre colonnes gardées sur ordinateur et tablette)"
+  },
+  "regles": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "pasRegles": [
+    {
+      "n": 9,
+      "constat": "Le défaut n'est réglé que pour la fiche de démonstration vue par l'agent (Cabinet dentaire Martin, une seule facture). Sur la fiche « M. et Mme Durand » (client md, onglet Factures, 320 px, jour et nuit) le tableau fait 265 px dans une carte de 254 : la colonne « État » sort de 11 px et la pastille « Envoyée · en attente » comme « En retard » est COUPÉE par le bord de la carte (« Envoyée· », « En ») ; la carte défile de côté. Cause : le tableau a une colonne N° en police fixe (« FAC-2026-0144 »), une désignation, un TTC à 7 signes (« 1 240,00 € ») et la pastille ; avec un TTC plus long que celui du Cabinet dentaire la somme des largeurs minimales dépasse la carte. À 360 et 390 px la sonde ne trouve rien. Piste : à ≤ 360 px, passer l'« État » sous le N° (comme le prix unitaire de la facture) ou laisser la désignation sous le N° ; contrôle : sonde regard-bureau-a-recontrole.js § 3."
+    }
+  ],
+  "casses": [
+    {
+      "n": 6,
+      "ecran": "Fiche intervention (client « Camping Les Pins », i9) avec une tâche en retard, 320 px, jour et nuit, julie et marc",
+      "constat": "La correction « 1 tâche ouverte ne se coupe plus » (.t-ici summary b{white-space:nowrap}) a une conséquence à côté : sur une fiche dont la tâche est EN RETARD, le résumé porte en plus la pastille « 1 en retard » ; à 320 px le petit texte « pour cette intervention » n'a plus que 35 px, se casse en trois lignes et le mot « intervention » sort de 19 px du résumé, jusque sur le bord de la carte, avec la flèche › écrasée entre les deux. Mesuré : summary scrollWidth 293 pour 274 de clientWidth ; en remettant white-space:normal sur le <b> : 274 pour 274 (la règle est bien le coupable). Tient à 360 px et plus. Piste : au téléphone étroit, la pastille « en retard » passe sous le titre, ou le petit texte « pour cette intervention » se masque quand une pastille est là ; contrôle : sonde regard-bureau-a-recontrole.js § 1 (2 ✗ : julie et marc, 320 px)."
+    }
+  ],
+  "nouveaux": [
+    {
+      "ecran": "Comptabilité › Fiscal › TVA, carte « Achats d'octobre » (liste des pièces justificatives)",
+      "profils": "Mac, Windows, iPad, jour et nuit (tient à 390 px et moins : la carte passe en une colonne)",
+      "constat": "la référence de la pièce à droite de chaque achat est coupée en deux lignes AU MILIEU de son identifiant : « ✓ FA-CPA-/88412.pdf », « ✓ DKO-2026-10-/0193.pdf », « ✓ Échéancier/2026 » (trois lignes sur Windows) ; colonne de 73 px pour des références de 140 px. Mesuré : 5 références sur 7 sur deux lignes, sur les trois profils. Piste : white-space:nowrap sur la pièce (le nom du fournisseur cède) ou la pièce sous la ligne du libellé ; la ligne vient de `.ligne` > <span class=\"gris petit\"> (ligne 8798 d'apercu/prototype-op-gestion.html).",
+      "gravite": "moyenne"
+    },
+    {
+      "ecran": "Devis, liste vide, filtres (iPad 820 px)",
+      "profils": "iPad, jour et nuit",
+      "constat": "les cinq filtres passent à la ligne en 4 + 1 : « Tous » reste seul sur la seconde rangée, dans une pastille plus large que les autres ; irrégulier mais lisible",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Comptabilité › Ventes, sous-onglets (Par intervention · Factures & avoirs · Comptes clients · Contrats)",
+      "profils": "Android (360 px), 320 px, jour et nuit",
+      "constat": "les quatre sous-onglets passent à la ligne en 1 / 2 / 1 (Android) ou 1 / 1 / 2 (320 px), orphelins centrés, avec le soulignement de l'onglet actif sous une seule rangée ; sur iPhone (390 px) ils tombent proprement en 2 × 2",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Facture › liste dans Comptabilité › Ventes, au téléphone",
+      "profils": "320 px, jour et nuit",
+      "constat": "l'objet de la facture est réduit à une lettre : « FAC-2026-0144 · R… », « FAC-2026-0143 · C… » ; sans sens pour un débutant (la désignation complète est à un toucher, donc faible)",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Fiche client › les quatre tuiles chiffrées (Cabinet dentaire Martin)",
+      "profils": "Mac, jour et nuit",
+      "constat": "« Entretien chauffe-eau thermodyn… » coupé avec des points de suspension dans la tuile « 31/10 » : la désignation du prochain passage n'est pas lisible en entier (elle l'est dans l'historique)",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Fiche client › onglets (Historique · Factures · Appareils · Contrats · Documents · Infos)",
+      "profils": "iPhone, jour et nuit",
+      "constat": "les six onglets passent en 4 + 2, la seconde rangée (« Documents », « Infos ») est étalée avec un grand vide entre les deux ; sur Android et 320 px ils tombent en 3 + 3",
+      "gravite": "faible"
+    }
+  ],
+  "doutes": [
+    "✅ devant « 1 tâche ouverte » : une coche verte, signe habituel de « fait », sur une tâche qui reste À FAIRE ; peut dérouter un débutant. À trancher par Justin (pastille neutre, ou le sablier). Présent sur toutes les fiches (client, intervention, facture, contrat), tous les profils.",
+    "Comptabilité, accueil au téléphone (OP COMPTABLE, cadre) : sur Android jour le bouton « ‹ OP GESTION » porte un gros contour bleu de focus à l'arrivée. Peut être un artefact de la sonde (focus donné par le code sans geste de la personne) ; à vérifier sur un vrai téléphone.",
+    "Brouillon de devis au téléphone : les champs quantité et prix n'ont pas de libellé (le « 1 » seul, « prix HT » en texte grisé qui disparaît dès qu'on tape) ; un débutant peut se demander à quoi sert la case de gauche.",
+    "Fiche client, tuile « 114,00 € payé depuis le début · dont 114,00 € sans facture ici » : correct mais dense pour un débutant (expliqué plus bas dans la carte des factures, hors de la vue au téléphone).",
+    "Le bouton « Aperçu et envoi » d'un brouillon de devis est gris tant qu'il manque un prix : l'état est clair (le message ambre juste dessous dit pourquoi) ; l'agent précédent s'interrogeait, ma lecture : à garder tel quel.",
+    "Tâche « suggestions » (a06) : aucune cible dans cette démonstration (le bouton n'est pas là) : non capturée ; n'est pas un défaut.",
+    "Barre latérale à 768 px de haut (Windows, Mac 720) : la liste défile sous la carte du pied et laisse un élément à moitié coupé au pli ; comportement d'un menu qui défile, non retenu comme défaut."
+  ],
+  "a_soumettre_du_premier_passage": "la 3e colonne « Qté » des tableaux de facture garde 6 px à 320 px (invisible) : mesurée, la colonne du prix unitaire est bien refermée (≤ 2 px), rien ne s'en voit sur les huit factures"
+}

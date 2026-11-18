@@ -1,0 +1,74 @@
+{
+ "noms": [
+  "Restes accueil, tour 4 — « Marquer terminée » (menu de l'intervention) avec un paiement déjà noté par le technicien : l'argent n'était compté nulle part quand le jour prévu est après octobre (casse B1 du recontrôle du tour 3)",
+  "Restes accueil, tour 4 — le registre biocide passe aussi l'intervention « terminée » sans « Terminer » (même défaut, autre porte, trouvée en cherchant les portes jumelles de B1)",
+  "Restes accueil, tour 4 — « Remettre à faire » puis re-« Terminer » avec un montant corrigé : la ligne de l'Historique gardait l'ancien montant pendant que l'Accueil comptait le nouveau (casse B2)",
+  "Bilan en PDF à 320-360 px avec un montant de 7 chiffres ou plus (1 234 567 €) : la tuile s'élargit et sa section défile de côté",
+  "Une intervention avec plusieurs factures (avoir, facture annulée + nouvelle) : « Terminer » inscrit les espèces sur la PREMIÈRE facture (FACTURES.find)",
+  "Facture déjà payée en entier avant « Terminer », espèces notées en plus : rien n'est compté (voulu), mais aucune alerte n'avertit le bureau qu'un client a payé deux fois"
+ ],
+ "regles": [
+  "Restes accueil, tour 4 — « Marquer terminée » (menu de l'intervention) avec un paiement déjà noté par le technicien : l'argent n'était compté nulle part quand le jour prévu est après octobre (casse B1 du recontrôle du tour 3)",
+  "Restes accueil, tour 4 — le registre biocide passe aussi l'intervention « terminée » sans « Terminer » (même défaut, autre porte, trouvée en cherchant les portes jumelles de B1)",
+  "Restes accueil, tour 4 — « Remettre à faire » puis re-« Terminer » avec un montant corrigé : la ligne de l'Historique gardait l'ancien montant pendant que l'Accueil comptait le nouveau (casse B2)"
+ ],
+ "pasRegles": [
+  {
+   "nom": "Bilan en PDF à 320-360 px avec un montant de 7 chiffres ou plus (1 234 567 €) : la tuile s'élargit et sa section défile de côté",
+   "defaut": "Bilan en PDF à 320-360 px avec un montant de 7 chiffres",
+   "constat": "Non rejoué : le correcteur l'a laissé « à soumettre à Justin » (aucune entreprise du jeu n'approche le million). Reste ouvert, sans changement."
+  },
+  {
+   "nom": "Une intervention avec plusieurs factures (avoir, facture annulée + nouvelle) : « Terminer » inscrit les espèces sur la PREMIÈRE facture (FACTURES.find)",
+   "defaut": "Plusieurs factures sur une même intervention : « Terminer » inscrit les espèces sur la première",
+   "constat": "Ne se reproduit pas avec les données du prototype (aucune intervention n'a deux factures, revérifié : au plus une facture par intervention dans INTS/FACTURES). À rejouer le jour où une intervention en gagne plusieurs."
+  },
+  {
+   "nom": "Facture déjà payée en entier avant « Terminer », espèces notées en plus : rien n'est compté (voulu), mais aucune alerte n'avertit le bureau qu'un client a payé deux fois",
+   "defaut": "Facture déjà payée en entier + espèces notées en plus : aucune alerte au bureau",
+   "constat": "Décision de produit, laissée à Justin. Le calcul reste juste (rien n'est doublé : restes-accueil-3-recontrole B3 vert)."
+  }
+ ],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "« Recommencer la mission (pour l'essai) » (démo, intervention i1, hors application) double la ligne « a noté un paiement reçu sur place »",
+   "gravite": "faible (porte d'essai, bouton masqué en mode application : !enApp())",
+   "etapes": "i1 avec 50 € en espèces notés ; « Terminer » ; « Recommencer la mission » ; « Terminer » de nouveau.",
+   "constat": "L'Historique montre DEUX lignes « 50,00 € · Espèces » pour i1 (restes-accueil-4-recontrole G : g3 = 2 lignes). ACTIONS.recommencer efface le drapeau P.journale sans retirer la ligne déjà écrite, donc journalPaieTerrain (qui garantit « une ligne par intervention ») en écrit une seconde. Défaut d'avant le tour 4, mais il contredit la règle que ce tour a posée. Correctif : recommencer retire la ligne de l'intervention (ou ne touche pas à P.journale)."
+  },
+  {
+   "titre": "Même porte, avec la facture envoyée automatiquement : « Recommencer » puis « Terminer » perd les 50 € de partout",
+   "gravite": "faible (même porte d'essai)",
+   "etapes": "reglages.auto = true ; i1 avec 50 € espèces ; « Terminer » (facture FAC-…0146 partielle 50 €, encaissement 50) ; « Recommencer la mission » ; « Terminer ».",
+   "constat": "Seconde facture FAC-…0147 « envoyée » à 0 € reçu, ENCAISSEMENTS vide pour i1, cpPaieTerrain vide : P.encaisse garde le numéro de l'ancienne facture, donc encaisserPaieTech rend 0 et l'argent n'est compté nulle part (sonde jetable /tmp/r4/g2.js : 0 ✓ · 1 ✗). Correctif : recommencer efface aussi P.encaisse (et P.recuLe) en même temps qu'il retire l'encaissement et la facture."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/restes-accueil-4.js",
+   "resultat": "mac 18 ✓ · 0 ✗ ; iPhone nuit 18 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/restes-accueil-4-recontrole.js (neuve : 3 moyens de paiement dont une virgule par le vrai menu, Comptabilité > Paiements et Historique à l'écran, Remettre à faire puis re-terminer, montant retapé, Annuler sur deux cartes de suite, Recommencer)",
+   "resultat": "mac et iPhone nuit : 18 ✓ · 1 ✗ (G, défaut ci-dessus, d'avant la correction) ; mutation « argentSurPlaceCompter rend null » : 6 ✓ · 13 ✗ ; mutation « la ligne ne suit plus le montant » : F tombe"
+  },
+  {
+   "fichier": "campagne/sondes/restes-accueil-3-recontrole.js",
+   "resultat": "mac 78 ✓ · 0 ✗ ; ABCD iPhone nuit 96 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/accueil-restes-3.js",
+   "resultat": "81 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/accueil-corrections.js · accueil-coherence.js · accueil-recontrole.js · accueil-restes-1.js · accueil-restes-2.js",
+   "resultat": "27 ✓ · 22 ✓ · 15 ✓ · 21 ✓ · 16 ✓, aucun ✗"
+  }
+ ],
+ "doutes": [
+  "« Remettre à faire » (menu) après « Marquer terminée » retire l'argent de l'Accueil mais laisse la ligne « a noté un paiement reçu sur place » dans l'Historique (même comportement qu'après « Terminer ») : c'est une trace de ce qui s'est passé, pas un compte. À confirmer avec Justin que la trace doit rester.",
+  "Le menu « Marquer terminée » ne prépare pas la facture (factureDepuis) et n'encaisse pas sur une facture déjà partie (encaisserPaieTech) : il n'existe aucune intervention non terminée avec facture partie dans le jeu, donc non jouable ; à revoir le jour où le cas existe.",
+  "Capture regardée (Accueil iPhone nuit, Comptabilité > Paiements iPhone nuit, Historique mac jour) : rien de coupé ni de mal aligné ; « dont 90,00 € reçus sur place, pas encore sur une facture » lisible."
+ ]
+}
