@@ -1,0 +1,59 @@
+{
+  "role": "gérant (marc)",
+  "voie": "final-regard",
+  "suffixe": "f-recontrole",
+  "date": "2026-11-18",
+  "population": {
+    "captures": "1 152 captures prises à neuf (39 scènes × mac, windows, ipad, iphone, android, petit, jour ET nuit, comptées une à une dans le dossier cap/regard-gerant-f2, hors dépôt) — les captures du premier agent avaient disparu au redémarrage. Regardées : les quatre écrans corrigés sur les douze combinaisons (mac jour+nuit, windows jour+nuit, ipad jour+nuit, iphone, android, petit : jour+nuit) par captures en grand et par planches de vignettes (17 planches), plus dix écrans tirés au hasard parmi ceux que le premier agent n'a pas signalés (graine 1811).",
+    "sondes_rejouees": "regard-gerant-f.js : 228 ✓ · 0 ✗ (sortie 0, 2 min).",
+    "sondes_neuves": "regard-gerant-f-recontrole.js (la règle générale `.actions .btn` retirée à chaud puis remise, comparée commande par commande : 25 rubriques × 3 rôles (marc, julie, sm) × 3 profils (mac, petit, iphone), 10 + 3 + 38 fenêtres ouvertes par rôle, 0 erreur JS) ; regard-gerant-f-recontrole-plan.js (nom de zone d'un plan contre chaque pastille, 5 profils).",
+    "non_regarde": "windows et android nuit pour les écrans que le premier agent n'a pas déclarés défectueux : relus seulement par planche pour les quatre écrans corrigés ; le rôle kb (chef d'équipe) et les profils ipad/windows/android pour la sonde de voisinage `.actions .btn` (seulement mac, petit, iphone) ; le vrai fichier PDF (le prototype n'en fabrique pas : seul l'aperçu est jugé)."
+  },
+  "regles": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "pasRegles": [
+    {
+      "n": 5,
+      "constat": "Non corrigé (le premier agent l'a laissé « à soumettre ») : l'écran vide du Registre et celui de la Carte des box disent quand un site paraîtra mais ne proposent aucun geste. Revu sur iphone jour et mac nuit : un débutant lit « Aucun site au registre pour l'instant » et ne sait pas quoi faire. Reste à décider par Justin (par quel geste un client est-il « suivi au registre » ?)."
+    },
+    {
+      "n": 6,
+      "constat": "Non corrigé : « Activité, passage après passage » garde trois barres serrées à gauche d'une carte de 1 100 px sur mac et windows (et de 500 px sur ipad) ; tout le reste de la carte est vide. Visible, pas cassé. À soumettre."
+    },
+    {
+      "n": 7,
+      "constat": "Non corrigé, confirmé à 320 px : « Créer le devis » passe sur deux lignes dans la barre du bas du Devis xylophage, le prix reste lisible. Seul le plus petit téléphone est touché ; à 360 px et plus tout tient."
+    }
+  ],
+  "casses": [],
+  "nouveaux": [
+    {
+      "ecran": "Registre sanitaire › aperçu du PDF › « Plan des box · état au dernier passage de la période »",
+      "profils": "iphone, android, petit (jour et nuit) — tablette et ordinateur propres",
+      "constat": "Sur téléphone, trois noms de zone sont à moitié recouverts par une pastille de box : « CUISINE » par la pastille 5, « RÉSERVE » par la 3, « COUR » par la 1 (recouvrement mesuré : 28×8 px sur iphone, 28×10 sur android, 26×13 sur petit). Le plan est un 4/3 réduit à ~280 px de large, les pastilles gardent leurs 30 px et se posent en pourcentage : la première pastille de chaque zone tombe sur le nom. Le même plan dans la page Carte des box et le plan imprimé (« Plan des box en PDF ») sont propres. C'est le document que le client reçoit : à corriger (nom de zone au-dessus des pastilles, ou pastilles plus petites dans l'aperçu). Mesure : node scratchpad/proto-final/sondes/regard-gerant-f-recontrole-plan.js (rouge tant que ce n'est pas corrigé : 17 ✓ · 3 ✗).",
+      "gravite": "moyenne"
+    },
+    {
+      "ecran": "Registre sanitaire / Carte des box › aperçu d'un PDF, barre sous le document",
+      "profils": "tous",
+      "constat": "Après la correction n° 1, « Fermer » est resté seul, aligné à gauche, sous une barre de trois boutons centrés (Voir en grand · Télécharger le PDF · Envoyer par e-mail). Rien n'est cassé ni faux, mais deux alignements se suivent sans raison. Lisible, à soumettre (centrer « Fermer » ou le ranger dans la barre).",
+      "gravite": "faible"
+    }
+  ],
+  "voisinage": {
+    "regle_examinee": ".actions .btn { max-width:100%; white-space:normal; text-align:center; line-height:1.2; padding-block:6px } (commit b8490af8, générale : touche toute commande rangée dans un `.actions`, dans l'application comme dans les fenêtres)",
+    "methode": "scratchpad/proto-final/sondes/regard-gerant-f-recontrole.js : la règle est retirée de la feuille à chaud puis remise ; chaque commande de `.actions` est mesurée avec et sans, sur les 25 rubriques du menu et sur les fenêtres qu'un bouton « ＋ / Nouveau / Ajouter / Modifier / Envoyer » ouvre.",
+    "resultat": "Aucune différence au-dessus de 1 px sur mac (3 rôles) ; sur téléphone (petit, 320 px), dix commandes changent : quatre boutons d'Achats (« Accepter : … l'achète en magasin ») sont plus bas de 7 px AVEC la règle (mieux), « ＋ Nouvelle commande » de Fournisseurs est plus haute de 2,4 px (deux lignes dans les deux cas : le rembourrage de 6 px), « Envoyer à contact@… » (fenêtre de la carte) et « Garder ces réglages pour tous les devis » (devis xylophage) tenaient sur 347 et 300 px dans un écran de 320 : elles passent à la ligne, c'est le but de la règle. Classement de la sonde sur petit et iphone, trois rôles : 4 réparées, 6 neutres, 0 à juger (15 ✓ · 0 ✗, 0 erreur JS) ; mac (marc, julie, sm) : 0 différence. Aucun effet de bord, aucun autre rôle touché."
+  },
+  "doutes": [
+    "Menu latéral sur mac et windows (hauteur 768 à 900 px) : l'entrée « Fournisseurs, matériel & produits » est effacée par le fondu du haut de la liste et ressemble à un élément grisé ; elle ne l'est pas (la liste défile sous la carte du profil). Sur ipad (hauteur 1 180 px) tout le menu est visible. À confirmer que le fondu est voulu.",
+    "États vides en nuit (mac) : une bande diagonale plus claire coupe nettement le fond de page d'un bord à l'autre quand l'écran est vide (Carte des box sans site). Sur un écran rempli elle est cachée par les cartes. Décor du verre ou défaut de fond ? À soumettre.",
+    "Le geste « Planifier » du registre (scène f08 du premier agent) n'a aucune cible : la capture ne s'est jamais prise. Les gestes de la carte des box (« Planifier le passage » → « Passage de contrôle ajouté aux tâches pour le lundi 16 novembre », « Ajouter » la recommandation) fonctionnent ; je n'ai pas trouvé de bouton « planifier » dans le registre lui-même.",
+    "Une bulle (toast) de six secondes reste sur plusieurs captures de suite d'un enchaînement rapide (« Lien valable 7 jours… », « Mérule : pas de traitement chiffré… ») : c'est la durée normale d'une bulle, pas un défaut de l'application, mais sur téléphone elle recouvre une partie du formulaire pendant ce temps.",
+    "Lecture d'une capture : j'ai d'abord pris le papier blanc de l'aperçu du PDF pour sombre sur petit nuit ; la mesure des pixels (255,255,255) a démenti. Je n'ai retenu que ce que la mesure confirme."
+  ]
+}
