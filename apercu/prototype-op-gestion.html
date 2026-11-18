@@ -18055,8 +18055,8 @@ function ttFraisLigne(V){
 }
 function ttOngletMois(){
   const V = PT_GENS.map(paieVariables), B = ttMoisBilan(V), verr = paieVerrouille(), plus = V.reduce((s, v) => s + v.s25 + v.s50, 0), conf = V.filter(v => v.confirme).length;
-  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`, B.enCours && 'la semaine en cours, à valider une fois finie'].filter(Boolean);
-  const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
+  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);   /* la semaine en cours se dit dans sa propre phrase : une seule phrase à cinq éléments dépassait 30 mots */
+  const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' + (B.enCours ? ' La semaine en cours est à valider une fois finie.' : '') : B.enCours ? 'Il reste la semaine en cours, à valider une fois finie.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
   let bouton, lien = '';
   if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
   else if (B.aValider) { bouton = `<button type="button" class="btn" data-tt="validertout">Valider ce qui est en règle</button>`; if (B.R.length) lien = `<button type="button" class="lien" data-tt="areg">Voir les points à régler ›</button>`; }

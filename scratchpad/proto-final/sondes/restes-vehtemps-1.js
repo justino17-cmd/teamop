@@ -131,7 +131,7 @@ const panneau = c => ev(c, () => { const z = document.querySelector('#calque .pa
       // — Mois : une semaine à cheval dit « dont X en octobre », et la somme des lignes retombe sur le chiffre du haut —
       await L.toucher(c, '#contenu [data-tt="onglet|mois"]'); await L.calme(c.p, 400);
       const bilan = net(await ev(c, () => document.querySelector('#contenu').innerText));
-      v(nom + 'Mois : la phrase « Il reste … » cite la semaine en cours, à valider une fois finie', /la semaine en cours, à valider une fois finie/.test(bilan), bilan.slice(0, 400));
+      v(nom + 'Mois : la phrase « Il reste … » cite la semaine en cours, à valider une fois finie', /[Ll]a semaine en cours(,| est) à valider une fois finie/.test(bilan), bilan.slice(0, 400));
       const vm = await ev(c, () => PT_GENS.filter(k => paieVariables(k).semaines.some(w => w.mois !== w.tot)));
       v(nom + 'population : au moins une personne a une semaine à cheval sur deux mois', vm.length >= 1, vm);
       for (const k of vm.slice(0, 3)) {
