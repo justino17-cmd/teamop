@@ -597,7 +597,7 @@ html .ms-evh{display:flex;align-items:center;gap:12px;flex:1 1 240px;min-width:0
 html .ms-evb{display:flex;align-items:center;gap:10px;flex:none}html .ms-evb .btn,html .ms-evb .lien{min-height:44px}
 html .ms-rouge{color:var(--rouge)}
 html .ms-de-vers{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);gap:8px;align-items:end}html .ms-echange{width:48px;height:48px;border-radius:50%;border:1px solid var(--trait2);background:var(--surf2);color:var(--encre);display:grid;place-items:center;margin-bottom:2px}html .ms-echange svg{width:22px;height:22px}
-html .ms-reg{display:flex;gap:12px;align-items:flex-start;padding:12px 0}html .ms-reg input{margin-top:4px}
+html .ms-reg{display:flex;flex:none;gap:12px;align-items:flex-start;padding:12px 0}   /* flex:none : dans la feuille (colonne flex) la case se rétrécissait à 44 px et sa phrase de deux lignes débordait sur la case d'en dessous (320 px, Réglages du stock) */html .ms-reg input{margin-top:4px}
 html .fo-garder>span:not(.gris){display:flex;flex-direction:column;gap:2px;min-width:0}   /* le titre d'une case et sa phrase sur deux lignes, jamais collés */
 html .ms-cbar{display:flex;gap:8px;flex-wrap:wrap}html .ms-cbar .btn{min-height:44px}
 html .ms-cliste{padding:4px 14px}html .ms-csom{flex:1 1 100%}
@@ -722,6 +722,7 @@ html .fx-c .md-t>b{overflow-wrap:anywhere}
 html .fx-fc{margin-top:12px}html .fx-fc h3{margin:0 0 6px}
 html .fx-lg{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0;border-bottom:1px solid var(--trait)}html .fx-fc>.fx-lg:last-of-type{border-bottom:0}
 html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:2px}html .fx-aide{display:block}
+html .fx-mailv{display:none}   /* l'adresse e-mail des commandes, en toutes lettres : sur un petit téléphone le champ la coupe (« …-atl »), et un champ de saisie ne passe pas à la ligne — la ligne dessous, si (voir ≤ 400 px) */
 html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .saisie[type=email]{width:min(70%,340px)}   /* « commandes@climpieces-atlantique.fr » se lit en entier (il était coupé à « …-atl ») */html .fx-lg .fx-n{width:112px;text-align:right}
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
 html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
@@ -785,12 +786,18 @@ html .fx-etape{display:flex;flex-direction:column;gap:2px;margin:10px 0 4px}html
   /* trois onglets dans 286 px : police et marges resserrées, la pastille de compte aussi */
   html .fx-seg button{padding:0 4px;gap:4px;font-size:13.5px}html .fx-seg .pr-nb{min-width:20px;height:20px;font-size:12px;padding:0 5px}
 }
-@media (max-width:340px){html .fx-seg button{padding:0 5px!important;gap:3px!important;font-size:12px!important}html .fx-seg .pr-nb{min-width:0;padding:0 2px;font-size:10.5px}html .fx-seg .pr-nb:not(.chaud){background:none;padding:0}html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){padding-inline:8px;font-size:14px}}   /* 320 px (iPhone SE) : « Commandes 6 », « Articles 29 » et « Fournisseurs 5 » tiennent dans leur bouton sans que le compteur touche le mot du voisin (le contenu dépassait de 4 px) ; puis le mot touchait le bord de la pilule (1 px) : les compteurs sans alerte perdent leur pastille et tout rentre avec 5 px de marge ; le bouton principal de l'en-tête (« ＋ Ajouter un article », « ＋ Nouvelle commande ») passe à 14 px et 8 px de marge pour tenir sur UNE ligne (regard gérant C) */
+@media (max-width:340px){html .fx-seg button{padding:0 5px!important;gap:3px!important;font-size:12px!important}html .fx-seg .pr-nb{min-width:0;padding:0 2px;font-size:10.5px}html .fx-seg .pr-nb:not(.chaud){background:none;padding:0}html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){padding-inline:6px;font-size:14px}html .fx-tete .actions{gap:6px}html #contenu .tete.fx-tete .actions>.fx-photo,html #contenu .tete.fx-tete .actions>.fx-plusb{width:44px!important;min-width:44px!important}}   /* 320 px (iPhone SE) : « Commandes 6 », « Articles 29 » et « Fournisseurs 5 » tiennent dans leur bouton sans que le compteur touche le mot du voisin (le contenu dépassait de 4 px) ; puis le mot touchait le bord de la pilule (1 px) : les compteurs sans alerte perdent leur pastille et tout rentre avec 5 px de marge ; le bouton principal de l'en-tête (« ＋ Ajouter un article », « ＋ Nouvelle commande ») passe à 14 px et 8 px de marge pour tenir sur UNE ligne (regard gérant C) */
 @media (max-width:520px){
   html .fx-lg{flex-direction:column;align-items:stretch;gap:6px}html .fx-lg .dt-btn{width:100%}html .fx-lg .saisie,html .fx-lg .saisie[type=email],html .fx-lg .fx-n{width:100%;text-align:left}html .fx-lg .pdx-tel{width:100%}html .fx-jours{width:100%}html .fx-jours .saisie{flex:1 1 0;width:auto;min-width:0}
   html .fx-ep{width:100%}html .fx-eq,html .fx-ep,html .fx-et{flex:1 1 100%;text-align:left}
 }
 /* regard gérant C, 17 novembre 2026 — téléphone étroit */
+@media (min-width:341px) and (max-width:380px){
+  html .fx-tete .actions>.btn:not(.fx-photo):not(.fx-plusb){padding-inline:10px;font-size:15px}   /* 360 px : « ＋ Ajouter un fournisseur » (184 px à 15 px) tient dans les 200 px utiles du bouton noir ; à 16 px et 18 px de marge il passait sur deux lignes */
+}
+@media (max-width:400px){
+  html .fx-mailv{display:block;font-size:16px;line-height:1.35;overflow-wrap:anywhere;color:var(--doux)}   /* 16 px : lisible, et le même corps que le champ (iOS ne zoome pas) */
+}
 @media (max-width:380px){
   html .fx-ch{flex-wrap:wrap}html .fx-ch>div{flex:1 1 100%}html .fx-ch h3{white-space:normal}   /* « À commander · 6 » et « Tout préparer · 4 » se touchaient à 360 px : le bouton passe dessous */
 }
@@ -10003,6 +10010,7 @@ document.addEventListener('change', ev => {
   if (t.matches('[data-fofacopt]')) { FO_FAC[t.dataset.fofacopt] = t.checked; return foRefocus(() => foGarder(foFactureVue)); }
 });
 document.addEventListener('input', ev => {
+  if (ev.target.matches('[data-fochamp$="|mail"]')) { const l = ev.target.closest('label').querySelector('.fx-mailv'); if (l) l.textContent = ev.target.value.trim(); return; }   /* la ligne d'adresse (petit téléphone) suit ce qu'on tape */
   if (!ev.target.matches('[data-foq]')) return;
   foQ = ev.target.value; const pos = ev.target.selectionStart; foGarder(fournListe);
   const i = document.querySelector('[data-foq]'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} }
@@ -16734,7 +16742,7 @@ function prFiche(id){
   const noir = tech ? `<button type="button" class="btn" data-ms="fusage|${x.id}">J’ai utilisé</button>` : (e && ['plus', 'bientot'].includes(e.k)) ? `<button type="button" class="btn" data-ms="fcmd|${x.id}">Commander</button>` : `<button type="button" class="btn" data-ms="fq|sortir|${x.id}">Sortir du stock</button>`;
   const bout = sxEstFluide(x) ? sxBoutsDe(x.id) : [];
   ouvrirPanneau(`<span class="surtitre">${esc(P.nom.split(/ \/|,/)[0])} › ${esc(x.cat)}</span><h2>${esc(x.nom)}</h2>
-    <span class="gris">Réf. ${esc(x.ref)}${x.four && x.four !== '—' ? ' · ' + (f ? `<button type="button" class="lien ms-lien" data-fo="fiche|${f.id}">${esc(x.four)}</button>` : esc(x.four)) : ''}</span>
+    <span class="gris">${msPts(['Réf.\u00a0' + esc(x.ref)].concat(x.four && x.four !== '—' ? [f ? `<button type="button" class="lien ms-lien" data-fo="fiche|${f.id}">${esc(x.four)}</button>` : esc(x.four)] : []))}</span>
     <div class="ms-rep carte"${matVis('article-reste')}><div class="ms-big">${x.q > 0 ? 'Il en reste ' + sxQte(x.q, x) : 'Il n’en reste plus'}${e ? ` <span class="st ${e.cls}">${esc(e.mot)}</span>` : ''}</div>${L.length ? `<div class="gris petit">${rep}</div>` : ''}
       ${tech ? '' : `<div class="ms-seuil">${ed ? `<label class="champ">Je te préviens quand il en reste moins de<input class="saisie" inputmode="decimal" data-msf="seuil" value="${prNum(x.seuil)}" id="ms-seuil"></label><span class="ms-fb"><button type="button" class="btn petit" data-ms="fseuil|${x.id}">Enregistrer</button><button type="button" class="btn gris petit" data-ms="fseuilx">Annuler</button></span>`
         : `<button type="button" class="lien ms-lien" data-ms="fseuilo|${x.id}">${x.seuil > 0 ? `Je te préviens quand il en reste moins de ${prNum(x.seuil)}` : 'Je ne te préviens pas : choisis à partir de combien'}</button>${cons ? `<span class="gris petit">Conseil : sous ${cons}, d’après ce que tu utilises <button type="button" class="lien ms-lien" data-ms="fseuil|${x.id}|${cons}">Mettre ${cons}</button></span>` : ''}`}</div>`}
@@ -17576,7 +17584,7 @@ function fournFiche(id){
     <div class="carte fx-fc"><h3>Comment le joindre</h3>
       ${lg('Nom du contact', txt('contact', 'ex. Mme Lefèvre'))}
       ${lg('Téléphone', `<span class="pdx-tel">${txt('tel', '05 …', 'inputmode="tel"')}${f.tel ? `<a class="btn gris petit" href="${lienTel(f.tel)}">Appeler</a>` : ''}</span>`)}
-      ${lg('E-mail pour les commandes', `<input class="saisie" type="email" inputmode="email" data-fochamp="${f.id}|mail" value="${esc(f.mail || '')}" placeholder="commandes@…">`, f.mail ? '' : '<span class="st st-o">À ajouter</span> Ajoute-le pour envoyer les commandes')}
+      ${lg('E-mail pour les commandes', `<input class="saisie" type="email" inputmode="email" data-fochamp="${f.id}|mail" value="${esc(f.mail || '')}" placeholder="commandes@…">`, f.mail ? `<span class="fx-mailv">${esc(f.mail)}</span>` : '<span class="st st-o">À ajouter</span> Ajoute-le pour envoyer les commandes')}
       ${d && lienSur(d.site) ? `<div class="ligne"><span>Son site</span><a class="lien" href="${esc(lienSur(d.site))}" target="_blank" rel="noopener noreferrer">${esc(d.site.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))} ↗</a></div>` : ''}</div>
     <!-- au comptoir on emporte : ni livraison gratuite, ni port, ni délai (une saisie par notion, spec § 7.4) -->
     <div class="carte fx-fc"><h3>Comment il livre</h3>
