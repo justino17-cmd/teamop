@@ -19703,7 +19703,9 @@ mlCreneaux = function(n = 3){
       if (t && !L.some(o => o.d === d)) { L.push({ d, h, t }); break; } } }
   return L;
 };
-function mbxOptions(m, prop){ if (!prop || prop.id !== m.id) return; mbxLiberer(m.id);
+/* tenir un créneau en option ÉCRIT au planning : sans la case Planning (modifier), la réponse part quand même (c'est un courriel) mais rien n'est bloqué — et rien ne dit « tenu en option » (restes entreprise, tour 4) */
+const mbxPeutTenir = () => peut('planif', 'm');
+function mbxOptions(m, prop){ if (!prop || prop.id !== m.id || !mbxPeutTenir()) return; mbxLiberer(m.id);
   prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + mailNom(m), option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
 function mbxLiberer(id){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) BUREAU.splice(k, 1); }
 function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optExp < AUJ) BUREAU.splice(k, 1); }
@@ -19711,7 +19713,7 @@ function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].
   if (b.option) h = h.replace('class="pc bur ', 'class="pc bur mbx-opt ').replace('Créneau bloqué', 'Option · libre sous 48 h'); return h; }; })();
 /* la réponse du client : un message de démonstration arrive 4 secondes après l'envoi des créneaux */
 function mbxReponseClient(id){ const m = mlDe(id), p = m && m.attente && m.attente.prop; if (!m || !p || !p.length) return;
-  const c = p[0], r = mlM('m' + Date.now(), AUJ, hm(MAINT_MIN), { nom:m.de.nom, mail:m.de.mail }, (/^re\s*:/i.test(m.objet) ? m.objet : 'Re: ' + m.objet), 'Bonjour,\n\nLe ' + jlong(c.d) + ' à ' + mlH(c.h) + ' ira très bien.\n\nMerci,\n' + m.de.nom, { boite:m.boite, cren:{ choix:c, liste:p, orig:m.id } });
+  const c = p[0], r = mlM('m' + Date.now(), AUJ, hm(MAINT_MIN), { nom:m.de.nom, mail:m.de.mail }, (/^re\s*:/i.test(m.objet) ? m.objet : 'Re: ' + m.objet), 'Bonjour,\n\nLe ' + jlong(c.d) + ' à ' + mlH(c.h) + ' ira très bien.\n\nMerci,\n' + m.de.nom, { boite:m.boite, cren:{ choix:c, liste:p, orig:m.id, tenus:!!m.attente.tenus } });
   MAILS.push(r); m.attente = null; if (route === 'boiteMail') rendre(); toast(esc(m.de.nom) + ' a répondu : ' + jlong(c.d) + ' à ' + mlH(c.h) + '.', { lib:'Ouvrir', fn:() => { r.lu = true; courrierOuvrir(r.id); } }); }
 
 /* ── ce qui se passe quand une réponse part ── */
@@ -19719,12 +19721,12 @@ function mbxApresEnvoi(m, t){
   const mo = mlRep && mlRep.modele, h = hm(MAINT_MIN), R = mlLire(m), cli = mbxCliDe(m);
   if (mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id) MBX.crProp = { id:m.id, list:MBX.crProp.list.filter(c => String(t).includes(jlong(c.d) + ' à ' + mlH(c.h))) };
   m.rep = { d:AUJ, h, mo };
-  if (['creneau', 'devis', 'question', 'relance'].includes(mo)) { m.attente = { d:AUJ, h, mo, prop:mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id && MBX.crProp.list.length ? MBX.crProp.list : null }; if (mo === 'relance') m.relances = (m.relances || 0) + 1; }
+  if (['creneau', 'devis', 'question', 'relance'].includes(mo)) { m.attente = { d:AUJ, h, mo, prop:mo === 'creneau' && MBX.crProp && MBX.crProp.id === m.id && MBX.crProp.list.length ? MBX.crProp.list : null }; m.attente.tenus = !!m.attente.prop && mbxPeutTenir(); if (mo === 'relance') m.relances = (m.relances || 0) + 1; }
   else m.attente = null;
   if (mo === 'creneau') { mbxOptions(m, MBX.crProp); setTimeout(() => mbxReponseClient(m.id), 4000); }
   if (mo === 'confirm') m.prevenu = h;
   if (!m.fait && ['msgcli', 'msgfour', 'trier'].includes(R.sujet) && !m.attente) mlTraite(m, 'Répondu à ' + h.replace(':', ' h '));
-  journalAjout('marc', 'client', 'a répondu à ' + m.de.nom, { t:'client', id:cli || '', lib:cli ? CLIENTS[cli].nom : m.de.nom, cli:cli || '' }, { det:m.objet + (mo === 'creneau' && m.attente && m.attente.prop ? ' · ' + m.attente.prop.length + ' créneau' + (m.attente.prop.length > 1 ? 'x' : '') + ' proposé' + (m.attente.prop.length > 1 ? 's' : '') + ', tenu' + (m.attente.prop.length > 1 ? 's' : '') + ' en option' : '') });
+  journalAjout('marc', 'client', 'a répondu à ' + m.de.nom, { t:'client', id:cli || '', lib:cli ? CLIENTS[cli].nom : m.de.nom, cli:cli || '' }, { det:m.objet + (mo === 'creneau' && m.attente && m.attente.prop ? ' · ' + m.attente.prop.length + ' créneau' + (m.attente.prop.length > 1 ? 'x' : '') + ' proposé' + (m.attente.prop.length > 1 ? 's' : '') + (m.attente.tenus ? ', tenu' + (m.attente.prop.length > 1 ? 's' : '') + ' en option' : '') : '') });
 }
 
 mlActions = function(m, R){
@@ -19748,7 +19750,7 @@ function mbxStatutTextes(m){
   const R = mlLire(m), T = [];
   if (m.rep) T.push(`Répondu ${mbxRepQuand(m.rep)}`);
   if (R.relance) T.push(`Sans réponse depuis ${mbxNb(mbxOuvres(m.attente.d, AUJ), 'jour ouvré', 'jours ouvrés')}`);
-  else if (m.attente) T.push('En attente de sa réponse' + (m.attente.prop ? ' · ' + ['', 'un créneau tenu', 'deux créneaux tenus', 'trois créneaux tenus'][m.attente.prop.length] + ' en option' : ''));
+  else if (m.attente) T.push('En attente de sa réponse' + (m.attente.prop ? ' · ' + (m.attente.tenus ? ['', 'un créneau tenu', 'deux créneaux tenus', 'trois créneaux tenus'][m.attente.prop.length] + ' en option' : ['', 'un créneau proposé', 'deux créneaux proposés', 'trois créneaux proposés'][m.attente.prop.length]) : ''));
   if (m.prevenu) T.push('Client prévenu à ' + m.prevenu.replace(':', ' h '));
   if (m.confie && !m.confie.fini) T.push('Confié à ' + prenomDe(m.confie.qui));
   return T;
@@ -19891,7 +19893,7 @@ function courrierBandeau(m){
   else if (R.sujet === 'expedition' && R.cmd) det = `date de livraison actuellement dans OP GESTION : ${R.cmd.prevue ? jCourt(R.cmd.prevue) : 'aucune'}`;
   else if (R.sujet === 'paiement' && R.facture) { det = `${eur(R.ttc)} TTC, ${R.facture.st === 'payee' ? 'déjà payée' : 'pas encore réglée'}`;
     if (R.montant != null && R.facture.st !== 'payee') { const ok = Math.abs(R.montant - R.reste) < .01; note = ok ? `Il annonce ${eur(R.montant)} ; il reste ${eur(R.reste)} TTC à payer : ça correspond.` : R.montant < R.reste ? `Il annonce ${eur(R.montant)} pour ${eur(R.reste)} à payer : un acompte ? La facture ne sera pas soldée.` : `Il annonce ${eur(R.montant)}, plus que les ${eur(R.reste)} à payer : à vérifier.`; } }
-  else if (R.sujet === 'choixcren') note = `Il choisit le ${jlong(m.cren.choix.d)} à ${mlH(m.cren.choix.h)}, l’un des trois créneaux que tu lui avais tenus en option.`;
+  else if (R.sujet === 'choixcren') note = `Il choisit le ${jlong(m.cren.choix.d)} à ${mlH(m.cren.choix.h)}, l’un des trois créneaux que tu lui avais ${m.cren.tenus ? 'tenus en option' : 'proposés'}.`;
   else if (R.sujet === 'trier') det = `inconnu dans tes clients et tes fournisseurs${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}. Dis-lui qui c’est : ça range tout seul la suite.`;
   else if (R.qui === 'nouveau') det = `inconnu dans tes clients${R.tel ? ', tél. ' + R.tel : ''}${R.ville ? ', ' + R.ville : ''}`;
   else if (R.sujet === 'msgcli' || R.sujet === 'msgfour') det = 'pas de demande reconnue dans le texte : lis-le et réponds, ou garde-le en tâche.';
