@@ -1,0 +1,45 @@
+{
+ "noms": [
+  "« Enregistrer cette vue » (Planning › Mes vues) : exemple du nom de vue qui suit le métier",
+  "Fiche client › Appareils › « Ajouter un appareil » : exemples et libellé du détail qui suivent le métier",
+  "« Saisir un passage » : phrase du camion qui ne se contredit plus, « Voir le Stock › » sur sa propre ligne"
+ ],
+ "regles": [
+  "Les trois entrées annoncées « corrigées » tiennent, rejouées au navigateur (vrais boutons) : restes-2 V 40 ✓ · 0 ✗ (7 jeux de métier), A 40 ✓ · 0 ✗, R 39 ✓ · 0 ✗ (Mac gérant, iPhone nuit gérant, iPhone technicienne ; camion vide ET plein vus).",
+  "Rien cassé à côté sur les écrans qui partagent la table d'exemples : balayage statique T 29 ✓ · 0 ✗, balayage des champs d'exemple par vrais boutons M plomb / nettoyage / 3D / chauffage / climatisation 5 ✓ · 0 ✗ chacun, restes-1 82 ✓ · 0 ✗, recontrole-f 10 ✓ · 0 ✗ ; la climatisation et la démonstration gardent « équipe clim », Daikin et « gaz » (contre-épreuve).",
+  "La phrase du camion : 196 ✓ · 0 ✗ sur téléphone étroit 320 px nuit, iPad nuit, Mac (autre rôle, julie) et iPhone, applicateur changé 9 fois de suite dans les deux sens (camion plein 7 fois, vide 2) : jamais « ne bouge pas » avec un camion plein ni « descend » avec un camion vide, une seule phrase, rien ne sort de l'écran, « Voir le Stock › » sous la phrase et assez haut pour un doigt, et il MÈNE au Stock.",
+  "Fiche client › Appareils › « Ajouter un appareil » (3D, nettoyage, plomberie) : aucun mot de climatisation (gaz, R32, Daikin, split) dans le TEXTE du panneau (15 ✓ · 0 ✗) ; « Modifier » un appareil existant garde ses valeurs ; un appareil saisi s'enregistre bien (le champ n'avait pas gardé l'exemple)."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Les exemples d'un champ sont coupés sur un téléphone de 320 px : « ex. équipe du matin, chantier Mimosas » (Enregistrer cette vue) et « ex. Chaudière gaz à condensation » (nom d'appareil du chauffage)",
+   "gravite": "mineur",
+   "etapes": "Profil « petit » (320 px), nuit, Planning › Sur mesure › Mes vues › « Enregistrer la vue actuelle » (tous les métiers sauf climatisation et démonstration) ; ou Clients › un client › Appareils › « Ajouter un appareil » (chauffage). Mesuré par canvas à la police du champ : 291 px de texte pour 238 px de place (nom de vue), 257 pour 238 (chaudière), 240 pour 238 (« ex. nom ou modèle de l’appareil », deux pixels : à peine). Sur iPhone 390, iPad et Mac : tout tient.",
+   "constat": "Capture rc2-vue-petit-chauf.png : « ex. équipe du matin, chantier Mimo » et le reste est coupé sans points de suspension. Ce n'est pas un défaut de logique, un exemple coupé reste lisible, mais la climatisation d'origine (« ex. équipe clim, chantier Mimosas », 257 px) l'était déjà (19 px de trop) ; les nouveaux textes sont 34 px plus longs. Correction proposée, sans toucher au sens : « ex. équipe du matin » et « ex. Chaudière gaz » (ou « ex. Chaudière condensation »)."
+  }
+ ],
+ "sondes": [
+  { "fichier": "campagne/sondes/metier-3d-restes-2.js V", "resultat": "40 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-2.js A", "resultat": "40 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-2.js R", "resultat": "39 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js T", "resultat": "29 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js C", "resultat": "49 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js S", "resultat": "47 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js M plomb, nett, d3, chauf, clim", "resultat": "5 ✓ · 0 ✗ chacun" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1-recontrole.js M d3clim", "resultat": "3 ✓ · 2 ✗ — voir doutes : la sonde attend des exemples de climatisation pour un jeu 3D + climatisation, que la règle de famille ne lui donne pas (neutre) ; ancien comportement, non introduit par le tour 2" },
+  { "fichier": "campagne/sondes/metier-3d-restes-1.js", "resultat": "82 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-recontrole-f.js", "resultat": "10 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-2-recontrole.js C (neuve)", "resultat": "196 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-2-recontrole.js X (neuve)", "resultat": "15 ✓ · 0 ✗" },
+  { "fichier": "campagne/sondes/metier-3d-restes-2-recontrole.js P (neuve)", "resultat": "253 ✓ · 7 ✗ : les 7 ✗ sont tous à 320 px (voir nouveaux) ; iPhone, iPad, Mac : 0 ✗" },
+  { "fichier": "mutations sur copie du fichier, restaurée par git checkout (git status propre après)", "resultat": "camion « descend » toujours : C 188 ✓ · 8 ✗ ; lien « Voir le Stock » remis sur la ligne de la phrase : C 120 ✓ · 4 ✗ ; exemple Daikin remis (clé 3D ET clé neutre retirées) + libellé « gaz » remis : X 12 ✓ · 3 ✗. La première mutation de l'exemple (clé de la 3D seule retirée) ne tombait pas : la table neutre prend le relais, mutation neutralisée par une autre garde, pas banc aveugle." }
+ ],
+ "doutes": [
+  "Une entreprise qui fait de la 3D ET de la climatisation (d3clim) tombe dans la famille « gen » (metiersFamille : seuls climatisation, chauffage et plomberie entre eux forment « cvc ») : ses exemples sont neutres (« ex. nom ou modèle de l’appareil », « il n’en reste presque plus »), le libellé du détail d'un appareil ne dit pas « gaz ». Propre et juste, mais un installateur de clim qui fait aussi de la dératisation perd ses exemples de clim ; à valider avec Justin (famille mixte).",
+  "Même règle de famille : un métier du froid ou de l'électricité reçoit le libellé « type, emplacement, année » sans « gaz » ; pour le froid (fluide frigorigène) le mot serait utile. Décision de produit.",
+  "« Voir le Stock › » a maintenant sa ligne (44 px de zone tactile, un vide d'environ 40 px autour du lien, vu sur les captures rc2-camion-*.png) ; propre, un peu aéré sur iPad.",
+  "Les décisions de produit relevées au tour 1 restent à soumettre à Justin (metier-3d-06, -08, -09, -10 ; « Tous les sites » en cartes à 1280 px) : rien n'a été touché."
+ ]
+}
