@@ -1,0 +1,122 @@
+{
+ "role": "gérant (marc)",
+ "date": "2026-11-18",
+ "rubriques": [
+  {
+   "nom": "Stock",
+   "ecrans": "Articles, Ce qui a bougé, feuilles (Que veux-tu faire, Envois, Filtrer, Compter, Voir le stock), fiche article (stock, rupture), états vide / recherche vide / plein long",
+   "captures": 123,
+   "regardees": 123,
+   "note": "iPhone nuit : 123 captures, toutes regardées en planches ; petit (320) jour : 53 premières vues regardées ; mac nuit, iPad et iPhone jour prises (53 scènes chacune), non regardées"
+  },
+  {
+   "nom": "Fournisseurs, matériel & produits",
+   "ecrans": "Commandes, Articles, Fournisseurs, fiches, création (article, fournisseur, commande), photo de facture, import de prix, articles habituels, rangement, états vides et pleins longs",
+   "captures": 123,
+   "regardees": 123
+  },
+  {
+   "nom": "Dépôts et camions",
+   "ecrans": "liste, Plus, Remplir les camions, nouvelle réserve, fiches camion / atelier / réserve, réserves fermées, vide, valeurs longues",
+   "captures": 123,
+   "regardees": 123
+  }
+ ],
+ "defauts": [
+  {
+   "n": 1,
+   "ecran": "Stock, Dépôts : bandeaux",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "rond vide à gauche qui ressemble à une case à cocher",
+   "etat": "corrigé",
+   "changement": ".ms-bandeau .t-etat{display:none} (sonde §1)"
+  },
+  {
+   "n": 2,
+   "ecran": "menu : Fournisseurs, matériel & produits",
+   "profils": "mac, mac720, windows, ipad",
+   "jourNuit": "jour",
+   "constat": "hauteur de l'entrée différente choisie ou non ; pastille rouge collée au bord",
+   "etat": "corrigé",
+   "changement": ".menu a .nb marge et rembourrage (sonde §2)"
+  },
+  {
+   "n": 3,
+   "ecran": "Stock › Articles",
+   "profils": "iphone, android, petit",
+   "jourNuit": "jour et nuit",
+   "constat": "pastille d'état à côté du nom qui l'écrase sur deux lignes",
+   "etat": "corrigé",
+   "changement": "grille sous 430 px : l'état sous le nom (sonde §3)"
+  },
+  {
+   "n": 4,
+   "ecran": "recherches",
+   "profils": "téléphones, iPad",
+   "jourNuit": "jour et nuit",
+   "constat": "invites coupées net dans leur champ",
+   "etat": "corrigé",
+   "changement": "invites courtes au téléphone + text-overflow:ellipsis (sonde §4)"
+  },
+  {
+   "n": 5,
+   "ecran": "Commandes : À commander",
+   "profils": "android, petit",
+   "jourNuit": "jour",
+   "constat": "titre et « Tout préparer » se touchent",
+   "etat": "corrigé",
+   "changement": ".fx-ch en wrap sous 380 px (sonde §5)"
+  },
+  {
+   "n": 6,
+   "ecran": "Stock vide",
+   "profils": "android, petit, iphone",
+   "jourNuit": "jour et nuit",
+   "constat": "« Choisir parmi les articles habituels de mon métier » sort de sa carte",
+   "etat": "corrigé",
+   "changement": ".ms-vb .btn à la ligne (sonde §6)"
+  },
+  {
+   "n": 7,
+   "ecran": "Fiche fournisseur",
+   "profils": "mac, ipad",
+   "jourNuit": "jour",
+   "constat": "adresse e-mail des commandes coupée",
+   "etat": "corrigé",
+   "changement": "champ e-mail plus large (sonde §7)"
+  },
+  {
+   "n": 8,
+   "ecran": "Fournisseurs, Remplir les camions",
+   "profils": "petit",
+   "jourNuit": "jour",
+   "constat": "numéro de commande coupé au tiret ; « 6 » seul sur sa ligne",
+   "etat": "corrigé",
+   "changement": "tiret insécable, point médian insécable (sonde §8)"
+  },
+  {
+   "n": 9,
+   "ecran": "Fiche camion",
+   "profils": "petit (320)",
+   "jourNuit": "jour",
+   "constat": "« 228 394,90 € » dépasse sa tuile (111 px dans 102)",
+   "etat": "corrigé",
+   "changement": "police 15 px et rembourrage 8 px sous 340 px (sonde §9)"
+  },
+  {
+   "n": 10,
+   "ecran": "Dépôts et camions : cartes",
+   "profils": "iphone (vu), tous téléphones",
+   "jourNuit": "nuit",
+   "constat": "« 281 859 021,34 € » coupé avant la virgule sur deux lignes",
+   "etat": "corrigé",
+   "changement": "white-space:nowrap sur les montants des cartes (sonde §10, mutation 11)"
+  }
+ ],
+ "laisses": [
+  "petit (320 px) : le segmenté « Commandes 5 · Articles 29 · Fournisseurs 5 » et les boutons principaux (« + Nouvelle commande » sur deux lignes) sont serrés mais lisibles — à soumettre si Justin les trouve trop petits",
+  "fiche article : la ligne bleue des lieux finit parfois sur un point médian orphelin (« à l'atelier 5 · ») — cosmétique",
+  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu (règle .fo-dr .st), lisible"
+ ]
+}

@@ -204,7 +204,7 @@ parcours('R11 · planning-11 : Vue d’ensemble, colonne collante et carte amen�
   await vue(c, 'general');
   const info = await c.p.evaluate(() => { const sc = document.querySelector('.pl-defile:has(.pg-g)'); if (!sc) return null; const cs = getComputedStyle(sc); const g = sc.querySelector('.pg-tec'), r = g.getBoundingClientRect();
     return { spl: cs.scrollPaddingLeft, sw: sc.scrollWidth, cw: sc.clientWidth, colL: Math.round(r.width), pos: getComputedStyle(g).position, nCartes: sc.querySelectorAll('[data-int]').length }; });
-  console.log('   conteneur :', JSON.stringify(info)); L.v('R11 · la vue d’ensemble a un conteneur qui défile de côté', !!info && info.sw > info.cw, info); if (!info) return;
+  console.log('   conteneur :', JSON.stringify(info)); L.v('R11 · la vue d’ensemble a un conteneur qui défile de côté (ou, sur ordinateur, tient tout entière depuis que le samedi n’est plus coupé)', !!info && (info.sw > info.cw || c.largeur >= 1000), info); if (!info) return;
   L.v('R11 · son scroll-padding-left couvre la colonne des noms (' + info.spl + ' pour ' + info.colL + ' px)', parseFloat(info.spl) >= info.colL, info);
   // chaque carte, amenée par focus : visible, ET à droite de la colonne des noms
   const res = await c.p.evaluate(async () => { const sc = document.querySelector('.pl-defile:has(.pg-g)'); const cartes = [...sc.querySelectorAll('[data-int]')]; const mal = [], cou = []; let n = 0;

@@ -1,0 +1,51 @@
+{
+  "noms": [
+    "tout-08 — suivi d'une demande en « Voir seul » (puce, ni boutons ni champ, garde ranger dans changerSuivi)",
+    "bandeau « OP GESTION a reconnu » en « Voir seul » : plus de gestes, liens gardés",
+    "refus de champ sur téléphone : la bulle ne recopie plus le message déjà visible sous le champ",
+    "entreprise-achats-lisible : ne se reproduit pas"
+  ],
+  "regles": [
+    "suivi en lecture seule : rejoué (restes1-recontrole g : 5 ✓ · 0 ✗ ; sonde neuve b, six profils jour et nuit : 9 demandes par profil, toutes en lecture, 0 bouton, 0 champ, page qui ne glisse pas) ; captures iPhone, petit nuit, Mac lues : puce nette sous « Suivi », bannière « Tu peux regarder cet écran » au-dessus",
+    "bandeau en « Voir seul » : rejoué (entreprise-restes2-bandeau : 5 ✓ · 0 ✗ ; 11 messages, 11 liens, 0 geste ; la garde refuse encore par l'hôte) ; mutation (condition retirée) : 4 ✓ · 1 ✗, elle mord",
+    "bulle d'un refus de champ : rejoué (entreprise-restes2-toast : 11 ✓ · 0 ✗) ; étendu aux QUATRE panneaux d'entVerifier (identité, mentions légales — qui s'ouvre par data-cx=ficheok —, banque, horaires) sur iPhone, Android nuit, petit 320×568 et 320×400 nuit : 60 ✓ · 0 ✗ (refus dit une fois exactement : message dans la FENÊTRE ou bulle, jamais les deux, jamais aucun) ; mutation (retour anticipé retiré) : 4 ✗ ; planche lue, rien de coupé",
+    "entreprise-achats-lisible : 142 ✓ · 0 ✗, la phrase « 0,60 € le km » n'existe plus (0 occurrence)",
+    "sondes voisines rejouées à zéro ✗ : restes1-recontrole (70 ✓), mail-gestes (25), mail-liens (11), mail-reconnaissance (70), mail-corr-lecture (22), mail-recontrole-fin (12), droits-lecture-seule (36), entreprise-lecture-seule (56)"
+  ],
+  "pasRegles": [],
+  "casses": [
+    {
+      "titre": "Boîte mail : avec « Modifier » à la Boîte mail seule (les autres catégories en « Voir seul »), le bandeau OFFRE et EXÉCUTE des gestes qui écrivent dans le devis, les achats, les tâches — la garde ne regarde que la case Boîte mail",
+      "gravite": "moyenne (droits ; l'écart existait avant la correction, mais sa justification « tous refusés par la garde » n'est vraie que pour « Voir seul »)",
+      "etapes": "Entreprise fictive, personne fabriquée avec com = 1111 et planif/inter/crm/ventes/compta/stock/achats = 1000 (sondes/entreprise-restes2-recontrole.js a). Boîte mail, ouvrir chaque message, jouer chaque geste du bandeau par courrierAgir.",
+      "constat": "28 gestes offerts, 1 seul refusé (« L'argent est déjà arrivé : enregistrer le paiement » → ventes.c ajoutEnc : offert ET refusé). Les 27 autres passent : « Noter l'accord du devis » fait passer le devis de « attente » à « accepte » (dvAccepter, sans droit Devis), « Mettre à jour la livraison prévue » change la date d'une commande (COMMANDES, sans droit Achats), « En faire une tâche » ajoute 7 tâches, « Rapprocher et ranger dans les achats » ouvre le panneau d'achat. Cause : dans GESTES, les familles mbx et ml sont toutes en k:'com', et les verbes accord, livraison, tache, creerint, devis… n'y sont pas listés (règle 4 : traités comme une modification de com). À trancher par Justin : le bandeau « agit pour toi » (la Boîte mail suffit) ou chaque geste lit la case de ce qu'il écrit (ventes, achats, crm, inter, planif) et le bandeau ne propose que ceux-là. Rien de modifié (décision de droits, pas une correction)."
+    },
+    {
+      "titre": "Boîte mail, 320 px : le lien du bandeau « Chauffage Distribution Atlantique › » dépasse de la carte de 17 px, le chevron est coupé",
+      "gravite": "faible (visuel ; propre au bandeau, indépendant des droits : identique en Voir seul et avec toutes les cases)",
+      "etapes": "Petit écran 320×568, message « Facture FA-CDA-10-552 — commande BC-2026-036 » (m3), regarder le bandeau « OP GESTION a reconnu ».",
+      "constat": "BUTTON.lnk de 276 px dans une lecture de 288 : right 321 pour un bord à 304 ; capture lien-petit.png : le nom du fournisseur touche le bord de la carte et le « › » n'y est plus. Le lien « Commande BC-2026-036 › » juste dessous tient. À corriger dans la mise en page des liens du bandeau (flex-wrap, min-width:0, retour à la ligne du nom) — pas une casse de ce tour."
+    }
+  ],
+  "nouveaux": [
+    "les deux casses ci-dessus (droits transversaux du bandeau ; lien coupé à 320 px)",
+    "en « Voir seul » le bandeau sans gestes laisse un blanc de ~26 px de plus entre le suivi et la rangée « Catégorie » (une rangée « Réponse rapide » de hauteur 0 compte encore ses deux écarts de flex) ; cosmétique, constaté sur capture iPhone — non corrigé"
+  ],
+  "sondes": [
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes1-recontrole.js", "resultat": "70 ✓ · 0 ✗" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes2-bandeau.js", "resultat": "5 ✓ · 0 ✗ (mutation : 4 ✓ · 1 ✗)" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes2-toast.js", "resultat": "11 ✓ · 0 ✗ (mutation : 4 ✗)" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes2-recontrole.js b", "resultat": "suivi lecture seule, six profils : 23 ✓ · 1 ✗ (le ✗ est le lien du bandeau à 320 px, voir casses ; le suivi lui-même ne dépasse pas)" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes2-recontrole.js c", "resultat": "quatre panneaux d'entVerifier × quatre appareils : 60 ✓ · 0 ✗" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-restes2-recontrole.js a", "resultat": "2 ✓ · 2 ✗ (le ✗ nomme la casse « droits transversaux » : volontairement laissé au rouge tant que Justin n'a pas tranché)" },
+    { "fichier": "scratchpad/proto-final/sondes/entreprise-achats-lisible.js", "resultat": "142 ✓ · 0 ✗" }
+  ],
+  "doutes": [
+    "« Renommer… » et « Changer le logo… » d'une boîte en « Voir seul » : toujours à soumettre à Justin (réglages d'affichage de l'appareil, pas des écritures partagées)",
+    "téléphone « +33 (0)5 46 11 22 33 » refusé comme téléphone de l'entreprise : décision ouverte du tour 1",
+    "facture partant avec le seul SIRET : à faire valider côté droit français",
+    "« Voir + Créer » (sans Modifier) compose mais ne peut ni répondre ni rouvrir : règle du chef, à confirmer",
+    "la secrétaire voit-elle la Boîte mail ? Parmi les personnes de la démonstration, seule Marc a la catégorie : julie, kb, sm, lr, tl sont renvoyés ailleurs ; décision (c)/(l) du chef, à soumettre",
+    "bulle de refus : la règle « le message est visible, on ne répète pas » se juge sur la fenêtre de mise en page ; avec le clavier d'un vrai iPhone ouvert (fenêtre visuelle réduite) le message sous le champ pourrait être caché derrière le clavier sans que la bulle le dise — non vérifiable dans ce navigateur (aucun clavier émulé)"
+  ]
+}

@@ -10,7 +10,7 @@ const { L, ouvrirAchats, devenir, txt, toast, CAP } = require('./achats-outils.j
     const m = await E(() => { const D = cxDocs(); return {
       tvSans: cpTva().sans.length, tvSansNoms: cpTva().sans.map(a => a.four + '|' + a.d + '|' + a.piece),
       sfListe: D.filter(x => x.fam === 'achats' && x.src !== 'ndf' && x.sf).length, spListe: D.filter(x => x.fam === 'achats' && x.src !== 'ndf' && !x.piece).length,
-      spTuile: axSansJustif(), fournisseurs: cxFournisseurs().reduce((s, o) => s + o.sans, 0) }; });
+      spTuile: axSansJustif(), fournisseurs: +((cxVueFournisseurs().match(/<b>(\d+)<\/b><span>achats sans facture/) || [])[1]) }; });   // la tuile de Comptes fournisseurs, lue dans ce qu'elle rend (restes achats 2)
     console.log('  ' + etiq + ' :', JSON.stringify(m)); return m; };
   const m0 = await mesure('avant');
   v('K0 population : des achats existent, « sans facture » > 0', m0.tvSans > 0 && m0.sfListe > 0, m0);
