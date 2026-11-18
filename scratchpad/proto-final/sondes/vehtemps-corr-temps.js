@@ -58,7 +58,7 @@ const NUITS = (process.env.NUIT || '0').split(',').map(x => x === '1');
       v(nom + ' · 07 : mois fermé — la demande n\'est plus à régler et aucun « Accepter » n\'est proposé', !R2.some(x => /^Demande/.test(x)) && n2 === 0 && R.length > R2.length, { R2, n2 });
       await ev(c, d => { ttFicheJour('tl', d); }, dem); await L.calme(c.p, 400);
       const F2 = await ev(c, () => { const dm = document.querySelector('#calque .tt-demande'); return dm ? dm.textContent.replace(/\s+/g, ' ') : null; });
-      v(nom + ' · 07 : sur la fiche du mois fermé, la demande se lit et dit « régularisée avec le mois suivant », sans bouton', !!F2 && /Tom demande/.test(F2) && /régularisée avec le mois suivant/.test(F2) && (await ev(c, () => document.querySelectorAll('#calque [data-tt="accepter|tl"]').length)) === 0, F2);
+      v(nom + ' · 07 : sur la fiche du mois fermé, la demande se lit et dit « régularisé avec le mois suivant » (Tom est un homme : restes vehtemps), sans bouton', !!F2 && /Tom demande/.test(F2) && /régularisé avec le mois suivant/.test(F2) && (await ev(c, () => document.querySelectorAll('#calque [data-tt="accepter|tl"]').length)) === 0, F2);
       await L.fin(c); }
   }
   await L.fermer(); process.exit(L.bilan() ? 1 : 0);

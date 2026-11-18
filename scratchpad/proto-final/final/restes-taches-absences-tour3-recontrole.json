@@ -1,0 +1,28 @@
+{
+ "noms": ["taches-absences"],
+ "regles": [
+  "Nouvelle absence, Modifier les dates, Proposer d'autres dates : « fin avant début » grise le bouton (vrai clic droit puis menu, vrai clic de bouton) ; cliquer le bouton grisé ne fait rien ; dates redevenues bonnes → bouton RÉACTIVÉ ; un congé valide s'enregistre après l'aller-retour (3 formulaires)",
+  "Formulaire de demande du technicien (iPhone, rôle sm) : grisé / réactivé / envoyée : rejoué, intact",
+  "Refus par la fonction qui enregistre, geste séparé (bouton réactivé de force + clic ; aAppliquer appelée à la main) : message « avant la date de début », rien n'est écrit, dans les 4 formulaires",
+  "Glisser souris : jour ouvré libre = aucune annonce et déplacé ; samedi, samedi + demande en attente = case rouge + « rien ne bougera » et rien ne bouge ; vendredi → lundi libre = rien d'annoncé ; annonce pendant == résultat au lâcher",
+  "Glisser d'une demande : sur jour libre, proposition préremplie, bouton actif, aucune annonce ; sur samedi, annoncé, proposition ouverte avec bouton grisé, rien ne part, demande toujours en attente",
+  "« Déplacer » puis toucher : samedi refusé, jour libre déplacé ; technicien : lecture seule, aucun glisser",
+  "Captures relues jour et nuit, iPhone, iPad, Mac : message ambre/sombre lisible, bouton grisé, rien coupé"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  { "titre": "Libellé « rien ne bougera » sur une demande glissée vers un samedi alors qu'une fenêtre de proposition s'ouvre", "gravite": "mineur (formulation)", "etapes": "Mac : glisser la barre d'une demande en attente sur un samedi : l'étiquette dit « jours non travaillés : rien ne bougera » ; au lâcher, « Proposer d'autres dates » s'ouvre (bouton grisé, rien ne part)", "constat": "Exact sur le fond (aucune donnée ne change) ; à Justin de dire s'il préfère « tu ne pourras pas proposer ces dates »." }
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-3-recontrole.js", "resultat": "45 ✓ · 0 ✗ (première exécution 3 ✗ dus à la sonde : cible hors frise, dates occupées par son propre congé ; corrigée)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-3-recontrole-mutations.py", "resultat": "8 mutations sur copie, 8 tombent : R1-R3 bouton non grisé (44 ✓ · 1 ✗), R4 et R8 bouton jamais réactivé (la sonde meurt, code 2), R5 refus week-end non annoncé (2 ✗), R6 annonce partout (4 ✗), R7 aAppliquer sans refus (2 ✗)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/restes-taches-absences-3-recontrole-captures.js", "resultat": "20 captures + 2 glisser, 4 planches regardées" }
+ ],
+ "doutes": [
+  "Glisser au doigt (appui long) toujours non prouvé ici (Chromium piloté) : même chemin aGlisseSuivre/aAppliquer que la souris",
+  "Capture du glisser sur samedi : le curseur est tombé sur un jour ouvré (étiquette sans refus) ; le cas samedi est prouvé par la sonde (texte et case rouge), pas par la capture",
+  "R4 et R8 « tombent » par plantage (code 2) et non par un ✗ propre : la preuve est réelle mais moins lisible",
+  "Pastille Tâches (1) et décisions a, b, c : inchangées, à Justin / déjà décidées"
+ ]
+}
