@@ -16,7 +16,7 @@ const entrerPar = async (c, k) => { const mdp = await S.provisoire(c, k); await 
   const ok = await S.attendreApp(c, 15000, true); await S.guide(c); return { ok }; };
 const lireSauf = async (sel, c) => c.p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : null; }, sel);
 (async () => {
-  const cle = process.env.P || '1234';
+  const cle = process.env.P || process.env.ONLY || '1234';   // ONLY : le lanceur de mutations (double-auth-mutations.py) joue « da-recontrole-parcours:4 »
   if (cle.includes('1')) { console.log('\n── P1 · Karim, Android, nuit, autre ordinateur ──');
     const c = await S.ouvrir({ profil:'android', nuit:true }); await S.tous(c); const kb = await S.provisoire(c, 'kb');
     await c.p.evaluate(() => document.querySelector('[data-sec="cases-demo"] input').click());
