@@ -2742,6 +2742,7 @@ const TOKENS_PATH = path.join(DATA_DIR, 'tour-sessions.json');
 try { for (const [t, v] of JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'))) if (v && v.exp > Date.now()) monTokens.set(t, v); } catch (e) {}
 /* des jetons de session VIVANTS de la Tour : lisibles par le seul propriétaire dès la création du fichier (le mode ne joue qu'à la création — un fichier déjà là garde le sien, voir design/ESPACE-DE-TEST.md) */
 function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([...monTokens].filter(([, v]) => v.exp > Date.now())), { mode: 0o600 }); } catch (e) {} }
+const TOUR_REST_JOURS = 7;
 const monLoginTries = new Map();      // ip -> { count, reset }
 const monLock = new Map();            // ident -> { fails, until } : 5 échecs consécutifs = verrou 15 min
 const monHash = p => crypto.createHash('sha256').update(String(p)).digest('hex');
@@ -2794,7 +2795,7 @@ function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réu
    Ce qui est noté : qui, le geste, la console, et une CIBLE prise dans une liste fermée de champs du corps — jamais un mot
    de passe, un code ou un lien ; une adresse e-mail n'y entre que masquée (`masqueMail`). */
 const MON_GESTES = {
-  'login': null, 'report': null, 'promo-stripe': null,
+  'login': null, 'logout': null, 'report': null, 'promo-stripe': null,
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
@@ -2908,13 +2909,21 @@ app.post('/api/monitor/login', (req, res) => {
     user = { id: 'u0', nom: nom || 'Patron', role: 'patron' };
   }
   const token = crypto.randomBytes(24).toString('hex');
-  const duree = (req.body || {}).rester ? 30 * 24 * 3600000 : 24 * 3600000;   // « rester connecté » : 30 jours
+  const duree = (req.body || {}).rester ? TOUR_REST_JOURS * 24 * 3600000 : 24 * 3600000;   // « rester connecté » : 7 jours (30 avant le 18 novembre 2026 — un jeton volé vivait un mois ; « Quitter la console » le tue désormais côté serveur)
   const apps = monApps(user);
   monTokens.set(token, { exp: Date.now() + duree, userId: user.id, nom: user.nom, role: user.role, apps });
   monTokensSave();
   monLoginTries.delete(ip); monLock.delete(ident);
   monLog(user.nom, true, req, '', apps.join('+'));
   res.json({ ok: true, token, exp: 24 * 3600, nom: user.nom, role: user.role, apps });
+});
+/* Se déconnecter TUE le jeton côté serveur (18 novembre 2026) : avant, « Quitter la console » n'effaçait que le stockage de l'appareil, et un jeton copié
+   (30 jours alors) restait valable. Gardée par monAdmin : seul le porteur d'un jeton vivant peut le révoquer, et uniquement le sien. */
+app.post('/api/monitor/logout', monAdmin, (req, res) => {
+  const m = /^Bearer\s+([a-f0-9]{48})$/.exec(String(req.headers.authorization || ''));
+  if (m) { monTokens.delete(m[1]); monTokensSave(); }
+  monLog(req.tourUser.nom, true, req, 'déconnexion');
+  res.json({ ok: true });
 });
 /* Quelle application possède une route. Tout ce qui n'est pas listé est OP GESTION : c'est
    l'application qui existe, et une route oubliée doit être REFUSÉE à un compte OP MESSAGES,
@@ -2929,7 +2938,7 @@ app.post('/api/monitor/login', (req, res) => {
    envoyés aux entreprises, et ses dossiers se lisent librement — une lecture de « Envoyés » y trouverait la
    clé d'équipe de n'importe quelle cliente. Les écritures support (répondre, envoyer, retirer, marquer)
    engagent l'adresse officielle : GESTION aussi. /mails (journal des e-mails, adresses des clientes) : GESTION. */
-const ROUTES_COMMUNES = /^\/api\/monitor\/(login|moi|users(\/.*)?|journal|issues(\/(archive|contexte))?|status|expliquer|proposer|sante|support\/(box|mails|envoyes)|entreprises)$/;
+const ROUTES_COMMUNES = /^\/api\/monitor\/(login|logout|moi|users(\/.*)?|journal|issues(\/(archive|contexte))?|status|expliquer|proposer|sante|support\/(box|mails|envoyes)|entreprises)$/;
 const ROUTES_MESSAGES = /^\/api\/monitor\/(espaces\/apps|messages(\/.*)?)$/;
 function monAppDeRoute(req) {
   /* Le chemin DÉCLARÉ de la route (req.route.path), pas l'URL reçue : Express accepte
