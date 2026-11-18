@@ -3,9 +3,9 @@
 // chaque remplacement doit toucher EXACTEMENT une occurrence, sinon rien n'est joué (le script s'arrête et le dit).
 // node scratchpad/proto-final/sondes/retour-mutations.js [filtre]      (DRY=1 : vérifie seulement que chaque mutation vise juste)
 const fs = require('fs'), path = require('path'), cp = require('child_process');
-const REPO = path.join(__dirname, '..', '..', '..'), APERCU = path.join(REPO, 'apercu'), PAGE = 'prototype-op-gestion.html', COURRIER = 'prototype-courrier.js';
+const REPO = path.join(__dirname, '..', '..', '..'), APERCU = path.join(REPO, 'apercu'), PAGE = 'prototype-op-gestion.html', COURRIER = 'prototype-courrier.js', COMPTA = 'prototype-comptabilite.html';
 const TMP = process.env.MUT_DIR || '/tmp/mutations-retour';
-const SRC = { [PAGE]: fs.readFileSync(path.join(APERCU, PAGE), 'utf8'), [COURRIER]: fs.readFileSync(path.join(APERCU, COURRIER), 'utf8') };
+const SRC = { [PAGE]: fs.readFileSync(path.join(APERCU, PAGE), 'utf8'), [COURRIER]: fs.readFileSync(path.join(APERCU, COURRIER), 'utf8'), [COMPTA]: fs.readFileSync(path.join(APERCU, COMPTA), 'utf8') };
 // [nom, fichier, ancien, neuf, [ [sonde, variables d'environnement], … ]]
 const CALQ = (g, p) => ['retour-calques.js', { PROFIL: p || 'android', GENRE: g }], PARC = p => ['retour-parcours.js', { PROFIL: p || 'android' }];
 const M = [
@@ -24,6 +24,13 @@ const M = [
   ['13 · la fermeture du document en grand ne ferme plus rien', PAGE, "ferme:() => docPleinFermer() },", "ferme:() => {} },", [CALQ('pdf')]],
   ['14 · le guide des nouveautés se ferme par Retour mais reste pour la sonde (fermeture sans effet)', PAGE, "ferme:() => nvFermer() },", "ferme:() => {} },", [CALQ('nouveautes')]],
   ['15 · le module de courrier prend un Retour de l\'hôte pour un recul de ses propres niveaux', COURRIER, "if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;", "", [['retour-courrier.js', { PROFIL: 'android' }]]],
+  // restes du Retour, tour 1 (18/11) : les quatre calques « oubliés » et le composeur du courrier sur ordinateur
+  ['16 · OP Security (téléphone simulé en plein écran) n\'est plus reconnu comme calque', PAGE, "ouvert:() => !opsLarge() && !!document.querySelector('#opsec[data-ouvert]'),", "ouvert:() => false,", [CALQ('securite')]],
+  ['17 · la confirmation OP Security n\'est plus reconnue comme calque', PAGE, "ouvert:() => !!document.getElementById('sec-conf'),", "ouvert:() => false,", [CALQ('confirmation')]],
+  ['18 · la feuille d\'une tournée (carte du planning) n\'est plus reconnue comme calque', PAGE, "ouvert:() => !!document.getElementById('cr-ftel'),", "ouvert:() => false,", [CALQ('feuille')]],
+  ['19 · la page ignore ce que la Comptabilité plein cadre dit de ses panneaux (opc_calque)', PAGE, "cpCalque = e.data.opc_calque === true; calSync();", "cpCalque = false;", [CALQ('cadre')]],
+  ['20 · la Comptabilité plein cadre ne ferme plus sa couche quand la page le lui demande', COMPTA, "if (d && typeof d === 'object' && d.opc_fermer_calque) { fermer();", "if (d && typeof d === 'object' && d.opc_fermer_calque) { ;", [CALQ('cadre')]],
+  ['21 · le composeur du courrier n\'est un niveau d\'historique qu\'au téléphone (Retour le laisse sur ordinateur)', COURRIER, "function histCible(){ return (isPhone()&&app.getAttribute(\"data-view\")!==\"list\"?1:0)+(overlayDePage()?1:0); }", "function histCible(){ return isPhone()?((app.getAttribute(\"data-view\")!==\"list\"?1:0)+(overlayDePage()?1:0)):0; }", [['retour-recontrole.js', { PROFIL: 'mac', SECTION: 'courrier' }]]],
 ];
 const filtre = process.argv[2] || '';
 fs.mkdirSync(TMP, { recursive: true });
