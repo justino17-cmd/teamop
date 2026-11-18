@@ -1127,7 +1127,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .cb-chip[aria-pressed="true"]{background:var(--fill-doux);color:var(--on-doux);border-color:transparent;font-weight:700}
 .cb-q{display:flex;flex-direction:column;gap:8px}
 .cb-nph{display:flex;gap:8px;flex-wrap:wrap}
-.cb-nph input{flex:1 1 180px;min-width:0}
+.cb-nph input{flex:1 1 240px;min-width:0}   /* « Note sur le dernier r… » : à 360 px le champ restait à 150 px à côté de « ＋ Photo » ; sous 240 px de place, la photo passe dessous (regard gérant F) */
 .cb-prop{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--orange) 40%,transparent);background:color-mix(in srgb,var(--orange) 9%,transparent)}
 .cb-prop.cb-ok{border-color:color-mix(in srgb,var(--vert) 40%,transparent);background:color-mix(in srgb,var(--vert) 9%,transparent)}
 .cb-conf{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--orange) 45%,transparent);background:color-mix(in srgb,var(--orange) 10%,transparent)}
@@ -3856,6 +3856,8 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 .tt-mh-auj{padding:10px 14px}.tt-mh-auj .btn{width:100%}.tt-ch .dt-btn{min-width:0;flex:1 1 130px}.tt-ch select.saisie{flex:1 1 130px;width:auto}}
 /* ══ VÉHICULES — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (aucune couleur, aucun rayon, aucune ombre neufs) ══ */
 .vh-k .kpi{cursor:pointer;font:inherit}.vh-k .kpi span{overflow-wrap:break-word;line-height:1.25}.vh-ht{font-style:normal}.vh-dont{display:block;font-style:normal;margin-top:2px}
+/* au téléphone, une tuile qui porte aussi « dont l'assurance de l'année » passe seule sur sa ligne : à 360 px, trois tuiles étroites la faisaient écrire sur sept lignes */
+@media (max-width:520px){.vh-k.vh-k-dont{grid-template-columns:repeat(2,minmax(0,1fr))}.vh-k.vh-k-dont [data-vh="cout"]{grid-column:1 / -1}}
 .vh-cherche{width:100%;max-width:420px;min-height:44px}
 /* une rangée = un véhicule : avatar · nom, plaque et conducteur, phrase d'état · pastille · UN geste. La forme suit la largeur de la LISTE (conteneur), pas celle de l'écran :
    sur iPad portrait le menu latéral en prend 272 */
@@ -9054,6 +9056,12 @@ const CAL_GENRES = [
   { k:'atelier',     ouvert:() => !!document.querySelector('#opdz:not([hidden])'),      ferme:() => opdFermer('fin') },   // l'atelier de devis et de contrats
   { k:'nouveautes',  ouvert:() => !!document.querySelector('#nv:not(.part)'),           ferme:() => nvFermer() },         // le guide des nouveautés
   { k:'visite',      ouvert:() => !!document.getElementById('gd-bulle'),                ferme:() => gdQuitter() },        // la visite guidée
+  /* les cinq calques que le recontrôle du 18 novembre a trouvés « oubliés » : un Retour quittait l'écran en les laissant posés */
+  { k:'securite',    ouvert:() => !opsLarge() && !!document.querySelector('#opsec[data-ouvert]'), ferme:() => opsFermer() },   // OP Security : le téléphone simulé en plein écran (sur grand écran c'est un volet permanent, pas un calque)
+  { k:'confirmation', ouvert:() => !!document.getElementById('sec-conf'),                 ferme:() => secuConfFermer(true) },   // « Confirme sur ton téléphone » : Retour = « Annuler », la demande est annulée comme au bouton
+  { k:'feuille',     ouvert:() => !!document.getElementById('cr-ftel'),                  ferme:() => { const b = document.querySelector('#cr-ftel [data-crsel]'); if (b) b.click(); } },   // la fiche d'une tournée posée en bas de la carte du planning (téléphone)
+  /* la Comptabilité plein cadre est une page À PART dans un cadre : elle DIT à l'hôte quand elle a un panneau ou le tiroir de son menu ouvert (opc_calque), et l'hôte lui dit de le fermer (opc_fermer_calque) */
+  { k:'cadre',       ouvert:() => cpCalque && !!document.querySelector('#cpsys:not([hidden])'), ferme:() => { cpCalque = false; try { const f = document.querySelector('#cpsys iframe'); if (f) f.contentWindow.postMessage({ opc_fermer_calque:true }, '*'); } catch (e) {} } },
 ];
 const CAL = { pile:[], pousse:0, ignore:0, suite:null, minuteur:0, echecs:0, off:false, sale:false, prevu:false, hash:'' };
 const calOuverts = () => CAL_GENRES.filter(g => { try { return g.ouvert(); } catch (e) { return false; } }).map(g => g.k);
@@ -9110,7 +9118,7 @@ addEventListener('popstate', ev => {
    eux-mêmes (lireHash) : la restauration automatique ne sert à rien ici, et elle défait ce que la règle promet — l'écran dessous reste où il était. */
 try { history.scrollRestoration = 'manual'; } catch (e) {}
 { const veille = () => { if (CAL.prevu) return; CAL.prevu = true; queueMicrotask(() => { CAL.prevu = false; calSync(); }); };
-  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class'] });
+  new MutationObserver(veille).observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['hidden', 'class', 'data-ouvert'] });
   try { const e = history.state; if (e && typeof e.cal === 'number' && e.cal > 0) calReculer(e.cal); } catch (e) {}   // rechargé fenêtre ouverte : l'entrée orpheline est reculée
 }
 
@@ -12384,8 +12392,9 @@ const GESTES = {
   opd:{ k:'ventes', c:'devis contrat', m:'doc' },
   mabarre:{ d:'l' }, metf:{ d:'l' }, htype:{ d:'l' }, creer:{ k:'inter', d:'c' }, rdv:{ k:'planif', d:'m' }, fogarder:{ k:'stock', d:'m' },
   /* boîte mail */
-  mbx:{ k:'com', c:'add addstop addpas addfin', m:'confok reco', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
-  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout', m:'reco confok', l:'cmd annonce boites' },
+  /* les gestes du bandeau « OP GESTION a reconnu » écrivent AILLEURS que dans le courrier : chacun lit la case de ce qu'il écrit (le devis, les achats, l'intervention, la fiche client), pas seulement la Boîte mail (restes entreprise, tour 3) */
+  mbx:{ k:'com', c:'add addstop addpas addfin devis@ventes encaisser@ventes confcren@inter cestclient@crm cestfour@achats', m:'confok reco annonce@ventes ranger@crm photoint@inter', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
+  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout creerint@inter planifdv@inter', m:'reco confok accord@ventes livraison@achats rappro@achats', l:'cmd annonce boites' },
   mm:{ k:'com', d:'l' }, courrier:{ k:'com', d:'l' }, mailenvoi:{ k:'com', d:'l' },
   /* comptabilité */
   cp:{ k:'compta', m:'payer envoi', l:'fac rouvrir aide onglet go jf frais paiement remis depot chq regimes fec fecdl' },
@@ -14690,8 +14699,9 @@ function xyLu(k, v){
   return n;
 }
 /* [n°4][n°7][n°8] ce que le cadre Comptabilité dit à la fenêtre : le mode qu'on y a choisi, et la touche Échap tapée dedans */
-var cpProg = null, cpSysEcho = false;
+var cpProg = null, cpSysEcho = false, cpCalque = false;   /* cpCalque : la Comptabilité plein cadre a un panneau ou son tiroir ouvert (lu par CAL_GENRES, « cadre ») */
 addEventListener('message', e => { const z = document.getElementById('cpsys'), f = z && z.querySelector('iframe'); if (!f || e.source !== f.contentWindow || !e.data) return;
+  if (e.data.opc_pret) cpCalque = false; else if ('opc_calque' in e.data) { cpCalque = e.data.opc_calque === true; calSync(); }   /* un cadre rechargé repart sans couche ; sinon la page l'historise comme tout calque */
   const m = e.data.opc_mode_choisi;
   if (m === 'jour' || m === 'nuit' || m === 'auto') { cpSysEcho = true; try { mode = m; appliquerMode(); document.querySelectorAll('[data-modetheme]').forEach(x => x.setAttribute('aria-pressed', x.dataset.modetheme === mode)); } finally { cpSysEcho = false; } }
   if (e.data.opc_echap && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
@@ -19325,7 +19335,7 @@ function vueVehicules(){
         : vhVide('Aucun véhicule au garage.', 'Tous tes véhicules sont en service.', '', true))}<div class="vh-aucun gris" hidden>Aucun véhicule ne correspond.</div></div>`;
   }
   return `<div class="tete vh-tete"><div><span class="surtitre">Personnel</span><h1>Véhicules</h1><span class="gris">${esc(tete)}</span></div><div class="actions">${n ? plein : ''}${nouveau && n ? nouveau : ''}</div></div>
-    ${n ? `<div class="kpis ptx-k3 vh-k">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'payés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>' + vehDontAssur())}</div>
+    ${n ? `<div class="kpis ptx-k3 vh-k${vehDontAssur() ? ' vh-k-dont' : ''}">${kpi('onglet|tous', svc + ' sur ' + n, 'en service')}${kpi('onglet|afaire', aF, 'à faire', aF ? ' kpi-up' : '').replace(/<b>0<\/b>/, '<b style="color:var(--vert)">0</b>')}${kpi('cout', eur0(dep), 'payés en ' + mois + '<i class="vh-ht"> (hors taxes)</i>' + vehDontAssur())}</div>
     <div class="seg" role="tablist" aria-label="Véhicules">${[['tous', 'Tous', ''], ['afaire', 'À faire', aF ? `<span class="t-nb rouge">${aF}</span>` : ''], ['garage', 'Au garage', gar.length ? `<span class="t-nb">${gar.length}</span>` : '']].map(([k, l, p]) => `<button type="button" role="tab" data-vh="onglet|${k}" aria-pressed="${VH.onglet === k}" aria-selected="${VH.onglet === k}">${l}${p ? ' ' + p : ''}</button>`).join('')}</div>` : ''}
     ${corps}`;
 }
@@ -19889,8 +19899,10 @@ function courrierAgir(id, x){
 }
 const courrierHoteApi = {
   telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
-  /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2) */
-  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; return b && !peut('com', 'm') ? { ...b, actions:[] } : b; },
+  /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2). Avec « Modifier » à la Boîte mail seule, il ne garde que les gestes dont la case de destination est ouverte (tour 3) */
+  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm')) return { ...b, actions:[] };
+    /* chaque geste lit la case de ce qu'il écrit (la table GESTES) : on ne propose que ceux que la garde laisserait passer */
+    return { ...b, actions:b.actions.filter(o => { const i = o.id.indexOf(':'), g = geste(o.id.slice(0, i), o.id.slice(i + 1).split('|')[0]); return !g || !g.cat || peut(g.cat, g.x); }) }; },
   agir:(id, x) => courrierAgir(id, x),
   pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
     return R.qui === 'client' ? { texte:'Client', ton:'b' } : R.qui === 'four' ? { texte:'Fournisseur', ton:'v' } : R.qui === 'nouveau' ? { texte:'Nouveau contact', ton:'o' } : null; },
@@ -23772,7 +23784,7 @@ const MET_EXEMPLES = { 'Ex. : entretien climatisation':'Ex. : entretien annuel',
   /* « Pourquoi ? » d'une demande d'achat : « la mienne ne tient plus la charge » est un outil sur batterie — les autres métiers lisent un motif qui va avec n'importe quel article */
   'ex. la mienne ne tient plus la charge':'ex. il n’en reste presque plus',
   /* « Enregistrer cette vue » (Planning) et « Ajouter un appareil » (fiche client) : leurs exemples sont écrits en toutes lettres pour la climatisation, sans majuscule ni deux-points, donc la clé « Ex. : … » plus haut ne les rejoint jamais (metier-3d-restes-2) */
-  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin, chantier Mimosas', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
+  'ex. équipe clim, chantier Mimosas':'ex. équipe du matin', 'ex. Daikin FTXM35R':'ex. nom ou modèle de l’appareil', 'ex. Split mural salle · R32 · 2021':'ex. où il se trouve · année' };
 function metiersTextes(racine){
   if (metiersFamille() === 'cvc' || !racine || racine.nodeType !== 1) return;   // (les exemples de chaque famille : metiersEx)
   const L = racine.matches && racine.matches('[placeholder]') ? [racine] : []; racine.querySelectorAll('[placeholder]').forEach(n => L.push(n));
@@ -23908,7 +23920,7 @@ document.addEventListener('click', ev => {
 const MET_EX_CLIM = { 'ex. la chaudière du sous-sol':'ex. le split du salon, l’unité extérieure' };
 const MET_EX_FAM = {
   chauf:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. échelle 3 plans, gants, joints de raccord', 'Ex. condensateur, siphon, fluide…':'Ex. circulateur, vase d’expansion, joint…', 'ex. la chaudière du sous-sol':null, 'ex. Mise en service d’une pompe à chaleur':null, 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':null,
-    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz à condensation', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
+    'ex. Remplacement de la pompe de relevage':'ex. Remplacement du circulateur', 'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Le chauffage ne démarre plus depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chaudière gaz', 'ex. Split mural salle · R32 · 2021':'ex. chaufferie · gaz · 2019' },
   plomb:{ 'ex. échelle 3 plans, gants, fluide R32':'ex. gants, joints, colle PVC', 'Ex. condensateur, siphon, fluide…':'Ex. siphon, flexible, joint…', 'ex. la chaudière du sous-sol':'ex. le chauffe-eau du garage, la salle de bains', 'ex. Mise en service d’une pompe à chaleur':'ex. Mise en service de l’installation', 'ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.':'ex. Remplacer le chauffe-eau par un modèle de 200 L ; raccordements à refaire.',
     'ex. La clim ne refroidit plus et fait du bruit depuis ce matin.':'ex. Une fuite sous l’évier depuis ce matin.', 'ex. Daikin FTXM35R':'ex. Chauffe-eau 200 L', 'ex. Split mural salle · R32 · 2021':'ex. garage · 2020' }
 };
