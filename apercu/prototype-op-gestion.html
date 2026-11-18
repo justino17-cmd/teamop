@@ -262,6 +262,7 @@ body.dp-ouvert #sortie-carte{z-index:300}
 #cpsys{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:var(--feuille,#f8f9fc)}
 body:has(#cpsys:not([hidden])) .fen-voile{z-index:9100}   /* la fenêtre « Nouvelle intervention » ouverte depuis la Comptabilité plein écran (touche N, recherche) restait dessous, invisible */
 body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein écran (9000) et la fenêtre ouverte depuis elle (9100) couvraient la bulle (90 ou 300) : « Annuler » y était peint derrière et ne recevait pas le toucher */
+body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pour la carte « Copie ce texte » (copie de secours, numéro après un lien tel:) : à 92 elle se peignait DERRIÈRE la Comptabilité plein écran, texte à copier et croix de fermeture compris (restes compta-plein-ecran, 18 novembre 2026) */
 #cpsys[hidden]{display:none}
 .cpsys-barre{flex:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--trait);background:var(--feuille,#f8f9fc)}
 .cpsys-barre b{flex:1;min-width:0;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
