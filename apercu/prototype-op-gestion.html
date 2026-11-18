@@ -10488,7 +10488,7 @@ const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').repl
 const NOM_PERS_REFUS = 'Un prénom ou un nom s’écrit avec des lettres, des chiffres, des espaces, des points ou des tirets (60 signes au plus) : pas de < > " & ni de signes spéciaux.';
 const libelleSur = (t, n) => String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
-/* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un courriel ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
+/* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
    Chaque écran qui les écrit en HTML les ÉCHAPPE à la sortie (esc). Toute création de client passe par cliNet(), toute modification aussi */
 /* texteNet : le même nettoyage, SANS rogner ni replier les espaces — pour ce qu'on garde pendant qu'on tape (une espace tapée en fin de mot ne doit pas disparaître sous le doigt) ; libelleSur() rogne à l'enregistrement */
@@ -10633,8 +10633,8 @@ let ML_BOITES = [
 /* UNE RÈGLE POUR TOUT TEXTE VENU DU DEHORS OU TAPÉ (17 novembre 2026, décision du chef) : il est NETTOYÉ une fois À L'ENTRÉE (on garde « & », l'apostrophe, les accents ;
    on retire < > " ` et les caractères de contrôle ou d'inversion de sens) et rangé tel quel, SANS entité HTML ; il est ÉCHAPPÉ une fois À LA SORTIE (esc dans tout innerHTML,
    bulle de message comprise). Jamais les deux (c'est ce qui affichait « &amp;amp; » dans l'Historique), jamais aucun des deux.
-   Un expéditeur de courriel est un INCONNU : son nom ne porte ni balise, ni formule de tableur (= + - @ en tête), 80 signes au plus ; son adresse ni chevron, ni guillemet, ni espace ;
-   un courriel sans champ d'adresse se lit « expéditeur inconnu » au lieu de faire jeter la Boîte mail. mlDeNet() est LA porte d'entrée : mlM() et MAILS.push() y passent. */
+   Un expéditeur d’e-mail est un INCONNU : son nom ne porte ni balise, ni formule de tableur (= + - @ en tête), 80 signes au plus ; son adresse ni chevron, ni guillemet, ni espace ;
+   un e-mail sans champ d'adresse se lit « expéditeur inconnu » au lieu de faire jeter la Boîte mail. mlDeNet() est LA porte d'entrée : mlM() et MAILS.push() y passent. */
 const mailAdr = m => String((m && m.de && m.de.mail) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').slice(0, 120);   /* les espaces restent : « x@y.fr␣ » n'est PAS l'adresse du client (pas d'usurpation par variante) — seule la fiche client créée en retire (cliNet) */
 const mailNom = m => String((m && m.de && (m.de.nom || m.de.mail)) || '').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/^[\s=+\-@]+/, '').trim().slice(0, 80) || String((m && m.de && m.de.mail) || 'Expéditeur inconnu').replace(/^[=+\-@<>"`\s]+/, '').slice(0, 80) || 'Expéditeur inconnu';
 const mlDeNet = de => { const d = de && typeof de === 'object' ? de : {}; return { ...d, nom:String(d.nom == null ? '' : d.nom).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80), mail:mailAdr({ de:d }) }; };
@@ -14450,7 +14450,7 @@ ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENT
     ${aVenir || aRecevoir ? `<div class="info petit" style="margin-top:10px">${[aVenir ? aVenir + ' intervention' + (aVenir > 1 ? 's' : '') + ' à venir : elle' + (aVenir > 1 ? 's restent' : ' reste') + ' au planning' : '', aRecevoir ? aRecevoir + ' facture' + (aRecevoir > 1 ? 's' : '') + ' à recevoir : elle' + (aRecevoir > 1 ? 's restent' : ' reste') + ' à suivre' : ''].filter(Boolean).join(' · ')}.</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-action="clientArchiverOk" data-cli="${k}">Oui, archiver ce client</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
 ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return; c.archive = true;
-  journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est effacé' });
+  journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est supprimé' });
   fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('clients'); toast('Client archivé : ' + esc(c.nom) + '.', { lib:'Annuler', fn:() => { delete c.archive; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); } }); };
 ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive) return; delete c.archive;
   journalAjout('marc', 'client', 'a remis le client dans la liste', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il était archivé' });
@@ -18017,7 +18017,7 @@ function ttFraisLigne(V){
 }
 function ttOngletMois(){
   const V = PT_GENS.map(paieVariables), B = ttMoisBilan(V), verr = paieVerrouille(), plus = V.reduce((s, v) => s + v.s25 + v.s50, 0), conf = V.filter(v => v.confirme).length;
-  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'demande') + ' de correction à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
+  const P = [B.ouverts && ttPl(B.ouverts, 'journée') + ' à terminer', B.sig && ttPl(B.sig, 'correction') + ' à traiter', B.nonVal && ttPl(B.nonVal, 'personne') + ' à valider', B.nonConf && `${ttPl(B.nonConf, 'personne')} à faire confirmer ${B.nonConf > 1 ? 'leurs' : 'ses'} heures`].filter(Boolean);
   const phrase = verr ? `${ttMaj(ttMois())} est fermé : plus aucune heure ne peut changer. Fermé le ${PAIE.verrou.le.split(' ')[0]}.` : P.length ? 'Il reste ' + (P.length > 1 ? P.slice(0, -1).join(', ') + ' et ' + P[P.length - 1] : P[0]) + '.' : `${ttMaj(ttMois())} est prêt : les heures sont validées et confirmées.`;
   let bouton, lien = '';
   if (verr) bouton = `<button type="button" class="btn" data-tt="paie">Voir la paie</button>`;
@@ -23317,7 +23317,7 @@ const cfTelOk = t => { t = String(t || '').trim(); if (!t) return true; const c 
 const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)/ : /^(?:0033|33)(?=\d{9}$)/, '0'); return n; };
 /* à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » (clients, décision du 17 novembre) */
 const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
-/* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, courriel, « le client seul ») :
+/* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, e-mail, « le client seul ») :
    son numéro à la française, le point de la carte des tournées et le secteur — sans ça la carte le plaçait au dépôt (clients-05, recontrôle casse 3) */
 function clientFinir(k){ const c = CLIENTS[k]; if (!c) return; c.tel = cfTelFmt(c.tel); cliPositionner(k, c.adr); }   /* cliPositionner : la seule décision de position (secteur et point de la carte) */
 /* deux noms sont les mêmes quand ils ne diffèrent que par la casse, les accents, la ponctuation ou les espaces en trop */
@@ -24701,7 +24701,7 @@ immChap('devisXylo', 'devisXylo', 'Devis xylophage', 'Le devis xylophage : le tr
   { c:'.dx-sugg', t:'Les mesures, zone par zone', p:'Je mesure par zone avec les puces : combles, charpente, plancher, cave ou murs. Pour chacune, la surface, et un accès difficile ajoute 30 pour cent. J’ajoute les combles : 30 mètres carrés.',
     jouer:() => immMetier3dSerie([() => immClic('[data-dxb="zadd|Combles|bois"]'), () => { const L = [...document.querySelectorAll('[data-dx^="zm|"]')]; const e = L[L.length - 1];
       if (!e) return IMM.perdus.push('champ zone'); e.value = '30'; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); }], 380) },
-  { c:'.dx-tech', t:'Un ou deux techniciens', p:'Je dis si vous serez un ou deux techniciens sur place. Le temps facturé ne change pas, mais le temps passé chez le client est divisé. Je touche 2.',
+  { c:'.dx-tech', t:'Un ou deux techniciens', p:'Je dis s’il y aura un ou deux techniciens sur place. Le temps facturé ne change pas, mais le temps passé chez le client est divisé. Je touche 2.',
     jouer:() => immClic('[data-dxb="techs|2"]') },
   { c:'#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]', t:'Créer le devis', p:'Le total se met à jour à chaque saisie. Sur téléphone, une barre en bas garde le prix et le bouton sous le pouce. Je touche Créer le devis.',
     jouer:() => immClic('#dx-res .dx-creer-carte, #dx-barre [data-dxb="creer"]') },
@@ -24824,7 +24824,7 @@ immChap('gestion', 'comptabilite', 'La gestion', 'La gestion : les factures, san
   { c:'#contenu .kpis', t:'Les devis, d’un coup d’œil', p:'Les devis, d’un coup d’œil : un à finir et envoyer, 2 950 euros en attente de réponse dont deux à relancer, 2 571 euros acceptés. Quand un devis est signé, l’intervention arrive « à planifier » : Julie ne la planifie pas.',  },
   { c:'.cartes-clients', t:'Ses clients et ce qu’ils doivent', p:'Ses clients, avec ce qui compte pour elle : ce qu’ils ont payé, ce qu’il leur reste à payer et le prochain passage. Monsieur et Madame Durand doivent encore 1 361 euros. Un toucher ouvre la fiche du client.',  },
   { c:'#contenu .liste-bureau, #contenu .liste-tel', t:'Les interventions, sans le planning', p:'Les interventions : elle voit qui y va, quand, et où ça en est, terminée, en cours, à planifier. Elle n’a pas le planning pour les déplacer. Les terminées sont celles qu’elle facture.' },
-  { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du patron au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut, patron, gestion, technicien ou client, et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
+  { c:'.rl-seg', t:'La visite est finie', p:'La visite est finie : tu as vu toute l’application, du gérant au client. Maintenant, à toi. Ferme le guide, choisis une personne en haut (gérant, gestion, technicien ou client) et refais les gestes toi-même. Rien n’est enregistré.', jouer:() => { fermerPanneau(); const t = document.getElementById('toast'); if (t) t.classList.remove('on'); immRolesRemettre(); cpSysteme = false; rlChanger('patron', { h:'accueil', muet:true }); } }
 ], { role:'gestion' });
 ['tech', 'client', 'gestion'].forEach(immRolesDebut);
 immRolesEcran('tech', 7, 'majournee'); immRolesEcran('tech', 8, 'moncamion'); immRolesEcran('tech', 11, 'mesheures'); immRolesEcran('tech', 12, 'techfrais');   /* l'étape 5 a inséré « Son camion, en trois boutons » en 8 : « Ses heures » passe en 11, « Ses frais » en 12 */
@@ -26093,7 +26093,7 @@ function vueSecurite(){
   const liste = L.length ? `<div class="sec-lignes"><table class="sec-tab"><thead><tr><th>Date</th><th>Qui</th><th>Appareil</th><th>Adresse (IP)</th><th>Pourquoi</th><th>Résultat</th></tr></thead><tbody>${L.map(ligne).join('')}</tbody></table><div class="sec-cartes">${L.map(carte).join('')}</div></div>`
     : '<div class="carte sec-vide gris"><span aria-hidden="true">🛡️</span> Rien d’inhabituel pour l’instant.</div>';
   return tete + cartes + verrous + `<h2 class="cmd-titre sec-titre">Connexions inhabituelles ou refusées</h2>` + liste
-    + '<p class="gris petit sec-pied">Une connexion est inhabituelle quand elle vient d’un autre appareil ou d’un autre réseau, hors des heures de travail, ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.</p>'; }
+    + '<p class="gris petit sec-pied">Une connexion est inhabituelle si elle vient d’un autre appareil ou d’un autre réseau. C’est aussi le cas hors des heures de travail ou après des mots de passe faux. Elle n’aboutit qu’après approbation sur le téléphone de la personne. Tu ne vois ici ni mot de passe ni code.</p>'; }
 
 /* ── B3 · Équipe : le téléphone, le mot de passe provisoire, les gestes d'un administrateur ── */
 /* un mot de passe provisoire : tiré au hasard, un par personne, montré UNE fois, à remettre en main propre. L'UNIQUE endroit (avec le bloc « Démonstration ») où il s'affiche : aucun bouton Copier, jamais dans un data-, jamais dans un toast */
