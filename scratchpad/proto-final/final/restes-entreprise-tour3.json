@@ -1,0 +1,72 @@
+[
+  {
+    "nom": "Boîte mail : avec « Modifier » à la Boîte mail seule (les autres catégories en « Voir seul »), le bandeau « OP GESTION a reconnu » OFFRAIT et EXÉCUTAIT 27 gestes sur 28 qui écrivent dans le devis, les achats, les interventions, les clients (casse du recontrôle du tour 2)",
+    "defaut": "Reproduit au tour 2 (entreprise-restes2-recontrole a : 2 ✓ · 2 ✗) : « Noter l'accord du devis » passait le devis de « attente » à « accepté », « Mettre à jour la livraison prévue » changeait la date d'une commande, etc. Cause : dans la table GESTES, les familles mbx et ml sont toutes en k:'com' et ces verbes n'y étaient pas nommés (règle 4 : traités comme une modification de com). Au tour 2 le recontrôleur l'avait rangée « à trancher par Justin » ; elle ne l'est pas : c'est la règle posée par Justin pour l'application (« une case se lit dans la fonction qui écrit ») et la règle du module (« un geste refusé n'est pas proposé »), appliquée à un chemin oublié.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html : (1) table GESTES, familles mbx et ml : chaque verbe qui écrit ailleurs porte la catégorie de sa destination (devis, encaisser, annonce → Ventes ; accord → Ventes ; livraison, rapprochement, « c'est un fournisseur » → Achats ; créer l'intervention, planifier l'installation, confirmer le créneau, photos de l'intervention → Interventions ; « c'est un client », ranger la pièce dans la fiche → Clients). « En faire une tâche », « Confier », la règle de rangement, répondre, relancer restent à la seule case de la Boîte mail (les tâches sont un outil personnel). (2) courrierHoteApi.lecture : le bandeau ne propose que les gestes que la garde laisserait passer (geste(famille, verbe) puis peut(cat, x)). La garde elle-même (droitsGeste) lit la même table : un geste lancé par l'hôte sans bouton est refusé avec sa phrase. Limite connue : « Créer le client et son devis » lit la case Devis (Ventes › Créer), pas en plus celle de Clients : un verbe n'a qu'une catégorie dans la table.",
+    "preuve": "sondes/entreprise-restes3-bandeau.js : 9 ✓ · 0 ✗ (Boîte mail seule : 5 gestes différents sur 11 messages, aucun des 13 verbes qui écrivent ailleurs ; chaque catégorie ouverte SEULE rend exactement ses verbes ; toutes les cases : 28 gestes ; par l'hôte, accord / livraison / rapprochement / paiement annoncé refusés, devis et commandes inchangés). Contre-épreuve (filtre retiré) : 4 ✗ sur 4 catégories. Sondes voisines : entreprise-restes2-recontrole a passe de 2 ✓ · 2 ✗ à 4 ✓ · 0 ✗ ; entreprise-restes2-bandeau 5 ✓ · 0 ✗ (le geste d'hôte de son contrôle est devenu « confier », qui n'écrit que dans le courrier : « devis » lit désormais la case Devis) ; mail-gestes 25 ✓."
+  },
+  {
+    "nom": "Boîte mail, 320 px : le lien du bandeau « Chauffage Distribution Atlantique › » dépassait de la carte de 17 px, le chevron était coupé",
+    "defaut": "Reproduit (restes2-recontrole b) : lien de 276 px dans une lecture de 288, bord droit à 321 pour une carte qui finit à 304 ; avec un nom plus long (« Établissements Chauffage Distribution Atlantique et Compagnie ») il sortait de 267 px (droite à 555).",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-courrier.js : .opc .hband .hliens .lnk passe en white-space:normal, max-width:100%, min-width:0, text-align:left (le lien général est en nowrap ; dans le bandeau il y a la place de passer à la ligne, le chevron reste à droite).",
+    "preuve": "sondes/entreprise-restes3-lien.js : 42 ✓ · 0 ✗ (sept profils jour et nuit, chaque message à liens, noms réels puis nom très long : aucun lien ni chevron ne dépasse du bord de la carte, la page ne glisse pas). Contre-épreuve (règle retirée) : 4 ✗ à 320 px (321 contre 288 ; 555 contre 288). Captures lues (cap/entreprise-restes3-lien/lien-petit.png jour : « Chauffage Distribution / Atlantique › » sur deux lignes, chevron net ; lien-petit-nuit-long.png : deux liens de trois lignes, rien de coupé, bouton dessous intact)."
+  },
+  {
+    "nom": "Boîte mail en « Voir seul » : un blanc de ~26 px entre le suivi et la rangée « Catégorie » (rangée « Réponse rapide » de hauteur 0 qui garde sa marge et ses écarts)",
+    "defaut": "Reproduit (iPhone, Voir seul) : rquick h 0, margin-top 26 px, entre le suivi et la rangée Catégorie : écart de 44 px au lieu des 18 d'un écart ordinaire, sur les 11 messages ; au bureau le libellé « Réponse rapide » restait seul si les boutons étaient cachés.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-courrier.js : .opc[data-ranger=\"0\"] .rquick{display:none !important} (les boutons sont déjà cachés par la même case ; la rangée part entière).",
+    "preuve": "sondes/entreprise-restes3-blanc.js : 30 ✓ · 0 ✗ (iPhone, petit nuit, Android, iPad nuit, Mac, Mac 720 nuit × Voir seul / Voir + Modifier : aucune rangée de hauteur 0, écart ≤ 24 px, et avec Modifier la rangée « Réponse rapide » est toujours là avec ses boutons). Contre-épreuve (règle retirée) : 20 ✓ · 10 ✗ (écart 44). Mesure directe après correction : 18 px. Capture iPhone lue (blanc-iphone.png)."
+  },
+  {
+    "nom": "doute — « Renommer… » et « Changer le logo… » d'une boîte en « Voir seul » / « Voir + Modifier »",
+    "defaut": "Non touché : ce sont des réglages d'affichage de l'appareil (SAVED.names, SAVED.logos), pas des écritures partagées.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour2.json (même entrée, restes1-recontrole h : 6 ✓)"
+  },
+  {
+    "nom": "doute — le numéro « +33 (0)5 46 11 22 33 » est refusé comme téléphone de l'entreprise",
+    "defaut": "Non touché : décision ouverte du tour 1, toujours sans réponse.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "doute — une facture peut partir avec le seul SIRET (sans forme juridique, capital, immatriculation, assurance)",
+    "defaut": "Non touché : à faire valider côté droit français (agent juriste, puis Justin) ; pas une correction d'écran.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "doute — « Voir + Créer » (sans Modifier) compose un message, un devis ou un contrat mais ne peut ni répondre ni le rouvrir",
+    "defaut": "Non touché : répondre = Modifier est la règle posée par le chef.",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "restes-entreprise-tour1-recontrole.json (doutes)"
+  },
+  {
+    "nom": "doute — la secrétaire voit-elle la Boîte mail ? (ligne non cochée de vus-par-le-chef.md)",
+    "defaut": "Décision (c)/(l) du chef : à soumettre, aucun changement de code.",
+    "etat": "déjà décidé",
+    "changement": "rien",
+    "preuve": "vus-par-le-chef.md ligne 14"
+  },
+  {
+    "nom": "doute — refus de champ sur téléphone avec le clavier d'un vrai iPhone ouvert : le message sous le champ pourrait être caché derrière le clavier sans que la bulle le dise",
+    "defaut": "Non vérifiable dans ce navigateur (aucun clavier émulé, fenêtre visuelle jamais réduite).",
+    "etat": "à soumettre à Justin",
+    "changement": "rien",
+    "preuve": "à regarder sur un vrai iPhone : Mon entreprise › Ton entreprise › « Site internet » = « pas un site », Enregistrer, clavier ouvert"
+  },
+  {
+    "nom": "note de sondes — droits-table.js tombe à 3 ✗ (verbes « rembourseNote », « transfertok », « trfannul », « reglages », « piece » non nommés ; familles « sortie », « v », « secv » ; familles « sxdadd », « sxdcop » absentes)",
+    "defaut": "Identique AVANT mes changements (vérifié par git stash : mêmes 3 ✗) : ce n'est pas le fait de cette voie ; la table GESTES a bougé avec d'autres lots (achats, sorties de stock).",
+    "etat": "à soumettre à Justin",
+    "changement": "rien : hors de mon périmètre (verbes d'Achats et de Stock), signalé au chef de chantier",
+    "preuve": "node scratchpad/proto-final/sondes/droits-table.js : 4 ✓ · 3 ✗ avant et après"
+  }
+]
