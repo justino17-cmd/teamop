@@ -289,7 +289,7 @@ body:has(#cpsys:not([hidden])) #toast{z-index:9200}   /* la Comptabilité plein 
 .gd-voix{font-size:16px}.gd-bulle.mini .gd-voix{margin-left:auto}
 
 /* [8] une rangée de destinations ne défile pas : sur téléphone elle passe à la ligne, tous les choix restent visibles */
-@media (max-width:760px){.seg:has([data-vc]),.seg:has([data-filtreint]),.seg:has([data-dvf]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-vc]) button,.seg:has([data-filtreint]) button,.seg:has([data-dvf]) button{flex:1 1 auto}}
+@media (max-width:760px){.seg:has([data-vc]),.seg:has([data-filtreint]),.seg:has([data-dvf]),.seg:has([data-rangc]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-vc]) button,.seg:has([data-filtreint]) button,.seg:has([data-dvf]) button,.seg:has([data-rangc]) button{flex:1 1 auto}}   /* « Archivés · N » sortait de la vue à 320 et 360 px : la rangée passe à la ligne (recontrôle clients) */
 /* le filtre des interventions ne défile jamais de côté (restes interventions : sur iPad portrait, « Toutes » sortait à droite sans indice) : il passe à la ligne dès que la colonne est trop étroite, quel que soit l'appareil */
 .seg:has([data-filtreint]){flex-wrap:wrap;overflow-x:visible}.seg:has([data-filtreint]) button{flex:1 1 auto}
 /* Devis : cinq filtres qui ne tiennent pas sur une ligne (téléphone, iPad en colonne) passent à la ligne au lieu de défiler : « Tous » ne se perd plus derrière le bord (regard gérant B) */
@@ -4811,8 +4811,12 @@ const bloque = () => { clicBloque = true; setTimeout(() => clicBloque = false, 4
 function memo(){ pile.push(JSON.stringify({ INTS, BUREAU, NOTES })); if (pile.length > 40) pile.shift(); }
 function annuler(){ if (!pile.length) return; const s = JSON.parse(pile.pop()); INTS = s.INTS; BUREAU = s.BUREAU; NOTES = s.NOTES;
   /* « nouveau client + intervention » : le message dit « retour à l'état d'avant », le client né avec l'intervention repart avec elle — sauf s'il a déjà autre chose (une intervention, un devis, une facture, un contrat) */
-  if (s.NVCLI && CLIENTS[s.NVCLI] && !INTS.some(i => i.cli === s.NVCLI) && !DV.some(d => d.cli === s.NVCLI) && !FACTURES.some(f => f.cli === s.NVCLI) && !CONTRATS.some(x => x.cli === s.NVCLI)) { delete CLIENTS[s.NVCLI]; delete SECT_CLI[s.NVCLI]; delete CR_GEO[s.NVCLI]; }
-  if (s.MAIL) { const m = mlDe(s.MAIL.id); if (m) { m.fait = s.MAIL.fait; m.faitLien = s.MAIL.faitLien; m.lu = s.MAIL.lu; } } rendre(); toast('Annulé : retour à l’état d’avant'); }
+  /* … et seulement s'il n'a pas vécu depuis : une fiche complétée (consignes d'accès, appareil, nouvelle adresse) ou une tâche écrite pour lui se garde, le message le dit (recontrôle, clients-restes D1) */
+  let gardeCli = false;
+  if (s.NVCLI && CLIENTS[s.NVCLI] && !INTS.some(i => i.cli === s.NVCLI) && !DV.some(d => d.cli === s.NVCLI) && !FACTURES.some(f => f.cli === s.NVCLI) && !CONTRATS.some(x => x.cli === s.NVCLI)) {
+    if ((s.NVSIG && JSON.stringify(CLIENTS[s.NVCLI]) !== s.NVSIG) || TACHES.some(x => x.lien && x.lien.cli === s.NVCLI)) gardeCli = true;
+    else { delete CLIENTS[s.NVCLI]; delete SECT_CLI[s.NVCLI]; delete CR_GEO[s.NVCLI]; } }
+  if (s.MAIL) { const m = mlDe(s.MAIL.id); if (m) { m.fait = s.MAIL.fait; m.faitLien = s.MAIL.faitLien; m.lu = s.MAIL.lu; } } rendre(); toast(gardeCli ? 'Annulé : l’intervention est retirée. Le client est gardé, sa fiche a été complétée depuis.' : 'Annulé : retour à l’état d’avant'); }
 /* LE DERNIER FILET DES BULLES (17 novembre 2026) : une bulle s'écrit en HTML (un gras, un retour à la ligne), et chaque appelant échappe (esc) ce qui vient d'une donnée. Si l'un d'eux l'oublie, la bulle
    ne rend de toute façon que du texte et ces balises-là : le reste (img, svg, iframe, script…), tout gestionnaire (on…) et tout lien sont RETIRÉS avant d'être posés. Ce n'est pas une raison d'oublier esc :
    le filet garde le code, pas l'affichage (« & » reste « & » grâce à esc, jamais « &amp; » grâce au filet) */
@@ -5165,7 +5169,7 @@ const lireQuand = () => ({ tid:document.getElementById('q-tech').value, d:docume
 function panneauModifier(id){
   const i = INTS.find(o => o.id === id);
   ouvrirPanneau(`<h2>Modifier l’intervention</h2>
-  <label class="champ">Client<select id="m-cli">${Object.entries(CLIENTS).map(([k,c])=>`<option value="${k}" ${k===i.cli?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
+  <label class="champ">Client<select id="m-cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || k === i.cli).map(([k,c])=>`<option value="${k}" ${k===i.cli?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
   <label class="champ">Ce qu’il faut faire<input id="m-titre" value="${esc(i.titre)}"></label>
   <label class="champ">Type<select id="m-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option ${x===i.type?'selected':''}>${x}</option>`).join('')}</select></label>
   ${champsQuand(i.tech, i.d, i.h, i.dur)}
@@ -5743,8 +5747,10 @@ function vueClients(){
   let cqt = /^[\d\s.+()]+$/.test(cq) ? cfTelChiffres(cq, true) : ''; if (cqt.length < 4) cqt = '';   /* le numéro ENREGISTRÉ se normalise comme la saisie : « +33 6… » en base se retrouve aussi (recontrôle, casse 1) */
   const enArch = rangClients === 'archives';   /* « Archivés » : les clients rangés hors de la liste (clients-17) ; la recherche y reste */
   /* « hôtel plage » retrouve « Hôtel de la Plage » : chaque mot doit se trouver quelque part, dans l'ordre qu'on veut (clients-01) */
-  const L = Object.entries(CLIENTS).filter(([k,c]) => { if (k === '__nv' || !!c.archive !== enArch) return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
-    return mots.every(m => botte.includes(m)) || (cqt && cfTelChiffres(c.tel).includes(cqt)); }).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const trouve = ([k,c]) => { if (k === '__nv') return false; if (!cq) return true; const botte = sansAccent([c.nom, c.contact, c.adr, c.mail, CONTRATS.some(x => x.cli === k && x.st === 'signe') ? 'contrat' : ''].join(' '));
+    return mots.every(m => botte.includes(m)) || (cqt && cfTelChiffres(c.tel).includes(cqt)); };
+  const L = Object.entries(CLIENTS).filter(e => !!e[1].archive === enArch && trouve(e)).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
+  const nArchTrouves = !enArch && cq ? Object.entries(CLIENTS).filter(e => e[1].archive && trouve(e)).length : 0;   /* la recherche ne doit pas dire « aucun client » quand un client ARCHIVÉ correspond (recontrôle clients) */
   const nArch = Object.values(CLIENTS).filter(c => c.archive).length;   /* le bouton « Archivés » n'existe que s'il y en a, ou si on y est */
   /* pendant une recherche, UN seul rangement paraît choisi : la recherche couvre « Tous les clients » (ou les archivés quand on y est) — jamais deux boutons enfoncés (recontrôle, casse 5) */
   const seg = `<div class="seg" role="group" aria-label="Ranger les clients">${[['tous','Tous les clients'],['semaine','Par semaine'],['mois','Par mois'], ...(nArch || enArch ? [['archives','Archivés · ' + nArch]] : [])].map(([k,l])=>`<button type="button" data-rangc="${k}" aria-pressed="${chercheClient.trim() && !enArch ? k==='tous' : rangClients===k}">${l}</button>`).join('')}</div>`;
@@ -5752,7 +5758,7 @@ function vueClients(){
     <input class="saisie" placeholder="Chercher un client…" value="" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}${rangClients==='mois'?vueClientsMois():vueClientsSemaine()}`;
   return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1>${enArch ? '<span class="gris">Les clients rangés hors de la liste. Leur historique, leurs factures et leurs contrats restent : « Remettre dans la liste » les ramène.</span>' : ''}</div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
   <input class="saisie" placeholder="Chercher un client…" value="${esc(chercheClient)}" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}
-  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">Aucun client ne correspond à « ${esc(chercheClient.trim())} ». Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
+  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">${nArchTrouves ? 'Aucun client de ta liste' : 'Aucun client'} ne correspond à « ${esc(chercheClient.trim())} ». ${nArchTrouves ? `${nArchTrouves === 1 ? 'Un client archivé correspond' : nArchTrouves + ' clients archivés correspondent'}.<div class="actions" style="margin-top:10px"><button type="button" class="btn gris" data-rangc="archives" data-garde="1">Voir ${nArchTrouves === 1 ? 'le client archivé' : 'les clients archivés'}</button></div>` : `Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.`}</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
     const carte = `<button type="button" class="carte client-carte" data-go="client-x-${k}"><span style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:17px">${esc(c.nom)}</b>${ctr?'<span class="st st-v">contrat</span>':''}</span><span class="gris petit">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc((c.adr || '').split(',').pop().trim())].filter(Boolean).join(' · ')}</span>
       <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; return enArch && peut('crm', 's') ? `<div class="client-arch">${carte}<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button></div>` : carte; }).join('')}</div>`;
 }
@@ -8905,9 +8911,12 @@ function placerPops(){
     if (droite > W - marge) e.style.left = (e.offsetLeft - (droite - (W - marge))) + 'px';
   });
 }
-function aller(h){ if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
+  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
+  /* l'adresse a changé sans passer par aller() (retour du navigateur ou du téléphone, adresse tapée) alors que « Infos » porte une saisie non enregistrée : on remet l'adresse de la fiche, puis on demande (clients-15, recontrôle) */
+  if (route === 'client' && h !== ici && cliInfosRetenir(() => aller(h), true)) { histRemplacer('#' + ici); return; }
   calApresNavigation();
   // le chemin parcouru, tenu par la page : l'historique du navigateur ne répond pas dans toutes les fenêtres (artefact, iframe)
   if (enRetour) enRetour = false; else if (ici !== h && lireHash.deja) histo.push(ici);
@@ -9307,7 +9316,7 @@ document.addEventListener('click', ev => {
   if ((b = q('[data-plvue]'))) { plVue = b.dataset.plvue; rendre(); return; }
   if ((b = q('[data-plnav]'))) { const n = +b.dataset.plnav; plRef = n === 0 ? AUJ : plVue === 'jour' || plVue === 'carte' ? ajoute(plRef, n) : plVue === 'multi' ? ((multiJours = n === 0 ? multiJours.map((_,k)=>ajoute(AUJ,k)) : multiJours.map(d=>ajoute(d, 7*n))), plRef) : (plVue === 'semaine' || plVue === 'general') ? ajoute(plRef, 7*n) : (() => { const d = dObj(plRef.slice(0,8) + '15'); d.setMonth(d.getMonth() + n); const m = d.toISOString().slice(0,10); return m.slice(0,7) === AUJ.slice(0,7) ? AUJ : m; })(); rendre(); return; }
   if ((b = q('[data-voirjour]'))) { if (clicBloque) return; plRef = b.dataset.voirjour; plVue = 'jour'; rendre(); return; }
-  if ((b = q('[data-rangc]'))) { rangClients = b.dataset.rangc; chercheClient = ''; rendre(); return; }
+  if ((b = q('[data-rangc]'))) { rangClients = b.dataset.rangc; if (!b.dataset.garde) chercheClient = ''; rendre(); return; }   /* « voir les archivés » depuis une recherche garde la recherche */
   if ((b = q('[data-semc]'))) { semClients = ajoute(semClients, 7 * +b.dataset.semc); rendre(); return; }
   if ((b = q('[data-mpop]'))) { multiPop = multiPop === b.dataset.mpop ? null : b.dataset.mpop; rendre(); if (multiPop) requestAnimationFrame(() => { const e = document.querySelector('.pm-pop'); if (e && e.getBoundingClientRect().bottom > innerHeight - 90) e.scrollIntoView({ block:'center', behavior:'smooth' }); }); return; }
   if ((b = q('[data-mjbascule]'))) { const d = b.dataset.mjbascule; if (multiJours.includes(d)) { if (multiJours.length > 1) multiJours = multiJours.filter(x => x !== d); } else multiJours.push(d); rendre(); return; }
@@ -10520,7 +10529,7 @@ const nomClientNet = (t, n) => libelleSur(t, n || 80);
 /* Un nom de client ou d'expéditeur va jusqu'à 120 signes (« Syndicat des copropriétaires de la résidence … » en demande plus de 80) ; les champs de saisie portent le même plafond (maxlength) :
    on ne peut pas taper plus, donc rien n'est coupé en silence (recontrôle de la sécurité, tour 1 : un nom de 90 signes sortait coupé à 80) */
 const NOM_MAX = 120;
-const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 30); return o; };
+const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 60); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
 const nomNorm = s => prNorm(s).replace(/ /g, '');
 const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
 const habEtat = d => d == null ? 'v' : tJours(d) < 0 ? 'r' : tJours(d) <= 60 ? 'o' : 'v';
@@ -11429,7 +11438,7 @@ function cxNouveau(){
     <button type="button" data-cx="payerliste"><span aria-hidden="true">📤</span><b>Paiement fait</b><span class="gris petit">Tu as réglé un fournisseur.</span></button></div>`);
 }
 function cxNouvelleFacture(){
-  const C = Object.entries(CLIENTS).sort((a, b) => a[1].nom.localeCompare(b[1].nom));
+  const C = Object.entries(CLIENTS).filter(([, c]) => !c.archive).sort((a, b) => a[1].nom.localeCompare(b[1].nom));   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) */
   ouvrirPanneau(`<span class="surtitre">Factures clients</span><h2>Nouvelle facture</h2><span class="gris">Pour une prestation sans intervention : un forfait, un acompte, une visite. Elle reste « à valider » : tu la relis, tu peux ajouter des lignes, puis tu l’envoies. Le numéro se donne à l’envoi.</span>
     <label class="champ">Client<select class="saisie" id="nf-c"><option value="">Choisir le client…</option>${C.map(([k, c]) => `<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Objet<input class="saisie" id="nf-o" placeholder="ex. Forfait de mise en service"></label>
@@ -14112,8 +14121,9 @@ const ACTIONS_CREA = {
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
     if (CREA.nouveau && !CREA.doublonOk) { const dj = cfDoublonDe({ ...CREA.nv, nom:cfNomClient(CREA.nv) }); if (dj) { CREA.doublonOk = true; toast('Ce client existe peut-être déjà : « ' + esc(CLIENTS[dj].nom) + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer l’intervention » pour le créer quand même, ou choisis-le dans la liste.'); return; } }
-    if (CREA.nouveau) { k = 'c' + Object.keys(CLIENTS).length; CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
-    const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
+    if (CREA.nouveau) { let nn = Object.keys(CLIENTS).length; while (CLIENTS['c' + nn]) nn++; k = 'c' + nn;   /* jamais un identifiant déjà pris : « Annuler » peut retirer un client au milieu de la liste, et le nombre de clients ne suffit plus */
+      CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
+    const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, NVSIG:CREA.nouveau ? JSON.stringify(CLIENTS[k]) : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
     Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: texteNet(CREA.motif).trim().slice(0, 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
@@ -14432,19 +14442,27 @@ function clientEnregistrer(k){ const c = CLIENTS[k]; if (!c) return false; const
 ACTIONS.clientEnreg = function(b){ clientEnregistrer(b.dataset.cli); };
 /* ── quitter « Infos » avec une saisie non enregistrée (clients-15) : on demande, dans la fenêtre de l'application, jamais confirm() du navigateur ──
    Un écouteur de capture : il voit le clic AVANT l'écran, retient le geste, et le rejoue (sur le même bouton, ou son pareil si l'écran a été redessiné) quand la personne a choisi. */
-let CLI_RETENU = null, CLI_LIBRE = false;
+let CLI_RETENU = null, CLI_LIBRE = false, CLI_PASSE = false;
+/* Toute autre porte que le clic (palette, Ctrl+1…9, retour du navigateur, adresse tapée) passe par ici : vrai = la sortie est retenue et la fenêtre posée. `CLI_PASSE` : la personne a déjà choisi, le prochain changement d'adresse (asynchrone) ne redemande pas. */
+function cliInfosRetenir(suite, parAdresse){ if (CLI_LIBRE || !clientInfosSale()) return false;
+  if (CLI_PASSE) { if (parAdresse) CLI_PASSE = false; return false; }   /* seul le changement d'adresse consomme le choix : aller() le précède et le laisse */
+  CLI_RETENU = { suite }; cliInfosDemande(); return true; }
+function cliInfosDemande(){ ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
+    <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`); }
 document.addEventListener('click', ev => {
   if (CLI_LIBRE || !clientInfosSale()) return;
   const el = ev.target.closest && ev.target.closest('#contenu [data-oc],#contenu [data-go],#contenu [data-retour],#contenu [data-rl="retour"],#menu a[href^="#"],[data-tab],[data-nv],[data-logo],[data-menu]'); if (!el || el.closest('#calque')) return;
   if (el.dataset.oc === 'infos') return;   /* le même onglet : rien ne se quitte */
   const sel = el.dataset.oc ? '#contenu [data-oc="' + el.dataset.oc + '"]' : el.dataset.go ? '#contenu [data-go="' + el.dataset.go + '"]' : el.dataset.retour ? '#contenu [data-retour]' : el.dataset.rl === 'retour' ? '#contenu [data-rl="retour"]' : null;
-  ev.preventDefault(); ev.stopPropagation(); CLI_RETENU = { el, sel };
-  ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
-    <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`);
+  ev.preventDefault(); ev.stopPropagation(); CLI_RETENU = { el, sel }; cliInfosDemande();
 }, true);
 ACTIONS.clientInfosSuite = function(b){ const R = CLI_RETENU; CLI_RETENU = null; if (!R) return fermerPanneau();
   if (b.dataset.v === 'enreg' && !clientEnregistrer(param)) return fermerPanneau();   /* un champ est refusé : on reste sur la fiche, avec son message */
-  fermerPanneau(); const cible = R.el.isConnected ? R.el : (R.sel && document.querySelector(R.sel)); if (!cible) return;
+  fermerPanneau();
+  /* le choix est fait : la sortie rejouée ne redemande pas, y compris au changement d'adresse qui arrive APRÈS (hashchange est asynchrone) ; un délai le périme si l'adresse ne change pas */
+  CLI_PASSE = true; setTimeout(() => { CLI_PASSE = false; }, 1500);
+  if (R.suite) return R.suite();
+  const cible = R.el.isConnected ? R.el : (R.sel && document.querySelector(R.sel)); if (!cible) return;
   CLI_LIBRE = true; try { cible.click(); } finally { CLI_LIBRE = false; } };
 /* [4] « ＋ Client » : un client se crée avec son premier travail (une intervention à planifier, un devis à lui envoyer), ou seul, sans rien d'autre */
 ACTIONS.clientNouveau = function(){ ouvrirPanneau(`<h2>Nouveau client</h2><p class="gris" style="margin:0">Tu peux préparer son premier travail : une intervention à planifier, ou un devis à lui envoyer. Ou ne créer que sa fiche, et t’occuper du reste plus tard.</p>
@@ -14474,15 +14492,16 @@ ACTIONS.clientSeulOk = function(){ clientSeulLire(); const f = CS_F; f.err = '';
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:nom, cli:k }, { det:'sa fiche seule' });
   CS_F = null; fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('client-x-' + k); toast('Client créé : ' + esc(nom) + '. Tu peux maintenant lui créer une intervention ou un devis.'); };
 /* clients-17 : un client ne s'efface jamais (ses factures doivent garder leur client) : il s'ARCHIVE, et se remet dans la liste d'un geste */
-ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return;
+/* une case se lit dans la fonction qui ÉCRIT, pas seulement au bouton : un autre chemin (un geste rejoué, une fenêtre restée ouverte) ne contourne pas le droit (recontrôle clients) */
+ACTIONS.clientArchiverDemande = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !peut('crm', 's')) return;
   const aVenir = INTS.filter(i => i.cli === k && i.d >= AUJ && !['fait', 'annulee'].includes(i.st)).length, aRecevoir = FACTURES.filter(f => f.cli === k && ['envoyee', 'retard', 'partielle'].includes(f.st)).length;
   ouvrirPanneau(`<h2>Archiver ${esc(c.nom)} ?</h2><p class="gris" style="margin:0">Il quitte la liste des clients et n’est plus proposé pour un nouveau travail. Son historique, ses factures, ses devis et ses contrats restent. Tu le retrouves dans « Archivés », et tu peux le remettre dans la liste quand tu veux.</p>
     ${aVenir || aRecevoir ? `<div class="info petit" style="margin-top:10px">${[aVenir ? aVenir + ' intervention' + (aVenir > 1 ? 's' : '') + ' à venir : elle' + (aVenir > 1 ? 's restent' : ' reste') + ' au planning' : '', aRecevoir ? aRecevoir + ' facture' + (aRecevoir > 1 ? 's' : '') + ' à recevoir : elle' + (aRecevoir > 1 ? 's restent' : ' reste') + ' à suivre' : ''].filter(Boolean).join(' · ')}.</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-action="clientArchiverOk" data-cli="${k}">Oui, archiver ce client</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
-ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c) return; c.archive = true;
+ACTIONS.clientArchiverOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !peut('crm', 's')) return; c.archive = true;
   journalAjout('marc', 'client', 'a archivé le client', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il quitte la liste, rien n’est supprimé' });
   fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('clients'); toast('Client archivé : ' + esc(c.nom) + '.', { lib:'Annuler', fn:() => { delete c.archive; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); } }); };
-ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive) return; delete c.archive;
+ACTIONS.clientRestaurer = function(b){ const k = b.dataset.cli, c = CLIENTS[k]; if (!c || !c.archive || !peut('crm', 's')) return; delete c.archive;
   journalAjout('marc', 'client', 'a remis le client dans la liste', { t:'client', id:k, lib:c.nom, cli:k }, { det:'il était archivé' });
   if (rangClients === 'archives' && !Object.values(CLIENTS).some(x => x.archive)) rangClients = 'tous'; rendre(); toast('Remis dans la liste : ' + esc(c.nom) + '.'); };
 /* clients-11 : les appareils d'un client s'ajoutent, se modifient et se retirent depuis la fiche */
@@ -14493,7 +14512,7 @@ ACTIONS.clientAppForm = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n 
     <div class="alerte" id="app-err" role="alert" hidden></div>
     <div class="actions"><button type="button" class="btn" data-action="clientAppEnreg" data-cli="${k}" data-n="${n}">Enregistrer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
   setTimeout(() => document.getElementById('app-nom')?.focus(), 50); };
-ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n; if (!c) return; const nom = (document.getElementById('app-nom').value || '').trim(), det = (document.getElementById('app-det').value || '').trim();
+ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n; if (!c || !peut('crm', 'm')) return; const nom = (document.getElementById('app-nom').value || '').trim(), det = (document.getElementById('app-det').value || '').trim();
   if (!nom) { const er = document.getElementById('app-err'); er.textContent = 'Indique le nom de l’appareil.'; er.hidden = false; document.getElementById('app-nom').focus(); return; }
   if (n >= 0 && c.appareils[n]) { Object.assign(c.appareils[n], { nom, det }); journalAjout('marc', 'client', 'a modifié un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:nom }); }
   else { c.appareils.push({ nom, det }); journalAjout('marc', 'client', 'a ajouté un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:nom }); }
@@ -14501,7 +14520,7 @@ ACTIONS.clientAppEnreg = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n
 ACTIONS.clientAppSuppr = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a) return;
   ouvrirPanneau(`<h2>Retirer cet appareil ?</h2><p class="gris" style="margin:0">« ${esc(a.nom)} » quitte la fiche de ${esc(c.nom)}. Les interventions déjà faites dessus gardent leur historique.</p>
     <div class="actions"><button type="button" class="btn" data-action="clientAppSupprOk" data-cli="${k}" data-n="${n}">Oui, retirer</button><button type="button" class="btn gris" data-ferme="1">Non, le garder</button></div>`); };
-ACTIONS.clientAppSupprOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a) return; c.appareils.splice(n, 1);
+ACTIONS.clientAppSupprOk = function(b){ const k = b.dataset.cli, c = CLIENTS[k], n = +b.dataset.n, a = c && c.appareils[n]; if (!a || !peut('crm', 'm')) return; c.appareils.splice(n, 1);
   journalAjout('marc', 'client', 'a retiré un appareil', { t:'client', id:k, lib:c.nom, cli:k }, { det:a.nom }); fermerPanneau(); rendre();
   toast('Appareil retiré : ' + esc(a.nom) + '.', { lib:'Annuler', fn:() => { c.appareils.splice(Math.min(n, c.appareils.length), 0, a); rendre(); toast('Appareil remis : ' + esc(a.nom) + '.'); } }); };
 ACTIONS.clientNvInt = function(){ fermerPanneau(); ouvrirCreation({}); if (CREA) { CREA.nouveau = true; if (['devis', 'contrat'].includes(CREA.fact)) CREA.fact = 'temps'; rendreCreation(); } };
@@ -17120,8 +17139,8 @@ function bxNouVue(surPlace){
   const deja = N.cli ? LIEUX.filter(l => l.type === 'depot' && l.cli === N.cli && !l.ferme) : [], depots = bxActifs().filter(l => l.type === 'depot' && Object.keys(lieuArticles(l.id)).length);
   const kit = BX_KIT.map(([pid, q]) => ({ x:bxProd(pid), q })).filter(o => o.x);
   const html = `<span class="surtitre">Matériel</span><h2>Nouvelle réserve chez un client</h2>
-    <label class="champ">Client<input class="saisie" list="bxl-clients" data-bxl-nou="clinom" value="${N.cli ? esc(CLIENTS[N.cli].nom) : esc(N.cliTxt || '')}" placeholder="Chercher un client…" autocomplete="off"><datalist id="bxl-clients">${Object.entries(CLIENTS).map(([k, c]) => `<option value="${esc(c.nom)}"></option>`).join('')}</datalist></label>
-    ${N.cli ? '' : N.cliTxt ? `<div class="info petit fo-alerte" role="status">« ${esc(N.cliTxt)} » n’est pas dans tes clients : choisis-en un dans la liste (tape ses premières lettres).</div>` : '<div class="gris petit">Choisis d’abord le client : « Créer la réserve » s’allume ensuite.</div>'}
+    <label class="champ">Client<input class="saisie" list="bxl-clients" data-bxl-nou="clinom" value="${N.cli ? esc(CLIENTS[N.cli].nom) : esc(N.cliTxt || '')}" placeholder="Chercher un client…" autocomplete="off"><datalist id="bxl-clients">${Object.entries(CLIENTS).filter(([, c]) => !c.archive).map(([k, c]) => `<option value="${esc(c.nom)}"></option>`).join('')}</datalist></label>
+    ${N.cli ? '' : N.cliTxt ? `<div class="info petit fo-alerte" role="status">« ${esc(N.cliTxt)} » ${Object.values(CLIENTS).some(c => c.archive && prNorm(c.nom) === prNorm(N.cliTxt)) ? 'est un client archivé : remets-le d’abord dans la liste des clients (fiche › « Remettre dans la liste »).' : 'n’est pas dans tes clients : choisis-en un dans la liste (tape ses premières lettres).'}</div>` : '<div class="gris petit">Choisis d’abord le client : « Créer la réserve » s’allume ensuite.</div>'}
     ${deja.length ? `<div class="info petit fo-alerte">Il y a déjà une réserve chez ce client : <button type="button" class="lien" data-bxl="fiche|${deja[0].id}">${esc(deja[0].nom)} ›</button>. Tu peux en ouvrir une seconde.</div>` : ''}
     <label class="champ">Responsable<select data-bxl-nou="resp">${Object.entries(H_GENS).filter(([k]) => k !== 'client' && k !== 'auto').map(([k, g]) => `<option value="${k}" ${N.resp === k ? 'selected' : ''}>${esc(g.nom)}</option>`).join('')}</select></label>
     <label class="champ">Où, comment y accéder<input class="saisie" data-bxl-nou="note" value="${esc(N.note)}" placeholder="ex. local technique, clé à l’accueil"></label>
@@ -17247,7 +17266,7 @@ document.addEventListener('change', ev => {
   if (t.matches('[data-md-ck]')) { if (t.checked) BX.sel.add(t.dataset.mdCk); else BX.sel.delete(t.dataset.mdCk); return bxMaj(); }
   if (t.matches('[data-mdq]') && MD.dot) { const n = foNum(t.value); if (n != null && n >= 0) MD.dot.v[t.dataset.mdq] = n; else toast('Une quantité ne peut pas être négative.'); return foGarder(() => mdDotation(MD.dot.id)); }
   if (t.matches('[data-bxl-nou]') && BX.nou) { const k = t.dataset.bxlNou;
-    if (k === 'clinom') { const nt = prNorm(t.value), e = Object.entries(CLIENTS).find(([, c]) => c.nom === t.value) || (nt ? Object.entries(CLIENTS).find(([, c]) => prNorm(c.nom) === nt) : null);   /* le nom exact d'abord, puis sans casse, accent ni espace en trop : le clavier du téléphone ajoute une espace après une suggestion, et « n'est pas dans tes clients » mentirait · 13 novembre 2026 */
+    if (k === 'clinom') { const nt = prNorm(t.value), vifs = Object.entries(CLIENTS).filter(([, c]) => !c.archive), e = vifs.find(([, c]) => c.nom === t.value) || (nt ? vifs.find(([, c]) => prNorm(c.nom) === nt) : null);   /* un client archivé n'est pas proposé pour une réserve neuve (clients-17) */   /* le nom exact d'abord, puis sans casse, accent ni espace en trop : le clavier du téléphone ajoute une espace après une suggestion, et « n'est pas dans tes clients » mentirait · 13 novembre 2026 */
       BX.nou.cli = e ? e[0] : ''; BX.nou.cliTxt = e ? '' : t.value.trim();   /* ce qui a été tapé reste affiché, avec son explication · 13 novembre 2026 */
       if (Date.now() - (window.bxPtrT || 0) < 900) { const ok = document.querySelector('[data-bxl="nouok"]'); if (ok) ok.disabled = !BX.nou.cli; let fait = false; const go = () => { if (fait) return; fait = true; if (BX.nou) bxNouVue(true); }; document.addEventListener('click', () => setTimeout(go, 0), { once:true }); setTimeout(go, 700); return; }
       return bxNouVue(true); }
@@ -23369,9 +23388,9 @@ rendreApresClic = function(){ cfRendreApresTap(); };   // le formulaire de contr
 const cfTelOk = t => { t = String(t || '').trim(); if (!t) return true; const c = t.replace(TEL_POSTE, ''); const n = c.replace(/\D/g, '').length; return /^\+?[\d\s.()\/,;-]+$/.test(c) && n >= 6 && n <= 20; };   // deux numéros (« 05 46 12 12 12 / 06 12 34 56 78 ») passent : un contact d'entreprise en donne souvent deux ; au-delà de 20 chiffres, ce n'est plus un numéro
 /* les CHIFFRES d'un numéro, « +33 6… », « 0033 6… » et « +33 (0)6… » ramenés à « 06… » : la seule façon de comparer deux numéros (recherche, doublon, rangement). Un numéro étranger garde son indicatif.
    `partiel` : une saisie en cours (« +33 6 ») n'a pas encore ses neuf chiffres, on ramène quand même l'indicatif (clients-18) */
-const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)/ : /^(?:0033|33)(?=\d{9}$)/, '0'); return n; };
+const cfTelChiffres = (t, partiel) => { t = String(t || '').trim(); let n = t.replace(/\(0\)/g, '').replace(/\D/g, ''); if (/^\(?\s*(\+|00)/.test(t)) n = n.replace(partiel ? /^(?:0033|33)0?/ : /^(?:0033|33)0?(?=\d{9}$)/, '0'); return n; };   /* « (+33) 6… » et « +33 06… » (le 0 gardé par habitude) sont des numéros français comme les autres : même chiffres que « 06… » (recontrôle, clients-18) */
 /* à l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 » et « 0033 » ramenés à « 0 »), un numéro étranger garde son « + » (clients, décision du 17 novembre) */
-const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
+const cfTelFmt = t => { t = String(t || '').trim(); const n = cfTelChiffres(t); return /^\(?\s*(\+|00)?[\d\s.()-]+$/.test(t) && /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
 /* UNE seule façon de ranger un client qu'on vient de créer, par n'importe quelle porte (intervention, devis, devis xylophage, atelier, e-mail, « le client seul ») :
    son numéro à la française, le point de la carte des tournées et le secteur — sans ça la carte le plaçait au dépôt (clients-05, recontrôle casse 3) */
 function clientFinir(k){ const c = CLIENTS[k]; if (!c) return; c.tel = cfTelFmt(c.tel); cliPositionner(k, c.adr); }   /* cliPositionner : la seule décision de position (secteur et point de la carte) */
