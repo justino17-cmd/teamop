@@ -1,0 +1,63 @@
+{
+  "role": "technicien (sm) puis chef d'équipe (kb), voisins : gérant (marc) et secrétariat (julie)",
+  "voie": "final-regard",
+  "suffixe": "technicien-a-recontrole",
+  "date": "2026-11-18",
+  "population": {
+    "sonde_rejouee": "scratchpad/proto-final/sondes/regard-technicien-a.js : 272 ✓ · 0 ✗ (six profils, jour et nuit sur petit et iphone)",
+    "captures": "690 captures du recontrôle (sm, kb, marc, julie × six profils × jour et nuit : Ma journée, Mes tâches, Nouvelle tâche, filtre En retard, Mes congés, demande, vides) + 25 captures de calendrier par profil (quinze jours, 1, 3, 6 mois) + 31 captures de dix écrans « sans défaut » tirés au hasard (graine 1811) ; 14 planches et une dizaine de captures plein format regardées à l'œil",
+    "sondes_nouvelles": [
+      "scratchpad/proto-final/sondes/regard-technicien-a-recontrole-captures.js",
+      "scratchpad/proto-final/sondes/regard-technicien-a-recontrole-calendrier.js (mesure aussi, sur les 4 rôles et 6 profils : en-têtes de jours trop larges, hors carte, jours fériés coupés, page qui glisse : 0 écart sauf « Jour de l'an » à deux lignes sur iPad en six mois)"
+    ],
+    "voisins_joues": "règles partagées : .tkx-pill (marc, julie, kb à 320 et 360 px, jusqu'à 6 pastilles avec compteurs), .a-dem-t (À valider du gérant, Mac et iPhone), aCalMois (calendrier d'une personne ouvert par le gérant, trois périodes), .t-vide (Aujourd'hui, À venir, Faites, filtres), .eqx-moi-l (chef d'équipe, iPhone, iPad, Android)"
+  },
+  "regles": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  "pasRegles": [],
+  "casses": [],
+  "nouveaux": [
+    {
+      "ecran": "Ma journée avant pointage (technicienne) › « Il est 10:40 · ta première intervention est à 08:30 »",
+      "profils": "iphone, android, ipad, mac, windows (masquée seulement sur l'écran court de 320 px, voie restes technicien 2)",
+      "constat": "le temps du verbe est faux dès que la première intervention est passée : elle date de deux heures et la carte dessous dit « En cours » ; devrait dire « était à 08:30 » (ou ne rien dire d'une heure passée)",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Demande de congé › champ Type",
+      "profils": "petit (320 px), jour et nuit",
+      "constat": "« Congé payé · 3 jours disponibles » est coupé par la flèche du champ : « …disponible: » (texte 247 px pour 238 de libres) ; tient à 360 et 390",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Mes congés › calendrier six mois, jour férié posé sur un congé (Jour de l'an, Noël)",
+      "profils": "ipad (colonne de 66 px)",
+      "constat": "« JOUR DE / L'AN » passe sur deux lignes à 9 px, collé à l'étiquette « CP » du congé ; le chiffre orange du jour (1, 25) sur le vert du congé est peu contrasté",
+      "gravite": "faible"
+    },
+    {
+      "ecran": "Barre d'onglets du bas du gérant et du secrétariat (hors périmètre de cette voie, vue sur Tâches)",
+      "profils": "petit (320 px)",
+      "constat": "« Accueil Planning Interventions Clients Comptabilité » (gérant) et « Comptabilité Devis Clients Tâches Achats » (secrétariat) se touchent bord à bord, « Comptabilité » arrive au bord de la pilule ; à confier à la voie de la coque",
+      "gravite": "faible"
+    }
+  ],
+  "doutes": [
+    "noms de jours fériés à 9 px (« TOUSSAINT », « ARMISTICE ») : tiennent sur une ligne mais sont tout petits au toucher ; à soumettre à Justin si 9 px lui paraît trop petit",
+    "« 3 articles manquent à bord » (carte Mon camion) : le mot décidé par le chef est « manque à bord » ; déjà noté par le premier regard, repris par les fichiers de Matériel et Véhicules",
+    "à 320 px la première intervention de Ma journée ne montre que son en-tête au-dessus de la barre : décision du chef (17/11), déjà notée",
+    "non rejoués en capture ce jour : ipad nuit des écrans vides, windows/android nuit des fenêtres de création ; le chef d'équipe n'a pas d'absence dans la fenêtre de quinze jours, donc la fiche d'une absence (e06) n'a été vue que pour la technicienne",
+    "en nuit, l'iPad affiche parfois le sélecteur Jour/Nuit/Auto sur « Auto » dans ma sonde de calendrier (sonde qui ne pose pas le mode sur ce passage), sans lien avec l'écran"
+  ],
+  "dix_ecrans_sans_defaut_tires_au_hasard": [
+    "fiche d'intervention valeurs longues (mac, jour) : rien",
+    "Mes tâches › Plus d'options (android, jour) : rien",
+    "Mes congés valeurs longues (mac, jour) : rien",
+    "Ma journée › messages du bureau (chef, petit, jour) : rien",
+    "fiche d'une absence (technicienne, petit, nuit) : rien",
+    "retirer une demande (chef, iphone, nuit) : rien (le toast recouvre un instant la fin de la page, voulu)",
+    "Mes tâches valeurs longues, filtre En retard (chef, iphone, nuit) : rien",
+    "Ma journée valeurs longues (android, jour) : la phrase du pointage au temps faux (voir nouveaux)",
+    "Mes tâches › À venir (chef, iphone, nuit) : rien",
+    "pointage commencé (android, jour) : même phrase au temps faux avant le pointage ; le toast de confirmation recouvre le haut du premier bouton pendant son affichage, voulu"
+  ]
+}
