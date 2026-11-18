@@ -30,6 +30,8 @@ const M = [
   ['22 · le mois fermé dit « elle sera régularisée » pour un homme', [["(ttFem(k) ? 'elle sera régularisée' : 'il sera régularisé')", "'elle sera régularisée'"]], TT],
   ['23 · la Paie redit « sup. » sur la ligne d’une semaine', [["'+' + ptH(sup) + ' en plus'", "'+' + ptH(sup) + ' sup.'"]], TT],
   ['24 · la Paie redit « se termine en novembre »', [["w.report ? `payée avec ${paieMoisVoisin(1)}` : ''", "w.report ? `se termine en ${paieMoisVoisin(1)}` : ''"]], TT],
+  ['27 · le relevé de la Paie propose « Valider » sur la semaine en cours', [["verr ? '<span class=\"st\">—</span>' : !w.fini ? '<span class=\"st\" title=\"Une semaine se valide une fois finie\">En cours</span>' : `<button", "verr ? '<span class=\"st\">—</span>' : `<button"]], TT],
+  ['28 · « valsem » valide la semaine en cours (geste forgé)', [["if (!ttSemFinie(y)) return toast(TT_ENCOURS); const w =", "const w ="]], TT],
   ['25 · le retour de la Paie ne rouvre plus l’onglet Mois', [["RETOUR.garde = () => { TT.garder = true; }", "RETOUR.garde = () => {}"]], RET],
   ['26 · le titre du visionneur de fiche de paie passe de nouveau sous la croix', [["padding-right:52px;white-space:normal;overflow-wrap:anywhere;line-height:1.25}", "padding-right:52px}"]], VIS, { PROFILS:'iphone' }],
 ];

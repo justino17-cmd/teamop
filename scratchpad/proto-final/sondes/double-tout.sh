@@ -10,4 +10,9 @@ lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout 590 e
   echo "$(( $(date +%s)-t0 ))s code=$code $nom :: $b" | tee -a "$J"; if [ $code -ne 0 ]; then MAL=1; echo "$s" | { grep "✗" | head -4 || true; } | { l=$(cat); [ -n "$l" ] && echo "$l" || echo "$s" | tail -4; } | cut -c1-260 | tee -a "$J"; fi; }
 S=scratchpad/proto-final/sondes
 for s in appareils compte equipe fenetre mots pirate securite sensibles vues corrections; do lance "$s" node $S/double-auth-$s.js; done
+# les sondes du recontrôle (tour 3) : la banque se lit ailleurs que dans son onglet (recensement par les DONNÉES) ; la carte de verrou tient sur 320, 360, 390 px et iPad
+lance recensement-banque node $S/double-auth-recensement-banque.js
+lance recontrole-recensement node $S/double-auth-recontrole-recensement.js
+lance recontrole-carte-verrou-jour P=4 PROFILS=petit,android,iphone,ipad node $S/double-auth-recontrole-parcours.js
+lance recontrole-carte-verrou-nuit P=4 NUIT=1 PROFILS=petit,android,iphone,ipad node $S/double-auth-recontrole-parcours.js
 echo FINI | tee -a "$J"; exit $MAL
