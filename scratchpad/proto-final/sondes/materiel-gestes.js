@@ -18,7 +18,7 @@ const L = require('../lib.js');
   // GESTE 1 — voir ce qui manque dans mon camion : 1 toucher, la carte est visible sans défiler
   await T(barre); await L.calme(p, 400);
   const g1 = await R(() => { const m = document.querySelector('[data-vis="camion-manque"]'); const r = m && m.querySelector('.mc-l') && m.querySelector('.mc-l').getBoundingClientRect(); return { titre:m && m.querySelector('h3') && m.querySelector('h3').textContent.trim(), bas:r && Math.round(r.bottom), H:innerHeight }; });
-  v('geste 1 · voir ce qui manque : 1 toucher (' + n + '), la carte « Il manque à bord » est visible sans défiler (' + g1.bas + ' < ' + g1.H + ')', n === 1 && /^Il manque à bord · \d/.test(g1.titre || '') && g1.bas < g1.H, g1);
+  v('geste 1 · voir ce qui manque : 1 toucher (' + n + '), la carte « Il manque à bord » est visible sans défiler (' + g1.bas + ' < ' + g1.H + ')', n === 1 && /^Il manque à bord\s+·\s*\d/.test(g1.titre || '') && g1.bas < g1.H, g1);
 
   // GESTE 2 — savoir où est une pièce : Camion (1) puis le champ (2) ; la réponse dit les endroits
   await retour(); await T(barre); await L.calme(p, 300); await T('#mc-q'); await p.fill('#mc-q', 'filtre'); await L.calme(p, 300);

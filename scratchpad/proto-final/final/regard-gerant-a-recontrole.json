@@ -1,0 +1,30 @@
+{
+ "role": "gerant",
+ "voie": "final-regard",
+ "suffixe": "a-recontrole",
+ "date": "2026-11-18",
+ "etat": "BROUILLON (en cours : restent la nuit du petit profil, dix ecrans tires au hasard, deux captures a refaire)",
+ "population": {
+  "sonde_rejouee": "regard-gerant-a.js : 134 ✓ · 0 ✗",
+  "sonde_balayage": "regard-gerant-a-recontrole.js sur 6 profils x jour/nuit (12 passes, 33 ecrans)",
+  "captures": "53 scenes x 6 profils x 2 modes, regardees en planches"
+ },
+ "regles": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [],
+ "doutes": []
+}

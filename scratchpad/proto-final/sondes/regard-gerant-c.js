@@ -127,5 +127,16 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
       v(`fiche camion, montant long (${profil}) : les tuiles ne se chevauchent pas`, !r.chevauche, r);
       await L.fin(c); }
   }
+  // 10. Cartes de Dépôts et camions avec un MONTANT TRÈS LONG : le montant tient sur UNE ligne et reste dans sa carte (il se coupait avant la virgule)
+  if (veut(10)) {
+    for (const profil of ['iphone', 'android', 'petit', 'mac']) {
+      const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { PRODUITS.forEach(x => { x.pa = 12345.67; x.q = 1523.5; }); }); await aller(c, 'boxes');
+      const r = await c.p.evaluate(() => { const B = [...document.querySelectorAll('.md-c .client-chiffres b')].filter(b => /€/.test(b.textContent)); const lh = b => parseFloat(getComputedStyle(b).lineHeight) || 18;
+        return { n: B.length, coupes: B.filter(b => b.getBoundingClientRect().height > lh(b) * 1.5).length, dehors: B.filter(b => b.getBoundingClientRect().right > b.closest('.md-c').getBoundingClientRect().right + 0.5).length }; });
+      v(`cartes de dépôts, montants longs (${profil}) : population — au moins 3 montants`, r.n >= 3, r);
+      v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne passe sur deux lignes`, r.coupes === 0, r);
+      v(`cartes de dépôts, montants longs (${profil}) : aucun montant ne sort de sa carte`, r.dehors === 0, r);
+      await L.fin(c); }
+  }
   process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
