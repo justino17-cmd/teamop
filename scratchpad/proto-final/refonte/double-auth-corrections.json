@@ -1,13 +1,80 @@
 [
- { "n":"tout-01", "etat":"corrigé", "changement":"Déjà corrigé par la campagne équipe avant mon passage (feuille de style de .cn-acces .ligne : libellé qui ne rétrécit plus, valeur à la ligne). Rejoué : 12 fiches (Léa, Karim, Sophie, Tom × iphone jour, android nuit, petit jour), aucune ligne ne déborde ni n'écrase son libellé.", "preuve":"double-auth-corrections (tout-01, 12 contrôles) ; mutation 206 (la règle retirée) fait tomber la sonde" },
- { "n":"tout-02", "etat":"corrigé", "changement":"secuMaint() part de l'heure de l'entreprise fictive (AUJ à MAINT_MIN) et n'ajoute que le temps écoulé et « Faire avancer l'horloge » : plus de Date.now() de la machine. Une même approbation s'écrit la même heure dans l'Historique et la Sécurité, Mon compte ne montre plus de date dans le futur.", "preuve":"double-auth-corrections (3 contrôles : écart < 10 min, heure de la dernière connexion, +6 min s'ajoutent) ; l'ancienne horloge remise : écart de 26 608 min, 3 contrôles tombent" },
- { "n":"tout-03", "etat":"corrigé", "changement":"Avec la boîte rouge, l'écran « Confirme sur ton téléphone » fait défiler jusqu'au nombre (cnxNombreEnVue), seulement si ça ne tient pas déjà, sans mouvement en « animations réduites ».", "preuve":"double-auth-corrections : nombre entièrement dans la fenêtre sur android nuit (555–651 sur 740), petit jour (363–459 sur 568), iphone ; mutation 207 : 687–783 sur 740, tombe" },
- { "n":"tout-04", "etat":"corrigé", "changement":"Changer le mot de passe de Mon compte compte les refus comme la connexion : au cinquième, le compte est verrouillé 15 minutes, les connexions sont fermées et le message est celui de la connexion.", "preuve":"double-auth-corrections (4 refus sans verrou, 5e verrouille, message, bon mot de passe refusé ensuite) ; défaut remis : 2 contrôles tombent" },
- { "n":"tout-05", "etat":"corrigé", "changement":"L'écran PIN du téléphone affiche le message de retour (« bloqué… ») même quand la session de l'ordinateur était ouverte (variable retour posée aussi dans l'écran PIN).", "preuve":"double-auth-corrections (message non vide et qui dit « bloqué »), défaut remis : 2 contrôles tombent" },
- { "n":"tout-06", "etat":"corrigé", "changement":"« Ouvrir l'application comme Sophie » : sessionOuvrir ne propose plus le guide des nouveautés quand la session est celle d'un autre (SECU.vraie) ; la marque « guide vu » de Sophie ne bouge pas.", "preuve":"double-auth-corrections (guide fermé, marque inchangée) ; défaut remis : 2 contrôles tombent" },
- { "n":"tout-07", "etat":"corrigé", "changement":"cnxValider refuse d'emblée un téléphone effacé : « Ton téléphone a été effacé. Demande un nouveau téléphone à ton administrateur. », aucun nombre, aucune demande en attente.", "preuve":"double-auth-corrections (3 contrôles) ; défaut remis : 3 contrôles tombent" },
- { "n":"tout-08", "etat":"corrigé", "changement":"Mon compte n'ajoute plus son propre « ‹ Retour » : il ne reste que celui du panneau (48 px sur téléphone, via :has(.sec-ident)). Ouverte seule, la feuille n'a que sa croix, comme les autres fenêtres.", "preuve":"double-auth-corrections (iphone, android nuit, petit : exactement un « Retour » ≥ 44 px par le vrai menu) ; double-auth-compte (jamais deux) ; défaut remis : tombe" },
- { "n":"tout-09", "etat":"corrigé", "changement":"Une connexion = une ligne d'historique : l'approbation pose c.histoConnexion, l'écran « Choisis ton mot de passe » n'en réécrit pas une seconde.", "preuve":"double-auth-corrections (+1 ligne, pas +2 ; aucune ligne en double dans Mon compte ; gérant aux téléphones activés d'un coup : 1 approuvée) ; défaut remis : 3 contrôles tombent" },
- { "n":"tout-10", "etat":"corrigé", "changement":"Garde « paie-fiches » posée dans vueComptabilite (la fonction qui dessine), par la table SECU_VUES : Fiches de paie, Salariés et Charges et déclarations montrent une carte « Une confirmation est nécessaire » (aucun montant dans la page) sans fenêtre de 5 minutes ; la confirmation s'ouvre à l'arrivée avec sa phrase (voir les fiches de paie / les salaires de l'équipe / les salaires et les charges), pas à chaque redessin ; confirmée, la vue s'écrit ; à l'expiration elle se re-masque (toast). Le bouton d'espace « Paie » (qui rouvre le dernier onglet) passe aussi par là. La carte est amenée dans l'écran sur téléphone.", "preuve":"double-auth-vues (3 onglets × 10 contrôles, zéro montant avant / plusieurs après) ; mutations 200, 204, 205 tombent ; captures lues : mac jour, iphone nuit, android jour" },
- { "n":"tout-11", "etat":"corrigé", "changement":"« compta-banque » : l'onglet Banque passe par SECU_VUES. « compta-export » : secuGarde en première instruction de cpEnvoyer (« Envoyer › » de la clôture et de l'espace Envoi au comptable) et de cpFecTelecharger. Même comportement que le cadre de la Comptabilité.", "preuve":"double-auth-vues (Banque 10 contrôles ; Envoyer › et FEC : phrase, rien ne part avant, le geste reprend) ; mutations 201, 202, 203 tombent" }
+ {
+  "n": "tout-01",
+  "etat": "corrigé",
+  "changement": "Déjà corrigé par la campagne équipe avant mon passage (feuille de style de .cn-acces .ligne : libellé qui ne rétrécit plus, valeur à la ligne). Rejoué : 12 fiches (Léa, Karim, Sophie, Tom × iphone jour, android nuit, petit jour), aucune ligne ne déborde ni n'écrase son libellé.",
+  "preuve": "double-auth-corrections (tout-01, 12 contrôles) ; mutation 206 (la règle retirée) fait tomber la sonde"
+ },
+ {
+  "n": "tout-02",
+  "etat": "corrigé",
+  "changement": "secuMaint() part de l'heure de l'entreprise fictive (AUJ à MAINT_MIN) et n'ajoute que le temps écoulé et « Faire avancer l'horloge » : plus de Date.now() de la machine. Une même approbation s'écrit la même heure dans l'Historique et la Sécurité, Mon compte ne montre plus de date dans le futur.",
+  "preuve": "double-auth-corrections (3 contrôles : écart < 10 min, heure de la dernière connexion, +6 min s'ajoutent) ; l'ancienne horloge remise : écart de 26 608 min, 3 contrôles tombent"
+ },
+ {
+  "n": "tout-03",
+  "etat": "corrigé",
+  "changement": "Avec la boîte rouge, l'écran « Confirme sur ton téléphone » fait défiler jusqu'au nombre (cnxNombreEnVue), seulement si ça ne tient pas déjà, sans mouvement en « animations réduites ».",
+  "preuve": "double-auth-corrections : nombre entièrement dans la fenêtre sur android nuit (555–651 sur 740), petit jour (363–459 sur 568), iphone ; mutation 207 : 687–783 sur 740, tombe"
+ },
+ {
+  "n": "tout-04",
+  "etat": "corrigé",
+  "changement": "Changer le mot de passe de Mon compte compte les refus comme la connexion : au cinquième, le compte est verrouillé 15 minutes, les connexions sont fermées et le message est celui de la connexion.",
+  "preuve": "double-auth-corrections (4 refus sans verrou, 5e verrouille, message, bon mot de passe refusé ensuite) ; défaut remis : 2 contrôles tombent"
+ },
+ {
+  "n": "tout-05",
+  "etat": "corrigé",
+  "changement": "L'écran PIN du téléphone affiche le message de retour (« bloqué… ») même quand la session de l'ordinateur était ouverte (variable retour posée aussi dans l'écran PIN).",
+  "preuve": "double-auth-corrections (message non vide et qui dit « bloqué »), défaut remis : 2 contrôles tombent"
+ },
+ {
+  "n": "tout-06",
+  "etat": "corrigé",
+  "changement": "« Ouvrir l'application comme Sophie » : sessionOuvrir ne propose plus le guide des nouveautés quand la session est celle d'un autre (SECU.vraie) ; la marque « guide vu » de Sophie ne bouge pas.",
+  "preuve": "double-auth-corrections (guide fermé, marque inchangée) ; défaut remis : 2 contrôles tombent"
+ },
+ {
+  "n": "tout-07",
+  "etat": "corrigé",
+  "changement": "cnxValider refuse d'emblée un téléphone effacé : « Ton téléphone a été effacé. Demande un nouveau téléphone à ton administrateur. », aucun nombre, aucune demande en attente.",
+  "preuve": "double-auth-corrections (3 contrôles) ; défaut remis : 3 contrôles tombent"
+ },
+ {
+  "n": "tout-08",
+  "etat": "corrigé",
+  "changement": "Mon compte n'ajoute plus son propre « ‹ Retour » : il ne reste que celui du panneau (48 px sur téléphone, via :has(.sec-ident)). Ouverte seule, la feuille n'a que sa croix, comme les autres fenêtres.",
+  "preuve": "double-auth-corrections (iphone, android nuit, petit : exactement un « Retour » ≥ 44 px par le vrai menu) ; double-auth-compte (jamais deux) ; défaut remis : tombe"
+ },
+ {
+  "n": "tout-09",
+  "etat": "corrigé",
+  "changement": "Une connexion = une ligne d'historique : l'approbation pose c.histoConnexion, l'écran « Choisis ton mot de passe » n'en réécrit pas une seconde.",
+  "preuve": "double-auth-corrections (+1 ligne, pas +2 ; aucune ligne en double dans Mon compte ; gérant aux téléphones activés d'un coup : 1 approuvée) ; défaut remis : 3 contrôles tombent"
+ },
+ {
+  "n": "tout-10",
+  "etat": "corrigé",
+  "changement": "Garde « paie-fiches » posée dans vueComptabilite (la fonction qui dessine), par la table SECU_VUES : Fiches de paie, Salariés et Charges et déclarations montrent une carte « Une confirmation est nécessaire » (aucun montant dans la page) sans fenêtre de 5 minutes ; la confirmation s'ouvre à l'arrivée avec sa phrase (voir les fiches de paie / les salaires de l'équipe / les salaires et les charges), pas à chaque redessin ; confirmée, la vue s'écrit ; à l'expiration elle se re-masque (toast). Le bouton d'espace « Paie » (qui rouvre le dernier onglet) passe aussi par là. La carte est amenée dans l'écran sur téléphone.",
+  "preuve": "double-auth-vues (3 onglets × 10 contrôles, zéro montant avant / plusieurs après) ; mutations 200, 204, 205 tombent ; captures lues : mac jour, iphone nuit, android jour"
+ },
+ {
+  "n": "tout-11",
+  "etat": "corrigé",
+  "changement": "« compta-banque » : l'onglet Banque passe par SECU_VUES. « compta-export » : secuGarde en première instruction de cpEnvoyer (« Envoyer › » de la clôture et de l'espace Envoi au comptable) et de cpFecTelecharger. Même comportement que le cadre de la Comptabilité.",
+  "preuve": "double-auth-vues (Banque 10 contrôles ; Envoyer › et FEC : phrase, rien ne part avant, le geste reprend) ; mutations 201, 202, 203 tombent"
+ },
+ {
+  "n": "recontrole-1",
+  "etat": "corrigé",
+  "changement": "Une seule règle, secuBanqueVoilee() (la même que l'onglet Banque, S5 compta-banque), posée à la source de CHAQUE écriture d'une donnée de la banque : étape « banque » de cpEtapes (Clôture) ; deux cartes de trésorerie (Vue d'ensemble, ancienne vue du cadre) qui écrivent le solde du compte ; liste « À faire » (libellés) ; objet des lignes de frais des Achats ; panneau « Expliquer » (secuGarde('compta-banque') posé dans cmptPanneauExpliquer, le geste que tous les boutons « Expliquer » appellent). Voilée, la page dit seulement « 3 lignes à expliquer » et « confirme sur ton téléphone pour voir la banque » ; confirmée, tout revient ; à l'expiration, ensemble/clôture/achats se re-masquent (SECU_BANQUE_DANS) et le panneau « Expliquer » se ferme (secuConfTic). Recensement : 21 rubriques, 25 onglets × 2 états de données (rien d'expliqué, deux frais expliqués), gestes « Expliquer », cadre de la Comptabilité (iframe, ses écrans hors Banque), tout depuis les libellés de CP_RELEVE et les soldes, jamais d'une liste de vues.",
+  "preuve": "double-auth-recensement-banque.js : 19 ✓ · 0 ✗ (avant : 17 ✓ · 2 ✗ puis des fuites relevées sur ensemble, clôture, achats, journal) ; double-auth-recontrole-recensement.js : 0 ✗ (avant 9 ✓ · 2 ✗) ; le journal et le grand livre (les livres de l'entreprise, alimentés par une ligne expliquée) restent hors garde : doute à soumettre à Justin"
+ },
+ {
+  "n": "recontrole-2",
+  "etat": "corrigé",
+  "changement": "Carte de verrou : `.sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:normal;text-align:center;…}` (le global .btn est en nowrap : 265 px de bouton dans 255 px de contenu à 320 px). Il passe sur deux lignes au lieu de sortir ; aucune !important, aucune enveloppe.",
+  "preuve": "double-auth-recontrole-parcours.js P=4 : 20 ✓ · 0 ✗ jour ET nuit (petit 320, android 360, iphone 390, ipad ; Fiches de paie et Banque ; débordement et texte coupé) ; captures lues (planches p4-verrou) : bouton centré, 2 lignes à 320, une ligne ailleurs"
+ }
 ]

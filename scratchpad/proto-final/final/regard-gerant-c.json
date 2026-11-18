@@ -7,7 +7,7 @@
    "ecrans": "Articles, Ce qui a bougé, feuilles (Que veux-tu faire, Envois, Filtrer, Compter, Voir le stock), fiche article (stock, rupture), états vide / recherche vide / plein long",
    "captures": 123,
    "regardees": 123,
-   "note": "iPhone nuit : 123 captures, toutes regardées en planches ; petit (320) jour : 53 premières vues regardées ; mac nuit, iPad et iPhone jour prises (53 scènes chacune), non regardées"
+   "note": "android nuit : 129 captures regardées en 17 planches ; iPad nuit : 81 prises, 53 premières vues regardées (planches 1, 5, 6 lues) ; iPhone nuit et petit jour vus par le tour précédent ; petit nuit, rôles julie / sm / kb : non pris"
   },
   {
    "nom": "Fournisseurs, matériel & produits",
@@ -112,11 +112,84 @@
    "constat": "« 281 859 021,34 € » coupé avant la virgule sur deux lignes",
    "etat": "corrigé",
    "changement": "white-space:nowrap sur les montants des cartes (sonde §10, mutation 11)"
+  },
+  {
+   "n": 11,
+   "ecran": "Fournisseurs › tous les onglets",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "segmenté Commandes / Articles / Fournisseurs : le texte touche les bords de sa pilule (1 à 2 px)",
+   "etat": "corrigé",
+   "changement": "≤340 px : padding 5 px, police 12 px, compteurs sans alerte sans pastille (sonde §11, mutation 14)"
+  },
+  {
+   "n": 12,
+   "ecran": "Fournisseurs › Commandes / Articles",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "« ＋ Nouvelle commande » et « ＋ Ajouter un article » sur deux lignes",
+   "etat": "corrigé",
+   "changement": "≤340 px : 14 px et 8 px de marge, une ligne (sonde §12, mutation 15)"
+  },
+  {
+   "n": 13,
+   "ecran": "Fournisseurs › Articles : titres de groupe",
+   "profils": "petit et téléphones",
+   "jourNuit": "jour et nuit",
+   "constat": "« · 1 » orphelin en tête de la seconde ligne (« Climatisation · 1 »)",
+   "etat": "corrigé",
+   "changement": "msPts + « · N » soudé au dernier mot (sonde §13, mutation 16)"
+  },
+  {
+   "n": 14,
+   "ecran": "Stock › fiche article : lieux",
+   "profils": "toutes tailles",
+   "jourNuit": "jour et nuit",
+   "constat": "point médian orphelin en fin de la ligne bleue des lieux",
+   "etat": "corrigé",
+   "changement": "msPts : le point de tête de ligne est coupé par le conteneur (sonde §14, mutation 17) ; chaque lieu a sa ligne de 44 px au téléphone (plancher tactile .lien)"
+  },
+  {
+   "n": 15,
+   "ecran": "Stock",
+   "profils": "iPad, tactiles",
+   "jourNuit": "jour et nuit",
+   "constat": "le clavier montait seul dans la recherche",
+   "etat": "corrigé",
+   "changement": "focus automatique seulement si pas de pointer:coarse (sonde §15, mutation 18)"
+  },
+  {
+   "n": 16,
+   "ecran": "Stock vide, Fournisseurs vides",
+   "profils": "tous",
+   "jourNuit": "jour et nuit",
+   "constat": "deux boutons de largeurs différentes",
+   "etat": "corrigé",
+   "changement": "grille à colonnes égales quand il y a deux boutons (sonde §16, mutation 19)"
+  },
+  {
+   "n": 17,
+   "ecran": "Stock › lignes d'article ; fiche camion ; bouteilles ; prochaines visites",
+   "profils": "téléphones, iPad",
+   "jourNuit": "nuit",
+   "constat": "point médian en bout ou en tête de ligne (« · +2 lieux », « il manque 1 · », « Camion de Sophie · »)",
+   "etat": "corrigé",
+   "changement": "msPts partout (sondes §17 et §18, mutations 20 et 21)"
+  },
+  {
+   "n": 18,
+   "ecran": "Dépôts et camions : carte de l'atelier",
+   "profils": "android (360)",
+   "jourNuit": "nuit",
+   "constat": "« 281 859 021,34 € » passe sur le « 3 » de la colonne voisine",
+   "etat": "corrigé",
+   "changement": "colonne du montant minmax(max-content,1fr) (sonde §10, mutation 22)"
   }
  ],
  "laisses": [
-  "petit (320 px) : le segmenté « Commandes 5 · Articles 29 · Fournisseurs 5 » et les boutons principaux (« + Nouvelle commande » sur deux lignes) sont serrés mais lisibles — à soumettre si Justin les trouve trop petits",
-  "fiche article : la ligne bleue des lieux finit parfois sur un point médian orphelin (« à l'atelier 5 · ») — cosmétique",
-  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu (règle .fo-dr .st), lisible"
+  "fiche fournisseur, android 360 : l'adresse e-mail des commandes (36 signes) est coupée par « … » dans son champ (16 px minimum pour iOS) ; à soumettre : champ sur deux lignes",
+  "bouton « ＋ Ajouter un fournisseur » sur deux lignes à 360 et 320 px (libellé le plus long) ; à soumettre : « ＋ Fournisseur »",
+  "menu Métier de « Le rangement par métier » : texte de la liste déroulante coupé par sa flèche (natif)",
+  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu"
  ]
 }
