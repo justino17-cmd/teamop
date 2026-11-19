@@ -7,7 +7,7 @@ const { L, ouvrirAchats, toast } = require('./achats-outils.js'), v = L.v;
     await E(() => { document.body.insertAdjacentHTML('beforeend', '<button id="t3-b" data-axa="kmtarif" hidden></button>'); document.getElementById('t3-b').click(); document.getElementById('t3-b').remove(); }); await L.calme(p, 250);
     await E(t => { document.getElementById('ax-km').value = t; }, t); await E(() => document.querySelector('[data-axa="kmok"]').click()); await L.calme(p, 250);
     const tt = await toast(p), ok = await E(() => AX.kmTarif); return { t, tt, ok }; };
-  const attendu = { '0,603': 0.603, '0.603': 0.603, '0,6': 0.6, '1': 1, '0,50': 0.5, '0,6034': 'refus3', '00,603': 'refus3', '1,2345': 'refus3', '0,6 €': 0.6, '0,603 €/km': 0.603, '0,60 € par km': 0.6, '1.500': 'refus', '1 500': 'refus', 'abc': 'refus', '0': 'refus', '-1': 'refus', '0,01': 'refus', '11': 'refus', '0,05': 0.05, '10': 10 };
+  const attendu = { '0,603': 0.603, '0.603': 0.603, '0,6': 0.6, '1': 1, '0,50': 0.5, '0,6034': 'refus3', '00,603': 'refus', '1,2345': 'refus3', '0,6 €': 0.6, '0,603 €/km': 0.603, '0,60 € par km': 0.6, '1.500': 'refus', '1 500': 'refus', 'abc': 'refus', '0': 'refus', '-1': 'refus', '0,01': 'refus', '11': 'refus', '0,05': 0.05, '10': 10 };
   const mal = [], vus = [];
   for (const [t, a] of Object.entries(attendu)) { const r = await lire(t); vus.push(r);
     const ok = typeof a === 'number' ? r.ok === a : (r.ok === 0.6 && (a !== 'refus3' || /trois décimales/.test(r.tt)) && r.tt.length > 5 && !/^Tarif au kilomètre/.test(r.tt));

@@ -1,0 +1,72 @@
+{
+ "noms": [
+  "interventions",
+  "devis-contrats"
+ ],
+ "regles": [
+  "plages « 10 – 12 », « 10 −12 », « 10 - 12 », « 10–12 » (et « 10 — 12 », « 10 à 12 », « 1 200 - 1 300 ») refusées quand la valeur est collée d'un coup ; le champ et la fiche gardent l'ancienne valeur",
+  "« -5 », « −5 », « –5 », « −5,5 » restent négatifs ; « 1 200 », « 1 234,5 » (espaces fine/insécable comprises) recollés ; « 3 sur 18 », « 12x3 », « 1 2 », « 1.234,5 » refusés (valeur collée)",
+  "champs libres Infestation, Arrivée, Départ intacts (« faible – moyenne », « 2 100 individus », « 06:10 – 06:40 », « 08:40 −10 min », « 6 h 10 »)",
+  "toast « Lu 10 100 : enregistré 10100. » vu sur capture (iPhone jour/nuit, Mac jour/nuit) ; valeur de 15 chiffres bornée à 12 sans glissement",
+  "autres relevés (Charge de fluide, Reprise, Postes consommés, Surface faite, Pression, CO mesuré) et rôles marc/julie : même règle, aucune casse",
+  "sonde R19 mise à jour (12 345,67 L refusé) : 124 ✓ mac/mac720/windows/ipad, 133 ✓ iphone/android, 0 ✗ ; tour3-recontrole 30 ✓ sur 14 combinaisons ; plafond-tour3 17 ✓ sur 14 combinaisons"
+ ],
+ "pasRegles": [
+  {
+   "nom": "interventions",
+   "defaut": "une plage ou un texte refusé n'est refusé qu'à la valeur COLLÉE d'un coup",
+   "constat": "frappe réelle caractère par caractère dans Soufflage (mac, sondé aussi iphone) : « 10 - 12 », « 10-12 », « 10 – 12 », « 10 à 12 » → 1012 ; « 3 sur 18 » → 318 ; « 12x3 » → 123 ; « 1 2 3 » → 123, enregistrés dans la fiche. Le signe, les lettres et les espaces sont retirés à chaque touche, avant que le second nombre n'existe ; le test « deux nombres » ne le voit jamais. Sonde interventions-restes-tour4-frappe.js : 7 ✗. Même défaut avant le tour 4 (le tour 3 ne jouait que le collage). Piste : ne rien retirer à la frappe, valider à la sortie du champ (change/blur) ou garder le texte brut jusqu'à la validation."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Frappe d'une plage ou d'un texte dans un relevé numérique = fausse mesure silencieuse (1012, 318, 123)",
+   "gravite": "haute",
+   "etapes": "Ouvrir une intervention clim en technicien (Sophie), champ Soufflage, taper au clavier « 10 - 12 » (ou « 3 sur 18 »)",
+   "constat": "le champ affiche 1012 (ou 318) et la fiche l'enregistre ; seul un toast « Ce relevé est un nombre » passe à la première touche de séparation, sans empêcher la suite. Mesuré sur mac ; frappe jouée sur les autres profils par la sonde principale (« 10 - 12 » → 1012 sur les 14 combinaisons)."
+  },
+  {
+   "titre": "Profil 320 px (« petit ») : l'écran Interventions de Marc s'élargit à 340 px (page plus large que l'appareil)",
+   "gravite": "moyenne",
+   "etapes": "profil petit (320×568), Marc, Interventions : scrollWidth 340, innerWidth 340 contre 320, barre d'onglets à 316 px décalée de 12 (bord à 328) ; la fenêtre « Nouvelle intervention » est coupée en bas (boutons Annuler/Créer à moitié visibles)",
+   "constat": "cause isolée : le bandeau DETAILS.t-ici (« 2 tâches pour toi aujourd'hui / de ta liste Tâches ») ; masqué, scrollWidth = 320. Existait avant le tour 4 (même résultat au commit 1664e242) ; fait tomber 5 contrôles de interventions-recontrole.js sur petit jour ET nuit (R17 ×3 modes, R19 retirer une ligne, R20 facture en grand) : 105 ✓ · 20 ✗ au total. Non lié aux relevés."
+  }
+ ],
+ "nouveaux": [
+  "toast « Lu … » sur ordinateur : posé sur la barre d'action fixe (Je ne peux pas finir / Terminer), il en cache le milieu pendant ~2,5 s ; lisible, non bloquant (capture t4-lu-mac-jour.png)",
+  "message « Ce relevé est un nombre » affiché quand une valeur de plus de 12 chiffres est simplement tronquée : il ne dit pas la troncature (casse 4, déjà décidée, non touchée)"
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour3-recontrole.js",
+   "resultat": "30 ✓ · 0 ✗ sur mac, mac720, windows, ipad, iphone, android, petit, jour et nuit (14/14)"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole.js",
+   "resultat": "124 ✓ (mac, mac720, windows, ipad) · 133 ✓ (iphone, android) · 0 ✗ ; petit jour et nuit : 105 ✓ · 20 ✗ (R17×3, R19 retirer, R20) — antérieur au tour 4, voir casses"
+  },
+  {
+   "fichier": "campagne/sondes/devis-contrats-plafond-tour3.js",
+   "resultat": "17 ✓ · 0 ✗ sur les 14 combinaisons"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour4-recontrole.js (neuve)",
+   "resultat": "60 contrôles (plages, signes, milliers, libres, toast, longues valeurs, 4 métiers, 3 rôles) : 59 ✓ · 1 ✗ sur les 14 combinaisons ; l'unique ✗ est la frappe « 10 - 12 »"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour4-frappe.js (neuve)",
+   "resultat": "mac : 3 ✓ · 7 ✗ (frappe réelle, voir casses)"
+  },
+  {
+   "fichier": "mutations (scratchpad ... /mut4.py, page restaurée par git checkout, git diff vide après chacune)",
+   "resultat": "mordent : plafond total prix facture 1 ✗ ; plage à espaces retirée 5 ✗ ; message « Lu » retiré 2 ✗ ; recollage des milliers retiré 5 ✗ ; conversion des signes hors branche numérique 1 ✗. Ne mordent PAS : plafond du total par la quantité (ligne 9498) et plafond du prix unitaire (ligne 9486) — probablement doublés par le plafond 9488 et les bornes de 24039, non prouvé ; ancre ^- de « -5 » (équivalente : « -5 » ne contient pas de chiffre avant le tiret)"
+  }
+ ],
+ "doutes": [
+  "casse 4 (20 chiffres +33 tronqués à 12) et durée « 1 h 30 » : non touchées, comme demandé",
+  "« 10 100 » : lu comme un nombre (10100) et DIT à l'écran ; à soumettre à Justin si une plage « 10 100 » existe sur le terrain",
+  "un « 10- » collé devient 10 (tiret final retiré) ; accepté, non signalé",
+  "mutations B (9498) et C (9486) du plafond de prix vivantes : à confirmer équivalentes ou à armer d'un cas dédié",
+  "frappe d'un nombre avec espace des milliers « 1 200 » : aboutit à 1200 mais avec le toast « Ce relevé est un nombre » en cours de route (confus, valeur juste)"
+ ]
+}

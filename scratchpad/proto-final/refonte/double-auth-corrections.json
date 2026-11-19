@@ -74,7 +74,7 @@
  {
   "n": "recontrole-2",
   "etat": "corrigé",
-  "changement": "Carte de verrou : `.sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:normal;text-align:center;…}` (le global .btn est en nowrap : 265 px de bouton dans 255 px de contenu à 320 px). Il passe sur deux lignes au lieu de sortir ; aucune !important, aucune enveloppe.",
-  "preuve": "double-auth-recontrole-parcours.js P=4 : 20 ✓ · 0 ✗ jour ET nuit (petit 320, android 360, iphone 390, ipad ; Fiches de paie et Banque ; débordement et texte coupé) ; captures lues (planches p4-verrou) : bouton centré, 2 lignes à 320, une ligne ailleurs"
+  "changement": "Rien à ajouter à la page : la règle commune `.actions .btn{max-width:100%;white-space:normal;…}` posée entre-temps (commit f5b9759e, « boutons à 320 px », autre voie) règle déjà le cas — sans elle le bouton fait 265 px dans 254 (mutation 217 : 11 px de débord rejoués). Mon premier correctif dédié (`.sec-verrou .actions .btn`) en faisait un doublon : RETIRÉ (un correctif sur une cause déjà réglée occupe le terrain). Ce qui reste est la GARDE : la sonde P4 mesure aussi que le texte reste dans le rembourrage du bouton (Range), à 320, 360, 390 et iPad, jour et nuit.",
+  "preuve": "double-auth-recontrole-parcours.js P=4 : 20 ✓ · 0 ✗ jour ET nuit (petit 320, android 360, iphone 390, ipad ; Fiches de paie et Banque) ; mutations 216 (nowrap : tombe, texte hors du rembourrage) et 217 (règle commune retirée : tombe, débord 11 px = le constat d'origine) ; captures lues (planches p4-verrou) : bouton centré, deux lignes à 320, une ligne ailleurs"
  }
 ]
