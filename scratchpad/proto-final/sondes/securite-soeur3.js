@@ -54,6 +54,7 @@ const PROFILS = process.env.TOUS ? ['mac', 'windows', 'ipad', 'iphone', 'android
     // ── N-b : l'anneau de focus du champ refusé est ROUGE (jeton --rouge), pas le bleu du thème
     const anneau = await p.evaluate(() => { const e = document.querySelector('#ml-m'); if (!e) return null; e.focus(); const cs = getComputedStyle(e), j = document.createElement('i'); j.style.color = 'var(--rouge)'; document.body.appendChild(j); const rouge = getComputedStyle(j).color; j.remove(); e.removeAttribute('aria-invalid'); const sans = getComputedStyle(e).outlineColor; e.setAttribute('aria-invalid', 'true'); return { avec: getComputedStyle(e).outlineColor, sans, rouge, w: getComputedStyle(e).outlineWidth }; });
     v(nom + 'N-b anneau de focus rouge sur [aria-invalid]:focus (' + (anneau && anneau.avec) + ' contre ' + (anneau && anneau.sans) + ' sans la marque)', !!anneau && anneau.avec === anneau.rouge && anneau.sans !== anneau.rouge && parseFloat(anneau.w) >= 2, anneau);
+    await L.capture(c, '/tmp/claude-0/soeur3/anneau-rouge-' + profil + (NUIT ? '-nuit' : '') + '.png');
     // ── C1 : client neuf PARTICULIER — l'excès dans le Nom marque le Nom, pas le Prénom
     const cn = async (nomV, prenomV) => { await p.evaluate(() => { try { fermerCreation(); } catch (e) {} const k = Object.keys(CLIENTS).find(x => x !== '__nv' && INTS.some(i => i.cli === x)); ouvrirCreation({ cli: k }); }); await pause(600);
       await p.evaluate(() => { const b = document.querySelector('[data-action="cNouveauClient"], [data-action="cNv"]'); if (b) b.click(); }); await pause(300);
