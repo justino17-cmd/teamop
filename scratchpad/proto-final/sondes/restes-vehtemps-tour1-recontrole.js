@@ -152,10 +152,12 @@ const texte = (c, sel) => ev(c, s => { const e = document.querySelector(s || '#c
     if (PARTIES.includes('voisins')) {
       const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, 'equipe');
       // le départ guidé d'une personne : « Pointage de la semaine pas encore validé » ne se dit pas d'une semaine qui ne peut PAS encore l'être
-      const D = await ev(c, () => { try { secuGarde = () => true; } catch (e) {} fermerPanneau(); eqxDepart('lr'); const z = document.querySelector('#calque .panneau'); return z ? { txt:z.innerText.replace(/\s+/g, ' '), pt:eqxRestes('lr').pt } : null; }); await L.calme(c.p, 500);
+      const D = await ev(c, () => { try { secuGarde = () => true; } catch (e) {} fermerPanneau(); eqxDepart('lr'); const z = document.querySelector('#calque .panneau'); return z ? { txt:z.innerText.replace(/\s+/g, ' '), pt:eqxRestes('lr').pt, alertes:[...z.querySelectorAll('.a-alerte')].map(x => x.innerText.replace(/\s+/g, ' ')) } : null; }); await L.calme(c.p, 500);
       v(nom + 'population : le départ guidé de Léa s’ouvre', !!D, D && D.txt && D.txt.slice(0, 200));
       if (D) {
         v(nom + 'départ guidé : la semaine en cours (non validable avant lundi) n’est pas annoncée comme « pas encore validée » à traiter', !/Pointage de la semaine pas encore validé/.test(D.txt), (D.txt.match(/.{0,40}Pointage de la semaine.{0,80}/) || [''])[0]);
+        v(nom + 'départ guidé : une ALERTE de pointage ne parle que d’une semaine FINIE (« la semaine dernière »), jamais de la semaine en cours', D.alertes.filter(x => /Pointage/.test(x)).length >= 1 && D.alertes.filter(x => /Pointage/.test(x)).every(x => /dernière/.test(x) && !/en cours/.test(x)), D.alertes);
+        v(nom + 'départ guidé : la semaine en cours se dit à part, hors alerte, sans promettre un geste impossible', /Sa semaine en cours se validera une fois finie/.test(D.txt) && !D.alertes.some(x => /semaine en cours/.test(x)), (D.txt.match(/.{0,30}semaine en cours.{0,60}/) || [''])[0]);
         await L.capture(c, CAP + 'equipe-depart-' + tag + '.png'); }
       await ev(c, () => fermerPanneau());
       // Mes heures d'une technicienne : la semaine en cours ne se dit pas « à valider » ni ne propose de geste réservé au bureau

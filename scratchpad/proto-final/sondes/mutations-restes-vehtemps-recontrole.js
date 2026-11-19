@@ -10,7 +10,7 @@ const M = [
   { n:4, nom:'la bande d\'onglets de Temps de travail est de nouveau étirée à l\'ordinateur', parties:'onglets', de:"@media (min-width:761px){.seg[aria-label=\"Temps de travail\"],.seg[aria-label=\"Véhicules\"]{align-self:flex-start}}", vers:"" },
   { n:5, nom:'« dont l\'assurance » compte une prime d\'un autre mois', parties:'veh', de:"f.achat && /^Assurance/i.test(f.lib) && f.d.slice(0, 7) === AUJ.slice(0, 7)", vers:"f.achat && /^Assurance/i.test(f.lib)" },
   { n:6, nom:'vhCourt n’élide plus devant « É » (majuscule accentuée)', parties:'veh', de:"/^[aeiouyàâéèêîôû]/i.test(m) ? 'l’' : 'le '", vers:"/^[aeiouyàâèêîôû]/i.test(m) ? 'l’' : 'le '" },
-  { n:7, nom:'le retour de la Paie par la barre ne garde plus l\'onglet (garde retirée)', parties:'retour', de:"RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; }", vers:"TT.viaPaie = true; }" },
+  { n:7, nom:'le retour de la Paie par la barre ne garde plus l\'onglet (garde ET drapeau retirés)', parties:'retour', de:"RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; }", vers:"}" },
   { n:9, nom:'le retour du SYSTÈME depuis la Paie rouvre « Aujourd\'hui » (drapeau viaPaie ignoré)', parties:'retour', de:" && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet", vers:") { ptOnglet" },
   { n:10, nom:'vhCourt élide de nouveau devant « y » (« l’Yaris »)', parties:'veh', de:"/^(?:[aeiouàâäéèêëîïôöûüœ]|ypsilon)/i.test(m)", vers:"/^[aeiouyàâäéèêëîïôöûüœ]/i.test(m)" },
   { n:11, nom:'le départ guidé annonce de nouveau la semaine en cours comme une alerte', parties:'voisins', de:"const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);", vers:"const pt = ptGen && !PT_VALIDE[k + L0];" },
