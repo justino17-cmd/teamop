@@ -100,7 +100,7 @@ const ctFin = async c => { await L.aller(c.p, 'comptabilite'); await c.p.waitFor
     v('F5 (écran) la Comptabilité compte la facture : « facturé en octobre (HT) » 2 071,44 → 2 180,61 € et 7 → 8 factures', f1.ht === 207144 + 10917 && f1.n === 8, { ht:f1.ht, n:f1.n });
     await L.aller(p, 'client-x-' + e0.hotel); await p.waitForTimeout(700);
     const cf = net(await txt(c, '#contenu'));
-    v('F6 (écran) la fiche de l’Hôtel de la Plage dit « 131,00 € à recevoir » et sa visite du 16/10 « Envoyée · en attente »', /131,00 € à recevoir/.test(cf) && /16\/10\/26 Entretien climatisation · Karim[^]*?Envoyée · en attente/.test(cf), cf.slice(300, 1200));
+    v('F6 (écran) la fiche de l’Hôtel de la Plage dit « 131,00 € à recevoir » et sa visite du 16/10 « Envoyée · en attente »', /131,00 € à recevoir/.test(cf) && /16\/10\/26 Entretien climatisation(?: · ?| ?)Karim[^]*?Envoyée · en attente/.test(cf), cf.slice(300, 1200));
     /* ── G. un chèque au bureau, puis la carte du client pour le RESTE ── */
     const lg = await S(c, id => { const f = FACTURES.find(x => x.id === id); return lignesDe(f).map(l => [l.d, Math.round(totLigne(l) * 100)]); }, fi.id);
     v('G0 (donnée) la ligne « Nettoyant échangeur × 2,5 » vaut 25,83 € (2,5 × 10,33, la moitié de centime monte) : le HT de la facture est 109,17 €', lg.some(l => /Nettoyant/.test(l[0]) && l[1] === 2583) && (await S(c, id => Math.round(htDe(FACTURES.find(x => x.id === id)) * 100), fi.id)) === HT1, lg);

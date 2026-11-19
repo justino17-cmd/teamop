@@ -5008,7 +5008,7 @@ function poser(i, tid, d, h, dur){
   memo(); const av = { tech:i.tech, d:i.d, h:i.h, dur:i.dur };
   i.tech = tid; i.d = d; i.h = h || i.h; i.dur = dur || i.dur; ficheSuivre(i, av);
   if (i.demande && !i.demande.confirme) { demandePlacee(i); return true; }
-  if (!estBloc(i) && i.st !== 'brouillon') { if (!tid) i.st = 'aplanifier'; else if (i.st === 'aplanifier' || (i.st === 'retard' && bouge && (d > AUJ || (d === AUJ && hmin(i.h) + i.dur > MAINT_MIN)))) i.st = 'planifiee'; }
+  if (!estBloc(i) && i.st !== 'brouillon' && i.st !== 'annulee') { if (!tid) i.st = 'aplanifier'; else if (i.st === 'aplanifier' || (i.st === 'retard' && bouge && (d > AUJ || (d === AUJ && hmin(i.h) + i.dur > MAINT_MIN)))) i.st = 'planifiee'; }
   rendre(); flash(i.id);
   const e = estBloc(i) ? '' : 'e';   // « Intervention … passée », « Créneau … passé »
   let quoi = av.tech !== tid ? `passé${e} à <b>${tid ? tech(tid).nom : 'Non assigné'}</b>${av.d !== d ? ' le <b>' + jlong(d) + '</b>' : ''}` : av.d !== d ? `déplacé${e} au <b>${jlong(d)}</b>` : av.dur !== i.dur ? `durée <b>${duree(i.dur)}</b>` : av.h !== i.h ? 'déplacé' + e : 'modifié' + e;
@@ -5152,7 +5152,7 @@ function menuCarte(id, x, y){
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
     i.st === 'annulee' ? null : i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
-    i.st === 'annulee' ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
+    i.st === 'annulee' || !intAnnulable(i) ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
     { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
   ]);
 }
@@ -5726,6 +5726,7 @@ const ttcCentimes = (h, tva) => Math.floor((2 * h * (1000 + Math.round(tva * 10)
 const ttcDe = f => { const h = Math.round((f.st === 'avoir' ? f.ht : htDe(f)) * 100); return (f.st === 'avoir' ? -1 : 1) * ttcCentimes(h, f.tva) / 100; };
 const restant = f => f.st === 'annulee' ? 0 : ttcDe(f) - (f.recu || 0);   /* annulée par un avoir : plus rien à recevoir, plus de relance (compta-ventes-06) */
 function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
+  if (!i || i.st === 'annulee') return;   /* une intervention annulée n'a pas de facture : « Terminer », « Préparer la facture » et le dossier de la Comptabilité passent tous ici */
   const F = fiche(i.id), prec = FACTURES.filter(f => f.int === i.id); if (prec.some(f => f.st !== 'annulee')) return;
   if (i.fact && i.fact.mode === 'garantie') return;
   if (ctrCompris(i)) {   // visite d'un contrat facturé à l'année ou au mois : la main-d'œuvre est comprise, rien à préparer… sauf une pièce posée, qui se facture SEULE (sinon elle n'est facturée nulle part)
@@ -8721,12 +8722,17 @@ const cpTvaInt = i => (i.fact && i.fact.tva) || (CLIENTS[i.cli].type === 'part' 
 /* UNE règle (restes accueil, tour 3, décision du chef) : l'argent compte le JOUR où le technicien le reçoit (`P.recuLe`, posé à « Terminer »), pas le jour prévu de l'intervention — une
    intervention prévue le 2 novembre et finie le 31 octobre avec 50 € compte 50 € en octobre — et le moyen de paiement ne change rien : espèces, chèque, carte ou virement noté sur place
    sont tous « reçus sur place » tant que la facture n'est pas partie (une carte ou un virement attend en plus sa ligne de banque : la Comptabilité le dit déjà). */
+/* LE PLAFOND D'UN REÇU SUR PLACE, UNE SEULE FOIS pour l'application ET le cadre de la Comptabilité (il le reçoit dans la liaison : `recuMax`). Un montant tapé « 1e9 » se lit 1 000 000 000 € :
+   l'application le comptait dans « encaissé en octobre » et le cadre l'ignorait sans rien dire — deux chiffres pour la même fiche (recontrôle du 18 novembre 2026). Un reçu absurde est refusé à la saisie
+   avec une phrase ; et par défense, un montant au-delà ne compte ni ici ni là-bas. */
+const PAIEMENT_MAX = 1e6;
+const paiementTropGros = txt => (parseFloat(String(txt).replace(',', '.')) || 0) > PAIEMENT_MAX;
 function cpPaieTerrain(){
   return INTS.filter(i => i.st === 'fait' && i.tech).map(i => ({ i, P:fiche(i.id).paiement }))
     .filter(({ i, P }) => P && (P.etat === 'acompte' || P.etat === 'total') && !FACTURES.some(f => f.int === i.id && f.num !== '—'))
     .map(({ i, P }) => ({ d:cpDM(P.recuLe || i.d), h:P.recuLe ? (P.recuH || hm(MAINT_MIN)) : fin(i.h, i.dur), cli:i.cli, fac:'Reçu ' + i.id.toUpperCase(), int:i.id, mode:P.mode,
       /* « payé en totalité » sans montant retapé : c'est le TTC de la facture préparée (même règle que l'envoi de la facture) ; sans cela l'Historique disait 142,61 € quand l'Accueil comptait 0 */
-      ttc:parseFloat(String(P.montant).replace(',', '.')) || (P.etat === 'total' ? (f => f ? ttcDe(f) : 0)(FACTURES.find(f => f.int === i.id && f.st !== 'annulee')) : 0), tva:cpTvaInt(i), virtuel:true, preuve:'Noté sur la fiche par ' + tech(i.tech).nom.split(' ')[0] }))
+      ttc:(paiementTropGros(P.montant) ? 0 : parseFloat(String(P.montant).replace(',', '.'))) || (P.etat === 'total' ? (f => f ? ttcDe(f) : 0)(FACTURES.find(f => f.int === i.id && f.st !== 'annulee')) : 0), tva:cpTvaInt(i), virtuel:true, preuve:'Noté sur la fiche par ' + tech(i.tech).nom.split(' ')[0] }))
     .filter(e => e.ttc > 0 && cpOct(e.d));
 }
 const cpEncOct = () => [...ENCAISSEMENTS.filter(e => cpOct(e.d)), ...cpPaieTerrain()];
@@ -8797,6 +8803,13 @@ function cpTva(){
   const col = cpR(taux.reduce((s, x) => s + x.tva, 0)), ded = cpR(avec.reduce((s, a) => s + cpTVA(a), 0)), manque = cpR(sans.reduce((s, a) => s + cpTVA(a), 0));
   return { taux, col, ded, manque, avec, sans, attente, aPayer:cpR(col - ded) };
 }
+/* LE SOLDE DE TVA SE DIT DANS UN SEUL ENDROIT (comme `tvaDit` dans le cadre de la Comptabilité) : `aPayer` est négatif quand les achats récupérables dépassent la TVA collectée. Les six affichages
+   « à payer » écrivaient alors « à payer −837,25 € », une dette qui n'existe pas (19 novembre 2026, reproduit en posant un achat de 5 000 € par la vraie saisie d'une facture fournisseur). Un solde
+   positif garde ses mots d'avant, au caractère près. Règle du crédit, prudente et sans chiffre de seuil : il se reporte sur la déclaration suivante, un remboursement peut se demander — texte à faire
+   relire par l'expert-comptable (même phrase que le cadre). */
+const cpTvaDit = tv => { const credit = tv.aPayer < 0, m = Math.abs(tv.aPayer);
+  return { credit, m, eur:eur(m), titre:credit ? 'Crédit de TVA d’octobre' : 'TVA d’octobre à payer en novembre', libelle:credit ? 'Crédit de TVA' : 'TVA à payer',
+    suite:credit ? 'rien à payer en novembre : il se reporte sur ta prochaine déclaration' : 'à payer en novembre', aide:credit ? ' Un crédit de TVA se reporte sur la déclaration suivante ; un remboursement peut se demander (à faire relire par ton expert-comptable).' : '' }; };
 const cpTechNoms = L => [...new Set(L.map(cpTechDe).filter(Boolean))].map(t => tech(t).nom.split(' ')[0]).join(', ');
 function cpEtapes(){
   const rap = cpRapprocher(), ca = cpCaisse(), tv = cpTva(), avv = FACTURES.filter(f => f.st === 'avalider'), afac = cxDossiers().filter(x => x.st === 'afacturer');
@@ -8805,7 +8818,7 @@ function cpEtapes(){
     { k:'banque', ok:!rap.aExpliquer.length, t:'Chaque ligne de la banque est expliquée', d:rap.aExpliquer.length ? `${rap.aExpliquer.length} ligne${rap.aExpliquer.length > 1 ? 's' : ''} à expliquer${secuBanqueVoilee() ? '' : ' : ' + rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}` : `Les ${CP_RELEVE.length} lignes du relevé correspondent à une facture, un achat ou un dépôt.`, onglet:'banque' },
     { k:'caisse', ok:!ca.chezTech.length && !ca.chq.length && !ca.solde, t:'L’argent liquide et les chèques sont à la banque', d:[ca.chezTech.length ? `${cpTechNoms(ca.chezTech)} a encore ${eur(ca.chezTech.reduce((s, e) => s + e.ttc, 0))} reçus sur place` : '', ca.solde ? `${eur(ca.solde)} d’espèces au bureau à déposer` : '', ca.chq.length ? `${ca.chq.length} chèque${ca.chq.length > 1 ? 's' : ''} à remettre (${eur(ca.chq.reduce((s, e) => s + e.ttc, 0))})` : ''].filter(Boolean).join(' · ') || 'Rien ne traîne dans un tiroir ou une camionnette.', onglet:'caisse' },
     { k:'just', ok:!tv.sans.length, t:'Chaque achat a sa facture', d:tv.sans.length ? `${tv.sans.length} achat${tv.sans.length > 1 ? 's' : ''} sans facture : ${tv.sans.map(a => esc(a.four) + (a.piece === 'ticket' ? ' (ticket de carte seul)' : '')).join(', ')} — ${eur(tv.manque)} de TVA que tu ne récupères pas tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}` : 'Les factures sont là ; ce qui se déduit vraiment (véhicule, repas…) se vérifie avec ton expert-comptable.', cx:'sec|fachats|achats|sansfacture' },
-    { k:'tva', ok:!rap.aExpliquer.length && !tv.sans.length, t:'La TVA d’octobre est calculée', d:`${eur(tv.aPayer)} à payer en novembre — à vérifier avec ton expert-comptable avant de déclarer${tv.sans.length || rap.aExpliquer.length ? ' ; montant provisoire tant que les points au-dessus restent ouverts' : ''}.`, onglet:'tva' }
+    { k:'tva', ok:!rap.aExpliquer.length && !tv.sans.length, t:'La TVA d’octobre est calculée', d:`${cpTvaDit(tv).credit ? 'Crédit de TVA de ' + cpTvaDit(tv).eur + ' : ' + cpTvaDit(tv).suite : eur(tv.aPayer) + ' à payer en novembre'} — à vérifier avec ton expert-comptable avant de déclarer${tv.sans.length || rap.aExpliquer.length ? ' ; montant provisoire tant que les points au-dessus restent ouverts' : ''}.`, onglet:'tva' }
   ];
 }
 const cpLienFac = (num, lib) => { const f = cpFac(num); return f ? `<button type="button" class="lien" data-cp="fac|${f.id}">${esc(lib || num)}</button>` : esc(lib || num); };
@@ -8827,7 +8840,7 @@ function vueComptabilite(){
     <button type="button" class="kpi" data-cp="go|encaissements"><b style="color:var(--vert)">${eur(encTTC)}</b><span>encaissé en octobre (TTC)${terrain.length ? ` <i class="cp-k">+ ${eur(cpR(terrain.reduce((s, e) => s + e.ttc, 0)))} reçus sur place, pas encore sur une facture</i>` : ''}</span></button>
     <button type="button" class="kpi" data-cp="onglet|ensemble"><b>${eur(cpR(facHT - achHT))}</b><span>facturé moins achats (HT, indicatif, avant salaires)</span></button>
     <button type="button" class="kpi" data-cp="onglet|banque">${secuBanqueVoilee() ? '<b>— €</b><span>trésorerie · confirme sur ton téléphone pour voir la banque</span>' : `<b>${eur(cpR(soldeBq + enRoute + enMain))}</b><span>trésorerie · banque ${eur(soldeBq)}${enRoute ? ' + en route ' + eur(enRoute) : ''}${enMain ? ' + en main ' + eur(enMain) : ''}</span>`}</button>
-    <button type="button" class="kpi" data-cp="onglet|tva"><b style="color:var(--orange)">${eur(tv.aPayer)}</b><span>TVA d’octobre à payer en novembre</span></button></div>
+    <button type="button" class="kpi" data-cp="onglet|tva"><b style="color:var(--${cpTvaDit(tv).credit ? 'vert' : 'orange'})">${cpTvaDit(tv).eur}</b><span>${cpTvaDit(tv).titre}${cpTvaDit(tv).credit ? ' · se reporte' : ''}</span></button></div>
   <div class="seg" role="group" aria-label="Rubrique de la comptabilité">${tabs.map(([k, l]) => `<button type="button" data-cp="onglet|${k}" aria-pressed="${O === k}">${l}</button>`).join('')}</div>
   ${O === 'ecritures' ? cpVueEcritures() : O === 'banque' ? cpVueBanque(rap, soldeBq) : O === 'caisse' ? cpVueCaisse(ca) : O === 'tva' ? cpVueTva(tv) : cpVueEnsemble(et, faits)}`;
 }
@@ -8880,12 +8893,12 @@ function cpVueCaisse(ca){
 }
 function cpVueTva(tv){
   const etat = a => cpDed(a) ? (cpDedOct(a) ? cpPj(a.just) : '<span class="gris petit">TVA récupérable au paiement (service)</span>') : a.piece === 'ticket' ? `<span class="gris petit">ticket de carte seul</span><br><label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>` : `<label class="lien cp-just">＋ Ajouter la facture<input type="file" accept="image/*,application/pdf" capture="environment" data-cpjust="${a.id}" hidden></label>`;
-  return `<div class="grille2"><div class="col"><div class="carte"><div class="cp-t"><h3>TVA d’octobre · à payer ${eur(tv.aPayer)}</h3><span class="gris petit">réel normal · déclaration mensuelle</span></div>
+  return `<div class="grille2"><div class="col"><div class="carte"><div class="cp-t"><h3>${cpTvaDit(tv).credit ? 'Crédit de TVA d’octobre · ' : 'TVA d’octobre · à payer '}${cpTvaDit(tv).eur}</h3><span class="gris petit">réel normal · déclaration mensuelle</span></div>
       <div class="groupe">Due sur ce que les clients ont payé en octobre</div>${tv.taux.map(x => `<div class="ligne"><span>Base HT à ${String(x.t).replace('.', ',')} %</span><span>${eur(x.ht)} <span class="gris">→ TVA</span> <b>${eur(x.tva)}</b></span></div>`).join('')}
       <div class="ligne"><span><b>TVA collectée</b></span><b>${eur(tv.col)}</b></div>
       <div class="groupe">À déduire : la TVA de tes achats</div><div class="ligne"><span>${tv.avec.length} achat${tv.avec.length > 1 ? 's' : ''} avec leur facture</span><b>− ${eur(tv.ded)}</b></div>
-      <div class="ligne" style="font-size:18px"><span><b>TVA à payer</b></span><b style="color:var(--orange)">${eur(tv.aPayer)}</b></div>
-      <span class="gris petit" style="display:block;margin-top:8px">À déclarer en novembre (déclaration CA3 de la période d’octobre), avant ta date limite (espace professionnel impots.gouv.fr). L’écriture de déclaration est déjà passée dans le journal. Les lignes exactes se vérifient avec ton expert-comptable.</span></div>
+      <div class="ligne" style="font-size:18px"><span><b>${cpTvaDit(tv).libelle}</b></span><b style="color:var(--${cpTvaDit(tv).credit ? 'vert' : 'orange'})">${cpTvaDit(tv).eur}</b></div>
+      <span class="gris petit" style="display:block;margin-top:8px">À déclarer en novembre (déclaration CA3 de la période d’octobre), avant ta date limite (espace professionnel impots.gouv.fr). L’écriture de déclaration est déjà passée dans le journal. Les lignes exactes se vérifient avec ton expert-comptable.${cpTvaDit(tv).aide}</span></div>
       <div class="carte"><h3>Pourquoi « sur ce qui a été payé » ?</h3><span class="gris petit">Tes interventions sont des services : leur TVA est due quand le client paie, pas quand la facture part. Une facture d’octobre payée en novembre compte en novembre. Une facture de septembre payée en octobre compte ici. Un acompte reçu sur place compte le jour où le technicien l’encaisse. (Une vente de pièces seules, sans pose, suit une autre règle : la TVA est due à la livraison.)</span>
         <button type="button" class="lien" data-cp="regimes" style="margin-top:6px">Les autres régimes de TVA</button></div></div>
     <div class="col"><div class="carte"><h3>Achats d’octobre · ${ACHATS.filter(a => cpOct(a.d)).length}</h3>${ACHATS.filter(a => cpOct(a.d)).map(a => `<div class="ligne"><span><b>${esc(a.four)}</b><br><span class="gris petit">${a.d} · ${esc(a.objet)} · ${a.tva ? 'TVA ' + eur(cpTVA(a)) : 'sans TVA'}</span></span><span class="cp-dr"><b>${eur(cpTTC(a))}</b><br>${a.tva ? etat(a) : a.tva ? etat(a) : cpPj(a.just || '')}</span></div>`).join('')}
@@ -9393,7 +9406,7 @@ const ACTIONS = {
     if (i.st === 'retard' && i.tech && (i.d > AUJ || (i.d === AUJ && hmin(i.h) + i.dur > MAINT_MIN))) i.st = 'planifiee'; // comme poser() : déplacée dans le futur, elle n’est plus en retard
     const change = av !== JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);
     /* le toast PROMET « reçoit une notification » : elle existe (un message du bureau dans « Ma journée »), et « Annuler » la retire avec le changement */
-    let nt = null; if (change && i.tech) { notifier(i.tech, `${H_NOM(acteur())} a modifié ton intervention chez ${CLIENTS[i.cli].nom} : ${i.d === AUJ ? 'aujourd’hui' : jlong(i.d)} à ${i.h}${i.tech !== tAvant ? ' (elle t’est confiée)' : ''}.`); nt = NOTIFS[NOTIFS.length - 1]; }
+    let nt = null; if (change && i.tech && i.st !== 'annulee') { notifier(i.tech, `${H_NOM(acteur())} a modifié ton intervention chez ${CLIENTS[i.cli].nom} : ${i.d === AUJ ? 'aujourd’hui' : jlong(i.d)} à ${i.h}${i.tech !== tAvant ? ' (elle t’est confiée)' : ''}.`); nt = NOTIFS[NOTIFS.length - 1]; }
     fermerPanneau(); rendre(); toast(!change ? 'Rien n’a changé.' : `Intervention modifiée${i.tech ? ' · ' + tech(i.tech).nom.split(' ')[0] + ' reçoit une notification' : ''}.${i.d !== dAvant ? planAvert(i, false) : ''}`, nt ? { lib:'Annuler', fn:() => { const k = NOTIFS.indexOf(nt); if (k >= 0) NOTIFS.splice(k, 1); annuler(); } } : ANNULER); },
   ajoutEnc(){ if (CP.envoye) { toast('Octobre est envoyé : ce paiement s’écrira en novembre.'); return; } const imp = FACTURES.filter(f => ['envoyee','retard','partielle'].includes(f.st)), j = AUJ.split('-').reverse().slice(0,2).join('/');
     ouvrirPanneau(`<h2>Paiement reçu</h2><span class="gris">Le paiement est rangé avec sa facture ; elle passe « payée » (ou « payée en partie ») toute seule.</span>
@@ -9427,7 +9440,7 @@ const ACTIONS = {
   vueEnregistrerOk(){ const nom = document.getElementById('vue-nom').value.trim() || 'Ma vue'; const V = vuesLire(); V.push({ nom, jours:[...multiJours].sort().map(d => Math.round((dObj(d) - dObj(AUJ)) / 864e5)), techs:techsVus().map(t=>t.id), exclu:[...multiExclu].map(x => { const [tid, d] = x.split('|'); return tid + '|' + Math.round((dObj(d) - dObj(AUJ)) / 864e5); }), grp:multiGrp, n:multiN }); vuesEcrire(V); fermerPanneau(); rendre(); toast('Vue « ' + esc(nom) + ' » enregistrée'); },
   prepFacture(b){ factureDepuis(INTS.find(o => o.id === b.dataset.id)); rendre(); toast('Facture préparée à partir de l’intervention.'); },
   envoiMail(b){ panneauMail(b.dataset.id); },
-  envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
+  envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st === 'annulee') return toast(ANNULEE_REFUS); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
   copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
   modifierOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
@@ -9543,7 +9556,9 @@ document.addEventListener('change', ev => {
   if (t.dataset.ctrl) { fiche(t.dataset.id).coches[t.dataset.ctrl] = t.checked; rendre(); }
   else if (t.dataset.paie) { const P = fiche(t.dataset.paie).paiement; P.etat = t.value; P.montant = ''; if (P.etat !== 'rien' && !P.mode) P.mode = 'Carte'; rendre(); }
   else if (t.dataset.paiepromis) { fiche(t.dataset.paiepromis).paiement.promis = t.checked; }
-  else if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
+  else if (t.dataset.paiemontant) { const Pm = fiche(t.dataset.paiemontant).paiement;
+    if (paiementTropGros(t.value)) { Pm.montant = ''; t.value = ''; majCollant(t.dataset.paiemontant); toast('Ce montant est trop élevé : un paiement reçu sur place ne dépasse pas ' + eur(PAIEMENT_MAX) + '. Vérifie ce que le client t’a remis.'); }
+    else { Pm.montant = t.value; majCollant(t.dataset.paiemontant); } }
   else if (t.dataset.paieticket && t.files[0]) { const Pm = fiche(t.dataset.paieticket).paiement; Pm.ticket = true; rendre(); toast(PREUVE[Pm.mode][0] + ' photographié' + PREUVE[Pm.mode][4] + ', rangé' + PREUVE[Pm.mode][4] + ' avec le paiement.'); }
   else if (t.dataset.mjajout && t.value) { if (!multiJours.includes(t.value)) multiJours.push(t.value); rendre(); }
   else if (t.dataset.posee) { const F = fiche(t.dataset.id), i = INTS.find(o => o.id === t.dataset.id), p = (i.prevues || []).find(x => x.nom === t.dataset.posee); if (t.checked) F.pieces.push({ nom:p.nom, q:String(p.q), pu: prixCatalogue(p.nom) }); else F.pieces = F.pieces.filter(x => x.nom !== p.nom); rendre(); }
@@ -12074,7 +12089,7 @@ function cxConformite(K, D){
       d:ndfA.length ? `${pl(ndfA.length, 'note')} de frais à valider : sans ticket, une note ne se rembourse pas.` : 'Aucune note de frais en attente.',
       act:ndfA.length ? ['Valider', 'data-cx="sec|ndf"'] : null },
     { g:'tva', k:'declaration', v:1, s:'att', t:'La déclaration de TVA d’octobre', ref:'Déclaration mensuelle CA3 · espace professionnel impots.gouv.fr',
-      d:`${eur(tv.aPayer)} à déclarer et payer en novembre, avant ta date limite. Elle est calculée toute seule ; ton expert-comptable la vérifie avant que tu déclares.`, act:['Voir la TVA', 'data-cx="sec|tva"'] },
+      d:`${cpTvaDit(tv).credit ? 'Crédit de TVA de ' + cpTvaDit(tv).eur + ' : rien à payer en novembre, il se reporte sur ta prochaine déclaration (à déclarer quand même, avant ta date limite).' : eur(tv.aPayer) + ' à déclarer et payer en novembre, avant ta date limite.'} Elle est calculée toute seule ; ton expert-comptable la vérifie avant que tu déclares.`, act:['Voir la TVA', 'data-cx="sec|tva"'] },
     { g:'tva', k:'regime', s:'info', t:'Ton régime : réel normal, chaque mois', ref:'Le régime se règle avec ton expert-comptable',
       d:'Une déclaration par mois. Si ton régime change (réel simplifié, franchise en base), tes factures changent aussi : vois-le avec ton expert-comptable avant.', act:['Les régimes', 'data-cp="regimes"'] },
     { g:'tva', k:'autoliq', s:'info', t:'Sous-traitant dans le bâtiment ?', ref:'Autoliquidation de la TVA dans la sous-traitance du bâtiment' + aVoir,
@@ -12115,7 +12130,7 @@ function cxAFaire(K, D, DD, conf){
   if (tv.sans.length) L.push([2, '📎', `${pl(tv.sans.length, 'achat')} sans facture`, `${eur(tv.manque)} de TVA pas récupérable tant qu’elle${tv.sans.length > 1 ? 's' : ''} manque${tv.sans.length > 1 ? 'nt' : ''}`, null, 'Ajouter', 'data-cx="sec|fachats|achats|sansfacture"']);
   if (enMain) L.push([2, '💶', 'Espèces et chèques pas encore à la banque', cpTechNoms(ca.chezTech) ? 'chez ' + cpTechNoms(ca.chezTech) + (ca.solde || ca.chq.length ? ' et au bureau' : '') : 'au bureau', enMain, 'Voir la caisse', 'data-cx="sec|caisse"']);
   if (ndf.length) L.push([2, '🧑‍🔧', `${pl(ndf.length, 'note')} de frais à valider`, ndf.map(n => esc(H_NOM(n.qui))).join(' · '), cpR(ndf.reduce((s, n) => s + n.ttc, 0)), 'Valider', 'data-cx="sec|ndf" data-cxaf="valider"']);
-  L.push([3, '📒', 'TVA d’octobre à déclarer en novembre', 'calculée toute seule, à vérifier avec ton expert-comptable', tv.aPayer, 'Voir la TVA', 'data-cx="sec|tva"']);
+  L.push([3, '📒', cpTvaDit(tv).credit ? 'Crédit de TVA d’octobre, à déclarer en novembre' : 'TVA d’octobre à déclarer en novembre', cpTvaDit(tv).credit ? 'rien à payer : se reporte sur ta prochaine déclaration · à vérifier avec ton expert-comptable' : 'calculée toute seule, à vérifier avec ton expert-comptable', cpTvaDit(tv).m, 'Voir la TVA', 'data-cx="sec|tva"']);
   if (!CP.envoye) L.push([3, '📤', `Envoyer octobre à ${esc(CP_EXPERT.qui)}`, `${faits} étape${faits > 1 ? 's' : ''} sur ${et.length} prête${faits > 1 ? 's' : ''} pour clôturer`, null, 'Clôturer', 'data-cx="sec|cloture" data-cxaf="cloturer"']);
   return L.sort((a, b) => a[0] - b[0]);
 }
@@ -14559,8 +14574,11 @@ const ANNULEE_REFUS = 'Cette intervention est annulée : rien à terminer, aucun
 /* L'annulation dit vrai et range derrière elle : la sortie de pièces que le technicien avait notée pour ce travail quitte « Envois à accepter » (le stock ne bouge pas pour un travail qui n'a pas eu lieu),
    le technicien reçoit une notification, l'Historique garde sa ligne. Aucun e-mail ne part au client : le texte ne le promet plus, il demande au bureau de le prévenir.
    « Rétablir » rend TOUT (l'état, les envois en attente, et retire la notification et la ligne d'Historique qu'elle avait écrites). */
+const intAnnulable = i => i.st !== 'fait';
+const TERMINEE_REFUS = 'Cette intervention est terminée : remets-la « à faire » d’abord. Si sa facture est partie, c’est un avoir qui l’annule.';
 function annulerInt(i){
-  if (i.st === 'annulee') return;   /* l'appelant a déjà fait memo() : « Rétablir » défait ce seul geste */
+  if (i.st === 'annulee') return;
+  if (!intAnnulable(i)) return toast(TERMINEE_REFUS);   /* l'appelant a déjà fait memo() : « Rétablir » défait ce seul geste */
   const envois = MVTS_ATT.map((m, k) => ({ m, k })).filter(o => o.m.inter === i.id);
   envois.slice().reverse().forEach(o => MVTS_ATT.splice(o.k, 1));
   i.st = 'annulee';
@@ -14578,6 +14596,7 @@ function annulerInt(i){
 }
 function planConfirmer(quoi, id){
   const i = INTS.find(o => o.id === id); if (!i) return;
+  if (quoi === 'annuler' && !intAnnulable(i)) return toast(TERMINEE_REFUS);
   ouvrirPanneau(quoi === 'annuler'
     ? `<h2>Annuler cette intervention ?</h2><p class="gris" style="margin:0">« ${esc(i.titre)} » · ${esc(CLIENTS[i.cli].nom)} · ${jlong(i.d)} à ${i.h}.<br>Elle reste dans la liste, marquée « Annulée », et ${i.tech ? esc(tech(i.tech).nom.split(' ')[0]) + ' est prévenu' + aE(i.tech) + '. Aucun e-mail ne part au client : c’est à toi de le prévenir.' : 'aucun e-mail ne part au client : c’est à toi de le prévenir.'}</p><div class="actions"><button type="button" class="btn" data-planconf="annuler|${i.id}">Oui, annuler l’intervention</button><button type="button" class="btn gris" data-ferme="1">Non, la garder</button></div>`
     : `<h2>Supprimer cette intervention ?</h2><p class="gris" style="margin:0">« ${esc(i.titre)} » · ${esc(CLIENTS[i.cli].nom)} · ${jlong(i.d)} à ${i.h}.<br>Elle disparaît du planning, sans prévenir le client. Tu pourras la rétablir juste après.</p><div class="actions"><button type="button" class="btn" data-planconf="supprimer|${i.id}">Oui, supprimer</button><button type="button" class="btn gris" data-ferme="1">Non, la garder</button></div>`);
@@ -23382,6 +23401,7 @@ function opLiaDonnees(){
     enc:ENCAISSEMENTS.map(e => ({ d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), fac:e.fac, mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })),
     /* l'argent reçu SUR PLACE par un technicien, avant toute facture (« Reçu I6 ») : un encaissement comme les autres pour la TVA et la caisse — l'application le compte déjà (cpEncOct). À
        part de `enc` : il n'a pas de facture, et le cadre ne doit pas lui en inventer une. Quand la facture part, le reçu quitte cette liste et le cadre défait son écriture. */
+    recuMax:PAIEMENT_MAX,
     recus:cpPaieTerrain().map(e => ({ id:e.int, num:e.fac, d:cxIso(e.d), cli:e.cli, nom:nom(e.cli), type:typ(e.cli), mode:e.mode, ttc:cpR(e.ttc), tva:e.tva })) };
 }
 function opLiaSrc(){ const app = typeof MODE_APP !== 'undefined' && MODE_APP; let u = 'prototype-comptabilite.html'; if (!app) return u;
