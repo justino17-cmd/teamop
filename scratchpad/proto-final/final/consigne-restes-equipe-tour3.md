@@ -4,3 +4,6 @@ Lire d'abord : tours précédents scratchpad/proto-final/final/restes-equipe-tou
 
 ## Tour 4 (règle : « une case se lit dans la fonction qui écrit », pas dans le bouton)
 Une case est vérifiée DANS la fonction qui écrit : sans la case, pas de bouton ET la fonction refuse (phrase habituelle de refus, rien d'écrit) si on l'appelle quand même (appel direct, bouton fabriqué, clavier). N'y touche pas : N1 SIREN, N2 « lu = Modifier ? », achats.s du bureau, blocOk (liste de Justin).
+
+## Tour 5 (R1 et R3, décidé par le chef ; R2 et R4 : laisser)
+R1 : `peut('com','c')` relu DANS `courrierSource().envoyer()` (apercu/prototype-op-gestion.html, ~l.20148) AU MOMENT de l'envoi (cas : la case retirée pendant qu'une fenêtre de réponse est ouverte) — refus avec la phrase habituelle, rien d'écrit. R3 : `secuReposer(k)` (et le bouton `data-cnx="repose|k"`) refuse DANS la fonction sur un compte désactivé (même phrase que les 4 fonctions secu* du tour 4 : « …est désactivé : réactive-le d'abord. »), compte actif inchangé. NE PAS TOUCHER : R2 (mbxOptions : Planning › Modifier suffit), R4 (secuDeverrouiller sur désactivé verrouillé : voulu).
