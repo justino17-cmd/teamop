@@ -485,4 +485,4 @@ tests/test-3281.js
 tests/test-3295.js
 # 5 novembre 2026 (Toka Clim, dossiers « Réseau » rouverts) : `test-3296` — le message réseau des versions d'avant la v800 (« api.teamop.fr injoignable sur /api/… ») se range en « Passager », un dossier rouvert ou ouvert aussi ; la panne de 2 minutes de la v800 reste à traiter. Le vrai serveur, `POST /api/monitor/report`.
 tests/test-3296.js
-tests/test-3299.js
+tests/test-3320.js

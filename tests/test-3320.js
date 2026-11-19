@@ -1,4 +1,4 @@
-/* test-3299 — AGENTS RETIRÉS (19 novembre 2026) : le VRAI `cerveau.js`, un faux Anthropic qui COMPTE les appels (deux façons : l'appelant injecté ET le vrai SDK
+/* test-3320 — AGENTS RETIRÉS (19 novembre 2026) : le VRAI `cerveau.js`, un faux Anthropic qui COMPTE les appels (deux façons : l'appelant injecté ET le vrai SDK
    contre un serveur local, variable ANTHROPIC_BASE_URL). Par défaut — réglage absent, `retires:true`, tout ce qui n'est pas `false` — : 0 appel, clé posée ou non,
    agent en pause ou non, budget intact, réponse propre `{ ok:false, erreur:'agents_retires' }`, jamais une exception. Avec `retires:false` explicite : le moteur d'avant.
    Et le code : le verrou est la PREMIÈRE instruction de `penser`, et le seul chemin des agents vers Anthropic (`appelerAnthropic`) n'a pas d'autre appelant.
@@ -16,7 +16,7 @@ const AG = require(path.join(RACINE, 'server', 'agents.js'));
 const GRAND = { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 };
 
 (async () => {
-  console.log('\n── test-3299 : agents retirés ──');
+  console.log('\n── test-3320 : agents retirés ──');
   let appels = 0, enPause = false, d = 0;
   const faux = { AGENTS: AG.AGENTS, peutAgir: () => (enPause ? { ok: false, raison: 'pause' } : { ok: true }), noter: () => {} };
   const appeler = async () => { appels++; return { texte: 'ok', entree: 10, sortie: 10, stop_reason: 'end_turn', recherches: 0 }; };
