@@ -16,7 +16,7 @@ const entrerPar = async (c, k) => { const mdp = await S.provisoire(c, k); await 
   const ok = await S.attendreApp(c, 15000, true); await S.guide(c); return { ok }; };
 const lireSauf = async (sel, c) => c.p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : null; }, sel);
 (async () => {
-  const cle = process.env.P || '1234';
+  const cle = process.env.P || process.env.ONLY || '1234';   // ONLY : le lanceur de mutations (double-auth-mutations.py) joue « da-recontrole-parcours:4 »
   if (cle.includes('1')) { console.log('\n── P1 · Karim, Android, nuit, autre ordinateur ──');
     const c = await S.ouvrir({ profil:'android', nuit:true }); await S.tous(c); const kb = await S.provisoire(c, 'kb');
     await c.p.evaluate(() => document.querySelector('[data-sec="cases-demo"] input').click());
@@ -95,8 +95,9 @@ const lireSauf = async (sel, c) => c.p.evaluate(s => { const e = document.queryS
         await c.p.evaluate(g => { const b = document.querySelector('[data-cx="grp|' + g + '"]'); b && b.click(); }, g); await c.p.waitForTimeout(350); await fermerConf(c);
         await c.p.evaluate(o => { const b = document.querySelector('[data-cx="sec|' + o + '"]'); b && b.click(); }, o); await c.p.waitForTimeout(500); await fermerConf(c); await c.p.waitForTimeout(1000);
         const m = await c.p.evaluate(() => { const z = document.querySelector('[data-secvue]'); if (!z) return null; const cs = getComputedStyle(z), r = z.getBoundingClientRect(), dedans = r.right - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth || 0);
-          return { carte:[Math.round(r.left), Math.round(r.right)], depasse:[...z.querySelectorAll('button')].map(b => ({ t:b.textContent.trim().slice(0, 14), debord:Math.round(b.getBoundingClientRect().right - dedans), coupe:b.scrollWidth > b.clientWidth + 1 })).filter(x => x.debord > 0 || x.coupe) }; });
+          return { carte:[Math.round(r.left), Math.round(r.right)], depasse:[...z.querySelectorAll('button')].map(b => ({ t:b.textContent.trim().slice(0, 14), debord:Math.round(b.getBoundingClientRect().right - dedans), coupe:b.scrollWidth > b.clientWidth + 1 || (() => { const g = document.createRange(); g.selectNodeContents(b); const t = g.getBoundingClientRect(), bs = getComputedStyle(b), br = b.getBoundingClientRect(); return t.right > br.right - parseFloat(bs.paddingRight) + 1 || t.left < br.left + parseFloat(bs.paddingLeft) - 1; })() }))   /* « coupe » : le texte sort de SON rembourrage (un bouton qui plafonne sa largeur sans passer à la ligne garde son texte dehors sans que scrollWidth le dise : contenu centré qui déborde des deux côtés) */.filter(x => x.debord > 0 || x.coupe) }; });
         if (process.env.CAPTURES) { await c.p.evaluate(() => { const z = document.querySelector('[data-secvue]'); z && z.scrollIntoView({ block:'center' }); }); await c.p.waitForTimeout(300); await L.capture(c, CAP + 'p4-verrou-' + o + '-' + profil + (process.env.NUIT === '1' ? '-nuit' : '-jour') + '.png'); }
+        if (process.env.DEBUG) console.log('   mesure', profil, o, JSON.stringify(await c.p.evaluate(() => { const z = document.querySelector('[data-secvue]'), b = z && z.querySelector('.btn'); return z && { carte:Math.round(z.getBoundingClientRect().width), bouton:Math.round(b.getBoundingClientRect().width), actions:Math.round(b.parentElement.getBoundingClientRect().width), ws:getComputedStyle(b).whiteSpace, texteLarge:b.scrollWidth }; })));
         v('P4 ' + profil + ' · ' + o + ' : la carte de verrou existe', !!m);
         v('P4 ' + profil + ' · ' + o + ' : aucun bouton de la carte ne déborde de son rembourrage', !!m && m.depasse.length === 0, m); }
       await L.fermer(); } }
