@@ -3956,7 +3956,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
 /* écran de 320 × 568 (restes technicien 2, technicien-13) : la carte « Le camion » (100 px) pousse « Il manque à bord » sous la barre d'onglets — aucune pièce visible sans défiler. Sur un écran COURT et étroit, la liste de ce qui manque passe d'abord, la carte du véhicule juste dessous (un toucher de défilement de plus pour noter un plein) ; 360 × 740 et plus gardent l'ordre d'avant, qui y tient. Les frères qui suivent la carte gardent leur place derrière elle. */
-@media (max-width:340px) and (max-height:600px){html .mc-page>#mc-vehicule{order:1}html .mc-page>#mc-vehicule ~ *{order:2}html .mc-page>#mc-vehicule + *{order:0}html .mc-tete-c{flex-wrap:nowrap;padding-top:2px}html .mc-tete-c h3{font-size:15px;min-width:0}html .mc-tete-c .btn{padding-left:10px;padding-right:10px;font-size:13px;white-space:nowrap;flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l{flex-wrap:nowrap;padding-top:8px;padding-bottom:8px;min-height:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.btn{flex:0 0 auto}html .mc-page{gap:6px}}
+@media (max-width:340px) and (max-height:600px){html .mc-page>#mc-vehicule{order:1}html .mc-page>#mc-vehicule ~ *{order:2}html .mc-page>#mc-vehicule + *{order:0}html .mc-tete-c{flex-wrap:nowrap;padding-top:2px}html .mc-tete-c h3{font-size:15px;min-width:0}html .mc-tete-c .btn{padding-left:10px;padding-right:10px;font-size:13px;white-space:nowrap;flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l{flex-wrap:nowrap;padding-top:8px;padding-bottom:8px;min-height:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.btn{flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l:has(.mc-dr){flex-wrap:wrap}html .mc-page{gap:6px}}   /* C1 : une rangée « envoyée » porte son état sur sa propre ligne (.mc-dr 100 %) : en nowrap, le nom tombait à 0 px, une lettre par ligne */
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
 .vh-bloc{display:flex;flex-direction:column;gap:6px;margin-top:8px}.vh-bloc>.tt-h3{margin:10px 0 0}
 .vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
@@ -3984,7 +3984,7 @@ html #mc-vehicule:empty{display:none}
 .vh-choix.vh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vh-choix.vh-2 .puce-c{border-radius:14px;padding:8px 10px}
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
 #calque .panneau{--pan-bas:20px}#calque .panneau.fenetre{--pan-bas:28px}@media (max-width:760px){#calque .panneau,#calque .panneau.fenetre{--pan-bas:calc(22px + env(safe-area-inset-bottom,0px))}}   /* le rembourrage bas de la feuille, dit UNE fois : le pied collant s'y enfonce (regard technicien b : « Aujourd'hui · Un autre jour » défilait SOUS le bouton « Enregistrer le plein », dans la bande de l'encoche) */
-#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
+#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}#calque .panneau>.vh-pied:not(:last-child){margin-bottom:0}   /* C2 : la marge négative tire le voisin qui SUIT le pied ; quand un lien suit (« C'est déjà fait ? »), elle le coupait sous le pied collant */   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
 .deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
 @media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
@@ -19056,7 +19056,7 @@ function vxPleinOk(force){
 function vxKmPanel(vid, from){
   const v = vehDe(vid); if (!v) return; const dr = v.releves[v.releves.length - 1];
   ouvrirPanneau(`${vhEnt(v)}<h2>Relever le compteur</h2>
-    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
+    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="ex. ${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
     <span class="gris petit">Dernier relevé : ${vxKm(v.km)}${dr ? ', le ' + esc(vhJM(dr.d)) : ''}. Les échéances au kilomètre se recalculent.</span><div id="vx-al"></div>
     ${vhGros(`kmok|${v.id}|${from || ''}`, 'Enregistrer', vhRet(from, v.id))}`);
 }
