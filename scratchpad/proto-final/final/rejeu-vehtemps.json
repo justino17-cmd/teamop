@@ -1,0 +1,61 @@
+{
+  "familles": [
+    "vehtemps",
+    "secu",
+    "securite",
+    "artefact",
+    "retour",
+    "double"
+  ],
+  "passages": [
+    {
+      "date": "2026-11-19 05:15 à 08:55 (machine seule, un navigateur à la fois)",
+      "scripts": {
+        "vehtemps": "sondes/vehtemps-tout.sh : 22 exécutions, une rouge (Mon camion sur « petit ») ; profils par défaut mac + iphone (petit sur « Mon camion » seulement), COMPLET=1 pour les six ; ~26 min mesurées en deux passages",
+        "secu": "sondes/secu-tout.sh : 18 exécutions, 2 rouges (secu-crypto, secu-auto : sondes qui extraient du code de la page, périmées) ; ~12 min",
+        "securite": "sondes/securite-tout.sh : 7 exécutions, 2 rouges (injection A2, politique) ; ~2 min",
+        "artefact": "sondes/artefact-tout.sh : 13 exécutions, toutes vertes ; ~21 min (ajout du guide « Commencer au chapitre »)",
+        "double": "sondes/double-tout.sh : 15 exécutions, toutes vertes ; ~22 min (ajout de recontrole-compte)",
+        "retour": "sondes/retour-tout.sh (calques, parcours, atelier, courrier : vert, 13 min, PUIS recontrôle adverse essentiel, vert, ~10 min, 9 exécutions) et campagne/sondes/retour-tout.sh (NOUVEAU : restes des tours 1 à 4 du bouton Retour, 14 exécutions, 2 rouges (la même sonde sur mac et android), ~21 min). Le recontrôle complet (retour-recontrole-tout.sh, plus d'une heure) a été rejoué en entier ce jour : 24 exécutions sur 24 vertes."
+      },
+      "sondes": 109,
+      "vertes": 102,
+      "rouges": 7,
+      "outilsEcartes": "vehtemps-avant, -captures, -v-captures, -v4-captures, -v5-captures, -feuilles, -rc-balayage, -mutations ; securite-captures, securite-mutations.py ; artefact-commun, -mutations, -voir-app-mutations.py ; retour-captures, retour-mutations, retour-restes3-constat/-double/-apercu-pdf/-cap, retour-restes2-recontrole-cap, retour-restes3-mutations.sh, retour-restes4-mutations.sh ; double-auth-mutations.py ; secu-captures est rejoué (c'est un contrôle au pixel)",
+      "sondesRouges": 6
+    }
+  ],
+  "aNoter": [
+    {
+      "sonde": "sondes/vehtemps-v5-camion.js",
+      "arguments": "PROFILS=petit NUIT=0 (et NUIT=1 : mêmes trois contrôles)",
+      "constat": "Sur le plus étroit (petit, 320 × 568), la carte « Le camion » est à 694 px du haut d'un écran de 568 : le bouton « Noter un plein » est sous la ligne de flottaison, la page ne défile pas d'elle-même, et le contrôle « le plein se note sans défiler » (la carte se pose entre les gros boutons du stock et la liste de ce qui manque) tombe. 3 ✗ de jour, 3 de nuit, reproduit trois fois (rouge, relancé : identique). mac et iphone : 0 ✗. À trancher : défaut réel (ordre des blocs sur petit écran, Justin veut que le plein se note sans défiler) ou seuil de la sonde trop strict pour 568 px de haut."
+    },
+    {
+      "sonde": "sondes/secu-crypto.js",
+      "arguments": "(aucun ; Node seul)",
+      "constat": "ReferenceError: AUJ is not defined. Le bloc du socle que la sonde extrait (de « const SECU_DEMO = true; » à « const secuPinFaible ») contient désormais « const SECU_T0 = new Date(AUJ + 'T00:00:00').getTime() + MAINT_MIN * 60000 » ; AUJ et MAINT_MIN sont déclarés plus haut dans la page (« const AUJ = '2026-10-31', MAINT_MIN = 10*60 + 40 », ligne ~4008), hors du bloc : la sonde est périmée (son bac à sable doit fournir AUJ et MAINT_MIN), la page n'est pas en cause. Aucun contrôle de la sonde n'est donc joué (seul « le bloc du socle est trouvé » passe)."
+    },
+    {
+      "sonde": "sondes/secu-auto.js",
+      "arguments": "(aucun)",
+      "constat": "SyntaxError: Unexpected end of input. La sonde extrait « const secuAutoPermis » jusqu'à la fin de LA LIGNE (src.slice(i0, src.indexOf('\\n', i0))) ; la déclaration s'étend désormais sur deux lignes (un commentaire de fin de première ligne, puis « if (loc.protocol === 'file:') … »). Sonde périmée : extraire jusqu'à « }; » de fin de fonction. Aucun des 14 jugements d'adresse n'est joué tant que ce n'est pas fait."
+    },
+    {
+      "sonde": "sondes/securite-injection.js",
+      "arguments": "(aucun)",
+      "constat": "31 ✓ · 1 ✗ (reproduit à l'identique). A2 « témoin : les unités ordinaires passent et les piégées sont refusées » : {bons:true, mauvais:false, usage:[u, lot, kg, flacon, aérosol, m, paire, bidon, sachet], refusees:[]}. Les contrôles A2 sur l'article piégé (non enregistré, le refus dit pourquoi) PASSENT ; c'est le témoin « mauvais » qui tombe : l'un de ['<b>', 'x\"y', 'a'.repeat(13), '', 'u<img>'] ne rend plus '' par uniteSure(). Hypothèse à vérifier : la chaîne vide rend maintenant 'u' (unité par défaut) au lieu de '' — sonde périmée sur ce seul cas ; sinon c'est un VRAI trou (une unité piégée acceptée). À trancher en jouant uniteSure sur chacune des cinq valeurs."
+    },
+    {
+      "sonde": "sondes/securite-politique.js",
+      "arguments": "(aucun, OPG_ATTENDU=inline par défaut ; OPG_ATTENDU=hash : 22 ✓ · 1 ✗)",
+      "constat": "21 ✓ · 2 ✗ : « (niveau inline) le gestionnaire injecté S'EXÉCUTE » → 0 et « le navigateur a REFUSÉ quelque chose pendant l'injection » → 0. La page porte toujours script-src 'self' 'unsafe-inline' (niveau inline), mais le vecteur d'injection de la sonde ne s'exécute plus (population nulle) : soit un échappement neuf a rendu cette injection inerte (bien), soit la sonde doit changer de vecteur. Les contrôles de fond passent (usage normal : zéro violation sur 37 écrans + carte + atelier + PDF + Comptabilité + courrier + paiement). Avec OPG_ATTENDU=hash il ne reste que le second contrôle."
+    },
+    {
+      "sonde": "campagne/sondes/retour-restes2-recontrole-b.js",
+      "arguments": "PROFIL=mac et PROFIL=android (même résultat, reproduit)",
+      "constat": "E4 « le Retour ferme le panneau resté ouvert et reste dans la Comptabilité (population) » : h = #accueil (attendu #comptabilite), 17 ✓ · 1 ✗ sur 18. La prémisse de E4 (le panneau est ENCORE ouvert quand on rouvre la Comptabilité après « ‹ OP GESTION ») est devenue fausse au tour 3 : « ‹ OP GESTION » ferme désormais le panneau (D2 de retour-restes3-compta.js, qui passe 38 ✓ mac et 47 ✓ android). Sonde du tour 2 périmée par la règle du tour 3 ; la contre-partie à jour est retour-restes3-compta.js. Les 17 autres contrôles (E1 à E3) passent."
+    }
+  ],
+  "lignes": []
+}
