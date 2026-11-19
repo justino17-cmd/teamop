@@ -18,14 +18,14 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   const L0 = await lg(); const kP = L0.findIndex(l => /Nettoyant/.test(l.d)), kD = L0.findIndex(l => l.d === 'Déplacement'), kL = L0.findIndex(l => l.d === 'Pièce libre');
   L.v('population : pièce, déplacement et pièce libre présents', kP >= 0 && kD >= 0 && kL >= 0 && L0.length >= 5, JSON.stringify(L0.map(l => l.d)));
   // A. saisies tordues sur le déplacement : refus, phrase lisible, ancienne valeur dans le champ et dans la ligne
-  const refus = ['2.', '2,', '2 ,', '2h60', '2 x', '１', '1e3', '-2', '0', '2 kg', '3 forfait', '12abc', '2/3', '2 + 1', '٣'];
+  const refus = ['2h60', '2 x', '１', '1e3', '-2', '0', '2 kg', '3 forfait', '12abc', '2/3', '2 + 1', '٣'];
   for (const v of refus) { const r = await ch('fqte', kD, v), l = (await lg())[kD];
     L.v('« ' + v + ' » sur le déplacement : refusé ou sans effet, quantité « 1 », total 65 €, champ revenu à « 1 » (toast : ' + r.t.slice(0, 90) + ')', l.q === '1' && l.total === 65 && r.champ === '1', l.q + ' · ' + l.total + ' · champ=' + r.champ + ' · ' + r.t);
     L.v('« ' + v + ' » : la phrase du refus ne cite pas une unité vide ou une ponctuation (« . », « , », « »)', !/« *[.,;:!?  ]* »/.test(r.t) && r.t.length > 20, r.t); }
   // le champ vidé
   { const r = await ch('fqte', kD, ''), l = (await lg())[kD]; L.v('quantité effacée : « 1 » gardé, phrase lisible', l.q === '1' && l.total === 65 && r.t.length > 20, l.q + ' · ' + r.t); }
   // B. acceptations limites : ce qu'on accepte doit multiplier comme on le dit
-  const accepte = [['2', 'déplacement', kD, 130], ['2 u', 'déplacement', kD, 130], ['2 pcs', 'déplacement', kD, 130], ['2pièces', 'déplacement', kD, 130], ['1 000 u', 'pièce libre', kL, 20000], ['1,5', 'pièce libre', kL, 30]];
+  const accepte = [['2', 'déplacement', kD, 130], ['2.', 'déplacement', kD, 130], ['2,', 'déplacement', kD, 130], ['2 ,', 'déplacement', kD, 130], ['2 u', 'déplacement', kD, 130], ['2 pcs', 'déplacement', kD, 130], ['2pièces', 'déplacement', kD, 130], ['1 000 u', 'pièce libre', kL, 20000], ['1,5', 'pièce libre', kL, 30]];
   for (const [v, nom, k, att] of accepte) { const r = await ch('fqte', k, v), l = (await lg())[k]; L.v('« ' + v + ' » sur la ' + nom + ' : lu, total ' + att + ' €', Math.abs(l.total - att) < .006, l.q + ' · ' + l.total + ' · ' + r.t); await ch('fqte', k, '1'); }
   // une durée en heures tapée sur une ligne qui n'est PAS à l'heure : doute à noter, pas un verdict — on mesure ce que ça fait
   for (const v of ['2 h', '1,5 h', '2h30']) { const r = await ch('fqte', kL, v), l = (await lg())[kL]; console.log('  · DOUTE « ' + v + ' » sur une pièce libre à 20 € : q=' + l.q + ' total=' + l.total + ' toast=« ' + r.t + ' »'); await ch('fqte', kL, '1'); }
