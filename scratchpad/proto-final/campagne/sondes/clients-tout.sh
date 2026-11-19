@@ -55,6 +55,11 @@ lance "clients-restes-recontrole PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone Q
 if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes-recontrole PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/clients-restes-recontrole.js"; done; for p in iphone android petit; do lance "clients-restes-recontrole PROFIL=$p QUI=marc NUIT=1" PROFIL=$p QUI=marc NUIT=1 node "$S/clients-restes-recontrole.js"; done; fi
 if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/clients-restes.js"; done; for p in android petit; do lance "clients-restes PROFIL=$p QUI=marc NUIT=1" PROFIL=$p QUI=marc NUIT=1 node "$S/clients-restes.js"; done; fi
 
+# Le recontrôle ADVERSE du tour 2 (19 novembre) : historique après « Abandonner » (H), Devis IA et client archivé (V), Ctrl+Z regardé (U), recherche archivés (R), numéros limites (T), rangement à toutes les largeurs (W), toutes les sorties de la fiche (S).
+# ⚠️ H3, V1, R1 et R2 TOMBENT tant que ces défauts ne sont pas corrigés (restes-clients-tour2-recontrole.json) : ce sont des constats, pas du bruit.
+lance "clients-restes2-adverse PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/clients-restes2-adverse.js"
+lance "clients-restes2-adverse PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/clients-restes2-adverse.js"
+
 # Le clavier n'existe que sur ordinateur : mac et windows.
 lance "clients-clavier PROFIL=mac" PROFIL=mac node "$S/clients-clavier.js"
 lance "clients-clavier PROFIL=windows" PROFIL=windows node "$S/clients-clavier.js"

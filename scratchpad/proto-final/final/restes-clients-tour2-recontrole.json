@@ -1,0 +1,80 @@
+{
+ "noms": [
+  "clients-15 : la saisie non enregistrée d'« Infos » perdue par la palette, les raccourcis, le retour du navigateur et une adresse changée",
+  "clients-17 : un client archivé encore proposé à « Nouvelle facture », « Nouvelle réserve chez un client » et « Modifier l'intervention »",
+  "Casse : « Archivés · N » hors de la vue à 320 et 360 px",
+  "clients-18 : « +33 06 12 34 56 78 » et « (+33) 6 12 34 56 78 » non rangés, recherche et doublon aveugles",
+  "Nouveau : deux numéros de 31 signes rognés à 30 à l'enregistrement de la fiche",
+  "Casse : Ctrl+Z, des minutes plus tard, supprime un client à qui l'on a écrit ses consignes et son appareil",
+  "Casse : la recherche d'un client archivé répond « Aucun client ne correspond » et invite à créer un doublon",
+  "Nouveau : ACTIONS.clientArchiverOk (et clientRestaurer, clientAppEnreg, clientAppSupprOk) sans garde de droit",
+  "Sondes périmées mises à jour"
+ ],
+ "regles": [
+  "clients-15 (hors la casse « retour du navigateur puis Abandonner » ci-dessous) : les 53 sorties de la fiche énumérées dans le DOM (menu, logo, onglets, barre du bas, liens, boutons de la fiche) + palette + Ctrl/Cmd+1 + retour du navigateur + adresse tapée demandent toutes avant de perdre la saisie ; aucune fausse alerte sur les 8 clients d'origine ; les trois choix de la fenêtre se tiennent",
+  "clients-17 : « Nouvelle facture », « Nouvelle réserve » (suggestions ET nom tapé) et « Modifier l'intervention » (client actuel gardé) n'offrent plus d'archivé ; devis, intervention, contrat déjà verts ; ses factures, sa fiche et la recherche générale le lisent encore",
+  "« Archivés · N » tient dans sa colonne à 320 (288 dans 320), 360, 390, iPad et ordinateur (page jamais plus large que la fenêtre) ; boutons de 36 px au moins ; capture archive-petit-nuit regardée (grille 2 × 2)",
+  "clients-18 : « +33 06… », « +33 (0)6… », « 0033 06… », « +33 06.12… », « (+33) 06… », « +33 0 6… », « +33 3 12… » se rangent en « 0X XX XX XX XX » ; un numéro court, sans +, ou étranger (+32, +41 33…, +44) n'est pas déformé ; « 33000 » et « 3306 12 » (sans +) ne sont pas pris pour un +33 ; le doublon voit le même numéro écrit de trois façons et pas le voisin ; la recherche retrouve un numéro « +33 06… » par 0612, 06 12 34, +33 6 12, (+33) 6 12",
+  "Deux numéros (31 signes, 60 permis) s'enregistrent en entier",
+  "Ctrl+Z : un client créé avec une intervention et seulement REGARDÉ (liste, fiche, six onglets, Comptabilité, Planning) part bien avec elle (la signature ne bouge pas : U1) ; un client complété depuis est gardé et le message le dit ; l'identifiant ne rentre pas en collision (les autres créations utilisent Date.now)",
+  "Recherche d'un client archivé : le dit, propose « Voir le client archivé », garde la recherche (captures petit nuit et mac regardées)",
+  "Droits lus dans les actions : le secrétariat (iphone nuit) n'archive pas par un appel direct de l'action",
+  "Sondes du correcteur rejouées sans changement : clients-restes-recontrole 49 ✓ (mac, windows, ipad), 39 ✓ (iphone nuit, petit nuit, android nuit), 28 ✓ (secrétaire iphone nuit) · 0 ✗ ; clients-restes 65 et 67 ✓ ; clients-liste 51 et 54 ✓ ; clients-recontrole-liste 44 et 46 ✓ ; clients-creer 35 et 37 ✓ ; clients-recontrole-fiche 31 ✓ ; clients-roles 23 ✓ ; clients-croise 11 ✓ ; clients-corriges 23 ✓ ; clients-recontrole-parcours 34 ✓ ; clients-recontrole-petits 21 ✓ ; clients-recontrole-creations 14 ✓ ; clients-restes-creations 16 ✓ ; clients-recontrole-droits 4 ✓"
+ ],
+ "pasRegles": [
+  {
+   "nom": "clients-17 : un client archivé n'est plus proposé pour un nouveau travail",
+   "defaut": "« Devis IA » (dictée) : la reconnaissance du client dans dvdPreparer lit tous les clients, archivés compris.",
+   "constat": "Dicter « Devis pour Plage… » (Hôtel de la Plage, archivé) prépare un devis au nom du client archivé (1 devis créé pour hp, sur les 7 profils et les deux rôles gérant et secrétariat ; toast muet). Les listes sont réglées, cette porte non. Ligne ~8557 d'apercu/prototype-op-gestion.html : `Object.keys(CLIENTS).find(k => k !== '__nv' && sansAccent(CLIENTS[k].nom)…` n'écarte pas `CLIENTS[k].archive`. Contre-épreuve : avec `&& !CLIENTS[k].archive` dans une copie, V1 passe (mutation 2). Sonde : clients-restes2-adverse.js V1."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Après « Abandonner » par le retour du navigateur, le retour suivant ramène sur la fiche abandonnée",
+   "gravite": "faible à moyenne (Android : c'est le bouton retour du système ; iPhone : le geste de retour)",
+   "etapes": [
+    "Accueil → Devis (ou Planning) → ouvrir un client → Infos → écrire une lettre",
+    "retour du navigateur : la fenêtre « Tu as changé cette fiche… » s'ouvre, la fiche reste",
+    "« Abandonner mes changements » : on arrive bien sur Devis",
+    "retour du navigateur encore"
+   ],
+   "constat": "On retombe sur la fiche client, alors que sans saisie la chaîne donne Devis → Accueil (référence jouée dans la même sonde). Cause : lireHash fait histRemplacer('#' + ici) sur l'entrée où le retour a posé le navigateur, c'est-à-dire qu'elle RÉÉCRIT l'entrée « Devis » en « fiche » ; « Abandonner » pousse ensuite une nouvelle entrée « Devis » derrière cette entrée fantôme. 7 profils, gérant et secrétariat. Piège : le correctif évident (history.go(1) à la place du replace) fait passer ce contrôle mais empêche « Abandonner » de partir (H2 tombe, mutation 6) — la sortie propre est de ne pas toucher à l'historique tant que la personne n'a pas choisi (laisser l'adresse changer, poser la fenêtre, et ne revenir à la fiche, par history.forward(), que sur « Continuer »). Sonde : clients-restes2-adverse.js H3."
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "Dans « Archivés », une recherche qui ne correspond qu'à un client ACTIF invite à créer un nouveau client",
+   "gravite": "faible",
+   "constat": "Le correctif de la recherche ne joue qu'un sens : de « Tous » vers les archivés. De « Archivés » vers les actifs, « Vivant » (client actif) répond « Aucun client ne correspond… ou touche « ＋ Nouveau client » » : l'invitation au doublon que le correctif a retirée de l'autre côté. Même fonction, même `trouve` : un compteur nActifsTrouves et un bouton « Voir les clients actifs » (qui garde la recherche) suffiraient. Capture recherche-archivés-vide-mac.png. Sonde : R2."
+  },
+  {
+   "titre": "Un client archivé qui correspond ET un client actif qui correspond : l'archivé est caché sans un mot",
+   "gravite": "faible, à trancher (doute)",
+   "constat": "« Rochefort » trouve le client actif ; l'archivé qui porte le même mot n'est signalé nulle part (la phrase n'existe que quand AUCUN actif ne correspond). C'est peut-être voulu (on a rangé ce client), mais c'est la même impression de « il a disparu ». Sonde : R1 (tombe)."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes2-adverse.js (neuve : H historique, V Devis IA, U Ctrl+Z regardé, R recherche, T numéros limites, W largeur du rangement, S les 54 / 33 sorties de la fiche énumérées dans le DOM)",
+   "resultat": "21 contrôles : 17 ✓ · 4 ✗ identiques sur mac, iphone nuit, petit nuit, android nuit, ipad, windows et iphone secrétaire nuit (H3, V1, R1, R2 tombent partout ; H1, H2, U0-U2, T1-T7, W1-W2, S0-S1 passent partout)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/mutations-clients-restes2-adverse.py (6 mutations sur copies de la page, RACINE=/tmp/…)",
+   "resultat": "1 (les deux gardes de sortie retirées) : S1 tombe · 2 (correctif de V) : V1 passe · 3 (saisie partielle +33 cassée) : T4 tombe · 4 (règle de l'archivé retirée au CSS) : W1 tombe à 320 · 5 (le client gardé toujours) : U2 tombe · 6 (history.go(1)) : H3 passe mais H2 tombe — ce n'est pas un correctif. Note : retirer UNE seule garde de sortie ne fait pas tomber S1, l'autre la masque (un lien du menu passe par le clic ET par l'adresse) ; les mutations T1/T2 du correcteur tiennent chaque porte à part."
+  },
+  {
+   "fichier": "clients-restes-recontrole.js · clients-restes.js · clients-liste.js · clients-recontrole-liste.js · clients-creer.js · clients-recontrole-fiche.js · clients-roles.js · clients-croise.js · clients-corriges.js · clients-recontrole-parcours.js · clients-recontrole-petits.js · clients-recontrole-creations.js · clients-restes-creations.js · clients-recontrole-droits.js",
+   "resultat": "tous à 0 ✗ (comptes dans « regles »)"
+  },
+  {
+   "fichier": "tests/test-835, 836, 837, 1008, 2994, verifier-syntaxe, compiler-pages, verif-secrets",
+   "resultat": "844 ✓, 307 ✓, 122 ✓, 54 ✓, 15 ✓, syntaxe, pages et secrets : code 0, 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Retirer le premier appareil d'un client : la fiche d'intervention et le compte rendu lisent appareils[0] — à soumettre à Justin (inchangé, non rejoué).",
+  "Suggestions d'adresse à 320 px : 3 propositions sur 5 visibles sous la barre d'actions — non rejoué (défilement au doigt à confirmer sur un appareil réel).",
+  "« Se déconnecter » avec une saisie non enregistrée dans Infos : le geste direct (clic programmatique) pose bien la fenêtre ; le clic réel de la sonde n'a pas trouvé le bouton ouvert sur mac (constat S2 non conclu) — à jouer sur appareil.",
+  "La saisie rapide d'une tâche (reconnaissance d'un client par son nom, ligne ~14923) rattache aussi un client archivé : peut-être voulu (une tâche « relancer Mme X » reste utile), à trancher."
+ ]
+}

@@ -21,7 +21,7 @@ lance(){ # lance <nom affiché> <script> [arguments…]
   echo "$(( $(date +%s)-t0 ))s code=$code $nom :: ${b:-aucun total}" | tee -a "$J"
   if [ $code -ne 0 ]; then MAL=1; echo "$s" | grep '✗' | grep -vE '^[[:space:]]*==' | head -3 | cut -c1-220 | tee -a "$J"; fi; }
 S=scratchpad/proto-final/sondes
-for s in table menus cases-voir formes lecture-seule partiel fiche restauration soi-meme acteur fabrication-css gestes-reels gestes-garde specifiques ponts bureau-toutes-cases terrain compta; do
+for s in table menus cases-voir formes lecture-seule partiel fiche restauration soi-meme acteur fabrication-css gestes-reels gestes-garde specifiques ponts bureau-toutes-cases terrain compta restes5-verbes; do
   [ -f "$S/droits-$s.js" ] || { echo "0s code=2 droits-$s :: ABSENTE" | tee -a "$J"; MAL=1; continue; }
   lance "droits-$s" $S/droits-$s.js
 done

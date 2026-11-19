@@ -75,9 +75,11 @@ button{cursor:pointer}
 .menu .pied{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:10px;flex:none}
 .menu .m-liste{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px;overscroll-behavior:contain}
 /* un voile dit qu'il reste des lignes au-dessus ou en dessous (la colonne défile sans barre visible sur Mac) : posé par menuRepere() */
-.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
-.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 34px);mask-image:linear-gradient(transparent,#000 34px)}
-.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent)}
+.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
+.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 12px);mask-image:linear-gradient(transparent,#000 12px)}
+.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent)}   /* fondu de 12 px (34 avant) : une entrée dont la rangée est entièrement visible n'est plus grisée, seul ce qui se coupe s'estompe (regard gérant F, retouche 6) */
+.menu .m-liste.m-plus-haut.m-pile-haut{-webkit-mask-image:none;mask-image:none}
+.menu .m-liste.m-plus-haut.m-plus-bas.m-pile-haut{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
 /* un écran bas (portable 1366×768, 1280×720) : la tête de la colonne se tasse pour laisser des lignes au menu. Le nom de la personne reste
    dans le pied (« Se déconnecter »), donc la carte « moi » n'est plus nécessaire ; à la souris, une ligne n'a pas besoin de 44 px */
 @media (min-width:761px) and (max-height:820px){
@@ -308,9 +310,9 @@ body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pou
 /* un total à sept chiffres (« 1 999 999,98 € ») ne tient pas dans une carte de téléphone à 22 px : il rapetisse avec l'écran au lieu d'être coupé (restes contrats, tour 4) */
 .kpis .kpi.kpi-long b{overflow-wrap:anywhere}
 @media (max-width:760px){.kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}}
-/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 840 px (tour 5) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
+/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 920 px (tour 6 : la carte de 864 à 918 px, fenêtre de 1 176 à 1 230, faisait trois lignes de « Cabinet dentaire Martin » ; tour 5 : 840 px) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
 .ctr-liste{container:ctrl / inline-size}
-@container ctrl (max-width:840px){
+@container ctrl (max-width:920px){
   table.l.ctr-tab{min-width:0!important}
   .ctr-tab th:nth-child(n+3),.ctr-tab td:nth-child(n+3){display:none}
   .ctr-tab .ctr-m{display:block;margin-top:3px;line-height:1.5}
@@ -1082,6 +1084,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .rg-doc .d3-plan{aspect-ratio:4/3;background:#f3f5f9;border-color:#d5dbe7;margin-top:4px}
 .rg-doc .d3-z{background:#fff;border-color:#cbd3e2}.rg-doc .d3-z i{color:#4a5672}
 .rg-doc .d3-box{cursor:default}
+@media (max-width:760px){.rg-doc .d3-plan{aspect-ratio:3/4}}   /* le plan de l'aperçu reprend le 3/4 de la page sur téléphone : en 4/3 réduit à ~280 px les pastilles (28 px) tombaient sur « Cuisine », « Réserve », « Cour » (regard gérant F, retouche 1) */
 .rg-doc .d3-leg{color:#4a5672}
 @media (max-width:760px){
   .rg-th{display:none}
@@ -1246,6 +1249,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   .dx-barre .dx-tot b{font-size:18px;font-weight:750}
   .dx-barre .dx-tot small{color:var(--doux);font-size:12.5px;line-height:1.25}
   .dx-barre .btn{flex:none;min-height:48px;max-width:46%;white-space:normal;line-height:1.15;padding:0 16px}
+  @media (max-width:380px){.dx-barre{gap:8px;padding:10px}.dx-barre .btn{padding:0 12px;max-width:54%}}   /* à 320 et 360 px « Créer le devis » passait sur deux lignes ; le prix garde sa place (regard gérant F, retouche 3) */
   .dx-v .xy-r .dx-creer-carte{display:none}
 }
 
@@ -1708,8 +1712,8 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 @media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
 .d3-info{font-size:14px}.d3-cli{flex-wrap:wrap;align-self:flex-start}
 .d3-cli button{flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}   /* un nom de site de 60 signes sortait de la pastille et se coupait à droite à 320 px (regard gérant F) */
-.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}
-.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:34px;height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
+.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}   /* les colonnes se partagent la carte : trois barres ne restent plus serrées à gauche d'une carte de 1 100 px (regard gérant F, retouche 4) */
+.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1 1 64px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:clamp(34px,45%,72px);height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
 .ve-u[data-d3^="voir|"]>.st{flex:none;min-width:88px;justify-content:center}   /* « Forte » (60 px) et « Moyenne » (80 px) décalaient le titre de chaque passage (regard gérant F) */
 .d3-v{background:var(--vert)}.d3-o{background:var(--orange)}.d3-r{background:var(--rouge)}.d3-g{background:var(--doux)}
 .d3-reco{align-items:flex-start;padding:8px 0;border-top:1px solid var(--trait)}.d3-reco:first-of-type{border-top:0}.d3-reco input{margin-top:2px;flex:none}
@@ -1732,7 +1736,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
 @media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:minmax(0,1fr)}.xy-r{position:static}}   /* « 1fr » = minmax(auto,1fr) : le relevé en cours, dont un bouton ne se coupait pas, poussait toute la carte 13 px hors d'un écran de 360 (regard gérant F) */
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
-  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
+  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{flex-basis:52px;min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
 .t-ctx [data-taller]{font-weight:650}
 /* ══ Comptabilité (7 novembre 2026) : une catégorie, six rubriques ══ */
 .cx-nav{display:flex;gap:4px;padding:4px;border-radius:15px;background:var(--surf-in);border:1px solid var(--trait);overflow-x:auto;scrollbar-width:none}
@@ -2651,6 +2655,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
   #contenu .tete .actions:has(> .ctr-choix){max-width:none}
 }
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.doc-barre+.actions{justify-content:center}   /* « Fermer » sous la barre de trois boutons centrés : centré comme elle, pas seul à gauche (regard gérant F, retouche 2) */
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
 #ml-m{min-height:200px;font:inherit;font-size:16px;line-height:1.5}   /* 16 px : sous cette taille un iPhone zoome toute la page au toucher (devis-atelier-12) */
@@ -3759,6 +3764,7 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+@media (max-width:420px){.deux-champs.ctr-fact{grid-template-columns:minmax(0,1fr)}}   /* Composer un contrat, au téléphone : à 360 px « à chaque visite » était coupé (« à chaque vis ») et la date passait sur trois lignes dans une demi-colonne ; les deux champs se lisent chacun sur leur ligne (restes contrats, tour 6, capture Android) */
 /* regard technicien b (320 px) : les deux champs du plein sont empilés, et la ligne « toutes taxes comprises » collait au libellé du champ suivant (on la lisait comme son titre) : de l'air entre les deux champs */
 @media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}
 
@@ -3950,7 +3956,7 @@ button.tt-stb{border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:65
 html .mc-etat{font-size:16px;line-height:1.35;overflow-wrap:anywhere}html .mc-etat.ve-ot{color:var(--orange)}html .mc-etat.ve-rt{color:var(--rouge)}html .mc-etat.ve-vt{color:var(--vert)}
 html #mc-vehicule:empty{display:none}
 /* écran de 320 × 568 (restes technicien 2, technicien-13) : la carte « Le camion » (100 px) pousse « Il manque à bord » sous la barre d'onglets — aucune pièce visible sans défiler. Sur un écran COURT et étroit, la liste de ce qui manque passe d'abord, la carte du véhicule juste dessous (un toucher de défilement de plus pour noter un plein) ; 360 × 740 et plus gardent l'ordre d'avant, qui y tient. Les frères qui suivent la carte gardent leur place derrière elle. */
-@media (max-width:340px) and (max-height:600px){html .mc-page>#mc-vehicule{order:1}html .mc-page>#mc-vehicule ~ *{order:2}html .mc-page>#mc-vehicule + *{order:0}html .mc-tete-c{flex-wrap:nowrap;padding-top:2px}html .mc-tete-c h3{font-size:15px;min-width:0}html .mc-tete-c .btn{padding-left:10px;padding-right:10px;font-size:13px;white-space:nowrap;flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l{flex-wrap:nowrap;padding-top:8px;padding-bottom:8px;min-height:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.btn{flex:0 0 auto}html .mc-page{gap:6px}}
+@media (max-width:340px) and (max-height:600px){html .mc-page>#mc-vehicule{order:1}html .mc-page>#mc-vehicule ~ *{order:2}html .mc-page>#mc-vehicule + *{order:0}html .mc-tete-c{flex-wrap:nowrap;padding-top:2px}html .mc-tete-c h3{font-size:15px;min-width:0}html .mc-tete-c .btn{padding-left:10px;padding-right:10px;font-size:13px;white-space:nowrap;flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l{flex-wrap:nowrap;padding-top:8px;padding-bottom:8px;min-height:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.fo-n{flex:1 1 0;min-width:0}html .mc-page>#mc-vehicule + .mc-liste .mc-l>.btn{flex:0 0 auto}html .mc-page>#mc-vehicule + .mc-liste .mc-l:has(.mc-dr){flex-wrap:wrap}html .mc-page{gap:6px}}   /* C1 : une rangée « envoyée » porte son état sur sa propre ligne (.mc-dr 100 %) : en nowrap, le nom tombait à 0 px, une lettre par ligne */
 .vh-fcorps{container:vhf/inline-size;display:flex;flex-direction:column;gap:2px}
 .vh-bloc{display:flex;flex-direction:column;gap:6px;margin-top:8px}.vh-bloc>.tt-h3{margin:10px 0 0}
 .vh-ech{align-items:flex-start;flex-wrap:wrap;padding:10px 4px}.vh-ech>.ve-pt{margin-top:7px}.vh-ech>.fo-n{flex:1 1 120px;min-width:0;gap:2px}.vh-ech .btn{flex:none;min-height:44px;white-space:nowrap}
@@ -3978,7 +3984,7 @@ html #mc-vehicule:empty{display:none}
 .vh-choix.vh-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vh-choix.vh-2 .puce-c{border-radius:14px;padding:8px 10px}
 .vh-pied{margin-top:2px}.vh-pied .btn.large{flex:1 1 100%}
 #calque .panneau{--pan-bas:20px}#calque .panneau.fenetre{--pan-bas:28px}@media (max-width:760px){#calque .panneau,#calque .panneau.fenetre{--pan-bas:calc(22px + env(safe-area-inset-bottom,0px))}}   /* le rembourrage bas de la feuille, dit UNE fois : le pied collant s'y enfonce (regard technicien b : « Aujourd'hui · Un autre jour » défilait SOUS le bouton « Enregistrer le plein », dans la bande de l'encoche) */
-#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
+#calque .panneau>.vh-pied{position:sticky;bottom:calc(-1px - var(--pan-bas));z-index:2;background:var(--feuille);padding:10px 0 var(--pan-bas);margin-bottom:calc(0px - var(--pan-bas));box-shadow:0 -10px 12px -8px var(--feuille)}#calque .panneau>.vh-pied:not(:last-child){margin-bottom:0}   /* C2 : la marge négative tire le voisin qui SUIT le pied ; quand un lien suit (« C'est déjà fait ? »), elle le coupait sous le pied collant */   /* le gros bouton d'une feuille haute reste sous le pouce, sans défiler */
 .vh-ret{align-self:flex-start;min-height:44px}
 .deux-champs[hidden]{display:none}   /* « hidden » perdait contre display:grid : la paire de champs d'un détail replié restait ouverte */
 @media (max-width:760px){#calque .panneau:has(>.vh-pied){max-height:90vh;max-height:90dvh}}   /* la feuille qui monte ne dépasse pas 90 % de l'écran (le reste du voile reste visible : on sait où l'on est) */
@@ -5942,8 +5948,28 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
    et la facture faite à la main la lisent ici (17/11, compta-ventes : la facture à la main proposait 20 % à un particulier et le disait « client professionnel ») */
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
-const ctrCentimes = x => { const t = String(x == null ? '' : x).trim(); if (/^\d+(\.\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2'); return Math.round(Number(t) * 100) / 100; };   // le prix qu'on RANGE se lit comme l'aperçu l'écrit : « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999… et rangeait 1,00 € ; la forme à exposant (« 1e5 ») garde l'ancien arrondi
-const ctrPrixApercu = x => { const c = ctrCentimes(x); return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait (« 1e999 » donnait « ∞ € HT », « -5 » donnait « −5,00 € », 1 234 567 890 123 s'écrivait sans prévenir) s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
+/* le prix d'un contrat se lit par la RÈGLE COMMUNE des montants (cxNum / cxMontantRefus : Mes frais, achats) : « 12 € », « 12€ », « 1.000,50 » se lisent, « 0x10 » se refuse, et chaque refus dit sa vraie raison (restes contrats, tour 6). Le champ garde le TEXTE tapé, jamais une version nettoyée */
+const ctrPrixTexte = x => String(x == null ? '' : x).trim().replace(/\s*(€|euros?|eur)\s*$/i, '').trim();
+const ctrPrixClair = t => { const u = t.replace(/[\s\u00a0\u202f']/g, ''); return /^[1-9]\d{0,2}[.,]\d{3}$/.test(u) ? u.replace(',', '.') : null; };   // « 1.005 », « 12,345 » : lus en décimal, arrondis au centime (acquis des tours 3 à 5 : 1.005 → 1,01 €) — la phrase « pas clair » des autres montants n'est pas reprise ici
+const ctrCentimes = x => {
+  if (typeof x === 'number') return isFinite(x) ? Math.round(x * 100) / 100 : NaN;
+  const t = ctrPrixTexte(x); if (!t) return NaN;
+  if (t.replace(/\D/g, '').length >= 20) return Infinity;   // 20 chiffres et plus : « trop grand », jamais un nombre à 1e20 qui s'affiche en notation scientifique
+  const u = ctrPrixClair(t), n = u != null ? u : cxNum(t); if (!isFinite(n)) return NaN;
+  const e = String(n); return /^\d+(\.\d+)?$/.test(e) ? Number(Math.round(Number(e + 'e2')) + 'e-2') : Math.round(n * 100) / 100;   // « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999…
+};
+/* LA phrase du prix, '' quand il est bon : la vraie raison du refus (vide, illisible, trop petit, trop grand) */
+const ctrPrixRefus = x => {
+  const t = ctrPrixTexte(x); if (!t) return 'Indique le prix hors taxes du contrat (par an).';
+  if (t.replace(/\D/g, '').length >= 20) return 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.';
+  { const r = cxMontantRefus(t); if (r && !/^« /.test(r) && !/^Un montant a au plus/.test(r)) return r; }   // la phrase des montants, sauf deux : « 1.005 » (pas clair) et « 10.0049 » (plus de deux décimales) se lisent et s'arrondissent au centime ici — acquis des tours 3 à 5
+  const c = ctrCentimes(t);
+  if (!isFinite(c)) return 'Ce prix ne se lit pas : écris-le avec des chiffres, par exemple 480 ou 1 234,56.';
+  if (c > CTR_PRIX_MAX) return 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.';
+  if (c < 1) return 'Ce prix est trop bas : au moins 1 € par an.';
+  return '';
+};
+const ctrPrixApercu = x => { const c = ctrCentimes(x); return !ctrPrixRefus(x) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
 const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
@@ -5983,8 +6009,8 @@ function vueContratNouveau(){
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || B.cli === k).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
-    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > CTR_PRIX_MAX ? 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.' : ctrPrixApercu(B.prix) ? 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes (au moins 1 €).'}</span></label></div>
-    <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
+    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${esc(typeof B.prix === 'number' ? String(B.prix).replace('.', ',') : String(B.prix == null ? '' : B.prix))}"><span class="faible mini">${esc(ctrPrixRefus(B.prix)) || 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)'}</span></label></div>
+    <div class="deux-champs ctr-fact"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
       <label class="case"><input type="checkbox" data-bc="delai" ${B.delai?'checked':''}>${esc(metiersCtr(B.modele).delaiLib)}</label>
@@ -9071,10 +9097,14 @@ function placerPops(){
 }
 function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
   if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+/* un lien d'adresse touché (menu latéral, lien #…) change l'adresse SANS passer par aller() : cpProg est vide comme pour un retour ; le clic, lui, ne se confond pas avec un retour (qui n'en est pas un) */
+var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a[href^="#"]')) navClic = Date.now(); }, true);
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
   /* l'adresse a changé sans passer par aller() (retour du navigateur ou du téléphone, adresse tapée) alors que « Infos » porte une saisie non enregistrée : on remet l'adresse de la fiche, puis on demande (clients-15, recontrôle) */
   if (route === 'client' && h !== ici && cliInfosRetenir(() => aller(h), true)) { histRemplacer('#' + ici); return; }
+  /* un changement d'adresse que ni aller() ni la barre n'ont demandé (cpProg vide) est le retour ou l'avance du SYSTÈME : seul celui-là garde la vue de Temps de travail (ttVue) ; un chemin par le menu efface le drapeau « Voir la paie » */
+  try { TT.sys = cpProg === null && Date.now() - navClic > 700; if (!TT.sys) TT.viaPaie = TT.viaPaie === 'neuf'; } catch (e) {}   /* TT n'existe pas encore au premier chargement */
   calApresNavigation();
   // le chemin parcouru, tenu par la page : l'historique du navigateur ne répond pas dans toutes les fenêtres (artefact, iframe)
   if (enRetour) enRetour = false; else if (ici !== h && lireHash.deja) histo.push(ici);
@@ -9323,7 +9353,7 @@ const ACTIONS = {
       journalAjout('marc', 'equipe', 'a prévu un remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(aRendre)} déjà reçus à rendre à ${nom} (facture annulée par l’avoir ${num})` }); }
     fermerPanneau(); rendre(); toast('Avoir ' + num + ' créé. ' + (f.st === 'annulee' ? 'La facture ' + f.num + ' est annulée : plus rien à recevoir' + (aRendre ? `, mais ${eur(aRendre)} sont à rembourser (tâche créée)` : '') + (nFermees ? ' · ' + (nFermees > 1 ? nFermees + ' tâches de relance terminées' : 'la tâche de relance est terminée') : '') + '.' : 'La facture d’origine reste telle quelle, comme la loi l’exige.')); },
   /* la tâche « Rembourser » a été supprimée à la main : la fiche ne reste pas bloquée sur « à rembourser » sans geste — ce bouton l'écrit comme rendu (une tâche faite, avec sa ligne à l'Historique) */
-  rembourseNote(b){ const f = FACTURES.find(x => x.id === b.dataset.id); if (!f || f.st !== 'annulee' || !(f.recu > 0) || TACHES.some(x => x.cle === 'remb-' + f.id)) return;
+  rembourseNote(b){ if (!peut('ventes', 'm')) return droitsRefus('ventes', 'm', 'action', 'rembourseNote'); const f = FACTURES.find(x => x.id === b.dataset.id); if (!f || f.st !== 'annulee' || !(f.recu > 0) || TACHES.some(x => x.cle === 'remb-' + f.id)) return;
     const av = FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num), t = rembTache(f, f.recu, av ? av.num : 'd’annulation');
     t.fait = { par:tkxMoi(), quand:'31/10 · ' + hm(MAINT_MIN), quoi:'remboursement noté sur la facture', auto:false };
     journalAjout('marc', 'equipe', 'a noté le remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(f.recu)} rendus à ${CLIENTS[f.cli].nom}` });
@@ -9337,8 +9367,7 @@ const ACTIONS = {
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
   creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
-    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(ctrCentimes(B.prix) >= 1)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
-    if (ctrCentimes(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value; { const refus = ctrPrixRefus(B.prix); if (refus) { toast(refus); if (pf) pf.focus(); return; } }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
     cfCtrT = Date.now();
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:ctrCentimes(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
@@ -9564,7 +9593,7 @@ document.addEventListener('change', ev => {
   else if (t.dataset.posee) { const F = fiche(t.dataset.id), i = INTS.find(o => o.id === t.dataset.id), p = (i.prevues || []).find(x => x.nom === t.dataset.posee); if (t.checked) F.pieces.push({ nom:p.nom, q:String(p.q), pu: prixCatalogue(p.nom) }); else F.pieces = F.pieces.filter(x => x.nom !== p.nom); rendre(); }
   else if (t.dataset.absent) { fiche(t.dataset.absent).absent = t.checked; rendre(); }
   else if (t.dataset.suite) { fiche(t.dataset.id).suite[t.dataset.suite] = t.checked; }
-  else if (t.dataset.b) { if (t.dataset.b === 'cli') cfContratClient(t.value); const _mAv = BROUILLON.modele; BROUILLON[t.dataset.b] = t.dataset.b === 'prix' ? t.value.replace(/\s/g,'').replace(',', '.') : t.value; if (t.dataset.b === 'modele') { if (!MODELES[_mAv] || !(Number(BROUILLON.prix) > 0) || Number(BROUILLON.prix) === MODELES[_mAv].prix[1]) BROUILLON.prix = MODELES[t.value].prix[1]; else toast(`Le modèle change, mais ton prix reste à ${eur(Number(BROUILLON.prix))}.`); if (t.value !== 'clim' && BROUILLON.lieu === '2 appareils Daikin (salle et toit)') BROUILLON.lieu = ''; } rendreApresClic(); }
+  else if (t.dataset.b) { if (t.dataset.b === 'cli') cfContratClient(t.value); const _mAv = BROUILLON.modele; BROUILLON[t.dataset.b] = t.value; if (t.dataset.b === 'modele') { if (!MODELES[_mAv] || !(ctrPrixApercu(BROUILLON.prix) > 0) || ctrPrixApercu(BROUILLON.prix) === MODELES[_mAv].prix[1]) BROUILLON.prix = MODELES[t.value].prix[1]; else toast(`Le modèle change, mais ton prix reste à ${eur(ctrPrixApercu(BROUILLON.prix))}.`); if (t.value !== 'clim' && BROUILLON.lieu === '2 appareils Daikin (salle et toit)') BROUILLON.lieu = ''; } rendreApresClic(); }
   else if (t.dataset.bc) { BROUILLON[t.dataset.bc] = t.checked; rendre(); }
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
@@ -12513,12 +12542,14 @@ function rlLignesDe(p, coque){
    l = verbes qui ne font que regarder ; d = classe de tout le reste de la famille (sans d : les motifs de lecture GESTE_LECTURE, puis la forme d'une écriture, puis « modifier » — fermé par défaut).
    Une famille absente de la table prend la catégorie de l'écran ouvert et n'est refusée que si son verbe a la forme d'une écriture (GESTE_ECRITURE). */
 const GESTES = {
-  ac:{ k:'achats', m:'transfert commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
-  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes finContratDemande@ventes finContratOk@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes clientEnreg@crm clientInfosSuite@crm clientAppForm@crm clientAppEnreg@crm clientAppSuppr@crm clientAppSupprOk@crm terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
+  ac:{ k:'achats', m:'transfert transfertok commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
+  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes finContratDemande@ventes finContratOk@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes rembourseNote@ventes partielOk@ventes clientEnreg@crm clientInfosSuite@crm clientAppForm@crm clientAppEnreg@crm clientAppSuppr@crm clientAppSupprOk@crm terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
     c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes ligneSup@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes renouvelerContrat@ventes renouvelerOk@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm clientSeul@crm clientSeulType@crm clientSeulOk@crm',
     s:'noteSuppr@inter photoSuppr@inter pieceSuppr@inter sigEfface@inter sigCtrEfface@ventes clientArchiverDemande@crm clientArchiverOk@crm clientRestaurer@crm',
     l:'vueEnregistrer vueEnregistrerOk info copierSms apercuEnvoi pdfFacture commentAuto lireContrat ctrLire bilanPdf cPlusTot cPlusTard cFermer achatsAide' },
-  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach fd' },
+  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod trfannul budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle reglages kmtarif paie precrep ndate grosnon dblnon goach fd' },
+  /* quatre familles dont le verbe a la FORME d'une écriture sans en être une : « Enregistrer sur cet appareil » (un téléchargement), « Voir les clients archivés » (un filtre), « Confirmer sur mon téléphone » (la vérification d'identité qui ouvre une vue sensible : elle n'écrit rien dans les données), et data-v, la valeur qu'un data-action porte avec lui (le geste est celui de l'action) */
+  sortie:{ d:'l' }, rangc:{ d:'l' }, secv:{ d:'l' }, v:{ d:'l' },
   axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
   rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
   /* administration : l'entreprise et l'équipe */
@@ -12570,10 +12601,10 @@ const GESTES = {
   fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
   ms:{ k:'stock', m:'rok cok toutacc acc ref rmot ajouteq gajoute gmoins gplus gret grecevoir gchinter gfacture gechange genvoyer gpour cmoins cplus ctout fcmd fseuil fseuilx fseuilo fprix fprixx fprixo fchez fchange fmanque', l:'envois t habituels ou maj plus onglet filtrer pk fraz q gorig ginter cpt cgrp fusage fq fhisto' },
   msf:{ k:'stock', d:'m' }, msg:{ k:'stock', m:'ticket vers', l:'de qi collegue br texte lieu montant' }, msr:{ k:'stock', d:'m' },
-  pdx:{ k:'stock', m:'decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
+  pdx:{ k:'stock', m:'piece decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
   plein:{ d:'l' }, pr:{ k:'stock', c:'nouveau', m:'modif garder', s:'retirer retirerok', l:'vue fiche rangement pack cat ac alerte sugg raz' },
   sk:{ k:'stock', m:'transfert inv invok fok reassok val ref br', l:'onglet lx lieu' }, skadd:{ k:'stock', d:'m' }, skf:{ k:'stock', m:'vers pourQui motif', l:'de inter' }, skmvq:{ k:'stock', d:'l' }, skq:{ k:'stock', d:'l' },
-  sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' }, sxdadd:{ k:'stock', d:'m' }, sxdcop:{ k:'stock', d:'m' },
+  sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' },
   /* temps de travail et véhicules */
   champ:{ k:'inter', d:'m' },   /* les champs de la fiche d'intervention (ce que j'ai trouvé, le compte rendu, l'arrivée, le départ) */
   pt:{ k:'temps', c:'ajout', m:'closok', s:'clore', l:'export pers' },
@@ -12626,7 +12657,7 @@ const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[dr
 /* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
 const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
 /* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
-const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+const TERRAIN_BUREAU = { ac:'*', axa:new Set('trfannul budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
 const gesteForme = (g, fam, verbe) => {
   if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
   const B = TERRAIN_BUREAU[fam];
@@ -12907,7 +12938,10 @@ function menu(base){ return rlMenu(base, true); }
    qu'on venait de toucher sortait de la vue (sur un portable on ne voit que 8 lignes sur 19). On relève le défilement AVANT, on le remet APRÈS
    la dernière écriture du menu, puis on rentre la ligne courante dans la colonne (à la main : scrollIntoView ferait défiler la page aussi). */
 function menuRepere(l){ l = l || document.querySelector('#menu .m-liste'); if (!l) return; const reste = l.scrollHeight - l.clientHeight;
-  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); }
+  /* en haut, une rangée qui tombe pile contre le bord n'est pas coupée : elle reste lisible, le fondu ne la grise pas (m-pile-haut le retire ; le repère « il en reste » reste posé, c'est lui que les autres contrôles lisent) — regard gérant F, retouche 6 */
+  const m = l.getBoundingClientRect(); let pileHaut = false;
+  for (const e of l.children) { if (Math.abs(e.getBoundingClientRect().top - m.top) < 1.5) { pileHaut = true; break; } }
+  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); l.classList.toggle('m-pile-haut', pileHaut); }
 function menuGarderPlace(haut){ const l = document.querySelector('#menu .m-liste'); if (!l) return; l.scrollTop = haut;
   const a = l.querySelector('a.on'); if (a) { const r = a.getBoundingClientRect(), m = l.getBoundingClientRect(); if (r.top < m.top) l.scrollTop -= m.top - r.top + 8; else if (r.bottom > m.bottom) l.scrollTop += r.bottom - m.bottom + 8; }
   /* et le GROUPE de la ligne courante se montre en entier quand il tient : « Stock » seul au bas de la colonne cachait « Dépôts et camions » et « Fournisseurs » sous le pied (iPad, 1180 px) */
@@ -13721,7 +13755,7 @@ function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
 }
-const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') { RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; } } else aller('comptabilite'); };
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') { RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = 'neuf'; } } else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -15546,7 +15580,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-pdx]'); if (!b) return;
   const [a, x, y] = b.dataset.pdx.split('|');
   if (a === 'achat') return pdxAller(x, y);
-  if (a === 'piece') { const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
+  if (a === 'piece') { if (!peut('stock', 'm')) return droitsRefus('stock', 'm', 'pdx', 'piece'); const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
   if (a === 'decaler') return pdxDecaler(x);
   if (a === 'garder') { PDX.garde.add(x); rendre(); return toast('Gardé tel quel : la pastille « Pièces » reste sur l’intervention.'); }
   if (a === 'pm') return pdxPmOuvrir(x);
@@ -18374,8 +18408,8 @@ function ttMoisPers(k){
 /* ── le cadre ── */
 function ttVue(){
   /* le retour du SYSTÈME (balayage, bouton Retour d'Android, history.back) ramène de la Paie sans passer par la barre « ‹ Revenir » : on a quitté Temps de travail par « Voir la paie », on le retrouve tel qu'on l'a laissé */
-  if (TT.avant !== 'pointage' && !TT.garder && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
-  TT.garder = false; TT.viaPaie = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
+  if (TT.avant !== 'pointage' && !TT.garder && !(TT.avant === 'comptabilite' && TT.viaPaie && TT.sys)) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }   /* le drapeau ne vaut que pour un retour du SYSTÈME (TT.sys, posé par lireHash) : « Temps de travail » pris dans le menu ouvre « Aujourd'hui » */
+  TT.garder = false; if (!TT.sys) TT.viaPaie = false;   /* le drapeau SURVIT à un retour : retour, avance, retour rouvre la même vue ; il tombe dès qu'on va ailleurs (rendre, plus bas) */ if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
   Object.keys(PT_VALIDE).forEach(x => { if (PT_VALIDE[x]) TT.vus[x] = true; });   // de quoi dire « à revalider » quand une heure bouge après la validation
   const E = ttEtats(), R = ttAReglerLignes(), n = e => E.filter(e).length, travail = n(e => e.etat === 'travail' || e.etat === 'pause'), attendus = n(e => e.etat === 'attendu'), abs = E.filter(e => e.etat === 'absent');
   const kpi = (cle, nb, lib) => `<button type="button" class="kpi" data-tt="filtre|${cle}" aria-pressed="${TT.filtre === cle && ptOnglet === 'auj'}"><b>${nb}</b><span>${lib}</span></button>`;
@@ -18387,7 +18421,7 @@ function ttVue(){
     <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
     ${corps}`;
 }
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; if (route !== 'comptabilite') TT.viaPaie = false; return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; if (route !== 'comptabilite' && route !== 'pointage') TT.viaPaie = false; TT.sys = false; return v; }; })();
 
 /* ── les feuilles ── */
 /* écrire une heure est une case à part (« Corriger les pointages ») : lue à la porte de CHAQUE fonction qui écrit, pas seulement par la garde des clics */
@@ -19022,7 +19056,7 @@ function vxPleinOk(force){
 function vxKmPanel(vid, from){
   const v = vehDe(vid); if (!v) return; const dr = v.releves[v.releves.length - 1];
   ouvrirPanneau(`${vhEnt(v)}<h2>Relever le compteur</h2>
-    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
+    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="ex. ${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
     <span class="gris petit">Dernier relevé : ${vxKm(v.km)}${dr ? ', le ' + esc(vhJM(dr.d)) : ''}. Les échéances au kilomètre se recalculent.</span><div id="vx-al"></div>
     ${vhGros(`kmok|${v.id}|${from || ''}`, 'Enregistrer', vhRet(from, v.id))}`);
 }
@@ -19853,7 +19887,8 @@ mlCreneaux = function(n = 3){
 const mbxPeutTenir = () => peut('planif', 'm');
 function mbxOptions(m, prop){ if (!prop || prop.id !== m.id || !mbxPeutTenir()) return; mbxLiberer(m.id);
   prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + mailNom(m), option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
-function mbxLiberer(id){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) BUREAU.splice(k, 1); }
+/* retirer une option est une écriture au planning, comme en poser une : sans la case Planning (modifier) on ne retire RIEN — les options qu'un collègue a tenues restent, et s'éteignent d'elles-mêmes à leur échéance (mbxPurge). Rend le nombre d'options retirées (restes entreprise, tour 5). */
+function mbxLiberer(id){ let n = 0; if (!mbxPeutTenir()) return n; for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) { BUREAU.splice(k, 1); n++; } return n; }
 function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optExp < AUJ) BUREAU.splice(k, 1); }
 (() => { const c0 = carteBur; carteBur = function(b){ let h = c0.apply(this, arguments);
   if (b.option) h = h.replace('class="pc bur ', 'class="pc bur mbx-opt ').replace('Créneau bloqué', 'Option · libre sous 48 h'); return h; }; })();
@@ -20234,9 +20269,10 @@ document.addEventListener('click', ev => {
   if (a === 'regle') { if (!MBX.regles.some(r => r.mail === mailAdr(m).toLowerCase())) MBX.regles.push({ mail:mailAdr(m).toLowerCase(), nom:m.de.nom }); let n = 0; MAILS.forEach(o => { if (o.dossier === 'recu' && mailAdr(o).toLowerCase() === mailAdr(m).toLowerCase() && !o.arch) { o.info = true; o.arch = true; o.regleAuto = true; n++; } }); mlSel = null; rafraichir();
     return toast(`Règle créée : les e-mails de ${esc(m.de.nom)} arrivent archivés, en Information. ${mbxNb(n, 'message rangé', 'messages rangés')} tout de suite.`, { lib:'Annuler', fn:() => { MBX.regles = MBX.regles.filter(r => r.mail !== mailAdr(m).toLowerCase()); MAILS.forEach(o => { if (o.regleAuto && mailAdr(o).toLowerCase() === mailAdr(m).toLowerCase()) { o.arch = false; o.regleAuto = false; } }); rendre(); } }); }
   if (a === 'confcren') { const c = m.cren.choix; let cl = R.cli; if (!cl) { cl = 'c' + Date.now().toString(36); CLIENTS[cl] = cliNet({ nom:mailNom(m), type:'part', contact:mailNom(m), tel:R.tel || '', mail:mailAdr(m), adr:R.ville ? R.ville + ' (adresse à compléter)' : '', acces:'', depuis:'2026', appareils:[] }); clientFinir(cl); }
-    mbxLiberer(m.cren.orig); fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return;
+    const nLib = mbxLiberer(m.cren.orig), nResteOpt = BUREAU.filter(b => b.option && b.optMail === m.cren.orig).length; fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return;
     const o = mlDe(m.cren.orig) || m; CREA.type = 'Dépannage'; CREA.titre = libelleSur(o.objet.replace(/^re\s*:\s*/i, ''), 120); CREA.titreTouche = true; CREA.motif = o.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); CREA.dur = 120; const bb = brouillon(); if (bb) { bb.dur = 120; bb.titre = CREA.titre; } rendreCreation(); CREA.mail = m.id;
-    return toast('Intervention préremplie au créneau choisi (' + esc(jlong(c.d)) + ' à ' + mlH(c.h) + ') : les deux autres options sont libérées. Vérifie et crée.'); }
+    /* la phrase dit ce qui s'est PASSÉ : des options retirées, des options laissées à un collègue (sans la case Planning on n'y touche pas), ou rien du tout quand aucune n'avait été tenue */
+    return toast('Intervention préremplie au créneau choisi (' + esc(jlong(c.d)) + ' à ' + mlH(c.h) + ')' + (nLib ? ' : les autres options sont libérées. ' : nResteOpt ? ' : les options tenues par un collègue restent au planning jusqu’à leur échéance. ' : '. ') + 'Vérifie et crée.'); }
   if (a === 'lire') { ouvrirPanneau(`<span class="surtitre">E-mail confié</span><h2>${esc(m.objet)}</h2>` + mbxBlocConfie(m, acteur())); return; }
   if (a === 'confier') return mbxPanConfier(m);
   if (a === 'confok') return mbxConfier(m, y);
@@ -20872,7 +20908,7 @@ document.addEventListener('click', ev => {
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x);
   const prendre = () => { ev.stopImmediatePropagation(); ev.preventDefault(); };
   const refuse = () => { prendre(); toast('Tu vois les demandes pour préparer les commandes : c’est le gérant qui les décide.'); };
-  if (['transfert', 'commande', 'magasin', 'refuser', 'refok'].includes(a) && d) { if (axLect()) return refuse(); if (d.etat !== 'attente') { prendre(); fermerPanneau(); rendre(); return toast('Cette demande est déjà décidée.'); } }
+  if (['transfert', 'transfertok', 'commande', 'magasin', 'refuser', 'refok'].includes(a) && d) { if (axLect()) return refuse(); if (d.etat !== 'attente') { prendre(); fermerPanneau(); rendre(); return toast('Cette demande est déjà décidée.'); } }
   if (a === 'magasin' && d) { prendre(); return axMagasin(d); }
   if (a === 'refuser' && d) { prendre(); return axRefusDem(d); }
   if (a === 'refok' && d) { prendre(); return axRefuserDem(d); }
@@ -20888,7 +20924,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest && ev.target.closest('[data-axa]'); if (!b) return;
   const [a, x, y] = b.dataset.axa.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x);
   const g = i => document.getElementById(i);
-  if (a === 'trfannul') { const u = AX.annul; if (!u) return; AX.annul = null; const tard = u.sig && u.sig !== sxSig(); sxAnnule(u.photo, u.lib, u.sig);
+  if (a === 'trfannul') { if (!peut('achats', 'm')) return droitsRefus('achats', 'm', 'axa', 'trfannul'); const u = AX.annul; if (!u) return; AX.annul = null; const tard = u.sig && u.sig !== sxSig(); sxAnnule(u.photo, u.lib, u.sig);
     /* sxAnnule restaure les données ; la fermeture de la fenêtre et le message qui suivent sa restauration sont écrits à la suite d'un commentaire (// … fermerPanneau(); rendre(); toast(…)) : ils ne tournent pas. On les fait ici, sauf si l'annulation a été refusée (« Trop tard »). Reporté au chantier Stock. */
     if (!tard && document.querySelector('#calque .panneau')) { fermerPanneau(); rendre(); toast('Annulé : ' + esc(u.lib) + '. Le stock est revenu comme avant.'); } return; }
   if (a === 'dem') return axDemForm();
@@ -21606,8 +21642,11 @@ function eqxRestes(k) {
   const veh = VEHICULES.filter(v => v.conducteur === k), taches = TACHES.filter(t => !t.fait && t.qui === k);
   /* une semaine ne se valide qu'une fois FINIE (ttSemFinie) : « pas encore validé » n'est une alerte que pour la semaine d'AVANT, que l'administrateur peut valider ; la semaine en cours se dit à part, sans alerte */
   const ptGen = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k), L0 = lundi(AUJ), Lp = ajoute(L0, -7);
-  const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);
-  const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0];
+  /* TOUTES les semaines finies, pointées et non validées (celles d'avant la dernière comprises) : l'alerte dit la vérité et se résorbe quand on valide, une semaine après l'autre ; une semaine d'un mois verrouillé ne se valide plus, elle n'est donc pas comptée */
+  const pts = ptGen ? [...new Set(POINTAGES.filter(o => o.qui === k).map(o => lundi(o.date)))].filter(L => ttSemFinie(L) && !PT_VALIDE[k + L] && !ptxJours(L).every(d => paieMoisVerrou(d))).sort() : [];
+  const pt = pts.length ? pts : false;
+  /* la ligne grise ne se dit que d'une personne qui a pointé cette semaine : pour un congé ou un arrivant elle ne dirait rien d'actionnable */
+  const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0] && POINTAGES.some(o => o.qui === k && lundi(o.date) === L0);
   const cp = typeof aSolde === 'function' && EQX_BASE.includes(k) ? aSolde(k, 'Congé payé') : null;
   return { ints, veh, taches, pt, ptEnCours, cp };
 }
@@ -21617,7 +21656,7 @@ function eqxMeilleur(i, sauf) {
 }
 function eqxDepart(k) {
   if (!secuGarde('equipe-retirer', () => eqxDepart(k), { k })) return;
-  const p = eqDe(k), R = eqxRestes(k), autres = eqxActifs().filter(o => o.k !== k);
+  const p = eqDe(k), R = eqxRestes(k), autres = eqxActifs().filter(o => o.k !== k), Lp0 = ajoute(lundi(AUJ), -7);
   const techs = autres.filter(eqxTerrain);
   if (!R.ints.length && !R.veh.length && !R.taches.length && !R.pt && !(R.cp && R.cp.reste > 0)) return eqxDesactiver(k, {});
   const prop = R.ints.map(i => ({ i, r:eqxMeilleur(i, k) }));
@@ -21626,7 +21665,7 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine dernière pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>${R.pt.length > 1 ? 'Pointage de ' + R.pt.length + ' semaines pas encore validé' : R.pt[0] === Lp0 ? 'Pointage de la semaine dernière pas encore validé' : 'Pointage de la semaine du ' + esc(jCourt(R.pt[0])) + ' pas encore validé'}</b>${R.pt.length > 1 ? `<small>Du ${esc(jCourt(R.pt[0]))} au ${esc(jCourt(ajoute(R.pt[R.pt.length - 1], 6)))}</small>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
     ${R.ptEnCours ? `<span class="gris petit">Sa semaine en cours se validera une fois finie, lundi prochain.</span>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
@@ -22069,10 +22108,10 @@ function rgVue(){
   const tech = ROLE === 'tech';
   let ks = Object.keys(D3_CLI);
   /* aucun site suivi (l'entreprise vient de prendre le métier) : un tableau vide sous « Rien d'urgent : tous les sites sont à jour » disait faux, et « Saisir un passage » n'avait aucun site où écrire (regard gérant F) */
-  if (!tech && !ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations.</div>`;
+  if (!tech && !ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;   /* le geste qui mène au remplissage (regard gérant F, retouche 5) */
   if (tech) {
     ks = rgSitesTech();
-    if (!ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre sur ta journée. Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</div>`;
+    if (!ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre-tech"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre sur ta journée</b><span class="gris">Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</span><span class="ms-vb"><button type="button" class="btn" data-go="majournee">Voir ma journée</button></span></div>`;
     rgTous = false; if (!ks.includes(d3Cli)) d3Cli = ks[0];
   }
   return rgTous ? rgVueTous(ks) : rgVueSite(ks, tech);
@@ -22564,7 +22603,7 @@ function cbTypeChoix(){
 /* ─ la vue ─ */
 function vueCarteBox(){
   /* aucun site : la carte n'a rien à montrer (elle jetait une erreur sur le nom du site) */
-  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici.</div>`;
+  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte ms-vide" data-vide="carte"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;
   if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; histRemplacer('#carteBox'); }
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c], pro = rgProchain(c).d, act = d3Activite(der), sel = d3Sel && P.find(p => p.id === d3Sel), R = cbReleve && cbReleve.cli === c ? cbReleve : null, ro = cbRO();
   const att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))), neuves = P.filter(p => cbEtat(c, p.id) == null).length;
