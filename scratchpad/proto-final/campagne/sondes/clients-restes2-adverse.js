@@ -91,9 +91,10 @@ const veut = k => !SEUL || SEUL.split(',').includes(k);
     const archiveDit = r1.lien || r1.note.some(t => /archiv/i.test(t)) || (r1.cartes.some(t => /archiv/i.test(t)));
     v('R1 : « Rochefort » correspond à un client actif ET à un client archivé : la liste ne cache pas l’archivé sans un mot (indice « archivé » : ' + archiveDit + ' · cartes : ' + r1.cartes.length + ')', archiveDit, r1);
     await p.evaluate(() => { chercheClient = 'Vivant'; rangClients = 'archives'; rendre(); }); await L.calme(p, 400);
-    const r2 = await p.evaluate(() => ({ note: [...document.querySelectorAll('#contenu .carte.gris')].map(e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 160)), cartes: document.querySelectorAll('#contenu .client-carte').length, lien: !!document.querySelector('#contenu [data-rangc="tous"]') }));
-    const mene = r2.note.some(t => /(Tous|actif|liste)/i.test(t) && !/Nouveau client/.test(t)) || r2.note.every(t => !/Nouveau client/.test(t));
-    v('R2 : dans « Archivés », une recherche qui ne correspond qu’à un client ACTIF ne propose pas de créer un doublon (' + r2.note.join(' | ') + ')', mene, r2);
+    const r2 = await p.evaluate(() => ({ texte: (document.querySelector('#contenu').textContent || '').replace(/\s+/g, ' '), note: [...document.querySelectorAll('#contenu .carte.gris')].map(e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 160)), cartes: document.querySelectorAll('#contenu .client-carte').length, lien: !!document.querySelector('#contenu [data-rangc="tous"]') }));
+    /* POSITIF : le texte DIT qu'un client de la liste correspond (l'ancienne forme, « ou tout ce qui n'invite pas », passait sur un ensemble vide : la mutation 3 ne la faisait pas tomber) */
+    const mene = /client de ta liste correspond/.test(r2.texte) && !/Nouveau client pour|Vérifie l’orthographe/.test(r2.texte) && !!r2.lien;
+    v('R2 : dans « Archivés », une recherche qui ne correspond qu’à un client ACTIF ne propose pas de créer un doublon (' + r2.texte.slice(0, 140) + ')', mene, r2);
     await L.capture(c, CAP + 'recherche-archivés-vide-' + ETQ + '.png');
     await p.evaluate(() => { delete CLIENTS.__ra; delete CLIENTS.__rv; chercheClient = ''; rangClients = 'tous'; rendre(); }); await L.calme(p, 300);
   }

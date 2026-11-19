@@ -12,7 +12,7 @@ M = {
  2: ('H3', 'tombe', [("if (route === 'client' && h !== ici && cliInfosRetenir(() => lireHash(), true)) return;", "if (route === 'client' && h !== ici && cliInfosRetenir(() => aller(h), true)) { histRemplacer('#' + ici); return; }")], {'SEUL': 'H'}),   # l'ancien comportement remis
  3: ('R2', 'tombe', [("const nActTrouves = enArch && cq ?", "const nActTrouves = false && enArch && cq ?")], {'SEUL': 'R'}),
  4: ('R1', 'tombe', [("${L.length && nArchTrouves ? `<p class=\"gris petit\"", "${false && L.length && nArchTrouves ? `<p class=\"gris petit\"")], {'SEUL': 'R'}),
- 5: ('H4', 'tombe', [("if (CLI_RETENU && CLI_RETENU.adr) { CLI_RETENU = null; cliAdresseRendre(); }", "")], {'SEUL': 'H'}),   # « Continuer » ne remet plus l'adresse de la fiche
+ 5: ('H4', 'tombe', [("if (CLI_RETENU && CLI_RETENU.adr) { CLI_RETENU = null; cliAdresseRendreApres(); }", "")], {'SEUL': 'H'}),   # « Continuer » ne remet plus l'adresse de la fiche
  6: ('H2', 'tombe', [("cliInfosRetenir(() => lireHash(), true)) return;", "cliInfosRetenir(() => { history.go(1); }, true)) return;")], {'SEUL': 'H'}),   # le correctif « évident » (défaire le recul) n'en est pas un : « Abandonner » ne partirait plus
 }
 n = int(sys.argv[1]); ctl, att, reps, env = M[n]

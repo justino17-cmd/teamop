@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "clients-17 : « Devis IA » (dictée) propose un client archivé",
+  "defaut": "Dicter « Devis pour Plage… » (Hôtel de la Plage, archivé) préparait un devis au nom du client archivé ; dvdPreparer lisait tous les clients.",
+  "etat": "corrigé",
+  "changement": "dvdPreparer écarte les clients archivés (`!CLIENTS[k].archive`) ; si le nom dicté ne correspond qu'à un archivé, le message le dit : « <nom> est archivé : restaure-le depuis « Clients » avant de lui faire un devis. » au lieu de « Je n'ai pas reconnu le client ».",
+  "preuve": "clients-restes2-adverse.js V1 (0 devis créé pour l'archivé) ; clients-restes3-captures.js V1 (le message nomme l'archivage) ; mutation 1 (garde retirée) : V1 tombe. Rejeu à la reprise : la sonde des captures était fautive (elle cherchait « Vivant » sans client actif et appelait la capture avec la page au lieu du contexte) : corrigée, 3 ✓ · 0 ✗ sur mac, iphone nuit, petit nuit ; le message « Hôtel de la Plage est archivé… » regardé (au petit écran la bulle recouvre un instant le texte dicté : bulle de 6 s au-dessus du pied de la fenêtre, comportement commun à toutes les bulles)."
+ },
+ {
+  "nom": "Casse : après « Abandonner » par le retour du navigateur, le retour suivant ramène sur la fiche abandonnée",
+  "defaut": "lireHash réécrivait (histRemplacer) l'entrée « Devis » où le retour avait posé le navigateur en « fiche » ; « Abandonner » poussait ensuite un « Devis » derrière cette entrée fantôme.",
+  "etat": "corrigé",
+  "changement": "lireHash ne touche plus à l'historique tant que la personne n'a pas choisi. « Abandonner » / « Enregistrer » rejouent lireHash() sur l'adresse déjà posée (CLI_RETENU.suite). « Continuer la saisie », ✕, Échap ou un clic à côté (fermerPanneau) remettent une entrée de la fiche DEVANT celle où l'on est (cliAdresseRendre, par pushState) — après la fin du recul de l'entrée propre à la fenêtre (CAL.suite, cliAdresseRendreApres) : la pousser avant faisait reculer la fiche elle-même et rouvrait la fenêtre (trouvé en écrivant H4, jamais vu par la sonde du recontrôleur). Même soin quand « Enregistrer » est refusé (champ invalide).",
+  "preuve": "H1 à H4c : le retour pose la fenêtre et reste sur la fiche ; « Abandonner » mène à Devis ; le retour suivant donne Accueil comme sans saisie ; « Continuer » garde la fiche, la saisie et une adresse qui dit la fiche (#client-x-md) ; le retour suivant retrouve Devis et redemande. Mutations 2 (ancien comportement remis) : H3 tombe ; 5 (hook de Continuer retiré) : H4 tombe ; 6 (history.go(1), le correctif « évident ») : H2 tombe. Mutation 5 remise à jour sur le texte actuel de la page (son motif ne trouvait plus rien) : elle fait tomber H4. Les six mutations rejouées : 6 sur 6 tombent."
+ },
+ {
+  "nom": "Nouveau : dans « Archivés », une recherche qui ne correspond qu'à un client ACTIF invitait à créer un doublon",
+  "defaut": "« Vivant » (client actif) dans « Archivés » répondait « Aucun client ne correspond… ou touche « ＋ Nouveau client » ».",
+  "etat": "corrigé",
+  "changement": "vueClients compte nActTrouves : « Aucun client archivé ne correspond à « Vivant ». Un client de ta liste correspond. » et le bouton « Voir le client de ma liste » (garde la recherche, repasse sur « Tous les clients »). Même forme que le sens inverse déjà en place.",
+  "preuve": "R2 de la sonde adverse, rendu POSITIF à la reprise (il passait sur un ensemble vide : la mutation 3 ne le faisait pas tomber ; il exige maintenant « Un client de ta liste correspond » et le bouton, et pas l'invitation à créer) : 24 ✓ · 0 ✗ sur mac, iphone nuit (secrétariat), petit nuit ; mutation 3 : R2 tombe. Captures regardées au rejeu (mac, iphone nuit, petit nuit) : phrase et bouton lisibles, rien de coupé."
+ },
+ {
+  "nom": "Un client archivé ET un client actif correspondent : l'archivé est caché sans un mot",
+  "defaut": "« Rochefort » trouvait le client actif ; l'archivé du même mot n'était signalé nulle part (la phrase n'existait que quand AUCUN actif ne correspondait).",
+  "etat": "corrigé",
+  "changement": "Sous les cartes, une ligne discrète « Un client archivé correspond aussi. [Voir le client archivé] » (garde la recherche). Le recontrôleur l'avait classé « doute » : l'effet est léger et symétrique du cas déjà accepté ; à retirer d'une ligne si Justin préfère que les archivés restent invisibles hors de leur vue.",
+  "preuve": "R1 de la sonde adverse (tombait, passe) ; mutation 4 (ligne retirée) : R1 tombe."
+ },
+ {
+  "nom": "Doute : retirer le premier appareil d'un client (fiche d'intervention et compte rendu lisent appareils[0])",
+  "defaut": "Inchangé depuis le tour 2 : non rejoué.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "aucune mesure neuve ; décision produit."
+ },
+ {
+  "nom": "Doute : suggestions d'adresse à 320 px (3 propositions sur 5 visibles sous la barre d'actions)",
+  "defaut": "Défilement au doigt à confirmer sur un appareil réel.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "non rejoué : le Chromium émulé ne transmet pas fidèlement un défilement tactile court."
+ },
+ {
+  "nom": "Doute : « Se déconnecter » avec une saisie non enregistrée dans Infos",
+  "defaut": "Le geste direct pose bien la fenêtre ; le clic réel de la sonde n'a pas trouvé le bouton ouvert sur mac (S2 non conclu).",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "à jouer sur un appareil réel ; le code passe par la même garde que les autres sorties (53 sorties énumérées, S1 vert)."
+ },
+ {
+  "nom": "Doute : la saisie rapide d'une tâche rattache aussi un client archivé",
+  "defaut": "« Relancer Mme X » reste utile pour un client rangé.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision produit ; le Devis IA, lui, n'accepte plus l'archivé (créer un devis est un NOUVEAU travail)."
+ },
+ {
+  "nom": "Glisser pour archiver, Boîte mail pour le bureau, Planning au téléphone",
+  "defaut": "Décisions (l) de Justin.",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "REPRISE.md, décisions du chef."
+ },
+ {
+  "nom": "Rejeu des gardes à la reprise (tour 3)",
+  "defaut": "Un agent précédent avait été interrompu avant de pousser ce livrable.",
+  "etat": "corrigé",
+  "changement": "Livrable écrit et poussé ; sondes des captures et mutations 3 et 5 réparées (voir plus haut).",
+  "preuve": "clients-restes2-adverse 24 ✓ · 0 ✗ (mac, iphone nuit secrétariat, petit nuit) ; clients-restes3-captures 3 ✓ · 0 ✗ ×3 profils ; 6 mutations sur 6 tombent ; compiler-pages, verifier-syntaxe, test-835/836/837/1008/2994, verif-secrets : code 0. Note : SEUL=R seul ne suffit pas (il lui manque la route posée par le bloc précédent) : la sonde se joue entière."
+ }
+]
