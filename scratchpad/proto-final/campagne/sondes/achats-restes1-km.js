@@ -24,7 +24,8 @@ const { L, ouvrirAchats, toast } = require('./achats-outils.js'), v = L.v;
   v('K4d « 0,631 » accepté ; « 0,006 » et « 12 » refusés (un tarif au kilomètre entre 0,05 et 10 €), le tarif ne bouge pas', R['0,631'].ap === 0.631 && R['0,006'].ap === R['0,006'].av && R['12'].ap === R['12'].av, [R['0,631'], R['0,006'], R['12']]);
   v('K4e « 1.500 » refusé (ambigu : 1 500 ou 1,5), le tarif ne bouge pas', await (async () => { const r = await essai('1.500'); return r.ap === r.av && r.ouvert; })());
   await essai('0,603'); await L.aller(p, 'achats'); await L.calme(p, 400);
-  const lig = await E(() => document.body.innerText);
+  if (tel) { await L.toucher(c, '[data-axa="reglages"]'); await L.calme(p, 400); }   // au téléphone la ligne des réglages vit dans la fenêtre « Réglages » (recontrôle tour 4 : la sonde lisait la page, où elle n'est pas)
+  const lig = await E(() => document.body.innerText + ' ' + (document.getElementById('calque') ? document.getElementById('calque').innerText : ''));
   v('K4f la ligne de la règle des notes lit « 0,603 € » (Kilomètres… le km)', /Kilomètres\s*:\s*0,603\s€\sle km/.test(lig) || /Kilomètre à\s0,603\s€/.test(lig), lig.match(/Kilom[^\n]{0,80}/g));
   v('K5 « 101 » : refusé, le tarif ne bouge pas', R['101'].ap === R['101'].av, R['101']);
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);

@@ -102,7 +102,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await sec('D relevé : collage, autres métiers', async () => {
     await I.devenir(c, 'sm', 'inter-x-i1');
     const k = await ev(() => document.querySelector('input[data-releve]').dataset.releve);
-    const coller = async val => { await ev(([k, val]) => { const e = document.querySelector(`input[data-releve="${k}"]`); e.focus(); e.value = val; e.dispatchEvent(new Event('input', { bubbles: true })); }, [k, val]); await L.calme(p, 120); return ev(k => ({ champ: document.querySelector(`input[data-releve="${k}"]`).value, fiche: fiche('i1').releves[k] }), k); };
+    const coller = async val => { await ev(([k, val]) => { const e = document.querySelector(`input[data-releve="${k}"]`); e.focus(); e.value = val; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, [k, val]); await L.calme(p, 120); return ev(k => ({ champ: document.querySelector(`input[data-releve="${k}"]`).value, fiche: fiche('i1').releves[k] }), k); };
     let r = await coller('3 sur 18'); console.log('  · collage « 3 sur 18 » →', JSON.stringify(r));
     v('D (doute) un collage « 3 sur 18 » ne devient pas « 318 »', r.champ !== '318', r);
     r = await coller('10-12'); console.log('  · collage « 10-12 » →', JSON.stringify(r));
@@ -122,12 +122,12 @@ const I = require('./interventions-outils.js'), L = I.L;
     console.log('  · relevés de tous les métiers :', JSON.stringify(bilan.map(b => b[0] + ':' + b[1] + (b[3] ? '#' : ''))));
     for (const [m, l, ex, num] of bilan) {
       await ev(([m]) => { const F = fiche('i1'); F.metier = m; rendre(); }, [m]); await L.calme(p, 200);
-      const x = await ev(async ([l]) => { const e = document.querySelector(`input[data-releve="${l}"]`); if (!e) return null; e.value = 'zz'; e.dispatchEvent(new Event('input', { bubbles: true })); return e.value; }, [l]);
+      const x = await ev(async ([l]) => { const e = document.querySelector(`input[data-releve="${l}"]`); if (!e) return null; e.value = 'zz'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return e.value; }, [l]);
       v(`D ${m} · ${l} (exemple « ${ex} ») : ${num ? 'un mot est refusé' : 'un mot est gardé'}`, x !== null && (num ? x === '' : x === 'zz'), x);
     }
     await ev(() => { const F = fiche('i1'); F.metier = 'clim'; rendre(); });
     // la valeur rangée est celle du compte rendu du client
-    await ev(([k]) => { const e = document.querySelector(`input[data-releve="${k}"]`); e.value = '2,4'; e.dispatchEvent(new Event('input', { bubbles: true })); }, [k]);
+    await ev(([k]) => { const e = document.querySelector(`input[data-releve="${k}"]`); e.value = '2,4'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, [k]);
     await I.devenir(c, 'marc', 'clientvoit'); await ev(() => { voirInt = 'i1'; modeClient = 'pdf'; rendre(); }); const t = await txt('.pdf');
     v('D le PDF du client écrit le relevé « 2,4 »', /2,4/.test(t), (t.match(/.{0,40}2,4.{0,20}/) || [''])[0]);
   });

@@ -31,6 +31,12 @@ for s in restes3-bandeau restes3-lien restes3-blanc; do lance "entreprise-$s" $S
 # recontrôle du tour 3 : « c » (créneaux proposés → options au planning sans la case Planning) est réglé au tour 4 (restes4-creneaux) : il rentre dans la série
 for n in a b c d e f; do lance "entreprise-restes3-recontrole $n" $S/entreprise-restes3-recontrole.js $n; done
 lance "entreprise-restes4-creneaux" $S/entreprise-restes4-creneaux.js
+# tour 5 : le toast de « Confirmer le créneau » dit ce qui s'est passé (a, c) ; retirer une option est une écriture au planning, jouée à deux personnes
+lance "entreprise-restes4-recontrole a" $S/entreprise-restes4-recontrole.js a
+lance "entreprise-restes4-recontrole c" $S/entreprise-restes4-recontrole.js c
+lance "entreprise-restes5-deuxpersonnes" $S/entreprise-restes5-deuxpersonnes.js
+# recontrôle adverse du tour 5 : les trois phrases du toast sur quatre appareils, les gestes nommés joués par les vraies personnes, l'option qui reste sur le planning, la population des verbes de lecture
+for n in s1 s2 s3 s4; do lance "restes-entreprise-tour5-recontrole $n" $S/restes-entreprise-tour5-recontrole.js $n; done
 if [ -z "$RAPIDE" ]; then
   # « 12 » est jouée avec « 01 » (même bloc) ; « 06 » n'a pas de section
   for n in 01 02 03 04 05 07 08 09 10 11 13; do lance "entreprise-corrections $n" $S/entreprise-corrections.js $n; done
