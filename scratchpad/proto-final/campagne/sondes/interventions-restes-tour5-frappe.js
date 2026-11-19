@@ -28,6 +28,12 @@ const I = require('./interventions-outils.js'), L = I.L;
   await p.evaluate(() => { ACTIONS.terminer(document.querySelector('[data-action="terminer"]')); }); await L.calme(p, 400);
   const fin = await p.evaluate(() => (fiche('i1').releves || {}).Soufflage);
   v('« Terminer » avec « 10-12 » en cours : jamais 1012 ni 10-12 enregistré', fin === '14', fin);
+  // … et une valeur JUSTE encore en cours de saisie est enregistrée par la même fonction (sinon « Terminer » la perdrait)
+  await p.evaluate(() => { const m = document.getElementById('overlay'); });   // (rien : le panneau « Il manque… » ne gêne pas)
+  await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.value = '12,5'; e.dispatchEvent(new Event('input', { bubbles: true })); }, S);
+  await p.evaluate(() => { ACTIONS.terminer(document.querySelector('[data-action="terminer"]') || { dataset:{ id:'i1' } }); }); await L.calme(p, 400);
+  const fin2 = await p.evaluate(() => (fiche('i1').releves || {}).Soufflage);
+  v('« Terminer » avec « 12,5 » en cours : enregistré tel quel', fin2 === '12,5', fin2);
   await L.capture(c, I.CAP + `tour5-frappe-${profil}${nuit ? '-nuit' : ''}.png`);
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
