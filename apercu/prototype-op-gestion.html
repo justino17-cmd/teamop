@@ -10697,13 +10697,15 @@ let eqSel = null, eqFiltre = 'tous';
 const eqDe = k => EQUIPE.find(p => p.k === k);
 /* un NOM de personne s'écrit dans cent endroits (planning, absences, documents, messages) : on garde une LISTE de ce qui est permis (lettres, chiffres, espace, point, tiret, apostrophe typographique), jamais une liste de ce qui est interdit.
    nomPersonneOk() juge ce qu'on tape (refus avec un message qui dit pourquoi) ; nomPersonneNet() nettoie ce qui est DÉJÀ rangé : même une fiche d'avant, ou venue d'ailleurs, ne peut plus porter de balise */
+/* tour 3 : un signe invisible (espace de largeur nulle, soft hyphen, BOM, marques de sens d'écriture) collé dans un nom ne se voit pas, ne se cherche pas, et un BOM en bout passait même le « trim » : on le refuse sur le texte BRUT, avant tout nettoyage */
+const NOM_INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/;
 const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
-const nomPersonneOk = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
+const nomPersonneOk = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return null; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
 const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
 /* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
 /* tour 2 : la phrase DIT LA VRAIE RAISON (le premier signe, la longueur, ou un signe interdit) au lieu de redire toute la règle : une seule phrase de 67 signes passait à quatre lignes dans une demi-colonne d'Android (360 px), et « -Marie » était refusé avec une phrase qui ne parlait pas du premier signe */
 const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';
-const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
+const nomRefus = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return 'Un signe invisible s’est glissé : retape le nom à la main.'; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
   if (/[^\p{L}\p{M}\p{N} .’-]/u.test(x)) return NOM_PERS_REFUS;
   if (!/^[\p{L}\p{M}\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';
   if (x.length > 60) return '60 signes au plus.';
@@ -10753,7 +10755,7 @@ function vueEquipe(){
 function eqFiche(k){
   const p = eqDe(k), r = eqResume(p), c = (H_GENS[k] || {}).c || '#5b6676', admin = p.droits.profil === 'admin', seulAdmin = admin && EQUIPE.filter(o => o.actif && o.droits.profil === 'admin').length === 1;
   const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${{ v:'voir', c:'créer', m:'modifier', s:'supprimer' }[x]}">`;
-  foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}${!p.actif ? ' · désactivé(e)' : p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
     <div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="groupe">Sa semaine</div>
     <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
@@ -21045,7 +21047,7 @@ function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = do
 /* regles : [[id, valeur => message ou '']] ; rend les valeurs (rognées) ou null après avoir écrit chaque message sous son champ, mis le focus sur le premier et dit le premier en toast */
 function entVerifier(regles){
   entEffacer(); const V = {}, E = [];
-  regles.forEach(([id, fn]) => { const el = document.getElementById(id); V[id] = el ? el.value.trim() : ''; const m = fn(V[id], V); if (m) E.push([id, m]); });
+  regles.forEach(([id, fn]) => { const el = document.getElementById(id); V[id] = el ? blancsRogne(el.value) : ''; const m = fn(V[id], V); if (m) E.push([id, m]); });
   E.forEach(([id, m]) => entErr(id, m));
   if (!E.length) return V;
   const c = document.getElementById(E[0][0]); if (c) c.focus();
@@ -21491,7 +21493,7 @@ eqFiche = function (k) {
   const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${EQX_X[x]}">`;
   const pk = p.droits.profil.replace('*', ''), ajuste = p.droits.profil.endsWith('*') && PROFILS[pk];
   const edit = eqxEdition === k;
-  foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}${!p.actif ? ' · désactivé(e)' : p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
     ${edit ? eqxFormModif(p) : `<div class="ligne eqx-l"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne eqx-l"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="actions"><button type="button" class="btn gris petit" data-eqx="modifier|${k}">✎ Modifier la fiche</button></div>`}
     <div class="groupe">Sa semaine</div>
@@ -21672,7 +21674,9 @@ function eqxReglesPanneau() {
 }
 
 /* ═ 10. Les gestes de l'écran (clics) ═ */
-const eqxVal = id => ((document.getElementById(id) || {}).value || '').trim();
+/* tour 3 : un BOM (U+FEFF) compte comme « blanc » pour trim() — collé en bout de nom il disparaissait AVANT le contrôle et le nom passait sans refus : on rogne les blancs ordinaires, jamais le BOM */
+const blancsRogne = t => String(t).replace(/^[^\S\uFEFF]+|[^\S\uFEFF]+$/g, '');
+const eqxVal = id => blancsRogne((document.getElementById(id) || {}).value || '');
 /* ce que la page faisait déjà, refait avec sa trace : on passe AVANT les anciens écouteurs et on les empêche de rejouer */
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-eq]'); if (!b) return;
@@ -26495,7 +26499,7 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
   /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le panneau d'un geste et dans le bloc « Démonstration ») */
   const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
   const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : soi ? '<b>À activer depuis ton téléphone</b>' : '<b>À activer à sa première connexion</b>';
-  const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : '';
+  const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}${p.actif ? `<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : ''}` : '';   /* tour 3 : un compte désactivé n'a ni session (eqxSynchro les ferme à chaque désactivation, la connexion lui est refusée) ni téléphone à remplacer avant sa réactivation : ces deux gestes ne feraient rien ; « Déverrouiller » reste (un verrou survit à la désactivation) */
   /* equipe-13 (décision du chef, 17/11) : deux gestes qui changent un mot de passe, deux noms qu'on ne confond pas, UNE phrase sous chacun.
      Pas pour son propre compte (equipe-01) : la session se couperait avant la lecture du provisoire. Le bouton « lien » de la fiche est repris ici
      (même geste data-eq=mdp) pour que les deux soient côte à côte ; un compte verrouillé n'en reçoit aucun (« Déverrouiller » d'abord). */
@@ -26511,8 +26515,8 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
     <div class="ligne"><span>Téléphone</span>${telTxt}</div>
     <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : soi ? 'En ce moment' : 'Jamais'}</b></div>
     ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
-    ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}</div>
+    ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le bouton « M’envoyer un lien pour choisir un nouveau mot de passe » ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     ${mdpOutils}</div>`; }
 { const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
   if (p && p.actif && k !== acteur() && secuPeut() && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${esc(k)}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);
