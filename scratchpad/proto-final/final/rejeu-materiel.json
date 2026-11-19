@@ -1,49 +1,16 @@
 {
- "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
- "date": "2026-11-19",
- "familles": {
-  "materiel": {
-   "script": "scratchpad/proto-final/sondes/materiel-tout.sh",
-   "duree": "~25 min (mac+iphone)",
-   "executions": 69,
-   "rouges": 7
-  }
- },
- "aNoter": [
-  {
-   "sonde": "materiel-fonctions.js",
-   "arguments": "",
-   "constat": "nvCarteMat : une définition → 0 : la fonction n'existe plus dans la page (le guide des nouveautés a renommé nvCartes/nvPages) ; sonde périmée à mettre à jour"
-  },
-  {
-   "sonde": "materiel-depots-roles.js",
-   "arguments": "",
-   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?) (2 ✗)"
-  },
-  {
-   "sonde": "materiel-four-roles.js",
-   "arguments": "",
-   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?)"
-  },
-  {
-   "sonde": "materiel-stock-roles.js",
-   "arguments": "",
-   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?)"
-  },
-  {
-   "sonde": "materiel-roles.js",
-   "arguments": "mac, iphone",
-   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?) (Dépôts et camions annoncé FERMÉ pour Julie)"
-  },
-  {
-   "sonde": "materiel-voisins.js",
-   "arguments": "mac, iphone",
-   "constat": "Julie : la carte de la Comptabilité ne rend plus seulement des lignes d'achat (route #comptabilite, carte présente) ; même cause probable que le menu Matériel, à relire"
-  },
-  {
-   "sonde": "materiel-stock-gestes.js",
-   "arguments": "mac, iphone",
-   "constat": "bureau : le menu porte Stock et Fournisseurs, pas « Dépôts et camions » ; même cause que le menu Matériel"
-  }
- ]
+  "etape": "final-rejeu 2/2 (rejouer-et-reparer)",
+  "date": "2026-11-19",
+  "familles": ["materiel", "droits", "entreprise"],
+  "passages": [
+    { "sondes": 140, "vertes": 140, "rouges": 0, "sansTotal": 0, "note": "tout-rejouer.sh materiel droits entreprise, après correction des sondes périmées ; tableau : cap/final-rejeu-materiel/tableau.txt" }
+  ],
+  "lignes": [
+    { "sonde": "materiel-depots-roles, four-roles, stock-roles, roles, stock-gestes", "constat": "Julie voit « Dépôts et camions » (menu et route #boxes)", "cause": "sonde périmée", "decision": "équipe-11 (578847ec), MENU-FINAL.md ligne 53 : « Voir » décide seule ; le menu du Secrétariat compte douze lignes", "changement": "les contrôles attendent la rubrique ouverte (menu, h1, cartes) au lieu de fermée ; l'ouverture passe par L.aller (le hash posé après fermerPanneau ne naviguait pas)", "preuve": "depots-roles 9 ✓, four-roles 16 ✓, stock-roles 21 ✓, roles 14 ✓ (mac, iphone), stock-gestes 42 ✓" },
+    { "sonde": "materiel-voisins", "constat": "la carte Matériel du bureau porte la ligne des camions", "cause": "sonde périmée", "decision": "même décision ; ce qui reste gardé : aucune ligne ne mène à une rubrique absente de son menu, jamais « envois à accepter »", "changement": "contrôle porté sur « chaque ligne mène à une rubrique du menu »", "preuve": "43 ✓ mac, 40 ✓ iphone" },
+    { "sonde": "materiel-fonctions", "constat": "nvCarteMat : 0 définition", "cause": "sonde périmée", "decision": "f0d8be67 : guide des nouveautés refait, six cartes par rôle, nvCartes/nvPages", "changement": "nvCartes une définition + la carte « Stock » du guide ouvre la rubrique", "preuve": "126 ✓" },
+    { "sonde": "entreprise-corrections 08", "constat": "note « tu peux regarder, pas le modifier » sur la Boîte mail en Voir seul", "cause": "sonde périmée", "decision": "04ebcc63 : la Boîte mail lit les droits ; droitsNote la porte comme les autres rubriques", "changement": "la sonde exige la note ET que le cadre refuse écrire/ranger/supprimer, bouton Écrire non dessiné, e-mails listés", "preuve": "3 ✓ ; mutation (boiteMail exclue de droitsNote) : 2 ✓ · 1 ✗, git diff apercu vide après" },
+    { "sonde": "entreprise-corrections 13", "constat": "0 case sans geste dans la grille", "cause": "sonde périmée", "decision": "tous les gestes sont désormais branchés (lots restes entreprise tour 3 et suivants) : aucune case n'est sans geste", "changement": "population 40 cellules, cases + tirets = cellules, tirets = droitCaseActive ; contre-épreuve : un geste retiré donne un tiret", "preuve": "11 ✓" }
+  ],
+  "reste": ["À SOUMETTRE à Justin : le Secrétariat voit Dépôts et camions avec valeurs en euros et « Remplir les camions » (effet de « Voir décide seule ») ; si non voulu, un droit à part est à créer", "Captures non regardées par moi : aucun écran de la page n'a été modifié, seules des sondes l'ont été"]
 }
