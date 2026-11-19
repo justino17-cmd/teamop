@@ -1,0 +1,253 @@
+{
+ "famille": "final-rejeu, étape 1 sur 2 (scripts-de-rejeu), reprise du 19/11/2026",
+ "familles": [
+  "coque",
+  "planning",
+  "restes",
+  "recontrole",
+  "relire"
+ ],
+ "scripts": {
+  "coque": {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-tout.sh",
+   "duree": "1 496 s mesurées (25 min), 3 sondes de plus que la première version (mots courants, tour 2 recontrôle, visite parlée)"
+  },
+  "planning": {
+   "fichier": "scratchpad/proto-final/campagne/sondes/planning-tout.sh",
+   "duree": "environ 21 min (version courte) ; version d'essai complète 2 059 s"
+  },
+  "restes": {
+   "fichiers": [
+    "scratchpad/proto-final/sondes/restes-tout.sh",
+    "scratchpad/proto-final/campagne/sondes/restes-tout.sh"
+   ],
+   "duree": "Boîte mail et extras environ 10 min, campagne environ 17 min ; TOUT=1 : 24 min + 54 min"
+  },
+  "recontrole": {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-tout.sh",
+   "duree": "1 400 s environ (23 min) ; TOUT=1 ajoute plus d'une heure de sondes de sécurité lourdes"
+  },
+  "relire": {
+   "fichier": "scratchpad/proto-final/sondes/relire-tout.sh",
+   "duree": "1 462 s (24 min) en version courte ; 1 613 s mesurées avant d'écarter le menu complet d'android (TOUT=1 le rejoue)"
+  }
+ },
+ "reparations_de_sondes": [
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/restes-devis-atelier-ia.js",
+   "constat": "ne rendait ni total ni code de sortie et restait vivante jusqu'au délai de 590 s ; reçoit sa fermeture et son verdict (aucun contrôle modifié)"
+  }
+ ],
+ "aNoter": [
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/coque-connexion.js",
+   "arguments": "PROFIL=mac ; PROFIL=iphone NUIT=1",
+   "famille": "coque",
+   "total": "39 ✓ · 1 ✗",
+   "constat": "« le guide a un titre et un bouton pour le fermer (« Passer ») » tombe : le titre lu est « Où sont passées mes rubriques ? » (ni le titre ni le bouton attendus par la sonde)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/coque-creation.js",
+   "arguments": "PROFIL=iphone QUI=sm",
+   "famille": "coque",
+   "total": "1 ✓ · 1 ✗",
+   "constat": "[coque-09] « chaque bouton ＋ dit ＋ Nouveau… / ＋ Nouvelle… » : la technicienne a « ＋ Demande d’achat » (Ma journée, Frais, Absences…) ; la sonde s'arrête après 2 contrôles"
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/coque-client.js",
+   "arguments": "PROFIL=iphone",
+   "famille": "coque",
+   "total": "13 ✓ · 1 ✗",
+   "constat": "espace client : cibles au doigt ≥ 44 px → « 📘 Apprendre » 162×40 et « De A à Z 0/12 » 170×40"
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/planning-gestes.js",
+   "arguments": "iphone (six vues) ; mac (six vues)",
+   "famille": "planning",
+   "total": "66 ✓ · 1 ✗",
+   "constat": "vue carte : « chaque geste recensé a été touché » tombe quand la vue est jouée après les cinq autres — 57/60 sur mac, 60/63 sur iphone (une fois sur deux : la première passe de l'iphone avait 67 ✓ · 0 ✗) ; la même vue jouée seule (planning-gestes.js mac carte) rend 3 ✓ · 0 ✗ : ce que les vues d'avant laissent sur la carte (bibliothèques, repères) décide"
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/planning-parcours.js",
+   "arguments": "iphone (P1 à P8)",
+   "famille": "planning",
+   "total": "46 ✓ · 1 ✗",
+   "constat": "P6 : « le message explique pourquoi (« est absente ce jour-là (Congé) ») » tombe (message lu vide)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/campagne/sondes/restes-planning-4-recontrole.js",
+   "arguments": "mac",
+   "famille": "restes",
+   "total": "4 ✓ · 1 ✗",
+   "constat": "population : « au moins un panneau mesuré par écran balayé » → 0 panneau, 0 geste (la sonde sort en 3 s : le balayage ne trouve rien à toucher)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/restes-mail-tour2-recontrole.js",
+   "arguments": "PARTIE=1",
+   "famille": "restes",
+   "total": "19 ✓ · 2 ✗",
+   "constat": "iphone 667×375 nuit et iphone 568×320 jour : « une ligne ENTIÈRE au-dessus de la barre d'onglets et de la barre du module » → 0 ligne entière (11 lignes de 108 px, zone de 100 et 45 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/restes-mail-tour2-recontrole.js",
+   "arguments": "PARTIE=2",
+   "famille": "restes",
+   "total": "23 ✓ · 4 ✗",
+   "constat": "petit 568×320, dossiers « inbox », « sent », « s_atraiter » : 0 ligne entière sous les yeux (lignes de 108 px, zone de 126 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/restes-mail-tour2-recontrole.js",
+   "arguments": "PARTIE=3",
+   "famille": "restes",
+   "total": "10 ✓ · 5 ✗",
+   "constat": "mac jour : les deux bulles (hôte et module) se recouvrent ; mac jour et iphone nuit : « l'hôte s'est tu » mais la bulle du module reste remontée (--opc-sur=52 px et 5 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/restes-securite-tour4-recontrole-a.js",
+   "arguments": "(sans argument)",
+   "famille": "restes",
+   "total": "38 ✓ · 1 ✗",
+   "constat": "(3/5) « a » + 80 drapeaux : le dernier signe du champ est une lettre régionale SEULE (🇫), pas un drapeau entier"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/restes-vehtemps-tour1-recontrole.js",
+   "arguments": "PROFILS=mac (TOUT=1)",
+   "famille": "restes",
+   "total": "77 ✓ · 1 ✗",
+   "constat": "mac · départ guidé : une alerte de pointage parle de « 4 semaines pas encore validé, du 28 sept. au 25 oct. » (semaine en cours comprise) au lieu d'une semaine FINIE"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-2.js",
+   "arguments": "PROFILS=iphone",
+   "famille": "relire",
+   "total": "19 ✓ · 1 ✗",
+   "constat": "« 19 lignes proposées, 5 choisies, numérotées 1 à 5 » : la page en propose maintenant 21 (la sonde attend 19)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-3.js",
+   "arguments": "PROFILS=iphone",
+   "famille": "relire",
+   "total": "",
+   "constat": "iphone/client(app) : « Accueil · Factures · Devis · Interventions · Contrat, entiers, non coupés, ≥ 44 px » tombe sur la barre du bas de l'espace client (largeur des onglets 67 px, hauteur 48 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-2.js",
+   "arguments": "PROFILS=android",
+   "famille": "relire",
+   "total": "19 ✓ · 1 ✗",
+   "constat": "« 19 lignes proposées, 5 choisies, numérotées 1 à 5 » : la page en propose maintenant 21 (la sonde attend 19)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-3.js",
+   "arguments": "PROFILS=android",
+   "famille": "relire",
+   "total": "",
+   "constat": "android/client(app) : « Accueil · Factures · Devis · Interventions · Contrat, entiers, non coupés, ≥ 44 px » tombe sur la barre du bas de l'espace client (largeur des onglets 60 px, hauteur 48 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-2.js",
+   "arguments": "PROFILS=petit",
+   "famille": "relire",
+   "total": "19 ✓ · 1 ✗",
+   "constat": "« 19 lignes proposées, 5 choisies, numérotées 1 à 5 » : la page en propose maintenant 21 (la sonde attend 19)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-menu-telephone-3.js",
+   "arguments": "PROFILS=petit",
+   "famille": "relire",
+   "total": "",
+   "constat": "petit/client(app) : « Accueil · Factures · Devis · Interventions · Contrat, entiers, non coupés, ≥ 44 px » tombe sur la barre du bas de l'espace client (largeur des onglets 55 px, hauteur 48 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/absent.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "6 ✓ · 1 ✗",
+   "constat": "au bout de 8 s : « L'atelier ne s'ouvre pas. » + « Réessayer » + « Fermer » : la page dit « Le document ne s'ouvre pas. Vérifie ta connexion, puis réessaie… » (autre phrase)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/cas-limites.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "5 ✓ · 1 ✗",
+   "constat": "« un document composé peut être SUPPRIMÉ depuis OP GESTION ou son éditeur » : aucune ligne trouvée ([[],[]])"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/contrat-gestes.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "15 ✓ · 1 ✗",
+   "constat": "« changer de modèle ne PERD pas l'article écrit à la main sans le dire » : article perdu sans confirmation ([12,false,\"\"])"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/liste-numeros.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "19 ✓ · 2 ✗",
+   "constat": "« À envoyer » : le brouillon composé y est avec son numéro, mais le nom « Alpha — Restaurant Le Vieux Port » répète le client"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/nouveau-client.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "7 ✓ · 1 ✗",
+   "constat": "la fiche du client « Boulangerie « Au Fournil » & fils » s'ouvre, mais le contrôle « le nom à signes HTML reste du texte » tombe"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/roles.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "18 ✓ · 4 ✗",
+   "constat": "kb, sm et lr : le refus se DIT par le toast « Ce geste n'est pas ouvert à ton compte : composer un contrat. » mais la sonde attend une autre phrase (4 ✗)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/titre-liste.js",
+   "arguments": "PROFIL=mac NUIT=0 QUI=marc",
+   "famille": "relire",
+   "total": "0 ✓ · 4 ✗",
+   "constat": "le titre de la carte (devis, contrat…) est collé à son bord (décalage 9 px, attendu ≥ 16) et ne s'aligne pas sur le premier élément de la ligne (293 contre 305)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/mise-en-page.js",
+   "arguments": "PROFIL=mac NUIT=0 et NUIT=1 QUI=marc",
+   "famille": "relire",
+   "total": "15 ✓ · 2 ✗",
+   "constat": "« aucun texte de l'interface sous 12,5 px » : « Total TTC » (devis) et « Contrat » (contrat) en 12 px"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/mise-en-page.js",
+   "arguments": "PROFIL=iphone NUIT=0 et 1 ; PROFIL=petit NUIT=0",
+   "famille": "relire",
+   "total": "25 ✓ · 2 ✗",
+   "constat": "aperçu plein écran : « la page tient dans l'écran » tombe (page de 794 px dans un écran de 390 et de 320 px)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/relire-tout/menu-editeur.js",
+   "arguments": "PROFIL=iphone",
+   "famille": "relire",
+   "total": "1 ✓ · 1 ✗",
+   "constat": "le menu de l'éditeur offre « Annuler, Rétablir, Modèles, Optimiser avec l'IA, Supprimer ce brouillon » : pas de « Dupliquer »"
+  },
+  {
+   "sonde": "scratchpad/proto-final/securite/recontrole-saisie.js",
+   "arguments": "(sans argument)",
+   "famille": "recontrole",
+   "total": "4 ✓ · 2 ✗",
+   "constat": "population : « ≥ 10 validations ont changé les données » → 12 validations, 1 changement ; « des charges rangées sont retrouvées (échappées) à l'écran » → 6"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/recontrole-artefact-cadres.js",
+   "arguments": "PROFIL=mac (sort en 2)",
+   "famille": "recontrole",
+   "total": "7 ✓ · 1 ✗",
+   "constat": "population recensée : 11 candidats, 1 touché seulement (0 vue non faite, 8 navigations internes écartées)"
+  },
+  {
+   "sonde": "scratchpad/proto-final/sondes/recontrole-artefact-courrier.js",
+   "arguments": "(sans argument)",
+   "famille": "recontrole",
+   "total": "20 ✓ · 2 ✗",
+   "constat": "iphone : « notifs refusées + son refusé + rangement refusé + historique qui jette » et « notifs absentes + rangement qui oublie » : la population (le bouton Réglages existe) est vide"
+  }
+ ]
+}
