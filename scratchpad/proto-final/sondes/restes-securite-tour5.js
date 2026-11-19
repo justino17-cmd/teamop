@@ -57,7 +57,7 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
   const lire = sel => p.evaluate(s => { const e = document.querySelector(s); return e ? { v: e.value, max: +e.getAttribute('maxlength'), g: nbSignes(e.value) } : null; }, sel);
   const coller = async (sel, avant, txt) => { await p.evaluate(([s, a]) => { const e = document.querySelector(s); e.focus(); e.value = a; e.setSelectionRange(e.value.length, e.value.length); }, [sel, avant]); await p.keyboard.insertText(txt); await pause(50); };
   const DRAP = ['🇫🇷', '🇩🇪', '🇪🇸', '🇮🇹'];
-  let champsVus = 0, collages = 0;
+  let champsVus = 0, collages = 0, ime = 0; const s5 = { cdp: await p.context().newCDPSession(p) };
 
   // ─────────── 2. maxlength en graphèmes : frappe et collage RÉELS, jamais de demi-drapeau ───────────
   if (SECTIONS.includes('graph')) {
@@ -82,8 +82,13 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
       // (e) une famille ZWJ et un « é » décomposé collés en fin de limite ne sont pas scindés
       await coller(F.sel, 'x'.repeat(M - 1), '👨‍👩‍👧‍👦😀'); const e5 = await lire(F.sel); collages++;
       v(F.n + ' · famille ZWJ collée avec une seule place : entière ou absente, jamais en morceaux', e5.g === M && !orphelin(e5.v) && !/[‍]$/.test(e5.v) && (e5.v.endsWith('👨‍👩‍👧‍👦') || e5.v === 'x'.repeat(M - 1) + '👨‍👩‍👧‍👦'), JSON.stringify(e5.v.slice(-14)));
+      // (f) saisie par MÉTHODE DE SAISIE (composition puis validation, CDP) : ni beforeinput « insertText » ni lettre seule — c'est le repli sur l'événement input qui répare ; le navigateur coupe en unités UTF-16
+      const cdp = s5.cdp; await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.value = ''; }, F.sel); const txtI = 'a' + '🇫🇷'.repeat(M);
+      await cdp.send('Input.imeSetComposition', { text: txtI, selectionStart: txtI.length, selectionEnd: txtI.length }); await pause(150); await cdp.send('Input.insertText', { text: txtI }); await pause(250); const f6 = await lire(F.sel); ime++;
+      v(F.n + ' · saisie par méthode de saisie (composition + validation) de « a » + ' + M + ' drapeaux : au plus ' + M + ' signes, jamais un demi-drapeau', f6.g <= M && f6.g > 0 && !orphelin(f6.v), [f6.g, f6.v.length, JSON.stringify(f6.v.slice(-6))]);
       await fermer();
     }
+    v('population : ' + ime + ' saisies par méthode de saisie (CDP) jouées', ime === CH.length, ime);
     v('population : ' + CH.length + ' champs joués, ' + champsVus + ' retrouvés à l’écran avec un maxlength', champsVus === CH.length, champsVus);
     v('population : ' + collages + ' collages réels (clavier, événements de confiance) joués', collages >= CH.length * 4, collages);
   }

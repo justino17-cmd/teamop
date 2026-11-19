@@ -20,6 +20,8 @@ MUTS = [
   "document.addEventListener('input', e => { if (!e.isTrusted) return;", "document.addEventListener('input', e => { return; if (!e.isTrusted) return;", 'graph'),
  ('M2d (2) la moitié de drapeau n’est plus retirée au repli (sansOrphelin ne fait rien)',
   "function sansOrphelin(t){ t = String(t);", "function sansOrphelin(t){ return String(t); t = String(t);", 'graph'),
+ ('M2e (2) la moitié de drapeau n’est cherchée qu’à pleine longueur (le défaut mesuré : la coupe laisse m - 1 unités)',
+  "if (v.length >= m - 1) v = sansOrphelin(v);", "if (v.length >= m) v = sansOrphelin(v);", 'graph'),
  ('M3a (3) une ligne d’invisibles compte de nouveau comme une ligne',
   ".filter(l => l && !INVISIBLES.test(l));", ".filter(Boolean);", 'invis'),
  ('M3b (3) U+200B n’est plus dans les invisibles',
