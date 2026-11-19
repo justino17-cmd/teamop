@@ -3859,7 +3859,7 @@ var MARKUP = `
     function openDiscardSheet(){
       clearTimeout(saveT);
       var c=state.compose, editSched=c.scheduled, existing=c.draftId&&!editSched?msgById(c.draftId):null;
-      var ns=document.createElement("div"); ns.className="ov-asheet nested"; ns.id="cDiscard";
+      var ns=document.createElement("div"); ns.className="ov-asheet nested"; ns.id="cDiscard"; c.retourVu=false;
       ns.innerHTML='<div class="asheet" role="menu" aria-label="Fermer le message"><div class="ag">'+
         '<button type="button" class="mitem dng" role="menuitem" data-dpick="discard"><span class="mlbl">'+(editSched?"Ignorer les modifications":"Supprimer le brouillon")+'</span></button>'+
         '<button type="button" class="mitem" role="menuitem" data-dpick="save"><span class="mlbl">Enregistrer le brouillon</span></button></div>'+
@@ -4447,8 +4447,8 @@ var MARKUP = `
     if(st>=HIST.niv||HIST.niv<=0) return;
     HIST.niv--;
     if(pdfv) fermerApercu();   // la couche du dessus d'abord : l'aperçu seul, puis la feuille « Fermer le message », le message en cours ou la lecture restent dessous
-    else if($("#cDiscard")){ var dc=$('#cDiscard [data-dpick="cancel"]'); if(dc) dc.click(); }   // « Annuler » de la feuille : le message reste ouvert, il ne se ferme pas par un second Retour
-    else if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
+    else if($("#cDiscard")){ var dc=$('#cDiscard [data-dpick="cancel"]'); if(dc) dc.click(); if(state.compose) state.compose.retourVu=true; }   // « Annuler » de la feuille : le message reste ouvert, il ne se ferme pas par un second Retour — mais la question est POSÉE, la personne y a répondu par ce Retour (brouillon gardé) : le Retour suivant ne la repose pas (boucle mesurée le 19/11 : feuille, message, feuille, message…)
+    else if(overlayDePage()){ var cc=$("#cCancel"); if(state.compose&&state.compose.retourVu&&typeof state.compose.dismiss==="function") state.compose.dismiss(); else if(cc) cc.click(); else closeOverlay(); }   // 2e Retour après la feuille : le brouillon est enregistré et le message se ferme (dismiss → saveDraft), on QUITTE   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");
     histSync(); });
   // retour sur la Boîte mail (menu, raccourci, Retour) avec un message encore ouvert : son niveau d'historique se repose, pour que « Retour » le ferme au lieu de quitter la rubrique
