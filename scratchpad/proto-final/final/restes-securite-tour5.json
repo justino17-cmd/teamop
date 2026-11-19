@@ -1,0 +1,87 @@
+{
+ "tour": 5,
+ "date": "2026-11-19",
+ "page": "apercu/prototype-op-gestion.html",
+ "corrections": {
+  "1_NFC": "pdfOctets normalise en NFC avant WinAnsi ; libelleSur (donc cliNet : nom, contact, adresse, accès, e-mail, téléphone) normalise en NFC. PDF de facture lu à l'image : « Café Chère été Leä » avec ses accents.",
+  "2_graphemes": "écouteurs globaux beforeinput (texte inséré coupé par graphèmes à la place restante, événements de confiance seulement) et input (recoupe + retrait d'une moitié de drapeau/paire orpheline) sur tout champ à maxlength (le maxlength reste, plafond de sécurité). Reprise : la coupe native par saisie à méthode de saisie laissait 119 unités et une moitié de drapeau ; corrigé (seuil m - 1).",
+  "3_invisibles": "INVISIBLES : une ligne d'accès faite seulement de U+00AD, U+034F, U+061C, U+115F/1160, U+17B4/5, U+180B-F, U+200B-F, U+2060-206F, U+3164, U+FE00-F, U+FEFF, U+FFA0 ne compte plus (NEL U+0085 est traité comme contrôle).",
+  "4_controles": "libelleSur : tout signe de contrôle C0/DEL/C1 devient une espace avant la réduction des blancs (« Code\\u0007portail » → « Code portail ») ; en tête/fin il disparaît par trim.",
+  "5_dix_champs": "mesurés à l'exécution (collage de 400 signes puis enregistrement) AVANT correction"
+ },
+ "dix_champs_avant": {
+  "n-titre": "illimité (400 enregistrés, aucun maxlength)",
+  "m-titre": "illimité (400)",
+  "tk-t": "illimité (400)",
+  "pr-nom": "illimité (400)",
+  "dvn-objet": "illimité (400)",
+  "ml-o": "illimité (400)",
+  "pa-lib": "illimité (400)",
+  "t-nom": "illimité (400)",
+  "eq-p": "refuse déjà (« 60 signes au plus. ») mais sans maxlength",
+  "eq-n": "refuse déjà (« 60 signes au plus. ») mais sans maxlength"
+ },
+ "dix_champs_apres": {
+  "n-titre": "maxlength 120 + refus avec phrase (« Ce qu’il faut faire »), rien d'enregistré",
+  "m-titre": "maxlength 120 + refus avec phrase",
+  "tk-t": "maxlength 120 + refus avec phrase",
+  "pr-nom": "maxlength 80 + refus (« Nom de l’article »)",
+  "dvn-objet": "maxlength 120 + refus (« Objet du devis »)",
+  "ml-o": "maxlength 200 + refus (« Objet »)",
+  "pa-lib": "maxlength 60 + refus (« Libellé »)",
+  "t-nom": "maxlength 40 + refus (« Nom du type »)",
+  "eq-p": "maxlength 60 ajouté (les deux formulaires d'invitation) ; refus existant gardé",
+  "eq-n": "maxlength 60 ajouté ; refus existant gardé"
+ },
+ "compta": {
+  "cadre": "7 onglets (Pilotage, Ventes, Achats, Paie, Trésorerie, Fiscal & comptable, Conformité), 117 boutons joués, 6 champs de texte frappés (3 recherches + sous-vues, objet et message de l'envoi), 4 validations dont 3 ont changé les données, 4 charges retrouvées échappées à l'écran, 0 exécution, 0 balise, 0 puits ; 2 boutons qui sortent de l'application nommés et non joués (« Ouvrir dans la Comptabilité », onglet « Matériel & produits »). Planchers de son cadre : 7 onglets, ≥ 40 boutons, ≥ 5 champs, ≥ 1 validation changeant les données, ≥ 3 charges.",
+  "sonde": "scratchpad/proto-final/sondes/restes-securite-tour5-compta.js",
+  "resultat": "12 ✓ · 0 ✗",
+  "constat": "le recontrôle du tour 4 ne voyait que 2 champs (les recherches) car il ne rejouait que l'onglet Pilotage et ne passait pas par l'étape qui fait apparaître « Envoyer › »"
+ },
+ "sondes": {
+  "tour5": "193 ✓ · 0 ✗ (sections pdf, graph, ctrl, invis, dix)",
+  "tour5_compta": "12 ✓ · 0 ✗",
+  "garde": "33 ✓ · 0 ✗",
+  "tour3": "27 ✓",
+  "tour3_recontrole": "160 ✓",
+  "tour4": "132 ✓",
+  "tour4_recontrole_a": "39 ✓",
+  "tour4_recontrole_b": "168 ✓",
+  "tour4_recontrole_c": "24 ✓",
+  "tour4_recontrole_d": "26 ✓",
+  "tour4_recontrole_pdf": "17 ✓",
+  "tour4_titre": "60 ✓",
+  "tour1_recontrole": "10 ✓",
+  "tour2_captures": "15 ✓",
+  "tour2_recontrole": "95 ✓ · 0 ✗ après correction de C2 (plafond compté en signes)",
+  "tour4_recontrole_pdf2": "7 ✓ · 1 ✗ : « long · PDF : le nom entier est écrit » — ARTEFACT de pdftotext -layout (le nom s'entrelace avec la colonne voisine), identique sur la version d'avant (4a86f52b) : pas causé par le tour 5"
+ },
+ "tests": {
+  "835": "844 ✓",
+  "836": "307 ✓",
+  "837": "122 ✓",
+  "1008": "54 ✓",
+  "2994": "15 ✓",
+  "verifier-syntaxe": "41 pages, 0 en erreur",
+  "compiler-pages": "5 pages/modules compilés",
+  "verif-secrets": "code 0"
+ },
+ "mutations": {
+  "script": "scratchpad/proto-final/mutations-restes-securite-tour5.py",
+  "jouees": 21,
+  "tombent": 21,
+  "details": "M1a,M1b (NFC) ; M2a,M2b,M2c,M2d,M2e (graphèmes) ; M3a,M3b,M3c (invisibles) ; M4a,M4b (contrôles) ; M5a,M5b,M5c,M5d,M5e,M5f,M5g,M5h,M5i (dix champs) : toutes tombent, git diff --stat apercu/ vide après chaque restauration.",
+  "survivantes_corrigees": "M2c et M2d ne tombaient pas au premier passage : la sonde n'exerçait pas le repli sur input (saisie par méthode de saisie) ; en la rejouant par CDP elle a révélé un vrai défaut (coupe à 119 unités, moitié de drapeau gardée), corrigé. M5d visait le formulaire d'invitation MORT (le premier est écrasé par le second) : retargetée sur le formulaire vivant."
+ },
+ "captures": "10 PNG (5 appareils émulés × jour/nuit) du refus d'un titre de 125 signes, toutes regardées : /tmp/claude-0/t5/cap/ ; PDF de facture NFC : /tmp/claude-0/t5/facture-nfc-1.png",
+ "nouveaux": [],
+ "casses": [],
+ "doutes": [
+  "Safari/Firefox non joués : beforeinput.data / dataTransfer sur textarea et Intl.Segmenter (absent des vieux Safari : repli par points de code, un drapeau compte alors double) ; la méthode de saisie est émulée par CDP (Chromium), pas sur un vrai clavier iOS/Android.",
+  "Les plafonds choisis pour les dix champs sont des décisions de mesure (120/120/120/80/120/200/60/40/60/60) : aucune valeur de la démonstration ne les dépasse, mais un client réel avec un titre plus long verrait le refus.",
+  "Le cadre Documents → application (opdClientRecu) n'est pas rejoué ; le plafond d'accès et les invisibles n'y sont mesurés que par cliNet.",
+  "La sonde compta n'a pas de mutations propres (le point 6 n'en demandait pas).",
+  "Dans eq-p/eq-n et le comptable, la saisie d'un envoi (ml-o) est plafonnée à 200 : les objets pré-remplis des documents ne dépassent pas ce chiffre dans la démonstration."
+ ]
+}

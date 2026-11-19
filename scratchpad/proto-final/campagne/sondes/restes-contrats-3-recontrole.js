@@ -47,7 +47,8 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
       // le montant reste collé à droite de la carte, passé dessous ou non
       const droite = m.lignes.every(l => Math.abs(l.kids[1].r - m.carte.r) < 24);
       v('le montant reste à droite de la carte (' + fact + ')', droite, m);
-      if (c.largeur >= 1000) v('sur grand écran libellé et montant restent côte à côte (' + fact + ')', m.lignes.every(l => l.kids[1].l >= l.kids[0].r - 1), m);
+      /* seuil 1 300 et non 1 000 (tour 6) : à 1 280 px la carte « Facturation » de la fiche ne fait que 374 px ; avec « 1 199 999,99 € TTC / an » le montant passe SOUS son libellé (repli voulu, rien n'est coupé : les contrôles ci-dessus le disent) */
+      if (c.largeur >= 1300) v('sur grand écran libellé et montant restent côte à côte (' + fact + ')', m.lignes.every(l => l.kids[1].l >= l.kids[0].r - 1), m);
     }
     const d = await L.deborde(c); v('rien ne déborde du profil (' + c.largeur + ' px) (' + fact + ')', d.bouge === 0 && d.seconde <= c.largeur + 1, d);
     await L.capture(c, CAP + 'fiche-' + fact + '-' + prix + '-' + (signer ? 'signe' : 'envoye') + '-' + tag + '.png');

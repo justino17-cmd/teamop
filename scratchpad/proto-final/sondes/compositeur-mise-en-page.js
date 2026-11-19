@@ -21,6 +21,8 @@ const aides = f => f.evaluate(() => { const vis = e => e.getBoundingClientRect()
     if (e.tagName === 'TEXTAREA') { e.value = pl; const trop = e.scrollHeight > e.clientHeight + 1; e.value = ''; if (trop) coupes.push((e.id || e.name) + ' (textarea) « ' + pl.slice(0, 40) + ' »'); }
     else { cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; const dispo = e.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), w = cv.measureText(pl).width; if (w > dispo + 0.5) coupes.push((e.id || e.name) + ' « ' + pl.slice(0, 40) + ' » ' + Math.round(w) + ' > ' + Math.round(dispo)); } }
   return { n, coupes }; });
+// Depuis la typographie française (ccc43ce2, caf59f09), l'étiquette dit « 100\u00a0% » : espace insécable avant « % ». On compare le TEXTE lu, espaces insécables ramenés à une espace.
+const sp = t => String(t).replace(/[\u00a0\u202f]/g, ' ');
 (async () => {
   const c = await L.ouvrir({ profil: pr, nuit, qui: 'marc' }), p = c.p, W = c.largeur, une = W < 1032; console.log('── ' + tag + (une ? ' (une colonne)' : ' (deux colonnes)'));
   const devis = async () => { await L.aller(p, 'devis'); const f = await A.ouvrirAtelier(c, 'devis', null); await L.calme(p, 1000);
@@ -51,7 +53,7 @@ const aides = f => f.evaluate(() => { const vis = e => e.getBoundingClientRect()
   if (une) {
     f = await devis(); await clic(c, f, '[data-vv="grand"]'); await L.calme(p, 600); let g = await page(f);
     v(`${tag} · l'aperçu s'ouvre sur « 100 % » : le texte du document est rendu à ${g && g.fs} px (≥ 11 px, jamais ~5 px)`, g && g.fs >= 11 && g.ech >= .95, g);
-    if (W < 600) v(`${tag} · le réglage « 100 % » est celui qui est coché à l'ouverture (${g && g.zoom.join(' ')})`, g && g.zoom.some(z => /^100 %\*$/.test(z)), g && g.zoom);
+    if (W < 600) v(`${tag} · le réglage « 100 % » est celui qui est coché à l'ouverture (${g && g.zoom.join(' ')})`, g && g.zoom.some(z => /^100 %\*$/.test(sp(z))), g && g.zoom);
     const note = await f.evaluate(() => { const n = document.querySelector('.vv-grand-n'); return n ? { texte: n.textContent, visible: n.getBoundingClientRect().height > 0 } : null; });
     v(`${tag} · ${W < 600 ? 'la page dépasse l\'écran : une phrase dit comment lire (« Fais glisser… »)' : 'la page tient : la phrase « Fais glisser… » ne s\'affiche pas'}`, note && (W < 600 ? note.visible && /Fais glisser/.test(note.texte) : !note.visible), note);
     await L.capture(c, CAP + tag + '-apercu-100.png');
@@ -74,7 +76,7 @@ const aides = f => f.evaluate(() => { const vis = e => e.getBoundingClientRect()
     await p.setViewportSize({ width: 1180, height: 820 }); await L.calme(p, 1000); let g = await col();
     v(`${tag} · paysage 1180, aperçu plein écran resté ouvert : la colonne a SA page à l'échelle posée (--vs="${g && g.vs}", page ${g && g.w} px, zone ${g && g.zone})`, g && g.vs !== '' && g.w >= 480, g);
     if (await f.locator('[data-vv="grand-x"]:visible').count()) await clic(c, f, '[data-vv="grand-x"]'); await L.calme(p, 600); g = await col();
-    v(`${tag} · après « Fermer » : la page de la colonne fait au moins 480 px (${g && g.w}) et le réglage dit la même taille que la page (${g && g.etiquette.join(' ')} pour ${g && Math.round(g.ech * 100)} %)`, g && g.w >= 480 && g.etiquette.every(t => t === 'Ajuster · ' + Math.round(g.ech * 100) + ' %'), g);
+    v(`${tag} · après « Fermer » : la page de la colonne fait au moins 480 px (${g && g.w}) et le réglage dit la même taille que la page (${g && g.etiquette.join(' ')} pour ${g && Math.round(g.ech * 100)} %)`, g && g.w >= 480 && g.etiquette.every(t => sp(t) === 'Ajuster · ' + Math.round(g.ech * 100) + ' %'), g);
     await p.setViewportSize({ width: 1440, height: 900 }); await L.calme(p, 900); g = await col();
     v(`${tag} · 1440 : la page fait au moins 620 px (${g && g.w})`, g && g.w >= 620, g);
     await p.setViewportSize({ width: 820, height: 1180 }); await L.calme(p, 900); await clic(c, f, '[data-vv="grand"]'); await L.calme(p, 500); await p.setViewportSize({ width: 1440, height: 900 }); await L.calme(p, 900);

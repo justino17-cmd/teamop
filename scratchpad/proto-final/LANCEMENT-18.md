@@ -130,3 +130,14 @@ Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2
 - Véhicules : la tuile « dépensés en octobre » sans l'assurance répartie ; le mot « manque à bord ».
 - Matériel : l'unité « u ».
 - Regard gérant b (sœur 17) : 3 points à soumettre dans final/regard-gerant-b.json.
+
+## Vague 4 (rejeu final) — lancée le 19/11 à 01 h 38 UTC
+- Sans attente : 1 session_01PfEEAFDCAmUbjzi2SnWX26 · 6 session_01PfEEAGqhuTjjQDb9ExESEd · 13 session_01PfEEAEjWYVSZPxTggCwt3w.
+- 9 : tour 3 Retour relancé (points 2, 3 et doutes tranchés par la règle « Retour ferme la couche du dessus »).
+- À lancer dès que leurs fenêtres finissent : 2 (après 24), 3 (après 26, 38, 9), 4 (après 22), 5 (après 33, 29, 34).
+- Finies à 01 h 36 UTC : 25, 37, 15, 12, 18, 30, 19, 28, 10, 16, 11, 31, 32, 7, 14, 23, 8, 35, 36, 27, S1, S2, S3.
+- 02 h 06 UTC : finies aussi 29 (compta cohérence, recontrôle 0 casse) et 26 (vehtemps tour 3). 38 relancée en tour 5 (NFC des PDF, maxlength par graphèmes, lignes invisibles, signes de contrôle → espace, 10 champs libres, planchers du rôle compta).
+- À joindre au lancement du rejeu 3 : R4 (retour système < 700 ms après un clic d'ancre rouvre Aujourd'hui au lieu de Mois, TT.sys) et la plage « Du 28 sept. au 25 oct. » pour des semaines non contiguës (les nommer une à une). Au rejeu 4 : tableau du cadre compta à ~60 % sur iPad/iPhone.
+- 02 h 35 UTC : 22 (contrats tour 6) finie → rejeu 4 lancé : session_01PfEEAGAawCn6o7gibCJPbb (avec « Prix à indiquer » et tableau du cadre). 34 relancée en tour 7 (marque de refus consommée par un autre geste ; phrase qui recouvre Terminer). 33 relancée en tour 4 (ligne symétrique Archivés, message selon le droit, déconnexion qui demande avant, dictée par mot entier, fil au nom actuel).
+- 03 h 48 UTC : 24 (entreprise tour 6) finie → rejeu 2 lancé : session_01PfEEAFd8agwFFg8GegAZ2c (avec le créneau d'un absent et le toast « Voir au planning »). 33 en tour 5 (apostrophes de la dictée, nom long au téléphone), 9 en tour 4 (aperçu PDF, panneau du cadre). 13 relancée : restée à l'arrêt 2 h après un `nohup &` (le système ne la réveillait pas) ; rappel envoyé à 1, 4, 6.
+- 03 h 55 UTC : 33 (clients tour 5) finie. À joindre au rejeu 5 : (1) faux amis de 3 lettres dans la dictée (« bar », « sas », « sci », « épi ») — 3 signes seulement si le nom n'a pas de mot plus long, formes juridiques dans les génériques, un faux ami dans la sonde ; (2) nom d'un seul mot de 54 signes qui élargit 11 vues au téléphone (overflow-wrap:anywhere + min-width:0 partout où s'écrit un nom de client) ; (3) la dictée choisit le client au plus grand nombre de mots reconnus, nom entier d'abord, jamais le premier venu.

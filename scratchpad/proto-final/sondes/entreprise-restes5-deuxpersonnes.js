@@ -42,7 +42,7 @@ async function jouer(nom, qui2, appareil, nuit) {
   v(`${nom} : B (sans la case Planning) ne retire aucune option d'A (${r.av} → ${r.apB})`, r.apB === 3, r);
   v(`${nom} : le toast de B dit que les options restent, jamais « libérées »`, /restent au planning/.test(r.toastB) && !/sont libérées/.test(r.toastB), r.toastB);
   v(`${nom} : B ouvre bien la création de l'intervention (son geste n'est pas bloqué)`, r.creaB === true, r);
-  v(`${nom} : contre-épreuve, A (avec la case Planning) confirme : les trois options partent (${r.apB} → ${r.apA}) et le toast le dit`, r.apA === 0 && /options sont libérées/.test(r.toastA), r.toastA);
+  v(`${nom} : contre-épreuve, A (avec la case Planning) confirme : les deux AUTRES options partent (${r.apB} → ${r.apA}) et le toast le dit ; celle du créneau choisi attend la création (tour 6)`, r.apA === 1 && /options sont libérées/.test(r.toastA), r.toastA);
   await L.fin(c);
 }
 (async () => {

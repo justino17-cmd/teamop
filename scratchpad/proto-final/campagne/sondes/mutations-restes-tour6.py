@@ -3,7 +3,7 @@ import subprocess, sys
 P = 'apercu/prototype-op-gestion.html'
 S = 'scratchpad/proto-final/campagne/sondes/'
 MUT = [
- ('Terminer ne vide plus la saisie / ne s\'arrête plus sur un refus', "ACTIONS.terminer = function(b){ if (!releveFlush()) return;", "ACTIONS.terminer = function(b){ releveFlush();", 'interventions-restes-tour6-adverse.js'),
+ ('ACTIONS.terminer ne s\'arrête plus sur un refus', "ACTIONS.terminer = function(b){ if (!releveFlush()) return;", "ACTIONS.terminer = function(b){ releveFlush();", 'interventions-restes-tour6-adverse.js'),
  ('le clic ne s\'arrête plus sur un refus (arrêt du clic)', "&& b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); }", "&& b.dataset.action === 'terminer') { }", 'interventions-restes-tour6-adverse.js'),
  ('la marque de refus n\'est plus relue au Terminer', "if (ok && releveRefuse()) ok = false; return ok;", "return ok;", 'interventions-restes-tour6-adverse.js'),
  ('champ non touché validé quand même (écriture sans geste)', "if (t.value === av) return true;", "", 'interventions-restes-tour5-adverse-ecrit.js'),

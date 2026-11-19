@@ -34,6 +34,9 @@ exports.doigtsReel = (p, zone) => p.evaluate(z => {
     if (!ok(cx, cy)) { out.push(nom + ' (recouvert au centre)'); continue; }
     let g = 0, d = 0, h = 0, b = 0; while (g < 40 && ok(cx - g - 1, cy)) g++; while (d < 40 && ok(cx + d + 1, cy)) d++; while (h < 40 && ok(cx, cy - h - 1)) h++; while (b < 40 && ok(cx, cy + b + 1)) b++;
     const w = g + d + 1, ht = h + b + 1;
+    // DÉCIDÉ (campagne/technicien-corrections.json, technicien-09) : une colonne de grille (jour du calendrier, mois des soldes) ne peut pas faire 44 px de large — sept colonnes sur 284 px —,
+    // « le doigt a la hauteur ». On n'écarte donc que ces trois familles, et seulement si la HAUTEUR répond (≥ 44) ; leur nombre se lit dans window.__doigtsGrille (population, jamais un zéro muet).
+    if (w < 43.5 && ht >= 43.5 && e.matches('.ac-x, .acm-x, .as-m')) { window.__doigtsGrille = (window.__doigtsGrille || 0) + 1; continue; }
     if (w < 43.5 || ht < 43.5) { const k = nom + ' ' + w + '×' + ht; if (!vus.has(k)) { vus.add(k); out.push(k); } }
   }
   return out.slice(0, 30); }, zone);

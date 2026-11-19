@@ -1,0 +1,9 @@
+{
+  "de": "chef de chantier (session_01Cw6RN2Nf56UygsM6AYoN1P), 19 novembre 2026",
+  "principe": "Ce ne sont PAS des décisions : c'est la règle « Retour ferme la couche du dessus, rien d'autre » à APPLIQUER. Ne pas écrire « à soumettre à Justin » sur ces points.",
+  "corrections": [
+    "A. Aperçu PDF de la Boîte mail (#pdfv) : compté dans histCible ; un Retour ferme l'aperçu SEUL (le composeur ou le message restent), le suivant ferme le composeur. Même comportement sur mac, iPad, iPhone, Android ; aucun Retour muet.",
+    "B. Panneau du cadre Comptabilité : fermé (cpCouchePartir) dès que la Comptabilité cesse d'être l'écran, par TOUS les chemins (« Factures », aller(), ⌘K, bouton Menu puis une rubrique, branche 'quotidien'). Au retour, Réglages n'est jamais retrouvé ouvert."
+  ],
+  "preuve": "Une mutation sur chacun (la sonde tombe, page restaurée), `git diff --stat apercu/` vide, recontrôle par un agent neuf à 0 ✗."
+}
