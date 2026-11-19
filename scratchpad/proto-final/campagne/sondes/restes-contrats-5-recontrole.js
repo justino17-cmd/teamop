@@ -65,7 +65,7 @@ const nbsp = s => String(s).replace(/[\s  ]+/g, ' ').trim();
     console.log('  ·', tag, '→', refus ? 'REFUSÉ' : 'accepté ' + k.prix, '|', r.art.slice(0, 40), '|', r.aide.slice(0, 50));
     v(tag + ' : aucun « NaN », « ∞ » ni « undefined » dans l’article 4 ni dans l’aide', !/NaN|∞|undefined/.test(r.art + ' ' + r.aide), r);
     v(tag + ' : l’aperçu vaut 0,00 € si et seulement si la création refuse', nul === refus, { art: r.art.slice(0, 50), refus });
-    if (refus) { nbRef++; v(tag + ' : refusé → le champ le dit (au moins 1 € ou trop grand)', /au moins 1 €|trop grand/.test(r.aide), r.aide); }
+    if (refus) { nbRef++; v(tag + ' : refusé → le champ le dit (la vraie raison)', /au moins 1 €|trop grand|ne se lit pas|Indique le prix/.test(r.aide), r.aide); }
     else { nbOk++; const ht = nbsp(r.art).split(' € HT')[0].replace(/ /g, '').replace(',', '.'); v(tag + ' : accepté → HT de l’aperçu = prix rangé', Math.abs(Number(ht) - k.prix) < 0.006, { ht, prix: k.prix }); }
   }
   v('(B) population : au moins 8 saisies acceptées et 15 refusées', nbOk >= 8 && nbRef >= 15, { nbOk, nbRef });
@@ -93,7 +93,7 @@ const nbsp = s => String(s).replace(/[\s  ]+/g, ' ').trim();
     const r = await d.p.evaluate(() => ({ h1: (document.querySelector('#contenu h1') || {}).textContent, hash: location.hash, kp: document.querySelectorAll('#contenu .kpis .kpi').length, page: document.documentElement.scrollWidth }));
     if (qui === 'julie') { v('(E) julie : la liste des Contrats s’ouvre avec ses quatre compteurs', r.h1 === 'Contrats' && r.kp === 4, r); await d.p.evaluate(() => aller('contrat-nouveau')); await L.calme(d.p, 300);
       await d.p.fill('[data-b="prix"]', '1e999'); await d.p.dispatchEvent('[data-b="prix"]', 'change'); await L.calme(d.p, 250);
-      const aj = await d.p.evaluate(() => (document.querySelector('[data-b="prix"]').parentElement.querySelector('.faible') || {}).textContent); v('(E) julie : l’aperçu refuse « 1e999 » et le dit', /trop grand/.test(aj || ''), aj); }
+      const aj = await d.p.evaluate(() => (document.querySelector('[data-b="prix"]').parentElement.querySelector('.faible') || {}).textContent); v('(E) julie : l’aperçu refuse « 1e999 » et le dit', /ne se lit pas|trop grand/.test(aj || ''), aj); }
     else v('(E) ' + qui + ' : pas la rubrique Contrats (elle arrive ailleurs, comme décidé)', r.h1 !== 'Contrats', r);
     v('(E) ' + qui + ' : la page ne déborde pas', r.page <= L.PROFILS[profil].w + 1, r.page);
     v('(E) ' + qui + ' : aucune erreur de page', !(d.err && d.err.length), d.err); await L.fin(d);

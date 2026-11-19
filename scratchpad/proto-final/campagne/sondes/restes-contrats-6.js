@@ -30,6 +30,21 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
       if (!/trop bas/.test(String(phrase))) v(t + ' : « au moins 1 € » n’est dit que pour un prix trop bas', !/au moins 1 €/.test(r.toast + champ.aide), r.toast + ' | ' + champ.aide);
     }
   }
+  // la liste des Contrats (seuil du tableau à 920 px de carte) : « Cabinet dentaire Martin » sur UNE ligne aux largeurs d'ordinateur serrées, noms de 66 signes non coupés, rien ne déborde
+  if (!c.doigt) for (const libre of [0, 1]) {
+    if (libre) await p.evaluate(() => { Object.keys(CLIENTS).forEach(i => { CLIENTS[i].nom = 'Syndicat des copropriétaires de la résidence Les Hauts de la Rochelle'; }); CONTRATS.forEach(k => { k.titre = 'Entretien annuel des climatisations de la résidence · bâtiment A, B, C et D · cage 12'; }); });
+    for (const w of [1090, 1176, 1200, 1230, 1260, 1366, 1440]) {
+      await p.setViewportSize({ width: w, height: 900 }); await L.aller(p, 'accueil'); await L.aller(p, 'contrats'); await L.calme(p, 450);
+      const r = await p.evaluate(() => { const car = document.querySelector('#contenu .ctr-liste'), th = [...car.querySelectorAll('thead th')].map(h => Math.round(h.getBoundingClientRect().width));
+        const lg = [...car.querySelectorAll('tbody tr')].map(tr => { const b = tr.querySelector('td:nth-child(2) > b'); return Math.round(b.getBoundingClientRect().height / (parseFloat(getComputedStyle(b).lineHeight) || 16)); });
+        return { carte: Math.round(car.getBoundingClientRect().width), cartes: th.slice(2).every(x => x === 0), lg, defil: car.scrollWidth - car.clientWidth, page: document.documentElement.scrollWidth }; });
+      const tag = 'liste ' + (libre ? 'noms de 66 signes ' : 'données de départ ') + w;
+      v(tag + ' : population (3 lignes au moins)', r.lg.length >= 3, r.lg.length);
+      if (r.carte <= 920) v(tag + ' : en cartes sous 920 px de carte (' + r.carte + ')', r.cartes, r);
+      if (!libre && w <= 1230) v(tag + ' : « Cabinet dentaire Martin » sur une seule ligne', r.lg.every(n => n === 1), r.lg);
+      v(tag + ' : rien ne déborde', r.defil <= 1 && r.page <= w + 1, r);
+    }
+  }
   // le prix change de modèle : un prix tapé en « 12 € » n'est pas écrasé par le modèle (il se lit)
   await O.neuf(c, 'contrat-nouveau'); await p.fill('[data-b="prix"]', '12 €'); await p.dispatchEvent('[data-b="prix"]', 'change'); await L.calme(p, 250);
   const mods = await p.evaluate(() => [...document.querySelectorAll('[data-b="modele"] option')].map(o => o.value));
