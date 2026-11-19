@@ -108,6 +108,7 @@ const FORMES = [
   const hits = await p.evaluate(() => (window.top.__hits || []).slice()), puits = await p.evaluate(() => (window.top.__puits || []).slice());
   const sorties = [...trouves.values()], lib = id => legende[id] || id;
   console.log(`  · formulaires ouverts : ${ouvertures} (${formulaires.size} distincts) · champs de texte remplis : ${champsRemplis} · validations : ${valides} · données changées : ${changes} · refusées : ${refusees} · charges retrouvées à l'écran : ${vus.size} · puits : ${puits.length}`);
+  if (formulaires.size <= 12) [...formulaires.values()].forEach(f => console.log('  FORMULAIRE', JSON.stringify(f)));   /* un rôle au cadre étroit : on NOMME ses formulaires (tour 5, rôle compta) */
   sorties.slice(0, 20).forEach(s => console.log('  SORTIE', s.sorte, '←', lib(s.champ), '· écran :', s.ou.slice(0, 110)));
   const parPile = new Map(); puits.forEach(x => { const k = x.k + ' ◂ ' + x.pile; if (!parPile.has(k)) parPile.set(k, []); parPile.get(k).push(lib(x.tok)); });
   [...parPile.entries()].slice(0, 20).forEach(([k, v]) => console.log('  PUITS', k.slice(0, 230), '←', [...new Set(v)].slice(0, 3).join(' | ')));

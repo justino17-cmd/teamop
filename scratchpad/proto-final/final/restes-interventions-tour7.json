@@ -1,0 +1,30 @@
+[
+ {
+  "nom": "interventions",
+  "defaut": "Refus d'un relevé, puis clic sur un autre bouton à data-action (ex. suppression de photo), puis Terminer : la fiche partait quand même (la marque data-refuse était consommée par l'autre clic, et le redessin de la fiche la perdait aussi)",
+  "etat": "corrigé",
+  "changement": "La marque ne se consomme qu'au geste qui termine (ACTIONS.terminer, visitefin, rgSaisieOk, clic Terminer) : releveFlush(consomme)/releveRefuse(consomme) ; un autre bouton ne l'efface plus. Le refus vit aussi en mémoire (RELEVE_REFUS, clé fiche|relevé) : la garde ne dépend plus du seul attribut du champ, perdu au redessin ; effacé à la frappe suivante ou à une saisie acceptée.",
+  "preuve": "interventions-restes-tour6-recontrole.js : 1 ✗ -> 0 ✗ (43 ✓) ; 14 passages. Mutations (mutations-restes-tour7.py) : retour à l'ancienne consommation tombe (1c) ; mémoire non relue tombe (1c) ; page restaurée, git diff --stat apercu/ vide après chacune."
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Petit téléphone (320x568) : la phrase de refus (4 lignes) recouvrait la moitié basse du bouton Terminer",
+  "etat": "corrigé",
+  "changement": "@media (max-width:760px) et (max-height:620px) : bulle en 13,5 px, interligne 1,35, marges réduites (3 lignes) ; la phrase reste la même.",
+  "preuve": "nouvelle sonde interventions-restes-tour7-recouvrement.js (centre du bouton non couvert, bulle qui mord au plus un quart du bouton, bouton visible et calé en bas) : 7 profils x jour/nuit = 14 passages, 0 ✗ ; avant : petit 1 ✗ (bulle 347-460 sur bouton 315-367). Capture tour7-recouvrement-visible-petit.png relue : la bulle touche à peine le bas de la carte, le bouton est libre. Mutation (media vidée) tombe."
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Rejeu des sondes de relevé après correctif",
+  "etat": "corrigé",
+  "changement": "aucun changement supplémentaire",
+  "preuve": "tour7-recouvrement, tour6-recontrole, tour6-adverse, tour5-frappe, tour5-adverse, tour5-adverse-ecrit, tour5-toast, interventions-recontrole : 7 profils x jour/nuit, 112 passages, 0 ✗ partout (interventions-recontrole 133 ✓)"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Doutes : plafonds 1200 °C, « 1.200 », point/virgule (12.5), « 1,234.5 », casse 4 (20 chiffres), durée « 1 h 30 »",
+  "etat": "à soumettre à Justin",
+  "changement": "non touchés, comme demandé",
+  "preuve": "voir restes-interventions-tour6-recontrole.json, section doutes"
+ }
+]
