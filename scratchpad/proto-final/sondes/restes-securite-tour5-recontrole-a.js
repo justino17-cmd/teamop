@@ -84,7 +84,7 @@ const OUT = process.env.SORTIE || '/tmp/claude-0/t5r/'; fs.mkdirSync(OUT, { recu
   // ───── A4 : méthode de saisie : Hangul décomposé, composition qui change, Backspace dans la composition ─────
   const cdp = await p.context().newCDPSession(p);
   await p.evaluate(([s]) => { const e = document.querySelector(s); e.focus(); e.value = ''; }, [SEL]);
-  const HG = 'ᄒ' + 'ᅡ' + 'ᆫ';  // jamo décomposés → 한
+  const HG = '\u1112\u1161\u11ab';  // jamo décomposés → 한
   await cdp.send('Input.imeSetComposition', { text: 'ᄒ', selectionStart: 1, selectionEnd: 1 }); await cdp.send('Input.imeSetComposition', { text: '하', selectionStart: 1, selectionEnd: 1 }); await cdp.send('Input.insertText', { text: '한' }); await pause(100);
   l = await lire(SEL); v('A4 IME : composition ᄒ → 하 → 한 validée : « 한 » (1 signe)', l.v === '한' && l.g === 1, [JSON.stringify(l.v), l.g]);
   await cdp.send('Input.insertText', { text: HG.repeat(3) }); await pause(100); l = await lire(SEL);
@@ -97,7 +97,7 @@ const OUT = process.env.SORTIE || '/tmp/claude-0/t5r/'; fs.mkdirSync(OUT, { recu
   v('A4 IME : 2 drapeaux à 2 places libres : au plus 120 signes, aucun demi-drapeau', l.g <= 120 && !/(?<![\u{1F1E6}-\u{1F1FF}])[\u{1F1E6}-\u{1F1FF}](?![\u{1F1E6}-\u{1F1FF}])/u.test(l.v) && !/�/.test(l.v), [l.g, JSON.stringify(l.v.slice(-10))]);
 
   // ───── A5 : caractères spéciaux en limite : keycap, peaux, ZWJ, é décomposé, Å, œ ─────
-  const ESS = [['keycap 1️⃣', '1️⃣'], ['peau 👍🏽', '👍🏽'], ['famille', '👨‍👩‍👧‍👦'], ['é décomposé', 'é'], ['a + grave décomposé', 'à'], ['tréma ï décomposé', 'ï'], ['cédille ç décomposé', 'ç'], ['œ', 'œ'], ['drapeau', '🇫🇷'], ['drapeau écosse', '🏴󠁧󠁢󠁳󠁣󠁴󠁿']];
+  const D = x => x.normalize('NFD'); const ESS = [['keycap 1️⃣', '1️⃣'], ['peau 👍🏽', '👍🏽'], ['famille', '👨‍👩‍👧‍👦'], ['é décomposé', D('é')], ['a + grave décomposé', D('à')], ['tréma ï décomposé', D('ï')], ['cédille ç décomposé', D('ç')], ['œ', 'œ'], ['drapeau', '🇫🇷'], ['drapeau écosse', '🏴󠁧󠁢󠁳󠁣󠁴󠁿']];
   for (const [n, s] of ESS) {
     // juste assez de place (1 signe) : entier ou absent ; jamais coupé
     await p.evaluate(([sel, b]) => { const e = document.querySelector(sel); e.focus(); e.value = b.slice(0, 119); e.setSelectionRange(119, 119); }, [SEL, base]);
