@@ -14,7 +14,7 @@ for nom, a, b, sonde, *pf in MUT:
     if s.count(a) != 1: print('✗ ancre introuvable ou multiple :', nom, s.count(a)); continue
     open(P, 'w', encoding='utf-8').write(s.replace(a, b))
     d = subprocess.run(['git', 'diff', '--stat', P], capture_output=True, text=True).stdout.strip().splitlines()[-1:]
-    try: r = subprocess.run(['node', S + sonde, 'mac'], capture_output=True, text=True, timeout=200); sortie = r.stdout.splitlines()[-1:] ; code = r.returncode
+    try: r = subprocess.run(['node', S + sonde, prof], capture_output=True, text=True, timeout=200); sortie = r.stdout.splitlines()[-1:] ; code = r.returncode
     except subprocess.TimeoutExpired: sortie, code = ['délai'], 9
     subprocess.run(['git', 'checkout', P], check=True)
     ok = subprocess.run(['git', 'diff', '--quiet', P]).returncode == 0
