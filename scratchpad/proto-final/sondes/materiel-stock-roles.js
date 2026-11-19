@@ -20,7 +20,7 @@ const L = require('../lib.js');
   // ── Julie
   { const c = await L.ouvrir({ profil:'mac', qui:'julie' }), p = c.p;
     const menu = await p.evaluate(() => document.getElementById('menu').innerText);
-    v('Julie : le menu a un groupe « Matériel » avec Stock et Fournisseurs, matériel & produits, SANS Dépôts et camions', /Matériel/i.test(menu) && /Stock/.test(menu) && /Fournisseurs, matériel & produits/.test(NB(menu)) && !/Dépôts et camions/.test(menu), NB(menu).replace(/\s+/g, ' ').slice(0, 200));
+    v('Julie : le menu a un groupe « Matériel » avec Stock et Fournisseurs, matériel & produits, ET Dépôts et camions (équipe-11, MENU-FINAL.md : « Voir » décide SEULE, le Secrétariat (stock 1110) voit donc Dépôts et camions)', /Matériel/i.test(menu) && /Stock/.test(menu) && /Fournisseurs, matériel & produits/.test(NB(menu)) && /Dépôts et camions/.test(menu), NB(menu).replace(/\s+/g, ' ').slice(0, 200));
     await L.aller(p, 'stock');
     v('Julie : Stock s\'ouvre avec ses articles', await p.evaluate(() => document.querySelectorAll('.ms-l').length) >= 20);
     if (!(await p.evaluate(() => !!document.querySelector('.ms-l')))) { v('Julie : sans la page Stock, le reste du parcours est impossible', false); await L.fin(c); } else {
@@ -35,8 +35,8 @@ const L = require('../lib.js');
     await p.evaluate(() => document.querySelector('[data-ms^="fprixo|"]').click()); await p.waitForTimeout(200);
     const pv = await p.evaluate(() => { const e = document.querySelector('[data-msf="pv"]'); return e ? e.disabled : null; });
     v('Julie : le prix de VENTE n\'est pas modifiable (champ grisé, avec sa raison)', pv === true && /gérant/.test(await p.evaluate(() => document.querySelector('#calque').innerText)), pv);
-    await p.evaluate(() => { fermerPanneau(); location.hash = '#boxes'; }); await p.waitForTimeout(700);
-    v('Julie : #boxes (Dépôts et camions) ramène sur son écran d\'ouverture (la route est refusée)', await p.evaluate(() => route !== 'boxes'), await p.evaluate(() => route));
+    await p.evaluate(() => { fermerPanneau(); }); await L.aller(p, 'boxes'); await p.waitForTimeout(300);
+    v('Julie : #boxes (Dépôts et camions) s\'ouvre (la route n\'est plus refusée : « Voir » décide seule)', await p.evaluate(() => route === 'boxes' && !!document.querySelector('.md-c')), await p.evaluate(() => route));
     await L.aller(p, 'produits'); await p.waitForTimeout(300);
     v('Julie : « Fournisseurs, matériel & produits » s\'ouvre', await p.evaluate(() => /Fournisseurs, matériel/.test((document.querySelector('#contenu h1') || {}).textContent || '')));
     v('Julie : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); } }
