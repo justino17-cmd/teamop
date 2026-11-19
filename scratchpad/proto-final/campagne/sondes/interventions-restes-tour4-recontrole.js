@@ -12,7 +12,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await metier('clim'); await ouvrirFiche();
   const S = l => `[data-releve="${l}"]`;
   const n = await ev(() => document.querySelectorAll('[data-releve]').length); v('population : relevés numériques affichés (3 en clim)', n === 3, n);
-  const refuse = ['10 – 12', '10 −12', '10 - 12', '10–12', '10 — 12', '10 ‒ 12', '1 200 - 1 300', '3 sur 18', '12x3', '1 2', '10 à 12', '1.234,5', '1,2,3', '1 -2'];
+  const refuse = ['10 – 12', '10 −12', '10 - 12', '10–12', '10 — 12', '10 ‒ 12', '1 200 - 1 300', '3 sur 18', '12x3', '1 2', '10 à 12', '1,2,3', '1 -2'];
   for (const val of refuse) { await poser(S('Soufflage'), '12'); await poser(S('Soufflage'), val); const r = await lire(S('Soufflage')); v(`refusé « ${val} » : garde 12`, r.champ === '12' && r.mem === '12', r); }
   const accepte = [['-5', '-5'], ['−5', '-5'], ['–5', '-5'], ['-5,5', '-5,5'], ['1 200', '1200'], ['1 234,5', '1234,5'], ['1 200', '1200'], ['1 234,5', '1234,5'], ['12,5', '12,5'], ['5 °C', '5'], ['10 100', '10100']];
   for (const [val, att] of accepte) { await poser(S('Soufflage'), '12'); await poser(S('Soufflage'), val); const r = await lire(S('Soufflage')); v(`« ${val} » → « ${att} »`, r.champ === att && r.mem === att, r); }

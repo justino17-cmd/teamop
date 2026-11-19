@@ -25,7 +25,7 @@ const O = require('./accueil-outils.js'), L = O.L, v = L.v;
   await L.toucher(c, '[data-hexport="1"]'); await p.waitForTimeout(700); const ex = await calque();
   const nEx = (ex.match(/(\d+) actions?/) || [])[1];
   v('2 · l’export de l’Historique filtré annonce le même nombre d’actions que l’écran', !!n && n === nEx, { ecran: n, export: nEx, extrait: ex.slice(0, 220) });
-  v('2 · l’export dit le filtre (« Factures et paiements »)', /Factures et paiements/.test(ex), ex.slice(0, 220)); await L.ranger(p);
+  v('2 · l’export dit le filtre (« Factures », le nom des puces du 18 novembre)', /filtré à l’écran : Factures/.test(ex), ex.slice(0, 220)); await L.ranger(p);
 
   // 3. deux touchers sur « ＋ À faire »
   await p.evaluate("stPer='mois'; stK=ST_FIN;"); await L.aller(p, 'statistiques');
