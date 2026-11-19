@@ -17,6 +17,11 @@ M = [
  ('T6 : le toast compte l\'option du créneau parmi celles d\'un collègue (une personne seule lit « options tenues »)', PAGE, "optMail === m.cren.orig && !mmeCren(o)).length;", "optMail === m.cren.orig).length;", 'restes-entreprise-tour6-creneau.js'),
  ('T7 : l\'identité du créneau n\'est pas posée sur la création', PAGE, "CREA.optCren = { mail:m.cren.orig, t:c.t, d:c.d, h:c.h };", "", 'restes-entreprise-tour6-creneau.js'),
  ('T8 : l\'option est retirée AVANT la photo d\'Annuler (Annuler ne la rend plus)', PAGE, "const mm = CREA.mail && mlDe(CREA.mail); pile.push(", "if (CREA.optCren) { const oc = CREA.optCren; for (let q = BUREAU.length - 1; q >= 0; q--) { const o = BUREAU[q]; if (o.option && o.optMail === oc.mail && o.tech === oc.t && o.d === oc.d && o.h === oc.h) BUREAU.splice(q, 1); } } const mm = CREA.mail && mlDe(CREA.mail); pile.push(", 'restes-entreprise-tour6-creneau.js'),
+
+ ('D1 : sondes réparées — la garde « droit que tu n\'as pas » du profil retirée', PAGE, "if (moi && !droitAdmin(moi) && DR_CATS.some(([c]) => ['c', 'm', 's'].some(x => PROFILS[pk].cats[c][x] && !peut(c, x, moi)))) {", "if (false) {", 'droits-restauration.js'),
+ ('D2 : la case Supprimer de Clients perd son geste (archiver un client)', PAGE, "m:'changer un client, ses coordonnées, ses notes', s:'archiver un client' }", "m:'changer un client, ses coordonnées, ses notes' }", 'droits-fiche.js'),
+ ('D3 : un MutationObserver des droits s\'abonne', PAGE, "new MutationObserver(() => docBarres())", "new MutationObserver(() => { docBarres(); if (typeof droitsMaj === 'function') droitsMaj(); })", 'droits-fabrication-css.js'),
+ ('D4 : créer un client n\'est plus gardé (clientNouveau retiré de la case Créer de Clients)', PAGE, " clientNouveau@crm", "", 'droits-gestes-reels.js'),
 ]
 de = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 a = int(sys.argv[2]) if len(sys.argv) > 2 else len(M)
