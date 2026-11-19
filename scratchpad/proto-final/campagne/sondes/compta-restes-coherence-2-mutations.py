@@ -11,15 +11,17 @@ MUT = [
  ('1c le reçu repris à la facture n\'est plus contrepassé (compté deux fois)', CADRE, "!e.contrePar && e.etat !== 'supprimee' && !voulus.has(e.recuSP)", "!e.contrePar && e.etat !== 'supprimee' && false"),
  ('1d le moyen de paiement du reçu est ignoré (toujours la caisse)', CADRE, "const tres = { carte:'467100', chq:'511200', esp:'530000', vir:'512000' }[mode], j = { carte:'PS', chq:'BQ', esp:'CA', vir:'BQ' }[mode];", "const tres = '530000', j = 'CA';"),
  ('1e le reçu est compté en chiffre d\'affaires au lieu d\'un acompte (706000)', CADRE, "['419100', null, 0, ht, 'Acompte reçu · '", "['706000', null, 0, ht, 'Acompte reçu · '"),
+ ('1f un chèque reçu sur place entre dans 512000 au lieu de 511200 (3e tour : survivait à 26 ✓)', CADRE, "chq:'511200', esp:'530000', vir:'512000' }[mode], j =", "chq:'512000', esp:'530000', vir:'512000' }[mode], j ="),
+ ('1g la ligne de relevé d\'un virement n\'est plus retirée quand le reçu change (3e tour : survivait à 26 ✓)', CADRE, "const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (k >= 0) { RELEVE.splice(k, 1);", "const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (false) { RELEVE.splice(k, 1);"),
  ('2a le solde négatif ne se dit jamais crédit', CADRE, "const credit = !!T && T.credit > 0 && !(T.due > 0),", "const credit = false,"),
  ('2b l\'écran TVA garde « À payer à l\'État » pour un crédit', CADRE, "<div class=\"tot\"><span>${Z.mot}</span>", "<div class=\"tot\"><span>À payer à l’État</span>"),
  ('2c la tuile VIVANTE de l\'accueil garde « TVA d\'octobre » pour un crédit', CADRE, "${kpi('tva', tvaZ.mois, tvaZ.eur,", "${kpi('tva', 'TVA d’octobre', tvaZ.eur,"),
- ('2d la TVA arrêtée dit « à payer » pour un crédit', CADRE, "${tvaDit(T).credit ? 'Crédit de ' + tvaDit(T).eur + ' (l’État te doit cette somme)' : tvaDit(T).eur + ' à payer'}", "${tvaDit(T).eur + ' à payer'}"),
+ ('2d la TVA arrêtée dit « à payer » pour un crédit', CADRE, "${tvaDit(T).credit ? 'Crédit de ' + tvaDit(T).eur + ' (reporté sur ta prochaine déclaration)' : tvaDit(T).eur + ' à payer'}", "${tvaDit(T).eur + ' à payer'}"),
  ('2e un solde à PAYER se dit « crédit » (contre-épreuve)', CADRE, "const credit = !!T && T.credit > 0 && !(T.due > 0),", "const credit = true,"),
  ('3a la liste « À faire » promet de nouveau les heures d\'OP GESTION', CADRE, "opcSi('Les fiches se calculent avec les heures validées dans OP GESTION.', 'Les fiches se calculent en fin de mois, avec les heures, les absences et les primes d’octobre.')", "'Les fiches se calculent avec les heures validées dans OP GESTION.'"),
  ('3b la fiche de paie promet de nouveau les heures d\'OP GESTION', CADRE, "opcSi('Calculée toute seule avec les heures validées dans OP GESTION.', 'Calculée toute seule avec les heures, les absences et les primes d’octobre.')", "'Calculée toute seule avec les heures validées dans OP GESTION.'"),
  ('3c la rubrique Paie promet de nouveau les heures d\'OP GESTION', CADRE, "opcSi('Les heures pointées et validées dans OP GESTION deviennent les fiches de paie. ', 'Les heures, les absences et les primes du mois deviennent les fiches de paie. ')", "'Les heures pointées et validées dans OP GESTION deviennent les fiches de paie. '"),
- ('3d « Heures du mois reçues d\'OP GESTION » revient', CADRE, "[opcSi('Heures du mois reçues d’OP GESTION', 'Heures du mois'), true,", "['Heures du mois reçues d’OP GESTION', true,"),
+ ('3d « Heures du mois reçues d\'OP GESTION » revient', CADRE, "[opcSi('Heures du mois reçues d’OP GESTION', 'Heures du mois saisies'), true,", "['Heures du mois reçues d’OP GESTION', true,"),
 ]
 def h(p): return hashlib.sha256(open(p, 'rb').read()).hexdigest()
 avant = {n: h(os.path.join(R, 'apercu', n)) for n in os.listdir(os.path.join(R, 'apercu')) if n.endswith('.html')}

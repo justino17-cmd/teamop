@@ -33,7 +33,7 @@ require('fs').mkdirSync(CAP, { recursive: true });
   const lire = async s => { await L.aller(p, 'contrat-nouveau'); await L.calme(p, 250); await p.fill('[data-b="prix"]', s); await p.dispatchEvent('[data-b="prix"]', 'change'); await L.calme(p, 300);
     return p.evaluate(() => { const h = [...document.querySelectorAll('#contenu h6')].find(x => /Prix et facturation/.test(x.textContent)), ch = document.querySelector('[data-b="prix"]').parentElement.querySelector('.faible');
       return { art: h ? h.nextElementSibling.textContent.replace(/[\s  ]+/g, ' ').trim() : '', aide: ch ? ch.textContent.replace(/[\s  ]+/g, ' ').trim() : '' }; }); };
-  for (const [s, aide] of [['1e999', /trop grand/], ['-5', /au moins 1 €/], ['1234567890123', /trop grand/], ['0,5', /au moins 1 €/], ['abc', /au moins 1 €/], ['', /au moins 1 €/]]) {
+  for (const [s, aide] of [['1e999', /ne se lit pas/], ['-5', /ne se lit pas/], ['1234567890123', /trop grand/], ['0,5', /trop bas.*au moins 1 €/], ['abc', /ne se lit pas/], ['', /Indique le prix/]]   /* tour 6 : chaque refus dit sa VRAIE raison (règle commune des montants) */) {
     const r = await lire(s); console.log('  ·', JSON.stringify(s), '→', r.art.slice(0, 60), '|', r.aide);
     v('(2) ' + JSON.stringify(s) + ' : l’article 4 écrit « 0,00 € HT par an, soit 0,00 € TTC »', /^0,00 € HT par an, soit 0,00 € TTC/.test(r.art), r.art);
     v('(2) ' + JSON.stringify(s) + ' : le champ dit pourquoi', aide.test(r.aide), r.aide);

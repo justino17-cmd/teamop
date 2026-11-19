@@ -33,6 +33,11 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
     t = await ch('prix', k, String(pu0).replace('.', ',')); r = (await lg())[k];
     L.v(nom + ' : retaper le même montant est aussi refusé, avec une phrase juste (pas « fais un avoir »)', r.pu === pu0 && /acompte se reprend/.test(t) && !/avoir/.test(t), t);
   }
+  // une ligne d'acompte DÉJÀ vidée (prix null, état hérité) reste reconnue par son drapeau : « 50 » ne la fait pas passer en +50 €
+  await p.evaluate(k => { const f = FACTURES.find(x => x.id === 'fx-r6'); f.lignes[k].pu = null; rendre(); }, kA); await L.calme(p, 300);
+  { const t = await ch('prix', kA, '50'), r = (await lg())[kA];
+    L.v('acompte au prix vidé (drapeau seul) : « 50 » refusé, la ligne ne devient pas +50 €', !(r.pu > 0) && /acompte se reprend/.test(t), r.pu + ' · ' + t); }
+  await p.evaluate(k => { const f = FACTURES.find(x => x.id === 'fx-r6'); f.lignes[k].pu = -50; rendre(); }, kA); await L.calme(p, 300);
   L.v('le Total HT n’a pas bougé après ces huit essais', (await ht()) === h0, (await ht()) + ' / ' + h0);
   // 2. unités inconnues
   const uni = [['3 forfaits', 1], ['250 mL', 1], ['2 kg', 1], ['5 m', 1], ['3 jours', 1]];

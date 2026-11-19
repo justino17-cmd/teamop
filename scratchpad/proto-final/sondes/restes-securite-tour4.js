@@ -9,6 +9,8 @@
 // Population comptée à chaque série. ⛔ 127.0.0.1 seulement. « N ✓ · M ✗ », sortie 1 si un contrôle tombe.
 const L = require('../lib.js'), fs = require('fs'), path = require('path');
 const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname, '../../..'), 'apercu/prototype-op-gestion.html'), 'utf8');
+// Réglages pour les MUTATIONS (une tranche à la fois, plus vite) : SECTIONS=formes,acces,champs,coupe (tout par défaut) ; FORMES=0,2 (les formulaires joués, tous par défaut)
+const SECTIONS = (process.env.SECTIONS || 'formes,acces,champs,coupe').split(','), FORMES = process.env.FORMES ? process.env.FORMES.split(',').map(Number) : [0, 1, 2, 3, 4];
 (async () => {
   const c = await L.ouvrir({ profil: 'petit', nuit: false, qui: 'marc', attente: 1500 }), p = c.p;
   p.on('dialog', d => d.accept().catch(() => {}));
@@ -51,7 +53,7 @@ const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname,
   const valeursOk = () => p.evaluate(() => ({ nom: window.__u(120, 'N'), contact: window.__u(120, 'C'), tel: window.__tel(), mail: window.__mail(120), adr: window.__u(160, 'A') }));
   let champsVus = 0, refusOk = 0;
 
-  for (const F of FORMS) {
+  if (SECTIONS.includes('formes')) for (const F of FORMS.filter((_, i) => FORMES.includes(i))) {
     // population : les cinq champs sont là
     await F.ouvrir();
     const la = await p.evaluate(sel => Object.fromEntries(Object.entries(sel).map(([k, s]) => [k, !!document.querySelector(s)])), F.sel);
@@ -92,11 +94,11 @@ const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname,
     }
     await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} try { fermerCreation(); } catch (e) {} });
   }
-  quand('population : 25 champs de formulaire frappés (5 formulaires × 5)', champsVus === 25, champsVus);
-  quand('population : 20 refus attendus (5 formulaires × 4 champs) tous dits avec leur phrase', refusOk === 20, refusOk);
+  if (SECTIONS.includes('formes')) { quand('population : ' + 5 * FORMES.length + ' champs de formulaire frappés (' + FORMES.length + ' formulaire(s) × 5)', champsVus === 5 * FORMES.length, champsVus);
+    quand('population : ' + 4 * FORMES.length + ' refus attendus (' + FORMES.length + ' formulaire(s) × 4 champs) tous dits avec leur phrase', refusOk === 4 * FORMES.length, refusOk); }
 
   // ───────────────────────── 1. consignes d'accès : frappe réelle de trois lignes ─────────────────────────
-  {
+  if (SECTIONS.includes('acces')) {
     const F = FORMS[0]; await F.ouvrir();
     const ta = await p.evaluate(() => { const e = document.querySelector('[data-ci="acces"]'); return e ? { tag: e.tagName, max: e.getAttribute('maxlength') } : null; });
     quand('population : « Consignes d’accès » est un textarea à maxlength 200', !!ta && ta.tag === 'TEXTAREA' && ta.max === '200', ta);
@@ -136,7 +138,7 @@ const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname,
   }
 
   // ───────────────────────── 3. les champs sans maxlength ─────────────────────────
-  {
+  if (SECTIONS.includes('champs')) {
     const attr = (sel, max) => p.evaluate(([s, m]) => { const e = document.querySelector(s); return e ? e.getAttribute('maxlength') === String(m) : null; }, [sel, max]);
     const tape = async (sel, max) => { await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.value = ''; }, sel); await p.keyboard.insertText('y'.repeat(max + 200)); return p.evaluate(s => document.querySelector(s).value.length, sel); };
     const essai = async (nom, sel, max, ouvrir, valider, etat, libelle, preparer) => {
@@ -188,7 +190,7 @@ const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname,
   }
 
   // ───────────────────────── 5. coupeSure par graphèmes ─────────────────────────
-  {
+  if (SECTIONS.includes('coupe')) {
     const r = await p.evaluate(() => {
       const orph = t => /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(t) || /(?:^|[^\u{1F1E6}-\u{1F1FF}])[\u{1F1E6}-\u{1F1FF}](?![\u{1F1E6}-\u{1F1FF}])/u.test(t);
       const flag = '🇫🇷', fam = '👨‍👩‍👧‍👦', peau = '👍🏽', dec = 'é';
@@ -215,7 +217,7 @@ const SRC = fs.readFileSync(path.join(process.env.RACINE || path.join(__dirname,
   quand('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   // la source : une seule règle de plafond pour les cinq formulaires
   const appels = (SRC.match(/clientPlafondRefus\(/g) || []).length;
-  quand('une seule fonction de contrôle : clientPlafondRefus est appelée par les cinq formulaires (fiche, devis, intervention, client seul, xylophage)', appels >= 6, appels);
+  if (SECTIONS.length === 4) quand('une seule fonction de contrôle : clientPlafondRefus est appelée par les cinq formulaires (fiche, devis, intervention, client seul, xylophage)', appels >= 6, appels);
   await L.fermer(c);
   process.exit(L.bilan());
 })().catch(e => { console.error(e); process.exit(2); });
