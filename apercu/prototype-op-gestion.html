@@ -239,6 +239,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (pointer:coarse){#toast button{min-height:44px;min-width:44px}}   /* equipe-10 : « Annuler » mesurait 90 × 40 au doigt */
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
+  @media (max-height:620px){#toast{font-size:13.5px;line-height:1.35;padding:8px 12px 8px 14px;border-radius:14px}}   /* petit téléphone (320 x 568) : la phrase de refus d'un relevé, à quatre lignes, couvrait la moitié basse du bouton Terminer ; trois lignes plus serrées tiennent sous lui */
   body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
@@ -5246,7 +5247,7 @@ function panneauModifier(id){
   const i = INTS.find(o => o.id === id);
   ouvrirPanneau(`<h2>Modifier l’intervention</h2>
   <label class="champ">Client<select id="m-cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || k === i.cli).map(([k,c])=>`<option value="${k}" ${k===i.cli?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
-  <label class="champ">Ce qu’il faut faire<input id="m-titre" value="${esc(i.titre)}"></label>
+  <label class="champ">Ce qu’il faut faire<input id="m-titre" maxlength="120" value="${esc(i.titre)}"></label>
   <label class="champ">Type<select id="m-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option ${x===i.type?'selected':''}>${x}</option>`).join('')}</select></label>
   ${champsQuand(i.tech, i.d, i.h, i.dur)}
   <label class="champ">Ce que le client a dit<textarea id="m-motif">${esc(i.motif||'')}</textarea></label>
@@ -5260,7 +5261,7 @@ function panneauDate(id){
 function panneauCreer(tid, d, h){
   ouvrirPanneau(`<h2>Nouvelle intervention</h2>
   <label class="champ">Client<select id="n-cli">${Object.entries(CLIENTS).filter(([, c]) => !c.archive).map(([k,c])=>`<option value="${k}">${esc(c.nom)}</option>`).join('')}</select></label>
-  <label class="champ">Ce qu’il faut faire<input id="n-titre" placeholder="ex. entretien climatisation"></label>
+  <label class="champ">Ce qu’il faut faire<input id="n-titre" maxlength="120" placeholder="ex. entretien climatisation"></label>
   <label class="champ">Type<select id="n-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option>${x}</option>`).join('')}</select></label>
   ${champsQuand(tid ?? '', d || plRef, h || '09:00', 60)}
   <label class="champ">Ce que le client a dit (le technicien le lira)<textarea id="n-motif" placeholder="ex. la clim fait du bruit depuis ce matin"></textarea></label>
@@ -6172,6 +6173,8 @@ const WIN = { '€':128, '‚':130, 'ƒ':131, '„':132, '…':133, '†':134, '
 const TRANSLIT = { '▲':'+', '▼':'-', 'ᵉ':'e', 'ʳ':'r', '✓':'', '✕':'', '·':'·', ' ':' ', ' ':' ', ' ':' ', '−':'-', '→':'->', '←':'<-', '≈':'~', '×':'x' };
 function pdfOctets(txt){ // une chaîne en WinAnsi, échappée pour un flux PDF
   let o = '';
+  /* NFC d'abord : un « é » décomposé (e + U+0301) perdait son accent (le signe combinant n'a pas d'octet WinAnsi) — composé avant, il devient l'octet de « é » */
+  txt = String(txt == null ? '' : txt).normalize('NFC');
   for (const ch of txt) {
     let c = TRANSLIT[ch] !== undefined ? TRANSLIT[ch] : ch;
     for (const x of c) { const k = x.charCodeAt(0), w = WIN[x] || (k < 256 ? k : 0); if (!w) continue;
@@ -6247,7 +6250,7 @@ function panneauEnvoi(o){
   const pj = o.pj ? `<div class="mail-pj"><span class="mail-pj-i">PDF</span><span><b>${esc(o.pj)}</b><small>joint au message</small></span></div>` : '';
   ouvrirPanneau(`<h2>${esc(o.titre || 'Envoyer par e-mail')}</h2><span class="gris">Le message part de l’adresse de ${ENTREPRISE.nom} (${ENTREPRISE.mail}).</span>
     <label class="champ">À<input id="ml-a" type="email" value="${esc(o.a || '')}" placeholder="adresse@exemple.fr"></label>
-    <label class="champ">Objet<input id="ml-o" value="${esc(o.objet || '')}"></label>
+    <label class="champ">Objet<input id="ml-o" maxlength="200" value="${esc(o.objet || '')}"></label>
     <label class="champ">Message<textarea id="ml-m" rows="9">${esc(o.corps || '')}</textarea></label>
     ${pj}
     <div class="actions"><button type="button" class="btn" data-mailenvoi="1">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, o.large);
@@ -6258,6 +6261,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.mailenvoi) {
     const a = document.getElementById('ml-a').value.trim(), o = panneauEnvoi.courant || {};
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
+    { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { document.getElementById('ml-o').focus(); return toast(pl); } }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
     ENVOIS.push({ a, objet:document.getElementById('ml-o').value, quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
     toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
@@ -7184,7 +7188,7 @@ function tPanneau(x){
   x = x || { t:'', qui:(tQui !== 'tous' ? tQui : 'marc'), d:AUJ, h:null, urgent:false, rep:null, lien:null, note:'' };
   const raccourcis = [['Demain', 1], ['Lundi', ((8 - new Date(AUJ + 'T12:00:00').getDay()) % 7) || 7], ['Dans une semaine', 7]];
   ouvrirPanneau(`<h2>${neuf ? 'Nouvelle tâche' : 'Modifier la tâche'}</h2>
-    <label class="champ">Quoi<input id="tk-t" value="${esc(x.t)}" placeholder="ex. rappeler M. Durand"></label>
+    <label class="champ">Quoi<input id="tk-t" maxlength="120" value="${esc(x.t)}" placeholder="ex. rappeler M. Durand"></label>
     <div class="deux-champs"><label class="champ">Pour qui<select id="tk-qui">${T_GENS.map(k => `<option value="${k}" ${x.qui === k ? 'selected' : ''}>${tNom(k)}</option>`).join('')}</select></label>
       <label class="champ">Répéter<select id="tk-rep"><option value="">Jamais</option><option value="semaine" ${x.rep === 'semaine' ? 'selected' : ''}>Chaque semaine</option><option value="mois" ${x.rep === 'mois' ? 'selected' : ''}>Chaque mois</option></select></label></div>
     <div class="deux-champs"><label class="champ">Pour quand<input id="tk-d" type="date" value="${x.d || ''}"></label><label class="champ">Heure (facultatif)<input id="tk-h" type="time" step="300" value="${x.h || ''}"></label></div>
@@ -7235,7 +7239,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tlien) { const x = TACHES.find(o => o.id === b.dataset.tlien); if (x && x.lien) { fermerPanneau(); apercuElement(x.lien.t, x.lien.id); } return; }
   if (b.dataset.tracc !== undefined) { const i = document.getElementById('tk-d'); i.value = b.dataset.tracc; i.dispatchEvent(new Event('change', { bubbles:true })); if (typeof dtPeindre === 'function') dtPeindre(i); document.querySelectorAll('[data-tracc]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if (b.dataset.tok !== undefined) {
-    const t = document.getElementById('tk-t').value.trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
+    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('tk-t').focus(); return toast(pl); } } const t = document.getElementById('tk-t').value.trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
     const v = { t, qui:document.getElementById('tk-qui').value, d:document.getElementById('tk-d').value || null, h:document.getElementById('tk-h').value || null, urgent:document.getElementById('tk-u').checked, cat:document.getElementById('tk-cat').value, rep:document.getElementById('tk-rep').value || null, note:document.getElementById('tk-n').value.trim() };
     const pieces = [...document.querySelectorAll('.t-piece')].map(r => ({ nom:r.querySelector('.tp-nom').value.trim(), ref:r.querySelector('.tp-ref').value.trim(), q:tpQte(r.querySelector('.tp-q').value) })).filter(pc => pc.nom);
     /* une quantité qu'on ne sait pas lire est refusée avec une phrase : un champ « number » avalait la virgule (« 1,5 » devenait 15 pièces) et l'ancienne lecture devinait 1 pour tout le reste */
@@ -8563,7 +8567,7 @@ function dvNouveau(){
       <div class="deux-champs"><label class="champ">${f.type === 'pro' ? 'Raison sociale' : 'Nom'}<input id="dvn-nom" maxlength="120" value="${esc(f.nom)}" autocomplete="off"></label><label class="champ">${f.type === 'pro' ? 'Contact (prénom, nom)' : 'Prénom'}<input id="dvn-prenom" maxlength="120" value="${esc(f.prenom)}" autocomplete="off"></label>
       <label class="champ">Téléphone<input id="dvn-tel" type="tel" maxlength="60" value="${esc(f.tel)}"></label><label class="champ">E-mail<input id="dvn-mail" type="email" maxlength="120" value="${esc(f.mail)}"></label></div>
       <label class="champ">Adresse des travaux<input id="dvn-adr" maxlength="160" value="${esc(f.adr)}" placeholder="n°, rue, code postal, ville"></label>`}
-    <label class="champ">Objet du devis<input id="dvn-objet" value="${esc(f.objet)}" placeholder="ex. Remplacement de la pompe de relevage"></label>
+    <label class="champ">Objet du devis<input id="dvn-objet" maxlength="120" value="${esc(f.objet)}" placeholder="ex. Remplacement de la pompe de relevage"></label>
     <div class="champ">Partir de<div class="dv-modeles">${DV_MODELES.map(([l], n) => `<button type="button" class="puce-c" data-dvn="modele|${n}" aria-pressed="${f.modele === n}">${esc(l)}</button>`).join('')}<button type="button" class="puce-c" data-dvn="modele|-1" aria-pressed="${f.modele === -1}">Page blanche</button></div></div>
     ${f.err ? `<div class="alerte">${esc(f.err)}</div>` : ''}
     <div class="actions"><button type="button" class="btn" data-dvn="creer|1">Préparer le devis</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`);
@@ -8578,7 +8582,7 @@ function dvnClientObj(f){ return { nom:f.type === 'pro' ? f.nom : [f.prenom, f.n
 function dvnCreer(){
   dvnLire(); const f = DVN_F; f.err = '';
   if (f.nv && !nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (f.nv && !f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
-  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (f.nv && clientPlafondRefus(dvnClientObj(f))) f.err = clientPlafondRefus(dvnClientObj(f)).m; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.';
+  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (f.nv && clientPlafondRefus(dvnClientObj(f))) f.err = clientPlafondRefus(dvnClientObj(f)).m; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.'; else if (refusLong(f.objet, 120, 'Objet du devis')) f.err = refusLong(f.objet, 120, 'Objet du devis');
   if (!f.err && f.nv && !f.doublonOk) { const dj = cfDoublonDe(f); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Préparer le devis » pour le créer quand même, ou choisis-le dans « Client existant ».'; } }
   if (f.err) return dvNouveau();
   let cli = f.cli;
@@ -9363,7 +9367,7 @@ const ACTIONS = {
     rendre(); toast('Remboursement noté : ' + eur(f.recu) + ' rendus à ' + CLIENTS[f.cli].nom + '.'); },
   nouvelleFacture(){ toast('Dans la vraie version : une facture à la main, sans intervention (vente de pièce, acompte…).'); },
   dateOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; fermerPanneau(); poser(i, q.tid, q.d, q.h, q.dur); },
-  creerOk(){ const q = lireQuand(), titre = document.getElementById('n-titre').value.trim() || 'Nouvelle intervention';
+  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('n-titre').focus(); return toast(pl); } } const q = lireQuand(), titre = document.getElementById('n-titre').value.trim() || 'Nouvelle intervention';
     if (refusAbsent(q.tid, q.d, q.h)) return;
     memo(); const i = { id:'n' + Math.random().toString(36).slice(2,8), d:q.d, h:q.h, dur:q.dur, tech:q.tid, cli:document.getElementById('n-cli').value, titre, type:document.getElementById('n-type').value, st:q.tid ? 'planifiee' : 'aplanifier', motif:document.getElementById('n-motif').value.trim() || undefined };
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
@@ -9475,7 +9479,7 @@ const ACTIONS = {
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st === 'annulee') return toast(ANNULEE_REFUS); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
   copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
-  modifierOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
+  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('m-titre').focus(); return toast(pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
 /* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
@@ -9655,26 +9659,31 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   const net = val.replace(/[^\d.,-]/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
   return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
 }
+const RELEVE_REFUS = {};   /* la marque de refus vit AUSSI en mémoire : supprimer une photo redessine la fiche et le champ perd son data-refuse, alors que le refus n'a pas été revu */
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
   const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
   if (t.value === av) return true;   /* champ pas touché : aucune écriture (un clic ailleurs ne fait pas passer releves de undefined à {…:''}) */
   const R = G.releves = G.releves || {}, r = releveLire(t.value);
-  if (r.refus) { t.value = av; t.dataset.refuse = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  if (r.refus) { t.value = av; t.dataset.refuse = ex; RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve] = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
   if (t.value !== r.val) t.value = r.val;
   if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
   else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
-  delete t.dataset.refuse; R[t.dataset.releve] = r.val; return true;
+  delete t.dataset.refuse; delete RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve]; R[t.dataset.releve] = r.val; return true;
 }
 /* le refus se joue au moment où le doigt quitte le champ (le clic sur « Terminer » le fait sortir AVANT que le clic n'arrive) : la marque « refuse » le retient jusqu'au geste qui finit la fiche, qui s'arrête et redit la phrase ; elle s'efface dès qu'on retape */
-function releveRefuse(){ const t = document.querySelector('input[data-releve][data-refuse]'); if (!t) return false; toast('Un seul nombre ici : écris une seule mesure (ex. ' + t.dataset.refuse + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); return true; }
-function releveFlush(){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse()) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+function releveRefuse(consomme){   /* la fiche affichée porte-t-elle un refus pas encore dit ? (marque du champ OU mémoire, car une photo supprimée redessine la fiche) */
+  const ids = new Set([...document.querySelectorAll('input[data-releve]')].map(x => x.dataset.id)), cles = Object.keys(RELEVE_REFUS).filter(k => ids.has(k.split('|')[0]));
+  const t = document.querySelector('input[data-releve][data-refuse]'); if (!t && !cles.length) return false;
+  if (consomme === false) return true;   /* un autre bouton de la fiche ne consomme PAS la marque : seul le geste qui termine la dit et l'efface */
+  toast('Un seul nombre ici : écris une seule mesure (ex. ' + (t ? t.dataset.refuse : RELEVE_REFUS[cles[0]]) + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); cles.forEach(k => delete RELEVE_REFUS[k]); return true; }
+function releveFlush(consomme){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse(consomme)) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
-document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush() && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush(b.dataset.action === 'terminer') && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { delete t.dataset.refuse; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+  if (t.dataset.releve) { delete t.dataset.refuse; delete RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve]; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
     if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
@@ -9796,7 +9805,7 @@ function prFormulaire(x, pack, cat){
   ouvrirPanneau(`<h2>${x ? 'Modifier l’article' : 'Ajouter un article'}</h2>
     <div class="deux-champs pr-met"><label class="champ">Métier<select id="pr-pack" data-prpack="1">${[...PACKS_ENT, ...(PACKS_ENT.includes(k) ? [] : [k])].map(p => `<option value="${p}" ${p === k ? 'selected' : ''}>${esc(PACKS[p].nom.split(/ \/|,/)[0])}</option>`).join('')}</select></label>
       <label class="champ">Catégorie<select id="pr-cat">${cats.map(c => `<option value="${esc(c)}" ${c === (x ? x.cat : cat) ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label></div>
-    <label class="champ">Nom<input id="pr-nom" data-prnom="1" value="${esc(x ? x.nom : '')}" placeholder="Tape le nom : il se range tout seul" autocomplete="off"></label><div id="pr-sugg" class="pr-sugg" aria-live="polite"></div>
+    <label class="champ">Nom<input id="pr-nom" maxlength="80" data-prnom="1" value="${esc(x ? x.nom : '')}" placeholder="Tape le nom : il se range tout seul" autocomplete="off"></label><div id="pr-sugg" class="pr-sugg" aria-live="polite"></div>
     <div class="deux-champs"><label class="champ">Référence<input id="pr-ref" value="${esc(x ? x.ref : '')}"></label><label class="champ">Fournisseur<input id="pr-four" list="fo-dl" value="${esc(x ? x.four : '')}" autocomplete="off"><datalist id="fo-dl">${MES_FOURN.map(f => `<option value="${esc(f.nom)}">`).join('')}</datalist></label></div>
     <div class="trois-champs"><label class="champ">En stock<input id="pr-q" inputmode="decimal" value="${x ? prNum(x.q) : '0'}" ${x ? 'readonly aria-readonly="true" style="opacity:.7"' : ''}></label><label class="champ">Unité<input id="pr-u" data-pru="1" value="${esc(x ? x.u : 'u')}"></label><label class="champ">Alerte à<input id="pr-seuil" inputmode="decimal" value="${x ? prNum(x.seuil) : '0'}"></label></div>
     <div class="trois-champs"><label class="champ">Achat HT (€)<input id="pr-pa" inputmode="decimal" value="${x && x.pa ? prNum(x.pa) : ''}"></label><label class="champ">Vente HT (€)<input id="pr-pv" inputmode="decimal" value="${x && prVend(x) ? prNum(x.pv) : ''}" placeholder="vide = matériel"></label><label class="champ">TVA<select id="pr-tva">${[20, 10, 5.5].map(t => `<option value="${t}" ${(x ? x.tva : 20) == t ? 'selected' : ''}>${prNum(t)} %</option>`).join('')}</select></label></div>
@@ -9820,7 +9829,7 @@ document.addEventListener('click', ev => {
   if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
   if (a === 'retirer' || a === 'retirerok') { const o = PRODUITS.find(z => z.id === x); if (a === 'retirer' && (o.q > 0 || enCommande(o) > 0)) return prRetirerAvertir(o); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
     return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
-  if (a === 'garder') { const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
+  if (a === 'garder') { { const pl = refusLong(document.getElementById('pr-nom').value, 80, 'Nom de l’article'); if (pl) { document.getElementById('pr-nom').focus(); return toast(pl); } } const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
     const pv = prLire('pr-pv'), o = x ? PRODUITS.find(z => z.id === x) : { id:'p' + Date.now() }; o.ac = !!(o.ac && pv == null);
     Object.assign(o, { p:document.getElementById('pr-pack').value, cat:document.getElementById('pr-cat').value, nom, ref:document.getElementById('pr-ref').value.trim() || '—', four:document.getElementById('pr-four').value.trim() || '—',
       q:x ? o.q : (prLire('pr-q') || 0), u:uniteSure(document.getElementById('pr-u').value) || 'u', seuil:prLire('pr-seuil') || 0, pa:prLire('pr-pa'), pv:pv, tva:parseFloat(document.getElementById('pr-tva').value) });
@@ -10789,7 +10798,26 @@ const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Arra
 const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
-const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+/* un signe de CONTRÔLE (C0, DEL, C1) entre deux mots est une ESPACE, jamais rien : « Code\u0007portail » restait « Codeportail » ; en tête ou en fin, rogné il disparaît */
+const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[<>"`\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+/* LE MAXLENGTH DU NAVIGATEUR COMPTE DES UNITÉS UTF-16, L'UTILISATEUR DES SIGNES (tour 5) : collé, un drapeau (4 unités) était coupé en lettre régionale seule, et l'on enregistrait une moitié de drapeau.
+   Sur tout champ à maxlength, la coupe FINE se fait ici, à la frappe et au collage (événements de l'UTILISATEUR seulement : e.isTrusted) :
+   - beforeinput : le texte inséré est posé par nous, coupé par GRAPHÈMES à la place restante — le navigateur ne coupe plus au milieu d'un signe ;
+   - input (autre chemin : glisser, dictée, saisie automatique) : on recoupe par graphèmes et on retire une moitié orpheline laissée par la coupe du navigateur.
+   L'attribut maxlength RESTE (un plafond de sécurité : il borne déjà la frappe, et les contrôles de plafond le lisent) ; la valeur POSÉE PAR LE CODE n'est pas touchée : refusLong/clientPlafondRefus la refusent avec une phrase. */
+const maxChamp = e => { const m = e && e.getAttribute && parseInt(e.getAttribute('maxlength'), 10); return m > 0 && (e.tagName === 'TEXTAREA' || e.tagName === 'INPUT') ? m : 0; };
+const ri = ch => /^[\u{1F1E6}-\u{1F1FF}]$/u.test(ch);
+function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt(t.length - 1) >= 0xd800 && t.charCodeAt(t.length - 1) <= 0xdbff; if (lastHi) t = t.slice(0, -1);
+  const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
+document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText') return;
+  let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
+  if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
+  let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
+  const av = t.value.slice(0, a), ap = t.value.slice(b), place = m - nbSignes(av) - nbSignes(ap); if (place < 0) return;
+  const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
+  e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
+document.addEventListener('input', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
+  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m) v = sansOrphelin(v); if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
@@ -10803,7 +10831,9 @@ const NOM_MAX = 120;
 /* consignes d'accès : un champ MULTILIGNE (3 lignes au plus) — chaque ligne est nettoyée à part (blancs réduits), les lignes vides tombent, les sauts de ligne sont gardés
    (« 4821Sonner chez la gardienne » : le saut de ligne retiré sans être remplacé collait le code au mot suivant) */
 const ACCES_LIGNES = 3;
-const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(Boolean);
+/* INVISIBLE : espace de largeur nulle, lien, jonction de mots, trait d'union conditionnel, BOM, NEL… — une ligne qui n'en est faite ne COMPTE pas (5 lignes dont 2 invisibles = 3 lignes d'accès) ; au milieu d'une ligne ils restent (un ZWJ lie un émoji) */
+const INVISIBLES = /^[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\s]*$/;
+const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(l => l && !INVISIBLES.test(l));
 const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join('\n'), n || 200);
 /* cliNet(c) : la toilette ET, en dernier recours, la coupe au plafond ; cliNet(c, true) : la toilette SEULE, sans rien couper — c'est elle que lit clientPlafondRefus.
    Les formulaires refusent AVANT d'appeler cliNet : la coupe ne sert plus qu'aux clients venus du dehors (e-mail reçu, cadre Documents) */
@@ -10866,7 +10896,7 @@ function eqFiche(k){
 }
 function eqInviter(){
   ouvrirPanneau(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
-    <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" autocomplete="off"></label></div>
+    <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" maxlength="60" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" maxlength="60" autocomplete="off"></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
     <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
@@ -13506,7 +13536,7 @@ function paieReleve(k, remplace){
       <div class="carte"><h3>Heures corrigées · ${v.trace.length || 'aucune'}</h3>${v.trace.map(paieTraceLigne).join('') || '<span class="gris petit">Aucune heure de ce mois n’a été modifiée.</span>'}
         <span class="gris petit">Chaque correction garde l’heure d’avant, qui l’a faite, quand et pourquoi. Le salarié la voit sur son relevé.</span></div>
       <div class="carte"><h3>Primes et indemnités</h3>${v.primes.map((p, i) => `<div class="paie-sem"><span>${esc(p.lib)}</span><b>${eur(+p.m || 0)}</b>${verr ? '' : `<button type="button" class="lien" data-paie="primesuppr|${k}|${i}" aria-label="Retirer">Retirer</button>`}</div>`).join('') || '<span class="gris petit">Aucune ce mois-ci.</span>'}
-        ${verr ? '' : `<div class="paie-ajout"><label class="champ">Libellé<input id="pa-lib" placeholder="ex. Prime d’astreinte, indemnité de trajet"></label><label class="champ">Montant (€)<input id="pa-m" inputmode="decimal" placeholder="60,00"></label><button type="button" class="btn gris" data-paie="primeajout|${k}">Ajouter</button></div>`}</div>
+        ${verr ? '' : `<div class="paie-ajout"><label class="champ">Libellé<input id="pa-lib" maxlength="60" placeholder="ex. Prime d’astreinte, indemnité de trajet"></label><label class="champ">Montant (€)<input id="pa-m" inputmode="decimal" placeholder="60,00"></label><button type="button" class="btn gris" data-paie="primeajout|${k}">Ajouter</button></div>`}</div>
       <div class="carte"><h3>Frais à rembourser avec la paie</h3>${v.ndf.map(n => `<div class="paie-sem"><span>${esc(n.objet)}${n.sansJustif ? ' <span class="st st-o">sans ticket</span>' : ''}</span><b>${eur(n.ttc)}</b></div>`).join('') || '<span class="gris petit">Aucune note de frais validée.</span>'}
         ${v.ndf.length ? `<span class="gris petit">Remboursement de frais : hors salaire, il n’est pas soumis aux cotisations.</span>` : ''}</div>
     </div>
@@ -13573,7 +13603,7 @@ document.addEventListener('click', ev => {
     return ok(); }
   if (a === 'validertout') { const ptxAv = { ...PT_VALIDE }; let n = 0; const G = []; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { if (w.valide || !w.fini) return; if (w.alertes.some(o => o.g === 'r' || o.ouvert)) { G.push(`${paieNomPers(k).split(' ')[0]} (semaine du ${jCourt(w.L)})`); return; } PT_VALIDE[k + w.L] = true; n++; })); rendre();
     return toast(`${n} semaine${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}.${G.length ? ` À regarder d’abord, une alerte du Code du travail : ${G.join(', ')}. Ouvre leur relevé.` : ''}`, n ? ptxFinValidation(ptxAv, n) : undefined); }
-  if (a === 'primeajout') { const lib = document.getElementById('pa-lib').value.trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
+  if (a === 'primeajout') { { const pl = refusLong(document.getElementById('pa-lib').value, 60, 'Libellé'); if (pl) { document.getElementById('pa-lib').focus(); return toast(pl); } } const lib = document.getElementById('pa-lib').value.trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
   if (a === 'primesuppr') { (PAIE.primes[x] || []).splice(+y, 1); return ici(); }
   if (a === 'verrouiller') {
     const V = PT_GENS.map(paieVariables), E = paieEtapes(V);
@@ -14378,7 +14408,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && CREA && 
 function creaAvaleClic(){ const t0 = Date.now(), avale = e => { if (e.detail >= 2 && Date.now() - t0 < 800) { e.stopPropagation(); e.preventDefault(); } document.removeEventListener('click', avale, true); }; document.addEventListener('click', avale, true); setTimeout(() => document.removeEventListener('click', avale, true), 800); }
 const ACTIONS_CREA = {
   cFermer(){ fermerCreation(); },
-  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" placeholder="ex. Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions.</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
+  cAjoutType(){ ouvrirPanneau(`<h2>Ajouter un type</h2><label class="champ">Son nom<input id="t-nom" maxlength="40" placeholder="ex. Désembouage, Remise en service"></label><span class="faible mini">Il sera proposé pour toutes les prochaines interventions.</span><button type="button" class="btn large" data-action="cAjoutTypeOk">Ajouter</button>`); setTimeout(() => document.getElementById('t-nom')?.focus(), 50); },
   cPlusTot(){ for (const d of ouvres(10)) for (const t of TECHS.filter(x => x.id && (!CREA.secteurSeul || !secteurCrea() || SECT_TECH[x.id].includes(secteurCrea())))) { const p = plagesLibres(t.id, d).find(([a,z]) => z - a >= CREA.dur); if (p) { CREA.vue = 'jour'; CREA.jour = d; placerBrouillon(t.id, d, p[0]); rendre(); toast(`Premier créneau libre : ${esc(t.nom)} · ${jlong(d)} · ${hm(p[0])}`); return; } } toast('Aucun créneau libre sur les 10 prochains jours.'); },
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
@@ -14402,7 +14432,7 @@ const ACTIONS_CREA = {
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
     toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, !rlPermis('planning') ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
-  cAjoutTypeOk(){ const v = document.getElementById('t-nom').value.trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
+  cAjoutTypeOk(){ { const pl = refusLong(document.getElementById('t-nom').value, 40, 'Nom du type'); if (pl) { document.getElementById('t-nom').focus(); return toast(pl); } } const v = document.getElementById('t-nom').value.trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
 };
 
 /* ══ DATE ET HEURE — NOTRE SÉLECTEUR, PAS CELUI DU NAVIGATEUR ══
@@ -21645,7 +21675,7 @@ function eqxPlaceConfirmer(suite) {
 eqInviter = function () {
   if (eqxPlein()) return eqxPleinPanneau('inviter');
   eqxPan(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
-    <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off" aria-describedby="eq-p-err"><span class="erreur" id="eq-p-err" role="alert" hidden></span></label><label class="champ">Nom<input id="eq-n" autocomplete="off" aria-describedby="eq-n-err"><span class="erreur" id="eq-n-err" role="alert" hidden></span></label></div>
+    <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" maxlength="60" autocomplete="off" aria-describedby="eq-p-err"><span class="erreur" id="eq-p-err" role="alert" hidden></span></label><label class="champ">Nom<input id="eq-n" maxlength="60" autocomplete="off" aria-describedby="eq-n-err"><span class="erreur" id="eq-n-err" role="alert" hidden></span></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
     <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off" aria-describedby="eq-m-err"><span class="erreur" id="eq-m-err" role="alert" hidden></span></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off" aria-describedby="eq-r-err"><span class="erreur" id="eq-r-err" role="alert" hidden></span></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
@@ -21662,7 +21692,7 @@ function eqxRestes(k) {
   /* une semaine ne se valide qu'une fois FINIE (ttSemFinie) : « pas encore validé » n'est une alerte que pour la semaine d'AVANT, que l'administrateur peut valider ; la semaine en cours se dit à part, sans alerte */
   const ptGen = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k), L0 = lundi(AUJ), Lp = ajoute(L0, -7);
   /* TOUTES les semaines finies, pointées et non validées (celles d'avant la dernière comprises) : l'alerte dit la vérité et se résorbe quand on valide, une semaine après l'autre ; une semaine d'un mois verrouillé ne se valide plus, elle n'est donc pas comptée */
-  const pts = ptGen ? [...new Set(POINTAGES.filter(o => o.qui === k).map(o => lundi(o.date)))].filter(L => ttSemFinie(L) && !PT_VALIDE[k + L] && !ptxJours(L).every(d => paieMoisVerrou(d))).sort() : [];
+  const pts = ptGen ? [...new Set(POINTAGES.filter(o => o.qui === k).map(o => lundi(o.date)))].filter(L => ttSemFinie(L) && !PT_VALIDE[k + L] && !ptxJours(L).some(d => paieMoisVerrou(d))).sort() : [];
   const pt = pts.length ? pts : false;
   /* la ligne grise ne se dit que d'une personne qui a pointé cette semaine : pour un congé ou un arrivant elle ne dirait rien d'actionnable */
   const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0] && POINTAGES.some(o => o.qui === k && lundi(o.date) === L0);
