@@ -17,7 +17,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await prep('i1'); await prep('i2'); await I.devenir(c, 'sm', 'inter-x-i1');
   v('A population : le relevé Soufflage et Terminer existent, mémoire vide', (await p.locator(S).count()) === 1 && (await p.locator('[data-action="terminer"]').count()) >= 1 && (await memoire()).length === 0, await memoire());
   await frappe('10-12'); v('A1 le refus est gardé en mémoire (i1|Soufflage)', (await memoire()).includes('i1|Soufflage'), await memoire());
-  await I.devenir(c, 'sm', 'inter-x-i2'); v('A1 changer de fiche (aller) vide la mémoire du refus', (await memoire()).length === 0, await memoire());
+  await L.aller(p, 'inter-x-i2'); await L.calme(p, 400); v('A1 changer de fiche (aller) vide la mémoire du refus', (await memoire()).length === 0, await memoire());
   await p.evaluate(() => { const T = document.getElementById('toast'); if (T) T.textContent = ''; });
   await clic('[data-action="terminer"]'); let e = await etat('i2'); v('A1 « Terminer » sur l’autre fiche termine du PREMIER coup (jamais bloqué par le refus d’i1)', e.etat === 'bureau', e);
   // ── A2. refus, puis fermeture de session

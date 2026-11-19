@@ -50,10 +50,10 @@ const veut = k => !SEUL || SEUL.split(',').includes(k);
 
   // D1b (SŒUR 5, 18 novembre) : la dictée CHOISIT le client qui a le plus de mots reconnus — faux amis de 3 lettres, formes juridiques, noms entiers d'abord
   if (veut('D1b')) {
-    const noms = { __m1: 'Bar-Tabac Le Rialto', __m2: 'Boulangerie L’Épi d’Or', __m3: 'Marie-Claire Petit', __m4: 'Claire Dubois', __m5: 'Jean Martin', __m6: 'Jean-Pierre Vasseur', __m8: 'Durand Frères SAS', __m9: 'SCI Les Mouettes' };
+    const noms = { __m1: 'Bar-Tabac Le Rialto', __m2: 'Boulangerie L’Épi d’Or', __m3: 'Marie-Claire Petit', __m4: 'Claire Dubois', __m5: 'Jean Martin', __m6: 'Jean-Pierre Vasseur', __m8: 'Durand Frères SAS', __m10: 'Dupuis SARL', __m11: 'Garnier EURL', __m9: 'SCI Les Mouettes' };
     for (const [k, n] of Object.entries(noms)) await mk(k, n);
     const cas = [
-      ['Devis pour un bar à vin, une heure', null], ['Devis pour un bar a vin', null], ['Devis pour une sas, une heure', null], ['Devis pour une sci, une heure', null], ['Devis pour un épi de faîtage, une heure', null], ['Devis pour la pose de pierre, une heure', null],
+      ['Devis pour un bar à vin, une heure', null], ['Devis pour un bar a vin', null], ['Devis pour une sas, une heure', null], ['Devis pour une sci, une heure', null], ['Devis pour un épi de faîtage, une heure', null], ['Devis pour une sarl, une heure', null], ['Devis pour une eurl, une heure', null], ['Devis pour Dupuis, une heure', '__m10'], ['Devis pour la pose de pierre, une heure', null],
       ['Devis pour le Bar-Tabac, une heure', '__m1'], ['Devis pour L’Épi d’Or, une heure', '__m2'],
       ['Devis pour Claire Dubois, une heure', '__m4'], ['Devis pour Marie-Claire Petit, une heure', '__m3'], ['Devis pour Claire, une heure', '__m4'],
       ['Devis pour Jean Martin, une heure', '__m5'], ['Devis pour le cabinet dentaire Martin, une heure', 'cm'], ['Devis pour Jean-Pierre, une heure', '__m6'], ['Devis pour Jean-Pierre Vasseur, une heure', '__m6'], ['Devis pour Vasseur, une heure', '__m6'],
