@@ -1,0 +1,72 @@
+[
+ {
+  "nom": "Dans « Archivés », un client actif correspond aussi : la ligne symétrique manquait",
+  "defaut": "La ligne « Un client archivé correspond aussi » n'existait que de « Tous » vers « Archivés » ; dans « Archivés », l'actif était caché sans un mot quand l'archivé correspondait aussi.",
+  "etat": "corrigé",
+  "changement": "vueClients : sous les cartes, « Un client de ta liste correspond aussi » / « N clients de ta liste correspondent aussi » + bouton « Voir le client de ma liste » (garde la recherche).",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js A1-A5 (singulier, pluriel, bouton, sens inverse inchangé, aucune ligne sans correspondance) ; mutation 1 tombe ; captures aussi-un-* (7 profils) regardées, jour et nuit."
+ },
+ {
+  "nom": "Message de la dictée sur un archivé : impasse pour le secrétariat",
+  "defaut": "« restaure-le depuis Clients » proposé à qui n'a pas le droit de remettre dans la liste.",
+  "etat": "corrigé",
+  "changement": "dvdPreparer : peut('crm','s') → « restaure-le depuis « Clients » », sinon « demande à un responsable de le restaurer ».",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js B1 (gérant mac : restaurer ; secrétariat iphone/ipad : demander) ; mutation 2 tombe (secrétariat)."
+ },
+ {
+  "nom": "« Se déconnecter » perdait une saisie non enregistrée sans un mot",
+  "defaut": "Seule sortie non gardée sur ordinateur et iPad ; la fenêtre de garde se posait derrière l'écran de connexion.",
+  "etat": "corrigé",
+  "changement": "Le bouton du pied du menu (data-cnx=sortir) rejoint les sorties gardées de cliInfosRetenir (écouteur de capture) ; l'entrée « Se déconnecter » de la palette passe par cliInfosRetenir. Au téléphone, « Menu » demandait déjà avant.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js D1-D6 : fenêtre demandée AVANT et au premier plan (elementFromPoint), Continuer / Enregistrer (nom enregistré puis session fermée) / Abandonner (session fermée, aucune fenêtre derrière, écran de connexion visible), sans saisie rien ne se demande, palette ; mac, ipad, windows ; mutations 4 et 5 tombent ; captures deconnexion-demande-* regardées."
+ },
+ {
+  "nom": "Dictée : « support » contient « port » du Vieux Port",
+  "defaut": "Un client était reconnu si un mot de son nom était une sous-chaîne du texte dicté.",
+  "etat": "corrigé",
+  "changement": "dvdPreparer : mot ENTIER (accents et casse ignorés, pluriel en s toléré), signes non alphanumériques ôtés des mots du nom avant le filtre de longueur.",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js C (8 dictées justes : Mme Roux + support mural, majuscules, Vieux Port, Plage avec et sans accent ; 3 mots qui contiennent un nom sans l'être : aucun client reconnu) ; mutation 3 tombe. Un texte qui contient AUSSI le mot « port » reste ambigu (premier client dans l'ordre des clés) : à ne pas confondre avec le défaut."
+ },
+ {
+  "nom": "Fil de la Comptabilité : « Mme Roux » après renommage (clients-recontrole-fiche 1 ✗)",
+  "defaut": "« Argent reçu sur place · Reçu I6 · Mme Roux » gardait l'ancien nom.",
+  "etat": "corrigé",
+  "changement": "prototype-comptabilite.html, oplRecusSync : le fil porte sa recuCle ; à chaque liaison il relit le nom ACTUEL (identifiant du reçu) et l'écran se redessine (n++). L'écriture validée garde le nom d'alors (une écriture validée ne se réécrit pas).",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js E1-E3 (FIL ET écran, aller-retour du nom) ; clients-recontrole-fiche iphone/julie/nuit : 31 ✓ · 0 ✗ (était 30 ✓ · 1 ✗) ; mutations 6 et 7 tombent."
+ },
+ {
+  "nom": "Le retour du navigateur ferme la fenêtre « Tu as changé cette fiche… » ; bulle de 6 s sur le texte dicté ; « Remettre dans la liste » pendant une recherche",
+  "defaut": "Soupçons du tour 3.",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "Le recontrôleur les a lui-même classés non-défauts (restes-clients-tour3-recontrole.json, pasRegles) ; clients-restes3-adverse D1-D6 et Q2 verts sur 7 profils."
+ },
+ {
+  "nom": "Retirer le premier appareil d'un client (fiche d'intervention et compte rendu lisent appareils[0])",
+  "defaut": "Doute reporté, inchangé depuis le tour 2.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision produit, non rejouée."
+ },
+ {
+  "nom": "Suggestions d'adresse à 320 px : trois propositions sur cinq visibles sous la barre d'actions",
+  "defaut": "Défilement au doigt à confirmer.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "le Chromium émulé ne transmet pas fidèlement un défilement tactile court : à confirmer sur un appareil réel."
+ },
+ {
+  "nom": "La saisie rapide d'une tâche rattache aussi un client archivé",
+  "defaut": "Voulu ? (« Relancer Mme X » reste utile) ; le Devis IA, lui, refuse l'archivé.",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "décision produit."
+ },
+ {
+  "nom": "Ligne « correspond aussi » sous les cartes : la garder ou la retirer",
+  "defaut": "Si Justin préfère des archivés invisibles hors de leur vue.",
+  "etat": "à soumettre à Justin",
+  "changement": "la ligne existe maintenant dans les deux sens ; la retirer = une ligne par sens dans vueClients",
+  "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js A1-A5."
+ }
+]

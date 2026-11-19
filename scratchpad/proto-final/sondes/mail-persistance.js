@@ -21,7 +21,12 @@ const S = (c, f, a) => c.p.evaluate(f, a);
   v('retour sur la Boîte mail : le brouillon est là, visible, avec son texte', retour.visible && retour.texte === 'Texte tapé pour la persistance.' && !retour.cache, retour);
   v('retour : le message ouvert n\'a pas changé', /Climatisation chambre 214/.test(retour.sujet), retour.sujet);
   await cap(c, 'persistance-retour');
-  await S(c, () => R().querySelector('#cCancel').click()); await p.waitForTimeout(500);
+  // 19 novembre : naviguer ailleurs ne fermait plus le message en cours depuis que le composeur est un niveau d'historique sur ordinateur (00778e5e : popstate prenait la
+  // navigation vers une autre rubrique pour un « Retour ») ; et au retour, « Retour » doit fermer le message, pas quitter la Boîte mail (le niveau se repose au retour).
+  await S(c, () => history.back()); await p.waitForTimeout(1000);
+  const apresRetour = await S(c, () => { const s = R().querySelector('#cSheet'); return { feuille:!!s && s.getBoundingClientRect().width > 300, hash:location.hash }; });
+  v('Retour depuis le message en cours, revenu par le menu : il se ferme et on reste dans la Boîte mail', !apresRetour.feuille && /boiteMail/i.test(apresRetour.hash), apresRetour);
+  await S(c, () => { const k = R().querySelector('#cCancel'); if (k) k.click(); }); await p.waitForTimeout(500);
   // changement de rôle : module démonté, clé de stockage propre au rôle
   const cleAvant = await S(c, () => Object.keys(localStorage).filter(k => /^proto_courrier_/.test(k)));
   await S(c, () => rlChanger('gestion', { muet:true })); await lib.calme(p, 1200);
