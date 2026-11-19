@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Seul le dossier « partage/ » du cache de l'application peut être confié à une autre application (feuille de partage des PDF) :
+     l'ancien « external-path path="." » désignait TOUTE la mémoire externe de l'appareil (audit de sécurité, S17). -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="partage" path="partage/" />
+</paths>

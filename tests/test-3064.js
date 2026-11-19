@@ -97,7 +97,7 @@ const U = (a, m, j, h, mi) => Date.UTC(a, m - 1, j, h, mi || 0);
     const Dd = path.join(banc, 'cv'); fs.mkdirSync(Dd, { recursive: true });
     const agents = { AGENTS: [{ id: 'lea', plafondUsd: 5 }], peutAgir: () => ({ ok: true }), noter() {} };
     const vues = [];
-    const cv = CVX({ DATA_DIR: Dd, agents, cleApi: 'sk-ant-banc', appeler: async (cle, req) => { vues.push(req); return { texte: '', actions: [{ id: 'x', nom: 'fixer_objectifs', entree: {} }], entree: 10, sortie: 10 }; } });
+    const cv = CVX({ DATA_DIR: Dd, agents, retires: false, cleApi: 'sk-ant-banc', appeler: async (cle, req) => { vues.push(req); return { texte: '', actions: [{ id: 'x', nom: 'fixer_objectifs', entree: {} }], entree: 10, sortie: 10 }; } });
     const OUT = [{ name: 'fixer_objectifs', description: 'x', input_schema: { type: 'object', properties: {} } }];
     await cv.penser('lea', 's', [{ role: 'user', content: 'u' }], { outils: OUT, forcerOutil: 'fixer_objectifs' });
     await cv.penser('lea', 's', [{ role: 'user', content: 'u' }], { outils: OUT, forcerOutil: 'fixer_objectifs', reflechir: true });

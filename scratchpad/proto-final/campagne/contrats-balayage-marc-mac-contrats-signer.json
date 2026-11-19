@@ -1,0 +1,100 @@
+{
+ "profil": "mac",
+ "qui": "marc",
+ "route": "contrats",
+ "etiq": "signer",
+ "lignes": [
+  {
+   "i": 0,
+   "lib": "‹ Retour · Contrats",
+   "data": "data-rl=retour",
+   "touche": true,
+   "change": [
+    "hash",
+    "h1",
+    "long",
+    "url"
+   ],
+   "h1": "Contrats",
+   "panneau": "",
+   "hash": "#contrats",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 168,
+   "h": 44
+  },
+  {
+   "i": 1,
+   "lib": "Lire le contrat en entier",
+   "data": "data-action=lireContrat data-id=c3",
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque",
+    "longCalque"
+   ],
+   "h1": "",
+   "panneau": "✕CSClim Services 174 rue du Port, 17000 La RochelleSIRET 123 456 789 00012Contrat d’entretienCTR-202",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 548,
+   "h": 50
+  },
+  {
+   "i": 2,
+   "lib": "on",
+   "data": "",
+   "touche": true,
+   "change": [],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 24,
+   "h": 24
+  },
+  {
+   "i": 3,
+   "lib": "Effacer",
+   "data": "data-action=sigCtrEfface",
+   "touche": true,
+   "change": [],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 548,
+   "h": 44
+  },
+  {
+   "i": 4,
+   "lib": "Signer le contrat",
+   "data": "data-action=signerContrat data-id=c3",
+   "touche": true,
+   "change": [
+    "toast"
+   ],
+   "h1": "",
+   "panneau": "",
+   "hash": "#signer-x-c3",
+   "toast": "Cochez « J’ai lu le contrat et je l’accepte ».",
+   "atelier": false,
+   "compta": false,
+   "sansNom": false,
+   "l": 582,
+   "h": 50
+  }
+ ],
+ "err": []
+}

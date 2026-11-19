@@ -1,0 +1,2292 @@
+{
+ "profil": "mac",
+ "sorties": {
+  "marc-mac-fiscal-tva": {
+   "recenses": 17,
+   "touches": 17,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 107,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|tva|",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "Les autres régimes de TVA",
+     "data": "data-cp=regimes",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Les régimes de TVA",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 207,
+     "h": 44
+    }
+   ]
+  },
+  "marc-mac-fiscal-ecritures": {
+   "recenses": 31,
+   "touches": 31,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 84,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 107,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|journaux|1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "Toutes",
+     "data": "data-cp=jf|tous",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 82,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "Ouverture · 1",
+     "data": "data-cp=jf|AN",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 123,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "Ventes · 7",
+     "data": "data-cp=jf|VT",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 103,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "Achats · 10",
+     "data": "data-cp=jf|AC",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 110,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "Banque · 19",
+     "data": "data-cp=jf|BQ",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 115,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "Caisse · 2",
+     "data": "data-cp=jf|CA",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 102,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "TVA · 12",
+     "data": "data-cp=jf|OD",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 90,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "Paie · 0",
+     "data": "data-cp=jf|PA",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 85,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "FAC-2026-0128",
+     "data": "data-cp=go|facture-x-f128",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0128",
+     "panneau": "",
+     "hash": "#facture-x-f128",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 25,
+     "lib": "FAC-2026-0141",
+     "data": "data-cp=go|facture-x-f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 26,
+     "lib": "FAC-2026-0140",
+     "data": "data-cp=go|facture-x-f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 27,
+     "lib": "FAC-2026-0142",
+     "data": "data-cp=go|facture-x-f142",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0142",
+     "panneau": "",
+     "hash": "#facture-x-f142",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 28,
+     "lib": "FAC-2026-0143",
+     "data": "data-cp=go|facture-x-f143",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0143",
+     "panneau": "",
+     "hash": "#facture-x-f143",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 29,
+     "lib": "FAC-2026-0144",
+     "data": "data-cp=go|facture-x-f144",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0144",
+     "panneau": "",
+     "hash": "#facture-x-f144",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    },
+    {
+     "i": 30,
+     "lib": "FAC-2026-0145",
+     "data": "data-cp=go|facture-x-f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 44
+    }
+   ]
+  },
+  "marc-mac-fiscal-balance": {
+   "recenses": 35,
+   "touches": 35,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 107,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|balance|1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "110Report à nouveau (bilan d’ouverture)0,00 €10 239,03 €10 2",
+     "data": "data-cx=gl|110",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 17,
+     "lib": "401Fournisseurs1 530,07 €2 426,35 €896,28 €",
+     "data": "data-cx=gl|401",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 18,
+     "lib": "411Clients4 520,00 €3 045,00 €1 475,00 €",
+     "data": "data-cx=gl|411",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 19,
+     "lib": "4191Clients · acomptes reçus0,00 €36,36 €36,36 €",
+     "data": "data-cx=gl|4191",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 20,
+     "lib": "44551TVA à payer0,00 €162,75 €162,75 €",
+     "data": "data-cx=gl|44551",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 21,
+     "lib": "44566TVA déductible320,06 €320,06 €",
+     "data": "data-cx=gl|44566",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 22,
+     "lib": "44571TVA collectée (due)482,80 €482,80 €",
+     "data": "data-cx=gl|44571",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 23,
+     "lib": "44574TVA collectée en attente du paiement479,16 €621,89 €142",
+     "data": "data-cx=gl|44574",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 24,
+     "lib": "5112Chèques à remettre840,00 €420,00 €420,00 €",
+     "data": "data-cx=gl|5112",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 25,
+     "lib": "512Banque11 037,36 €1 530,07 €9 507,29 €",
+     "data": "data-cx=gl|512",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 26,
+     "lib": "530Caisse du bureau80,00 €80,00 €",
+     "data": "data-cx=gl|530",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 27,
+     "lib": "531Caisse des techniciens40,00 €0,00 €40,00 €",
+     "data": "data-cx=gl|531",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 28,
+     "lib": "6061Carburant95,00 €0,00 €95,00 €",
+     "data": "data-cx=gl|6061",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 29,
+     "lib": "6063Petit outillage55,00 €0,00 €55,00 €",
+     "data": "data-cx=gl|6063",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 30,
+     "lib": "607Achats de pièces et fournitures1 833,30 €0,00 €1 833,30 €",
+     "data": "data-cx=gl|607",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 31,
+     "lib": "616Assurances68,00 €0,00 €68,00 €",
+     "data": "data-cx=gl|616",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 32,
+     "lib": "626Téléphone et internet54,99 €0,00 €54,99 €",
+     "data": "data-cx=gl|626",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 33,
+     "lib": "658Écart d’arrondi (charge)0,01 €0,00 €0,01 €",
+     "data": "data-cx=gl|658",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    },
+    {
+     "i": 34,
+     "lib": "706Prestations de services0,00 €2 071,44 €2 071,44 €",
+     "data": "data-cx=gl|706",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 1106,
+     "h": 40
+    }
+   ]
+  },
+  "marc-mac-fiscal-grandlivre": {
+   "recenses": 20,
+   "touches": 20,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 108,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|grand-livre|1",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "110 · Report à nouveau (bilan d’ouverture)401 · Fournisseurs",
+     "data": "data-cxgl=1",
+     "touche": true,
+     "change": [],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 392,
+     "h": 46
+    },
+    {
+     "i": 17,
+     "lib": "Paiement carte · Camping Les Pins",
+     "data": "data-cp=go|facture-x-f141",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0141",
+     "panneau": "",
+     "hash": "#facture-x-f141",
+     "toast": "",
+     "sansNom": false,
+     "l": 244,
+     "h": 44
+    },
+    {
+     "i": 18,
+     "lib": "Paiement virement · Hôtel de la Plage",
+     "data": "data-cp=go|facture-x-f140",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0140",
+     "panneau": "",
+     "hash": "#facture-x-f140",
+     "toast": "",
+     "sansNom": false,
+     "l": 261,
+     "h": 44
+    },
+    {
+     "i": 19,
+     "lib": "Paiement virement · Hôtel de la Plage",
+     "data": "data-cp=go|facture-x-f145",
+     "touche": true,
+     "change": [
+      "hash",
+      "h1",
+      "long",
+      "url"
+     ],
+     "h1": "FAC-2026-0145",
+     "panneau": "",
+     "hash": "#facture-x-f145",
+     "toast": "",
+     "sansNom": false,
+     "l": 261,
+     "h": 44
+    }
+   ]
+  },
+  "marc-mac-fiscal-resultat": {
+   "recenses": 16,
+   "touches": 16,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 107,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 88,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 170,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|resultat|",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 251,
+     "h": 44
+    }
+   ]
+  },
+  "marc-mac-fiscal-envoi": {
+   "recenses": 18,
+   "touches": 18,
+   "lignes": [
+    {
+     "i": 0,
+     "lib": "Comment ça marche ?",
+     "data": "data-cp=aide",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Comment ça marche",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 212,
+     "h": 46
+    },
+    {
+     "i": 1,
+     "lib": "＋ Nouvelle opération",
+     "data": "data-cx=nouveau",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Nouvelle opération",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 204,
+     "h": 46
+    },
+    {
+     "i": 2,
+     "lib": "📊PilotagePilotage",
+     "data": "data-cx=grp|pilotage",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 3,
+     "lib": "🧾VentesVentes6",
+     "data": "data-cx=grp|ventes",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 4,
+     "lib": "📦AchatsAchats6",
+     "data": "data-cx=grp|achats",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 5,
+     "lib": "💶PaiePaie",
+     "data": "data-cx=grp|paie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 6,
+     "lib": "🏦TrésorerieTrésorerie3",
+     "data": "data-cx=grp|tresorerie",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 7,
+     "lib": "📒Fiscal & comptableFiscal",
+     "data": "data-cx=grp|fiscal",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 8,
+     "lib": "✅ConformitéConformité6",
+     "data": "data-cx=grp|conformite",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 154,
+     "h": 76
+    },
+    {
+     "i": 9,
+     "lib": "TVA",
+     "data": "data-cx=sec|tva",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 59,
+     "h": 46
+    },
+    {
+     "i": 10,
+     "lib": "Journal",
+     "data": "data-cx=sec|ecritures",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 83,
+     "h": 46
+    },
+    {
+     "i": 11,
+     "lib": "Balance",
+     "data": "data-cx=sec|balance",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 86,
+     "h": 46
+    },
+    {
+     "i": 12,
+     "lib": "Grand livre",
+     "data": "data-cx=sec|grandlivre",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 107,
+     "h": 46
+    },
+    {
+     "i": 13,
+     "lib": "Résultat",
+     "data": "data-cx=sec|resultat",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 87,
+     "h": 46
+    },
+    {
+     "i": 14,
+     "lib": "Envoi au comptable",
+     "data": "data-cx=sec|envoi",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 171,
+     "h": 46
+    },
+    {
+     "i": 15,
+     "lib": "Ouvrir dans la Comptabilité",
+     "data": "data-cmptv=rubrique|clotures|",
+     "touche": true,
+     "change": [
+      "long"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 249,
+     "h": 44
+    },
+    {
+     "i": 16,
+     "lib": "Envoyer octobre à Claire",
+     "data": "data-cp=envoi",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Envoyer octobre à ton expert-comptable",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 226,
+     "h": 46
+    },
+    {
+     "i": 17,
+     "lib": "Voir le fichier FEC",
+     "data": "data-cp=fec",
+     "touche": true,
+     "change": [
+      "panneau",
+      "calque",
+      "longCalque"
+     ],
+     "h1": "Comptabilité",
+     "panneau": "Les écritures d’octobre, au format FEC",
+     "hash": "#comptabilite",
+     "toast": "",
+     "sansNom": false,
+     "l": 176,
+     "h": 46
+    }
+   ]
+  }
+ },
+ "err": []
+}

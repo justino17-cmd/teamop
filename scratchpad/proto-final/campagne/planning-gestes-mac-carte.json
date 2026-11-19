@@ -1,0 +1,696 @@
+{
+ "profil": "mac",
+ "nuit": false,
+ "RES": [
+  {
+   "vue": "carte",
+   "lib": "Rendez-vous en ligne",
+   "data": "data-rrouvrir=1",
+   "l": 207,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Rendez-vous en ligne",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "＋ Nouvelle intervention",
+   "data": "data-creer=1",
+   "l": 224,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "contenu",
+    "fenetre",
+    "fenTitre"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "Nouvelle intervention",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Jour",
+   "data": "data-plvue=jour",
+   "l": 65,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Semaine",
+   "data": "data-plvue=semaine",
+   "l": 94,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Mois",
+   "data": "data-plvue=mois",
+   "l": 67,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Vue d’ensemble",
+   "data": "data-plvue=general",
+   "l": 147,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Sur mesure",
+   "data": "data-plvue=multi",
+   "l": 114,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu",
+    "volets"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Carte",
+   "data": "data-plvue=carte",
+   "l": 73,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Précédent",
+   "data": "data-plnav=-1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Suivant",
+   "data": "data-plnav=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "9interventions",
+   "data": "data-kpi=int",
+   "l": 218,
+   "h": 71,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Interventions sur la période · Aujourd’hui · samedi 31 octobre",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "3à planifier",
+   "data": "data-kpi=plan",
+   "l": 218,
+   "h": 71,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "À planifier",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "1en retard",
+   "data": "data-kpi=retard",
+   "l": 218,
+   "h": 71,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "En retard",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "1absent",
+   "data": "data-kpi=abs",
+   "l": 218,
+   "h": 71,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Absences",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "11 hde travail prévu",
+   "data": "data-kpi=temps",
+   "l": 218,
+   "h": 71,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Travail prévu · Aujourd’hui · samedi 31 octobre",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Sophie",
+   "data": "data-crfocus=sm",
+   "l": 93,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Karim",
+   "data": "data-crfocus=kb",
+   "l": 87,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Tom",
+   "data": "data-crfocus=tl",
+   "l": 77,
+   "h": 36,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Rapprocher",
+   "data": "data-crzoom=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Éloigner",
+   "data": "data-crzoom=-1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Recentrer sur la journée",
+   "data": "data-crrecentre=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Plein écran",
+   "data": "data-crplein=1",
+   "l": 40,
+   "h": 40,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "!Urgent sans technicien · Mme Roux à 11 h 30Le plus proche : Tom, 1,9 ",
+   "data": "data-crsel=i17",
+   "l": 379,
+   "h": 60,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "!Sophie arrivera vers 16 h 24 chez Garage Rochefort AutoRendez-vous à ",
+   "data": "data-crsel=i16",
+   "l": 379,
+   "h": 97,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "!À confier · Hôtel de la Plage à 10 h 00Le plus proche : Tom, 8,8 km d",
+   "data": "data-crsel=i5",
+   "l": 379,
+   "h": 60,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "!11:30Mme RouxUrgent — plus de chauffage · 1 hUrgent",
+   "data": "data-crsel=i17 data-crdrag=i17",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Confier à Tom",
+   "data": "data-crconf=i17|tl",
+   "l": 145,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "toast",
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": "Intervention « Urgent — plus de chauffage » passée à Tom Leroy · 11:30 – 12:30Annuler"
+  },
+  {
+   "vue": "carte",
+   "lib": "Choisir quelqu’un…",
+   "data": "data-crchoix=i17",
+   "l": 192,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Confier « Urgent — plus de chauffage »",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "!10:00Hôtel de la PlageEntretien chaudière granulés · 1 hÀ confier",
+   "data": "data-crsel=i5 data-crdrag=i5",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "Confier à Tom",
+   "data": "data-crconf=i5|tl",
+   "l": 145,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "toast",
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": "Intervention « Entretien chaudière granulés » passée à Tom Leroy · 10:00 – 11:00Annuler"
+  },
+  {
+   "vue": "carte",
+   "lib": "Choisir quelqu’un…",
+   "data": "data-crchoix=i5",
+   "l": 192,
+   "h": 46,
+   "touche": true,
+   "change": [
+    "panneau",
+    "calque"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "Confier « Entretien chaudière granulés »",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "SMSophie Martin3 passages · 83 km · 2 h 03 de route · retour vers 17 h",
+   "data": "data-crfocus=sm",
+   "l": 379,
+   "h": 82,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "108:30Restaurant Le Vieux PortDépannage climatisation · 1 hEn cours",
+   "data": "data-crsel=i1 data-crdrag=i1",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "214:00M. et Mme DurandMise en service pompe à chaleur · 1 h 30Planifié",
+   "data": "data-crsel=i2 data-crdrag=i2",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "316:00Garage Rochefort AutoDépannage pompe à chaleur atelier · 1 hPlan",
+   "data": "data-crsel=i16 data-crdrag=i16",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "KBKarim Benali2 passages · 3,1 km · 26 min de route · retour vers 16 h",
+   "data": "data-crfocus=kb",
+   "l": 379,
+   "h": 82,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "109:00Copropriété Les MimosasRécupération du fluide d’un ancien split ",
+   "data": "data-crsel=i3 data-crdrag=i3",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "⌂11:00Réunion d’équipeAu dépôt · 1 h",
+   "data": "data-crsel=b1",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "215:00Cabinet dentaire MartinEntretien chauffe-eau thermodynamique · 1",
+   "data": "data-crsel=i4 data-crdrag=i4",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "TLTom Leroy2 passages · 12 km · 39 min de route · retour vers 15 h 15",
+   "data": "data-crfocus=tl",
+   "l": 379,
+   "h": 82,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "107:30Mme RouxContrôle d’étanchéité · 1 hTerminée",
+   "data": "data-crsel=i6 data-crdrag=i6",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  },
+  {
+   "vue": "carte",
+   "lib": "213:00Camping Les PinsRemplacement condensateur · 2 hPlanifiée",
+   "data": "data-crsel=i7 data-crdrag=i7",
+   "l": 379,
+   "h": 59,
+   "touche": true,
+   "change": [
+    "contenu"
+   ],
+   "hash": "#planning",
+   "h1": "Planning",
+   "panneau": "",
+   "fenTitre": "",
+   "toast": ""
+  }
+ ],
+ "err": []
+}

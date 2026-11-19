@@ -1,0 +1,81 @@
+{
+ "role": "gerant (lib.ouvrir({ qui:'marc' }), mode application)",
+ "voie": "final-regard",
+ "suffixe": "a-recontrole",
+ "date": "2026-11-18",
+ "population": {
+  "sonde_rejouee": "scratchpad/proto-final/sondes/regard-gerant-a.js : 134 ✓ · 0 ✗ (rejouee en entier)",
+  "captures": "53 scenes x 6 profils (mac, windows, ipad, iphone, android, petit) x jour et nuit = 1 176 captures, 0 erreur JavaScript ; les 12 rubriques corrigees et leurs voisins (fiche client, Mon entreprise, Equipe), les etats vides, les valeurs longues, les trois autres roles (julie, sm, kb) ; regardees en planches (outil Read), pas toutes une a une : tout le jour iphone, mac, ipad, android, windows, petit, la nuit par echantillon (iphone, mac, ipad, android, windows, petit)",
+  "dix_ecrans_au_hasard": "graine 1118, tires parmi les scenes que le premier agent declare sans defaut : histo-jour (windows, jour), abs-refuser (mac, jour), taches-suggestions (ipad, nuit), taches-fiche (iphone, jour), stats-annee (ipad, nuit), histo-filtre (android, jour), stats-detail-tech (ipad, nuit), plan-intervention (iphone, nuit), plan-rdv-en-ligne (petit, nuit), inter-fiche-a-planifier (petit, nuit) : 8 sur 10 sans defaut grave, 1 NOUVEAU (plan-rdv-en-ligne a 320 px), 1 defaut leger deja note (separateur en bout de ligne)",
+  "sondes_nouvelles": [
+   "scratchpad/proto-final/sondes/regard-gerant-a-recontrole.js (balayage : 33 ecrans x 12 passes ; 4 familles de faux positifs ecartees et nommees : bulle st-bulle a opacite 0, .tkx-sr lecteur d'ecran, marqueurs Leaflet, pastille nb du menu, .ph a legende tronquee)",
+   "scratchpad/proto-final/sondes/regard-gerant-a-recontrole-captures.js (captures)",
+   "scratchpad/proto-final/sondes/regard-gerant-a-recontrole-fenetres.js : 136 ✓ · 14 ✗ au premier passage (9 fenetres x 5 profils ; les 2 vrais ✗ sont la croix et les cartes de « Rendez-vous en ligne » a 320 px, le reste venait de « Nouvelle intervention » qui n'est pas un .panneau — retiree depuis) ; DOIT TOMBER tant que le defaut A n'est pas corrige",
+   "scratchpad/proto-final/sondes/regard-gerant-a-recontrole-largeur.js : 117 ✓ · 9 ✗ (20 ecrans x 6 profils : seuls Planning (6 vues) et Interventions (3 filtres) a 320 px tombent) ; DOIT TOMBER tant que le defaut A n'est pas corrige",
+   "scratchpad/proto-final/sondes/mutations-regard-gerant-a.py : le premier agent annoncait « 13 mutations sur 13 » mais son fichier n'etait pas dans le depot ; refait, 11 mutations rejouees dans une copie, 11 sur 11 tombent (deux d'abord muettes, mal visees : la 4 visait la section 4 au lieu de 4b, la 10 visait l'ellipse seule, que rien ne mesure — corrigees)"
+  ]
+ },
+ "regles": [
+  1,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12
+ ],
+ "pasRegles": [
+  {
+   "n": 2,
+   "constat": "Le samedi tient bien dans la boite a 1 366 (windows) et 1 440 (mac), jour et nuit — mais voir casses : la colonne a 140 px laisse le mot « Absente · Congé payé » toucher les deux bords de la case hachuree."
+  }
+ ],
+ "casses": [
+  {
+   "ecran": "Planning › Vue d'ensemble (Lun → Sam), case « Absente · Congé payé » — correction n°2 (colonne des jours 162 → 140 px)",
+   "profils": "windows 1366 (vu sur capture, jour) ; pas sur mac 1440 (colonnes plus larges)",
+   "constat": "Le libelle « Absente · Congé payé » (gras, deux lignes) occupe toute la largeur de la case hachuree : « Congé » touche le bord gauche et le bord droit, sans aucun air (mesure : texte 1052→1181 dans une case 1051→1183). .pg-abs n'a pas de rembourrage ; il ne se voyait pas a 162 px. Pas grave, mais c'est la seule chose qu'abime la correction, et un titre collé a son cadre fait « mal fini ». Piste : padding:0 8px sur .pg-abs.",
+   "gravite": "faible"
+  }
+ ],
+ "nouveaux": [
+  {
+   "ecran": "A. Planning (les six vues) et Interventions (les cinq filtres), page entiere, a 320 px — et par ricochet « Rendez-vous en ligne »",
+   "profils": "petit 320 (jour et nuit) ; android 360, iphone 390, ipad, windows, mac : 0 defaut",
+   "constat": "La page fait 340 px de large (innerWidth 340, documentElement.scrollWidth 340, clientWidth 320) : la fenetre de mise en page grandit de 20 px, donc sur un telephone de 320 px la page se reduit ou glisse de cote, et chaque fenetre en plein ecran (position:fixed) mesure 340 : la croix ✕ de « Rendez-vous en ligne » sort de l'ecran (gauche 280, droite 324 pour 320), le texte de la fenetre touche le bord droit et ses cartes perdent leur bord droit. Cause localisee par bissection : masquer <details class=\"t-ici\"> (la bande « 2 tâches pour toi aujourd'hui · de ta liste Tâches », Planning et Interventions seulement) ramene scrollWidth de 340 a 320 ; aucun de ses descendants ne depasse 320 a la mesure, donc a regarder cote contenu minimal du <summary> (b en nowrap + « de ta liste Tâches » + › + rembourrages) ; Tâches et Accueil n'ont pas la bande et restent a 320. Aucun audit de debordement ne le voit : innerWidth a grandi avec la page. Sondes qui le gardent : regard-gerant-a-recontrole-largeur.js (9 ✗) et -fenetres.js (2 ✗ vrais).",
+   "gravite": "moyenne"
+  },
+  {
+   "ecran": "B. Statistiques › feuille « Interventions et factures » (liste des factures)",
+   "profils": "petit 320 (jour et nuit)",
+   "constat": "Colonne de texte de 97 a 120 px : « Karim Benali · M. et Mme Durand · Instal… » sur 6 lignes, « Contrôle d'étanchéité » sur 3, et « Ouvrir l'intervention › » casse en « Ouvrir / l'intervention / › » avec la chevron seule sur sa ligne. A 360 et 390 la meme feuille est propre. Le premier regard la disait « juste sur les six profils » : faux a 320. Sonde : regard-gerant-a-recontrole.js, controle « aucun texte ecrase » sur stats-detail-fac (petit).",
+   "gravite": "moyenne"
+  },
+  {
+   "ecran": "C. Fiche d'intervention (en-tete) et fiche client, separateur « · » reste seul en bout de ligne",
+   "profils": "iphone 390, android 360, petit 320 (jour et nuit) ; fiche client : petit",
+   "constat": "« samedi 31 octobre · 08:30 – 09:30 · » puis « Sophie Martin » a la ligne ; « Mme Bernard, directrice · » puis le telephone ; « 3 av. de la Plage, 17340 Châtelaillon · » puis le numero (fiche a planifier). Meme famille que la puce en bout de ligne deja signalee au regard gerant B (n°7) : ne pas separer par une puce en fin de ligne (espace insécable avant le point, ou un span en inline-block par morceau).",
+   "gravite": "faible"
+  },
+  {
+   "ecran": "D. Absences › Soldes, colonne « À surveiller »",
+   "profils": "iphone 390",
+   "constat": "La pastille « presque plus de congés » est comprimee sur trois lignes dans une colonne etroite (« presque / plus de / congés »), alors qu'a 360 elle passe sous le nom (une ligne) et a 820 elle tient sur deux. Lisible, pas beau.",
+   "gravite": "faible"
+  }
+ ],
+ "doutes": [
+  "Capture blanche, non reproduite : « Planning › Jour » (premiere scene d'une passe) a rendu un panneau de contenu VIDE sur windows nuit et ipad nuit, 2 fois sur 12 (le reste de l'ecran est la, seul le contenu est absent). Reprise 2 fois sur chacun des deux profils : contenu present a chaque fois (ecart-type de pixels 24–37 contre 4). Probablement l'animation d'entree .content.entre lue trop tot (la sonde attend deux trames + 450 ms), mais je ne peux pas exclure un vrai clignotement a la premiere ouverture de nuit : a mesurer par Justin si on le voit.",
+  "Ancien n°13 (aide « Appui long… » du Planning, six a sept lignes au telephone) : toujours vrai sur iphone/android/petit, decision de Justin comme annonce.",
+  "Ancien n°14 (deux boutons de l'en-tete du Planning, deux lignes chacun a 360 px) : n'est plus vrai sur capture — a 360 les deux tiennent chacun sur UNE ligne (texte reduit, 9 px d'air a gauche du plus long). A retirer de la liste « a soumettre ».",
+  "Ancien n°16 (bouton principal « Nouvelle intervention » ressort a peine de nuit) : sur toutes les captures de nuit (windows, mac, iphone, android, ipad, petit) le bouton est une pastille CLAIRE sur fond sombre, tres lisible — le defaut marine sur marine n'existe plus ; a confirmer avec Justin avant de le retirer.",
+  "Planning › Semaine ou Jour sans aucune intervention (etat vide) : la grille est vide et les cinq chiffres disent 0, mais rien ne dit « Aucune intervention cette semaine — double-clic sur une case pour en creer une » (l'aide d'en haut parle de « case vide » en general). Les Interventions, Tâches et l'Accueil, eux, l'expliquent depuis la correction n°12 : a harmoniser ?",
+  "Statistiques › 12 mois, iPad : le premier mois du graphique (« déc ») est a demi coupe par le fondu de gauche du graphique qui defile (min-width 528 px dans 540). Peut-etre voulu (fondu de defilement), a confirmer.",
+  "Tableau de bord Soldes a 360 : la colonne « À surveiller » disparait du tableau au profit d'une pastille sous le nom — choix de mise en page voulu, je ne l'ai pas conteste.",
+  "Je n'ai PAS regarde chacune des 1 176 captures une a une : tout le jour iphone, mac, ipad, android, windows, petit (scenes cles) et la nuit par echantillon, plus les balayages de mesure sur les 12 passes. La mesure confirme ce que l'oeil a vu (0 debordement de page a 390, 360, 820, 1 366, 1 440 ; 9 ecrans a 320)."
+ ]
+}

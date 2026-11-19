@@ -165,6 +165,7 @@ function prochaineApres(ts) {
 
 /* ── les mots et les formes ── */
 const CAUSES = {
+  agents_retires: 'les agents sont retirés (19 novembre 2026)',
   pas_de_cle: 'la clé des agents n’est pas posée', budget_illisible: 'le budget des agents est illisible', plafond_total: 'le budget des agents est atteint',
   plafond_agent: 'son budget du mois est atteint', erreur_api: 'Claude ne répond pas', trop_long: 'sa réponse dépassait la longueur permise', vide: 'sa réponse était vide',
   arret: 'il est à l’arrêt', pause: 'les agents sont en pause', etat_illisible: 'l’état des agents est illisible', requete: 'requête refusée',

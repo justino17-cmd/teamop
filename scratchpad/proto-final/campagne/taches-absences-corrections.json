@@ -1,0 +1,86 @@
+[
+ {
+  "n": "taches-absences-01",
+  "etat": "corrigé",
+  "changement": "Nouvelle fonction ctrFinDe (début + 1 an − 1 jour) ; creerContrat pose `fin` à la création, signerContrat la reprend si elle manque, et les trois lecteurs de Tâches et Statistiques ignorent un contrat sans `fin` au lieu de planter.",
+  "preuve": "parcours-h : 3 ✓ 3 ✗ sur l'ancien code (erreur « reading 'split' ») → 6 ✓ 0 ✗ ; la visite guidée garde immDccFinContrat (sans effet désormais)."
+ },
+ {
+  "n": "taches-absences-02",
+  "etat": "corrigé",
+  "changement": "data-anouvok cale aCalSem sur le lundi de l'absence posée quand la période est « 2 semaines ».",
+  "preuve": "parcours-e E2 : ✗ sur l'ancien code (fenêtre 26 oct.→8 nov.) → ✓ (23 nov.→6 déc., l'absence est dans la fenêtre) ; 6 ✓ 0 ✗."
+ },
+ {
+  "n": "taches-absences-03",
+  "etat": "corrigé",
+  "changement": "Relevé des absences sur téléphone : le type et le motif passent sous le nom, la période s'écrit en court (« 30 oct. → 3 nov. »), colonnes resserrées, en-têtes de soldes qui passent à la ligne ; le tableau large reste à l'écran large.",
+  "preuve": "taches-absences-sonde-export.js (petit, android, iphone, mac ; jour et nuit) : 10 ✓ 0 ✗ par profil ; avant : tableaux de 353 et 393 px dans 256, période sur 9 lignes. Captures iphone jour et petit nuit relues."
+ },
+ {
+  "n": "taches-absences-04",
+  "etat": "corrigé",
+  "changement": "Barre « N choisies » : sur téléphone les gestes tiennent sur UNE rangée qui défile (Fait en tête), boutons à 44 px.",
+  "preuve": "mise-en-page petit : tâches-choix passe (jour et nuit) ; avant, trois lignes et 37 % de l'écran à 320 px."
+ },
+ {
+  "n": "taches-absences-05",
+  "etat": "corrigé",
+  "changement": "`.t-racc .puce-c, .t-rep-l .puce-c, .ts-g .puce-c{min-height:44px}`.",
+  "preuve": "mise-en-page petit : fiche, nouvelle tâche, choix : cibles ≥ 44 px ✓."
+ },
+ {
+  "n": "taches-absences-06",
+  "etat": "corrigé",
+  "changement": "`.t-ctx .t-hist{min-height:44px}` (passages et factures de la fiche d'une tâche).",
+  "preuve": "mise-en-page petit : tache-fiche ✓ (le défaut ne s'applique qu'à la fiche, la règle ne touche pas les listes d'absences)."
+ },
+ {
+  "n": "taches-absences-07",
+  "etat": "corrigé",
+  "changement": "Flèches de période du calendrier à 44×44 (flex:none, sinon elles rétrécissaient à 42) et pastilles de personnes à 44 px, sous 760 px ou au doigt.",
+  "preuve": "mise-en-page petit : les flèches « Période précédente/suivante » ne sont plus signalées ; il reste, pour ce même écran, les bandes d'absence et les barres de mois (défaut 13, à soumettre)."
+ },
+ {
+  "n": "taches-absences-08",
+  "etat": "corrigé",
+  "changement": "`.t-cmd-ed summary{min-height:44px}` et champs de pièce à 16 px (plus de zoom de Safari).",
+  "preuve": "mise-en-page petit : tache-nouvelle ✓ (champs ≥ 16 px et cibles ≥ 44 px)."
+ },
+ {
+  "n": "taches-absences-09",
+  "etat": "corrigé",
+  "changement": "Soldes, ≤ 380 px : la colonne « À surveiller » disparaît et son alerte passe sous le prénom ; colonnes resserrées. Le tableau tient à 320, 360 et 390 px. Rejoué sur iPad : le tableau y mesurait 662 px dans 506 (colonne coupée sans signe) ; mêmes resserrements entre 761 et 1100 px, il tient (506/506).",
+  "preuve": "taches-absences-sonde-soldes.js : 8 ✓ 0 ✗ (petit 286/286, android 326/326, iphone 356/356, ipad 506/506) ; avant : 337 dans 286, 337 dans 326 (le défaut touchait aussi 360 px), 662 dans 506 sur iPad. Captures petit et ipad relues."
+ },
+ {
+  "n": "taches-absences-10",
+  "etat": "corrigé",
+  "changement": "`.tete-tel a.logo{min-height:44px}` (bouton « OP GESTION » du bandeau mobile). La règle est dans la coque, au bandeau mobile seulement.",
+  "preuve": "mise-en-page petit : le bouton n'apparaît plus parmi les cibles sous 44 px."
+ },
+ {
+  "n": "taches-absences-11",
+  "etat": "corrigé",
+  "changement": "Aide du champ « Liée à » raccourcie : « Client, devis, facture, contrat… ».",
+  "preuve": "relu sur capture iphone."
+ },
+ {
+  "n": "taches-absences-12",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le « retour » du navigateur ferme la fenêtre ET quitte l'écran, pour toutes les fenêtres du prototype ; décision de produit (pousser une entrée d'historique à chaque ouverture de fenêtre), dans la coque.",
+  "preuve": "parcours-i I6, déjà reproduit par le testeur."
+ },
+ {
+  "n": "taches-absences-13",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : barres « mois par mois » des Soldes (38-40 px de large, douze par rangée) et bandes d'absence du calendrier (35-38 px) : c'est la densité voulue, comme les cases du planning écartées par décision ; douze mois à 44 px ne tiennent pas dans 320 px.",
+  "preuve": "mise-en-page petit : ce sont les seules cibles qui restent sous 44 px sur les trois écrans (absences-calendrier, absences-soldes, mes-conges)."
+ },
+ {
+  "n": "taches-absences-14",
+  "etat": "corrigé",
+  "changement": "Trouvé au rejeu sur iPad (pas dans le rapport) : la ligne d'une intervention touchée par une absence (Absences › À valider) ne répondait que sur 41-42 px ; `.a-int` et `.a-int-l .a-int` à 44 px sous 1100 px ou au doigt.",
+  "preuve": "sonde ad hoc ipad + iphone : 2 ✓ 0 ✗ (41 px avant) ; mise en page ipad rejouée."
+ }
+]

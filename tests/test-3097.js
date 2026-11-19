@@ -33,7 +33,7 @@ const dossierOpm = path.join(bac, 'opm'), dossierTour = path.join(bac, 'tour');
 for (const d of [dossierOpm, dossierTour]) { fs.mkdirSync(d); fs.chmodSync(d, 0o777); }
 const fOpm = path.join(dossierOpm, 'beta.json'), fTour = path.join(dossierTour, 'config.json');
 const OPM0 = { origines: ['http://127.0.0.1:1'], marqueurOpm: 'GARDE-OPM', imbrique: { a: [1, { b: 'c' }] }, admin: { secret: ADMIN } };
-const TOUR0 = { apiKey: 'banc', marqueurTour: 'GARDE-TOUR', agents: { cleApi: 'sk-ant-banc' }, messagesAdmin: { beta: ADMIN } };
+const TOUR0 = { apiKey: 'banc', marqueurTour: 'GARDE-TOUR', agents: { retires: false, cleApi: 'sk-ant-banc' }, messagesAdmin: { beta: ADMIN } };
 const poser = (o, t) => { fs.writeFileSync(fOpm, JSON.stringify(o, null, 2), { mode: 0o666 }); fs.writeFileSync(fTour, JSON.stringify(t, null, 2), { mode: 0o666 }); fs.chmodSync(fOpm, 0o666); fs.chmodSync(fTour, 0o666); };
 const octets = () => [fs.readFileSync(fOpm), fs.readFileSync(fTour)];
 const lu = () => [JSON.parse(fs.readFileSync(fOpm, 'utf8')), JSON.parse(fs.readFileSync(fTour, 'utf8'))];

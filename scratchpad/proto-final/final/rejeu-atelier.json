@@ -1,0 +1,135 @@
+{
+ "etape": "final-rejeu 2/2 (rejouer-et-reparer)",
+ "date": "2026-11-19",
+ "familles": [
+  "atelier",
+  "compositeur",
+  "mail",
+  "menu",
+  "taches"
+ ],
+ "passages": [
+  {
+   "nom": "premier rejeu complet (commit 56cb6948)",
+   "sondes": 108,
+   "vertes": 94,
+   "rouges": 14,
+   "sansTotal": 0
+  },
+  {
+   "nom": "second rejeu complet après corrections (commit bbc2bc97)",
+   "sondes": 108,
+   "vertes": 107,
+   "rouges": 1,
+   "sansTotal": 0,
+   "note": "la rouge (atelier-seule, mac nuit, 1 px de hauteur entre deux rendus) est tombée UNE fois sur trois : rejouée seule deux fois, 56 ✓ · 0 ✗ chaque fois"
+  }
+ ],
+ "lignes": [
+  {
+   "sonde": "compositeur-gestes (mac jour, iphone nuit, petit jour)",
+   "constat": "2 ✗ chacune : « son numéro se rend » (devis D-2026-044 et contrat CTR-2026-014)",
+   "cause": "sonde périmée",
+   "decision": "9e8134e0 et 7d9b4431 (18/11) : un numéro donné ne se redonne JAMAIS, brouillon supprimé ou non ; la sonde exigeait l'inverse",
+   "changement": "le contrôle exige maintenant que le prochain numéro ne redescende pas (nApres === nSuiv), même promesse de comptage, sens de la décision",
+   "preuve": "compositeur-gestes mac 44 ✓ · 0 ✗, iphone nuit 38 ✓ · 0 ✗, petit 38 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "compositeur-mise-en-page (iphone nuit, petit jour, ipad jour)",
+   "constat": "1 ✗ chacune : « 100 % coché à l'ouverture » et « Ajuster · 80 % pour 80 % »",
+   "cause": "sonde périmée",
+   "decision": "ccc43ce2 et caf59f09 (les mots) : espace insécable avant % dans l'atelier",
+   "changement": "les deux comparaisons lisent le texte avec espaces insécables ramenés à une espace (sp())",
+   "preuve": "iphone nuit 15 ✓, petit 14 ✓, ipad 18 ✓, 0 ✗"
+  },
+  {
+   "sonde": "menu-ordinateur, menu-telephone, menu-nu",
+   "constat": "6 ✗ au total : le menu de Julie (Secrétariat) compte DOUZE lignes (Dépôts et camions, Temps de travail en plus)",
+   "cause": "sonde périmée",
+   "decision": "578847ec (equipe-11, décision du chef, 17/11) : « Voir » décide SEULE ; le profil Secrétariat a stock 1110 et temps 1110",
+   "changement": "menu-commun.js : ATTENDU et ROUTES de julie à douze lignes ; l'exception « Personnel › Véhicules seul » de menu-ordinateur est retirée (aucun groupe d'une ligne, sans exception) ; MENU-FINAL.md note la décision",
+   "preuve": "menu-nu 12 ✓, menu-ordinateur 179 ✓ (rapide), menu-telephone 445 ✓, 0 ✗"
+  },
+  {
+   "sonde": "mail-persistance",
+   "constat": "1 ✗ : après être allé sur Clients et revenu, le message en cours d'écriture n'est plus là",
+   "cause": "régression",
+   "decision": "00778e5e (18/11, Retour tour 1) a fait du composeur un niveau d'historique sur ordinateur ; popstate prenait la navigation vers une autre rubrique pour un « Retour » et fermait le message (reproduit)",
+   "changement": "apercu/prototype-courrier.js : HIST.hash retient l'adresse de la Boîte mail ; popstate ignore un changement d'adresse ; hashchange repose le niveau au retour ; fusionné avec la version du lot Retour qui touchait les mêmes lignes (1917321d)",
+   "preuve": "mail-persistance 10 ✓ · 0 ✗ (contrôle neuf : Retour depuis le message revenu par le menu le ferme sans quitter la Boîte mail) ; 2 mutations tombent (garde popstate retirée : 2 ✗ ; hashchange retiré : 1 ✗) ; retour-courrier 7 ✓, recontrôle-e 5 ✓, retour-tout : calques et atelier verts"
+  },
+  {
+   "sonde": "atelier-roles",
+   "constat": "1 ✗ : « le cadre vit encore et sait composer un devis » — le bouton était recouvert par une question",
+   "cause": "sonde périmée",
+   "decision": "5ce5efdd et suivants (restes clients) : quitter une fiche client dont « Infos » est modifié sans être enregistré DEMANDE d'abord (« Abandonner mes changements »)",
+   "changement": "la sonde vérifie que la question est posée (contrôle neuf), l'abandonne comme la personne, puis rejoue le contrôle d'origine ; le contrôle qui échoue dit pourquoi (route, bouton, recouvrement)",
+   "preuve": "atelier-roles 36 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "taches-absences-mise-en-page (iphone, petit, android)",
+   "constat": "4 / 6 / 4 ✗ : barres d'absence du calendrier à 40×40 et 40×80, mois des soldes à 40×75 à 81",
+   "cause": "régression",
+   "decision": "deux faits : (1) une absence d'une DEMI-journée mesurait 40 px de haut (moitié d'une ligne de 80 px) : sous le plancher de 44, réel ; (2) la largeur d'une colonne de grille ne peut pas atteindre 44 px, décision technicien-09 (« le doigt a la hauteur »)",
+   "changement": "page : lignes du calendrier d'équipe à 92 px sous un pointeur tactile (CSS et HL du JS ensemble) : demi-journée à 46 px ; sonde : les trois familles de colonnes de grille (.ac-x, .acm-x, .as-m) ne sont écartées que si leur hauteur répond, et leur nombre est compté (≥ 1 au calendrier)",
+   "preuve": "iphone, petit, android : 246 ✓ · 0 ✗ ; capture iPhone et iPad regardées (férié « Toussaint » bien posé, aucune coupure)"
+  },
+  {
+   "sonde": "atelier-seule (mac nuit)",
+   "constat": "2 ✗ : une boîte de 82 px contre 83 px entre deux rendus (2126 éléments comparés)",
+   "cause": "machine",
+   "decision": "verte au premier passage, rouge au second, verte deux fois rejouée seule ; mesure au pixel sensible au moment du rendu",
+   "changement": "aucun",
+   "preuve": "56 ✓ · 0 ✗ ×2"
+  }
+ ],
+ "reste": [
+  "RETOUR (autre famille, non réparée ici) : retour-parcours « un seul pushState dans la page » tombe (2 trouvés) depuis 5ce5efdd : le lot Clients a posé un second history.pushState exprès (cliAdresseRendre, « le retour du navigateur après Abandonner ne ramène plus sur la fiche »). Soit la sonde est périmée (porter le compte à 2 en nommant cette fonction), soit les deux mécanismes doivent fusionner : à trancher par la voie Retour.",
+  "À SOUMETTRE À JUSTIN (déjà noté final/restes-equipe-tour1.json) : le Secrétariat voit désormais Temps de travail (heures de toute l'équipe, donnée de salaire) et Dépôts et camions par défaut depuis equipe-11 ; MENU-FINAL.md disait le contraire (document mis à jour). Un droit à part « Voir les heures de toute l'équipe » est la sortie proposée.",
+  "Pas rejoué : les profils laissés de côté par les scripts « -tout.sh » (windows, ipad, android, mac nuit de certaines sondes du compositeur ; TOUS=1).",
+  "taches-absences : les rangées à 92 px ne sont mesurées que par la sonde de mise en page et mes captures (iPhone, iPad) ; les sondes d'absences sur mac gardent leurs 80 px (pointeur fin)."
+ ],
+ "premierPassage": {
+  "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
+  "date": "2026-11-17",
+  "familles": {
+   "atelier": {
+    "script": "scratchpad/proto-final/sondes/atelier-tout.sh",
+    "etat": "existait déjà (non rejoué dans cette étape)"
+   },
+   "mail": {
+    "script": "scratchpad/proto-final/sondes/mail-tout.sh",
+    "etat": "existait déjà (non rejoué dans cette étape) ; les cinq sondes mail-recontrole-*.js n'y figurent pas (relectures ponctuelles)"
+   },
+   "compositeur": {
+    "script": "scratchpad/proto-final/sondes/compositeur-tout.sh",
+    "etat": "écrit et joué : 16 exécutions, 0 rouge, 13 min, 483 ✓ · 0 ✗ ; TOUS=1 ajoute windows, android, mac nuit, iphone jour (non joué)"
+   },
+   "menu": {
+    "script": "scratchpad/proto-final/sondes/menu-tout.sh",
+    "etat": "écrit et joué : 19 exécutions, 2 rouges (menu-defilement, menu-renommages), 16 min"
+   },
+   "taches": {
+    "script": "scratchpad/proto-final/campagne/sondes/taches-tout.sh",
+    "etat": "écrit et joué : 26 exécutions, 3 rouges (mise en page iphone, petit, android), 17 min ; ÉCARTÉS : outils, balayage, explore, niveau2.sh (écrivent des rapports dans campagne/)"
+   }
+  },
+  "aNoter": [
+   {
+    "sonde": "scratchpad/proto-final/sondes/menu-defilement.js",
+    "arguments": "(aucun ; boucle sur mac720, windows, mac, ipad, jour et nuit)",
+    "constat": "6 ✗ : « population (19 lignes de menu) » : la colonne du gérant porte maintenant 21 lignes (mesuré mac720, windows jour et nuit) ; la sonde code en dur === 19, MENU-FINAL.md dit « vingt lignes ». Soit la sonde est périmée (Sécurité, Mon compte ajoutés par la double-authentification), soit le menu a deux lignes de trop : à trancher avec MENU-FINAL.md avant de changer le compte."
+   },
+   {
+    "sonde": "scratchpad/proto-final/sondes/menu-renommages.js",
+    "arguments": "(aucun ; mac × marc, julie, sm)",
+    "constat": "9 ✗ : « aucun ancien nom dans le texte affiché » : le nom « Mon compte » (retiré du menu par MENU-FINAL.md ligne 18 et 91, motif /Mon compte/ de la sonde) est de retour dans le texte de 27, 9 et 8 écrans de marc, julie, sm : la double-authentification étape 3 (f6612dcf) a ajouté une page « Mon compte ». Décider : renommer la page, ou retirer le motif de la sonde avec une note dans MENU-FINAL.md."
+   },
+   {
+    "sonde": "scratchpad/proto-final/campagne/sondes/taches-absences-mise-en-page.js",
+    "arguments": "iphone non ; android non ; petit non (mac non est vert)",
+    "constat": "4 ✗ iphone, 4 ✗ android, 8 ✗ petit : « cibles au doigt ≥ 44 px » dans Absences et congés, jour et nuit : les barres d'absence du calendrier du gérant (« Sophie Martin · Autre · le vendredi 6 novembre » 40×40 à 390 px, 35×40 à 320 ; « Tom Leroy · RTT · le mardi 3 novembre » 35×80 à 320), les huit barres de mois du tableau des soldes à 320 px (40×75 à 81) et « Sophie Martin · RTT · le vendredi 16 octobre » de Mes congés à 320 px (38×66). Les corrections taches-absences-04 à 10 passaient en début de campagne : à vérifier si ces éléments sont nouveaux (autre voie) ou si la règle de 44 px ne les couvre plus."
+   }
+  ]
+ }
+}

@@ -1,0 +1,135 @@
+{
+  "angle": "injection (injection de code dans l'écran : XSS stocké, réfléchi, par l'adresse, par message entre fenêtres)",
+  "date": "17 novembre 2026",
+  "etat": "TERMINÉ pour l'étape 1 sur 8 (injection). 5 failles prouvées, contre-épreuve posée, 4 constats de code non rejoués.",
+  "couvert": {
+    "methode": "Lecture du code puis preuve au navigateur, sur 127.0.0.1, entreprise fictive. (1) RECENSEMENT STATIQUE par analyseur (acorn) : 14 082 interpolations ${…} dans du balisage sur les quatre pages et le module de courrier, dont 7 256 non reconnues « sûres » (ni esc(), ni nombre, ni littéral) ; 175 appels de toast() dont l'argument porte une valeur non échappée (toast écrit son message en innerHTML). (2) SONDE PAR LES DONNÉES : 13 538 champs de texte des tables du prototype remplacés chacun par une charge numérotée, 97 écrans et fiches visités, 288 clics, 1 100 charges retrouvées à l'écran ; une copie instrumentée des pages (jamais les pages) nomme le gabarit fautif pour chaque charge sortie. Elle surestime exprès (elle empoisonne aussi les tables de libellés fixes) : chaque sortie a été classée « saisissable par un geste » ou non. (3) SONDE PAR LES GESTES : la charge est TAPÉE dans les champs que l'application ouvre et validée par ses boutons, par trois rôles (patron, secrétaire, technicien) et le client ; puis 89 à 91 écrans et fiches sont revisités par passage, et la personne change (un technicien écrit, le patron lit ; un client écrit, le patron lit). Environ 155 champs tapés sur 13 passages (génériques ou dirigés ; les passages se recoupent), 47 formulaires enregistrés avec la charge dedans. (4) SONDE PAR L'ADRESSE : 33 essais (15 familles d'écrans dans le fragment avec guillemets et apostrophes, plus ?lien= ?auto= ?app=). (5) SONDE PAR MESSAGE : deux origines (127.0.0.1 et localhost), la page « attaquante » ouvre la comptabilité et lui parle.",
+    "chiffres": {
+      "interpolationsRecensees": 14082,
+      "nonReconnuesSures": 7256,
+      "appelsToastARisque": 175,
+      "champsEmpoisonnes": 13538,
+      "champsTapesParGestes": 155,
+      "formulairesEnregistres": 47,
+      "ecransParPassage": "89 à 97",
+      "essaisAdresse": 33,
+      "deuxOriginesPostMessage": 1
+    },
+    "sondes": [
+      "scratchpad/proto-final/securite/injection-statique.js (recensement)",
+      "injection-instr.js (copie instrumentée ; OPG_CORRECTIFS=1 pose la correction minimale dans la copie)",
+      "injection-outils.js",
+      "injection-donnees.js (par les données)",
+      "injection-gestes.js + injection-scenarios.js (par les gestes ; options --scenario --qui --puis --role --routes)",
+      "injection-url.js (par l'adresse)",
+      "injection-message.js (entre fenêtres)"
+    ],
+    "contreEpreuve": "Les deux corrections minimales d'injection-01 et injection-02 sont posées dans la COPIE instrumentée (OPG_CORRECTIFS=1 : eqNom échappé à la source, unité échappée dans sxQte) et les MÊMES gestes rejoués (invitation d'une personne, ajout d'un article, 10 champs tapés, 8 retrouvés à l'écran, 90 écrans revisités) : 0 sortie, 0 exécution, contre 4 sorties et 60 exécutions (invitation) et 2 sorties et 1 exécution (article) avant. Chaque remplacement doit trouver sa cible dans la page, sinon la sonde s'arrête.",
+    "limites": [
+      "Les écrans à plusieurs étapes que la saisie générique ne passe pas (plaque d'un véhicule, plein, nouvelle réserve, 'Mettre à jour le stock', 'Nouveau client' depuis la liste) n'ont pas tous été joués : la population de champs retrouvés à l'écran est dite à chaque passage (de 4/22 à 15/31) ; un champ jamais retrouvé à l'écran ne prouve rien, il est compté à part.",
+      "Le compositeur de devis et de contrats (cadre prototype-documents.html) et le module de courrier ont été LUS, pas rejoués : texte brut dans le modèle, collage forcé en texte, H()/esc() partout.",
+      "Les frontières rejouées sont technicien→patron, secrétaire→patron, client→patron ; patron→technicien (ce que le patron tape et que le technicien lit : noms, titres, notes) n'a été rejouée que par la sonde des données."
+    ]
+  },
+  "failles": [
+    {
+      "n": "injection-01",
+      "titre": "Le prénom et le nom d'une personne de l'équipe s'écrivent TELS QUELS dans le planning, les absences, les statistiques et les documents : du code tapé dans « Inviter une personne » s'exécute chez tous ceux qui ouvrent ces écrans",
+      "gravite": "haute",
+      "qui": "toute personne qui peut créer ou renommer un compte dans Équipe (le droit « Créer des comptes », déléguable : bureau, secrétaire, chef d'équipe). Victime : n'importe quel utilisateur qui ouvre le planning, les absences, les tâches, les statistiques — le patron compris. Dans la vraie application : aussi la personne invitée, si elle peut modifier son propre nom.",
+      "obtient": "l'exécution de son JavaScript dans la session de la victime : lire et modifier tout ce qu'elle voit (clients, factures, IBAN), agir à sa place (valider, supprimer, envoyer), voler le jeton de session de la vraie application. Un droit de création de comptes devient un accès au compte du patron.",
+      "etapes": "Équipe › « ＋ Inviter une personne » › Prénom = ¤n1¤\"'><img src=x onerror=…>, Nom = ¤n2¤\"'><img …>, e-mail valide, « Travaille sur le terrain » laissé coché › « Envoyer l'invitation ». Ouvrir ensuite le planning de l'équipe (ou les absences, ou « Nouvelle absence ») : la balise <img> est dans la page et son onerror s'exécute. Le nom entre dans TECHS et H_GENS par eqxSynchro() ; aucune des trois portes de saisie (invitation, fiche, renommage) ne filtre un caractère.",
+      "preuve": "REJOUÉE au navigateur, deux passages indépendants (injection-gestes.js --routes=equipe… ; --routes=equipe,planning,pointage,vehicules,stock) : 60 puis 40 exécutions de la charge, balise créée ET gestionnaire onerror en ligne relevés ; gabarits fautifs nommés par la copie instrumentée : vueJour (colonne du planning, ${t.nom}), aGrille (absences, y compris dans l'attribut title=\"Voir ${t.nom} seul\" : sortie d'attribut), aPanneauNouveau (<option>${t.nom}</option> de « Nouvelle absence »), aExport, tkxCorpsPersonne. Recensement statique : 75 interpolations de noms de personnes non échappées, sur 71 lignes et 58 fonctions (panneauCreer, aLe, crAlertes, vueCarte, stBilan, aMontrerPlanning, aParMois, aAppliquer, vueFacture, pdfFacture, compteRenduPdf, bilanPdf, texteSms, tMailClient, paiementPastille, hVisibles…) : le nom brut part donc aussi dans les PDF et SMS envoyés aux clients (relevé dans le code, non rejoué).",
+      "ou": "apercu/prototype-op-gestion.html : eqNom(p) (= p.prenom + ' ' + p.nom) alimente TECHS[].nom et H_GENS[].nom dans eqxSynchro() ; les 75 points de sortie écrivent ${t.nom}, ${tech(i.tech).nom}, ${x.t.nom}… sans esc(). Saisies : eqInviter / inviterok (Prénom, Nom), eqxFormModif / modifok.",
+      "correction": "Deux gestes, l'un ne remplace pas l'autre. À LA SORTIE (le plus petit qui couvre tout) : faire rendre à tech(id) et à H_NOM(id) un nom déjà échappé (esc dans eqNom, ce que la contre-épreuve a joué : 0 sortie), puis remplacer les emplois en texte brut qui doivent rester bruts. À L'ENTRÉE : dans inviterok, modifok et tout renommage, réutiliser la garde que « Mon entreprise » a déjà (ENT_INTERDIT, /[<>\"]/) — en y ajoutant l'apostrophe, l'esperluette et l'accent grave — et borner à 60 signes, avec un message qui dit pourquoi. Un banc : une charge dans chaque champ de nom, tous les écrans revisités, zéro exécution.",
+      "portee": "les deux (prototype : à corriger maintenant ; vraie application : le serveur doit AUSSI refuser ces caractères dans un nom, et le gabarit échapper par défaut)"
+    },
+    {
+      "n": "injection-02",
+      "titre": "L'unité d'un article (champ « Unité » de « ＋ Ajouter » dans Produits) s'écrit brute dans le Stock : du code tapé dans ce champ s'exécute à l'ouverture du Stock",
+      "gravite": "moyenne",
+      "qui": "toute personne qui peut ajouter un article au catalogue (droit Produits / Stock). Victime : toute personne qui ouvre le Stock, la liste « À valider », les bons de remise, les alertes de réassort.",
+      "obtient": "l'exécution de son JavaScript chez les collègues qui regardent le Stock (mêmes conséquences qu'injection-01).",
+      "etapes": "Produits › « ＋ Ajouter » › Unité = ¤n11¤\"'><img src=x onerror=…>, les autres champs ordinaires › Enregistrer. Ouvrir « Stock » : la charge s'exécute.",
+      "preuve": "REJOUÉE (injection-gestes.js --routes=…produits…, passage g3) : champ pr-u|Unité, 1 exécution, balise et gestionnaire onerror relevés sur l'écran stock, gabarit matLigneArticle. La même valeur sort aussi dans la ligne de mouvement « À valider » (sonde par les données). 16 lignes appellent sxQte.",
+      "ou": "apercu/prototype-op-gestion.html : sxQte(q, x) = prNum(q) + ' ' + prU(q, x.u || 'u') rend l'unité sans échappement ; matLigneArticle et la ligne de mouvement l'écrivent telle quelle. Saisie : id=\"pr-u\" (data-pru).",
+      "correction": "Le plus petit : esc() autour de prU(...) dans sxQte (une ligne, couvre les 16 lignes qui l'appellent ; contre-épreuve jouée : 0 sortie). À l'entrée, n'accepter que la liste AX_UNITES (u, kg, lot, L, m, boîte, paire, rouleau, aérosol, flacon, qui existe déjà) ou un motif court ^[\\p{L}\\p{N}²³.%/ -]{1,12}$.",
+      "portee": "les deux (prototype : maintenant ; vraie application : le serveur borne l'unité par la même liste)"
+    },
+    {
+      "n": "injection-03",
+      "titre": "toast() écrit son message en innerHTML : tout texte saisi qu'un message de confirmation reprend devient du code (exemple prouvé : le nom de la plateforme agréée)",
+      "gravite": "moyenne",
+      "qui": "toute personne qui saisit un texte repris dans un message de confirmation ; pour les messages qui citent un AUTRE (le nom d'un collègue, d'un fichier), c'est une victime différente de l'auteur. Le cas prouvé est un auto-piégeage (l'auteur voit son propre message) : la gravité vient de la classe, pas de ce cas.",
+      "obtient": "l'exécution du JavaScript de l'auteur du texte dans la session de celui qui voit le message.",
+      "etapes": "Comptabilité › Conformité › Aux normes › « Choisir ma plateforme » › nom = ¤n1¤\"'><img src=x onerror=…> › Enregistrer : le message « Plateforme enregistrée : … » est écrit en HTML, la balise naît, onerror s'exécute.",
+      "preuve": "REJOUÉE (injection-gestes.js --scenario=plateforme) : 1 exécution, balise relevée ; gabarits nommés : l'appel (cxPlateforme/plateformeok, ${n}) et toast() lui-même. Recensement des 175 appels de toast() avec une valeur non échappée : noms de personnes (tech(tid).nom, aPrenom(…), tNom(…)), noms de fichiers de fiches de paie (perdu.join(', ')), numéros, libellés de tâches (relevé dans le code, non rejoué appel par appel).",
+      "ou": "apercu/prototype-op-gestion.html : function toast(msg, action) { … t.innerHTML = `<span>${msg}</span>` … } ; appel fautif prouvé : toast(`Plateforme enregistrée : ${n}.`). Même modèle dans prototype-paiement.html (toast(msg, act), innerHTML). prototype-comptabilite.html écrit en textContent : sain.",
+      "correction": "toast(texte) écrit en textContent ; un second nom, toastHtml(html), réservé aux quelques messages (une dizaine) qui portent du balisage voulu (<b>…</b>) et dont chaque valeur est passée par esc(). Corriger d'abord l'appel prouvé : esc(n).",
+      "portee": "les deux"
+    },
+    {
+      "n": "injection-04",
+      "titre": "La comptabilité ouverte seule obéit au message d'une AUTRE origine : n'importe quelle page qui l'ouvre peut la faire passer « patron avec la paie »",
+      "gravite": "moyenne",
+      "qui": "n'importe quel site web : il ouvre la page de comptabilité dans une fenêtre (window.open) et lui envoie un message. Aucun clic de la victime. Dans la vraie application, la victime est connectée là-bas.",
+      "obtient": "le rôle « patron » et le droit « paie » dans la page de comptabilité : les écrans réservés (paie, fiches de paie) s'ouvrent. Ici les données sont fictives ; dans la vraie application tout droit tenu par la page est à refuser, mais l'écouteur est aussi la porte d'autres messages (opc_aller, opc_ventes, opc_liens).",
+      "etapes": "depuis une page de l'origine localhost : w = window.open('http://127.0.0.1:<port>/apercu/prototype-comptabilite.html'); w.postMessage({ opc_role:{ role:'patron', paie:true } }, '*').",
+      "preuve": "REJOUÉE (injection-message.js) : avant, CMPT.role = 'gestion', paie absente ; après le message d'une autre origine, CMPT.role = 'patron', CMPT.paie = true. 11 appels postMessage(…, '*') dans les quatre pages ; quatre écouteurs vérifient la source (trois dans OP GESTION, un dans l'atelier de documents), celui de la comptabilité (addEventListener('message', ev => …) vers la ligne 3302) ne vérifie ni ev.source ni ev.origin.",
+      "ou": "apercu/prototype-comptabilite.html : écouteur 'message' (opc_role, opc_aller, opc_liens, opc_ventes) sans contrôle de la source ni de l'origine ; l'autre écouteur de la page (opc_mode) idem.",
+      "correction": "En tête des deux écouteurs : if (ev.source !== parent || ev.origin !== location.origin) return; (ouverte seule, parent === window : aucun message accepté). Côté envoi, nommer l'origine au lieu de '*' (postMessage(m, location.origin)).",
+      "portee": "les deux (prototype : maintenant ; vraie application : le rôle ne se décide JAMAIS par un message, il vient du serveur)"
+    },
+    {
+      "n": "injection-05",
+      "titre": "Le délai (et le téléphone) d'un fournisseur s'écrivent bruts dans le détail d'une tâche « pièces à commander » : du code tapé dans la fiche fournisseur s'exécute",
+      "gravite": "moyenne",
+      "qui": "toute personne qui peut modifier une fiche fournisseur (droit Achats / Produits). Victime : toute personne qui ouvre le détail d'une tâche de commande — le patron compris.",
+      "obtient": "l'exécution de son JavaScript chez le patron ou le bureau (mêmes conséquences qu'injection-01).",
+      "etapes": "Produits › Fournisseurs › fiche d'un fournisseur › champ « Délai » = ¤n1¤\"'><img src=x onerror=…> › Tâches › ouvrir la tâche de commande liée à ce fournisseur : la charge s'exécute.",
+      "preuve": "REJOUÉE (injection-gestes.js --scenario=fournisseur) : 1 exécution, balise et onerror relevés dans « détail de la tâche t2 » ; gabarit nommé par la copie instrumentée : tDetail, carte « Fournisseur » (${esc(f.contact)} · ${f.tel} · ${f.delai}).",
+      "ou": "apercu/prototype-op-gestion.html : tDetail(id), carte « Fournisseur » : ${f.tel} et ${f.delai} sans esc() alors que ${esc(f.contact)} est échappé dans la même ligne (la source est MES_FOURN, via tkxFourn/FOURNISSEURS_T). Même champ écrit avec esc() ligne ~10026.",
+      "correction": "esc() autour de f.tel et f.delai (une ligne). À l'entrée, le champ Délai se lit déjà par pdxDelaiLu (un nombre de jours) : refuser ce qui n'est pas un délai.",
+      "portee": "les deux"
+    }
+  ],
+  "verifiesSansFaille": [
+    "Nouveau client + première intervention (nom, contact, e-mail, adresse, titre, ce que le client a dit) : 6 champs tapés, 6 retrouvés à l'écran, 91 écrans revisités, 0 sortie, 0 exécution.",
+    "Frontières entre personnes : technicien → patron (31 champs : notes de frais, demandes d'achat, compte rendu de journée, 15 retrouvés dans la vue du patron), secrétaire → patron (4 champs, 2 retrouvés : la secrétaire n'a presque aucun formulaire), client → patron (« Demander une intervention » : 1 champ retrouvé) : 0 sortie, 0 exécution.",
+    "Adresse de la page : 33 essais (fragment #client-x-…, #inter-x-…, #facture-x-… et douze autres familles, guillemets et apostrophes ; requête ?lien= ?auto= ?app=) : 0 sortie, 0 exécution. Le fragment ne désigne un écran que s'il existe ; lienTel()/lienMail() portent un schéma fixe devant la valeur échappée : pas de javascript:.",
+    "Module de courrier (prototype-courrier.js) : relu, pas rejoué. Objet, expéditeur, corps passent par H() ; corpsLu() échappe d'abord, ne fait des liens qu'en http(s) et APRÈS échappement, avec rel=noopener noreferrer nofollow ; aucun HTML de courrier n'est accepté.",
+    "Compositeur de devis et de contrats (prototype-documents.html) : relu, pas rejoué. Le modèle garde du texte brut (lireMulti/texteDeNoeud), le collage est forcé en texte (getData('text/plain') + insertText), dragstart bloqué ; l'atelier vérifie ev.source !== HOTE."
+  ],
+  "reglesPourLaVraieApplication": [
+    "Le gabarit échappe PAR DÉFAUT : une fonction html`…` dont chaque ${valeur} est échappée sauf si marquée sûre (htmlSur(x)). Aujourd'hui l'inverse : 14 082 interpolations dont 7 256 à relire à la main, l'échappement est un acte volontaire — c'est pourquoi 5 oublis sont déjà prouvés.",
+    "toast() écrit en textContent ; toastHtml() est un second nom réservé aux messages que l'application écrit seule.",
+    "Le SERVEUR refuse, dans tout nom (personne, client, société, article, unité, lieu, véhicule, fournisseur), les caractères < > \" ' ` & et borne la longueur — liste de ce qui est permis, pas de ce qui est interdit — et le client échappe quand même : deux barrières, jamais une.",
+    "Une politique de sécurité de contenu (Content-Security-Policy) sur la vraie application : script-src sans 'unsafe-inline' (OP GESTION n'a qu'un seul gestionnaire « on…= » en ligne), pas d'eval, base-uri 'self', frame-ancestors, object-src 'none'. Elle transforme un oubli d'échappement en une ligne de console au lieu d'un vol de session. Les pages du prototype n'en ont aucune (teamop.fr/apercu/ les sert telles quelles).",
+    "Un rôle, un droit ne se décident jamais par un message ni par une donnée du navigateur : le serveur les porte. Tout écouteur de message vérifie ev.source ET ev.origin, tout envoi nomme l'origine cible (jamais '*').",
+    "Tout lien venu d'une donnée (site, fichier, adresse) passe par une liste de schémas permis (https, http, mailto, tel) AVANT d'être écrit dans un href ; tout nom de fichier venu de l'ordinateur est du texte, jamais du balisage.",
+    "Un banc d'injection est un garde-fou durable : il tape une charge numérotée dans CHAQUE champ de texte des formulaires et revisite tous les écrans ; il compte sa population (champs tapés, champs retrouvés à l'écran) avant de conclure — un zéro sur un ensemble vide ne prouve rien."
+  ],
+  "constatsDeCodeNonRejoues": [
+    {
+      "n": "injection-06",
+      "titre": "Les coordonnées de l'entreprise (nom, adresse, SIRET, téléphone, courriel, dirigeant, IBAN) s'écrivent brutes dans une soixantaine de gabarits (en-têtes de devis, factures, contrats, PDF, courriels)",
+      "etat": "NON EXPLOITABLE AUJOURD'HUI grâce à la garde d'entrée de « Mon entreprise » (ENT_INTERDIT = /[<>\"]/ sur le nom, le dirigeant, la rue, la ville, le site ; téléphone et courriel validés par motif ; site forcé en https://) ; rejoué avec ce que la garde laisse passer (apostrophe, esperluette, entités &lt;…&gt; écrites en toutes lettres, six champs enregistrés) : 0 sortie, 0 exécution (injection-gestes.js --scenario=entreprise). Limite : la présence du texte à l'écran n'a pas été comptée pour ce passage.",
+      "pourquoi": "la défense ne tient qu'à une liste de trois caractères posée à un seul endroit ; l'apostrophe, l'esperluette et l'accent grave ne sont pas filtrés. Un import, une synchro ou une seconde porte de saisie la contourne.",
+      "correction": "esc() à la sortie (rendre ENTREPRISE.* échappé à la lecture : un seul accesseur entreprise()), la garde d'entrée restant en plus."
+    },
+    {
+      "n": "injection-07",
+      "titre": "Le nom d'un client est écrit brut dans « À faire maintenant » (Accueil) et dans les lignes de renouvellement de Statistiques",
+      "etat": "CODE DÉMONTRÉ, non rejoué : les textes a.t et a.s de l'accueil et le libellé « Renouvellement … · ${CLIENTS[x.c.cli].nom} » sont construits à partir du nom d'un client existant ; le formulaire « Nouveau client » échappe tout (6 champs, 0 sortie), et le prototype ne propose aucun geste pour RENOMMER un client, donc la charge ne peut pas encore arriver dans ces écrans. Sortie relevée par la sonde par les données (CLIENTS[…].nom, TACHES[].t).",
+      "pourquoi": "dès qu'une fiche client sera modifiable (vraie application : import de clients, fiche modifiable), le nom devient un vecteur vers l'accueil de tout le monde.",
+      "correction": "esc() sur a.t et a.s à l'endroit où l'accueil les écrit, et sur le libellé de renouvellement (une fonction : la liste « À faire »)."
+    },
+    {
+      "n": "injection-08",
+      "titre": "Les noms de dépôts et de camions (« Camion de … ») et les noms d'articles sortent bruts dans l'alerte « À remettre » du Stock, et les noms de fichiers de fiches de paie dans le message d'import",
+      "etat": "CODE DÉMONTRÉ, non rejoué (le nom d'un camion se déduit du nom d'une personne : voir injection-01 ; le nom d'un fichier choisi sur l'ordinateur ne se tape pas).",
+      "pourquoi": "même famille : un texte venu d'ailleurs (nom de fichier, nom de personne) écrit en HTML.",
+      "correction": "esc() sur l.nom et o.x.nom dans l'alerte de dotation ; textContent pour le message d'import."
+    }
+  ]
+}

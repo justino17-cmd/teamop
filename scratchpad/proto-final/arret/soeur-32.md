@@ -1,0 +1,6 @@
+# Arrêt de la sœur 32 (17/11/2026)
+- Args : {"voie":"final-regard","role":"bureau","rubriques":["Mes tâches","Interventions","Clients","Devis","Contrats","Comptabilité"],"suffixe":"a","arbre":"/home/user/wt-soeur"} (workflow wf_ba133df3-e87, arrêté par TaskStop ; le journal ne portait aucune étiquette `voie:N:nom`, donc la première étape (le regard) était en cours, non finie).
+- Dernier commit poussé : cda8b01b « final-regard (bureau, a) : travail en cours à l'arrêt » (fusionné et poussé ensuite, tête 8dcb71dc) : sondes regard-bureau-a.js et regard-bureau-a-captures.js, plus des corrections de apercu/prototype-op-gestion.html (liste d'interventions vide, `insec()` pour les téléphones/noms). Contrôles de sauvegarde tous à 0 ✗.
+- Conflit résolu à la fusion : liste vide d'Interventions, j'ai gardé la version `intVide(f)` de l'autre machine (titre + explication + bouton) et abandonné mon `INT_VIDE` ; gardé `insec()` et la règle `%€` de l'autre côté dans `typoTxt`.
+- Reste à faire : finir le regard des six rubriques côté bureau (écran d'ouverture Comptabilité au téléphone avec « Menu », menu et barre du bas, états lecture seule/boutons retirés), écrire regard-bureau-a.json, relire regard-gerant-a/b.json avant de corriger, puis relancer avec les mêmes args.
+- Rien perdu, aucun stash. Temps passé : environ 1 h.

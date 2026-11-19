@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
+<html lang="fr"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; font-src 'self' data:; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com; frame-src 'self' blob: data:; worker-src blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="same-origin"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>
 <title>Paiement des factures</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -68,7 +68,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .scene{display:grid;grid-template-columns:minmax(0,1fr) 430px 400px;grid-template-areas:"ent tel guide" "coul tel guide";grid-template-rows:auto 1fr;gap:20px;align-items:start}
 .ent{grid-area:ent;display:flex;flex-direction:column;gap:14px;min-width:0}
 .appli-tete{display:flex;align-items:center;gap:12px}
-.logo{width:40px;height:40px;border-radius:11px;background:#14804f;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none}
+.logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#3b82f6,#12306b);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none}
 .ligne{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .ligne:first-child{border-top:0}
 .ligne>.g{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -294,9 +294,9 @@ label.ch input,label.ch select,select.saisie{min-height:46px;border-radius:12px;
 <div class="page">
   <header class="tete">
     <div class="intro">
-      <span class="sur">Prototype · OP GESTION</span>
+      <span class="sur" id="sur-t">Prototype · OP GESTION</span>
       <h1>Paiement des factures</h1>
-      <p class="mute">Trois côtés d’un même paiement : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Le guide explique chaque bouton que tu touches, et peut te mener pas à pas dans chacun des 25 tests. Tout est simulé : aucun argent ne bouge, aucune donnée n’est réelle.</p>
+      <p class="mute" id="intro-t">Trois côtés d’un même paiement : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Le guide explique chaque bouton que tu touches, et peut te mener pas à pas dans chacun des 25 tests. Tout est simulé : aucun argent ne bouge, aucune donnée n’est réelle.</p>
     </div>
     <button type="button" class="btn" id="reset">Recommencer</button>
   </header>
@@ -318,6 +318,16 @@ label.ch input,label.ch select,select.saisie{min-height:46px;border-radius:12px;
 <div class="toast" id="toast" hidden></div>
 
 <script>
+/* 17/11 (compta-ventes-20, décision du chef) : DANS l'application (?app=1, ce que donne OP GESTION à son cadre), ce module ne montre plus son harnais d'essai : ni le ruban « Prototype »,
+   ni « Tests 0 / 25 », ni les boutons du temps (« + 1 jour », « + 1 semaine », « Jusqu'au prochain événement »), ni « Recommencer », ni « Nouvelle facture de test », ni les cadres jaunes
+   de test (« Carte de test », « Pour la démonstration »). Ses factures restent des EXEMPLES : l'écran le DIT (« Exemples · paiement en ligne »), il ne prétend pas être la Comptabilité. */
+const APP = /[?&]app=1\b/.test(location.search);
+if (APP) { document.documentElement.dataset.app = '1';
+  document.head.insertAdjacentHTML('beforeend', '<style id="opp-app">html[data-app] .b-temps,html[data-app] #b-proche,html[data-app] #b-tests,html[data-app] #reset,html[data-app] .rangee:has([data-act="nouvelle"]),html[data-app] .demo{display:none!important}</style>');
+  document.addEventListener('DOMContentLoaded', () => { const a = document.getElementById('sur-t'), b = document.getElementById('intro-t');
+    if (a) a.textContent = 'Exemples · paiement en ligne';
+    if (b) b.textContent = 'Voici comment un client paie une facture : l’entreprise dans OP GESTION, le téléphone de son client, et les coulisses (sa banque, son compte de paiement, la banque du client). Ces factures sont des exemples : celles de ta Comptabilité ne s’y retrouvent pas encore. Aucun argent ne bouge.'; }); }
+
 /* ════ DONNÉES FIXES ════ */
 const ENT = { nom:'Clim Services 17', mail:'contact@climservices17.fr', iban:'FR76 1234 5678 9012 3456 7890 123', bic:'EXEMPFRPP', adr:'12 rue des Artisans, 17000 La Rochelle' };
 const NOM_MODE = { carte:'carte bancaire', carte_hors:'carte bancaire (hors Europe)', wallet:'Apple Pay', gpay:'Google Pay', sepa:'prélèvement SEPA', x3:'paiement en 3 fois', virement:'virement', cheque:'chèque', especes:'espèces' };
@@ -360,6 +370,8 @@ const MODELES = [['Boulangerie Lemoine', 'M. Lemoine', 'Entretien de la chambre 
 /* ════ OUTILS ════ */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+/* on salue une personne : « Le syndic » reçoit un « Bonjour » tout court, pas « Bonjour Le syndic » */
+const salut = c => /^(le|la|les|l['’])(\s|(?<=['’]))/i.test(c) ? 'Bonjour' : 'Bonjour ' + esc(c);
 const eur = n => n.toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
 const dObj = d => new Date(d + 'T12:00:00');
 const iso = x => x.toISOString().slice(0, 10);
@@ -512,21 +524,21 @@ function sepaRembourse(p){
 function etatInitial(){
   idn = 0; const gen = S ? (S.gen || 0) + 1 : 1;
   S = { gen, sel:{}, init:true, jour:'2026-10-20', vue:'ent', ong:'factures', ecran:'accueil', fid:null, msg:null, relie:true, cliOps:[], cerr:null, assist:0, prest:'Stripe', banqueReliee:false, remb:null,
-    moyens:{ virement:true, carte:true, sepa:true, x3:true, cheque:true, especes:true }, relances:true, numFac:146, nouveauxTests:[],
+    moyens:{ virement:true, carte:true, sepa:true, x3:true, cheque:true, especes:true }, relances:true, numFac:147, nouveauxTests:[],
     factures:[
       { id:'f146', num:'FAC-2026-0146', cli:'Restaurant Le Vieux Port', contact:'Marc Durand', objet:'Remplacement du ventilateur extérieur', ht:1070, tva:20 },
       { id:'f144', num:'FAC-2026-0144', cli:'M. et Mme Durand', contact:'M. Durand', objet:'Réglage de la pompe à chaleur', ht:110, tva:10 },
       { id:'f145', num:'FAC-2026-0145', cli:'Hôtel de la Plage', contact:'Mme Bernard', objet:'Entretien climatisation, 6 cassettes', ht:155, tva:20 },
-      { id:'f143', num:'FAC-2026-0143', cli:'Camping Les Pins', contact:'M. Garcia', objet:'Dépannage, fuite d’eau', ht:400, tva:20 }
+      { id:'f143', num:'FAC-2026-0143', cli:'Cabinet dentaire Martin', contact:'Dr Martin', objet:'Contrôle du chauffe-eau', ht:95, tva:20 }
     ], paiements:[], avoirs:[], versements:[], banque:[], journal:[], evts:[], boite:[], planifie:[], tests:{} };
   const f = facDe;
-  emettre(f('f143'));
+  S.jour = '2026-10-28'; emettre(f('f143'));   // envoyée le 28/10, toujours à encaisser (comme dans OP GESTION)
   S.jour = '2026-10-29'; emettre(f('f144'));
   S.jour = '2026-10-30'; emettre(f('f145'));
-  S.jour = '2026-11-03'; virementArrive('f143', 480, false); rapprocher(S.banque.at(-1), f('f143'), true);
-  S.jour = '2026-11-04'; reussir(nouveauPaiement(f('f145'), 'carte', 186));
-  S.jour = '2026-11-05'; traiterJour(); S.jour = '2026-11-06'; traiterJour(); S.jour = '2026-11-07';
+  S.jour = '2026-10-30'; virementArrive('f145', 186, false); rapprocher(S.banque.at(-1), f('f145'), true);   // l'hôtel a payé par virement le 30/10
+  S.jour = '2026-10-31'; traiterJour();   // aujourd'hui : le samedi 31 octobre, comme dans toute l'application
   f('f144').vue = '2026-10-30';
+  S.factures.forEach(g => { if (!g.emise && g.num === 'FAC-2026-0146') g.num = 'FAC-2026-0147'; });   // le 0146 est celui d'OP GESTION (Mme Roux) · 13 novembre 2026
   S.boite.forEach(m => { m.lu = true; }); S.tests = {}; S.init = false; S.nouveauxTests = [];
 }
 etatInitial();
@@ -553,7 +565,7 @@ function vReglages(){
     <div class="carte"><h2>Ta banque</h2>
       <div class="ligne"><div class="g"><span class="petit mute">Les virements arrivent ici, directement</span><span class="iban">${ENT.iban}</span><span class="petit mute">IBAN d’exemple · BIC ${ENT.bic}</span></div></div>
       <div class="bascule"><div class="g"><b>Lire mes opérations bancaires</b><span class="petit mute">${S.banqueReliee ? 'Relié : les virements reçus sont reconnus par leur référence, la facture passe payée toute seule' : 'Sans ça, OP GESTION ne voit pas ton compte : tu touches « Reçu » sur la facture quand le virement est arrivé'}</span></div><button type="button" class="inter" role="switch" aria-checked="${S.banqueReliee}" aria-label="Lire mes opérations bancaires" data-act="banque-relier"></button></div>
-      <p class="petit mute">Dans la vraie version, ce lien passe par un prestataire agréé pour lire les comptes, avec l’accord de l’entreprise.</p></div>
+      <p class="petit mute">${APP ? 'Ce lien passe par' : 'Dans la vraie version, ce lien passe par'} un prestataire agréé pour lire les comptes, avec l’accord de l’entreprise.</p></div>
     <div class="carte"><h2>Ce que tes clients peuvent utiliser</h2>
       ${MOYENS.map(([k, l, s, ic, besoin]) => { const off = besoin && !S.relie; return `<div class="bascule"><span class="ic" aria-hidden="true">${ic}</span><div class="g"><b>${l}</b><span class="petit mute">${off ? 'Relie d’abord ton compte de paiement' : s}</span></div><button type="button" class="inter" role="switch" aria-checked="${moyenOuvert(k)}" aria-label="${l}" data-moyen="${k}" ${off ? 'disabled' : ''}></button></div>`; }).join('')}</div>
     <div class="carte"><h2>Frais et relances</h2>
@@ -665,11 +677,11 @@ function ecranTel(){
         <p>Paiement à réception, en ligne par le lien de la facture, ou par virement sur ${ENT.iban} (exemple). Pas d’escompte pour paiement anticipé. En cas de retard pour un professionnel : pénalités au taux légal en vigueur et indemnité forfaitaire de 40 € pour frais de recouvrement.</p></div>
       <p class="petit mute">Aperçu simplifié : le vrai PDF est celui d’OP GESTION, au nom et aux couleurs de l’entreprise.</p></div>`;
     case 'lire': { const m = S.boite.find(x => x.id === S.msg), g = facDe(m.fid), p = m.pid && payDe(m.pid), e = etatFac(g);
-      const corps = { facture:`Bonjour ${esc(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
-        relance:`Bonjour ${esc(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
-        recu:`Merci ${esc(g.contact)}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
-        rejet:`Bonjour ${esc(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
-        remboursement:`Bonjour ${esc(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
+      const corps = { facture:`${salut(g.contact)},<br>voici votre facture pour : ${esc(g.objet.toLowerCase())}. Vous pouvez la régler en ligne, en quelques secondes.`,
+        relance:`${salut(g.contact)},<br>sauf erreur de notre part, la facture ${g.num} n’est pas encore réglée. Vous pouvez la payer ici.`,
+        recu:`${salut(g.contact).replace('Bonjour', 'Merci')}. Nous avons bien reçu ${p ? eur(p.m) : ''} par ${p ? NOM_MODE[p.mode] : ''} pour la facture ${g.num}.`,
+        rejet:`${salut(g.contact)},<br>votre banque a rejeté le prélèvement de la facture ${g.num}. Vous pouvez la régler autrement.`,
+        remboursement:`${salut(g.contact)},<br>nous vous remboursons ${eur(m.m || 0)} (avoir ${m.num}) ${PRESTA.includes(m.mode) ? 'sur le moyen de paiement utilisé' : 'par virement'}. L’avoir est joint.` }[m.type];
       const payable = ['facture', 'relance', 'rejet'].includes(m.type) && reste(g) > .005 && !['sepa', 'litige', 'annulee'].includes(e) && !g.annonce;
       return `<div class="tel-corps"><button type="button" class="retour" data-cli="app|${m.canal === 'sms' ? 'sms' : 'boite'}">‹ ${m.canal === 'sms' ? 'Messages' : 'Boîte de réception'}</button><b>${esc(SUJET[m.type](g, m))}</b><p class="petit mute">${ENT.nom} · ${ENT.mail}</p><p>${corps}</p>
         ${['facture', 'relance', 'rejet'].includes(m.type) ? `<button type="button" class="btn ${payable ? 'plein' : ''}" data-cli="ouvrir|${g.id}">${payable ? (m.type === 'facture' ? 'Voir et payer la facture' : 'Payer maintenant') : 'Voir la facture'}</button>` : ''}</div>`; }

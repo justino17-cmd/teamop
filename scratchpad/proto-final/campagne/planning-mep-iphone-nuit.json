@@ -1,0 +1,214 @@
+{
+ "jour": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "general": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": []
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 390,
+   "premiere": 390,
+   "seconde": 390,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "1 30×30",
+    "2 30×30",
+    "3 30×30",
+    "! 30×30",
+    "Sophie 86×40",
+    "Karim 80×40",
+    "Tom 70×40"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 730,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 176,
+     "h": 46,
+     "droite": 192
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 174,
+     "h": 46,
+     "droite": 374
+    }
+   ],
+   "h1": "Planning"
+  }
+ }
+}

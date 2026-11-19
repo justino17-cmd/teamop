@@ -1,0 +1,28 @@
+{
+ "date": "2026-11-18",
+ "menu-renommages": {
+  "avant": "15 ✓ · 3 ✗ (identique avant les corrections du guide)",
+  "verdict": "la SONDE était périmée, pas la page : aucune page modifiée",
+  "raisons": [
+   "« raccourcis ⌘ 1…9 » exigeait 20 lignes et « barre personnalisable » 20 choix : « Sécurité » est entrée au menu du gérant avec la double authentification, décision du chef du 17/11 12 h 30 (vus-par-le-chef.md, ligne « Rejeu, familles menu » : « la colonne du gérant a bien VINGT ET UNE lignes »). La sonde lit désormais le commentaire « lignes-gerant » de MENU-FINAL.md, comme menu-defilement.js, sans chiffre écrit en dur.",
+   "« réglages des rendez-vous » exigeait la phrase « Pour les voir : ouvre une intervention, touche « Voir le lien client » » : la voie « mots » (commit f5d88883, 17/11) l'a retirée exprès (« deux aides du planning sans mode d'emploi de test »). Ce qui compte pour MENU-FINAL.md règle « Ce que voit le client : plus de ligne » est qu'aucune ligne de menu n'est citée : la sonde garde cela (ni « Ce que voit le client », ni « Pour les voir »)."
+  ],
+  "apres": "18 ✓ · 0 ✗"
+ },
+ "julie": {
+  "regarde": "32 captures de Julie (responsable) : Achats et frais et Tâches, SANS puis AVEC la case « Créer » des achats, jour et nuit, iPhone, Android, iPad, Mac (sonde julie-responsable-captures.js, 40 ✓ · 0 ✗) ; relues à l'œil : iPhone jour/nuit, Android jour, iPad nuit/jour, Mac jour/nuit.",
+  "corrige": [
+   "Achats et frais : la ligne « Achats de matériel et pièces : … déjà dépensés en octobre » écartait ses lignes (33 px d'interligne sur iPad, bloc de 56 px au Mac) : le bouton « Fixer un budget » (44 px, inline-flex) tenait toute la ligne. .ax-lm reçoit margin:-12px 0 et vertical-align:middle : la zone tactile reste de 44 px, l'interligne redevient normal (apercu/prototype-op-gestion.html ligne 940)."
+  ],
+  "vu_et_laisse": [
+   "Android : le 4e filtre (Karim) est coupé au bord, c'est le défilement horizontal voulu des filtres ; à iPhone ils passent à la ligne.",
+   "Mac : la barre latérale défile pour montrer la rubrique active (« Mes tâches » estompée en haut) : comportement voulu.",
+   "Sans « Créer » : aucun bouton de création sur Achats ; avec : « ＋ Nouvelle demande d'achat » partout, sans débordement, sans erreur JavaScript."
+  ],
+  "apres": "guide-tout.sh rapide : 12 familles, 0 en échec (mots 279+199, lib 3, voir 168+172, fermer 81+71, paysage 284, corrigés 23, première connexion 7+7, mise en page iphone jour 165)."
+ },
+ "mutation": {
+  "1_vide_paysage": "align-content:center retiré de .nv-carte (ligne 27045) : guide-vide-paysage.js TOMBE (écarts titre→phrase de 30 à 51 px, plusieurs cartes en ✗) ; restauré par git checkout, git diff vide, sonde 63 ✓ · 0 ✗.",
+  "2_factures_et_paiements": "T_CATS ‹Factures› renommé « Factures et paiements » (ligne 7039) : guide-corriges.js TOMBE (21 ✓ · 2 ✗ : groupe et écran Tâches) ; restauré, git diff vide, sonde 23 ✓ · 0 ✗."
+ }
+}

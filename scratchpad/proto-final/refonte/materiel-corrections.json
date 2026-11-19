@@ -1,0 +1,193 @@
+{
+  "lot": "materiel",
+  "etape": "8 sur 9 (corriger)",
+  "relectures_traitees": [
+    "materiel-relecture-bureau.json",
+    "materiel-relecture-technicien.json"
+  ],
+  "relectures_attendues_non_arrivees": [],
+  "sonde": "scratchpad/proto-final/sondes/materiel-bureau-corrections.js (mac, windows, ipad), materiel-technicien-corrections.js (iphone, petit) et leurs captures (materiel-bureau-captures.js, materiel-technicien-captures.js) — chiffres finaux : bureau mac 43 ✓, windows 44 ✓, ipad 44 ✓ (avant le dernier ajustement CSS du bandeau, qui ne touche que le téléphone) ; technicien iphone / android / petit 18 ✓ chacun, 0 ✗",
+  "corrections": [
+    {
+      "n": "bureau-01",
+      "etat": "corrigé",
+      "changement": "UNE fonction mdBientotFinis(lieu) (articles PRÉSENTS dans le lieu dont l'état est « bientôt fini » ou « plus en stock ») lue par la carte de l'atelier ET la fiche : le Condensateur « Nulle part pour l'instant » n'est plus compté",
+      "preuve": "sonde : carte « 3 », fiche « 3 », liste « Bientôt fini · 3 » (avant 4 / 4 / 3)"
+    },
+    {
+      "n": "bureau-02",
+      "etat": "corrigé",
+      "changement": "matEtat : une date prévue passée dit « Commandé · en retard » (orange) au lieu de « arrive le 30/10 » ; une date à venir garde « arrive le j/m »",
+      "preuve": "sonde : Fluide R410A (commande c39, prévue hier) dit « Commandé · en retard » ; Commandes dit « En retard de 1 jour »"
+    },
+    {
+      "n": "bureau-03",
+      "etat": "corrigé",
+      "changement": "matCEnregistrer construit « le camion de Léa » par mdDe(lieu) au lieu de passer le nom en minuscules",
+      "preuve": "sonde : toast « Tout est juste dans le camion de Léa : … »"
+    },
+    {
+      "n": "bureau-04",
+      "etat": "corrigé",
+      "changement": "cmdPaniers : la demande d'un article du catalogue se commande pour ce que l'atelier n'a pas (max(q − atelier, 0)), avec « 6 kg sont déjà à l'atelier » dans la ligne ; une demande entièrement couverte par l'atelier n'entre plus dans la commande",
+      "preuve": "sonde : demande de Tom 10 kg, atelier 6 → Commandes propose 4 (= Achats et frais)"
+    },
+    {
+      "n": "bureau-05",
+      "etat": "corrigé",
+      "changement": "Achats et frais › Transférer : camion au garage → panneau « Ce camion est au garage. Tu les mets quand même ? » (rien ne bouge avant « Oui, transférer ») ; le geste passe par sxToast avec « Annuler » (photo du stock + crochet photo.apres dans sxRestaurer qui remet la demande, le brouillon de commande et son numéro)",
+      "preuve": "sonde : transfert 0 → 6 kg, brouillon créé, demande approuvée ; Annuler = stock, journal, commandes, demande « en attente » et numéro de brouillon d'avant"
+    },
+    {
+      "n": "bureau-06",
+      "etat": "corrigé",
+      "changement": "matCMajPlace : sur « input » (pas seulement « change ») la phrase d'écart de la ligne et le pied « N écart · ± montant » se mettent à jour SUR PLACE, sans redessiner la feuille (le curseur reste dans le champ)",
+      "preuve": "sonde : taper « 6 » dans Dégrippant (prévu 8) sans quitter le champ → « 2 de moins que prévu », « 1 écart », focus gardé ; revenir à 8 → « Aucun écart »"
+    },
+    {
+      "n": "bureau-07",
+      "etat": "corrigé",
+      "changement": "mdBandeau : un seul camion et une seule visite nomment la visite ; sinon la sous-ligne COMPTE (« Sophie, Karim, Tom · 4 visites d'ici mardi »)",
+      "preuve": "sonde + capture : « Sophie, Karim, Tom · 4 visites d'ici mardi »"
+    },
+    {
+      "n": "bureau-08",
+      "etat": "corrigé",
+      "changement": "nouvelle icône « exporter » (flèche vers un plateau) pour « Exporter l'historique » (Stock › Plus) et « Exporter » (Dépôts › Plus) ; l'appareil photo ne reste qu'à « Photographier une facture »",
+      "preuve": "sonde : le SVG de l'entrée n'est plus celui de IC.photo"
+    },
+    {
+      "n": "bureau-09",
+      "etat": "corrigé",
+      "changement": "« Modifier ce lieu » porte « Me rappeler de le compter tous les (mois) » (vide = durée du Stock, placeholder = la durée en vigueur) et écrit SX.freq[lieu], annulable ; la phrase des Réglages dit le vrai chemin (fiche › Plus › Changer le nom…) ; le gestionnaire orphelin data-sxfreq est retiré",
+      "preuve": "sonde : camion de Sophie à 2 mois = 60 j (sxFreq), les autres 90 j ; Annuler rend l'ancienne durée ; champ vidé = durée du Stock"
+    },
+    {
+      "n": "bureau-10",
+      "etat": "corrigé",
+      "changement": "UNE règle sxBoutsBas (reste ≤ 1 kg) lue par Mon camion, la carte et la fiche du camion (ligne orange « Bouteille presque vide : R32-2231 (0,6 kg) »), l'Accueil (5ᵉ ligne de la carte Matériel, rare) et la fiche de l'article (sxBoutEtat : « Presque vide » orange au lieu d'« Entamée »)",
+      "preuve": "sonde + captures mac jour / iphone nuit : carte, fiche, Accueil"
+    },
+    {
+      "n": "bureau-11",
+      "etat": "corrigé",
+      "changement": "msTuiles : une tuile n'est un bouton que si la rubrique qu'elle ouvre est permise (rlPermis) ; sinon un <div> qui dit le chiffre",
+      "preuve": "sonde Julie : la tuile « manquent dans les camions » n'est plus un bouton (rlPermis('boxes') = false)"
+    },
+    {
+      "n": "bureau-12",
+      "etat": "corrigé",
+      "changement": "msLigneJournal : sans le droit d'accepter, la pastille est un <span> « En attente du gérant » (CSS : pas de hauteur de bouton, curseur normal)",
+      "preuve": "sonde Julie : 2 envois en attente, 0 bouton, 2 étiquettes « En attente du gérant »"
+    },
+    {
+      "n": "bureau-13",
+      "etat": "corrigé",
+      "changement": "écran bas de bureau (≥ 1000 px de large, ≤ 820 px de haut) : sous-titre de l'en-tête masqué, bandeau et tuiles serrés, lignes d'article à 64 px. Première ligne d'article 494 → 449 px sur 768 (0,58), 4 lignes entières visibles avec le bandeau. L'objectif « six lignes » de la spécification ne tient pas avec un bandeau et des lignes de 64 px : DIT, voir le rapport",
+      "preuve": "sonde windows : première ligne ≤ 0,6 écran et ≥ 4 lignes visibles ; capture stock-windows"
+    },
+    {
+      "n": "bureau-14",
+      "etat": "corrigé",
+      "changement": "menuGarderPlace : le GROUPE de la ligne courante se montre en entier quand il tient dans la colonne du menu (le menu est l'écran du lot « menu » : changement limité à ce défilement)",
+      "preuve": "sonde ipad : Stock, Dépôts et camions, Fournisseurs entièrement dans la colonne du menu"
+    },
+    {
+      "n": "bureau-15",
+      "etat": "corrigé",
+      "changement": "fournFiche : « Je le retire au comptoir » masque « Livraison gratuite à partir de », « frais de port » et la phrase de délai (les valeurs saisies sont gardées)",
+      "preuve": "sonde + capture : Frigo Distribution 17 ne montre plus ces trois lignes"
+    },
+    {
+      "n": "bureau-16",
+      "etat": "corrigé",
+      "changement": "CSS : entre 761 et 960 px, « Photographier une facture » devient un bouton carré (comme au téléphone) et les trois boutons restent sur UNE rangée",
+      "preuve": "sonde ipad : tops 136/135/136 (une rangée)"
+    },
+    {
+      "n": "bureau-17",
+      "etat": "corrigé",
+      "changement": "msArticles : le pied n'ajoute le montant de TOUT le stock que sans recherche ni lieu (« 1 article » pendant une recherche)",
+      "preuve": "sonde : « condens » → « 1 article » ; sans recherche, le montant revient"
+    },
+    {
+      "n": "bureau-18",
+      "etat": "corrigé",
+      "changement": "le registre des fluides du jeu de données renvoie chaque ligne à SON intervention (rg2 → i25 de Karim, rg1 → i1 de Sophie) : le nom du client devient le bouton qui ouvre l'intervention",
+      "preuve": "sonde : 2/2 liens ; le toucher ouvre #inter-x-i25"
+    },
+    {
+      "n": "bureau-19",
+      "etat": "corrigé",
+      "changement": ".pr-sugg:empty{display:none} : la suggestion vide ne garde plus sa place (60 px de blanc → 12 px)",
+      "preuve": "sonde : hauteur 0 px, écart Nom → Rangé dans 12 px ; la suggestion apparaît toujours quand on tape"
+    },
+    {
+      "n": "technicien-01",
+      "etat": "corrigé",
+      "changement": "≤ 360 px : tuiles de Stock à 6 px de rembourrage latéral et libellé à 12,5 px (« commander » tient en entier : 2 lignes pour 2 mots, jour et nuit)",
+      "preuve": "sonde petit (320 px) jour et nuit : « à commander » sur 2 lignes, aucun mot coupé ; capture tech-stock-petit-nuit"
+    },
+    {
+      "n": "technicien-02",
+      "etat": "corrigé",
+      "changement": "la phrase de contrôle (« Tu notes : 1 Filtre à charbon utilisé chez Restaurant Le Vieux Port. ») entre dans le pied qui reste en bas, au-dessus des boutons, pour les trois feuilles (J'ai utilisé, J'ai pris à l'atelier, et la feuille « Mettre à jour » de Stock) ; vide, elle disparaît",
+      "preuve": "sonde iphone : phrase visible dans l'écran et au-dessus du bouton « Envoyer » ; captures android jour, petit nuit"
+    },
+    {
+      "n": "technicien-03",
+      "etat": "corrigé",
+      "changement": "classe .pu-ajout : sous 480 px le champ « Chercher dans le stock… » prend sa ligne entière, « Qté » et « Ajouter » dessous",
+      "preuve": "sonde iphone : champ de 324 px sur 390 (avant ~128) ; capture tech-fiche-pieces-android-jour"
+    },
+    {
+      "n": "technicien-04",
+      "etat": "corrigé",
+      "changement": "supprimées : prUsage, cmdDansFiltre, prOuEst, pdxPlu, pdxAchatsArticle, pdxCourbe (une seule occurrence chacune dans la page, aucune sonde ne les nomme) et la règle .mc-garage",
+      "preuve": "grep : 0 occurrence ; sonde : typeof window[nom] = undefined pour les six ; la page compile (compiler-pages.js)"
+    },
+    {
+      "n": "technicien-05",
+      "etat": "à soumettre à Justin",
+      "changement": "rien changé : « à remettre à bord » (Véhicules, verrouillé par la sonde vehtemps-v5-camion et VEHICULES-TEMPS § 3.4) contre « il manque » (Matériel § 3.4 / 9.5). Les deux spécifications se contredisent ; choisir UN mot (« il manque 3 articles à bord » est celui du lot Matériel)",
+      "preuve": "constat reproduit tel quel par le relecteur ; non touché volontairement"
+    },
+    {
+      "n": "technicien-06",
+      "etat": "corrigé",
+      "changement": "matManqueVue : surtitre fixe « Mon camion » (le client est déjà dit dans la ligne « Pour quelle intervention ? »)",
+      "preuve": "sonde iphone : matManque({inter:'i1'}) → « Mon camion »"
+    },
+    {
+      "n": "technicien-07",
+      "etat": "corrigé",
+      "changement": "sxAnnule : le journal reçoit le libellé à la 3e personne (^ta → sa, ^ton → son, ^tes → ses) ; le toast garde « ta prise à l'atelier »",
+      "preuve": "sonde iphone : ligne de journal « a annulé » + « sa prise à l'atelier » ; SX.dernier.lib = « ta prise à l'atelier »"
+    },
+    {
+      "n": "technicien-08",
+      "etat": "à soumettre à Justin",
+      "changement": "rien changé : l'unité « u » est l'unité générique de tout le prototype (Stock, fiche, Commandes, Mon camion, devis) ; la remplacer par « pièce(s) » partout est une décision de vocabulaire (et touche d'autres lots)",
+      "preuve": "constat non contesté ; non touché volontairement"
+    },
+    {
+      "n": "technicien-09",
+      "etat": "corrigé",
+      "changement": "« Pièces prévues par le bureau » dit « Coche ce que tu as posé : le bureau le met sur la facture. » ; « Aucun prix ici : le bureau chiffre au moment de la facture. » reste seul à parler de prix",
+      "preuve": "sonde iphone : le texte de la fiche ne contient plus « prix du catalogue »"
+    },
+    {
+      "n": "technicien-10",
+      "etat": "corrigé",
+      "changement": "au téléphone le bandeau « envois à accepter » tient sur UNE rangée (texte à gauche qui ouvre les envois, « Tout accepter » à droite ; « Voir » et le rond décoratif disparaissent). Première ligne d'article : iPhone 626 → 574 px sur 844 (0,68) ; android 659 → 605 sur 740 ; 320 px 635 → 604 sur 568 (encore sous le pli, la place manque). Le plafond de 12 touchables avant la liste reste à 13 : aucun touchable n'est sans fonction, DIT",
+      "preuve": "sonde iphone, android, petit : « Tout accepter » à côté du texte, toucher le texte ouvre la feuille des envois ; captures android jour, petit nuit"
+    }
+  ],
+  "decouverte_en_regardant": [
+    {
+      "ou": "Ajouter un article, téléphone",
+      "constat": "« Non, c'est du matériel pour mon équipe » était coupé à droite dans le choix « Je le vends au client ? »",
+      "correction": "au téléphone, les deux choix s'empilent, chacun en entier"
+    }
+  ]
+}

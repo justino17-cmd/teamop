@@ -26,7 +26,7 @@ console.log('\n── 2860 · le cerveau : thinking, longueur, jamais de réglag
   let n = 0;
   function monter(o) {
     o = o || {}; const D = path.join(banc, 'm' + (n++)); fs.mkdirSync(D, { recursive: true }); const appels = [];
-    const ctx = { DATA_DIR: D, agents: { AGENTS: AG, peutAgir: () => ({ ok: true, mode: 'brouillon' }), noter: (id, a, x) => notes.push([id, a, x && x.resultat, x && x.detail]) }, cleApi: 'sk-ant-banc' };
+    const ctx = { DATA_DIR: D, agents: { AGENTS: AG, peutAgir: () => ({ ok: true, mode: 'brouillon' }), noter: (id, a, x) => notes.push([id, a, x && x.resultat, x && x.detail]) }, retires: false, cleApi: 'sk-ant-banc' };
     if (o.reel !== true) ctx.appeler = o.appeler || (async (cle, req) => { appels.push(req); return { texte: 'Bonjour Justin', entree: 100, sortie: 50, stop_reason: 'end_turn' }; });
     return { c: cerv(ctx), appels };
   }

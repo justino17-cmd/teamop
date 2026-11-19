@@ -1,0 +1,113 @@
+{
+ "noms": [
+  "clients-17 : « Devis IA » (dictée) propose un client archivé",
+  "Casse : après « Abandonner » par le retour du navigateur, le retour suivant ramène sur la fiche abandonnée",
+  "Nouveau : dans « Archivés », une recherche qui ne correspond qu'à un client ACTIF invitait à créer un doublon",
+  "Un client archivé ET un client actif correspondent : l'archivé est caché sans un mot",
+  "Doutes reportés : premier appareil, suggestions d'adresse à 320 px, « Se déconnecter » avec saisie, tâche rapide sur un archivé"
+ ],
+ "regles": [
+  "Une contre-épreuve jouée avec un filtre (SEUL=R) se prouve d'abord NON mutée : si la sonde tombe déjà sur la page intacte dans ce mode, la mutation « tombe » pour une mauvaise raison. Les mutations 3 et 4 de mutations-clients-restes3.py (SEUL=R) étaient dans ce cas (page intacte : « 1 ✓ · 2 ✗ », R posait la recherche sans ouvrir « Clients »). Rejouées avec la sonde ENTIÈRE par mutations-clients-restes3-recontrole.py (n° 1 et 2) : elles tombent bien pour la bonne raison (23 ✓ · 1 ✗ chacune).",
+  "Une aide qui dit « l'autre rangement contient aussi la réponse » se joue dans LES DEUX SENS ET dans les deux cas (liste vide ET liste non vide) : la ligne « Un client archivé correspond aussi » n'existe que de « Tous » vers « Archivés » (voir casse 1).",
+  "Un message d'erreur propose un geste que CETTE personne peut faire : « restaure-le depuis Clients » n'a de sens que pour qui a le droit d'archiver (voir casse 2).",
+  "Un geste qui quitte l'écran passe par la garde de saisie ou dit pourquoi il n'y passe pas : sur ordinateur, « Se déconnecter » est la seule sortie non gardée (voir casse 3)."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Le retour du navigateur ferme la fenêtre « Tu as changé cette fiche… »",
+   "defaut": "Un second retour d'affilée ne remonte pas dans l'historique : il ferme la fenêtre.",
+   "constat": "Voulu et cohérent : la fenêtre a sa propre entrée d'historique (CAL). Après le second retour la fiche reste, la saisie aussi, l'adresse dit la fiche (D1) ; le retour suivant redemande (D1c). Mesuré sur 7 profils, gérant et secrétariat. Ce n'est pas un défaut."
+  },
+  {
+   "nom": "Le message « Hôtel de la Plage est archivé » est une bulle de 6 s",
+   "defaut": "Au petit écran la bulle recouvre un instant le texte dicté.",
+   "constat": "Comportement commun à toutes les bulles (toast), pas propre à cette correction."
+  },
+  {
+   "nom": "« Remettre dans la liste » pendant une recherche dans « Archivés »",
+   "defaut": "Soupçon : la liste se vide sur une phrase morte.",
+   "constat": "L'application bascule sur « Tous les clients », garde la recherche et montre le client remis (Q2). Rien à corriger."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Dans « Archivés », un client archivé ET un client actif correspondent : l'actif est caché sans un mot (la correction n'est faite que dans un sens)",
+   "gravite": "faible",
+   "etapes": [
+    "Rangement « Archivés », chercher « Rochefort » (un archivé et un client actif portent ce mot)",
+    "la liste montre le seul archivé, sans aucune phrase sur le client actif",
+    "dans l'autre sens (« Tous les clients »), la ligne « Un client archivé correspond aussi. Voir le client archivé » existe"
+   ],
+   "constat": "nActTrouves est calculé dans « Archivés » mais n'est lu QUE quand la liste est vide (phrase + bouton) ; la ligne « … correspond aussi » n'existe que pour nArchTrouves (`L.length && nArchTrouves`). Capture archives-aussi-actif-mac-marc.png : un seul cadre, rien dessous. 4 profils, gérant et secrétariat. Sonde : clients-restes3-adverse.js Q1 ; le correctif proposé (ligne symétrique, 1 ligne dans vueClients) fait passer Q1 (mutations-clients-restes3-recontrole.py n° 6 : 6 ✓ · 0 ✗). Le livrable du correcteur dit « même forme que le sens inverse » : c'est vrai de la phrase vide, pas de la ligne « aussi »."
+  },
+  {
+   "titre": "Le message de la dictée sur un client archivé renvoie le secrétariat vers un geste qu'il ne peut pas faire",
+   "gravite": "faible",
+   "etapes": [
+    "Se connecter en secrétariat (Julie : pas de droit « archiver / remettre dans la liste »)",
+    "Archiver un client (par le gérant) puis, côté secrétariat, Devis > Dicter un devis > « Devis pour la Plage… »",
+    "toast : « Hôtel de la Plage est archivé : restaure-le depuis « Clients » avant de lui faire un devis. »"
+   ],
+   "constat": "Dans « Archivés », le bouton « Remettre dans la liste » n'existe que pour qui a peut('crm','s') ; le secrétariat n'a donc aucun moyen de « restaurer » : la phrase mène à une impasse. Il faudrait « demande à ton gérant de le remettre dans la liste » pour qui n'a pas le droit. Mesuré : iphone et ipad en secrétariat (V6 ✗), mac gérant (V6 ✓). Sonde : clients-restes3-adverse.js V6."
+  },
+  {
+   "titre": "« Se déconnecter » (pied du menu, ordinateur et tablette) avec une saisie en attente dans « Infos » : déconnexion immédiate, saisie perdue sans un mot",
+   "gravite": "faible (geste voulu et sûr, mais c'est la seule sortie non gardée)",
+   "etapes": [
+    "Ordinateur ou iPad : ouvrir une fiche client > Infos, ajouter une lettre au nom (sans enregistrer)",
+    "toucher « Se déconnecter » dans le pied du menu",
+    "l'écran de connexion paraît, la saisie n'existe plus (nom en base inchangé)"
+   ],
+   "constat": "Le doute S2 du tour 2 est conclu : le vrai bouton (data-cnx=\"sortir\") n'est pas dans la liste des sorties gardées. La garde s'exécute quand même, APRÈS la fermeture de la session : la fenêtre « Tu as changé cette fiche sans l'enregistrer » est posée DERRIÈRE l'écran de connexion (z-index 1000, invisible ; CLI_RETENU resté armé), puis effacée à la connexion suivante. Au téléphone la sortie est gardée de fait : le bouton « Menu » demande avant d'ouvrir la feuille où se trouve « Se déconnecter » (vérifié iphone et android, petit). Sur un appareil partagé, déconnecter vite est défendable : à trancher (voir doutes) ; si on garde la garde, passer `sortir` (et l'entrée « Se déconnecter » de la palette) par cliInfosRetenir(() => sessionFermer()). Dans tous les cas la fenêtre ne doit pas être posée derrière la connexion. Captures deconnexion-mac-marc.png. Sonde : clients-restes3-adverse.js S1."
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "La dictée du Devis IA choisit le MAUVAIS client quand un mot du métier contient le nom d'un autre (« support » contient « port » du Vieux Port)",
+   "gravite": "faible à moyenne (le devis est marqué « à vérifier », mais il est préparé au nom d'un autre client)",
+   "constat": "« Devis pour Mme Roux, un support mural pour la pompe à chaleur, une heure de main-d'œuvre » prépare le devis pour Le Vieux Port (vp) : dvdPreparer reconnaît un client si un mot de son nom (plus de 3 lettres) est une SOUS-CHAÎNE du texte (`s.includes(m)`), et `find` prend le premier dans l'ordre des clés. Ancien (pas causé par le tour 3, la correction l'a seulement laissé en place), 7 profils. Correctif proposé : comparer par mot entier (`\\bport\\b`) ; mutations-clients-restes3-recontrole.py n° 7 : V2 passe, V1 et V3 restent verts. Sonde : clients-restes3-adverse.js V2."
+  },
+  {
+   "titre": "Hors clients : le fil de la Comptabilité garde l'ancien nom du client après un renommage",
+   "gravite": "faible, à trancher",
+   "constat": "La sonde clients-recontrole-fiche tombe en iphone/secrétariat/nuit (1 ✗ sur 31) : le cadre de la Comptabilité affiche « Argent reçu sur place · Reçu I6 · Mme Roux · 40,00 € » après le renommage en « Mme Rouxel-Delacroix » (36 rubriques, c'est le même cadre). Présent avant les corrections de ce tour (copie de la page à 5ce5efdd~1 : même échec), absent avant da1eab55 (« le reçu sur place part au cadre », 18/11 23 h 29) : l'effet vient du chantier Comptabilité, pas des clients. Un fil est un historique daté (le nom d'alors) : soit la sonde l'accepte, soit le fil relit le nom courant. Mac gérant : 31 ✓ · 0 ✗."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-tout.sh (37 exécutions : liste, fiche, création, modification, gestes, recontrôles, croisé, corrigés, rôles, droits, restes 1 à 3, clavier)",
+   "resultat": "36 exécutions à 0 ✗ ; 1 ✗ : clients-recontrole-fiche iphone/secrétariat/nuit (voir nouveaux, hors clients)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes2-adverse.js",
+   "resultat": "24 ✓ · 0 ✗ sur mac gérant et iphone secrétariat nuit (rejeu seul + dans clients-tout)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes3-captures.js",
+   "resultat": "3 ✓ · 0 ✗ sur mac et iphone"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes3-adverse.js (NEUVE : D1-D6 historique, Q1-Q4 recherche, V2-V6 dictée, S déconnexion)",
+   "resultat": "mac gérant 23 ✓ · 3 ✗ (Q1, V2, S1), mac secrétariat nuit 16 ✓ · 3 ✗ (Q1, V2, S1), iphone secrétariat nuit 21 ✓ · 3 ✗ (Q1, V2, V6), petit gérant nuit 24 ✓ · 2 ✗ (Q1, V2), android gérant 24 ✓ · 2 ✗ (Q1, V2), ipad secrétariat 20 ✓ · 4 ✗ (Q1, V2, V6, S1) ; D1 à D6 (dont l'historique après deux retours, Échap, clic à côté, Enregistrer, Enregistrer refusé, retour vers une autre fiche) tous verts sur tous les profils ; chaque ✗ est un constat de ce livrable"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/mutations-clients-restes3-recontrole.py (NEUF, 7 contre-épreuves)",
+   "resultat": "7 sur 7 OK : n° 3, 4, 5 (hook de Échap/clic à côté retiré, hook du refus retiré : D2, D3, D6 tombent) ; n° 1 et 2 (mutations 3 et 4 du correcteur rejouées avec la sonde ENTIÈRE : R2 et R1 tombent, 23 ✓ · 1 ✗) ; n° 6 et 7 (les correctifs proposés font passer Q1 et V2)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/mutations-clients-restes3.py n° 3 et 4 du correcteur",
+   "resultat": "INVALIDES telles qu'écrites : avec SEUL=R la sonde tombe sur la page NON mutée (1 ✓ · 2 ✗), donc elles « tombaient » pour une mauvaise raison ; remplacées par n° 1 et 2 du nouveau script"
+  },
+  {
+   "fichier": "compiler-pages.js, verifier-syntaxe.js, test-835, 836, 837, 1008, 2994, verif-secrets.sh",
+   "resultat": "code 0 (835 : 844 ✓ ; 836 : 307 ✓ ; 837 : 122 ✓ ; 1008 : 54 ✓ ; 2994 : 15 ✓), 0 ✗"
+  }
+ ],
+ "doutes": [
+  "« Se déconnecter » avec une saisie dans « Infos » sur ordinateur : déconnecter tout de suite (appareil partagé) ou demander avant ? (casse 3) : décision de Justin.",
+  "Retirer le premier appareil d'un client (fiche d'intervention et compte rendu lisent appareils[0]) : inchangé depuis le tour 2, non rejoué, décision produit.",
+  "Suggestions d'adresse à 320 px (3 propositions sur 5 visibles sous la barre d'actions) : défilement au doigt à confirmer sur un appareil réel (le Chromium émulé ne transmet pas fidèlement un défilement tactile court).",
+  "La saisie rapide d'une tâche rattache aussi un client archivé : voulu ? (« Relancer Mme X » reste utile) ; le Devis IA, lui, refuse l'archivé.",
+  "La ligne « Un client archivé correspond aussi » sous les cartes (ajoutée au tour 3, classée doute au tour 2) : à retirer d'une ligne si Justin préfère que les archivés restent invisibles hors de leur vue ; si elle reste, sa symétrique manque (casse 1)."
+ ]
+}

@@ -1,0 +1,140 @@
+[
+ {
+  "n": "equipe-01",
+  "etat": "corrigé",
+  "changement": "secuReposer refuse son propre compte (toast « Pour ton propre compte, demande à un autre administrateur. ») ; le bouton quitte la fiche de soi-même (il est dans le bloc « Changer son mot de passe », seulement si sec && !soi). Reproduit : equipe-gestes (bouton présent sur la fiche de Marc) avant correction.",
+  "preuve": "equipe-corrections.js (equipe-01 ×2) · mutation M1 attrapée"
+ },
+ {
+  "n": "equipe-02",
+  "etat": "corrigé",
+  "changement": "eqxSynchro met à jour H_GENS (nom, rôle) pour toute personne de l'Équipe, bureau comprise, et crée l'entrée si elle manque. Reproduit : H_NOM('julie') = « Julie Petit » après renommage.",
+  "preuve": "equipe-parcours.js P5 (66 ✓) · mutation M2 attrapée"
+ },
+ {
+  "n": "equipe-03",
+  "etat": "corrigé",
+  "changement": "la phrase du formulaire d'invitation ne se contredit plus avec la fenêtre : « La personne reçoit une invitation par e-mail. Son mot de passe provisoire s'affichera ensuite : remets-le-lui en main propre. »",
+  "preuve": "equipe-parcours.js P1"
+ },
+ {
+  "n": "equipe-04",
+  "etat": "corrigé",
+  "changement": "entVerifier (comme Mon entreprise) : message sous chaque champ fautif (prénom, nom, e-mail, adresse déjà prise), aria-invalid, curseur sur le premier fautif ; toast de secours",
+  "preuve": "equipe-parcours.js P2 · mutation M13 attrapée"
+ },
+ {
+  "n": "equipe-05",
+  "etat": "corrigé",
+  "changement": "une habilitation de même nom est refusée sous le champ, avec une phrase qui dit si elle est valable (jusqu'au…), sans date de fin, ou à renouveler (« touche Renouveler… »)",
+  "preuve": "equipe-parcours.js P6b · equipe-corrections.js · mutation M14 attrapée"
+ },
+ {
+  "n": "equipe-06",
+  "etat": "corrigé",
+  "changement": "fin avant la date d'obtention : refusée (phrase propre sous le champ) ; fin déjà passée : signalée, un second toucher sur « Ajouter » la confirme",
+  "preuve": "equipe-corrections.js (2 contrôles) · mutation M15 attrapée"
+ },
+ {
+  "n": "equipe-07",
+  "etat": "corrigé",
+  "changement": "date de fin vide sans « Sans date de fin » : « Choisis la date de fin, ou coche « Sans date de fin ». » sous le champ",
+  "preuve": "equipe-corrections.js · mutation M16 attrapée"
+ },
+ {
+  "n": "equipe-08",
+  "etat": "corrigé",
+  "changement": "valeur longue d'une ligne « libellé : valeur » (e-mail de 90 signes) : passe à la ligne, libellé intact ; boutons de la fiche (« Ouvrir l'application comme Maximilien-Alexandre ») ne dépassent plus. Piège rencontré : la règle de la feuille « cnx-vrai » était battue par `.ligne>b{white-space:nowrap}` de même poids : sélecteur renforcé en `.ligne.eqx-l>b`.",
+  "preuve": "equipe-mise-en-page.js iphone/ipad/android/petit/mac : 92/92/92/92/44 ✓ · captures regardées · mutation M9 attrapée"
+ },
+ {
+  "n": "equipe-09",
+  "etat": "corrigé",
+  "changement": "Inviter et Modifier la fiche : e-mail et rôle/téléphone chacun sur sa ligne sous 600 px ; « Travaille sur le terrain » : la phrase passe sous son libellé",
+  "preuve": "equipe-corrections.js iphone/android/petit · captures regardées · mutation M11 attrapée"
+ },
+ {
+  "n": "equipe-10",
+  "etat": "corrigé",
+  "changement": "bouton du toast : 44 × 44 px au doigt (pointer:coarse)",
+  "preuve": "equipe-corrections.js (iphone, android, petit) · mutation M10 attrapée"
+ },
+ {
+  "n": "equipe-11",
+  "etat": "corrigé",
+  "changement": "décision du chef 17/11 : la case « Voir » décide SEULE (ROUTE_DROIT : pointage ← temps, boxes ← stock) ; phrases de « Voir » dites exactement (heures de toute l'équipe ; dépôts et camions), plus de « ouvrir les heures… » sous « Supprimer ». ⚠️ EFFET À SOUMETTRE À JUSTIN : le profil Secrétariat (Julie : Voir sans Supprimer sur Stock et Temps de travail) voit désormais « Dépôts et camions » et « Temps de travail » = les heures de toute l'équipe (données de salaire) ; le testeur recommandait un droit à part « Voir les heures de toute l'équipe ». Sondes des autres voies mises en accord : droits-menus (Julie 12 lignes), droits-lecture-seule, equipe-droits-effets (PAR_CONCEPTION vide).",
+  "preuve": "equipe-corrections.js (4 contrôles) · droits-lecture-seule 36 ✓ · mutations M4, M5 attrapées"
+ },
+ {
+  "n": "equipe-12",
+  "etat": "corrigé",
+  "changement": "la fenêtre de la carte « Tes mentions légales » s'appelle « Tes mentions légales », la phrase « Ce que tes factures et tes devis disent de toi » passe dessous (zone « Mon entreprise » annoncée à venir : aucune refonte n'existait encore, corrigé a minima)",
+  "preuve": "equipe-corrections.js (equipe-12)"
+ },
+ {
+  "n": "equipe-13",
+  "etat": "corrigé",
+  "changement": "décision du chef 17/11 : « Lui donner un mot de passe provisoire » et « Lui envoyer un lien pour choisir le sien », côte à côte dans le bloc « Changer son mot de passe », UNE phrase sous chacun ; plus de « Reposer » ; le bouton « lien » quitte la rangée d'actions (pas de doublon)",
+  "preuve": "equipe-corrections.js (4 contrôles) · captures · mutation M12 attrapée"
+ },
+ {
+  "n": "equipe-14",
+  "etat": "reporté",
+  "changement": "zone Temps de travail (autre voie) ; le toast « Prototype : … » n'existe plus dans la page fusionnée (autre agent), à revérifier par cette voie",
+  "preuve": "grep « Prototype : » = 0 occurrence"
+ },
+ {
+  "n": "equipe-15",
+  "etat": "corrigé",
+  "changement": "UNE liste de noms (EQX_CATS = DR_CATS) pour le tableau, la liste, la fiche, les infobulles et les messages ; titres de colonnes sur deux colonnes de texte (pas 260 px de haut) ; l'apostrophe typographique des titres tournés remplacée (elle se dessinait en tiret)",
+  "preuve": "equipe-corrections.js (3 contrôles) · capture regardée · mutation M7 attrapée"
+ },
+ {
+  "n": "equipe-16",
+  "etat": "corrigé",
+  "changement": "requête de CONTENEUR (.eqx-dr-hote, 1 000 px) : le tableau ne se montre que s'il tient, sinon la forme en listes (iPad portrait 520 px)",
+  "preuve": "equipe-corrections.js ipad · capture regardée · mutation M8 attrapée"
+ },
+ {
+  "n": "equipe-17",
+  "etat": "corrigé",
+  "changement": "même cause que 08 : la ligne « Mot de passe : Provisoire… » du bloc Connexion passe à la ligne ; boutons du bloc sans dépassement",
+  "preuve": "equipe-mise-en-page.js android et petit : 92 ✓ chacun"
+ },
+ {
+  "n": "equipe-18",
+  "etat": "corrigé",
+  "changement": "droitsBlocFiche : cases grisées quand l'Équipe n'est qu'en lecture (lecture = !peut('admin','m')), phrase « Tu peux regarder ces droits ; c'est Marc qui les règle. »",
+  "preuve": "equipe-corrections.js · equipe-roles 34 ✓ · mutation M6 attrapée"
+ },
+ {
+  "n": "equipe-19",
+  "etat": "corrigé",
+  "changement": "« Désactiver le compte » porte son propre verbe (data-eq=desact, classé « supprimer » dans GESTES.eq) ; « Réactiver » garde « actif » (modifier). Sondes des autres voies suivies (droits-soi-meme)",
+  "preuve": "equipe-droits-supprimer 7 ✓ · mutation M3 attrapée"
+ },
+ {
+  "n": "equipe-20",
+  "etat": "corrigé",
+  "changement": "consigne de testeur retirée de la fenêtre « Rendez-vous en ligne » (un autre agent l'avait déjà réduite à une phrase simple : sa version gardée à la fusion)",
+  "preuve": "equipe-corrections.js (equipe-20)"
+ },
+ {
+  "n": "doute-1",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : « Valable 72 heures (jusqu'au 20/11 à 12:30) » d'un mot de passe provisoire est calculé sur l'horloge réelle alors que le prototype vit le 31 octobre 2026 (deux dates différentes en démonstration).",
+  "preuve": "doute du testeur, equipe.json"
+ },
+ {
+  "n": "doute-2",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : le bandeau « 1 compte verrouillé : Léa Roux. [Voir] » dit « Voir » seul (« Déverrouiller » ou « Voir la Sécurité » dirait où l'on va) ; le filtre « Invités » vide dit « Personne ici pour le moment. » sans dire quoi faire.",
+  "preuve": "doutes du testeur, equipe.json"
+ },
+ {
+  "n": "doute-3",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : un Responsable (Équipe en lecture) voit « Planifier la formation » (relève de la case Planning qu'il a) — voulu ? ; et « Rôle (un simple nom) » à côté de « Ses droits de départ » peut dérouter un débutant.",
+  "preuve": "doutes du testeur, equipe.json"
+ }
+]

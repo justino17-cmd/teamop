@@ -1,0 +1,128 @@
+[
+ {
+  "nom": "clients-04 : créer un client avec une intervention exige une adresse et un téléphone ou un e-mail",
+  "defaut": "clients-04 : créer un client avec une intervention exige une adresse et un téléphone ou un e-mail",
+  "etat": "corrigé",
+  "changement": "La création d'un client avec une intervention refuse, avec une phrase qui nomme le champ et pose le curseur dessus : « Indique l'adresse de l'intervention : le technicien doit savoir où aller. » puis « Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir. » (décision du chef du 17/11, comme le formulaire du devis).",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-creer.js 35 ✓ · 0 ✗ (le dernier ✗ était cette décision) ; mutation R10 tombe"
+ },
+ {
+  "nom": "clients-11 : « ＋ Ajouter un appareil », modifier et retirer dans l'onglet Appareils",
+  "defaut": "clients-11 : « ＋ Ajouter un appareil », modifier et retirer dans l'onglet Appareils",
+  "etat": "corrigé",
+  "changement": "Onglet Appareils : « ＋ Ajouter un appareil » (nom, détail), « Modifier » et « Retirer » par ligne (fenêtre de confirmation + « Annuler » dans le message), réservés à la case « changer un client ». La mention « 3 pannes du ventilateur » suit l'appareil (champ `pannes`), plus sa place dans la liste : retirer le premier appareil du Vieux Port ne la déplace plus. Le chiffre « N appareils » du haut suit ; sur 320 px les deux gestes passent sous le nom.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; captures appareils-*, retirer-appareil-* regardées (iphone nuit, petit nuit, ipad) ; mutation R12 tombe"
+ },
+ {
+  "nom": "clients-12 : vider le téléphone ET l'e-mail s'enregistre sans un mot",
+  "defaut": "clients-12 : vider le téléphone ET l'e-mail s'enregistre sans un mot",
+  "etat": "corrigé",
+  "changement": "Refus avec la phrase du devis : « Garde au moins un téléphone ou un e-mail… », le curseur va au champ téléphone, la fiche ne change pas. Vider un seul des deux reste permis. Le refus ne vise que « vider » : un client d'avant qui n'a ni l'un ni l'autre peut encore voir ses consignes changées.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-modifier.js 22 ✓ · 0 ✗ ; mutation R3 tombe"
+ },
+ {
+  "nom": "clients-15 : la saisie non enregistrée de l'onglet Infos est perdue en quittant",
+  "defaut": "clients-15 : la saisie non enregistrée de l'onglet Infos est perdue en quittant",
+  "etat": "corrigé",
+  "changement": "Quitter « Infos » avec une saisie non enregistrée (autre onglet, lien de la fiche, flèche « ‹ Retour », menu, barre du bas, logo) ouvre la fenêtre de l'application : Enregistrer (enregistre puis continue ; un champ refusé garde sur la fiche, avec son message) / Abandonner mes changements / Continuer la saisie. Un écouteur de capture retient le geste et le rejoue sur le même bouton ou son pareil ; jamais confirm() du navigateur (0 appel mesuré). Rien demandé si rien n'a changé.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-modifier.js (la vieille ligne « quitter abandonne » devient « demande, puis abandonne ») ; mutations R4, R20 tombent"
+ },
+ {
+  "nom": "clients-17 : la case « supprimer un client » n'a aucun geste derrière",
+  "defaut": "clients-17 : la case « supprimer un client » n'a aucun geste derrière",
+  "etat": "corrigé",
+  "changement": "« Archiver ce client » au bas de l'onglet Infos (confirmation dans la page, avec le nombre d'interventions à venir et de factures à recevoir qui restent), le client quitte la liste et n'est plus proposé pour un nouveau travail (devis, intervention, devis xylophage, contrat), le filtre « Archivés · N » le montre (la recherche y reste) avec « Remettre dans la liste », la fiche d'un archivé porte « Archivé · » en tête et un bandeau ; « Annuler » du message remet le client. Rien n'est effacé. Le libellé de la case d'Équipe dit « archiver un client » ; les gestes sont inscrits à la table des droits sous cette case.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; captures archives-*, fiche-archivee-*, infos-archiver-*, archiver-confirme-* regardées ; mutations R5, R15 tombent"
+ },
+ {
+  "nom": "clients-18 + casse 1 : un client dont le téléphone est enregistré en « +33 … » est introuvable",
+  "defaut": "clients-18 + casse 1 : un client dont le téléphone est enregistré en « +33 … » est introuvable",
+  "etat": "corrigé",
+  "changement": "À l'enregistrement, un numéro français s'écrit « 06 12 34 56 78 » (« +33 », « 0033 », « +33 (0)6 » ramenés à « 0 »), un numéro étranger garde son « + ». La recherche, le refus de doublon et la normalisation des créations comparent les chiffres normalisés des DEUX côtés (`cfTelChiffres`), y compris pour un numéro d'avant resté en « +33 » en base.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) (5 écritures retrouvent l'Hôtel de la Plage, 3 écritures sont un seul doublon) ; clients-recontrole-parcours.js 34 ✓ · 0 ✗ (P2 +33 retrouvé) ; mutations R2, R18, R19 tombent"
+ },
+ {
+  "nom": "Casse 2 : renommer un particulier laisse l'ancien nom dans « Contact »",
+  "defaut": "Casse 2 : renommer un particulier laisse l'ancien nom dans « Contact »",
+  "etat": "corrigé",
+  "changement": "Pour un particulier dont le contact était le nom, le contact suit le nouveau nom (sauf si la personne a touché au champ Contact). L'en-tête de la fiche et la carte de la liste ne montrent plus deux noms.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-recontrole-fiche.js 31 ✓ · 0 ✗ ; mutation R6 tombe"
+ },
+ {
+  "nom": "Casse 3 : les autres façons de créer un client n'ont pas reçu clients-05 (la carte les place au dépôt)",
+  "defaut": "Casse 3 : les autres façons de créer un client n'ont pas reçu clients-05 (la carte les place au dépôt)",
+  "etat": "corrigé",
+  "changement": "Une seule fonction, `clientFinir(k)`, appelée par TOUTES les créations (intervention, devis rapide, devis xylophage, atelier, « le client seul », et les quatre chemins du courriel : « C'est un client », « Créer le client et son devis », « Confirmer le créneau », la réponse à un message) : numéro à la française + point de la carte et secteur par `cliPositionner` (la décision de position qu'une autre voie avait posée, gardée à UN endroit). Une ville inconnue n'invente rien.",
+  "preuve": "clients-restes-creations.js 16 ✓ · 0 ✗ : JOUÉ par les gestes de la Boîte mail (courriel d'un inconnu, demande de devis de la démo, choix de créneau) et de la fenêtre « Composer un devis » (« Nouveau client… » dans le cadre) ; mutations R1, R16, R17, R21 tombent"
+ },
+ {
+  "nom": "Casse 4 : « ＋ Nouveau client » sans aucun geste pour qui a « créer un client » seul",
+  "defaut": "Casse 4 : « ＋ Nouveau client » sans aucun geste pour qui a « créer un client » seul",
+  "etat": "corrigé",
+  "changement": "Le panneau propose aussi « Le client seul » (nom, contact, téléphone ou e-mail, adresse facultative ; refus nommés, doublon à confirmer) : sa fiche, sans intervention ni devis ; la case « créer un client » suffit désormais. Le panneau a toujours un geste.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-recontrole-droits.js 4 ✓ · 0 ✗ ; mutation R13 tombe"
+ },
+ {
+  "nom": "Casse 5 : deux rangements enfoncés pendant une recherche",
+  "defaut": "Casse 5 : deux rangements enfoncés pendant une recherche",
+  "etat": "corrigé",
+  "changement": "Pendant une recherche, seul le rangement qui la porte est marqué (« Tous les clients », ou « Archivés »).",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; mutation R11 tombe"
+ },
+ {
+  "nom": "Casse 6 : « Restaurant  Le Vieux Port » (deux espaces) passe le refus de doublon",
+  "defaut": "Casse 6 : « Restaurant  Le Vieux Port » (deux espaces) passe le refus de doublon",
+  "etat": "corrigé",
+  "changement": "Les noms se comparent sans casse, accents, tirets NI espaces en trop (`cfNomCle`), à la fiche et au « client seul ».",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-recontrole-fiche.js ; mutation R8 tombe"
+ },
+ {
+  "nom": "Casse 7 : renommer un client ne renomme pas les titres de ses tâches",
+  "defaut": "Casse 7 : renommer un client ne renomme pas les titres de ses tâches",
+  "etat": "corrigé",
+  "changement": "À l'enregistrement du nom, l'ancien nom est remplacé dans les titres des tâches liées à ce client (Accueil et Tâches). Limite : seul le nom EXACT est remplacé ; une tâche qui dit « M. Durand » pour « M. et Mme Durand » reste telle quelle.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; mutation R7 tombe"
+ },
+ {
+  "nom": "Casse 8 : « Annuler » après nouveau client + intervention laisse le client",
+  "defaut": "Casse 8 : « Annuler » après nouveau client + intervention laisse le client",
+  "etat": "corrigé",
+  "changement": "Annuler retire aussi le client né avec l'intervention, sauf s'il a déjà autre chose (une autre intervention, un devis, une facture, un contrat) : le message « retour à l'état d'avant » est vrai.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) ; clients-recontrole-creations.js 14 ✓ · 0 ✗ ; mutation R9 tombe"
+ },
+ {
+  "nom": "Casse 9 : « aucun résultat » renvoie vers un bouton absent",
+  "defaut": "Casse 9 : « aucun résultat » renvoie vers un bouton absent",
+  "etat": "corrigé",
+  "changement": "La moitié de phrase « touche ＋ Nouveau client » ne s'écrit que pour qui a la case « créer un client ».",
+  "preuve": "clients-recontrole-droits.js 4 ✓ · 0 ✗ (Julie sans la case) ; clients-liste.js 51 ✓ mac, 54 ✓ iphone"
+ },
+ {
+  "nom": "Casse 10 : suggestions d'adresse à 42 px",
+  "defaut": "Casse 10 : suggestions d'adresse à 42 px",
+  "etat": "corrigé",
+  "changement": "`.adr-sug button` à 44 px.",
+  "preuve": "clients-restes.js (mac, windows, ipad, iphone nuit, android nuit, petit nuit : 65 à 67 ✓ · 0 ✗) (5 propositions à 44 px sur iphone, ipad, android, petit) ; mutation R14 tombe"
+ },
+ {
+  "nom": "Doute : créations depuis la Boîte mail et « Composer un devis » non jouées par l'interface",
+  "defaut": "Doute : créations depuis la Boîte mail et « Composer un devis » non jouées par l'interface",
+  "etat": "corrigé",
+  "changement": "Jouées par les gestes : un courriel d'un inconnu (« C'est un client »), la demande de devis de la démo (« Créer le client et son devis »), le choix d'un créneau (« Confirmer »), et « Nouveau client… » dans le cadre de « Composer un devis ».",
+  "preuve": "clients-restes-creations.js 16 ✓ · 0 ✗ (mac)"
+ },
+ {
+  "nom": "Sondes périmées mises à jour",
+  "defaut": "Sondes périmées mises à jour",
+  "etat": "corrigé",
+  "changement": "clients-creer.js (téléphone du devis, adresse exigée), clients-modifier.js (les trois décisions), clients-recontrole-creations.js, -fiche.js (un cadre caché rend le texte de ses scripts : ils sont retirés avant de lire), -parcours.js (« ‹ Retour » du mode application est « .rl-retour » ; le numéro s'écrit « 06 »).",
+  "preuve": "jeu complet clients-tout.sh rejoué"
+ },
+ {
+  "nom": "Décisions déjà prises par le chef",
+  "defaut": "Décisions déjà prises par le chef",
+  "etat": "déjà décidé",
+  "changement": "(a) bouton Retour qui ferme la fenêtre et quitte l'écran : voie à part, non touché ; (l) la Boîte mail pour le bureau, le glisser pour archiver, le planning au téléphone : non touchés.",
+  "preuve": "—"
+ }
+]

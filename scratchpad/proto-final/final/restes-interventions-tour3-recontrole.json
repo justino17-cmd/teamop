@@ -1,0 +1,35 @@
+{
+ "noms": ["interventions"],
+ "regles": [
+  "Relevé numérique : « 1 200 » devient 1200 et « 1 234,5 » devient 1234,5 sur les sept profils, jour et nuit (tour2-recontrole 26 ✓ · 0 ✗ ×12 ; mutation : ligne de recollage retirée → 2 ✗)",
+  "Signe moins typographique : « −5 » et « –5 » donnent -5 sur les sept profils, jour et nuit (mutation : ligne retirée → 2 ✗)",
+  "Refusés comme avant : « 3 sur 18 », « 10-12 », « 10–12 », « 12x3 », « 1 2 », « 12 3 », « 1 20 », « 12 345,6 3 », « 1 200 sur 3 » ; acceptés : décimales, « -5 », « 5 °C », « 2,4 kg », « -1 200 », « 1 200 000 »",
+  "Plafond du total d'une ligne Devis et Contrats : 14 ✓ · 0 ✗ sur mac, windows, ipad, iphone, android, petit, jour et nuit (12 passages)",
+  "Déjà décidés, non touchés : casse 4 (22 chiffres +33) et durée « 1 h 30 »"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {"titre":"« 10 – 12 » et « 10 −12 » (tiret demi-cadratin ou signe moins, avec espaces) sont maintenant acceptés et écrits 1012 dans un relevé numérique", "gravite":"moyenne",
+   "etapes":"Fiche d'intervention clim, champ Soufflage : coller « 10 – 12 » (ou « 10 −12 »). Avant le correctif : refusé (« Un seul nombre ici… »), car le tiret n'était pas un signe moins. Maintenant : « – » et « − » deviennent « - », la règle « deux nombres » ne voit pas « 10 - 12 » (espaces autour du trait d'union), et le nettoyage retire le second « - » : le champ et la fiche portent 1012, avec le seul message « Ce relevé est un nombre ». Fausse mesure dans le compte rendu du client. Rejoué sur 12 profils/modes (sonde tour3-recontrole, 3 ✗ identiques partout). Le « 10 - 12 » en trait d'union ASCII faisait déjà 1012 avant (défaut ancien, même cause : \\d\\s*-\\s*\\d absent de la règle « deux nombres »).",
+   "constat":"Cause : la conversion des signes précède la règle « deux nombres », dont les motifs excluent « - » des séparateurs et n'attrapent \\d-\\d que sans espace. Piste : ajouter \\d\\s+-\\s*\\d (un trait précédé d'une espace après un chiffre est une plage, pas un signe moins) ou refuser tout « - » qui n'est pas en tête."},
+  {"titre":"Les champs de relevé LIBRES sont réécrits en silence : « faible – moyenne » devient « faible - moyenne », « 2 100 individus » devient « 2100 individus », « 06:10 – 06:40 » devient « 06:10 - 06:40 »", "gravite":"basse",
+   "etapes":"Fiche nuisibles (Infestation) ou nettoyage (Arrivée, Départ) : écrire un texte avec un tiret demi-cadratin ou un nombre à espace des milliers. La conversion et le recollage tournent pour TOUS les relevés, avant le test « le relevé est numérique ». Aucun message, le curseur saute en fin de champ pendant la frappe. Rejoué 12 profils/modes, 4 ✗ chacun.",
+   "constat":"Piste : ne faire les deux remplacements que dans la branche « relevé numérique » (le test /^\\d+([.,]\\d+)?$/.test(ex) existe déjà juste dessous)."}
+ ],
+ "nouveaux": [
+  "Ambiguïté acceptée : « 10 100 » ou « 3 180 » (deux nombres à trois chiffres sur le second) est recollé en 10100 / 3180 ; c'est le prix du recollage des milliers, à soumettre à Justin si une plage « 10 100 » est plausible sur le terrain"
+ ],
+ "sondes": [
+  {"fichier":"campagne/sondes/interventions-restes-tour2-recontrole.js","resultat":"26 ✓ · 0 ✗ sur les 12 profils/modes"},
+  {"fichier":"campagne/sondes/interventions-restes-recontrole.js","resultat":"mac 150 ✓, windows 138, ipad/iphone/android/petit 139 ; 1 ✗ partout : « C (doute) deux numéros +33 (22 chiffres) acceptés » = casse 4, déjà tranchée « à soumettre à Justin », pas une régression"},
+  {"fichier":"campagne/sondes/interventions-recontrole.js","resultat":"122 ✓ (mac, windows, ipad) à 131 ✓ (iphone, android, petit) ; 1 ✗ partout : R19 « 12 345,67 L » acceptée, or le plafond de quantité à 10 000 (DV_Q_MAX, tour précédent) la refuse : attente de la sonde PÉRIMÉE, à mettre à jour (le message est juste)"},
+  {"fichier":"campagne/sondes/devis-contrats-plafond-tour3.js","resultat":"14 ✓ · 0 ✗ sur les 12 profils/modes ; ⚠ mutation « v * qteDe(lg) > DV_PU_MAX » remplacée par false : 14 ✓ · 0 ✗ quand même, la sonde ne mord pas sur le plafond côté prix d'une facture (la voie quantité le couvre) : garde incomplète"},
+  {"fichier":"campagne/sondes/interventions-restes-tour3-recontrole.js (neuve, ce recontrôle)","resultat":"22 ✓ · 7 ✗ identiques sur les 12 profils/modes : les deux casses ci-dessus (3 + 4 contrôles)"}
+ ],
+ "doutes": [
+  "Mutations : recollage des milliers retiré → 2 ✗ (« 1 200 », « 1 234,5 ») ; conversion des signes retirée → 2 ✗ (« −5 », « –5 ») ; plafond de prix retiré → AUCUN ✗ (voir sondes). Page restaurée par git checkout, git diff vide après chaque mutation",
+  "Casse 4 (20 chiffres, +33) et durée « 1 h 30 » : listées, jamais touchées",
+  "Non regardé sur capture : aucun écran n'a changé, les défauts ci-dessus se lisent dans la valeur du champ (mesure), pas dans la mise en page",
+  "La sonde interventions-restes-recontrole a tourné 12 fois sur 12 ; le profil mac720 n'a pas été joué (hors liste de la consigne)"
+ ]
+}

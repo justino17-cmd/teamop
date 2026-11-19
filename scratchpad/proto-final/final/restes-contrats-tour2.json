@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "contrats",
+  "defaut": "contrats-07 / Mettre fin : un NOUVEAU contrat du même client reprenait les visites FAITES de l'ancien contrat terminé (fiche « 1 sur 4 faites », deux « visite 2 sur 4 » au planning dont une « à planifier » dans le passé)",
+  "etat": "corrigé",
+  "changement": "Nouvelle fonction ctrFigerVisites(k) : les visites de DÉPART d'un contrat (sans identifiant de contrat, rattachées « au premier contrat signé du client ») reçoivent k.id AVANT que le contrat change d'état. Appelée par « Mettre fin » (finContratOk, avant le calcul des visites sorties) et par « Renouveler » (renouvelerOk). L'ancienne visite 2 faite reste à l'ancien contrat (terminé) ; le nouveau contrat dit « 0 sur 4 faites » et n'a que ses quatre visites, aucune dans le passé.",
+  "preuve": "restes-contrats-1-recontrole.js A (mac) : avant 26 ✓ · 4 ✗ dont 3 pour ce défaut, après 30 ✓ · 0 ✗ (le contrôle « une seule visite par rang » est resserré : il compte les visites du NOUVEAU contrat, vérifie qu'aucune n'est dans le passé et que i22 reste faite à c1) ; mutation C18 (retirer l'appel) mord : 2 ✗"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Fiche d'un contrat TERMINÉ au téléphone (320 et 360 px) : la page dépassait l'écran (345 px pour 320) et le nom d'une visite était écrasé à 81 px sur 3 à 4 lignes à côté de l'étiquette « Non faite · sortie du planning »",
+  "etat": "corrigé",
+  "changement": "Chaque ligne de la carte « Les visites » porte .ctr-vl : flex-wrap:wrap, le nom prend la place qui reste (min-width:0, base 9 em) et le bouton-lien se replie (white-space:normal, aligné à gauche) ; l'étiquette passe SOUS le nom quand elle ne tient pas. La carte n'élargit plus la page.",
+  "preuve": "restes-contrats-1-recontrole-ecrans.js petit, petit nuit, android nuit, iphone, ipad nuit, windows, mac : 19 ✓ · 0 ✗ (avant : 16 ✓ 2 ✗ à 320, 17 ✓ 1 ✗ à 360) ; contrôle neuf : les 12 lignes de la carte gardent ≥ 120 px de nom ou l'étiquette passe dessous ; capture visites-termine-petit-nuit.png REGARDÉE (nom entier, étiquette dessous, rien de coupé) ; mutation C20 (nowrap) mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "Aperçu d'un contrat : « soit NaN € TTC » quand le prix saisi n'est pas un nombre (« abc », « 12,5€ »)",
+  "etat": "corrigé",
+  "changement": "ctrTTC rend 0 quand le prix n'est pas un nombre fini (un seul endroit : l'article 4 de l'aperçu, la ligne sous le champ, la liste et la fiche passent tous par lui).",
+  "preuve": "restes-contrats-1-recontrole.js C : aucun « NaN » à l'écran sur les essais 0, -50, abc, vide, 99999999, 1000.005 ; mutation C19 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "(nouveau du recontrôle) Les visites NON faites d'un contrat terminé portaient toutes la même date (« mardi 3 novembre » pour les visites 3 et 4) : la liste avait l'air d'un doublon",
+  "etat": "corrigé",
+  "changement": "Une visite « Non faite · sortie du planning » n'affiche plus de date, seulement « Visite 3 » : elle n'a plus de jour au planning, et la date qu'on lui montrait était une date de remplissage.",
+  "preuve": "restes-contrats-1-recontrole-ecrans.js : « les visites sorties du planning n'ont plus de date » 19 ✓ sur petit nuit et android nuit ; capture visites-termine-petit-nuit.png ; mutation C22 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "(doute du recontrôle) un prix saisi à trois décimales (« 1000.005 ») était accepté et rangé tel quel : la fiche l'affichait arrondi, les parts de visite le calculaient brut",
+  "etat": "corrigé",
+  "changement": "creerContrat range le prix en centimes (arrondi à deux décimales) ; un prix est de l'argent, il n'a pas de millième. Changement minime, sans effet sur un prix à deux décimales.",
+  "preuve": "restes-contrats-1-recontrole.js C : « un prix à trois décimales se range en centimes » ✓ ; mutation C21 mord"
+ },
+ {
+  "nom": "contrats",
+  "defaut": "(doute du recontrôle) Une visite comprise avec pièce terminée par le technicien en vrai : le PDF réel et le courriel réel d'un contrat restent hors du prototype",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : le prototype n'a pas de serveur, le PDF et le courriel réels d'un contrat se contrôlent dans la vraie application. La fiche, le paiement et la pièce sont joués par les sondes du tour 1.",
+  "preuve": "restes-contrats-1.js, restes-contrats-1-recontrole.js E et G"
+ }
+]

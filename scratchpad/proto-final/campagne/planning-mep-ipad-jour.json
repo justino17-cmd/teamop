@@ -1,0 +1,224 @@
+{
+ "jour": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 494×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "semaine": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 494×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "mois": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 494×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "general": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 494×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "multi": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "Voir dans Tâches › 494×41"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ },
+ "carte": {
+  "debordement": {
+   "largeur": 820,
+   "premiere": 820,
+   "seconde": 820,
+   "bouge": 0,
+   "coupable": ""
+  },
+  "doigts": {
+   "petits": [],
+   "champs": [],
+   "ecrases": [],
+   "petitsRect": [
+    "1 30×30",
+    "2 30×30",
+    "3 30×30",
+    "! 30×30",
+    "Sophie 86×40",
+    "Karim 80×40",
+    "Tom 70×40"
+   ]
+  },
+  "verif": {
+   "coupes": [],
+   "barreBasHaut": 1180,
+   "boutonsTete": [
+    {
+     "t": "Rendez-vous en ligne",
+     "l": 207,
+     "h": 46,
+     "droite": 491
+    },
+    {
+     "t": "＋ Nouvelle intervention",
+     "l": 224,
+     "h": 46,
+     "droite": 723
+    }
+   ],
+   "h1": "Planning"
+  }
+ }
+}

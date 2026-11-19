@@ -1,0 +1,38 @@
+name: Surveillance TeamOP (atelier)
+
+# LA SURVEILLANCE DE CHAQUE HEURE SUR NOS MACHINES (19 novembre 2026) — étape 4 du départ de GitHub (scratchpad/demenagement/PLAN.md).
+# Même script que .github/workflows/surveillance.yml (.github/scripts/surveillance.js : chaque page répond, son JavaScript est
+# valide, les marqueurs de version, l'API). Un problème ouvre (ou complète) un ticket « 🚨 Surveillance » sur la forge.
+# ⚠️ La forge n'envoie pas encore de courriel (mailer coupé) : tant que GitHub n'est pas gelé, c'est lui qui prévient Justin ;
+#    l'envoi par courriel d'ici attend un compte d'envoi choisi par Justin (jamais un secret écrit dans ce fichier).
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+jobs:
+  surveiller:
+    runs-on: atelier
+    timeout-minutes: 10
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+
+      - name: Vérifier la plateforme
+        id: verif
+        run: node .github/scripts/surveillance.js 2>&1 | tee /tmp/surveillance-$$.txt; exit ${PIPESTATUS[0]}
+
+      - name: Ouvrir ou compléter le ticket
+        if: failure()
+        env:
+          JETON: ${{ forge.token }}
+          API: ${{ forge.server_url }}/api/v1/repos/${{ forge.repository }}
+        run: |
+          corps="$(tail -60 /tmp/surveillance-*.txt 2>/dev/null | python3 -c 'import json,sys; print(json.dumps({"body": "Relevé du " + __import__("datetime").datetime.now().strftime("%d/%m %H:%M") + " :\n\n```\n" + sys.stdin.read() + "\n```"}))')"
+          num="$(curl -sS -H "Authorization: token $JETON" "$API/issues?state=open&type=issues&q=Surveillance" | python3 -c 'import json,sys; l=[i for i in json.load(sys.stdin) if i["title"].startswith("🚨 Surveillance")]; print(l[0]["number"] if l else "")')"
+          if [ -n "$num" ]; then
+            curl -sS -o /dev/null -w "commentaire %{http_code}\n" -X POST -H "Authorization: token $JETON" -H 'Content-Type: application/json' "$API/issues/$num/comments" -d "$corps"
+          else
+            echo "$corps" | python3 -c 'import json,sys; d=json.load(sys.stdin); d["title"]="🚨 Surveillance TeamOP : problème détecté"; print(json.dumps(d))' \
+              | curl -sS -o /dev/null -w "ticket %{http_code}\n" -X POST -H "Authorization: token $JETON" -H 'Content-Type: application/json' "$API/issues" -d @-
+          fi

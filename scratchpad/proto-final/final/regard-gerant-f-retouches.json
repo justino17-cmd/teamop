@@ -1,0 +1,85 @@
+{
+ "role": "gérant (marc) — retouches de mise en page du regard F",
+ "voie": "final-regard",
+ "suffixe": "f-retouches",
+ "date": "2026-11-18",
+ "retouches": [
+  {
+   "n": 1,
+   "quoi": "aperçu du PDF du registre : pastilles sur « Cuisine », « Réserve », « Cour »",
+   "avant": "iphone, android, petit : 3 noms recouverts (28×8, 28×10, 26×13 px) ; sonde -plan : 17 ✓ · 3 ✗",
+   "apres": "sonde -plan : 20 ✓ · 0 ✗ (5 profils)",
+   "changement": "@media (max-width:760px){.rg-doc .d3-plan{aspect-ratio:3/4}} : le plan de l'aperçu reprend le 3/4 de la page (la page, elle, était propre)",
+   "mutation": "retour au 4/3 : tombe (6 ✓ · 2 ✗)"
+  },
+  {
+   "n": 2,
+   "quoi": "« Fermer » seul à gauche sous trois boutons centrés",
+   "avant": "centre de Fermer à 650 px, de la barre à 1010 (mac) ; 12 profils×modes rouges",
+   "apres": "centré (écart ≤ 2 px) sur 12 combinaisons",
+   "changement": ".doc-barre+.actions{justify-content:center}",
+   "mutation": "flex-start : tombe (12 ✓ · 12 ✗)"
+  },
+  {
+   "n": 3,
+   "quoi": "« Créer le devis » sur deux lignes à 320 px (aussi à 360 px, mesuré 139 px sur android)",
+   "avant": "petit 121 px, android 139 px : 2 lignes",
+   "apres": "1 ligne sur les 12 combinaisons",
+   "changement": "@media (max-width:380px) : gap 8, padding 10 de la barre, bouton padding 0 12px, max-width 54 % (le libellé long « Devis de visite et d'expertise » garde sa ligne qui passe à la ligne)",
+   "mutation": "ancien rembourrage : tombe (22 ✓ · 2 ✗)"
+  },
+  {
+   "n": 4,
+   "quoi": "activité à 3 barres serrées à gauche d'une carte de 1 100 px",
+   "avant": "colonnes de 64 px côte à côte à gauche",
+   "apres": "colonnes sur 96 % de la carte (mac : 305→1391 sur 284→1412), barres 34→72 px selon la place, sans défilement",
+   "changement": ".d3-h{flex:1 1 64px} ; .d3-hb{width:clamp(34px,45%,72px)} (téléphone : base 52 px)",
+   "mutation": "sans flex:1 : tombe (12 ✓ · 12 ✗)"
+  },
+  {
+   "n": 5,
+   "quoi": "écrans vides sans geste (registre gérant, carte des box, registre technicienne)",
+   "avant": "phrase seule",
+   "apres": "carte ms-vide (icône, titre, phrase, bouton) : « Voir mes clients » (gérant, 2 écrans) menant à #clients ; « Voir ma journée » (technicienne) menant à Ma journée ; bouton entier à l'écran et ≥ 36 px",
+   "changement": "data-vide + data-go",
+   "mutation": "bouton retiré (carte) : tombe (40 ✓ · 24 ✗) ; bouton retiré (technicienne) : tombe (72 ✓ · 4 ✗)",
+   "reste": "« Voir mes clients » MÈNE à la liste des clients ; il ne REMPLIT pas le registre : le prototype n'a aucun geste « suivre ce client au registre » (les 3 sites sont la démo). À décider par Justin : où ce geste vit (fiche client ? contrat ? première visite de contrôle ?). Le texte « Pour commencer, ouvre un client » n'affirme rien de plus."
+  },
+  {
+   "n": 6,
+   "quoi": "fondu du haut du menu qui grise « Fournisseurs, matériel & produits » (mac, windows)",
+   "avant": "écart de pixels avec/sans masque : 123 (jour) et 119 (nuit) sur 255 pour cette entrée ; aussi « Clients » (117), « Boîte mail » (97), « Tâches » (111) sur d'autres positions de la colonne",
+   "apres": "0 écart sur toute entrée dont la rangée est entièrement dans la colonne (mac, windows, ipad, jour et nuit, colonne au courant / en bas / au milieu : 36 ✓ · 0 ✗)",
+   "changement": "fondu de 34 à 12 px (haut et bas) ; menuRepere pose m-pile-haut quand une rangée tombe pile contre le bord haut (le fondu du haut s'éteint, la classe m-plus-haut reste posée : menu-defilement 67 ✓ · 0 ✗)",
+   "mutation": "34 px : tombe (32 ✓ · 4 ✗) ; m-pile-haut neutralisé : tombe (32 ✓ · 4 ✗)",
+   "reste": "quand une rangée tombe pile contre le haut, il n'y a plus de fondu à cet instant (le repère revient dès que la colonne bouge)."
+  },
+  {
+   "n": 7,
+   "quoi": "bande diagonale nette dans le fond des écrans vides de nuit",
+   "avant": "visible (mac nuit, iphone nuit)",
+   "apres": "INCHANGÉ, volontairement",
+   "decision": "le thème la VEUT : design/THEME-REFERENCE.md, « Fond de nuit : la même diagonale à 5 % sur le dégradé 160° » (diagonale à 112°, bord net à 58,2 %) ; le prototype la porte dans --page (linear-gradient(112deg, … 58% / .04 58.2%)). Elle ne se voit que sur un écran vide ou peu rempli, les cartes la couvrent sinon. Rien retiré.",
+   "reste": "écart de 1 point avec la référence (4 % dans le prototype, 5 % dans le thème) ; et le fond de JOUR du prototype ne porte pas la diagonale que la référence décrit (35 %). Non touchés : ce n'est pas la demande, et test-759 relit app.html, pas le prototype. À signaler à Justin."
+  },
+  {
+   "n": 8,
+   "quoi": "« Planifier » du registre sans cible dans la scène f08",
+   "avant": "la scène ouvrait « Tous les sites », où le bouton n'existe que pour un site en retard (aucun dans la démo)",
+   "apres": "cible réelle : fiche du site t2 (Boulangerie Lemoine, sans intervention prévue) → « Planifier » → « Nouvelle intervention » (visite de contrôle, site t2)",
+   "changement": "scène f08 de regard-gerant-f-captures.js corrigée ; le bouton existait déjà dans l'application, aucun changement de page ; sonde de retouches section 8 (24 ✓)",
+   "mutation": "bouton renommé : tombe (0 ✓ · 24 ✗)"
+  }
+ ],
+ "mesures": {
+  "regard-gerant-f.js": "228 ✓ · 0 ✗",
+  "regard-gerant-f-recontrole-plan.js": "20 ✓ · 0 ✗",
+  "regard-gerant-f-retouches.js (neuve)": "208 ✓ · 0 ✗ (12 combinaisons appareil × jour/nuit, 8 sections)",
+  "controles du chantier": "compiler-pages, verifier-syntaxe, test-835 (844 ✓), test-836 (307 ✓), test-837 (122 ✓), test-1008 (54 ✓), test-2994 (15 ✓), verif-secrets : tous 0 ✗",
+  "voisins relancés": "menu-defilement 67 ✓ · 0 ✗ ; menu-recontrole 137 ✓ · 0 ✗ ; regard-gerant-c (utilise ms-vide) 245 ✓ · 0 ✗",
+  "mutations": "9 mutations (une par retouche, deux pour les retouches 5 et 6), 9 tombent ; faites sur copie après commit ; aucune ancre mutée dans le fichier (relu : ancres à 1 occurrence, formes mutées à 0)"
+ },
+ "non_regarde_a_l_oeil": "108 captures (6 appareils × jour/nuit × 9 scènes), relues par planches de vignettes (16 planches, toutes les planches phone relues ; planches ordinateur/tablette : r1, r2, r4, r5 registre et r6 courant relues ; r3 devis ordinateur, r5 carte ordinateur, r6 milieu et r8 vues seulement par la sonde, non relues à l'œil). Le fondu du menu a été regardé en capture courante et mesuré en pixels ; la position « milieu » n'est que mesurée. Les menus de téléphone (tiroir) ne sont pas mesurés en pixels : même feuille de style, regardés nulle part.",
+ "deja_en_place_avant": "menu-nu : 11 ✓ · 1 ✗ (« Tester en tant que » gestion) — le même résultat sur le fichier d'AVANT mes retouches, donc pas de mon fait.",
+ "non_touche": "la technicienne sans bouton PDF (pour Justin)."
+}

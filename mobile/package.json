@@ -1,0 +1,19 @@
+{
+  "name": "op-gestion-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Coque native (Capacitor) d'OP GESTION pour l'App Store et Google Play. Voir LISEZMOI.md.",
+  "scripts": {
+    "fabriquer": "node fabriquer.js",
+    "ios": "node fabriquer.js && cap sync ios && cap open ios",
+    "android": "node fabriquer.js && cap sync android && cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
+}

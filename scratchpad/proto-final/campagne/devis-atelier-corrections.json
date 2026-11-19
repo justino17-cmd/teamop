@@ -1,0 +1,104 @@
+[
+ {
+  "n": "devis-atelier-01",
+  "etat": "corrigé",
+  "changement": "Un seul total de ligne arrondi au centime (dvLigneHT), un seul HT (dvSomme), TVA et TTC arrondis sur ce HT (dvTvaDe, dvTtcDe) : lus par la liste, la fiche, le PDF, « Ce que voit le client », l'aperçu des statistiques, le message d'envoi et le total qui suit la frappe.",
+  "preuve": "devis-atelier-parcours-a.js : 17 ✓ · 0 ✗ (HT affiché = somme des lignes affichées, TTC = HT + TVA, PDF = fiche, liste = fiche)."
+ },
+ {
+  "n": "devis-atelier-02",
+  "etat": "corrigé",
+  "changement": "dvRelancer ne garde de la phrase de la tâche que sa suite : « Relance envoyée à x. Je te le rappelle dans 7 jours. »",
+  "preuve": "devis-atelier-parcours-d.js : 20 ✓ · 0 ✗ (une seule occurrence de « Relance envoyée »)."
+ },
+ {
+  "n": "devis-atelier-03",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : un devis composé accepté ne crée ni intervention ni facture d'acompte. C'est un choix de produit (deux modèles de devis côte à côte, DV et documents de l'atelier) et la correction passe par opd_docs / l'atelier.",
+  "preuve": "rapport du testeur (24 → 24 interventions, 8 → 8 factures)."
+ },
+ {
+  "n": "devis-atelier-04",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : les libellés « (exemple) » sont dans l'atelier (page.source), qu'un autre agent refait.",
+  "preuve": "—"
+ },
+ {
+  "n": "devis-atelier-05",
+  "etat": "corrigé",
+  "changement": "« ‹ Retour » d'une fiche de devis ouverte sans écran précédent mène à la liste Devis (et plus à l'Accueil).",
+  "preuve": "devis-atelier-parcours-d.js : 20 ✓ · 0 ✗."
+ },
+ {
+  "n": "devis-atelier-06",
+  "etat": "corrigé",
+  "changement": "brancherSignature('dv-signe') exige un tracé d'au moins 40 unités du canevas ; un simple appui répond « Ce trait est trop court pour une signature : signez-la en entier. »",
+  "preuve": "devis-atelier-parcours-c.js : 20 ✓ · 0 ✗."
+ },
+ {
+  "n": "devis-atelier-07",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : deux rédactions de conditions (délai, règlement, acompte, moment du numéro) entre devis rapide et devis composé ; à trancher.",
+  "preuve": "—"
+ },
+ {
+  "n": "devis-atelier-08",
+  "etat": "corrigé",
+  "changement": "dvComplet exige au moins une ligne ET une désignation sur chaque ligne ; « Aperçu et envoi » reste inactif et la phrase dit pourquoi (« Ajoute au moins une ligne », « 1 ligne sans nom »).",
+  "preuve": "devis-atelier-parcours-g.js : 11 ✓ · 0 ✗ (0 ligne : envoi inactif ; ligne sans désignation à 120 € : envoi inactif). Reproduit d'abord par le testeur, code relu."
+ },
+ {
+  "n": "devis-atelier-09",
+  "etat": "corrigé",
+  "changement": "dvMailRanger : l'adresse tapée à l'envoi ou à la relance d'un devis est rangée dans la fiche du client qui n'en a pas (adresse valide seulement), tracée au journal, dite dans le toast.",
+  "preuve": "devis-atelier-parcours-g.js : « l'adresse tapée à l'envoi est RETENUE dans la fiche du client »."
+ },
+ {
+  "n": "devis-atelier-10",
+  "etat": "corrigé",
+  "changement": "dvQui() = prénom de la personne connectée, lue par les sept textes (préparé, dicté, relancé, accord, refus, repris, signature de la relance).",
+  "preuve": "devis-atelier-roles.js : 13 ✓ · 0 ✗ (julie : « Préparé par Julie », « Relancé par Julie », signature de la relance)."
+ },
+ {
+  "n": "devis-atelier-11",
+  "etat": "corrigé",
+  "changement": "Croix ✕ de ligne à 44 px, pastilles « ＋ Ligne / ＋ 1 h / ＋ Déplacement » et modèles du Devis rapide à 44 px de haut.",
+  "preuve": "devis-atelier-mise-en-page.js : mac, iphone 240 ✓ · 0 ✗ ; ipad, android, petit (jour et nuit) 450 ✓ · 0 ✗."
+ },
+ {
+  "n": "devis-atelier-12",
+  "etat": "corrigé",
+  "changement": "#ml-m (message d'envoi et de relance) à 16 px : un iPhone ne zoome plus la page au toucher.",
+  "preuve": "devis-atelier-mise-en-page.js (champs ≥ 16 px sur p-relance et p-envoi, quatre profils tactiles, jour et nuit) : 0 ✗."
+ },
+ {
+  "n": "devis-atelier-13",
+  "etat": "corrigé",
+  "changement": "Quantité à 88 px, total de ligne à 128 px FIXES (devis et facture à valider : chaque ligne est sa propre grille, une colonne « selon le contenu » décalait les colonnes d'une ligne à l'autre — vu sur capture au rejeu) ; au téléphone, le total passe sous la quantité et le prix (« Total de la ligne : … ») au lieu d'être caché.",
+  "preuve": "devis-atelier-valeurs-longues.js : 15 ✓ · 0 ✗ (1523,5 × 12 345,67 € lisible en entier sur mac, iphone, petit). La sonde annonçait à tort un chevauchement avec ✕ : elle ne comparait que l'axe horizontal, corrigée (rectangle en deux dimensions). Capture fiche-longue mac jour et iphone nuit regardées. compta-ventes-corrections-mep.js (grille des factures) : 14 ✓ · 0 ✗."
+ },
+ {
+  "n": "devis-atelier-14",
+  "etat": "corrigé",
+  "changement": "Corrigé par une autre voie avant ma passe (cinq onglets de la liste sur deux lignes au téléphone).",
+  "preuve": "devis-atelier-valeurs-longues.js, contrôle devis-atelier-14 : vert."
+ },
+ {
+  "n": "devis-atelier-15",
+  "etat": "reporté",
+  "changement": "Aucun : la correction (zones tactiles de 44 px des poignées et de la date de l'éditeur sur iPad) est dans scratchpad/proto-final/atelier/page.source, que l'agent de l'atelier de devis et de contrats refait.",
+  "preuve": "—"
+ },
+ {
+  "n": "devis-atelier-16",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun : un contrat composé et signé dans l'atelier ne crée ni contrat OP GESTION ni visites (3 → 3 contrats, 24 → 24 interventions), même famille que le 03 ; c'est la décision de produit « deux modèles côte à côte ». À trancher, puis à faire passer par opd_docs avec l'atelier.",
+  "preuve": "devis-atelier-parcours-i.js : seul contrôle rouge attendu (4 ✓ · 1 ✗), il reste le témoin de la décision."
+ },
+ {
+  "n": "devis-atelier-17",
+  "etat": "corrigé",
+  "changement": "cliPositionner(k, adr) : la seule décision de position (secteur et point de la carte), appelée par dvnCreer et par clientFinir, donc aussi par opdClientRecu (client créé dans l'atelier).",
+  "preuve": "devis-atelier-parcours-i.js : contrôle devis-atelier-17 vert (geo posé, secteur La Rochelle) ; parcours-b (Devis rapide, client neuf) : 21 ✓ · 0 ✗."
+ }
+]

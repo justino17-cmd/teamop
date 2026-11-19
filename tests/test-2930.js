@@ -31,7 +31,7 @@ const banc_dir = fs.mkdtempSync(path.join(os.tmpdir(), 'b2930-'));
 process.on('exit', () => { try { fs.rmSync(banc_dir, { recursive: true, force: true }); } catch (e) {} });
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 170 s'); process.exit(1); }, 170000).unref();
 
-const lancer = (defauts, o) => EX.executer(Object.assign({ cle: 'sk-ant-banc-2930', appeler: banc.appeler(defauts || []), capacites: {}, tmp: banc_dir }, o || {}));
+const lancer = (defauts, o) => EX.executer(Object.assign({ retires: false, cle: 'sk-ant-banc-2930', appeler: banc.appeler(defauts || []), capacites: {}, tmp: banc_dir }, o || {}));
 const sc = (res, n) => res.scenarios.find(s => s.n === n);
 const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat === etat);
 
@@ -49,7 +49,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   const avantTmp = fs.readdirSync(banc_dir).length;
   const requetes = [];
   const espion = async (cle, r) => { requetes.push(r); return banc.appeler([])(cle, r); };
-  const bon = await EX.executer({ cle: 'sk-ant-banc-2930', appeler: espion, capacites: {}, tmp: banc_dir });
+  const bon = await EX.executer({ retires: false, cle: 'sk-ant-banc-2930', appeler: espion, capacites: {}, tmp: banc_dir });
   v('bilan : 9 réussis, aucun échec, rien d’inconnu', [bon.bilan.ok, bon.bilan.ko, bon.bilan.inconnu, bon.bilan.attente], [9, 0, 0, 0]);
   v('les scénarios sont rendus dans l’ordre', bon.scenarios.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
   /* ⛔ L'équipe d'essai ne SE RENSEIGNE PAS sur le web (`recherche: false` pour Léa) : sinon le vrai outil de recherche partait à chaque scénario où elle écrit à une entreprise — un coût de plus et un résultat qui varie. */
@@ -230,7 +230,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
     const budget = { total: 12, plafondTotal: 195, illisible: false }, imputations = [];
     const cerveau = { etatBudget: () => Object.assign({}, budget), imputer: (n, u) => { imputations.push([n, u]); return true; } };
     const mailReel = { signature: () => 'L’équipe TEAM OP', envoyerAgent: async () => { throw new Error('LA VRAIE POSTE A ÉTÉ APPELÉE'); }, boites: () => { throw new Error('LA VRAIE POSTE A ÉTÉ LUE'); } };
-    const ctx = Object.assign({ DATA_DIR: dir, monAdmin: garde, monPatronStrict: garde, agents, cerveau, cleApi: 'sk-ant-banc-2930', appeler: banc.appeler([]), tmp: banc_dir, maintenant: () => T.t, mail: mailReel, capacites: {} }, extra || {});
+    const ctx = Object.assign({ DATA_DIR: dir, monAdmin: garde, monPatronStrict: garde, agents, cerveau, retires: false, cleApi: 'sk-ant-banc-2930', appeler: banc.appeler([]), tmp: banc_dir, maintenant: () => T.t, mail: mailReel, capacites: {} }, extra || {});
     app.get('/api/monitor/agents', garde, (req, res) => res.json({ ok: true }));   // une AUTRE route de la Tour, gardée comme les vraies : la clé ne doit pas y passer
     const mod = EX(app, ctx);
     const srv = http.createServer(app); await new Promise(r => srv.listen(0, '127.0.0.1', r));
@@ -361,7 +361,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
     const A = require(path.join(RACINE, 'server', 'agents.js')), CV = require(path.join(RACINE, 'server', 'cerveau.js'));
     const dirB = fs.mkdtempSync(path.join(racine, 'bud-'));
     const ag = A({ get() {}, post() {} }, { DATA_DIR: dirB, monAdmin: (a, b, c) => c(), monPatronStrict: (a, b, c) => c() });
-    const cv = CV({ DATA_DIR: dirB, agents: ag, cleApi: 'k' });
+    const cv = CV({ DATA_DIR: dirB, agents: ag, retires: false, cleApi: 'k' });
     v('un nom d’AGENT est refusé (aucun plafond d’agent ne s’entame par cette voie), rien d’écrit', [cv.imputer('lea', 1), cv.imputer('victor', 1), fs.existsSync(path.join(dirB, 'agents-budget.json'))], [false, false, false]);
     v('un montant hors forme est refusé (zéro, négatif, texte, infini, plus de 50 $)', [0, -1, '2', Infinity, NaN, 51].map(x => cv.imputer('examen', x)), [false, false, false, false, false, false]);
     v('un nom qui n’a pas la forme d’un nom (majuscule, chiffre, trop long) est refusé', ['Examen', 'examen2', 'a'.repeat(21), ''].map(n => cv.imputer(n, 1)), [false, false, false, false]);
@@ -430,7 +430,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   }
 
   console.log('\n11. Un processus qui joue l’examen se TERMINE de lui-même (aucune minuterie ne survit)');
-  const fils = spawn(process.execPath, ['-e', "const ex=require(" + JSON.stringify(path.join(RACINE, 'server', 'examen.js')) + "),b=require(" + JSON.stringify(path.join(__dirname, 'banc-examen.js')) + ");ex.executer({cle:'k',appeler:b.appeler([]),capacites:{},tmp:" + JSON.stringify(banc_dir) + "}).then(r=>console.log('FINI '+r.bilan.ok))"], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const fils = spawn(process.execPath, ['-e', "const ex=require(" + JSON.stringify(path.join(RACINE, 'server', 'examen.js')) + "),b=require(" + JSON.stringify(path.join(__dirname, 'banc-examen.js')) + ");ex.executer({retires: false, cle:'k',appeler:b.appeler([]),capacites:{},tmp:" + JSON.stringify(banc_dir) + "}).then(r=>console.log('FINI '+r.bilan.ok))"], { stdio: ['ignore', 'pipe', 'pipe'] });
   let sortieFils = ''; fils.stdout.on('data', d => { sortieFils += d; });
   const code = await new Promise(res => { const t = setTimeout(() => { fils.kill('SIGKILL'); res('figé'); }, 30000); fils.on('exit', c => { clearTimeout(t); res(c); }); });
   v('le processus sort en 0 sans process.exit, en moins de 30 s', [code, /FINI 9/.test(sortieFils)], [0, true]);

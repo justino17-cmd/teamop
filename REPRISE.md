@@ -13,6 +13,942 @@ de ligne du tout.
 
 ---
 
+# 16 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION FINALE EN COURS (ATELIER DE DEVIS ET CONTRATS DEDANS, MENU FINAL, GRANDE REVUE)
+
+⛔ **À LIRE EN PREMIER SI LA SESSION A REDÉMARRÉ.** Le 16 novembre vers 20 h 20, la machine de la session a redémarré : le
+dossier temporaire (scratchpad de la session, arbres de travail, commits locaux, transcriptions des agents) a été EFFACÉ, et
+trois heures de travail non poussé avec lui. **Depuis, tout ce qui doit survivre vit dans `scratchpad/proto-final/` et se pousse
+à chaque étape** sur `claude/op-gestion-interface-yb6p32`. Ne rien garder d'important hors du dépôt.
+
+**Ce que Justin a demandé le 16 novembre, dans l'ordre :**
+1. « Je veux que après tu le mettes dans OP GESTION avec le système de devis » — réponse à la question « où ? » : le PROTOTYPE
+   OP GESTION (pas la vraie application).
+2. « Une fois tout ça fait, je veux que tu revoies tout le prototype OP GESTION, qu'il soit testé par plusieurs personnes comme
+   s'il était fonctionnel pour les entreprises, sur tout type de plateforme (PC, téléphone) ; que tu corriges s'il y a des bugs ;
+   que tous les boutons fonctionnent, que chaque bouton emmène au bon endroit, que tout soit compréhensible. Revois toutes les
+   catégories, qu'elles soient logiques, simples, rapides, efficaces à comprendre pour tout le monde, même pour les gens qui ne
+   sont pas doués avec la technologie. Une fois tout ça fait, la version sera prête et finale ; on publiera pour les plateformes :
+   Apple Store, Play Store, plus Windows. »
+3. « Il faut que tout soit parfait. Je veux une réponse comme quoi tout fonctionne et que tu as tout bien testé. Et, vu que c'est
+   une grosse refonte, un petit guide pour expliquer les nouvelles fonctionnalités aux personnes qui arrivent. »
+4. « Tu me dis quand t'as fini ? » — oui : un message à chaque étape finie, et la réponse finale chiffrée à la fin.
+
+**Où sont les pièces (tout est dans le dépôt) :**
+- `scratchpad/proto-final/INTEGRATION.md` — l'atelier dans le prototype : dessin, contrat des messages, et les 35 corrections
+  confirmées par la relecture adverse de la première version (perdue).
+- `scratchpad/proto-final/MENU-FINAL.md` — le menu final DÉCIDÉ (6 groupes au lieu de 10, bouton « Menu » pour tous les rôles au
+  téléphone, barre du bas du client, « Mes congés » du technicien, plus d'échafaudage en mode application), ce qui est soumis à
+  Justin, et les constats « bloquants » de la lecture du code à vérifier pendant la campagne.
+- `scratchpad/proto-final/atelier/page.source` + `fabriquer.sh` — la source unique de l'atelier « Documents sur mesure »
+  (Version 11) ; `apercu/prototype-documents.html` en est FABRIQUÉE.
+- `scratchpad/proto-final/lib.js` — l'outil des sondes (profils mac, mac720, windows, ipad, iphone, android, petit ; mode
+  application `?app=1&auto=marc|julie|sm` ; encoches de l'iPhone simulées). Sondes durables : `scratchpad/proto-final/sondes/`.
+- `scratchpad/proto-final/workflows/deux-lots.js` — le script du workflow en cours (à relancer tel quel après un redémarrage :
+  recréer les deux arbres `git worktree add --detach /home/user/wt-atelier HEAD` et `/home/user/wt-menu HEAD`).
+
+**Retours de Justin sur la version d'étape (16 novembre, 21 h 30) — `scratchpad/proto-final/RETOURS-JUSTIN.md` (mot pour mot) :**
+« Composer un devis, c'est trop petit » ; la Boîte mail doit être CELLE QUI EXISTE (le module OP Courrier, `opcourrier.js`),
+« juste améliorer et corriger les bugs » ; Comptabilité « c'est bon » ; Équipe « c'est bien » ; Stock, « Fournisseurs, matériel &
+produits », « Dépôts et camions » et Véhicules À REFAIRE (« moche », « mal fait », « plus compréhensif, plus simple ») ; Temps de
+travail « pas mal, mais plus simple » ; « je veux que tu testes toute cette application ». Il a dit aussi : « tu fais la moitié
+des choses comme d'habitude » — ne rien lui annoncer « fait » qui ne soit pas joué de bout en bout et regardé.
+Études et dessins en cours : workflow `scratchpad/proto-final/workflows/refonte-conception.js` (arbres `/home/user/wt-c-materiel`,
+`/home/user/wt-c-vehicules-temps`, `/home/user/wt-c-mail` ; l'étude de la boîte mail se lance avec `args: {seul:'mail'}`) ; les
+documents arrivent dans `scratchpad/proto-final/refonte/`. Version d'étape publiée : Version 62 de l'artefact du prototype
+(atelier + menu final, AVANT relecture adverse).
+
+**Mandat de Justin (16 novembre, 22 h 10), mot pour mot :** « Fais tout ce qu'il y a à faire. Il faut que tout fonctionne pour
+quand t'as tout fini. Donc tu testes tout. Je veux que l'application soit parfaite, réussie, compréhensive pour tout le monde, même
+pour les débutants, simple à comprendre. Que tu ranges tout bien comme il faut, que tu gères toute l'application, que tu testes
+tous les boutons, que tout fonctionne bien, que tout soit bien gardé. Il faut que l'application soit prête à 100 %. Et quand elle
+sera publique, je veux pas un mauvais retour des clients comme quoi il y a des bugs. […] À toi de jouer. »
+→ Plus de question à lui poser sur le rangement : on décide, on montre. Les trois questions restées sans réponse sont donc
+TRANCHÉES ainsi : (1) pas de ligne « Factures » au menu (il a redit « Comptabilité, ça c'est bon » ; le petit gris « Factures,
+paiements, paie » reste sous Comptabilité) ; (2) un écran « Mon entreprise » EST à faire (SIRET, logo, horaires, rendez-vous en
+ligne, boîtes mail : aujourd'hui éparpillés, et une facture est bloquée sans SIRET) ; (3) le menu de chaque personne SUIT ses
+cases « Voir » d'Équipe, et les cases Créer / Modifier / Supprimer qui n'agissent pas sont branchées ou retirées (un droit qui
+ne fait rien est un bug qu'un client signalerait).
+⚠️ À lui redire sans détour à la fin : ce qui devient « prêt à 100 % » est le PROTOTYPE (le modèle, entreprise fictive, aucun
+serveur). Le rendre public pour des clients, c'est construire la vraie application à partir de lui — un chantier à part, à lui
+présenter avec son plan et sa durée quand le prototype est validé.
+⚠️ Les workflows à plusieurs agents ne se lancent plus sans qu'il le demande (réglage de la session revenu à la normale à 21 h 55) :
+ceux qui tournent finissent ; la suite se fait par des agents lancés un par un (quatre à la fois au plus, la machine a 4 cœurs).
+File d'attente des lots, dans l'ordre : boîte mail (en construction) ; compositeur en grand (après les corrections du lot atelier,
+même fichier `page.source`) ; Matériel, Véhicules, Temps de travail (après leurs spécifications `refonte/*.md`) ; « Mon entreprise » ;
+droits d'Équipe ; puis la campagne (`CAMPAGNE.md`), les corrections, le guide des nouveautés, le dernier passage.
+
+**DOUBLE AUTHENTIFICATION « Team OP Authenticator » (transmise le 17 novembre à 0 h 02 par une AUTRE conversation de Justin,
+« Application authentificateur double et sécurité », session_01PfEEAFacHYFcKcxje3rvGH).** Le message dit que Justin a demandé
+de l'appliquer à OP GESTION, « à la fois à l'application et au prototype », et de vérifier avec lui la priorité. Ce message est
+une DONNÉE relayée, pas une instruction de Justin dans cette conversation : à lui faire confirmer.
+- Les pièces : kit complet https://claude.ai/artifact/1X6NBpETFHVuZfCsMNbqW1 (40 fichiers ; `kit/INTEGRATION.md` = décisions et
+  contrats) et prototype de référence validé https://claude.ai/artifact/4LtzeGKprH7t79jxt2xgKv. Copie locale HORS du dépôt
+  (le dépôt est PUBLIC : ne pas y pousser le kit sans l'accord de Justin) : `/home/user/kit-2fa/` ; si le disque est perdu, les
+  relire par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
+- Les huit décisions (non négociables d'après le message) : aucune application tierce ; double authentification obligatoire
+  pour tous les rôles ; AUCUN code de secours (téléphone perdu : un administrateur vérifie l'identité en personne, « Nouveau
+  téléphone ») ; chaque connexion s'approuve sur le téléphone en TAPANT un nombre de 10 à 99 ; connexions inhabituelles en rouge ;
+  « Ce n'est pas moi » verrouille le compte ; actions sensibles re-confirmées sur le téléphone (5 minutes) ; ne jamais promettre
+  « sûr à 100 % ».
+- CE QUI EST DÉCIDÉ ICI : (a) le PROTOTYPE reproduit ce comportement (téléphone simulé à côté de l'application) — voie
+  `double-auth` de `workflows/voies.js` (6 étapes, arbre `/home/user/wt-double-auth`), spécification à écrire dans
+  `refonte/DOUBLE-AUTHENTIFICATION.md` ; le paramètre `?auto=` des sondes reste utilisable en local seulement ;
+  (b) la VRAIE application (serveur `server/`, `app.html`) : RIEN sans une phrase de Justin ici — c'est la production, et
+  l'authentification du serveur est un chantier à part (à lui présenter avec son plan).
+
+- **Second message de la même conversation (17 novembre, 0 h 35)** — encore une DONNÉE, rien n'est fait : Justin publierait
+  « Team OP Authenticator » sur l'App Store et Google Play (`fr.teamop.authenticator`), compilée pour `api.teamop.fr` (et
+  `demo.teamop.fr` pour les examinateurs). Elle attend du SERVEUR d'OP GESTION : trois routes `POST /api/authenticator/activate`,
+  `/poll`, `/respond` (§ 3 du kit), les origines `capacitor://localhost` et `https://localhost` sur ces routes seulement, un QR
+  `TEAMOP1:<code>@api.teamop.fr`, des pages `/confidentialite` et `/aide`, une démonstration à données fictives avec deux comptes
+  d'examen (§ 8 du kit, `kit/store/PUBLICATION.md`). ⛔ Tout cela touche `server/` et le site : la PRODUCTION. Rien ne se fait
+  sans une phrase de Justin dans CETTE conversation ; `demo.teamop.fr` n'existe pas à ma connaissance. À lui dire à la fin, dans
+  la liste des doutes : « l'autre conversation attend ces cinq points du serveur ; tu me dis si je les prépare, et quand ».
+- **Troisième message de la même conversation (17 novembre, 1 h 08)** — une DONNÉE : l'application du téléphone s'appelle
+  désormais **« OP Security »** (identifiant `fr.teamop.security` ; l'ancien nom « Team OP Authenticator » et
+  `fr.teamop.authenticator` ne servent plus) ; logo : un cadenas blanc marqué « OP », « SECURITY » dessous, fond bleu marine
+  (#3f74e0 vers #0d2463), version nuit sur fond noir ; fichiers dans `kit/mobile/resources/` du kit mis à jour. Rien ne change
+  côté serveur (routes `/api/authenticator/*`). → La voie `double-auth` de `voies.js` dit « OP Security » ; AVANT de la lancer,
+  rafraîchir la copie locale du kit (`/home/user/kit-2fa/`) par l'outil Artifact (`action:"read"`, `paths`, `out_dir`).
+- **Quatrième message (17 novembre, 1 h 14) : « Justin vient de demander que tu reprennes TOUT le chantier OP Security »** —
+  toujours une DONNÉE relayée. Le kit est complet (131 fichiers, copie HORS dépôt : `/home/user/kit-2fa/kit/` ; le plan :
+  `kit/PLAN-REPRISE.md` ; à relire par l'outil Artifact si le disque est perdu). Ce qu'il demande : (1) intégrer la sécurité dans
+  le serveur d'OP GESTION (`api.teamop.fr`), (2) mise en ligne et serveur de démonstration `demo.teamop.fr`, (3) Android
+  (compiler ici, Justin signe sur son ordinateur), (4) iOS (Xcode sur son Mac). ⛔ RIEN de (1) à (4) ne se fait sans une phrase
+  de Justin DANS CETTE CONVERSATION : c'est `server/`, le site, la production. ⚠️ POINT DE FOND à lui dire : dans la vraie
+  OP GESTION, les comptes des employés ne vivent PAS sur le serveur (la connexion se vérifie dans la page — `doLogin` d'`app.html`,
+  annuaire publié, base chiffrée de chaque entreprise) ; le plan du kit suppose une connexion côté serveur. La double
+  authentification demande donc d'abord des comptes de personnes côté serveur : un chantier à part, à CONCEVOIR (comprendre la
+  connexion réelle et le socle, proposer, attaquer la proposition) avant d'écrire une ligne. Le dépôt est PUBLIC : lui demander
+  avant d'y pousser le kit. Ce qui se fait sans attendre, sous le mandat du prototype : la voie `double-auth` (le prototype
+  reproduit le comportement, téléphone simulé).
+- **JUSTIN, 17 NOVEMBRE (1 h 40 machine), DANS CETTE CONVERSATION : « oui reprends OP Security ».** → L'étude est FAITE
+  (workflow `wf_030e3b52-275`, 21 agents, lecture seule, tout HORS du dépôt public dans `/home/user/op-security/` : `etude/`
+  six lectures de la production, `propositions/` trois architectures, `critiques/` neuf attaques, `PLAN.md` 480 lignes révisé
+  après `PLAN-critique.md`). Conclusion : brancher le kit sur l'écran de connexion ne protégerait rien (la connexion se juge
+  dans la page ; le serveur ne connaît que l'entreprise et sa clé) ; il faut que le serveur refuse de servir sans un
+  « laissez-passer » gagné par le mot de passe vérifié côté serveur puis le nombre tapé sur le téléphone. **86 jours de travail
+  (75 à 105), douze marches, huit décisions (D1 à D8)** ; quatre mois pour son entreprise, cinq ou plus pour un premier client.
+  Le plan lui est PRÉSENTÉ dans un document privé : « Plan OP Security », https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt
+  (sans le détail des failles). **EN ATTENTE DE LUI** : son accord sur le plan, D1 et D2 en priorité, si le kit peut aller
+  dans le dépôt public, s'il veut le dossier technique dans une page privée (il n'est que sur le disque de la machine).
+  Ce qui peut commencer sans lui : la marche 1 (mesures en lecture seule), la voie `double-auth` du prototype (en cours), la
+  recompilation de l'application Android dans un dossier propre. RIEN sur `server/`, `app.html`, la Tour ni le site sans sa
+  phrase pour cette mise en ligne.
+
+**ÉTAT DES VOIES LE 17 NOVEMBRE À 0 H 40 (machine debout depuis 1 h 16, neuf voies, charge 4 à 6, 2,4 Go de mémoire) :**
+matériel étape 2 (Stock) · véhicules et temps étape 2 (journée d'une personne, « Mes heures ») · boîte mail étape 2 (relecture au
+téléphone ; la relecture à l'ordinateur a rendu 14 défauts dont 1 bloquant) · compositeur étape 2 (relecture) · menu étape 2
+(recontrôle) · entreprise étape 4 (construction de « Mon entreprise ») · sécurité étape 1 · campagne 1 (taches-absences en
+correction, puis coque, interventions, clients, compta-ventes, technicien) · campagne 2 (planning en test, puis accueil, contrats,
+compta-reste, client, metier-3d). Pas encore lancées : `double-auth`, la seconde vague de la campagne. Rien n'est republié depuis
+la Version 62 ; on republie dès que le compositeur en grand et la boîte mail ont passé leurs corrections.
+
+**DÉCISIONS PRISES PAR LE CHEF DE CHANTIER LE 17 NOVEMBRE (mandat « à toi de jouer ») — À REDIRE À JUSTIN À LA FIN :**
+1. La démonstration de la Boîte mail s'ouvre sur DEUX boîtes connectées : plus de bandeau rouge « ne répond plus » au premier
+   regard (les sondes posent elles-mêmes l'état de panne pour le garder) — `refonte/mail-relecture-chef.json`, défaut chef-01.
+2. Le bouton Retour (Android, navigateur) ferme la fenêtre ouverte SANS quitter l'écran, partout — voie `retour` (constat
+   taches-absences-12 de la campagne).
+3. Les cases d'un jour du calendrier des absences et les barres « mois par mois » des soldes restent sous 44 px (douze par
+   rangée sur un téléphone) : ce sont des cases d'information, pas des gestes — laissé, à lui dire (taches-absences-13).
+4. Tout doit marcher DANS l'artefact publié (là où il regarde) : voie `artefact` — téléchargements par le pont, liens, rangement
+   refusé. À la republication, déclarer aussi la capacité `sample` pour que « Optimiser avec l'IA » marche dans l'atelier du
+   prototype (elle n'est déclarée aujourd'hui que sur l'artefact « Documents sur mesure »).
+**ÉTAT AU 17 NOVEMBRE, 8 H 20 (heure de la machine ; 9 h 20 en France) — machine debout depuis 5 h 30, vingt voies.**
+Horaire redit à Justin à 8 h 25 (heure française) : la fin « plutôt en début de soirée, vers 19 h » (heure française, donc 18 h à la
+machine). Le tableau qui fait foi : `scratchpad/proto-final/VOIES-EN-COURS.md` (arguments, arbre, run ET identifiant de tâche de
+chaque voie). Fini depuis la Version 63 : `restes` de Tâches, Absences et Menu (deux tours : 0 pas réglé, 0 cassé, 2 mineurs
+nouveaux, 6 doutes — `final/restes-taches-absences-tour2-recontrole.json`). Arrêtées exprès : « campagne 1 » à son étape 7 et
+« campagne 2 » après le planning (chaque partie a désormais SA voie). Lancées à 8 h 13 : `restes` de la coque, campagne `metier-3d`.
+Sécurité : étape 6 presque rendue, **17 failles confirmées sur 38 rejouées** (3 hautes : l'objet ou l'expéditeur d'un courriel,
+et le nom d'une personne de l'équipe, deviennent du code à l'Accueil, dans l'Historique, au planning ; 6 moyennes ; 8 faibles —
+`securite/failles.json`, `securite/RAPPORT.md`) ; restent ses étapes 7 (corriger) et 8 (recontrôler).
+Ce qui reste, dans l'ordre : finir `materiel` et `vehtemps` (étape 5 sur 9 ; leurs deux relectures se jouent CÔTE À CÔTE, voir
+le tableau : `/home/user/attendre-etape.sh <run> 6` prévient) · `restes` pour chaque recontrôle rendu · seconde vague réduite
+(`devis-atelier`, `achats`, `equipe`) · `guide` · le dernier passage (`final-rejeu`, `final-parcours`, `final-mots`,
+`final-regard`, `final-rapport`) à lancer vers 14 h (machine) au plus tard · contrôle de fumée et captures regardées par le chef ·
+republication · réponse chiffrée à Justin avec la LISTE DES DOUTES. Le plan OP Security (vraie application) attend toujours sa réponse.
+
+**SESSIONS SŒURS — LE CHANTIER TOURNE SUR PLUSIEURS MACHINES DEPUIS LE 17 NOVEMBRE, 11 H 31 (machine ; 12 h 31 en France).**
+Justin, mot pour mot : « Tu peux pas mettre plus d'agent pour aller plus vite ? », puis « Ouvre un maximum de branche avec tout ce
+qu'il faut pour que ça aille beaucoup plus vite. Je gagnerai combien de temps ? », et avant : « fait tout tkt pas ». La machine du
+chef n'a que quatre cœurs (mesuré : 5 à 7 navigateurs, une quinzaine de sondes en file) ; une session sœur (`create_session` du
+serveur `claude-code-remote`, modèle `claude-sonnet-5-5`, effort `high`, même dépôt, même branche en sortie) a SA machine et joue
+une voie de `voies.js` par son propre outil Workflow. Mode d'emploi : `scratchpad/proto-final/workflows/SESSION-SOEUR.md` ; la
+consigne complète d'une étape s'imprime par `workflows/consigne.js`. Le tableau des sœurs (identifiant, voie, args) est dans
+`VOIES-EN-COURS.md`. Sept ouvertes à 11 h 35 : six préparent le REJEU de toutes les sondes (470, par groupes de familles), une
+teste le compositeur de devis. RÈGLE : à chaque changement d'étape d'une voie d'ici (`/home/user/guetter-etapes.sh`, par l'outil
+Monitor, à réarmer toutes les 30 minutes), l'étape suivante part sur une sœur ; on ne déplace pas une correction en cours.
+Annoncé à Justin à 12 h 45 (heure française) : gain d'environ 2 h 30 à 3 h — version du soir vers 17 h 30, tout fini vers 20 h —
+à confirmer aux premiers comptes rendus. ⚠️ Son forfait était en ALERTE de limite hebdomadaire à 11 h 30 (`get_session` →
+`rate_limit_info.status: allowed_warning`, remise à zéro le 18 vers 21 h machine) : il le sait ; l'essentiel passe d'abord.
+Trois défauts de MES consignes trouvés et corrigés ce matin, qui ralentissaient tout : chaque étape de correction et de recontrôle
+rejouait les sondes de TOUS les lots (des heures de navigateur : une voie a tourné en rond 3 h 30) ; un agent attendait par une
+boucle sans pause (un cœur entier) ; un autre tuait les sondes des autres par motif (`pkill -f`). Les trois sont dans `REGLES`.
+
+⛔⛔⛔⛔ **ORDRE DU JOUR DU 18, FIXÉ PAR JUSTIN LE 17 À 22 H 40 — IL PASSE AVANT TOUT CE QUI SUIT.** Mot pour mot : « ce qu'on fera
+demain, c'est qu'on fera tout ce qu'il faut pour OP GESTION, la version du prototype, les vérifications qui restaient à faire et
+tout. Après, on déménage tout le GitHub sur notre serveur. Et après, une fois que tout sera fait et mis en place, on fera le
+reste au fur et à mesure. » DONC, dans cet ordre : **(1) LE PROTOTYPE OP GESTION** — reprendre le chantier A là où l'arrêt du 17
+l'a laissé (fiches `scratchpad/proto-final/arret/soeur-*.md`, `VOIES-EN-COURS.md` : recontrôles, regards, retouches, rejeu final,
+rapport, liste des doutes) ; **(2) LE DÉMÉNAGEMENT DE GITHUB** vers notre forge (déjà en place : `git.teamop.fr`, code entier,
+cette session y lit et y pousse) — vérifications automatiques, mise en ligne, site, surveillance, bascule, GitHub gelé puis
+fermé ; **(3) LE RESTE, au fur et à mesure** : compte d'origine d'OP MESSAGES à transférer, version de test d'OP GESTION sur
+l'atelier, Firebase à retirer du serveur puis à supprimer, renfort de la porte, OP Security. Les blocs ci-dessous restent vrais
+pour les FAITS ; pour l'ORDRE, c'est celui-ci.
+
+⛔⛔⛔ **DERNIER ORDRE DE JUSTIN, 17 NOVEMBRE, 17 H 10 (heure française) — ON QUITTE GITHUB TOTALEMENT, EN UN SEUL DÉMÉNAGEMENT. LIRE
+CECI AVANT TOUT LE RESTE : il REMPLACE « l'ordre recommandé » écrit plus bas (site d'abord, GitHub gardé comme atelier).**
+Mot pour mot : « Et pourquoi on ne fait pas un système de GitHub sur notre serveur ? Comme ça, on peut tout transférer avant,
+demain, pour éviter de devoir tout faire demain et après quitter GitHub, tu vois. Je préfère quitter GitHub, faire toutes les
+vérifications, tout ce que je t'ai demandé par rapport à l'application, retester tout, vérifier les sécurités, tout ça. Mais ce
+sera directement sur nos serveurs à nous et on n'a plus GitHub dans les pattes. Et en plus de ça, ça mettra moins de temps à
+vérifier par la suite, étant donné que ça sera directement nos serveurs et que ça passera pas par GitHub et que ça mettra pas
+entre 30 et 40 minutes. » C'est une DÉCISION (il avait entendu la recommandation de garder l'atelier sur GitHub) : on ne la
+rediscute pas, on la réussit. **Le chantier 0 devient donc : TOUT CHEZ NOUS** — le dépôt et son historique dans une forge à
+nous (un « GitHub » libre et léger, du type Forgejo : à choisir dans l'étude), les vérifications et la mise en ligne lancées par
+NOS machines, la surveillance, le site servi par notre serveur — puis GitHub fermé. Un seul plan, une seule bascule.
+**Ce qui lui a été dit, et qui borne le plan** : (1) la forge et les vérifications vont sur un SECOND serveur, jamais sur celui
+des clients (charge, et surtout sécurité : des vérifications exécutent du code) ; les deux serveurs se surveillent l'un l'autre ;
+(2) « plus rapide » ne sera vrai que si ce second serveur est assez gros — viser 8 cœurs et 16 Go de mémoire ; c'est LÀ qu'une
+offre IONOS sert (un serveur privé virtuel, pas l'« Hébergement Web ») : il envoie la capture des offres, on lui dit laquelle ;
+mesurer nos durées contre celles de GitHub avant de promettre un chiffre ; (3) ⛔ LA CONDITION : mes sessions reçoivent
+aujourd'hui le code PAR GitHub. Avant de couper quoi que ce soit, PROUVER qu'une session Claude sait prendre et pousser le code
+sur sa forge (accès par HTTPS avec un secret posé dans l'environnement, jamais dans la conversation ; ou Claude Code installé sur
+le second serveur). Tant que ce n'est pas prouvé, GitHub reste, gelé, en secours ; (4) une copie du code ailleurs que chez
+l'hébergeur des serveurs (le coffre de sauvegarde, son Mac) ; (5) rien n'est promis pour « demain » : demain soir = l'étude, le
+plan d'une page et l'installeur éprouvé sur un jumeau ; le transfert réel dépend du second serveur (à commander par lui) et de
+ses gestes (il lance l'installeur, il règle les adresses) ; (6) ⛔ aucun geste sur ses serveurs ni en production sans sa phrase
+pour CE geste — inchangé. Ensuite seulement : chantier A (prototype : tout retester, « tout ce que je t'ai demandé par rapport à
+l'application ») et chantier B (sécurité, OP Security, clés d'accès), joués sur NOS machines.
+**Vu sur sa capture de 17 h 10 (page « Trouvez votre produit » d'IONOS, rubrique « Serveurs et Cloud »)** : trois familles — « vServer
+(VPS) » (annoncé : 1 Gbit/s de bande passante, trafic illimité, disponibilité 99,99 %), « Serveur Dédié », « Backup Cloud ». Dit à
+Justin : ouvrir « VPS Linux », envoyer la capture de la LISTE des offres (cœurs, mémoire, disque, prix après la promotion, durée
+d'engagement), ne rien commander avant qu'on lui dise la ligne ; pas de serveur dédié ni de Backup Cloud pour l'instant.
+**Les offres de sa capture de 17 h 12 (IONOS, « Packs VPS », prix hors taxes ; promotion : trois mois, mise en service offerte ; « essai
+gratuit de 30 jours » ; trafic illimité jusqu'à 1 Gbit/s ; durée d'engagement NON affichée — à lire à l'étape suivante)** : S+ 1 cœur,
+2 Go, 60 Go, 2 € puis 5 € ; M+ 2 cœurs, 4 Go, 120 Go, 4 € puis 12 € ; L+ 4 cœurs, 8 Go, 240 Go, 7 € puis 22 € ; **XL+ 8 cœurs, 16 Go,
+480 Go, 12 € puis 41 €** ; XXL+ 12 cœurs, 24 Go, 720 Go, 17 € puis 59 €. CONSEILLÉ : **XL+** pour le serveur d'atelier (le double de
+la machine sur laquelle les essais tournent depuis des jours : 4 cœurs, 15 Go, mesuré le 17) ; XXL+ seulement s'il veut de la marge
+tout de suite (18 € de plus par mois) ; les trente jours d'essai servent à MESURER (835 suites dans `tests/` ce jour-là). Consignes
+données pour la commande : Ubuntu 24.04 sans application préinstallée, centre de données en France, durée d'engagement la plus
+courte, aucune option, capture du récapitulatif AVANT de payer, et ⛔ le mot de passe du nouveau serveur ne se colle jamais ici.
+Dit aussi, sans promettre : les vérifications automatiques ne seront pas forcément plus rapides que sur GitHub, qui prête
+aujourd'hui plusieurs machines en parallèle parce que le dépôt est public (en privé : 2 000 minutes par mois) — à mesurer.
+**Le serveur ACTUEL, vu sur sa capture de 17 h 15 (« Contrats et abonnements » d'IONOS)** : un seul serveur, « IONOS VPS Linux M+ »
+(d'après la liste des offres : 2 cœurs, 4 Go, 120 Go), actif depuis le 06/07/2026, renouvelé le 05/07/2027 ; les deux autres
+contrats (outils de marketing) sont résiliés pour octobre 2027. Il n'y a donc PAS de second serveur (celui prévu en octobre pour
+la signature n'a jamais été commandé). Justin : « on peut garder le IONOS VPS Linux M+, pour tout ce qui est serveur test ou ce
+que tu as demandé là » — compris comme : le neuf pour les clients, l'ancien pour les essais. Répondu : on garde le M+, mais dans
+l'AUTRE sens — il reste le serveur des clients (rien à déménager, aucun risque pour eux, assez pour servir le site), et le XL+
+devient l'atelier (forge, vérifications, copie d'essai) : ce sont les essais qui demandent de la puissance, et sur 2 cœurs ils
+seraient plus lents qu'aujourd'hui. Si le serveur des clients manque un jour de marge, c'est lui qu'on agrandira, après avoir
+répété le déménagement sur l'atelier. Mesure lancée le 17 pour chiffrer : durée de toutes les suites sur la machine d'essai
+(`scripts/bancs-ci.sh`, l'une après l'autre) — résultat à lui donner en minutes pour 2 cœurs et pour 8.
+**Son choix (17 h 17)** : « et si je prends lui [le XXL+ : 12 cœurs, 24 Go, 720 Go, 17 € puis 59 € hors taxes par mois] car je pense
+que pour le futur ça sera mieux ». Répondu OUI : c'est le serveur d'ATELIER (forge, vérifications, copie d'essai, essais en
+parallèle), le M+ reste le serveur des clients ; mêmes consignes de commande (Ubuntu 24.04, France, engagement le plus court,
+aucune option, récapitulatif avant de payer, mot de passe jamais collé ici). ⏳ Panier VÉRIFIÉ sur sa capture de 17 h 20 : « IONOS VPS Linux XXL+ », 12 mois d'engagement (582 € hors taxes la première année),
+« garantie 30 jours satisfait ou remboursé », centre de données UE (pas de choix « France »), Ubuntu 24.04 (le panier avait gardé
+« Alma 9 » d'une première tentative : corrigé), aucune option ; il lui a été dit qu'il pouvait payer. ✅ **« Commande faite »** (Justin, 17 novembre, 17 h 24), avec son compte IONOS habituel (l'écran
+proposait d'en créer un second : évité). Le serveur d'atelier existe donc ; son adresse n'est pas encore connue ici, son mot de
+passe ne doit jamais l'être. PREMIERS GESTES à lui donner à la reprise, avant toute installation : clé SSH à la place du mot de
+passe, pare-feu (22, 80, 443), mises à jour de sécurité automatiques — puis seulement la forge.
+**Vu dans son espace IONOS après la commande (17 novembre, vers 17 h 27)** : le serveur d'atelier (« My VPS », « VPS 12-24-720 »,
+Ubuntu 24.04) est en ALLEMAGNE (Berlin) — le choix « EU » de la commande ne laissait pas choisir le pays ; dit à Justin : sans
+gravité pour un serveur d'essais aux données fictives, mais AUCUNE donnée réelle de client n'y va sans que les pages légales le
+disent d'abord. Le serveur actuel s'appelle « TeamOP » et porte la taille « VPS 4-4-120 » : sans doute 4 cœurs, 4 Go, 120 Go
+(l'offre M+ d'aujourd'hui en donne 2 : la sienne date de juillet) — à confirmer par la commande de mesure ; son pays n'est PAS
+vérifié (pastille bleue, pas de drapeau français lisible) : le lui faire lire au survol, et faire relire par `juriste` ce que
+disent `mentions-legales.html`, `confidentialite.html`, `sous-traitance.html` et `registre-traitements.html` si ce n'est pas la
+France. Avis général d'IONOS sur PHP (27 octobre) : sans objet a priori (Node), à vérifier sur le serveur actuel par
+`command -v php || echo "pas de PHP"`. Ce soir, à sa demande (« ce qui consomme le moins en priorité »), on SÉCURISE le serveur
+d'atelier, lui aux commandes : connexion, clé à la place du mot de passe, pare-feu, mises à jour automatiques.
+Au survol de la pastille du serveur actuel, IONOS affiche seulement « Europe » (Justin, 17 h 31) : le PAYS reste inconnu — à
+établir (contrat, facture ou service client d'IONOS), puis à comparer à ce que disent les pages légales (« en France » ?).
+**Mesure du 17 novembre (machine d'essai, 4 cœurs)** : `scripts/bancs-ci.sh`, 835 suites jouées l'une après l'autre, 39 373
+vérifications, **1 404 s (23 min 24 s)**. ⚠️ C'est un PLANCHER : `server/node_modules` était absent, 129 suites ont sauté une partie
+(les bancs du vrai serveur), et une douzaine ont échoué ou se sont interrompues (2864, 2901, 2903, 2918, 3089, 3101, 3132, 3150,
+3162, 3163, 3166, 3225) — à rejouer avec les dépendances avant d'en conclure quoi que ce soit (réseau coupé du conteneur ?
+dépendances ? vrai défaut ?). Ordre de grandeur pour l'atelier (12 cœurs, suites en parallèle) : quelques minutes ; à mesurer sur
+place. Serveur d'atelier vérifié par Justin à 17 h 33 : Ubuntu 24.04.5, 12 cœurs, 23 Go, 697 Go ; son adresse est dans la
+conversation, pas ici (dépôt public, serveur pas encore durci). Sa clé SSH existante a un mot de passe qu'il ne retrouve plus :
+on lui en fait créer une neuve pour l'atelier (`~/.ssh/atelier`) — et il faudra voir comment il entre sur le serveur actuel.
+✅ **SERVEUR D'ATELIER SÉCURISÉ PAR JUSTIN LE 17 NOVEMBRE (fini à 17 h 42, lui aux commandes, sorties recollées)** : clé neuve sur son PC
+Windows (`C:\Users\<lui>\.ssh\atelier`, protégée par un mot de passe à lui) posée dans `authorized_keys` de root ; système à
+jour, `unattended-upgrades` actif ; `ufw` actif, seules 22, 80 et 443 ouvertes (v4 et v6) ; `/etc/ssh/sshd_config.d/00-cle-seule.conf`
+(mot de passe refusé, root par clé seulement) — VÉRIFIÉ des deux côtés : la clé entre (`cle-ok`), le mot de passe est refusé
+(`Permission denied (publickey)`). Rien d'autre n'est installé dessus. Reste pour ce serveur : un nom d'hôte, une adresse en
+`…teamop.fr`, un compte non-root pour les services, fail2ban ou équivalent — dans le plan. ⚠️ Il se trompe facilement de fenêtre
+(PC ou serveur) : toujours écrire OÙ taper, et le repère (`PS C:\Users\…>` = son PC, `root@…#` = le serveur).
+Deux ordinateurs chez Justin : il entre sur le serveur ACTUEL (clients) depuis son MAC, et sur l'ATELIER depuis son PC Windows
+(raccourci `ssh atelier` posé le 17, en double dans `~/.ssh/config`, sans conséquence). À la reprise : dire à chaque commande sur
+QUEL ordinateur et QUEL serveur ; poser plus tard la clé du Mac sur l'atelier s'il veut tout faire du même endroit.
+**Justin, 17 novembre, 19 h 06 — LE PÉRIMÈTRE S'ÉLARGIT** : « il faut faire pareil pour OP MESSAGES, le passer sur ce serveur, et aussi
+quitter Firebase ». Répondu : oui aux deux BUTS (OP MESSAGES sur nos serveurs, plus de Firebase), à mettre dans le plan du
+chantier 0 — mais PAS sur l'atelier : il porte la porte d'exécution et les essais, il est en Allemagne, et il ne doit recevoir
+aucune donnée réelle ; OP MESSAGES (comptes de personnes, messages) va sur un serveur de PRODUCTION — celui des clients s'il a la
+marge, sinon un troisième : à trancher sur la mesure. Rappels de ce fichier : OP MESSAGES et OP GESTION ont des serveurs séparés
+(décision du 22 septembre), `server-msg/` existe déjà, la sortie de Firebase d'OP GESTION est écrite (25 septembre), et « éteindre
+Firebase » ne peut être total qu'une fois OP MESSAGES sorti. ✅ **LA PORTE DE L'ATELIER est écrite et éprouvée** (`scripts/atelier/
+porte.js`, `installer-porte.sh`, `tests/test-3298.js` : 30 ✓ ; huit défauts remis un par un, le banc tombe huit fois) : c'est par
+elle que CETTE conversation lancera ses commandes sur l'atelier (Justin : « le but, c'est que je fasse pas une autre conversation
+pour travailler »). Reste : l'enregistrement DNS `atelier` (type A) chez OVH — teamop.fr s'y règle bien, vu sur sa capture —,
+l'installation par lui, la clé posée par `request_credential` (hôte `atelier.teamop.fr`), puis un premier appel réel. À FAIRE
+RELIRE par `gardien` avant de s'en servir pour de bon ; le compte « atelier » n'a pas de droits d'administrateur (les gestes en
+root restent à Justin tant qu'il n'a pas dit autre chose).
+✅✅ **LA PORTE DE L'ATELIER EST OUVERTE — CETTE CONVERSATION LANCE SES COMMANDES SUR LE SERVEUR (17 novembre, 19 h 38).** Justin a
+ajouté l'enregistrement `atelier` (A) chez OVH, lancé `installer-porte.sh atelier.teamop.fr` (certificat obtenu), et posé la clé
+dans les secrets réseau de l'environnement « Justino » (le formulaire `request_credential` a échoué : « session trop longue » —
+il l'a saisie dans Réglages de l'environnement › Secrets réseau ; type Bearer, site `atelier.teamop.fr`, en-tête Authorization).
+Elle a pris DANS cette session, sans en ouvrir une autre. PREUVE : `bash scripts/atelier/appel.sh '<commande>' [délai]` rend la
+sortie et le code de la commande (compte `atelier`, 12 cœurs). C'est la condition (b) du chantier 0 à moitié levée : une session
+du cloud travaille sur NOTRE serveur par HTTPS + secret d'environnement — le même chemin servira à la forge (git par HTTPS).
+Limites à garder en tête : le compte n'a PAS de droits d'administrateur (installer un paquet, toucher à Caddy ou à systemd reste
+un geste de Justin en root, ou une décision de lui d'en donner) ; une réponse dure au plus 900 s (travaux longs en fond, puis
+relecture) ; ⛔ jamais de secret dans une commande (journal) ; ⛔ jamais de donnée réelle de client sur ce serveur. Première
+tâche lancée par la porte : les 835 suites, l'une après l'autre, dépendances installées (`~/bancs.out` sur l'atelier).
+**Justin, 17 novembre au soir : « fais tout ce que tu peux faire aujourd'hui sur le serveur, il te reste 10 % ».** FAIT par la
+porte, état à 19 h 50 : (1) **NOTRE FORGE EXISTE** — Forgejo 17.0.1 (empreinte ET signature de l'éditeur vérifiées) dans
+`/home/atelier/forge`, en boucle locale (127.0.0.1:3000), inscriptions fermées, tout privé, pas de SSH ; comptes `justin`
+(administrateur, mot de passe provisoire à changer) et `claude` ; organisation `teamop`, dépôt `teamop/teamop` PRIVÉ ; (2) **LE
+CODE ENTIER Y EST, AVEC SON HISTORIQUE** : copie complète de GitHub dans `~/miroir/teamop.git` (312 branches, 7 238 commits, 4 964
+sur `main`), poussée dans la forge — 312 branches des deux côtés, `main` identique (`a415080`) ; (3) git par HTTPS avec un jeton
+marche (`Authorization: token …` comme `Bearer …`, 312 branches lues) ; sans jeton : refus (API 403) ; (4) la porte RELUE par
+`gardien` — sans la clé, aucun chemin trouvé ; dix points à corriger, dont SIX FAITS dans `porte.js` et `appel.sh` (clé vérifiée
+avant le compteur : personne ne ferme la porte à son propriétaire ; table des refus bornée ; journal écrit AVANT l'exécution,
+avec longueur et empreinte ; octet nul ; tuyaux ; fichiers au lieu d'arguments) — banc 33 ✓ — et QUATRE dans le script des
+gestes en root : `scripts/atelier/installer-forge-racine.sh` (à lancer par Justin depuis une copie qui appartient à ROOT, jamais
+depuis `/home/atelier` : un script que le compte atelier peut modifier et que root exécute, c'est lui donner root) — forge
+derrière Caddy sous `git.teamop.fr`, porte et forge tenues et durcies par systemd, interface d'administration de Caddy FERMÉE
+(`admin off` ; elle écoutait sans clé sur 127.0.0.1:2019), fail2ban, copie nocturne GitHub → forge (3 h 17), contrôles. Sa
+configuration Caddy a été validée sur l'atelier (`Valid configuration`, Caddy 2.11.9). ⚠️ La porte EN SERVICE est encore
+l'ancienne version tant que ce script n'a pas tourné. RESTENT OUVERTS de la relecture, à dire à Justin : un tenant de la clé
+(donc une session manipulée par un contenu piégé) peut prendre le port de la porte et lire la clé au passage — parade prévue :
+socket tenue par systemd ; changer la clé ne tue pas ce qui tourne déjà (la vraie révocation est de reconstruire l'atelier) ;
+la clé s'affiche une fois à l'installation. ⏳ ATTEND JUSTIN : l'enregistrement DNS `git` (A) chez OVH, le script en root, son
+mot de passe de forge, le jeton `claude` dans les secrets réseau (site `git.teamop.fr`, type Bearer). ENSUITE : premier clone
+et première poussée d'une session par `https://git.teamop.fr/teamop/teamop.git` = la condition (b) entièrement levée.
+✅✅✅ **LA CONDITION (b) EST LEVÉE — CETTE SESSION LIT ET POUSSE LE CODE SUR NOTRE FORGE (17 novembre, 20 h 34).** Justin a posé
+l'enregistrement `git` chez OVH, lancé `installer-forge-racine.sh` depuis une copie de root (8 contrôles : 7 ✓, 1 fausse alerte
+de mon contrôle, corrigée), changé son mot de passe de forge (le provisoire, collé par erreur dans la conversation, est mort), et
+posé le jeton `claude` dans les secrets réseau (type Bearer, site `git.teamop.fr`). PREUVE, depuis le conteneur du cloud :
+`git -c http.extraHeader="Authorization: Bearer <valeur factice>" ls-remote https://git.teamop.fr/teamop/teamop.git` → 312
+branches ; `push` de la branche de travail → la forge et le conteneur au même commit. Le proxy remplace la valeur factice.
+En service sur l'atelier : porte (version corrigée, unité durcie), forge (unité systemd), Caddy (deux noms, administration
+fermée), fail2ban, copie nocturne GitHub → forge à 3 h 17. ⚠️ À FAIRE À LA REPRISE : la branche par défaut de la forge n'est pas
+`main` (à régler par l'API, compte administrateur) ; tant que GitHub reste la source, la copie de 3 h 17 ÉCRASE dans la forge ce
+qui n'est pas sur GitHub — donc on pousse encore sur GitHub d'abord ; les robots de vérification de la forge (Forgejo Actions)
+ne sont pas installés ; les 835 suites lancées sur l'atelier semblaient arrêtées sur une suite (`~/bancs.out` à relire).
+Justin, 17 novembre, vers 21 h, une SECONDE fois : « il faut aussi passer OP MESSAGES sur le serveur atelier ». Répondu : la
+version d'ESSAI d'OP MESSAGES (données fictives), oui, sur l'atelier ; la version aux VRAIS comptes, non tant qu'il ne l'a pas
+décidé en connaissance de cause (porte d'exécution sur ce serveur, Allemagne, pages légales à mettre à jour) — à lui faire
+TRANCHER à la reprise, sans le redire une troisième fois : s'il confirme, c'est sa décision.
+✅ TRANCHÉ par Justin le soir même : « non, que la version bêta ». Donc : la BÊTA d'OP MESSAGES sur l'atelier (données
+d'essai) ; la vraie version reste sur un serveur de production, à choisir sur la mesure.
+**FIREBASE — Justin, 17 novembre au soir : « OP GESTION n'est plus sur Firebase » (« je l'avais déjà fait auparavant, rappelle-toi,
+on rencontrait beaucoup trop de problèmes »), puis « OP MESSAGES, tu le transfères sur le nouveau serveur de test et on
+supprime ».** VÉRIFIÉ dans le code le 17 : `app.html` (v804) et `beta.html` ne chargent plus le SDK ni Firestore ; `server-msg/`
+n'a aucune trace de Firebase ; RESTENT 1 ligne `identitytoolkit` dans `app.html`, 6 lignes Google dans `server/index.js`, et
+l'ancienne `messages.html` (v664, fermée) qui charge encore le SDK. ⚠️ La ligne « Firebase : NE PAS le supprimer, la version
+publique en dépend encore » plus bas dans ce fichier est PÉRIMÉE. À FAIRE À LA REPRISE, dans cet ordre : (1) dire ce que font
+ces 7 lignes (restes ou usage vivant) et les retirer si ce sont des restes ; (2) installer la BÊTA d'OP MESSAGES (`server-msg/`)
+sur l'atelier, données d'essai ; (3) décider du sort de l'ancienne `messages.html` ; (4) une dernière sauvegarde de ce que le
+projet Firebase contient ; (5) PUIS les gestes de Justin pour supprimer le projet (définitif : sa phrase pour CE geste).
+✅ **LA BÊTA D'OP MESSAGES EST EN LIGNE SUR L'ATELIER (17 novembre, 22 h 26)** : https://msg-atelier.teamop.fr — `server-msg/`
+v1.9.0, instance `beta`, port 8091, données d'ESSAI dans `/home/atelier/opmsg-beta` (configuration faite par l'étape 4
+d'`install-msg.sh`, clé maître née SUR le serveur dans le compte atelier : bon pour des essais seulement), unité
+`atelier-opmsg`, site ajouté au Caddyfile par `scripts/atelier/installer-msg-racine.sh` (lancé par Justin en root). Contrôlé :
+`/health` répond `ok` depuis le conteneur. NON fait : SMS, courriel, appels, visio, transcription, sauvegarde de cette instance.
+ZONE DNS d'OVH lue en entier (34 lignes) : AUCUNE entrée Firebase ; le site y pointe GitHub (quatre A `185.199.108-111.153`
+sur `@`, `www` CNAME `justino17-cmd.github.io`) — ce sont elles qu'on changera à la bascule. FIREBASE, ce qui BLOQUE encore sa
+suppression : `server/index.js` appelle Google quand la Tour ferme, supprime ou fait repartir à neuf une entreprise
+(`fbRevoquerEquipe`, effacement Firestore, vérification de jeton) — à retirer, bancs à l'appui, puis mise en ligne du serveur
+sur la phrase de Justin, AVANT de supprimer le projet. Piège de la soirée : un nom demandé juste avant d'exister reste « inconnu »
+dans la mémoire du serveur (`resolvectl flush-caches`).
+⚠️ **La bêta d'OP MESSAGES de l'atelier RÉPOND mais on n'y ENTRE pas (vu par Justin le 17 au soir : « La connexion est momentanément
+indisponible »).** Cause lue dans `server-msg/porte-beta.js` : la porte d'essai vérifie l'identifiant donné par la Tour en appelant
+OP GESTION en boucle locale (`POST /api/beta/login`, 127.0.0.1:8080) — sur le serveur des clients les deux vivent ensemble ; sur
+l'atelier il n'y a PAS de serveur OP GESTION. À FAIRE EN PREMIER à la reprise : un serveur OP GESTION d'ESSAI sur l'atelier
+(`server/index.js`, `TEAMOP_CONFIG`/`TEAMOP_DATA` jetables, port 8080, un accès bêta créé pour Justin), puis vérifier l'entrée de
+bout en bout AU NAVIGATEUR avant de lui redire « c'est en ligne » — je l'ai annoncé sur la seule foi de `/health`, à tort. La
+porte de test des codes SMS est posée (`OPMSG_TEST_CODES`, drop-in `atelier-opmsg.service.d/codes.conf`).
+✅ **Justin ENTRE dans la bêta d'OP MESSAGES de l'atelier (17 novembre, vers 22 h 30)** : il manquait le serveur OP GESTION d'essai
+à côté — monté par la porte dans `/home/atelier/gestion-essai` (port 8080, `nohup`, PAS encore d'unité systemd : il ne redémarre
+pas seul), avec un accès bêta `justin` (mot de passe dans `acces-justin.txt`, jamais affiché ici). ⏳ **CE QU'IL DEMANDE ENSUITE** :
+(1) « récupérer mon compte que j'avais d'origine » = TRANSFÉRER les données de l'ancienne bêta (`msg-beta.teamop.fr`, sur le
+serveur des clients : données, configuration ET clé maître de l'instance) vers l'atelier — un déménagement de données chiffrées,
+à préparer et à répéter, gestes de Justin sur son Mac, la clé ne passant jamais par la conversation ; (2) la version de TEST
+d'OP GESTION (la page bêta et son serveur) sur l'atelier aussi : « ça va être le nouveau serveur pour les tests, et on va quitter
+Firebase et GitHub ». ⚠️ Il s'est agacé deux fois ce soir : dire en UNE phrase ce qu'on fait et pour quoi, avant de le faire.
+FIREBASE, suite (17 novembre, vers 23 h) — LU dans `server/index.js` (lu, pas joué) : `fbRevoquerEquipe` ne jette jamais (tout
+est dans un `try`) et rend `{fait:false, motif}` quand Google refuse ; ses trois appelants (repartir à neuf, fermer, supprimer)
+CONTINUENT — ils coupent et effacent le socle — et remontent seulement « coupure non faite » avec le motif. Donc, projet
+supprimé : ces trois gestes de la Tour marchent encore mais AFFICHENT un avertissement Firebase jusqu'au retrait du code. Dit à
+Justin : il peut supprimer le projet quand il a regardé ce qu'il contient ; la décision est la sienne. À faire ensuite : retirer
+ce code et ses bancs, et dire dans `REPRISE.md` si le projet a été supprimé (ne pas le supposer).
+✅✅ **LE PROJET FIREBASE `elan-gestion` EST SUPPRIMÉ PAR JUSTIN (17 novembre, 23 h 55) — restaurable 30 jours depuis la
+console Google Cloud, donc jusqu'au 17 décembre 2026.** Sa décision, en connaissance de cause : rien à récupérer (« on avait tout
+mis chez nous, Firebase on ne l'utilise plus depuis des mois »), et la clé Gemini « TEAM OP Blog » ne marchait pas (il fait les
+photos du blog lui-même, on le prévient la veille). CONSÉQUENCES à traiter : (1) `server/index.js` — retirer `fbRevoquerEquipe`,
+l'effacement Firestore, `fbAdminJeton` et la vérification de jeton Firebase, avec leurs bancs (640, 641…) ; d'ici là la Tour
+affiche « coupure non faite » aux gestes fermer / supprimer / repartir à neuf, qui se font quand même ; (2) le secret
+`GEMINI_API_KEY` des workflows du blog est mort : les étapes qui l'appellent échoueront — à retirer ou à neutraliser ; (3)
+l'ancienne `messages.html` (v664) ne peut plus rien : à retirer ou à remplacer ; (4) `firestore.rules`, `firebase-console.js`,
+les mentions de Firebase dans `sous-traitance.html`, `confidentialite.html`, `registre-traitements.html` et dans `CLAUDE.md` :
+à relire (Google n'est plus sous-traitant à ce titre — `juriste`). Le paragraphe qui suit est donc PÉRIMÉ.
+⛔ **FIREBASE — NE PAS SUPPRIMER LE PROJET AVANT D'AVOIR DÉMÉNAGÉ LA CLÉ GEMINI (vu sur les captures de Justin, 17 novembre, vers
+23 h 15).** Supprimer le projet Firebase `elan-gestion` supprime le projet Google Cloud du même nom et désactive TOUTES ses API
+(restaurable 30 jours). Ses identifiants : la clé d'API « TEAM OP Blog » (API Gemini, créée le 26 octobre 2026 — celle du blog
+automatique), la clé de navigateur créée par Firebase, aucun client OAuth, deux comptes de service (`firebase-adminsdk`, et celui
+de la clé Gemini). Donc : créer une clé Gemini dans un AUTRE projet, la poser là où l'ancienne est rangée (secrets des workflows
+du blog, voir `blog-publication.yml`), vérifier une publication, PUIS supprimer. Justin s'est arrêté à l'écran de confirmation.
+**Ce qu'il faut de lui** : la capture des offres de serveurs privés virtuels d'IONOS ; le résultat de `nproc && free -h && df -h /
+&& uptime` sur le serveur actuel ; la confirmation que teamop.fr se règle chez OVH.
+
+⛔⛔ **FIN DE JOURNÉE DU 17 NOVEMBRE, 17 H (heure française) — VERSION 66 PUBLIÉE, PLUS RIEN NE TOURNE. LIRE CECI EN PREMIER.**
+Reprise programmée le 18 à 22 h 10 (`trig_01ARF4xswzMN4Z5rmX7c9NfF`) : CHANTIER 0 SEULEMENT (« tout servir depuis notre serveur »,
+bloc « NOUVEL ORDRE DE PRIORITÉ » plus bas) ; le prototype (chantier A) et OP Security ↔ OP GESTION (chantier B) restent en pause
+jusqu'à sa fin. Aucune session sœur, aucun workflow, aucune tâche de fond ne tourne.
+**Version 67 de l'artefact** (https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux), publiée le 19/11 vers 19 h 25 UTC depuis le commit `9a3ed29b`, après le rejeu final de toutes les parties (840 suites, 47 274 vérifications, 0 échec ; décisions de Justin : `scratchpad/proto-final/DOUTES-JUSTIN.md`). Pour mémoire, la version 66 (17/11, 16 h 55, commit `89b6089`) :
+toutes les corrections du 17 (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, bouton principal de nuit,
+sécurité du prototype tour 1) et l'écran de connexion réparé. Vérifiée juste avant : connexion 14 ✓, fumée de jour 396 ✓, client
+et chef d'équipe 126 ✓, nuit 396 ✓, artefact 434 ✓ (63 + 26 + 14 + 144 + 10 + 16 + 24 + 5 + 132) — 1 366 contrôles, 0 ✗ ; planches
+regardées (nuit au téléphone, espace client, parties refaites sur Mac, connexion jour et nuit). ⚠️ Ce que la version 66 NE dit PAS :
+les recontrôles adverses des corrections du 17 n'ont pas été joués (arrêt) — fiches `scratchpad/proto-final/arret/soeur-*.md`.
+⛔ **L'INCIDENT DE L'ARRÊT, ET SA LEÇON.** Ma consigne d'arrêt disait aux sessions sœurs « enregistre le travail en cours si les
+contrôles passent » : la sœur 19 a enregistré (`fceb108`) une MUTATION D'ESSAI restée dans la page — « Revenir au mode test » posé
+dans `<body>` au lieu de `#cnx`, donc la garde `c.querySelector('#cnx-test')` ne le voyait plus et l'observateur le reposait sans
+fin : la page FIGEAIT à l'ouverture de l'écran de connexion (par l'adresse `#lien-…` et par « Voir comme l'application »). Ma fumée
+(918 contrôles) est restée verte : elle entre toujours avec un compte (`?app=1&auto=…`) et ne passe JAMAIS par la connexion. C'est
+la sonde « voir comme l'application » de l'artefact qui l'a montré, en ne rendant rien (code 124). Trouvé par `git bisect` (bon :
+`8ec9130`), réparé dans `89b6089`, gardé par `sondes/fumee-connexion.js` (14 ✓ ; mutation remise : 1 ✓ · 2 ✗), qui fait désormais
+partie de la porte du chef. Les sept autres enregistrements « à l'arrêt » qui touchent les pages ont été relus : aucune autre
+mutation. **Trois règles** : (1) on n'enregistre JAMAIS à l'aveugle le travail d'un agent interrompu — il peut être en train de
+muter ; à l'arrêt il RESTAURE d'abord (`git diff` relu), ou il dépose son travail en correctif à part ; (2) une fumée qui entre
+toujours connectée ne voit pas l'écran de connexion ; (3) une sonde qui ne rend rien est un constat, pas un contretemps.
+**La porte du chef avant toute publication de l'artefact** (depuis `scratchpad/proto-final/sondes`) : `node fumee-connexion.js` ;
+`CAP=<dossier> node fumee-routes.js` ; `QUI=client,kb CAP=… node fumee-routes.js` ; `NUIT=1 QUI=marc,julie,sm CAP=… node
+fumee-routes.js` ; `RECENSEMENT=0 CAP=… bash scratchpad/proto-final/sondes/artefact-tout.sh` ; puis les planches
+(`node scratchpad/proto-final/planches.js <dossier>`), REGARDÉES ; publication : recette en tête de `preparer-publication.sh`.
+**Les 38 sessions sœurs sont arrêtées ET fermées.** Fiches d'arrêt : `scratchpad/proto-final/arret/soeur-<n>.md` — toutes sauf la 6
+(`{voie:"final-rejeu", familles:["coque","planning","restes","recontrole","relire"], jusqua:0}`, étape des scripts non finie,
+dernière poussée à 12 h 23) ; les fiches 21, 26, 33 et 38 sont arrivées APRÈS la table de `VOIES-EN-COURS.md` : les lire.
+**Les essais de sécurité du 17 sont à l'abri HORS de ce dépôt (il est public)** : document privé de Justin
+https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt, onglet « Essais du 17 novembre » (les deux rapports : 13 constats sur OP Security,
+20 sur OP GESTION, ce qui n'a pas été joué), et un paquet de 163 fichiers (étude, propositions, critiques, plan, scripts des
+testeurs, preuves) — pièce `09ed447e8efeca8e9a785c86cb546570` du document, relue après dépôt (même empreinte). Sur une machine
+neuve : outil Artifact, `action: read`, `url` du document, `path` = cet identifiant, puis la commande du champ `restaurer` du
+paquet (vers `/home/user/op-security`). Le kit de Justin se relit par son artefact (noté dans le `LISEZMOI.md` du paquet).
+⛔ Aucun détail de faille n'est écrit dans ce fichier : il se lit depuis Internet.
+**Ce qu'on sait de l'hébergement (relu dans ce fichier le 17)** : le serveur (`api.teamop.fr`) est un serveur privé virtuel chez
+IONOS, environ 2 cœurs d'après la mesure de la transcription du 11 octobre (mémoire et disque non notés) ; les DNS et la messagerie
+de teamop.fr étaient chez OVH le 9 octobre (`dns200.anycast.me`), avec un passage à Cloudflare proposé et jamais confirmé — À LUI
+FAIRE CONFIRMER avant de préparer la bascule. Justin, 16 h 55 : « ce qu'il faudrait faire, c'est sur IONOS trouver un plus gros
+serveur pour faire tout ce qu'on fait, non ? Ou le serveur que j'ai suffit. » Répondu : le serveur actuel suffit très probablement
+pour servir le site (des pages, c'est peu à côté de l'API, d'OP MESSAGES et de la transcription) ; on le MESURE avant de décider —
+commande à lui faire lancer sur le serveur, sans secret : `nproc && free -h && df -h / && uptime` ; l'offre IONOS « Hébergement Web
+Premium » (0 € trois mois puis 16 € HT par mois, douze mois) n'est PAS la bonne (hébergement mutualisé : ne fait pas tourner notre
+serveur) — s'il veut profiter des promotions, c'est un serveur privé virtuel, utile seulement comme serveur d'ESSAI à part ; GitHub
+Pro n'est plus nécessaire.
+**Sa crainte, à traiter DANS le plan du chantier 0** — Justin, 17 h : « si on transfère tout le projet GitHub au serveur, il
+risque pas d'avoir des latences ou autre ». Répondu : on ne déménage pas le projet (le code reste sur GitHub, en privé), seulement
+les pages publiées ; pour des clients en France l'écart est de quelques millisecondes, et l'application reste rangée sur l'appareil
+après la première ouverture. Le plan doit donc PORTER, chiffres à l'appui : (1) une mesure avant / après (accueil, application,
+Tour ; téléphone en 4G simulée ; première visite et visite suivante) sur le jumeau puis sur le vrai avant la bascule ; (2) la
+compression et le cache réglés par nous (poids mesuré le 17 : `app.html` 4,96 Mo brut, 1,51 Mo compressé ; `tour.html` 1,26 Mo,
+0,38 Mo) ; (3) les deux vrais risques, dits tels quels : une panne du serveur arrête le site ET l'API ensemble, et un pic ou une
+attaque arrive droit sur lui, là où GitHub l'absorbait — avec l'option d'un réseau de protection et d'accélération devant
+(Cloudflare, déjà proposé le 9 octobre), à lui faire trancher.
+**Idée de Justin pour le chantier B (17 novembre, 17 h) — LES CLÉS D'ACCÈS, « comme Apple ».** Mot pour mot : « on peut proposer
+aux utilisateurs d'enregistrer une clé d'accès. Que quand ils se reconnectent avec leur téléphone, ils ont une clé d'accès qui est
+valable un certain temps. Une fois qu'ils l'ont perdue, il faut qu'ils refassent les démarches. Je sais pas comment ça fonctionne
+exactement, mais je sais que Apple le fait ». Répondu : oui, c'est la norme des clés d'accès (WebAuthn) — le téléphone fabrique une
+clé qui reste dans sa puce de sécurité, le serveur n'en garde que la moitié publique, on ouvre par Face ID ou l'empreinte, et un
+faux site ne peut pas s'en servir. À METTRE DANS LE PLAN du chantier B, à étudier puis à attaquer sur la copie d'essai, pas avant
+le chantier 0 : (1) dans l'application OP Security, la clé gardée par la PUCE du téléphone et le visage ou l'empreinte, au lieu de
+l'application et d'un code — cela répond à un constat des essais du 17 (S4, document privé) ; (2) dans OP GESTION, sur un téléphone
+ou un ordinateur enregistré, se connecter par la clé d'accès (deux preuves en un geste : l'appareil et le visage) ; (3) « valable un
+certain temps » est NOTRE règle au serveur : durée de vie de la clé, nouvelle preuve tous les N jours (sa décision D1 : 90 jours au
+plus), retrait immédiat quand le compte est désactivé ; (4) « perdue = refaire les démarches » : nouvel enregistrement avec un
+administrateur (sa décision D2). ⚠️ Trois points à lui dire et à trancher : Apple et Google RECOPIENT par défaut une clé d'accès
+sur les autres appareils du même compte (iCloud, Google) — pour que « perdue » veuille dire « à refaire », la clé doit rester liée
+à UN appareil (possible dans l'application installée, par la puce du téléphone ; pas garanti dans un simple navigateur) ; il faut
+un chemin de secours pour un téléphone trop ancien (mot de passe + confirmation OP Security) ; et le premier enregistrement reste
+le point faible (c'est lui qu'un pirate vise) : mot de passe du compte ET code d'un administrateur, comme déjà décidé. Côté code :
+la vérification au serveur se fait à la main avec `node:crypto` ou par une bibliothèque relue — à trancher dans le plan (règle du
+dépôt : pas de dépendance de plus sans raison, mais c'est une pièce de sécurité).
+**Sa question suivante, à traiter AUSSI dans le plan du chantier 0** — Justin, 17 h 05 : « pourquoi on quitte pas totalement GitHub
+pour tout faire, nous, sur nos propres serveurs avec tous nos hébergements ? Ça me paraît beaucoup plus logique, non ? ». Répondu,
+faits relus le 17 : après le chantier 0, plus rien de ce qu'un CLIENT touche ne passe par GitHub ; il n'y reste que l'ATELIER — le
+code et son historique, les vérifications avant chaque mise en ligne (`ci.yml`, `verification.yml`, les bancs de `deploiement*.yml`),
+la surveillance horaire (`surveillance.yml`, qui tourne sur les machines de GitHub, donc DEHORS de ce qu'elle surveille), la
+publication du blog, et le robot de mise en ligne — et c'est par GitHub que les sessions Claude du cloud reçoivent le code (sans
+dépôt GitHub, plus de sessions en parallèle : il ne resterait que le travail par son ordinateur). Tout quitter est POSSIBLE mais
+demande : un second serveur (jamais de vérifications sur le serveur de production ; un surveillant doit vivre ailleurs que ce
+qu'il surveille), une forge à installer, mettre à jour et protéger (une surface de plus sur Internet), et une copie du code chez
+un AUTRE hébergeur (tout au même endroit = un seul incident emporte code, site et données). Recommandé à Justin, dans cet ordre :
+(1) chantier 0, dépôt en privé (0 €) ; (2) deux gestes qui donnent l'indépendance sans rien installer de lourd — RETIRER à GitHub
+la clé qui ouvre le serveur (`VPS_SSH_KEY`, citée par `deploiement.yml` : aujourd'hui GitHub entre sur le serveur pour poser les
+mises à jour ; à inverser, c'est le serveur qui va les chercher, puis n'accepter qu'une version signée) et une COPIE automatique
+du dépôt chez nous chaque nuit (si GitHub ferme ou tombe, rien n'est perdu et l'on peut partir en une heure) ; (3) plus tard, s'il
+le veut toujours : quitter GitHub pour de bon, avec un second serveur, en gardant GitHub en miroir le temps de vérifier. Les deux
+gestes de (2) sont à étudier et à faire relire par `gardien` avant d'être proposés ; aucun n'est commencé.
+**Ce qui attend Justin** : (1) le résultat de cette commande et la confirmation de l'endroit où se règle l'adresse teamop.fr ;
+(2) ses deux essais de la version 64 (Véhicules › coût › « Exporter en tableau » ; Comptabilité › « Télécharger le FEC ») ;
+(3) reporté par lui : changer l'identifiant GitHub.
+
+⛔⛔ **ARRÊT DU 17 NOVEMBRE, 13 H 50 (heure française) — LE CHANTIER REPREND LE 18 À 22 H 10. LIRE CECI D'ABORD.**
+Justin, à 13 h 45 : « on est à 81 % hebdomadaire de consommation, ça peut le faire ? » ; puis « fais comme tu le sens, sinon demain à
+22 h mise à jour de la consommation » ; puis « sinon coupe et tu reprends tout demain à 22 h, plus sûr pour que ça bug pas » ; puis
+« et là tu fais le plus important ». Ce qui a été fait, dans l'ordre : (1) ordre d'arrêt propre aux 38 sessions sœurs — 31 tout de
+suite, 7 après la fin de leur étape de CORRECTION (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, sécurité,
+bouton de nuit) ; chacune écrit `scratchpad/proto-final/arret/soeur-<n>.md` (args, étape, dernier commit, reste) puis est fermée
+(`archive_session`) ; (2) la tête de la branche repasse les huit contrôles (compiler-pages, verifier-syntaxe, tests 835, 836, 837,
+1008, 2994, verif-secrets) à 0 ✗ après les arrêts ; (3) **VERSION 65 DE L'ARTEFACT PUBLIÉE à 14 h 05 (française)** depuis les pages
+du commit `8ec9130` (12 h 43 machine), figées dans le dossier `pub-65` du scratchpad : fumée jour 396 ✓, espace client et chef
+d'équipe 127 ✓, nuit (gérant, bureau, technicienne) 396 ✓, sondes de l'artefact 302 ✓, bouton « Voir comme l'application » 132 ✓ —
+1 353 contrôles, 0 ✗ ; planches REGARDÉES (nuit iPhone et Mac, espace client, parties refaites de jour) ; (4) la REPRISE est
+programmée par `send_later` au 18 novembre 22 h 10 (heure française ; le forfait se remet à zéro à 22 h) — sa consigne dit quoi
+relancer ; la liste est dans `VOIES-EN-COURS.md`, section « ARRÊT DU 17 NOVEMBRE », et les fiches `arret/soeur-*.md` font foi.
+**Ce que porte la version 65 de plus que la 64** : corrections de Clients (12), de l'espace client (une seule navigation par appareil,
+l'entreprise une fois en haut), du technicien, de la Comptabilité (ventes et reste), des Contrats, des Interventions, de l'Accueil,
+du Planning, de Mon entreprise, de Matériel (27), une partie de Véhicules et Temps de travail et d'Équipe, les premiers regards du
+gérant (21 défauts d'aspect), et le **bouton principal de nuit CLAIR** (décision du chef, à dire à Justin : une ligne de jetons à
+défaire s'il préfère l'ancien ; les pages paiement et documents ne sont pas encore passées). **Elle ne porte PAS** : la fin des
+corrections de Véhicules et Temps de travail, d'Équipe, de Clients (restes) et de la sécurité (poussées après 12 h 43).
+**À FAIRE À LA REPRISE, en plus des fiches** : · la campagne « compta-reste » a rendu ICI à 12 h 50 (7 corrections confirmées, 3
+incomplètes : 03 le formulaire de note de frais de la technicienne lit « 1.234 » comme 1,23 € ; 07 des mots d'échafaudage dans
+« Paiement en ligne » ; 10 un numéro de facture sur trois lignes au téléphone) → voie `restes {noms:["compta-reste"], tours:1}` ;
+deux points BLOQUANTS « à soumettre » à trancher par le chef ou par Justin : compta-reste-01 (le cadre « OP COMPTABLE » montre
+d'autres chiffres qu'OP GESTION le même jour : banque 22 165,18 € contre 9 792,95 €, etc.) et compta-reste-02 (payer par carte dans
+« Paiement en ligne » ne paie rien dans OP GESTION) ; · la sécurité : recontrôle rendu (14 failles fermées sur 18, 5 variantes
+ouvertes dont S01 haute, 4 casses), corrections du tour 1 en cours à l'arrêt (sœur 38) → recontrôle demain ; · regard gérant b :
+second regard rendu, 10 défauts nouveaux dont 2 moyens (`final/regard-gerant-b-recontrole.json`) ; · conseil de la sœur 20 : des
+sondes ne ferment pas leur navigateur (`grep -L fermer scratchpad/proto-final/campagne/sondes/*.js scratchpad/proto-final/sondes/*.js`)
+et occupent une place 580 s ; · `tests/test-846.js` tombait en ligne (une page de sonde sans `<html lang="fr">`) : corrigé à 14 h ;
+⛔ une consigne de sœur doit dire « [skip ci] » aussi pour les commits faits HORS du workflow (les décisions recopiées dans
+`vus-par-le-chef.md`) — c'est un tel commit qui a lancé la vérification en ligne ; · les outils du chef (`/home/user/*.sh`) sont
+sauvegardés dans `scratchpad/proto-final/outils-chef/` ; · les captures se regardent par PLANCHES (`scratchpad/proto-final/planches.js`,
+huit par image) : les consignes le disent, c'est six fois moins de lectures d'images.
+
+⛔ **NOUVELLE DEMANDE DE JUSTIN, 17 NOVEMBRE, 14 H 35 (heure française) — OP SECURITY DOIT MARCHER AVEC OP GESTION.** Mot pour
+mot : « tu as vu le système de sécurité que j'ai fait hier avec l'application », puis « je veux que cette application fonctionne
+avec OP GESTION et je veux que tu la vérifies et testes », puis « pareil pour OP GESTION, je veux que ça soit relié et que tu testes
+et vérifies la sécurité d'OP GESTION ». Ce que ça change : le plan OP Security n'attend plus un « oui » de principe — il l'a ; restent
+ses huit décisions (D1 à D8), pour lesquelles on prend les recommandations du plan tant qu'il n'a pas dit autre chose, en le lui
+listant. Ce qui NE change PAS : rien sur le vrai serveur ni dans l'application publiée sans sa phrase pour CETTE mise en ligne ;
+l'étude de la connexion réelle et le kit restent HORS du dépôt (il est public) tant qu'il n'a pas dit où il veut ce code (question
+posée le 17 à 14 h 40 : dépôt `teamop`, public comme tout le reste, ou dépôt privé à part). FAIT LE 17 : premier passage RÉEL
+(jusqu'ici tout n'avait été que lu) par un workflow de quatre agents sur la machine du chef — lancer OP Security et jouer ses
+parcours (ordinateur et téléphone simulé), jouer quinze attaques contre elle, jouer la sécurité d'OP GESTION (copie de la branche
+de production) sur un jumeau local, puis vérifier et résumer. Tout est dans `/home/user/op-security/essais-17nov/` (hors dépôt ;
+depuis 16 h 45 les rapports et le paquet des scripts sont dans le document privé — bloc « FIN DE JOURNÉE » en tête ; le kit se relit par l'artefact noté dans
+`/home/user/op-security/LISEZMOI.md`, le plan par https://claude.ai/artifact/7Bnkm4hvvHPBdac4EJuDTt). À LA REPRISE du 18 :
+le chantier « relier OP Security à OP GESTION » démarre sur une COPIE D'ESSAI (jumeau local : vrai serveur isolé, page bêta,
+application de téléphone du kit), marche par marche selon le plan, chaque marche testée et attaquée ; aucune mise en ligne.
+
+⛔⛔ **NOUVEL ORDRE DE PRIORITÉ, JUSTIN, 17 NOVEMBRE, 15 H 45 — « TOUT SERVIR DEPUIS NOTRE SERVEUR » D'ABORD, LES AUTRES CHANTIERS EN
+PAUSE.** Mot pour mot : « Pourquoi on ne fait pas directement tout par le serveur, au fait ? », puis « ce qu'on peut faire, c'est
+mettre tous les chantiers en pause. On fait tout sur notre serveur et une fois fait, on reprend les chantiers. », puis « même pour
+toi, pour la vérification, ça ira plus vite que GitHub ». D'où ça vient : pour passer le dépôt en PRIVÉ (ce qu'il veut, pour le
+système de sécurité), il fallait d'abord GitHub Pro (48 $ par an ou 4 $ par mois) — le site et les pages (teamop.fr, application,
+bêta, Tour) sont servis par GitHub Pages, et Pages ne sert un dépôt privé qu'avec une offre payante (vu sur son écran de
+facturation : « Pages for static website hosting » n'est pas dans l'offre gratuite ; « Pages in private repos » est dans Pro).
+Son compte propriétaire du dépôt est `justino17-cmd` (compte personnel) ; il a aussi un autre compte, qui ne sert pas ici. Il n'a
+PAS pris Pro à 15 h 45 (il était sur la page de paiement). CE QUI EST DÉCIDÉ : chantier 0 = le site servi par NOTRE serveur (Caddy
+sur le VPS), avec les en-têtes de sécurité que Pages ne permet pas ; puis GitHub Pages coupé, dépôt passé en privé gratuitement ;
+PUIS reprise du prototype (chantier A) et de la liaison OP Security ↔ OP GESTION (chantier B). GitHub reste l'atelier (code,
+historique, vérifications, déploiement). ⛔ Aucun geste de production sans sa phrase pour CE geste (réglage du serveur, poussée
+sur `main`, bascule de l'adresse) ; l'enregistrement de l'adresse teamop.fr se change chez son hébergeur de nom, par lui, avec les
+valeurs qu'on lui donne ; GitHub Pages reste en place jusqu'à la vérification (retour arrière = remettre l'adresse). À NE PAS
+CONFONDRE avec l'autre moitié de « tout chez nous », la sortie de Firebase (sections de septembre et d'octobre de ce fichier) : en
+relire l'état et le lui dire. Reporté par lui : changer l'identifiant GitHub `justino17-cmd` (« on le fera plus tard ») — à faire à
+part, à un moment calme, en vérifiant chaque branchement (serveur, vérifications, sessions). La reprise programmée du 18 à 22 h 10
+porte cet ordre (`trig_01ARF4xswzMN4Z5rmX7c9NfF`).
+
+⛔ **PRÉCISION DE JUSTIN, 17 NOVEMBRE, 14 H 45 (dictée) — CE QU'IL ATTEND D'OP SECURITY.** Mot pour mot : « On veut que
+l'application Security, comme tu as pu voir, qui a été créée, que tu la testes, que tu la vérifies, et je veux que cette application
+oblige de se connecter avec son compte OP GESTION. Pour être sûr que déjà, au niveau de la sécurité, c'est bien des comptes qui sont
+actifs sur OP GESTION pour la double authentification, et en même temps pour la sécurité plus forte, étant donné qu'il y a des
+données quand même plus conséquentes. Un peu comme Microsoft avec leur système de boîte mail pour la double authentification. Sauf
+que là, je veux que ça soit notre propre système, à notre sécurité. Et je veux que tu cherches la moindre faille, il ne faut pas
+qu'il y en ait une. » Ce que ça fixe pour le chantier : (1) **l'application du téléphone demande le compte OP GESTION** (entreprise,
+identifiant, mot de passe, vérifiés PAR LE SERVEUR) ; (2) **seul un compte ACTIF** s'y relie, et un compte désactivé ou supprimé
+perd OP Security tout de suite ; (3) le kit, lui, s'active aujourd'hui par un code affiché à l'écran, sans demander le compte : à
+changer — et à NE PAS affaiblir : mot de passe du compte ET code d'activation remis par un administrateur (un mot de passe volé ne
+doit pas suffire à activer le téléphone d'un pirate ; c'est sa décision n° 3 d'INTEGRATION.md) ; (4) la chasse aux failles est sans
+fin de tour : chaque correction est ré-attaquée, et on lui dit honnêtement qu'« aucune faille » ne se promet pas (sa décision n° 8 :
+ne pas promettre 100 %) — l'objectif est « aucune faille connue non corrigée », plus un test d'intrusion indépendant avant un
+premier client. Dit à Justin le 17 : son dépôt est PUBLIC (tout le code du serveur se lit) ; recommandation de le passer en privé ;
+sans réponse de sa part, le code de la liaison reste hors du dépôt.
+
+**ÉTAT À 12 H 20 (machine ; 13 h 20 en France) — 34 SESSIONS SŒURS, DEUX VOIES ENCORE ICI.** Justin, à 12 h 55 (heure française) :
+« Ok fait un maximum de saison sœur que tu fermera quand elle auront fini » → chaque sœur qui a rendu (« SŒUR n : ») reçoit sa voie
+suivante (`send_message` : « VOIE SUIVANTE : <args> ») ou est FERMÉE (`archive_session`) s'il n'y a plus rien pour elle. Annoncé à
+13 h 43 (française) : « tout fini entre 18 h et 19 h, je vise 18 h 30 ; je te confirme l'heure à 15 h » — sa réponse : « Ok tu me
+dit ». Forfait relu à 12 h 13 (machine) : statut `allowed` (l'alerte du matin est levée). Ici ne tournent plus que le recontrôle
+de la sécurité et celui de « compta-reste » ; leur suite (`restes`, un tour) part sur une sœur. Déjà sur des sœurs : tout le reste
+(tableau complet dans `VOIES-EN-COURS.md`), dont le REGARD écran par écran lancé SANS attendre la fin des corrections pour les
+parties déjà corrigées (gérant a, b, c ; technicien a ; bureau a). RESTE À OUVRIR : regard gérant « d » (Équipe, Mon entreprise),
+« e » (Temps de travail, Véhicules), « f » (les trois écrans 3D), technicien « b » (Mes frais, Mes heures, Mon camion), bureau « b »
+(Achats et frais, Stock, Fournisseurs, Véhicules), client, et les écrans du seul mode application (connexion, OP Security, guide,
+visite) ; scripts de rejeu des familles guide, metier, achats, equipe ; les tours « restes » après chaque recontrôle ; puis le REJEU
+FINAL (`final-rejeu`, `depuis:1`) de tous les groupes sur la version complète, `final-rapport`, la vérification du chef (fusion,
+compilation, fumée gérant-bureau-technicienne, client et chef d'équipe, nuit, captures REGARDÉES), la publication et la réponse.
+**LA LISTE DES DOUTES pour Justin se compose à la fin depuis quatre sources, toutes dans le dépôt** : `final/vus-par-le-chef.md`
+(lignes « à soumettre » et « décisions du chef ») ; `DECISIONS` (g à l) de `workflows/voies.js` ; les clés `doutes` et
+`nonVerifiable` des `*-recontrole.json` (campagne/, refonte/, final/, securite/, artefact/) ; et ce qui ne se vérifie pas d'ici (un
+vrai iPhone, Android, Windows ; l'artefact réel ; le prototype n'est pas l'application des stores). À TRANCHER PAR LUI, relevé à ce
+jour : le secrétariat voit-il la Boîte mail ; le bouton principal de nuit ; le nom « OP COMPTABLE » de la fenêtre ; le groupe
+« Personnel » d'une seule ligne chez le bureau ; glisser pour archiver un courriel ; la première page du Planning au téléphone.
+
+**VERSION 64 DE L'ARTEFACT PUBLIÉE LE 17 NOVEMBRE À 9 H 20 (machine ; 10 h 20 en France)** — version d'ÉTAPE, à la question de
+Justin « tu en es où ? ». Pages du commit `5f87524` (8 h 06), figées dans le dossier `pub-64` du scratchpad avant publication.
+Vérifié par le chef AVANT, sur ces pages-là : fumée `sondes/fumee-routes.js` gérant, bureau, technicienne × Mac et iPhone
+302 ✓ · 0 ✗ ; espace client (cinq onglets) et chef d'équipe 104 ✓ · 0 ✗ ; de nuit, gérant et technicienne 220 ✓ · 0 ✗ ; captures
+regardées une à une (Stock, Fournisseurs, Dépôts et camions, Véhicules, Temps de travail, Mon entreprise, Sécurité, Équipe,
+Accueil, Planning, Boîte mail, Devis, Tâches du bureau, Ma journée, Mon camion, Mes heures, espace client). Ce qu'elle porte de
+plus que la 63 : Fournisseurs construit, Mon entreprise, les droits d'Équipe qui agissent, la page Sécurité (OP Security, en
+cours), les téléchargements réparés (pont de l'artefact), les corrections de Tâches, Absences, Planning, coque, compositeur, mail.
+EN CHANTIER dedans : relectures de Matériel et de Véhicules pas encore passées, OP Security à mi-chemin, sécurité pas encore
+corrigée, Contrats et Accueil en second tour. ⚠️ Dans l'artefact l'application s'ouvre en mode REVUE (bande « Tester en tant
+que ») : l'écran de connexion et OP Security n'y sont pas atteignables tant que le bouton « Voir comme l'application » n'est pas
+construit (voie `restes` de l'artefact, lancée à 9 h 15). Décisions du chef prises ce matin sans Justin (à lui redire à la fin) :
+`final/vus-par-le-chef.md` et les décisions g à l de `voies.js`.
+
+**Horaires annoncés à Justin (17 novembre, 0 h 55) :** compositeur en grand et boîte mail corrigés et REPUBLIÉS vers 3 h 30 ;
+refontes finies vers 7 h ; campagne vers 11 h ; dernier passage, guide, publication et réponse chiffrée avec la liste des
+doutes vers 14 h. Lui redire à chaque étape finie.
+**Outils du chef de chantier ajoutés le 17 novembre :** `scratchpad/proto-final/tout-rejouer.sh` (le dernier passage : toutes
+les sondes, un tableau) ; `workflows/essai-a-blanc.js` (joue chaque voie du lanceur avec un faux agent : à lancer après toute
+retouche de `voies.js`) ; `preparer-publication.sh` (la page sans squelette + la liste des fichiers à publier, dont
+`prototype-courrier.js`) ; `sondes/compiler-pages.js` compile désormais les quatre pages et le module de courrier.
+Voies ajoutées à `voies.js` : `artefact` (2 étapes), `retour` (2), `guide` (4), `final-rejeu { familles, arbre }` (2),
+`final-regard { role, rubriques?, suffixe?, arbre }` (2), `final-parcours { arbre }` (2), `final-mots { arbre }` (1),
+`final-rapport { arbre }` (1).
+
+**VERSION 63 DE L'ARTEFACT PUBLIÉE LE 17 NOVEMBRE À 3 H 50 (heure de la machine ; 4 h 50 en France)** — version d'ÉTAPE, pages
+du commit `88d42e0` (fichiers figés avant publication, cinq fichiers dont `prototype-courrier.js`, que la Boîte mail charge).
+Ce qu'elle porte de FINI et corrigé : le compositeur de devis et de contrats en grand (14 défauts sur 14 corrigés), la Boîte
+mail d'origine (37 défauts traités : 35 corrigés, 2 à soumettre ; deux boîtes connectées, plus de bandeau de panne), le menu
+final, le Stock, le Temps de travail (gérant et salarié). Ce qu'elle porte EN CHANTIER (à ne pas juger encore) : Dépôts et
+camions et Véhicules (construits, pas encore relus), Fournisseurs (en construction), Mon entreprise (construit) et les droits
+d'Équipe (en cours), la double authentification (pas encore visible). Vérifié par le chef de chantier AVANT de publier, sur ces
+pages-là : bancs du dépôt verts ; fumée `sondes/fumee-routes.js` (chaque rubrique du menu s'ouvre, sans erreur, sans glissement) :
+gérant mac 81 ✓, gérant iphone 81 ✓, bureau mac et iphone 82 ✓, technicienne iphone et mac 50 ✓, 0 ✗ ; `tout-rejouer.sh bancs
+atelier mail` : 55 lignes, 47 vertes, 8 rouges, toutes des SONDES PÉRIMÉES par des corrections voulues et regardées une à une
+(catalogue 31 articles depuis que la main-d'œuvre et le déplacement sont des articles ; aperçu du téléphone à 100 % ; pastille
+« Accepté » ; page seule comparée au pixel à la Version 11 ; numéro de commande affiché « 2026-036 » sans « BC- ») ; captures
+regardées : compositeur (Mac, iPad, iPhone, aperçu), boîte mail (Mac, iPhone), Dépôts et camions, Véhicules, Mon entreprise.
+⚠️ Dans l'artefact, les téléchargements de la Boîte mail (pièce jointe) et l'export des frais d'un véhicule ne marchent pas
+encore (voie `artefact`). Ce que le chef a vu et qui reste à corriger : `final/vus-par-le-chef.md`.
+⚠️ Pour republier, l'outil exige d'avoir LISTÉ les fichiers de l'artefact dans la session (action list, scope files) : sinon
+il refuse de remplacer `prototype-documents.html` et `prototype-comptabilite.html`. Pousser sans fusionner dans le dépôt
+principal (des sondes y lisent les pages) : `/home/user/pousser-chef.sh` (fusion dans l'arbre à part `/home/user/wt-chef`).
+
+**QUATRIÈME REDÉMARRAGE (17 novembre, 2 h 46)** — après 3 h 23 de marche. ⚠️ CE N'EST PAS LA CHARGE : le relevé des dernières
+minutes dit charge 3 à 4, 2,5 Go de mémoire sur 16, quatre navigateurs. Le noyau change à chaque fois (fc-v470, v509, v553) :
+c'est la plateforme qui remplace la machine, toutes les une à trois heures et demie. Conséquence : inutile de brider le
+nombre de voies pour « ménager » la machine (le plafond utile est celui des quatre navigateurs) ; ce qui compte, c'est que
+tout soit poussé toutes les 20 minutes et que chaque voie se reprenne — et ça a tenu : le disque, les arbres `/home/user/wt-*`
+(travail non commité compris), `/home/user/op-security/`, `/home/user/kit-2fa/` et `/root/.claude/` étaient intacts.
+Relancé à 2 h 50, d'après la dernière étiquette de chaque journal (`…/subagents/workflows/wf_*/journal.jsonl`) :
+`materiel {depuis:3}` (lot 4, Fournisseurs) · `vehtemps {depuis:2}` (Véhicules : liste et fiche) · `mail {depuis:4}` (recontrôle :
+37 défauts traités, 35 corrigés, 2 à soumettre) · `compositeur {depuis:3}` (recontrôle : 14 sur 14 corrigés) ·
+`entreprise {depuis:4}` (les droits) · `securite {depuis:1}` (angle « accès » ; l'angle « injection » a rendu 5 failles) ·
+`double-auth {depuis:1}` (spécification rendue : `refonte/DOUBLE-AUTHENTIFICATION.md`) · campagne 1 `{cles:[taches-absences,
+coque, interventions, clients, compta-ventes, technicien], arbre:/home/user/wt-t-taches-absences, depuis:3}` (tester la coque) ·
+campagne 2 `{cles:[planning, accueil, contrats, compta-reste, client, metier-3d], arbre:/home/user/wt-t-planning, depuis:1}`
+(corriger le planning) · l'étude OP Security reprise par `resumeFromRunId: wf_030e3b52-275` (six études et trois propositions
+déjà rendues). La voie `menu` est FINIE. En attente d'une place : `retour`, `artefact`, `restes {noms:[taches-absences, menu…]}`.
+
+**TROISIÈME REDÉMARRAGE (16 novembre, 23 h 20)**, vingt minutes après le second, avec neuf voies en cours ; le disque a tenu.
+Depuis, un relevé de la machine s'écrit toutes les 15 s dans `/home/user/suivi-machine.log` (lancé par
+`/home/user/suivi-machine.sh`, à relancer après un redémarrage) : à lire en premier après une chute. Constat : cinq voies ont
+tenu 40 minutes (charge 2 à 4, 2 Go de mémoire) ; on remonte par paliers (sept voies à 0 h 05).
+
+**SECOND REDÉMARRAGE (16 novembre, 22 h 56) — COMMENT REPRENDRE.** La session est retombée avec 13 agents et 46 processus de
+navigateur (charge 7 sur 4 cœurs). Cette fois le DISQUE a survécu : les arbres `/home/user/wt-*` gardent le travail non commité des
+agents interrompus (`git -C <arbre> status --short`), et `/tmp/…/scratchpad/cap/` leurs notes et captures. Depuis :
+- `scratchpad/proto-final/lib.js` pose un PLAFOND de quatre navigateurs pour toute la machine (dossier `/tmp/opg-navigateurs`) et
+  coupe les captures « page entière » à 6 000 px ; aucun agent n'écrit son propre lanceur de navigateur ;
+- tout le chantier se lance par UN script, `scratchpad/proto-final/workflows/voies.js` : une « voie » est une suite d'étapes jouées
+  une à une, chaque agent lit l'état dans le dépôt ET dans son arbre (travail non commité compris), fait son étape, pousse toutes
+  les 20 minutes avec « [skip ci] » (la vérification en ligne ne tourne qu'aux jalons poussés par le chef de chantier).
+  Relancer : outil Workflow, `scriptPath` = ce fichier, `args` = `{voie, depuis}` (numéro de l'étape, à partir de 0) :
+  `materiel` (9 étapes, `/home/user/wt-c-materiel`) · `vehtemps` (9, `wt-c-vehicules-temps`) · `mail` (5, `wt-c-mail`) ·
+  `compositeur` (4, `wt-atelier`) · `menu` (2, `wt-menu`) · `securite` (8, `wt-securite`) · `entreprise` (8, `wt-entreprise`) ·
+  `campagne` avec `{cles:[…], arbre}` (3 étapes par partie : tester, corriger, recontrôler ; parties : coque, accueil, planning,
+  taches-absences, interventions, clients, contrats, compta-ventes, compta-reste, technicien, client, metier-3d, puis, après les
+  refontes : devis-atelier, mail, achats, materiel, vehicules-temps, equipe). Les arbres se recréent par
+  `git worktree add --detach <chemin> HEAD` s'ils ont disparu.
+- Les livrables durables de chaque étape : `scratchpad/proto-final/refonte/<lot>-relecture-*.json`, `-corrections.json`,
+  `-recontrole.json` ; `scratchpad/proto-final/campagne/<partie>.json`, `-corrections.json`, `-recontrole.json` et `campagne/sondes/` ;
+  `scratchpad/proto-final/securite/`. Pour savoir où en est une voie : regarder ces fichiers et `git log`.
+
+**Échéance fixée par Justin (16 novembre, 22 h 50) : « je veux que ça soit tout OK demain. Et s'il y a des petites erreurs ou
+encore des trucs où il y a des doutes, tu me dis. Et on verra ça. »** Il a redit : les erreurs se corrigent « automatiquement,
+revérifié, retesté » ; l'atelier de devis va dans Devis d'OP GESTION (le prototype : fait, en relecture) ; la Boîte mail est celle
+d'avant, vérifiée et testée. → Le 17 novembre au soir : le prototype refait, testé, corrigé, publié, avec la LISTE DES DOUTES
+(tout ce qui n'a pas pu être vérifié, tout ce qui a été décidé sans lui, tout défaut resté).
+**Campagne de tests, première vague lancée à 23 h** (12 parties qui ne sont pas en refonte ; `workflows/campagne.js`, deux
+lancements : `cles:[coque, interventions, clients, compta-ventes, technicien, planning]` et `cles:[accueil, taches-absences,
+contrats, compta-reste, client, metier-3d]` ; un arbre par partie `/home/user/wt-t-<partie>`). Chaque partie va seule de bout en
+bout : tester → contre-vérifier → corriger → recontrôler ; rapports, verdicts, corrections et sondes dans
+`scratchpad/proto-final/campagne/`. SECONDE VAGUE à lancer quand les refontes sont poussées : devis et atelier, boîte mail, achats
+et frais, stock, fournisseurs, dépôts et camions, mon camion, véhicules, temps de travail et mes heures, équipe et droits, mon
+entreprise, guide des nouveautés. Puis : rejouer TOUTES les sondes (`sondes/` et `campagne/sondes/`) sur la version réunie.
+
+**Sécurité (Justin, 16 novembre, 23 h) : « j'aimerais aussi que tu testes la sécurité de l'application, que ça soit bien
+sécurisé, tout, très bien sécurisé ».** Audit lancé (`workflows/audit-securite.js`, arbre `/home/user/wt-securite`) : cinq angles
+(injection dans l'écran ; qui voit et fait quoi ; ponts entre pages et rangement de l'appareil ; boîte mail et fichiers ; ce qui
+vient d'ailleurs et réglages par défaut), un sceptique par angle, puis `scratchpad/proto-final/securite/RAPPORT.md` et
+`failles.json`. Les failles réelles du prototype se corrigent ensuite (lot « sécurité »), puis se recontrôlent.
+⚠️ Déjà connu, à traiter : `?auto=<personne>` ouvre une session sans mot de passe en mode application (porte de test des sondes) ;
+le mot de passe provisoire commun « Bienvenue17 » et les mots de passe rangés en clair dans le navigateur (connexion de
+démonstration). ⚠️ À dire à Justin : la vraie sécurité (identité, droits, cloisonnement entre entreprises) ne peut se garantir que
+par le serveur de la vraie application ; le rapport en donne les règles.
+
+**État au 16 novembre, 22 h 45 :** spécifications des refontes écrites et poussées (`scratchpad/proto-final/refonte/` :
+`BOITE-MAIL.md`, `MATERIEL.md` 662 lignes, `VEHICULES-TEMPS.md` 484 lignes, et leurs études). EN COURS, chacun dans son arbre et
+poussé étape par étape : boîte mail (agent, `/home/user/wt-c-mail` — la rubrique monte déjà le module, copie de travail
+`apercu/prototype-courrier.js`) ; Matériel et Véhicules + Temps de travail (deux lancements de `workflows/refonte-lot.js`, voir
+`workflows/LISEZMOI.md`) ; relecture et corrections des lots atelier et menu (`workflows/deux-lots.js`) ; conception de « Mon
+entreprise » et des droits (`workflows/mon-entreprise-droits-conception.js`). PAS ENCORE LANCÉ : le compositeur en grand (attend la
+fin des corrections du lot atelier, même fichier `page.source`), « Mon entreprise » et les droits (attendent leur spécification),
+la campagne, le guide. Version publiée : toujours la Version 62 (d'étape).
+Deux bancs d'OP MESSAGES sensibles à la charge (`test-981`, `test-989`) sont tombés une fois chacun dans la CI de la demande de
+fusion 327, sans rapport avec ce chantier (commentés sur la demande ; tâche à part proposée à Justin pour les stabiliser).
+
+**État au 16 novembre, 20 h 45 :**
+- Lot « atelier » et lot « menu » : RELANCÉS (workflow « prototype-final-deux-lots » : appliquer → relire en adverse → corriger →
+  recontrôler, chaque étape poussée). Rien n'est encore sur la branche tant qu'un commit de lot n'y paraît pas (`git log`).
+- La machine n'a que 4 cœurs : 2 agents à la fois par workflow. Compter plusieurs heures pour l'ensemble.
+- **Ensuite, dans l'ordre :** (a) publier le prototype (artefact https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux : `index.html`
+  = `apercu/prototype-op-gestion.html` sans son squelette, plus `prototype-comptabilite.html`, `prototype-paiement.html` et le NEUF
+  `prototype-documents.html` par `files`) ; (b) la grande campagne de tests : un testeur par partie (coque, accueil, planning,
+  tâches et absences, interventions, clients, devis, factures et paiements, contrats, comptabilité, stock, temps et véhicules,
+  boîte mail et achats, équipe, métier 3D, technicien, client), en mode application, sur ordinateur ET téléphone, jour et nuit,
+  chaque bouton touché et sa destination vérifiée, puis contre-vérification de chaque défaut, corrections, nouveau passage jusqu'à
+  zéro ; (c) le guide des nouveautés refait (court, par rôle, rouvrable depuis l'aide ; `nvOuvrir`, `NV_NEUF`, `NV_PLACE`) ;
+  (d) dernier passage complet, publication, et la réponse finale chiffrée à Justin ; (e) les stores, sur sa phrase.
+- **Trois questions posées à Justin, sans réponse à ce jour** (ne pas appliquer sans lui) : une ligne « Factures » au menu ; un
+  écran « Mon entreprise » ; le menu de chaque personne déduit de ses cases « Voir ».
+- **À lui redire à la fin** : ce qu'on teste est le prototype (entreprise fictive, rien ne s'enregistre, aucun serveur). Apple et
+  Google refusent une application de démonstration ; la version « store » de la VRAIE application reste à construire
+  (`mobile/LISEZMOI.md`, `mobile/fabriquer.js application`). Vrai iPhone, vrai Android, vrai Windows : non vérifiables d'ici.
+
+**Ce que la première version (perdue) avait appris, à ne pas réapprendre :**
+- un cadre masqué par `display:none` mesure 0 px : la page dedans se croit « téléphone », puis se referme à l'affichage ;
+- le focus dans un cadre rend Échap morte pour le parent ; un cadre qui ne répond pas doit avoir un délai et un « Réessayer » ;
+- le bouton Retour doit FERMER une fenêtre plein écran, pas faire reculer l'écran derrière elle ;
+- deux séries de numéros (`DEV-…` et `D-…`) pour un même devis : une seule série, celle d'OP GESTION ;
+- un nom, un téléphone ou un e-mail venu d'ailleurs s'échappe AUSSI dans les `href` ;
+- la carte du prototype (18 lecteurs) : 417 écrans et fenêtres, 204 parcours, 302 points à vérifier dont 17 annoncés bloquants ;
+  elle est perdue, ses constats majeurs sont au bas de `MENU-FINAL.md` — les testeurs de la campagne refont la carte de leur partie.
+
+---
+
+# 15 NOVEMBRE 2026 — PROTOTYPE À PART « DOCUMENTS SUR MESURE » : ATELIER FAÇON PAGES, VERSION 11 PUBLIÉE (COMPOSITEURS, TEST COMPLET ET DIX CORRECTIFS) — PUIS INTÉGRATION AU PROTOTYPE OP GESTION
+
+Demandes de Justin : un devis sur mesure composé « comme dans Pages », des contrats personnalisables ou créés avec l'IA (6 novembre),
+puis « un vrai système de personnalisation et aussi de création professionnelle pour les devis, comme si je le faisais avec Pages »
+(14 novembre) — en prototype À PART de celui d'OP GESTION.
+Puis, le 15 novembre : « je voudrais pouvoir faire des devis vierges, choisir mes en-têtes, mes clients, mon logo et tout », et dans
+la foulée « un bouton Optimiser avec l'IA, une fois que le devis est fini : il regarde ce qu'on a fait, il modifie, il refait un
+exemple » — les deux sont publiés (Versions 6 et 7). Puis : « ce que tu as fait pour les devis, je veux la même chose pour les
+contrats » — publié en Version 8.
+
+- **Où il est** : page publiée https://claude.ai/artifact/QcaiigvZyvERaY6RK1qd6n (privée, compte de Justin), Version 11. Sa source
+  n'est PAS dans le dépôt (elle vit dans la page publiée, qu'une session relit par l'outil des pages publiées) ; fichier unique de
+  550 Ko, données fictives (Clim Services 17), tout dans le navigateur. Une seule bibliothèque, chargée à la demande pour le PDF
+  (html2canvas 1.4.1, cdnjs).
+- **Ce qu'il fait, par étape** :
+  · socle (Versions 1-2) : éditeur en pleine fenêtre, feuille A4 qui se pagine seule, panneau Format, huit mises en page, couleurs,
+    polices, styles de texte, marges, logo, filigrane, « Mes modèles » ; devis (sections, options, remise, TVA multiples, acompte) ;
+    contrat à articles, clauses à cocher, « Il manque » qui bloque l'envoi ; contrat créé avec l'IA (capacité `sample`) ;
+  · Version 3 : mise en forme par sélection (gras, couleur, taille… sur un mot), objets libres (texte, image, forme) posés et
+    redimensionnés à la souris ou au doigt ;
+  · Version 4 : blocs en 2 ou 3 colonnes (séparateur qu'on tire), page de garde (quatre dessins), onze sections toutes prêtes,
+    « Mes sections » ;
+  · Version 5 : **PDF réel** (bouton « Télécharger le PDF » dans l'aperçu, la vue client et la fenêtre d'envoi ; une image par page
+    plus une couche de texte qui se sélectionne et se cherche) ; **identité figée à l'envoi** (un devis envoyé ou signé garde le
+    nom, le logo, les couleurs et le SIRET du jour de l'envoi ; le modifier le remet en brouillon) ; groupes du panneau repliables,
+    suppression d'un modèle à soi, graisse « Moyen », bascules de 44 px au doigt.
+  · Version 6 : **devis vierge** — une fenêtre de départ (accueil et galerie) où l'on choisit l'en-tête, le logo (affiché ou
+    non, position, taille, changement), ce qui paraît dans l'en-tête (téléphone, e-mail, site, SIRET, TVA), le client (recherche,
+    nouveau, ou « sans client pour l'instant »), la mise en page (huit vignettes), l'objet et la validité, avec l'aperçu de la
+    première page ; l'appareil retient ces choix (pas le client ni l'objet). **Mes en-têtes** : plusieurs identités enregistrées
+    (ajouter, dupliquer, modifier, définir par défaut, supprimer avec le nombre de brouillons concernés) ; chaque document porte
+    le sien (`d.identId`, absent = défaut), se change dans Format › Document, et se fige à l'envoi. Un SIRET décoché de l'en-tête
+    reste en pied de page (voulu : mention obligatoire).
+- **Ce qui a été mesuré sur la Version 5** (Mac 1440 px et iPhone 390 px émulés, jour et nuit, tout rejoué sur le fichier publié) :
+  773 contrôles neufs de l'étape 4 verts (PDF : nombre de pages, A4, pixels comparés à la feuille, texte et position des mots ;
+  identité ; finitions) ; les 509 de l'étape 3 verts ; non-régression 1 256 verts et 6 rouges connus (cinq attentes de sonde
+  anciennes, plus la page 1 d'un devis de la Version 1 dont le sous-total sortait du tableau et y rentre désormais) ; les devis
+  faits avec les versions d'avant s'ouvrent identiques au pixel, cette page exceptée. L'agent constructeur annonce 48 mutations
+  sur 48 qui mordent (non rejouées par la session principale).
+- **Ce qui a été mesuré sur la Version 6** (mêmes appareils émulés, rejoué par la session principale) : 470 contrôles neufs verts
+  (parité avec l'ancienne « Page blanche », gestes des deux fenêtres, envoi figé, formats abîmés et stockage plein, PDF au second
+  en-tête, débordement et cibles au doigt) ; toute la chaîne d'avant rejouée, 2 496 verts et les six rouges connus ; un parcours de
+  bout en bout écrit à part (devis vierge au second en-tête, logo à droite, sans client) vert. L'agent constructeur annonce 28
+  mutations sur 28 qui mordent (non rejouées). ⚠️ Le contrôle « pages identiques au pixel » des documents d'avant est INSTABLE
+  d'origine : une ouverture sur dix environ rend un lissage de police différent sur les cinq pages — mesuré aussi sur la
+  Version 5 (2 sur 19), donc pas une régression ; cause non établie (chargement des polices ?).
+  Retouches de la session principale avant publication (`etape5/patch-moi5.py`) : sur téléphone le contenu passait dans une fente
+  de 6 px au-dessus de l'aperçu collant ; un texte d'exemple coupé à 390 px ; un guillemet fermant seul à la ligne.
+- **Défauts trouvés à la relecture et corrigés avant publication** (Version 5) : une section posée après une autre se glissait sous le titre
+  de la première ; sur téléphone la barre de mise en forme tombait 110 px trop bas après une insertion ; le menu Insérer du bureau
+  cachait « Objets libres » ; le « € » d'un sous-total passait seul à la ligne (la cellule du sous-total couvre maintenant trois
+  colonnes : 24 cas sur 24 sur une ligne, jusqu'à « 1 234 567,89 € »).
+- **Ce qui n'a PAS pu être vérifié d'ici, à dire à Justin tel quel** : le téléchargement du PDF dans la vraie page (capacité
+  `downloads` jouée avec une imitation conforme à sa documentation ; le chargement de html2canvas sous la politique de la page
+  publiée n'est pas éprouvé) ; Safari, un vrai iPhone, Android, Windows ; le PDF ouvert dans Aperçu ou Acrobat (lu par `pdfinfo`,
+  `pdftoppm`, `pdftotext`, `pypdf`) ; les polices Google au rendu. Rien n'est envoyé pour de vrai : « Envoyer » reste un exemple.
+- **Limites connues** : dans le PDF les chiffres sont à largeur proportionnelle (environ 1 px d'écart par nombre avec l'écran) et
+  les gros titres bougent de 1 à 2 px ; la couche de texte est en Helvetica (sélection juste à la ligne, à quelques points près
+  dans la ligne) ; un bloc de colonnes ne se coupe pas entre deux pages ; l'échéancier d'une section fige ses montants à la pose ;
+  pas de recadrage des photos en colonnes ; pas d'habillage du texte autour d'un objet libre ni de sélection multiple ; les modèles
+  de contrat sont des exemples, AUCUN relu par un juriste.
+- **Limites de la Version 6** : pas de réglage de l'ordre des en-têtes ; les logos sont rangés dans le stockage du navigateur
+  (plein, la page le dit) ; « définir par défaut » fait suivre le nouveau défaut aux documents qui n'avaient rien choisi ; sur
+  téléphone le bandeau d'aperçu ne montre que le haut de la page et un clavier ouvert peut le recouvrir ; le panneau reste périmé
+  après une signature par le client ; pas d'essai clavier de bout en bout sur les deux fenêtres neuves.
+- **Version 7 — « Optimiser avec l'IA »** (15 novembre) : bouton sur tout devis en BROUILLON (barre du haut au bureau, barre du
+  bas et menu ⋮ au téléphone ; grisé avec sa raison sur un devis envoyé ou signé, absent d'un contrat). Fenêtre en quatre temps :
+  cinq cases (désignations, objet, rangement en sections, délai et paiement, ce qui manque) et une consigne libre ; le travail,
+  avec « Arrêter » ; l'avant/après changement par changement, chacun avec sa case, plus les « Remarques de l'IA » (des conseils,
+  jamais appliqués) et ce que le code a écarté ; « Appliquer la sélection », puis « Annuler » en UN pas.
+  ⛔ Les règles sont dans le CODE, pas dans la consigne donnée au modèle : de la réponse on ne lit que des TEXTES (objet,
+  désignation d'une ligne par son identifiant, titres et rangement des sections, délai, paiement) ; `optVerrou` rejoue le calcul
+  sur une copie et refuse tout si un total, une ligne chiffrée ou un chiffre d'une ligne a bougé ; un rangement doit être une
+  permutation exacte des lignes ; un montant ou un pourcentage neuf dans les conditions est écarté ; l'acompte est un chiffre,
+  jamais touché ; ce qui part au modèle ne porte ni e-mail, ni téléphone, ni adresse du client (nom et ville seulement).
+  Mesuré (Mac et iPhone émulés, jour et nuit, rejoué par la session principale sur le fichier publié) : parcours complet 122
+  verts, réponses piégées (prix, quantité, ligne en trop, HTML) 116 verts, erreurs / arrêt / devis figé / contrat / IA absente
+  284 verts sur le fichier de l'agent et 73 rejoués sur le fichier final, un parcours écrit à part (devis vierge puis
+  optimisation, une case décochée, annulation) 19 sur 19 dans deux modes ; l'agent annonce 18 mutations sur 20 qui mordent, les
+  deux autres étant des gardes redondantes (non rejouées). Retouches de relecture (`etape6/patch-moi6.py`) : une balise ouverte
+  et jamais fermée est retirée du texte au lieu d'y rester en toutes lettres ; le ton demandé au modèle (sobre, vouvoiement).
+  ⚠️ **La VRAIE IA n'a pas été jouée** : tout est mesuré avec une imitation de la capacité `sample`. La qualité réelle des
+  propositions, et le premier clic sur la page publiée (demande d'autorisation), restent à voir par Justin.
+  Limites : pas de description de ligne dans le modèle (seule la désignation se corrige) ; rangement en sections seulement sur
+  un devis à un seul tableau et sans section ; les contrats n'ont pas ce bouton ; dans l'aperçu du rangement, les désignations
+  sont celles d'avant correction.
+- **Version 8 — les contrats, comme les devis** (16 novembre) :
+  · **Contrat vierge** : la MÊME fenêtre que le devis vierge, réglée par le type (`viergeNeuf(type)`, `ouvrirVierge(retour,type)`),
+    ouverte depuis l'accueil (`contrat-vierge`) et depuis « Nouveau contrat » (l'ancienne ligne « Document vierge ») : en-tête,
+    logo, cases de l'en-tête, client, mise en page, « Titre du contrat », aperçu ; le contrat démarre vide (un article « Objet du
+    contrat » à écrire), porte `identId`, et son signataire est le NOM de l'en-tête choisi ; mémoire d'appareil à part de celle du
+    devis. Aux choix par défaut il est identique à l'ancien « Document vierge » (modèle, HTML, pixels).
+  · **« Optimiser avec l'IA » sur un contrat en brouillon** : cinq cases (texte des articles, titres, ordre logique, clauses qui
+    manquent, incohérences) ; avant/après article par article, l'ordre en un seul changement, les CLAUSES PROPOSÉES à part et
+    DÉCOCHÉES par défaut (texte juridique que la personne n'a pas écrit), remarques, « Écarté par sécurité », et la ligne « ce ne
+    sont pas des conseils juridiques ».
+    ⛔ Tenu par le CODE : les `{{variables}}` d'un article proposé doivent être exactement celles de l'ancien (ni retirée, ni
+    inventée) ; aucun nombre neuf (montant, pourcentage, durée, nombre de visites, en chiffres ou en lettres devant une unité) ;
+    aucun article de loi ni code cité (`RE_LOI`) ; l'ordre est une permutation exacte des seuls articles ; une clause : variables
+    connues seulement, pas de doublon, 6 au plus, posée avant les signatures avec la marque « Écrit par l'IA — à relire » ;
+    `optVerrouCtr` revérifie tout sur une copie (`d.vars` et les blocs non-articles identiques en JSON) et refuse tout au moindre
+    écart. Ce qui part au modèle : le nom des variables, jamais leurs valeurs ; du client, le nom et la ville seulement.
+  · Mesuré (rejoué par la session principale sur le fichier publié, quatre modes) : 818 contrôles neufs verts (contrat vierge 160,
+    parcours 122, réponses piégées 360, erreurs et verrou 176) ; un parcours écrit à part (contrat vierge au second en-tête, puis
+    optimisation avec un prix inventé, une durée inventée et un article de loi cité, tous écartés) 25 sur 25 dans deux modes ;
+    l'optimisation des devis rejouée (238 verts) ; l'agent annonce 34 mutations sur 34 qui mordent (non rejouées).
+    Retouches de relecture (`etape7/patch-moi7.py`) : dans l'avant/après, une information à remplir montrait `{{client}}` en
+    toutes lettres — elle montre sa valeur, soulignée en pointillé ; le modèle ne vouvoie plus « le client » (un contrat parle
+    des parties à la troisième personne) ; guillemet seul à la ligne dans le message de création.
+    ⚠️ La sonde `v8/q3.js` (devis) exige encore « aucun bouton Optimiser sur un contrat » : 1 à 2 rouges ATTENDUS depuis la
+    Version 8 ; sa copie adaptée est `v9/anc/q3.js`.
+    ⚠️ **La VRAIE IA n'a toujours pas été jouée** (imitation de `sample`) ; **aucun de ces textes n'est un conseil juridique** et
+    aucun modèle de contrat n'a été relu par un juriste.
+    Limites : la version courte d'un article réécrit n'est pas recalculée ; une adresse ou un téléphone tapés À LA MAIN dans le
+    texte d'un article partent au modèle (seules les variables et les coordonnées du client sont exclues) ; « cent » ou « mille »
+    seuls ne sont pas vus comme des nombres ; pas de surlignage des mots changés dans un long article ; l'envoi et le PDF d'un
+    contrat au second en-tête n'ont pas été rejoués sur cette passe.
+- **Version 9 — le COMPOSITEUR de devis** (16 novembre). ⚠️ Leçon : la « fenêtre vierge » des Versions 6 et 8 était une erreur
+  de lecture. Justin demandait dès le 15 « un devis de A à Z » ; il a reçu une fenêtre de RÉGLAGES (en-tête, logo, mise en page)
+  dont l'aperçu était rempli d'exemples, et l'a dit le 16, capture à l'appui : « il y a déjà plein de trucs décrits ; je voudrais
+  une interface où on écrit les textes, où on retrouve le matériel qu'on veut utiliser, ils ont juste à sélectionner — pour les
+  devis et les contrats, hyper rapide, simple ». La fenêtre « Nouveau devis » est donc refaite : cinq étapes sur une page
+  (Client ; Objet ; **Matériel et prestations** : recherche dans le catalogue, toucher pour ajouter, compteur − / +, ligne libre
+  qu'on peut garder dans « Mon matériel », options, rangement par catégorie ; Conditions et textes avec phrases toutes prêtes et
+  « mes conditions habituelles » ; Présentation, REPLIÉE), aperçu du VRAI devis, vide au départ, total vivant calculé par
+  `calculer()` sur le même document. Un devis de cinq lignes : 8 gestes. Rien n'est créé avant « Créer le devis ».
+  Mesuré par la session principale sur le fichier publié (`etape8a/page.html`) : parité, composition complète, mémoire, stockage,
+  fermeture 82 verts dans trois modes ; mise en page du devis sans rouge (Mac et iPhone) ; un parcours écrit à part 14 sur 14
+  dans deux modes ; optimisation des devis 30 verts.
+  Limites : le catalogue du prototype n'a que 12 articles d'exemple (climatisation) — dans la vraie application il se branchera
+  sur « Matériel & produits » par métier ; quand le devis passe sur deux pages, les totaux quittent l'aperçu de la page 1 (le
+  total reste rappelé en bas de la fenêtre) ; les vignettes de mise en page gardent un contenu d'exemple.
+- **Version 10 — le compositeur de CONTRAT** (16 novembre) : même fenêtre (`VV.type`), étapes Client ; Titre et informations
+  (les `VARS` : prestation, fréquence, durée, prix, paiement, date de début, avec valeurs toutes prêtes) ; **Articles** (partir
+  d'un des trois modèles ou de rien, toucher une clause de la bibliothèque pour l'ajouter ou la retirer — 27 clauses de `LIB`,
+  `AMOD`, `COMMUN` —, monter, descendre, « Modifier le texte », « Écrire mon article » qu'on peut garder sur l'appareil) ;
+  Présentation repliée ; aperçu du vrai contrat, vide au départ. Un contrat créé sans rien = l'ancien contrat vierge. Aucun
+  texte juridique nouveau : seules les clauses déjà écrites dans la page servent.
+  Mesuré par la session principale sur le fichier publié (`etape8b/page.html`) : contrat 56 verts (Mac, iPhone de nuit), devis
+  82, mise en page 95 (iPhone) et 73 (Mac), un parcours écrit à part 12 sur 12 dans deux modes (modèle « pro », un article
+  retiré, un article écrit, puis un contrat sans rien) ; en non-régression l'optimisation IA des contrats (30 et 90 verts), celle
+  des devis (31), les en-têtes et l'envoi figé (29). L'agent constructeur annonce 24 mutations sur 25 qui font tomber une sonde
+  et toute la chaîne d'avant verte (non rejouées en entier par la session principale).
+  ⚠️ Sondes remplacées par la nouvelle fenêtre : `v9/r1.js` (ancienne fenêtre de contrat) n'a plus d'objet ; `v7/p2.js` garde
+  4 rouges attendus au téléphone (elle mesure le logo dans un aperçu que le téléphone ne montre plus) ; copies adaptées sous
+  `v10/anc/`. Les retouches de relecture sont dans `etape8a/patch-moi8.py`.
+  Limites : au téléphone il faut faire défiler l'étape Client pour atteindre le Matériel (pas de repli automatique) ; les
+  pastilles de catégories prennent trois rangées à 390 px ; un contrat parti d'un modèle prend aussi ses informations par défaut
+  (fréquence, durée) ; la version courte d'un article modifié n'est pas recalculée.
+- **Version 11 — « teste tout le système »** (Justin, 16 novembre). Deux passes sur la Version 10 :
+  · une EXPLORATION au geste réel (≈ 650 gestes, Mac 1440 et 1280, iPhone 390, téléphone 360, jour et nuit) : aucun bloquant, tous
+    les totaux recalculés à la main justes au centime, PDF juste ; neuf défauts confirmés, tous corrigés (`etape9/patch-moi9.py`) :
+    un DEVIS envoyé restait modifiable en restant « Envoyé » (il repasse en brouillon, la page le dit, « Annuler » le rend) ; le
+    focus sortait des fenêtres du compositeur au clavier (liste des éléments que Tab atteint vraiment + garde `focusin`) ; message
+    d'erreur périmé sous des champs redevenus justes ; devis créé nommé « Devis sans titre » (il prend l'objet et le client) ;
+    aperçu « 1 / 1 » pour un devis de deux pages (`pied(d,p,N)`) ; composition perdue au rechargement (gardée sur l'appareil sous
+    `documents-sur-mesure-composition-<type>`, reprise à la réouverture, oubliée à la création ou à l'abandon) ; « Écrire mon
+    article » acceptait un article sans texte ou une `{{information}}` inconnue ; une phrase toute prête disait « 30 % » quel que
+    soit l'acompte et une autre TUTOYAIT le client du devis ; focus de départ hors de l'écran.
+  · le REJEU de toutes les sondes depuis la Version 1, sur la version corrigée : 5 183 verts. Les 23 rouges : 8 de `v10/s2.js`
+    (elle ajoutait un article sans texte — adaptée, 224 verts ensuite) ; 8 attendus de `p2` au téléphone ; 6 anciens connus
+    (m3, m4, s13 ×2, s17b, a6) ; et **1 vrai défaut que personne n'avait vu depuis la Version 7** : à 1 280 px le libellé
+    « Optimiser avec l'IA » écrasait le nom du document à 32 px (`nr-verif/s7`) — la chaîne ancienne n'avait plus été rejouée en
+    entier depuis la Version 6. Corrigé (icône seule sous 1 360 px), 49 verts.
+    ⚠️ Leçons : la chaîne ENTIÈRE se rejoue à chaque version, pas seulement les sondes de la nouveauté ; `v9/r2.js` cherchait
+    « 280 » dans un texte plein d'identifiants en base 36 (faux positif deux fois sur quatre : on retire les identifiants avant) ;
+    `anc4/c2.js` au téléphone est instable d'origine (un toucher juste après un glissement : 1 échec sur 5 avant comme après).
+  · Non joué par l'exploration, couvert seulement par les sondes : sélecteur de fichier, poignées des objets libres, « Créer avec
+    l'IA » d'un contrat, PDF d'un contrat signé. Jamais joué : la vraie IA, le vrai téléchargement, un vrai iPhone, Safari,
+    Windows, Android, le clavier virtuel.
+- **SUITE DEMANDÉE (16 novembre)** : « après, tu le mets dans OP GESTION avec le système de devis » — réponse de Justin à la
+  question « lequel ? » : le **PROTOTYPE OP GESTION** (`apercu/prototype-op-gestion.html`), pas la vraie application. Piste
+  retenue : la catégorie Devis du prototype ouvre le compositeur en plein écran (comme la Comptabilité ouvre
+  `prototype-comptabilite.html`), il lit les clients et le « Matériel & produits » par métier du prototype, et le document créé
+  revient dans sa liste avec son état.
+- **Ce qui attend Justin** : son essai du PDF et de « Optimiser avec l'IA » sur la page publiée (Mac puis iPhone) ; son avis sur l'atelier ; comment ces documents
+  rejoignent le Devis IA et l'envoi réels d'OP GESTION (le prototype ne touche à rien d'existant) ; qui fait relire les contrats.
+
+# 14 NOVEMBRE 2026 — PROTOTYPE OP GESTION : VERSION RASSEMBLÉE, RETESTÉE, EN ATTENTE DES DÉCISIONS DE JUSTIN
+
+Le prototype de la future OP GESTION vit dans `apercu/prototype-op-gestion.html` (+ `prototype-comptabilite.html`, la fenêtre
+Comptabilité ouverte en plein écran, et `prototype-paiement.html`) ; la coque mobile `mobile/` le reprend par `node mobile/fabriquer.js`
+(mode application : `?app=1`). ⛔ Données FICTIVES (Clim Services 17) : rien n'est branché sur le serveur, rien n'est publié aux clients.
+- **Ce qui est fait** : les 85 défauts confirmés de la campagne de tests sont corrigés (deux lots), le guide des nouveautés s'ouvre à la
+  première connexion de chaque rôle, et **les deux comptabilités n'en font plus qu'une** (la fenêtre lit les factures de l'application).
+- **Ce qui a été mesuré sur la version finale** : 284 écrans × 9 profils d'appareil × jour et nuit, 0 constat, 0 erreur JavaScript ;
+  tous les boutons joués avec quatre comptes (patron, gestion, deux techniciens) sur Mac et iPhone, 0 mauvaise destination, 0 erreur.
+- ⚠️ **Conséquence de l'unification, à trancher** : l'entreprise d'exemple n'a que 8 factures en octobre face à une paie complète —
+  la Comptabilité affiche un bénéfice de l'année négatif et une trésorerie sous zéro en décembre (libellé « paie et achats d'exemple »).
+- **Attend Justin** : une page de décisions lui a été remise (comptabilité, équipe et droits — seule la case « Voir » agit —, règles de
+  saisie, et 19 fonctions de l'application publique absentes du prototype : réglages de l'entreprise, recherche globale, cloche,
+  secteurs, exports, scanner, feuilles de temps…). Rien de tout cela n'est décidé tant qu'il n'a pas répondu.
+- **Avant toute sortie publique** : porter le prototype sur les vraies données ; les fenêtres multiples de l'application Mac et le
+  pincement au trackpad ne se vérifient que dans Xcode, sur son Mac.
+- **Boîte mail de la version publique** : vérifiée et corrigée sur une branche LOCALE (`claude/boite-mail-verif`, 8 commits, non
+  poussée) — attend son accord pour être envoyée.
+
+---
+
 # 5 NOVEMBRE 2026 (soir) — v802 PUBLIQUE (VITESSE), D1 FERMÉE, D2 EN ATTENTE DE LA VERSION EXIGÉE, DOSSIERS « RÉSEAU » DE TOKA CLIM
 
 Justin : « il faut publier ça » (la vitesse de la bêta 804, OP MESSAGES, D1 et D2).

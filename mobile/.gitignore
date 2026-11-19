@@ -1,0 +1,10 @@
+# fabriqué par « node fabriquer.js » : jamais versionné
+www/
+node_modules/
+# clés de signature : jamais dans le dépôt
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+android/key.properties
