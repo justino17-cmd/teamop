@@ -1,14 +1,16 @@
 {
- "etape": "final-rejeu 1/2 (scripts-de-rejeu), familles compta et contrats",
+ "etape": "final-rejeu 2/2 (rejouer-et-reparer), familles compta et contrats",
  "date": "2026-11-19",
  "familles": {
   "compta": {
    "script": "scratchpad/proto-final/campagne/sondes/compta-tout.sh",
-   "etat": "complété (restes de cohérence 2 et 3, tout le lot « restes » des ventes, verdicts fabriqués pour les sondes sans bilan) et joué : passage par défaut 103 exécutions en 1 458 s (24 min), 80 vertes, 23 rouges (toutes notées ci-dessous), 1 561 ✓ ; COMPLET=1 ajoute téléphones, rejeux longs (restes6 : 3 et 4 min par profil), autres profils ; AVEC_BALAYAGE=1 les balayages (non joués) ; compta-reste-recontrole-coh écartée (relevé sans verdict)"
+   "etat": "complété (restes de cohérence 2 et 3, tout le lot « restes » des ventes, verdicts fabriqués pour les sondes sans bilan) et joué : passage par défaut 103 exécutions en 1 458 s (24 min), 80 vertes, 23 rouges (toutes notées ci-dessous), 1 561 ✓ ; COMPLET=1 ajoute téléphones, rejeux longs (restes6 : 3 et 4 min par profil), autres profils ; AVEC_BALAYAGE=1 les balayages (non joués) ; compta-reste-recontrole-coh écartée (relevé sans verdict)",
+   "etat_etape2": "rejoué deux fois (avant et après corrections) : 103 exécutions, 80 vertes puis 90 vertes ; les 13 rouges restantes sont toutes « à soumettre » (décisions de Justin déjà notées)"
   },
   "contrats": {
    "script": "scratchpad/proto-final/campagne/sondes/contrats-tout.sh",
-   "etat": "joué : passage par défaut 49 exécutions en 1 230 s (20,5 min), mac et iphone jour et nuit, cinq autres profils de la mise en page en nuit ; COMPLET=1 ajoute leur moitié jour ; AVEC_BALAYAGE=1 le balayage (non joué)"
+   "etat": "joué : passage par défaut 49 exécutions en 1 230 s (20,5 min), mac et iphone jour et nuit, cinq autres profils de la mise en page en nuit ; COMPLET=1 ajoute leur moitié jour ; AVEC_BALAYAGE=1 le balayage (non joué)",
+   "etat_etape2": "rejoué deux fois : 49 exécutions, 46 vertes puis 49 vertes"
   }
  },
  "corrigeDansLeScript": [
@@ -126,5 +128,178 @@
    "arguments": "iphone nuit; iphone jour",
    "constat": "2 ✓ · 1 ✗ — ✗ « Voir en grand » ouvre le document → {\"ouvert\":false,\"pdf\":false} [vu dans un seul passage]"
   }
+ ],
+ "passages": [
+  {
+   "famille": "compta",
+   "passage": "avant corrections",
+   "sondes": 103,
+   "vertes": 80,
+   "rouges": 23,
+   "sansTotal": 0,
+   "verifications": "1430 ✓ · 59 ✗"
+  },
+  {
+   "famille": "contrats",
+   "passage": "avant corrections",
+   "sondes": 49,
+   "vertes": 46,
+   "rouges": 3,
+   "sansTotal": 0,
+   "verifications": "815 ✓ · 4 ✗"
+  },
+  {
+   "famille": "compta",
+   "passage": "final",
+   "sondes": 103,
+   "vertes": 90,
+   "rouges": 13,
+   "sansTotal": 0,
+   "verifications": "1456 ✓ · 33 ✗ (les 13 rouges sont des « à soumettre »)"
+  },
+  {
+   "famille": "contrats",
+   "passage": "final",
+   "sondes": 49,
+   "vertes": 49,
+   "rouges": 0,
+   "sansTotal": 0,
+   "verifications": "819 ✓ · 0 ✗"
+  }
+ ],
+ "lignes": [
+  {
+   "sonde": "contrats-parcours-c.js (mac, iphone)",
+   "constat": "C1 le message de prix refusé ne contenait plus « prix » ; C9 « ‹ Contrats » absent",
+   "cause": "sonde périmée",
+   "decision": "Le refus de montant est celui de cxMontantRefus (« Ce montant ne se lit pas… ») ; le retour des écrans profonds est « ‹ Retour · Contrats » (data-rl=\"retour\", rlRetourBouton)",
+   "changement": "sonde portée sur ces deux états, promesse gardée",
+   "preuve": "41 ✓ · 0 ✗ mac et iphone"
+  },
+  {
+   "sonde": "contrats-parcours-c.js (défaut 1, demandé par Justin)",
+   "constat": "l'aperçu de Composer écrivait « 0,00 € HT par an » pour un prix refusé",
+   "cause": "régression",
+   "decision": "pdfContrat écrit « Prix à indiquer » (jamais un montant faux)",
+   "changement": "apercu/prototype-op-gestion.html pdfContrat ; 6 contrôles ajoutés (un par prix refusé)",
+   "preuve": "mutation : défaut remis → 35 ✓ · 6 ✗ ; restauré, git diff --stat apercu/ vide"
+  },
+  {
+   "sonde": "compta-reste-tva-largeur.js (défaut 2, demandé par Justin)",
+   "constat": "le tableau de calcul de la TVA d'OP COMPTABLE bornait sa largeur à 540 px (77 % de la carte sur iPad)",
+   "cause": "régression",
+   "decision": ".tva-calc prend la largeur de sa carte ; la borne ne reste qu'à la souris sur grand écran",
+   "changement": "apercu/prototype-comptabilite.html ; sonde neuve (5 contrôles : population, largeur, débordement, valeurs longues, erreurs ; iPad, iPhone, mac ; jour et nuit)",
+   "preuve": "mutation : max-width remis → 4 ✓ · 1 ✗ sur iPad ; capture iPad nuit regardée"
+  },
+  {
+   "sonde": "contrats-roles.js (iphone)",
+   "constat": "R-julie : « Contrats » absent du menu ; R-client : onglet « Contrat » non touché",
+   "cause": "sonde périmée",
+   "decision": "La secrétaire ouvre l'application dans OP COMPTABLE (ROLES.gestion.accueil) et le menu du téléphone est une feuille ; l'onglet de la tête du client est masqué à 0 px sur téléphone",
+   "changement": "sonde : retour à OP GESTION puis ouverture de la feuille Menu ; onglet visible touché",
+   "preuve": "15 ✓ · 0 ✗ iphone et mac"
+  },
+  {
+   "sonde": "contrats-fiche-barre.js (iphone nuit, jour)",
+   "constat": "« Voir en grand » sans effet",
+   "cause": "sonde périmée",
+   "decision": "contrats-13 : au téléphone le PDF se replie derrière « Lire le contrat »",
+   "changement": "sonde déplie le PDF d'abord",
+   "preuve": "3 ✓ · 0 ✗ iphone jour et nuit, 4 ✓ mac"
+  },
+  {
+   "sonde": "compta-ventes-restes5-rc.js",
+   "constat": "aperçu non ouvert (population) puis « 90 min » refusé",
+   "cause": "sonde périmée",
+   "decision": "apercuEnvoi est une action de ACTIONS, jamais une fonction globale ; la ligne remisée n'est plus « à l'heure » (ligneHeure)",
+   "changement": "sonde appelle ACTIONS.apercuEnvoi et rend le prix de l'heure avant les minutes",
+   "preuve": "16 ✓ · 0 ✗ mac et iphone nuit"
+  },
+  {
+   "sonde": "compta-ventes-restes2-1.js",
+   "constat": "« 12 abc 5 7777777777 » : champ non réinitialisé",
+   "cause": "sonde périmée",
+   "decision": "le champ Qté a un maxlength de 14 : fill() tronque sans lever « change » (geste inexistant pour une personne)",
+   "changement": "le texte long est tapé touche par touche",
+   "preuve": "15 ✓ · 0 ✗ mac et iphone nuit"
+  },
+  {
+   "sonde": "compta-reste-recontrole.js « montants »",
+   "constat": "R03b : le total en direct d'un montant refusé affichait 1,48 € ou 12,00 €",
+   "cause": "régression",
+   "decision": "Le total en direct écrit « — » pour un montant que l'enregistrement refusera",
+   "changement": "apercu/prototype-op-gestion.html (deux écouteurs data-cxttc)",
+   "preuve": "mutation : 35 ✓ · 3 ✗ ; corrigé 44 ✓ · 0 ✗ (avec la partie ndf)"
+  },
+  {
+   "sonde": "compta-reste-recontrole.js « ndf »",
+   "constat": "formulaire de note de frais : erreurs JS et notes non créées",
+   "cause": "sonde périmée",
+   "decision": "le geste réel est axNdfForm (rlNdfForm est l'ancien formulaire) ; l'index 0 est « Choisis dans la liste… »",
+   "changement": "sonde portée",
+   "preuve": "44 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "compta-reste-recontrole-ndf.js",
+   "constat": "« 1 234,56 » non enregistré",
+   "cause": "sonde périmée",
+   "decision": "anti-doublon décidé : une note du même montant le même jour demande « c'est la même ? »",
+   "changement": "sonde répond « Non, c'est une autre » et vérifie le montant",
+   "preuve": "16 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "compta-reste-recontrole-bilan.js (iphone nuit)",
+   "constat": "B4 numéro de facture coupé",
+   "cause": "régression",
+   "decision": "numéro de facture du bilan des encaissements insécable (FAC-2026- / 0145 à 390 px, vu sur capture) ; la mesure comptait la hauteur de la rangée",
+   "changement": "apercu/prototype-op-gestion.html ; sonde mesure les lignes du TEXTE (B3 : mot seul sur une ligne)",
+   "preuve": "mutation : 4 ✓ · 2 ✗ ; final 6 ✓ · 0 ✗ iphone, android, mac, ipad"
+  },
+  {
+   "sonde": "compta-reste-mise-en-page.js (iphone nuit, ecritures)",
+   "constat": "écrasés=3",
+   "cause": "sonde périmée",
+   "decision": "faux positif de lib.doigts : la hauteur d'une cellule est celle de sa rangée",
+   "changement": "lib.doigts compte les lignes du TEXTE (contre-épreuve : un texte réellement écrasé est vu, 8 lignes sur 70 px)",
+   "preuve": "écrasés=0, 19 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "compta-reste-parcours-c.js",
+   "constat": "C1 fiche de Tom",
+   "cause": "sonde périmée",
+   "decision": "« 10 %» s'écrit avec une espace insécable",
+   "changement": "motif tolérant ; attente du texte de la fenêtre",
+   "preuve": "19 ✓ · 0 ✗"
+  },
+  {
+   "sonde": "compta-reste-recontrole-cadre-mots.js",
+   "constat": "6 mots d'échafaudage lus",
+   "cause": "sonde périmée (4 sur 6) et texte corrigé (2 sur 6)",
+   "decision": "« ressaisir », « écriture d'essai » (fonction de la clôture), « ni brouillard, ni essai » et « Test Compta Demat » ne sont pas de l'échafaudage ; « Dans cet exemple » l'était",
+   "changement": "liste de permis dans la sonde ; la phrase de la paie dit « Ici… » dans l'application (opcSi)",
+   "preuve": "mutation : 40 ✓ · 2 ✗ ; final 42 ✓ · 0 ✗ mac et iphone nuit"
+  },
+  {
+   "sonde": "compta-reste-cadre-coherence.js ; compta-reste-details.js ; compta-reste-enligne.js ; compta-ventes-enligne.js ; compta-reste-recontrole-paiement-mots.js ; compta-reste-parcours-d.js",
+   "constat": "OP COMPTABLE calcule ses chiffres (banque 22 205,18 contre 9 792,95), le module Paiement en ligne n'est pas relié et garde son harnais d'essai, bandeaux « dans la Comptabilité » / « Fin de mois », TVA 482,81 contre 482,80",
+   "cause": "à soumettre",
+   "decision": "Décisions de Justin déjà notées (compta-reste-01, 02, 09, 12 ; compta-ventes-20). Deux lectures : relier (cadre et module lisent le registre d'OP GESTION) ou retirer les tuiles et le module qui contredisent",
+   "changement": "aucun",
+   "preuve": "sondes rouges attendues, inchangées"
+  },
+  {
+   "sonde": "compta-reste-recontrole-bulletin.js",
+   "constat": "« non simulées » sur le bulletin de Tom",
+   "cause": "à soumettre",
+   "decision": "Décision 07 : phrase de paie sur un document remis au salarié",
+   "changement": "aucun",
+   "preuve": "1 ✗ attendu"
+  }
+ ],
+ "reste": [
+  "13 exécutions rouges, toutes « à soumettre » : cadre-coherence, details, enligne (×2), paiement-mots, parcours-d, bulletin, ventes enligne",
+  "Le pied de bulletin « Prototype » n'apparaît plus ; reste la ligne maladie « non simulées » (décision 07)",
+  "Les mêmes relevés JSON de campagne réécrits par les sondes ont été remis (git checkout) avant commit"
  ]
 }
