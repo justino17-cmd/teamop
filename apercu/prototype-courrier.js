@@ -1607,6 +1607,9 @@ var CSS = `
     .opc:where([data-fmt="pad"]) .list #btnNav .nb-lbl{display:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lb-title{font-size:14px}   /* à 17 px, « Boîte de réception » se coupait entre la flèche et « Sélectionner » dans la colonne de 315 px */
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .search-row{margin-top:4px;margin-bottom:6px}
+    /* l'aperçu (2 lignes) fait d'une ligne de 108 px une ligne de ~62 px : iPhone 8 / SE en travers (667×375) n'avait la place d'AUCUNE ligne entière entre les barres, avec l'aperçu on n'en voyait qu'une demie ; le nom, l'objet et l'étiquette restent */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg .m-prev{display:none}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg{padding-block:6px}   /* 67 px → ~59 px : une ligne entière dans la zone de 64 px que laissent les barres à 740×360 */
   }
 `;
 var FEUILLE = null;

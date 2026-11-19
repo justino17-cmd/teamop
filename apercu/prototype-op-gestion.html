@@ -241,7 +241,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
   @media (max-height:620px){#toast{font-size:13.5px;line-height:1.35;padding:8px 12px 8px 14px;border-radius:14px}}   /* petit téléphone (320 x 568) : la phrase de refus d'un relevé, à quatre lignes, couvrait la moitié basse du bouton Terminer ; trois lignes plus serrées tiennent sous lui */
   body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
-html body #toast.haut{bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))}   /* posée en haut par toastDegager() quand le bas cacherait le champ qui a le focus ou les onglets d'une fenêtre */
+html body #toast.haut{bottom:auto;top:var(--toast-haut,calc(10px + env(safe-area-inset-top,0px)))}   /* posée en haut par toastDegager() quand le bas cacherait le champ qui a le focus ou les onglets d'une fenêtre */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -4919,7 +4919,7 @@ function toast(msg, action){ // action : { lib, fn }
   // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
   try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
   /* une fenêtre basse (petit téléphone en travers, clavier ouvert) : la bulle posée en bas tombait SUR le champ qui a le focus, sur « Chercher un client » ou sur les onglets de « Nouvelle intervention » (360 × 400 : bulle de 178 à 251, onglets de 158 à 202, champ de 216 à 262). On mesure : si elle en cache un, elle passe EN HAUT de l'écran (sur le titre, jamais sur ce qu'on tape) — et si le haut en cache davantage, elle reste en bas. */
-  t.classList.remove('haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  t.classList.remove('haut'); t.style.removeProperty('--toast-haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
   /* l'inverse du cas du module (surHote) : « Annuler l'envoi » (classe act) reste quand l'hôte parle APRÈS elle — sans cette ligne la bulle de l'hôte (z-index 90) passait sous celle du module (200) et sa confirmation se lisait à moitié (« Command… » puis « …e et rangée dans les achats »). Elle se pose au-dessus. */
   try { const mt2 = document.querySelector('#courrier-hote [data-opcourrier]'), mb2 = mt2 && mt2.shadowRoot && mt2.shadowRoot.querySelector('#toast.show.act'); if (mb2) { const r2 = mb2.getBoundingClientRect(), g2 = t.getBoundingClientRect(); if (r2.height && g2.right > r2.left + 1 && r2.right > g2.left + 1 && g2.bottom > r2.top - 2 && g2.top < r2.bottom) t.style.setProperty('--toast-bas', Math.round(innerHeight - r2.top + 10) + 'px'); } } catch (e) {}
   try { toastDegager(t); } catch (e) {}
@@ -4929,7 +4929,9 @@ function toastDegager(t){
   const garde = [...new Set([document.activeElement, ...document.querySelectorAll('.fen [data-cherchecli], [data-cherche], .fen [role=tab], .fen .onglets > *, .fen .seg button, .fen input, .fen select, .fen textarea, #calque .panneau input, #calque .panneau select, #calque .panneau textarea')])].filter(e => e && e !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName) || e.isContentEditable || e.matches('[role=tab],button,[data-cherche],[data-cherchecli]'))).map(e => e.getBoundingClientRect()).filter(r => r.width && r.height && r.bottom > 0 && r.top < ecran);
   const cache = (hautBulle) => garde.reduce((n, r) => n + Math.max(0, Math.min(f, r.right) - Math.max(d, r.left)) * Math.max(0, Math.min(hautBulle + h, r.bottom) - Math.max(hautBulle, r.top)), 0);
   const enBas = cache(ecran - bas - h); if (!enBas) return;
-  const enHaut = cache(10); if (enHaut < enBas) t.classList.add('haut');
+  /* en haut, une fenêtre ouverte a un TITRE : la bulle se pose sous lui (jamais dessus : « Nouvelle intervention » disparaissait derrière une bulle de 167 px à 320 px de large) ; sans fenêtre, 10 px sous le bord comme avant */
+  const tete = document.querySelector('.fen-voile .fen-tete'), rt = tete && tete.getBoundingClientRect(), hautBulle = rt && rt.height && rt.bottom > 0 && rt.bottom < ecran / 2 ? Math.round(rt.bottom) + 8 : 10;
+  const enHaut = cache(hautBulle); if (enHaut < enBas) { if (hautBulle !== 10) t.style.setProperty('--toast-haut', hautBulle + 'px'); t.classList.add('haut'); }
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
 
@@ -20276,7 +20278,8 @@ function courrierCaler(){
   if (!COURRIER.inst) { if (COURRIER.etat === 'rien') courrierCharger(); if (h) h.hidden = true; return; }
   const hote = courrierHoteEl(), barre = document.getElementById('barre-bas'), cs = barre ? getComputedStyle(barre) : null;
   const r0 = place.getBoundingClientRect(), bas = barre && cs.display !== 'none' && cs.position === 'fixed' ? barre.getBoundingClientRect().top : innerHeight;
-  const haut = Math.max(innerHeight < 500 ? 240 : innerWidth <= 760 ? 300 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
+  const barreFixe = bas < innerHeight;   /* la barre d'onglets flottante de l'hôte : sans elle le plancher de 240 px est sûr, avec elle il passait SOUS la barre et la barre du bas du module (« Écrire ») se perdait derrière (iPhone 8 / SE en travers, 667×375) */
+  const haut = Math.max(innerHeight < 500 ? (barreFixe ? 110 : 240) : innerWidth <= 760 ? 300 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
   place.style.height = haut + 'px';
   const r = place.getBoundingClientRect();
   hote.hidden = false; Object.assign(hote.style, { left:Math.round(r.left + scrollX) + 'px', top:Math.round(r.top + scrollY) + 'px', width:Math.round(r.width) + 'px', height:haut + 'px' });
