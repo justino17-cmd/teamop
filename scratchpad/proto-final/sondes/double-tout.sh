@@ -13,6 +13,8 @@ for s in appareils compte equipe fenetre mots pirate securite sensibles vues cor
 # les sondes du recontrôle (tour 3) : la banque se lit ailleurs que dans son onglet (recensement par les DONNÉES) ; la carte de verrou tient sur 320, 360, 390 px et iPad
 lance recensement-banque node $S/double-auth-recensement-banque.js
 lance recontrole-recensement node $S/double-auth-recontrole-recensement.js
+# Mon compte : un seul « ‹ Retour » (correction tout-08), six profils, jour et nuit alternés par la sonde elle-même
+lance recontrole-compte node $S/double-auth-recontrole-compte.js
 lance recontrole-carte-verrou-jour P=4 PROFILS=petit,android,iphone,ipad node $S/double-auth-recontrole-parcours.js
 lance recontrole-carte-verrou-nuit P=4 NUIT=1 PROFILS=petit,android,iphone,ipad node $S/double-auth-recontrole-parcours.js
 echo FINI | tee -a "$J"; exit $MAL

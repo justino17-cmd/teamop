@@ -1,3 +1,4 @@
+// ⚠ À rejouer avec SANS_CSP=1 (node droits-gestes-reels.js) : la page interdit eval (CSP) et cette sonde évalue des chaînes APRÈS un await ; le pilote contourne alors la CSP (lib.js, option bypassCSP).
 // Des gestes RÉELS, de bout en bout : pour chaque geste, la personne qui a la case le fait (la donnée ou l'écran CHANGE), celle à qui la seule case manque ne le fait pas (rien ne bouge, le compteur
 // de refus monte de 1, le message dit QUOI et à QUI demander). On mesure l'effet, jamais le texte du code. Une personne « complète » (toutes les cases sauf administrateur) prouve le chemin d'une personne
 // qui n'est pas le gérant. ⛔ 127.0.0.1 seulement. Population comptée : nombre de gestes joués dans chaque sens.

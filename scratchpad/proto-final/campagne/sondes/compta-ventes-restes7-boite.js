@@ -8,7 +8,7 @@ const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
     cm.lignes.forEach((l, i) => { if (i < 2) { l.q = 3; l.recu = 3; l.pu = 12.345; } }); cm.lignes = cm.lignes.slice(0, 2); cm.facLue = { num: 'FA-TEST', le: jour(-1), pu: {}, q: {} };
     cm.lignes.forEach(l => { cm.facLue.pu[l.pid] = 12.345; cm.facLue.q[l.pid] = 3; });
     return { id: mm.id, att: cmdHT(cm), lu: mbxFacLue(cm).ht }; });
-  v('population : un courriel de facture fournisseur lié à une commande existe', !!m, JSON.stringify(m)); if (!m) return L.fin ? L.fin() : process.exit(1);
+  v('population : un courriel de facture fournisseur lié à une commande existe', !!m, JSON.stringify(m)); if (!m) { await L.fermer(c); L.bilan(); return process.exit(1); }
   v('mbxFacLue = cmdHT = 74,08 (fonction)', m.att === 74.08 && m.lu === 74.08, JSON.stringify(m));
   await p.evaluate(() => aller('boiteMail')); await L.attendre(p, () => COURRIER.etat === 'pret', 20000); await p.waitForTimeout(600);
   await p.evaluate(() => COURRIER.inst.rafraichir && COURRIER.inst.rafraichir()); await p.waitForTimeout(600);
@@ -18,5 +18,6 @@ const PROFIL = process.env.PROFIL || 'mac', NUIT = !!process.env.NUIT;
   v('l’écran de la Boîte mail dit « 74,08 € HT lus … 74,08 € HT commandés » (lu : « ' + k + ' »)', /74,08[^H]*HT lus dans la facture, 74,08[^H]*HT commandés/.test(t), k);
   v('et ne parle d’aucun écart', !/Écart de/.test(t.slice(Math.max(0, t.indexOf('HT lus')), t.indexOf('HT lus') + 200)));
   await L.capture(c, '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/cv-r7/r7-boite-' + PROFIL + (NUIT ? '-nuit' : '-jour') + '.png');
-  await c.fermer?.();
+  // la sonde ne fermait pas son navigateur (c.fermer n'existe pas : c'est L.fermer) et n'imprimait aucun bilan : node ne sortait jamais et le rejeu la coupait au délai
+  await L.fermer(c); process.exitCode = L.bilan() ? 1 : 0;
 })();

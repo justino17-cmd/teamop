@@ -1,0 +1,24 @@
+{
+ "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
+ "date": "2026-11-19",
+ "familles": {
+  "entreprise": {
+   "script": "scratchpad/proto-final/sondes/entreprise-tout.sh",
+   "duree": "~55 min",
+   "executions": 66,
+   "rouges": 2
+  }
+ },
+ "aNoter": [
+  {
+   "sonde": "entreprise-corrections.js",
+   "arguments": "08",
+   "constat": "2 ✗ reproduits : la Boîte mail porte une note « tu peux regarder, pas le modifier » alors que com = Voir seul, et les phrases des cases promettent encore « écrire … classer » (ph.c) ; page ou sonde à trancher"
+  },
+  {
+   "sonde": "entreprise-corrections.js",
+   "arguments": "13",
+   "constat": "1 ✗ reproduit : grille détaillée mac, ecart 28 / lignesTitre 1 (la population de cases sans geste mesure 28 d'écart) ; à relire"
+  }
+ ]
+}
