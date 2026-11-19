@@ -308,9 +308,9 @@ body:has(#cpsys:not([hidden])) #sortie-carte{z-index:9200}   /* même raison pou
 /* un total à sept chiffres (« 1 999 999,98 € ») ne tient pas dans une carte de téléphone à 22 px : il rapetisse avec l'écran au lieu d'être coupé (restes contrats, tour 4) */
 .kpis .kpi.kpi-long b{overflow-wrap:anywhere}
 @media (max-width:760px){.kpis .kpi.kpi-long b{font-size:clamp(14px,4.2vw,22px)}}
-/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 840 px (tour 5) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
+/* c'est la largeur de la CARTE qui décide, pas celle de l'écran (restes contrats, tour 4) ; seuil à 920 px (tour 6 : la carte de 864 à 918 px, fenêtre de 1 176 à 1 230, faisait trois lignes de « Cabinet dentaire Martin » ; tour 5 : 840 px) : entre 761 et ~830 px de carte (fenêtre d'ordinateur de 1 100 à 1 150 px, menu ouvert) la colonne « Client » n'avait pas la place d'un mot de onze lettres (« Coproprié / té ») ; à 840 elle fait au moins 125 px : sur iPad portrait (820 px) le menu prend 272 px, la carte n'en garde que 506 pour un tableau de 699 — la colonne « Client » tombait à 61 px (« Copr / opri / été »). Même repli que le téléphone dès que la carte est étroite. */
 .ctr-liste{container:ctrl / inline-size}
-@container ctrl (max-width:840px){
+@container ctrl (max-width:920px){
   table.l.ctr-tab{min-width:0!important}
   .ctr-tab th:nth-child(n+3),.ctr-tab td:nth-child(n+3){display:none}
   .ctr-tab .ctr-m{display:block;margin-top:3px;line-height:1.5}
@@ -5927,8 +5927,28 @@ const ctrActifs = () => CONTRATS.filter(k => k.st === 'signe' && !k.renouvele);
    et la facture faite à la main la lisent ici (17/11, compta-ventes : la facture à la main proposait 20 % à un particulier et le disait « client professionnel ») */
 const tvaDefautDe = k => (CLIENTS[k] || {}).type === 'part' ? 10 : 20;
 const ctrTva = k => tvaDefautDe(k.cli);
-const ctrCentimes = x => { const t = String(x == null ? '' : x).trim(); if (/^\d+(\.\d+)?$/.test(t)) return Number(Math.round(Number(t + 'e2')) + 'e-2'); return Math.round(Number(t) * 100) / 100; };   // le prix qu'on RANGE se lit comme l'aperçu l'écrit : « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999… et rangeait 1,00 € ; la forme à exposant (« 1e5 ») garde l'ancien arrondi
-const ctrPrixApercu = x => { const c = ctrCentimes(x); return isFinite(c) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait (« 1e999 » donnait « ∞ € HT », « -5 » donnait « −5,00 € », 1 234 567 890 123 s'écrivait sans prévenir) s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
+/* le prix d'un contrat se lit par la RÈGLE COMMUNE des montants (cxNum / cxMontantRefus : Mes frais, achats) : « 12 € », « 12€ », « 1.000,50 » se lisent, « 0x10 » se refuse, et chaque refus dit sa vraie raison (restes contrats, tour 6). Le champ garde le TEXTE tapé, jamais une version nettoyée */
+const ctrPrixTexte = x => String(x == null ? '' : x).trim().replace(/\s*(€|euros?|eur)\s*$/i, '').trim();
+const ctrPrixClair = t => { const u = t.replace(/[\s\u00a0\u202f']/g, ''); return /^[1-9]\d{0,2}[.,]\d{3}$/.test(u) ? u.replace(',', '.') : null; };   // « 1.005 », « 12,345 » : lus en décimal, arrondis au centime (acquis des tours 3 à 5 : 1.005 → 1,01 €) — la phrase « pas clair » des autres montants n'est pas reprise ici
+const ctrCentimes = x => {
+  if (typeof x === 'number') return isFinite(x) ? Math.round(x * 100) / 100 : NaN;
+  const t = ctrPrixTexte(x); if (!t) return NaN;
+  if (t.replace(/\D/g, '').length >= 20) return Infinity;   // 20 chiffres et plus : « trop grand », jamais un nombre à 1e20 qui s'affiche en notation scientifique
+  const u = ctrPrixClair(t), n = u != null ? u : cxNum(t); if (!isFinite(n)) return NaN;
+  const e = String(n); return /^\d+(\.\d+)?$/.test(e) ? Number(Math.round(Number(e + 'e2')) + 'e-2') : Math.round(n * 100) / 100;   // « 1.005 » est 1,01 € (arrondi décimal, eur()), alors que 1.005 * 100 tombe à 100.4999…
+};
+/* LA phrase du prix, '' quand il est bon : la vraie raison du refus (vide, illisible, trop petit, trop grand) */
+const ctrPrixRefus = x => {
+  const t = ctrPrixTexte(x); if (!t) return 'Indique le prix hors taxes du contrat (par an).';
+  if (t.replace(/\D/g, '').length >= 20) return 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.';
+  { const r = cxMontantRefus(t); if (r && !/^« /.test(r) && !/^Un montant a au plus/.test(r)) return r; }   // la phrase des montants, sauf deux : « 1.005 » (pas clair) et « 10.0049 » (plus de deux décimales) se lisent et s'arrondissent au centime ici — acquis des tours 3 à 5
+  const c = ctrCentimes(t);
+  if (!isFinite(c)) return 'Ce prix ne se lit pas : écris-le avec des chiffres, par exemple 480 ou 1 234,56.';
+  if (c > CTR_PRIX_MAX) return 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.';
+  if (c < 1) return 'Ce prix est trop bas : au moins 1 € par an.';
+  return '';
+};
+const ctrPrixApercu = x => { const c = ctrCentimes(x); return !ctrPrixRefus(x) && c >= 1 && c <= CTR_PRIX_MAX ? c : 0; };   // ce que l'APERÇU écrit : un prix que la création refuserait s'écrit comme un champ vide ; le champ dit pourquoi, juste dessous
 const ctrTTC = (ht, k) => { const h = Number(ht); return isFinite(h) ? Math.round(h * (1 + ctrTva(k) / 100) * 100) / 100 : 0; };   // un prix qui n'est pas un nombre (« abc » dans le champ) s'affiche 0 : jamais « NaN € TTC » dans l'aperçu
 const ctrFr = iso => iso.split('-').reverse().join('/');
 const ctrPrixTxt = (k, ht, par) => eur(ht) + ' HT · ' + eur(ctrTTC(ht, k)) + ' TTC' + (par ? ' ' + par : '');
@@ -5968,7 +5988,7 @@ function vueContratNouveau(){
     <label class="champ">Modèle selon le métier<select data-b="modele">${metiersModeles().map(([k,m])=>`<option value="${k}" ${B.modele===k?'selected':''}>${m.nom}</option>`).join('')}</select></label>
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || B.cli === k).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
-    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${String(B.prix).replace('.', ',')}"><span class="faible mini">${ctrCentimes(B.prix) > CTR_PRIX_MAX ? 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.' : ctrPrixApercu(B.prix) ? 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)' : 'Indique le prix hors taxes (au moins 1 €).'}</span></label></div>
+    <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${esc(typeof B.prix === 'number' ? String(B.prix).replace('.', ',') : String(B.prix == null ? '' : B.prix))}"><span class="faible mini">${esc(ctrPrixRefus(B.prix)) || 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)'}</span></label></div>
     <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
@@ -9309,8 +9329,7 @@ const ACTIONS = {
   noteOk(b){ memo(); const t = document.getElementById('note-t').value.trim(); if (t) NOTES[b.dataset.d] = t; else delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); toast('Note enregistrée, visible par toute l’équipe.', ANNULER); },
   noteSuppr(b){ memo(); delete NOTES[b.dataset.d]; fermerPanneau(); rendre(); },
   creerContrat(){ if (Date.now() - cfCtrT < 1200) return;   // le double-clic d'avant a déjà créé le contrat (et remis le formulaire à zéro) : le second ne relit pas le prix resté affiché
-    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value.replace(/\s/g, '').replace(',', '.'); if (!(ctrCentimes(B.prix) >= 1)) { toast('Indique le prix du contrat (par an, HT) : au moins 1 €.'); if (pf) pf.focus(); return; }
-    if (ctrCentimes(B.prix) > CTR_PRIX_MAX) { toast('Ce prix est trop grand pour un contrat d’entretien (maximum ' + eur(CTR_PRIX_MAX) + ' par an).'); if (pf) pf.focus(); return; }
+    const B = BROUILLON; const pf = document.querySelector('[data-b="prix"]'); if (pf) B.prix = pf.value; { const refus = ctrPrixRefus(B.prix); if (refus) { toast(refus); if (pf) pf.focus(); return; } }
     if (!cfMailOk(CLIENTS[B.cli].mail)) { toast(esc(CLIENTS[B.cli].nom) + ' n’a pas d’adresse e-mail valide : ajoute-la sur sa fiche pour lui envoyer le contrat à signer.', { lib:'Ouvrir la fiche', fn:() => aller('client-x-' + B.cli) }); return; }
     cfCtrT = Date.now();
     const k = { id:'c' + (CONTRATS.length + 1), num:ctrNum(), cli:B.cli, modele:B.modele, titre:MODELES[B.modele].nom.split('·')[1].trim().replace(/^./, s => s.toUpperCase()) + (B.lieu ? ' · ' + B.lieu : ''), freq:+B.freq, prix:ctrCentimes(B.prix) || 0, fact:B.fact, st:'envoye', envoye:'31/10/2026', debut:B.debut.split('-').reverse().join('/'), faites:0 };
@@ -9532,7 +9551,7 @@ document.addEventListener('change', ev => {
   else if (t.dataset.posee) { const F = fiche(t.dataset.id), i = INTS.find(o => o.id === t.dataset.id), p = (i.prevues || []).find(x => x.nom === t.dataset.posee); if (t.checked) F.pieces.push({ nom:p.nom, q:String(p.q), pu: prixCatalogue(p.nom) }); else F.pieces = F.pieces.filter(x => x.nom !== p.nom); rendre(); }
   else if (t.dataset.absent) { fiche(t.dataset.absent).absent = t.checked; rendre(); }
   else if (t.dataset.suite) { fiche(t.dataset.id).suite[t.dataset.suite] = t.checked; }
-  else if (t.dataset.b) { if (t.dataset.b === 'cli') cfContratClient(t.value); const _mAv = BROUILLON.modele; BROUILLON[t.dataset.b] = t.dataset.b === 'prix' ? t.value.replace(/\s/g,'').replace(',', '.') : t.value; if (t.dataset.b === 'modele') { if (!MODELES[_mAv] || !(Number(BROUILLON.prix) > 0) || Number(BROUILLON.prix) === MODELES[_mAv].prix[1]) BROUILLON.prix = MODELES[t.value].prix[1]; else toast(`Le modèle change, mais ton prix reste à ${eur(Number(BROUILLON.prix))}.`); if (t.value !== 'clim' && BROUILLON.lieu === '2 appareils Daikin (salle et toit)') BROUILLON.lieu = ''; } rendreApresClic(); }
+  else if (t.dataset.b) { if (t.dataset.b === 'cli') cfContratClient(t.value); const _mAv = BROUILLON.modele; BROUILLON[t.dataset.b] = t.value; if (t.dataset.b === 'modele') { if (!MODELES[_mAv] || !(ctrPrixApercu(BROUILLON.prix) > 0) || ctrPrixApercu(BROUILLON.prix) === MODELES[_mAv].prix[1]) BROUILLON.prix = MODELES[t.value].prix[1]; else toast(`Le modèle change, mais ton prix reste à ${eur(ctrPrixApercu(BROUILLON.prix))}.`); if (t.value !== 'clim' && BROUILLON.lieu === '2 appareils Daikin (salle et toit)') BROUILLON.lieu = ''; } rendreApresClic(); }
   else if (t.dataset.bc) { BROUILLON[t.dataset.bc] = t.checked; rendre(); }
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
