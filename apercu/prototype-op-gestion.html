@@ -9239,6 +9239,8 @@ function calReculer(n, suite){
   try { history.go(-n); } catch (e) { CAL.off = true; CAL.ignore = 0; clearTimeout(CAL.minuteur); calFinRecul(); }
 }
 function calFinRecul(){ const s = CAL.suite; CAL.suite = null; if (s) s(); calSync(); }
+/* LE SEUL pushState de la page : toute entrée d'historique (couche ouverte, adresse de la fiche remise) passe par ici — un second mécanisme se marcherait dessus (retour-parcours le compte) */
+function calPousser(etat, adresse){ history.pushState(etat, '', adresse || location.href); }
 function calSync(){
   if (CAL.off) return;
   if (CAL.ignore > 0) { CAL.sale = true; return; }
@@ -9246,7 +9248,7 @@ function calSync(){
   CAL.pile = CAL.pile.filter(k => ouv.includes(k)).concat(ouv.filter(k => !CAL.pile.includes(k)));
   const d = CAL.pile.length;
   try {
-    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; CAL.hash = location.hash; }
+    while (CAL.pousse < d) { calPousser({ cal:CAL.pousse + 1 }); CAL.pousse++; CAL.hash = location.hash; }
     if (CAL.pousse > d) { const n = CAL.pousse - d; CAL.pousse = d; calReculer(n); }
   } catch (e) { CAL.off = true; CAL.pousse = 0; }
 }
@@ -14830,7 +14832,7 @@ function cliInfosRetenir(suite, parAdresse){ if (CLI_LIBRE || !clientInfosSale()
 /* l'adresse a déjà changé (retour du navigateur) et la personne reste sur la fiche : on remet une entrée de la fiche DEVANT celle où elle est, sans réécrire l'autre — le retour suivant retrouve « Devis » et redemande, au lieu de tomber sur une fiche fantôme */
 /* ⚠️ la fenêtre ouverte a SA PROPRE entrée d'historique (calSync) : la fermer recule d'une entrée, ASYNCHRONE. Pousser la fiche avant ce recul la ferait reculer elle-même (et rouvrirait la fenêtre) : on attend la fin du recul, qui rejoue `CAL.suite`. */
 function cliAdresseRendreApres(){ if (typeof CAL !== 'undefined' && !CAL.off && CAL.pousse > 0) CAL.suite = cliAdresseRendre; else cliAdresseRendre(); }
-function cliAdresseRendre(){ try { const ici = route + (param ? '-x-' + param : ''); if (route === 'client' && location.hash.slice(1) !== ici) history.pushState(null, '', '#' + ici); } catch (e) {} }
+function cliAdresseRendre(){ try { const ici = route + (param ? '-x-' + param : ''); if (route === 'client' && location.hash.slice(1) !== ici) calPousser(null, '#' + ici); } catch (e) {} }
 function cliInfosDemande(){ ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
     <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`); }
 document.addEventListener('click', ev => {
