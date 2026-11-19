@@ -49,5 +49,10 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   await O.neuf(c, 'contrat-nouveau'); await p.fill('[data-b="prix"]', '12 €'); await p.dispatchEvent('[data-b="prix"]', 'change'); await L.calme(p, 250);
   const mods = await p.evaluate(() => [...document.querySelectorAll('[data-b="modele"] option')].map(o => o.value));
   if (mods.length > 1) { await p.selectOption('[data-b="modele"]', mods[1]); await L.calme(p, 300); const val = await p.evaluate(() => document.querySelector('[data-b="prix"]').value); v('changer de modèle garde un prix tapé « 12 € » (lu, pas écrasé)', val === '12 €', val); }
+  // Composer un contrat au téléphone (≤ 420 px) : « Facturation » et « Début » chacun sur leur ligne — « à chaque visite » entier, la date sur une ligne (capture Android 360 px : « à chaque vis », date sur trois lignes)
+  if (c.largeur <= 420) { await O.neuf(c, 'contrat-nouveau'); const m = await p.evaluate(() => { const f = document.querySelector('[data-b="fact"]'), d = document.querySelector('[data-b="debut"]'), lib = [...f.options].map(o => o.textContent), r = f.getBoundingClientRect(), rd = (d.closest('label') || d).getBoundingClientRect();
+      const dt = [...document.querySelectorAll('#contenu .champ')].find(l => /^Début/.test(l.textContent)); const x = dt && dt.querySelector('input, button, .btn, .champ-date, [class*=date]') || (dt && dt.lastElementChild); return { fw: Math.round(r.width), ecran: innerWidth, coupe: f.scrollWidth > f.clientWidth + 1, pile: rd.top >= r.bottom - 1, hd: x ? Math.round(x.getBoundingClientRect().height) : 0 }; });
+    v('Composer un contrat : « Facturation » prend toute la largeur (' + m.fw + ' sur ' + m.ecran + ' px)', m.fw >= m.ecran * 0.7, m);
+    v('Composer un contrat : « Début » sous « Facturation », pas à côté', m.pile, m); v('Composer un contrat : la date de début tient dans un champ d’une ligne (≤ 60 px de haut)', m.hd > 0 && m.hd <= 60, m); }
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.log('ÉCHEC', e.stack); await L.fermer(); process.exit(2); });
