@@ -11,9 +11,6 @@ const M = [
   { n:5, nom:'la ligne grise paraît même sans pointage cette semaine', parties:'depart', page:'prototype-op-gestion.html', de:" && !PT_VALIDE[k + L0] && POINTAGES.some(o => o.qui === k && lundi(o.date) === L0);", vers:" && !PT_VALIDE[k + L0];" },
   { n:6, nom:'l’alerte alerte de nouveau pour la semaine en cours', parties:'depart,boucle', page:'prototype-op-gestion.html', de:".filter(L => ttSemFinie(L) && !PT_VALIDE[k + L] &&", vers:".filter(L => !PT_VALIDE[k + L] &&" },
   { n:7, nom:'le retour du système ne se distingue plus d’un clic de menu (navClic ignoré)', parties:'retour', page:'prototype-op-gestion.html', de:"TT.sys = cpProg === null && Date.now() - navClic > 700;", vers:"TT.sys = cpProg === null;" },
-];" },
-  { n:5, nom:'la ligne grise « semaine en cours » disparaît', parties:'depart', page:'prototype-op-gestion.html', de:"const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0];", vers:"const ptEnCours = false;" },
-  { n:6, nom:'la fiche de paie de l’application parle de prototype', parties:'bulletin', page:'prototype-op-gestion.html', de:"${enApp() ? 'Conservez ce bulletin sans limitation de durée.' : `Prototype", vers:"${false ? 'Conservez ce bulletin sans limitation de durée.' : `Prototype" },
 ];
 const filtre = process.argv.slice(2).map(Number); let tombees = 0, vivantes = 0;
 for (const m of M) { if (filtre.length && !filtre.includes(m.n)) continue;
