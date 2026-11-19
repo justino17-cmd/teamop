@@ -53,7 +53,7 @@ const fs = require('fs'); fs.mkdirSync(CAP, { recursive: true });
     const t = await toast(p), ok = await E(() => AX.kmTarif); await E(() => { try { fermerPanneau(); } catch (e) {} }); return { t, ok }; };
   const r4 = await lire('0,6034'), r00 = await lire('00,603'), rok = await lire('0,603');
   v('R1 « 0,6034 » : refusé, la phrase parle de TROIS décimales, le tarif ne bouge pas', /trois décimales/.test(r4.t) && !/deux chiffres/.test(r4.t) && r4.ok === 0.6, r4);
-  v('R2 « 00,603 » : même phrase', /trois décimales/.test(r00.t) && r00.ok === 0.6, r00);
+  v('R2 « 00,603 » : phrase du zéro de tête (restes achats 4)', /^Le zéro de tête est en trop : tape 0,603\.$/.test(r00.t) && r00.ok === 0.6, r00);
   v('R3 « 0,603 » reste accepté', rok.ok === 0.603 && /0,603/.test(rok.t), rok);
   await E(() => { AX.kmTarif = 0.6; });
 

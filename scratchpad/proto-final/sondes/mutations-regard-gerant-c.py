@@ -37,6 +37,9 @@ M = [  # (nom, section de la sonde, avant, après)
  ('adresse e-mail : la ligne ne suit plus ce qu\'on tape', [20], "const l = ev.target.closest('label').querySelector('.fx-mailv'); if (l) l.textContent = ev.target.value.trim(); return; }", "return; }"),
  ('cases des Réglages du stock qui se rétrécissent dans la feuille', [21], "html .ms-reg{display:flex;flex:none;gap:12px;", "html .ms-reg{display:flex;gap:12px;"),
  ('ligne « Réf. · fournisseur » de la fiche article à l\'ancienne (point collé en bout de ligne)', [22], "${msPts(['Réf.\\u00a0' + esc(x.ref)].concat(x.four && x.four !== '—' ? [f ? `<button type=\"button\" class=\"lien ms-lien\" data-fo=\"fiche|${f.id}\">${esc(x.four)}</button>` : esc(x.four)] : []))}", "Réf. ${esc(x.ref)}${x.four && x.four !== '—' ? ' · ' + (f ? `<button type=\"button\" class=\"lien ms-lien\" data-fo=\"fiche|${f.id}\">${esc(x.four)}</button>` : esc(x.four)) : ''}"),
+ ('« Un achat au comptoir » sur trois lignes à 320 px (marges et corps d\'avant)', [23], "@media (max-width:340px){html .ms-seg2 button{padding:6px 3px;font-size:13px}}", "@media (max-width:340px){html .ms-seg2 button{padding:6px 8px}}"),
+ ('pied de « Compter un lieu » à deux boutons (155 px)', [24], "html .ms-cpied{gap:6px}html .ms-cpied .btn{flex:1 1 100%}", "html .ms-cpied{gap:10px}html .ms-cpied .btn{flex:1 1 100%}html .ms-cpied::after{content:'';flex:1 1 100%;height:60px}"),
+ ('« Choisir l\u2019heure » sur deux lignes (bouton de 150 px)', [25], "html .fx-lg .dt-btn{width:176px;min-width:0;flex:none;min-height:46px}html .fx-lg .dt-btn span{white-space:nowrap}", "html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}"),
 ]
 def ferme():
     shutil.rmtree(TMP, ignore_errors=True); os.makedirs(os.path.join(TMP, 'apercu'))

@@ -155,14 +155,22 @@ const FERMER = c => S(c, () => { const b = document.querySelector('#calque [data
     v('G1 (écran) la facture du solde : HT 289,22 €, TVA 10 % 28,92 €, TTC 318,14 € (413,17 − 123,95 ; 289,22 × 1,10 = 318,142)', /Total HT 289,22 €/.test(fs) && /28,92 €/.test(fs) && /Total TTC 318,14 €/.test(fs), fs.slice(fs.indexOf('Total HT') - 40, fs.indexOf('Total HT') + 220));
     v('G2 (arithmétique) l’acompte TTC + le solde TTC = le devis TTC : 136,35 + 318,14 = 454,49', 13635 + 31814 === 45449);
     await clic(c, '[data-action="apercuEnvoi"]'); await p.waitForTimeout(500); await clic(c, '#calque [data-action="envoyer"]'); await p.waitForTimeout(900);
+    /* ⛔ valeur ingrate exprès (18 novembre 2026) : un chèque de 100,07 € arrive AU BUREAU avant que le client ne paie par carte. Le client doit alors voir « Payer 218,07 € » (le RESTE : 318,14 − 100,07), jamais « 318,14 € » (le total) :
+       sans ce paiement en deux fois, la mutation « la fenêtre de paiement demande le total au lieu du reste » laissait ce parcours vert. */
+    await L.aller(p, 'facture-x-f-i-' + numB); await clic(c, '[data-action="partiel"]'); await p.waitForTimeout(400);
+    await p.fill('#pp-m', '100,07'); await p.selectOption('#pp-mode', 'Chèque'); await clic(c, '[data-action="partielOk"]'); await p.waitForTimeout(700);
+    const pp = await S(c, n => { const b = FACTURES.find(o => o.id === 'f-i-' + n); return { st:b.st, recu:Math.round((b.recu || 0) * 100), rest:Math.round(restant(b) * 100) }; }, numB);
+    v('G2b (donnée) un chèque de 100,07 € au bureau : « partielle », reçu 10007, reste 21807 (31814 − 10007)', pp.st === 'partielle' && pp.recu === 10007 && pp.rest === 21807, pp);
     await S(c, () => { rlChanger('client', { cli:'md', muet:true, ec:'factures' }); }); await L.calme(p, 700);
     const ecG = net(await txt(c, '#contenu'));
-    v('G3 (écran client) le solde : 318,14 € « À régler », et l’acompte « Payée »', /318,14 €[^]*?À régler/.test(ecG) && /136,35 €[^]*?Payée/.test(ecG), ecG.slice(0, 500));
+    v('G3 (écran client) le solde : le bouton dit « Payer 218,07 € » (le RESTE, pas le total 318,14 €) ; l’acompte « Payée »', /Payer 218,07 €/.test(ecG) && !/Payer 318,14/.test(ecG) && /136,35 €[^]*?Payée/.test(ecG), ecG.slice(0, 500));
     await clic(c, '[data-ec^="payer|f-"]'); await p.waitForTimeout(800);
+    const payG = net(await txt(c, '#calque'));
+    v('G3b (écran client) la fenêtre de paiement demande « Montant 218,07 € » (le reste)', /Montant 218,07 €/.test(payG) && !/Montant 318,14/.test(payG), payG.slice(0, 200));
     await p.fill('#ec-cb', '4242 4242 4242 4242'); await p.fill('#ec-ex', '12/30'); await p.fill('#ec-cvc', '123');
     await clic(c, '[data-ec^="payok|"]'); await p.waitForTimeout(1300);
-    const tot = await S(c, n => { const a = FACTURES.find(o => o.id === 'fa-' + n), b = FACTURES.find(o => o.id === 'f-i-' + n); return { a:[a.st, a.recu], b:[b.st, b.recu], enc:ENCAISSEMENTS.filter(e => e.fac === a.num || e.fac === b.num).reduce((s, e) => s + Math.round(e.ttc * 100), 0) }; }, numB);
-    v('G4 (donnée) les deux factures sont payées, les encaissements totalisent 454,49 € = le devis', tot.a[0] === 'payee' && tot.b[0] === 'payee' && tot.enc === 45449, tot);
+    const tot = await S(c, n => { const a = FACTURES.find(o => o.id === 'fa-' + n), b = FACTURES.find(o => o.id === 'f-i-' + n); return { a:[a.st, a.recu], b:[b.st, b.recu], nb:ENCAISSEMENTS.filter(e => e.fac === a.num || e.fac === b.num).length, enc:ENCAISSEMENTS.filter(e => e.fac === a.num || e.fac === b.num).reduce((s, e) => s + Math.round(e.ttc * 100), 0) }; }, numB);
+    v('G4 (donnée) les deux factures sont payées, les encaissements totalisent 454,49 € = le devis (acompte 136,35 + chèque 100,07 + carte 218,07)', tot.a[0] === 'payee' && tot.b[0] === 'payee' && tot.enc === 45449 && tot.nb === 3, tot);
     await S(c, () => { sessionOuvrir('marc'); }); await L.calme(p, 600);
     const k1 = await kpis(c), t1 = await compta(c), d1 = await dvKpi(c);
     v('H1 (écran) la Comptabilité : la trésorerie monte d’EXACTEMENT 454,49 € (' + t0 + ' → ' + t1 + ')', t1 - t0 === 45449, { t0, t1 });
