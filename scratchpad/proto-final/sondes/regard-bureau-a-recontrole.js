@@ -4,12 +4,11 @@
 // rien abîmer à côté. Rejouable seul : node scratchpad/proto-final/sondes/regard-bureau-a-recontrole.js [sections, ex. « 1,3 »]
 // Sortie « N ✓ · M ✗ », code 1 si un contrôle tombe. Les CONSTATS (défauts neufs, non corrigés ici : on ne touche aucune page) s'impriment
 // à part, sans compter comme échec — ils sont rendus dans regard-bureau-a-recontrole.json.
-// ⚠️ Trois ✗ sont ATTENDUS tant que deux défauts réels ne sont pas réglés (rendus dans regard-bureau-a-recontrole.json) : § 1, « 1 tâche ouverte » de la fiche
-//    intervention à 320 px quand une tâche est en retard (julie, marc : le petit texte sort du résumé de 19 px) ; § 3, la fiche client « M. et Mme Durand »
-//    (onglet Factures, 320 px) dont la pastille d'état sort de la carte de 11 px. Ils tombent le jour où la règle est corrigée.
+// Les trois ✗ de la première passe (fiche intervention en retard à 320 px, fiche « M. et Mme Durand » à 320 px) sont réglés ; § 5 garde les références de pièces de la TVA, § 6 les sept
+//    retouches du second regard (18 novembre 2026) — chacune éprouvée par une mutation (scratchpad/proto-final/sondes/mutations-regard-bureau-a-recontrole.py).
 // ⛔ 127.0.0.1 seulement, entreprise fictive, aucun serveur.
 const L = require('../lib.js');
-const v = L.v, F = process.argv[2] || '', sec = n => !F || F.split(',').includes(n);
+const v = L.v, F = process.argv[2] || '', G = process.argv[3] || '', sec = n => !F || F.split(',').includes(n), sub = n => !G || G.split(',').includes(n);   // 2ᵉ argument : une lettre de § 6 (« 6 a » = node … 6 a)
 const constats = [];
 (async () => {
   // 1. « N tâche(s) ouverte(s) » (.t-ici) : le premier passage l'a gardé sur contrat et facture, vus par Julie. La règle `.t-ici summary b{nowrap}` est
@@ -94,15 +93,89 @@ const constats = [];
     v('factures : population trouvée (au moins 40 fiches mesurées)', fiches >= 40, fiches);
   }
 
-  // 5. CONSTATS NEUFS (pas des contrôles qui échouent : on ne touche aucune page ici, on mesure pour le dire).
+  // 5. TVA › « Achats d'octobre » : les références de pièces (second regard, corrigé).
   if (sec('5')) {
     for (const profil of ['mac', 'windows', 'ipad', 'iphone', 'petit']) {
       const c = await L.ouvrir({ profil, qui: 'julie' });
       await c.p.evaluate(() => cxAller('tva')); await L.calme(c.p, 700);
       const r = await c.p.evaluate(() => [...document.querySelectorAll('#contenu .gris.petit')].filter(e => !e.children.length && /^✓/.test(e.textContent.trim())).map(e => ({ t: e.textContent.trim(), lignes: Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 16)) })));
-      const coupees = r.filter(x => x.lignes > 1);
-      v(`constat TVA › achats d'octobre ${profil} : population trouvée (les pièces justificatives)`, r.length >= 3, r.length);
-      if (coupees.length) constats.push(`TVA › « Achats d'octobre » ${profil} : ${coupees.length}/${r.length} références coupées sur plusieurs lignes (« ${coupees[0].t} » sur ${coupees[0].lignes})`);
+      const rr = await c.p.evaluate(() => { const pj = [...document.querySelectorAll('#contenu .cp-pj')]; return { n: pj.length, coupes: pj.filter(e => e.getBoundingClientRect().height > (parseFloat(getComputedStyle(e).lineHeight) || 16) * 1.6).map(e => e.textContent) }; });
+      v(`TVA › achats d'octobre ${profil} : aucune référence de pièce coupée au milieu de son identifiant (${rr.n} mots gardés insécables, au moins 6)`, rr.n >= 6 && rr.coupes.length === 0, rr);
+      v(`TVA › achats d'octobre ${profil} : la coche est collée au premier mot de la pièce (jamais seule sur sa ligne)`, await c.p.evaluate(() => [...document.querySelectorAll('#contenu .gris.petit')].filter(e => e.querySelector('.cp-pj')).every(e => /^✓/.test(e.querySelector('.cp-pj').textContent))), 'cp-pj');
+      await L.fin(c);
+    }
+  }
+  // 6. Les sept retouches du second regard (18 novembre 2026), chacune à l'endroit où elle a été vue, jour ET nuit, et un voisin qui ne devait pas bouger.
+  if (sec('6')) {
+    // 6a. tableau client « M. et Mme Durand » à 320 px : la pastille d'état est ENTIÈRE dans la carte (265 px dans 254 avant) ; voisin : à 360 px le tableau n'a pas changé de forme
+    if (sub('a')) for (const nuit of [false, true]) {
+      const c = await L.ouvrir({ profil: 'petit', qui: 'julie', nuit });
+      await L.aller(c.p, 'client-x-md'); await c.p.evaluate(() => { const b = document.querySelector('[data-oc=factures]'); if (b) b.click(); }); await L.calme(c.p, 500);
+      const r = await c.p.evaluate(() => { const t = [...document.querySelectorAll('#contenu .tableau table')].find(x => x.offsetParent); const k = t.closest('.tableau').getBoundingClientRect(), st = [...t.querySelectorAll('.st')].map(e => e.getBoundingClientRect());
+        return { lignes: t.querySelectorAll('tbody tr').length, tableau: Math.round(t.getBoundingClientRect().width), carte: Math.round(k.width), pastilles: st.length, dehors: st.filter(x => x.right > k.right + 0.5).length }; });
+      v(`pastille d'état (client Durand › Factures, 320 px ${nuit ? 'nuit' : 'jour'}) : le tableau (${r.tableau} px) tient dans la carte (${r.carte} px), ${r.pastilles} pastille(s) entières`, r.lignes >= 1 && r.pastilles >= 1 && r.tableau <= r.carte && r.dehors === 0, r);
+      await L.fin(c);
+    }
+    // 6b. fiche intervention en retard à 320 px : le résumé « N tâche(s) ouverte(s) » reste dans sa carte, la coche ✅ a disparu ; voisin : fiche client SANS retard, résumé sur une seule ligne
+    if (sub('b')) for (const [profil, qui, nuit] of [['petit', 'julie', false], ['petit', 'marc', true], ['android', 'julie', false]]) {
+      const c = await L.ouvrir({ profil, qui, nuit });
+      await L.aller(c.p, 'inter-x-i9');
+      const r = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); return s ? { dedans: s.scrollWidth <= s.clientWidth + 1, retard: !!s.querySelector('.t-retard'), coche: /✅/.test(s.textContent) || !!s.querySelector('[aria-hidden]'), txt: s.textContent.trim().slice(0, 50) } : null; });
+      v(`tâche en retard (intervention i9, ${profil} ${qui} ${nuit ? 'nuit' : 'jour'}) : le résumé reste dans sa carte, la pastille « en retard » est là, aucune coche ✅`, !!r && r.retard && r.dedans && !r.coche, r);
+      const lourd = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); if (!s) return null; s.querySelector('b').textContent = '12 tâches ouvertes'; const t = s.querySelector('.t-retard'); if (t) t.textContent = '12 en retard'; return { dedans: s.scrollWidth <= s.clientWidth + 1 }; });
+      v(`tâche en retard, valeurs LONGUES (« 12 tâches ouvertes · 12 en retard », ${profil} ${qui} ${nuit ? 'nuit' : 'jour'}) : le résumé reste dans sa carte`, !!lourd && lourd.dedans, lourd);
+      await L.aller(c.p, 'client-x-md');
+      const w = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); return s ? { h: Math.round(s.getBoundingClientRect().height), retard: !!s.querySelector('.t-retard'), coche: !!s.querySelector('[aria-hidden]') } : null; });
+      v(`voisin : fiche client Durand (${profil}) : le résumé reste sur une ligne (${w && w.h} px) et sans coche`, !!w && w.h <= 50 && !w.coche, w);
+      await L.fin(c);
+    }
+    // 6c. Devis, filtres sur iPad : les cinq sur UNE ligne ; voisin : Mac inchangé (une ligne, rembourrage d'origine 16 px), iPhone toujours en deux rangées
+    if (sub('c')) for (const [profil, nuit, maxRangs] of [['ipad', false, 1], ['ipad', true, 1], ['mac', false, 1], ['iphone', false, 2]]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit }); await L.aller(c.p, 'devis');
+      const r = await c.p.evaluate(() => { const f = document.querySelector('#contenu .seg:has([data-dvf])'), b = [...f.querySelectorAll('button')], ys = [...new Set(b.map(x => Math.round(x.getBoundingClientRect().top)))]; return { n: b.length, rangs: ys.length, pad: getComputedStyle(b[0]).paddingLeft }; });
+      v(`Devis, filtres (${profil} ${nuit ? 'nuit' : 'jour'}) : ${r.n} filtres sur ${r.rangs} rangée(s)`, r.n === 5 && (profil === 'iphone' ? r.rangs >= 2 : r.rangs === 1) && (profil === 'mac' ? r.pad === '16px' : true), r);
+      await L.fin(c);
+    }
+    // 6d. Comptabilité › Ventes, sous-onglets : jamais d'orphelin au milieu (2 / 2) sur iPhone, Android, 320 px ; voisin : six onglets de la TVA (pas de grille de deux)
+    if (sub('d')) for (const profil of ['iphone', 'android', 'petit']) for (const nuit of [false, true]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit });
+      const rangs = async o => { await c.p.evaluate(x => cxAller(x), o); await L.calme(c.p, 500); return c.p.evaluate(() => { const b = [...document.querySelectorAll('#contenu .cx-sous button')], ys = [...new Set(b.map(x => Math.round(x.getBoundingClientRect().top)))].sort((a, z) => a - z); return { n: b.length, rangs: ys.map(y => b.filter(x => Math.round(x.getBoundingClientRect().top) === y).length).join('/') }; }); };
+      const a = await rangs('fventes'); v(`Ventes, sous-onglets (${profil} ${nuit ? 'nuit' : 'jour'}) : ${a.n} onglets rangés ${a.rangs}`, a.n === 4 && a.rangs === '2/2', a);
+      const t = await rangs('tva'); v(`voisin : TVA, ${t.n} onglets (${profil} ${nuit ? 'nuit' : 'jour'}) gardent la ligne qui se coupe, pas la grille de deux (${t.rangs})`, t.n === 6 && !/^2\/2\/2$/.test(t.rangs), t);
+      await L.fin(c);
+    }
+    // 6e. facture dans la liste Ventes à 320 px : l'objet est lisible (plus « R… »), sur trois lignes au plus ; voisin : à 390 px la ligne reste sur une seule ligne
+    if (sub('e')) for (const [profil, nuit] of [['petit', false], ['petit', true], ['iphone', false]]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit }); await c.p.evaluate(() => cxAller('fventes')); await L.calme(c.p, 500);
+      await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|factures"]'); if (b) b.click(); }); await L.calme(c.p, 600);
+      const r = await c.p.evaluate(() => { const l = [...document.querySelectorAll('#contenu .cx-row .cx-doc .petit')].filter(e => /^FAC-/.test(e.textContent)); return { n: l.length, coupes: l.filter(e => e.scrollHeight > e.clientHeight + 1 || (innerWidth <= 380 && e.scrollWidth > e.clientWidth + 1)).length, lignes: l.map(e => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 20))) }; });
+      v(`facture dans Ventes (${profil} ${nuit ? 'nuit' : 'jour'}) : ${r.n} lignes, aucune coupée (jusqu'à ${Math.max(...r.lignes)} lignes)`, r.n >= 6 && r.coupes === 0 && (profil === 'iphone' ? Math.max(...r.lignes) === 1 : Math.max(...r.lignes) <= 3), r);
+      await L.fin(c);
+    }
+    // 6f. fiche client : la tuile du prochain passage dit tout le titre (plus « …thermodyn… »), six onglets en 3 + 3 sur téléphone et iPad, une ligne au Mac
+    if (sub('f')) for (const [profil, nuit] of [['mac', false], ['mac', true], ['iphone', false], ['android', true], ['petit', false], ['ipad', false]]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit }); await L.aller(c.p, 'client-x-cm');
+      const r = await c.p.evaluate(() => { const k = [...document.querySelectorAll('#contenu .kpis .kpi')][2], t = document.querySelector('#contenu [role=tablist][aria-label="Fiche client"]'), b = [...t.querySelectorAll('button')], ys = [...new Set(b.map(x => Math.round(x.getBoundingClientRect().top)))];
+        return { tuile: k.textContent, rangs: ys.map(y => b.filter(x => Math.round(x.getBoundingClientRect().top) === y).length).join('/'), n: b.length, dehors: k.scrollWidth > k.clientWidth + 1 }; });
+      v(`fiche client Martin (${profil} ${nuit ? 'nuit' : 'jour'}) : tuile « ${r.tuile.slice(5)} » en entier, onglets ${r.rangs}`, /thermodynamique/.test(r.tuile) && !/…/.test(r.tuile) && !r.dehors && r.n === 6 && (profil === 'mac' ? r.rangs === '6' : r.rangs === '3/3'), r);
+      await L.fin(c);
+    }
+    // 6g. brouillon de devis : quantité et prix portent leur MOT à l'écran (téléphone, tablette) et leur aria-label ; au Mac l'en-tête de colonnes les nomme
+    if (sub('g')) for (const [profil, nuit] of [['iphone', false], ['petit', true], ['ipad', false], ['mac', false]]) {
+      const c = await L.ouvrir({ profil, qui: 'julie', nuit }); await L.aller(c.p, 'devis');
+      const h = await c.p.evaluate(() => { const b = [...document.querySelectorAll('#contenu [data-go]')].find(x => /Brouillon/.test(x.textContent)); return b && b.dataset.go; }); await L.aller(c.p, h);
+      const r = await c.p.evaluate(() => { const l = document.querySelector('#contenu .dv-lg:not(.dv-lg-t)'), et = [...l.querySelectorAll('.fac-et')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.textContent), ch = [...l.querySelectorAll('input')], tete = document.querySelector('#contenu .dv-lg-t'), tv = tete && getComputedStyle(tete).display !== 'none';
+        return { et, tete: tv, aria: ch.map(i => i.getAttribute('aria-label')), sw: document.documentElement.scrollWidth }; });
+      const mot = profil === 'mac' ? r.tete : (r.et.includes('Qté') && r.et.includes('Prix unitaire HT'));
+      v(`brouillon de devis (${profil} ${nuit ? 'nuit' : 'jour'}) : quantité et prix nommés à l'écran (${profil === 'mac' ? 'en-tête de colonnes' : r.et.join(' / ')}) et par aria-label (${r.aria.join(' / ')})`, mot && r.aria[1] === 'Quantité' && r.aria[2] === 'Prix unitaire HT' && r.sw <= (profil === 'iphone' ? 390 : profil === 'petit' ? 320 : profil === 'ipad' ? 820 : 1440), r);
+      await L.fin(c);
+    }
+    // 6h. la coche ✅ devant « N tâche(s) ouverte(s) » : retirée du gabarit des fiches (client, intervention, facture, contrat) ; voisin : la coche de « Aucune tâche pour ce client » (état FAIT, vrai) reste
+    if (sub('h')) {
+      const c = await L.ouvrir({ profil: 'mac', qui: 'julie' }); let n = 0, avec = 0;
+      for (const h of ['client-x-md', 'client-x-hp', 'inter-x-i9', 'inter-x-i2', 'contrat-x-c1', 'facture-x-f144']) { await L.aller(c.p, h); const r = await c.p.evaluate(() => { const s = document.querySelector('#contenu .t-ici summary'); return s ? { coche: !!s.querySelector('[aria-hidden]') || /✅/.test(s.textContent) } : null; }); if (r) { n++; if (r.coche) avec++; } }
+      v(`coche ✅ des tâches ouvertes : ${n} fiches mesurées (au moins 5), aucune ne la porte (${avec})`, n >= 5 && avec === 0, { n, avec });
+      await L.aller(c.p, 'client-x-cm'); const vide = await c.p.evaluate(() => /✅\s*Aucune tâche/.test(document.querySelector('#contenu').textContent)); v('voisin : « Aucune tâche pour ce client » garde sa coche (état fait)', vide, vide);
       await L.fin(c);
     }
   }
