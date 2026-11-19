@@ -52,7 +52,7 @@ async function s1() {
     v(`${nom} : population (3 options tenues par A avant, deux personnes distinctes)`, pr.opt === 3 && pr.tenus === true && b.qui !== a.qui && !b.erreur && !a.erreur, { pr, b, a });
     v(`${nom} : B (sans Planning) : 3 → 3, toast « restent au planning », intervention ouverte`, b.avant === 3 && b.apres === 3 && /restent au planning/.test(b.texte) && !/libérées/.test(b.texte) && b.crea, b);
     v(`${nom} : le toast de B tient dans l'écran (${JSON.stringify(gb && { g:gb.g, d:gb.d, vw:gb.vw, lignes:gb.lignes })}) et n'est pas coupé`, !!gb && gb.dedans && gb.coupe === 0, gb);
-    v(`${nom} : A (avec Planning) : 3 → 0, toast « libérées »`, a.avant === 3 && a.apres === 0 && /options sont libérées/.test(a.texte), a);
+    v(`${nom} : A (avec Planning) : 3 → 1 (les deux autres partent, celle du créneau choisi attend la création), toast « libérées »`, a.avant === 3 && a.apres === 1 && /options sont libérées/.test(a.texte), a);
     v(`${nom} : le toast d'A tient dans l'écran et n'est pas coupé`, !!ga && ga.dedans && ga.coupe === 0, ga);
     v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2));
     await L.fin(c);
