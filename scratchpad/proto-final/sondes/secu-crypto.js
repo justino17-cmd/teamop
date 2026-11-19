@@ -10,6 +10,11 @@ const a = src.indexOf('const SECU_DEMO = true;'), b = src.indexOf('const secuPin
 v('le bloc du socle est trouvé dans la page', a > 0 && b > a, { a, b });
 const code = src.slice(a, b), pur = code.replace(/\/\*[\s\S]*?\*\//g, ' ');
 const ctx = { crypto: require('crypto').webcrypto, TextEncoder, navigator: { userAgent: '', maxTouchPoints: 0 }, Math, Uint8Array, Uint32Array, Int32Array, DataView, Set, Array, String, Date, parseInt, Object, EQUIPE: [], eqDe: () => null };
+// Le socle lit la date et l'heure du jour de démonstration (AUJ, MAINT_MIN), déclarées plus haut dans la page, hors du bloc extrait
+// (« const SECU_T0 = new Date(AUJ + … » en dépend depuis que l'horloge de démonstration y est posée) : on les lit dans la page même, jamais recopiées.
+const dem = src.match(/const AUJ = '(\d{4}-\d{2}-\d{2})', MAINT_MIN = ([^;\n]+);/);
+v('le jour et l\'heure de démonstration (AUJ, MAINT_MIN) sont trouvés dans la page', !!dem);
+ctx.AUJ = dem ? dem[1] : '2026-01-01'; ctx.MAINT_MIN = dem ? vm.runInNewContext(dem[2]) : 0;
 vm.createContext(ctx);
 vm.runInContext(code + ';this.R={sha:secuSha256,sha1:secuSha1,hm:secuHmacSha1,hotp:secuHotp,mdp:secuMdpProvisoire,code:secuCodeActivation,alea:secuAleaInt,auto:secuAutoPermis,appareil:secuAppareil,jeuCode:SECU_JEU_CODE,jeuMdp:SECU_JEU_MDP,regles:SECU_REGLES};', ctx);
 const pin = vm.runInContext(src.slice(b, src.indexOf('\n', b)) + ';secuPinFaible', ctx);
