@@ -197,7 +197,7 @@ function monterEquipe(o) {
   const suivi = suiveur();
   const conversations = require('./conversations')(app, { DATA_DIR: dir, monAdmin: PASSE, monPatronStrict: PASSE, agents, maintenant,
     surMessage: m => { const p = equipe ? equipe.surMessage(m) : Promise.resolve(); suivi.suivre(p); return p; } });
-  const reel = require('./cerveau')({ DATA_DIR: dir, agents, cleApi: o.cle || '', maintenant, appeler: o.appeler });
+  const reel = require('./cerveau')({ DATA_DIR: dir, agents, cleApi: o.cle || '', retires: o.retires, maintenant, appeler: o.appeler });
   /* `plafondScenario` : le scénario a atteint SON plafond d'appels — c'est une boucle, donc un vrai défaut (✗). `coupe` : le plafond de TOUT l'examen (ou la fin du
      scénario) — on ne peut plus savoir (« inconnu »). */
   const compte = { appels: 0, pannes: 0, coupe: false, plafondScenario: false, parAgent: {}, vus: [] };
@@ -814,7 +814,7 @@ function avecDelai(promesse, ms) {
 async function jouerScenario(def, X) {
   const t0 = Date.now();
   const H = def.reunions ? horlogeVirtuelle(Date.now()) : null;
-  const E = monterEquipe({ cle: X.cle, appeler: X.appeler, maintenant: H ? H.now : undefined, allumes: def.allumes, reunions: !!def.reunions, garde: X.garde, appelsMax: def.appelsMax, tmp: X.tmp, signature: X.signature, capacites: X.capacites });
+  const E = monterEquipe({ retires: X.retires, cle: X.cle, appeler: X.appeler, maintenant: H ? H.now : undefined, allumes: def.allumes, reunions: !!def.reunions, garde: X.garde, appelsMax: def.appelsMax, tmp: X.tmp, signature: X.signature, capacites: X.capacites });
   E.horloge = H;
   /* le scénario de synthèse (le ton) juge ce que les autres ont écrit : une panne de Claude pendant l'un d'eux le rend « inconnu » aussi */
   if (def.dernier) E.compte.pannes += X.partage.techniques;
@@ -850,7 +850,7 @@ async function executer(o) {
   const partage = { messages: [], mails: [], reunion: [], techniques: 0 };
   const X = { cle: o.cle, appeler: o.appeler, tmp: o.tmp, signature: o.signature, capacites: o.capacites || {}, garde, partage, capa: nom => !!(o.capacites && o.capacites[nom]) };
   /* le juge : une équipe réduite à Inès, qui compte dans le même plafond */
-  const JE = monterEquipe({ cle: o.cle, appeler: o.appeler, allumes: ['ines'], garde, appelsMax: 20, tmp: o.tmp });
+  const JE = monterEquipe({ retires: o.retires, cle: o.cle, appeler: o.appeler, allumes: ['ines'], garde, appelsMax: 20, tmp: o.tmp });
   X.juge = JE.cerveau;
   const fiches = [];
   const progres = (n, etat) => { try { if (typeof o.progres === 'function') o.progres({ n, etat, appels: garde.appels, usd: garde.usd }); } catch (e) {} };

@@ -99,7 +99,7 @@ const lire = f => fs.readFileSync(path.join(B.RACINE, f), 'utf8');
     process.on('exit', () => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} });
     const def = EX.SCENARIOS.find(s => s.n === 1);
     const jouer = async defauts => {
-      const X = { cle: 'sk-ant-banc-3164', appeler: banc.appeler(defauts), tmp, capacites: {}, garde: { reserver: () => true, depense() {} }, partage: { messages: [], mails: [], reunion: [], techniques: 0 }, capa: () => false, juge: null };
+      const X = { retires: false, cle: 'sk-ant-banc-3164', appeler: banc.appeler(defauts), tmp, capacites: {}, garde: { reserver: () => true, depense() {} }, partage: { messages: [], mails: [], reunion: [], techniques: 0 }, capa: () => false, juge: null };
       return EX.jouerScenario(def, X);
     };
     const bon = await jouer([]);

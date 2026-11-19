@@ -55,7 +55,7 @@ function monter(o) {
   const conversations = require(S('conversations.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant, pousseNotif, surMessage: m => (o.surMessage ? o.surMessage(m) : null) });
 
   const recus = [];
-  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2920-xxxxxxxxxxxxxxxx', maintenant,
+  const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, retires: false, cleApi: o.sansCle ? '' : 'sk-ant-banc-2920-xxxxxxxxxxxxxxxx', maintenant,
     appeler: async (cle, requete) => {
       recus.push(JSON.parse(JSON.stringify(requete)));
       const r = o.claude ? await o.claude(requete, recus.length) : 'Réponse du banc.';

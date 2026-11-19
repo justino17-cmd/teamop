@@ -47,7 +47,7 @@ function monter(o) {
     surMessage: m => (equipe ? equipe.surMessage(m) : null) });
 
   const recus = [];
-  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
+  const cerveau = require(S('cerveau.js'))(Object.assign({ DATA_DIR: D, agents, retires: false, cleApi: o.cleApi || (o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx'), maintenant }, o.cerveauCtx || {}, {
     travailActif: id => { try { return !!(travail && travail.actif(id)); } catch (e) { return false; } },   // les plafonds du mode travail suivent l'interrupteur (comme index.js)
     appeler: async (cle, requete, optsAppel) => {
       recus.push(JSON.parse(JSON.stringify(requete)));
