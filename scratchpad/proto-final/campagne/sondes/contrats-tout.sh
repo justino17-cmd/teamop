@@ -1,16 +1,15 @@
 #!/bin/bash
 # Rejoue TOUTES les sondes de la famille « contrats » (liste, fiche, nouveau contrat, signature, renouvellement, visite comprise, droits), UNE à la fois (un seul
 # navigateur), et dit pour chacune « N ✓ · M ✗ » et son code de sortie. FINI à la fin ; sort en 1 si une exécution tombe.
-#   bash scratchpad/proto-final/campagne/sondes/contrats-tout.sh             # le passage ESSENTIEL (ordinateur « mac » + téléphone « iphone »)
-#   COMPLET=1 bash …/contrats-tout.sh                                         # + les autres profils des sondes de mise en page (ipad, android, windows, petit, mac720)
+#   bash scratchpad/proto-final/campagne/sondes/contrats-tout.sh             # le passage par défaut (mac + iphone, jour et nuit, voir ci-dessous)
+#   COMPLET=1 bash …/contrats-tout.sh                                         # + le JOUR des cinq autres profils de la sonde de mise en page (ipad, android, windows, petit, mac720)
 #   AVEC_BALAYAGE=1 bash …/contrats-tout.sh                                   # + le balayage (recensement de gestes)
 # Journal complet : $CAP/contrats-tout.log (hors dépôt). Durée : voir la ligne « DURÉE » imprimée en fin de passage.
 #
-# CE QUI EST JOUÉ (le passage essentiel, ~6 min) : TOUTES les sondes sur UN ordinateur (mac, jour) ; et sur UN téléphone (iphone, la NUIT quand la sonde sait la jouer)
-# celles qui sont courtes ou qui regardent le rendu (atelier, début, fiche, renouvellement, droits, visite comprise, mise en page, barre de la fiche).
-# CE QUI EST LAISSÉ DE CÔTÉ (pour tenir dans la durée, et DIT ici) — sous COMPLET=1 :
-#   · le TÉLÉPHONE des parcours (a, b, c : une à deux minutes chacun) et des recontrôles a, b, c, e (de la nuit : un quart d'heure à eux quatre) ;
-#   · mac NUIT et iphone JOUR des sondes qui prennent « nuit » ; les profils ipad, android, windows, petit, mac720 de la sonde de mise en page.
+# CE QUI EST JOUÉ (le passage par défaut, ~20 min mesurées le 19/11 sur machine calme : 1 369 s pour tout moins la moitié « jour » des profils de la dernière ligne) : TOUTES les sondes
+# sur l'ordinateur « mac » ET le téléphone « iphone », jour ET nuit quand la sonde prend « nuit » ; la sonde de mise en page sur les cinq autres profils (ipad, android, windows,
+# petit, mac720) en NUIT.
+# CE QUI EST LAISSÉ DE CÔTÉ (pour tenir dans les 25 minutes) — sous COMPLET=1 : la moitié « jour » de la sonde de mise en page sur ces cinq profils (+ ~2,5 min).
 # CE QUI N'EST JOUÉ QUE SOUS AVEC_BALAYAGE=1 : contrats-balayage, un RECENSEMENT (page neuve, un geste, ce qu'il a fait) sans verdict propre — le verdict s'y fabrique :
 #   « ✓ » = geste touché, « ✗ » = geste non touché ou erreur de console.
 # CE QUI N'EST JAMAIS JOUÉ : contrats-outils.js (un outil, pas un contrôle).
@@ -35,18 +34,18 @@ lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout "$DEL
 sonde(){ local niv="$1"; shift; [ "$niv" = C ] && [ -z "$COMPLET" ] && return 0; lance "$@"; }
 PC=mac; TEL=iphone
 duo(){ local tel="$1" nom="$2"; shift 2; sonde E "$nom mac" "$@" mac; sonde "$tel" "$nom iphone" "$@" iphone; }
-duon(){ local tel="$1" nom="$2"; shift 2; sonde E "$nom mac jour" "$@" mac; sonde "$tel" "$nom iphone nuit" "$@" iphone nuit; sonde C "$nom mac nuit" "$@" mac nuit; sonde C "$nom iphone jour" "$@" iphone; }
+duon(){ local tel="$1" nom="$2"; shift 2; sonde E "$nom mac jour" "$@" mac; sonde "$tel" "$nom iphone nuit" "$@" iphone nuit; sonde E "$nom mac nuit" "$@" mac nuit; sonde E "$nom iphone jour" "$@" iphone; }
 
 # Sondes qui se jouent par profil, sans nuit : ordinateur, puis téléphone (courtes : le téléphone est dans le passage essentiel ; les parcours longs seulement sous COMPLET=1).
 for x in atelier debut fiche-taches recontrole-d renouvellement roles visite-comprise; do duo E "contrats $x" node $S/contrats-$x.js; done
-for x in parcours-a parcours-b parcours-c; do duo C "contrats $x" node $S/contrats-$x.js; done
+for x in parcours-a parcours-b parcours-c; do duo E "contrats $x" node $S/contrats-$x.js; done
 # Sondes qui prennent « nuit » : ordinateur de jour, téléphone de nuit (et l'autre moitié sous COMPLET=1).
 duon E "contrats fiche-barre" node $S/contrats-fiche-barre.js
 duon E "contrats mise-en-page" node $S/contrats-mise-en-page.js
-for x in recontrole-a recontrole-b recontrole-c recontrole-e; do duon C "contrats $x" node $S/contrats-$x.js; done
+for x in recontrole-a recontrole-b recontrole-c recontrole-e; do duon E "contrats $x" node $S/contrats-$x.js; done
 for p in ipad android windows petit mac720; do
+  sonde E "contrats mise-en-page $p nuit" node $S/contrats-mise-en-page.js $p nuit
   sonde C "contrats mise-en-page $p jour" node $S/contrats-mise-en-page.js $p
-  sonde C "contrats mise-en-page $p nuit" node $S/contrats-mise-en-page.js $p nuit
 done
 
 # ───────────── balayage (opt-in) : route = écran de « Contrats » ─────────────
