@@ -1,0 +1,15 @@
+{
+  "de": "chef de chantier (session_01Cw6RN2Nf56UygsM6AYoN1P), 19 novembre 2026",
+  "principe": "Ce ne sont PAS des décisions à soumettre à Justin : c'est la règle « Retour ferme la couche du dessus, rien d'autre » à APPLIQUER. Ne pas écrire « à soumettre à Justin » sur ces points ; si un point ne se corrige pas, dire pourquoi avec la mesure.",
+  "corrections": [
+    "(2) Boîte mail, menu « Principal » (ov-menu) ouvert : un Retour ferme le menu et reste dans la Boîte mail.",
+    "(3a) Composeur quitté par l'adresse : pas d'étape de Retour en trop, l'entrée du composeur part avec lui.",
+    "(3b) OP Security : aucune entrée {cal:1} orpheline après un aller() par programme.",
+    "(3c) OP Security élargi puis rétréci : le téléphone ne reste pas en plein écran."
+  ],
+  "doutes_tranches": [
+    "« ‹ OP GESTION » touché avec un panneau ouvert FERME le panneau (règle identique) : annule le choix du tour 2.",
+    "Double clic dans la même tâche JavaScript (0 ms) : une seule entrée d'historique (dédoublonner si l'entrée du dessus est identique)."
+  ],
+  "preuve": "Chaque correction est prouvée par une mutation : la sonde tombe, la page est restaurée à l'identique, `git diff --stat apercu/` est vide."
+}
