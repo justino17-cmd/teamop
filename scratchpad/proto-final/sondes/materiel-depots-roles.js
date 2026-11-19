@@ -10,9 +10,9 @@ const L = require('../lib.js');
     v('Marc : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
   { const c = await L.ouvrir({ profil:'mac', qui:'julie' }), p = c.p;
     const menu = await p.evaluate(() => document.getElementById('menu').innerText);
-    v('Julie : le menu porte Stock et Fournisseurs, matériel & produits, JAMAIS « Dépôts et camions »', /Stock/.test(menu) && /Fournisseurs, matériel/.test(NB(menu)) && !/Dépôts et camions/.test(menu), NB(menu).replace(/\s+/g, ' ').slice(0, 200));
+    v('Julie : le menu porte Stock, Fournisseurs, matériel & produits ET « Dépôts et camions » (équipe-11, MENU-FINAL.md : « Voir » décide SEULE, le Secrétariat (stock 1110) voit donc Dépôts et camions)', /Stock/.test(menu) && /Fournisseurs, matériel/.test(NB(menu)) && /Dépôts et camions/.test(menu), NB(menu).replace(/\s+/g, ' ').slice(0, 200));
     await p.evaluate(() => { location.hash = '#boxes'; }); await p.waitForTimeout(800);
-    v('Julie : #boxes est refusé (elle revient sur son écran d\'ouverture, sans carte de lieu)', await p.evaluate(() => route !== 'boxes' && !document.querySelector('.md-c')), await p.evaluate(() => route));
+    v('Julie : #boxes s\'ouvre sur « Dépôts et camions » avec ses cartes de lieu (le même droit « Voir » que Stock)', await p.evaluate(() => route === 'boxes' && document.querySelector('#contenu h1').textContent === 'Dépôts et camions' && document.querySelectorAll('.md-c').length >= 6), await p.evaluate(() => route));
     await p.evaluate(() => { try { vueBoxes(); } catch (e) {} });
     v('Julie : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
   { const c = await L.ouvrir({ profil:'iphone', qui:'sm' }), p = c.p;

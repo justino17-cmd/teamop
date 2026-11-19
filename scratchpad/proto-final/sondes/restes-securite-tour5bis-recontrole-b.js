@@ -55,8 +55,15 @@ const OUT = process.env.SORTIE || '/tmp/claude-0/r5/b/'; fs.mkdirSync(OUT, { rec
     v(F.n + ' : champ refusé marqué (aria-invalid=true + focus)', !!aria && aria.inv === 'true' && aria.foc, aria);
     rapport.push({ site: F.n, joue: true });
   }
+
+  // CREA motif : « Ce que le client a dit » est rangé tel quel (nfc posé à la frappe seulement) : NFD tapé, NFC rangé ?
+  await fermer(); await creaOuvrir(); await pause(300);
+  await p.locator('[data-cchamp="motif"]').first().click(); await p.keyboard.insertText(NFD(100)); await pause(150);
+  await p.locator('[data-action="cCreer"]').first().click(); await pause(500);
+  const mo = await p.evaluate(() => { const i = INTS.filter(i => i.id !== 'brouillon').slice(-1)[0]; return i && i.motif ? { u: i.motif.length, nfc: i.motif === i.motif.normalize('NFC') } : null; });
+  v('CREA motif : 100 « é » décomposés tapés, rangés en NFC (100 unités)', !!mo && mo.nfc && mo.u === 100, mo);
   function nbG(t) { return [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(t)].length; }
   v('aucune erreur de page', erreurs.length === 0, erreurs.slice(0, 3));
   console.log('RAPPORT', JSON.stringify(rapport));
-  await L.fin(c); await L.fermer();
+  L.bilan(); await L.fin(c); await L.fermer();
 })().catch(e => { console.log('ÉCHEC', e.message); process.exit(1); });

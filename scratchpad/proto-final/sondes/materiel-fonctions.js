@@ -22,9 +22,11 @@ const UNE2 = ['vueStock', 'prFiche', 'sxRegistre', 'matLigneArticle', 'msArticle
 let n2 = 0; for (const nom of UNE2) { n2++; if (nom === 'msFormApres' || nom === 'msPoser') { v(nom + ' : une définition', defs(nom) === 1, defs(nom)); continue; } v(nom + ' : une définition', defs(nom) === 1, defs(nom)); }
 v('population Stock : ' + UNE2.length + ' fonctions contrôlées', n2 === UNE2.length && UNE2.length >= 25);
 // Voisins et guides (lot 5) : une seule définition de chaque pièce neuve (une seconde déclaration gagne en silence), et la carte « Achats à traiter » est partie
-const UNE3 = ['matAFaire', 'matCarteAccueil', 'matPieceDe', 'matPieceX', 'matPieceEtat', 'matPieceLigne', 'matJourCourt', 'crPiecesPuces', 'crPiecesRes', 'nvCarteMat', 'pdxPieces', 'pdxPil'];
+const UNE3 = ['matAFaire', 'matCarteAccueil', 'matPieceDe', 'matPieceX', 'matPieceEtat', 'matPieceLigne', 'matJourCourt', 'crPiecesPuces', 'crPiecesRes', 'nvCartes', 'pdxPieces', 'pdxPil'];
 let n3 = 0; for (const nom of UNE3) { n3++; v(nom + ' : une définition', defs(nom) === 1, defs(nom)); }
 v('population voisins : ' + UNE3.length + ' fonctions contrôlées', n3 === UNE3.length && UNE3.length >= 10);
+// PÉRIMÉ le 17 novembre 2026 (f0d8be67, « guide des nouveautés refait » : six cartes au plus par rôle, nvCarteMat n'existe plus) : la promesse « le guide parle du matériel » se garde sur la carte Stock du guide, qui ouvre la rubrique par « Voir »
+v('le guide des nouveautés porte une carte « Stock » qui ouvre la rubrique (k:\'stock\', voir:\'stock\')', /\{ k:'stock', t:'Stock : [^\n]*voir:'stock'/.test(code));
 v('plus d\'« Achats à traiter » à l\'écran (la carte s\'appelle « Matériel »)', !/<h3>Achats à traiter/.test(code));
 // prFormulaire : la déclaration d'origine + les enveloppes qui l'habillent (chaînes voulues : doublon, rangement, quatre champs) — au plus quatre formes
 v('prFormulaire : la déclaration puis ses enveloppes (au plus 4 formes)', defs('prFormulaire') >= 1 && defs('prFormulaire') <= 4, defs('prFormulaire'));

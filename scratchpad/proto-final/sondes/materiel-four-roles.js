@@ -15,7 +15,7 @@ const L = require('../lib.js');
     v('Marc : aucune erreur de page', c.err.length === 0, c.err); await L.fin(c); }
   { const c = await L.ouvrir({ profil:'mac', qui:'julie' }), p = c.p, R = (f, a) => p.evaluate(f, a); await p.evaluate(() => { window.NB = s => String(s).replace(/[\u00a0\u202f]/g, ' '); });
     const menu = await R(() => NB(document.getElementById('menu').innerText));
-    v('Julie : son menu porte Stock et Fournisseurs, matériel & produits, JAMAIS « Dépôts et camions »', /Stock/.test(menu) && /Fournisseurs, matériel/.test(menu) && !/Dépôts et camions/.test(menu), menu.replace(/\s+/g, ' ').slice(0, 200));
+    v('Julie : son menu porte Stock, Fournisseurs, matériel & produits ET « Dépôts et camions » (équipe-11, MENU-FINAL.md : « Voir » décide SEULE, le Secrétariat (stock 1110) voit donc Dépôts et camions)', /Stock/.test(menu) && /Fournisseurs, matériel/.test(menu) && /Dépôts et camions/.test(menu), menu.replace(/\s+/g, ' ').slice(0, 200));
     await L.aller(p, 'produits');
     const pg = await R(() => ({ h1:document.querySelector('#contenu h1').textContent, onglets:document.querySelectorAll('.fx-seg button').length, photo:!!document.querySelector('[data-vis="four-photo"]'), prep:document.querySelectorAll('[data-cm^="preparer|"]').length, recep:document.querySelectorAll('.fx-ab[data-cm^="recep|"]').length, nouvelle:!!document.querySelector('[data-ce="nouvelle"]') }));
     v('Julie : elle ouvre la rubrique (Commandes d’abord), prépare les commandes, reçoit les livraisons, photographie une facture', pg.h1 === 'Fournisseurs, matériel & produits' && pg.onglets === 3 && pg.photo && pg.prep >= 3 && pg.recep >= 1 && pg.nouvelle, pg);

@@ -15,6 +15,7 @@ lance "rangement refusé (3 variantes, 3 rôles, 2 appareils)" node $S/artefact-
 lance "carte (hôtes coupés, repli dit)" node $S/artefact-carte.js
 lance "captures (carte du numéro, texte à copier, jour/nuit)" node $S/artefact-captures.js
 lance "adresses (#nom simple, noms réservés)" node $S/artefact-adresses.js
+lance "guide : les boutons « Commencer au chapitre » se touchent (sans pose, puis pose adverse)" PROFILS=mac,iphone node $S/artefact-chapitres.js
 lance "bac : mord sur la version corrigée" node $S/artefact-bac-preuve.js
 lance "voir comme l'application (bande, cadre, refus du rangement, jour et nuit)" PROFILS=mac,iphone node $S/artefact-voir-app.js
 fi
