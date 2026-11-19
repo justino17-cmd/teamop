@@ -5110,7 +5110,7 @@ function infoCarte(i){
     <div class="ap-l"><b>${esc(c.nom)}</b><br><span class="gris">${esc(c.adr)}</span></div>
     <div class="ap-l" style="display:flex;gap:8px;align-items:center">${avatar(t,'p')}<span>${t.nom}</span><span class="st ${s[1]}" style="margin-left:auto">${s[0]}</span></div>
     ${i.motif ? `<div class="ap-l ap-motif">« ${esc(i.motif)} »</div>` : ''}
-    <div class="ap-l gris petit">${esc(c.contact)} · ${insec(c.tel)}${c.acces ? '<br>' + esc(c.acces) : ''}</div>`;
+    <div class="ap-l gris petit">${esc(c.contact)} · ${insec(c.tel)}${c.acces ? '<br>' + esc(c.acces).replace(/\n/g, '<br>') : ''}</div>`;
 }
 let apTimer = null;
 function cacherApercu(){ clearTimeout(apTimer); document.querySelector('.apercu')?.remove(); }
@@ -5182,7 +5182,7 @@ function panneauBloc(id, tid, d, mins){
   const b = id ? BUREAU.find(o => o.id === id) : { tech:tid, d, h:hm(mins), dur:60, titre:'Dépôt' }, choix = ['Dépôt','Garage (véhicule)','Réunion','Formation','Rendez-vous perso','Indisponible'];
   ouvrirPanneau(`<h2>${id ? 'Modifier le créneau bloqué' : 'Bloquer un créneau'}</h2><span class="gris">${tech(b.tech).nom} · ${jlong(b.d)} · personne ne pourra y être planifié.</span>
     <div class="puces">${choix.map(c => `<button type="button" class="puce-c" data-blocchoix="${c}" aria-pressed="${b.titre===c}">${c}</button>`).join('')}</div>
-    <label class="champ">Ou un autre nom<input id="bl-titre" value="${esc(b.titre)}"></label>
+    <label class="champ">Ou un autre nom<input id="bl-titre" maxlength="120" value="${esc(b.titre)}"></label>
     <div class="deux-champs"><label class="champ">Début<input type="time" id="bl-h" step="300" value="${b.h}"></label><label class="champ">Durée<select id="bl-dur">${dureesAvec(b.dur).map(m=>`<option value="${m}" ${m===b.dur?'selected':''}>${duree(m)}</option>`).join('')}</select></label></div>
     <button type="button" class="btn large" data-action="blocOk" data-id="${id || ''}" data-tech="${b.tech}" data-d="${b.d}">${id ? 'Enregistrer' : 'Bloquer'}</button>`);
 }
@@ -5416,7 +5416,7 @@ function vueFiche(id){
   <div class="grille2">
     <div class="col">
       ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.id === 'i1' ? ' · appel d’hier, 14 h 12' : ''}</div></div>` : ''}
-      <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
+      <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
       <div class="carte"><h3>Appareils chez ce client</h3>${c.appareils.length ? '' : '<div class="gris petit">Aucun appareil enregistré pour l’instant.</div>'}${c.appareils.map(a=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
@@ -8542,15 +8542,16 @@ function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementBy
 /* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
    (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
 function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
+function dvnClientObj(f){ return { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }; }
 function dvnCreer(){
   dvnLire(); const f = DVN_F; f.err = '';
   if (f.nv && !nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (f.nv && !f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
-  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.';
+  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (f.nv && clientPlafondRefus(dvnClientObj(f))) f.err = clientPlafondRefus(dvnClientObj(f)).m; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.';
   if (!f.err && f.nv && !f.doublonOk) { const dj = cfDoublonDe(f); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Préparer le devis » pour le créer quand même, ou choisis-le dans « Client existant ».'; } }
   if (f.err) return dvNouveau();
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
-    CLIENTS[cli] = cliNet({ nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] });
+    CLIENTS[cli] = cliNet(dvnClientObj(f));
     clientFinir(cli);   /* le point de la carte des tournées, le secteur et le numéro à la française : une seule fonction pour toutes les portes (clients-05) */
     journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
@@ -9371,7 +9372,7 @@ const ACTIONS = {
     if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); } else aller('contrat-x-' + k.id); toast(chezCli ? 'Contrat signé. La copie signée vous est envoyée par e-mail.' : `Contrat signé. ${k.freq} visite${k.freq>1?'s':''} posée${k.freq>1?'s':''} au planning « à planifier ».${k.fact === 'an' ? ' La facture de l’année est préparée dans Factures.' : k.fact === 'mois' ? ' La facture du premier mois est préparée dans Factures.' : ''}`); },
   modifInt(b){ const i = INTS.find(o => o.id === b.dataset.id); if (!i) return;
     ouvrirPanneau(`<h2>Modifier l’intervention</h2><span class="gris">${esc(CLIENTS[i.cli].nom)} · ${ST[i.st][0].toLowerCase()}${i.st === 'encours' ? ' — le technicien voit la correction tout de suite' : ''}</span>
-      <label class="champ">Titre<input id="m-t" value="${esc(i.titre)}"></label>
+      <label class="champ">Titre<input id="m-t" maxlength="120" value="${esc(i.titre)}"></label>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="champ" style="flex:1 1 150px">Date<input type="date" id="m-d" value="${i.d}"></label><label class="champ" style="flex:1 1 110px">Heure<input type="time" id="m-h" value="${i.h}"></label><label class="champ" style="flex:1 1 110px">Durée<select id="m-dur">${[...new Set([30,60,90,120,180,240,480,i.dur])].sort((a,b)=>a-b).map(n=>`<option value="${n}" ${i.dur===n?'selected':''}>${duree(n)}</option>`).join('')}</select></label></div>
       <label class="champ">Technicien<select id="m-tech">${TECHS.map(t=>`<option value="${t.id}" ${i.tech===t.id?'selected':''}>${t.nom}</option>`).join('')}</select></label>
       <label class="champ">Type<select id="m-type">${[...new Set([i.type, ...TYPES])].map(t=>`<option ${i.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
@@ -9379,6 +9380,7 @@ const ACTIONS = {
       <button type="button" class="btn large" data-action="modifIntOk" data-id="${i.id}">Enregistrer les modifications</button>`); },
   modifIntOk(b){ const i = INTS.find(o => o.id === b.dataset.id);
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
+    { const pl = refusLong(document.getElementById('m-t').value, 120, 'Titre'); if (pl) { document.getElementById('m-t').focus(); return toast(pl); } }   /* un plafond dépassé refuse, il ne coupe pas */
     if ((t2 !== i.tech || d2 !== i.d || h2 !== i.h) && refusAbsent(t2, d2, h2)) return; // avant memo() : rien à annuler si c’est refusé
     memo(); const dAvant = i.d, hAvant = { h:i.h, dur:i.dur }, tAvant = i.tech, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
     Object.assign(i, { titre:libelleSur(document.getElementById('m-t').value, 120) || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
@@ -9406,7 +9408,8 @@ const ACTIONS = {
     payer(f, m, { montant:v, d:dd ? dd.split('-').reverse().slice(0,2).join('/') : undefined, h, photo:window.__encPhoto }); window.__encPhoto = null; fermerPanneau(); filtreMode = 'tous'; rendre(); },
   bilanPdf(){ ouvrirPanneau(`<h2>Bilan d’octobre</h2>${bilanPdf()}`, true); },
   info(b){ toast(esc(b.dataset.txt)); },
-  blocOk(b){ const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
+  blocOk(b){ { const pl = refusLong(document.getElementById('bl-titre').value, 120, 'Titre du créneau'); if (pl) { document.getElementById('bl-titre').focus(); return toast(pl); } }
+    const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
     if (b.dataset.id) Object.assign(BUREAU.find(o => o.id === b.dataset.id), { titre, h, dur, indispo: titre === 'Indisponible' });
     else BUREAU.push({ id:'b' + Date.now(), tech:b.dataset.tech, d:b.dataset.d, h, dur, titre, indispo: titre === 'Indisponible' });
     fermerPanneau(); rendre(); toast(`${esc(titre)} · ${h} – ${fin(h, dur)}`, ANNULER); },
@@ -10049,6 +10052,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return x ? fournFiche(x) : fournListe();
   if (a === 'local') return foLocal();
   if (a === 'localok') { const nom = document.getElementById('fo-l-nom').value.trim(); if (!nom) { document.getElementById('fo-l-nom').focus(); return toast('Donne le nom du fournisseur'); }
+    { const pl = refusLong(nom, 80, 'Nom du fournisseur'); if (pl) { document.getElementById('fo-l-nom').focus(); return toast(pl); } }
     const telL = document.getElementById('fo-l-tel').value.trim(); if (telL && !/^[0-9 +.()-]{6,20}$/.test(telL)) { document.getElementById('fo-l-tel').focus(); return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.'); }
     const f = { id:'f' + Date.now().toString(36), nom:libelleSur(nom, 80), packs:[document.getElementById('fo-l-pack').value], mail:document.getElementById('fo-l-mail').value.trim(), tel:telL, compte:'', delai:'', remise:null };
     MES_FOURN.push(f); rendre(); fournFiche(f.id); return toast(`${esc(nom)} ajouté à tes fournisseurs.`); }
@@ -10719,8 +10723,13 @@ const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’'
   if (x.length > 60) return '60 signes au plus.';
   return NOM_PERS_REFUS; };
 /* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
-const coupeSure = (t, n) => { const c = String(t).slice(0, n); return /[\ud800-\udbff]$/.test(c) ? c.slice(0, -1) : c; };
-const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+const SEG_GRAPH = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('fr', { granularity:'grapheme' }) : null;
+const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Array.from(SEG_GRAPH.segment(t), x => x.segment) : Array.from(t); };
+/* nbSignes : les signes COMPTÉS COMME L'UTILISATEUR (un drapeau, une famille d'émojis ou un « é » décomposé = 1 ; un saut de ligne = 1) */
+const nbSignes = t => graphemes(t).length;
+/* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
+const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
+const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
@@ -10731,7 +10740,22 @@ const nomClientNet = (t, n) => libelleSur(t, n || 80);
 /* Un nom de client ou d'expéditeur va jusqu'à 120 signes (« Syndicat des copropriétaires de la résidence … » en demande plus de 80) ; les champs de saisie portent le même plafond (maxlength) :
    on ne peut pas taper plus, donc rien n'est coupé en silence (recontrôle de la sécurité, tour 1 : un nom de 90 signes sortait coupé à 80) */
 const NOM_MAX = 120;
-const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 60); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
+/* consignes d'accès : un champ MULTILIGNE (3 lignes au plus) — chaque ligne est nettoyée à part (blancs réduits), les lignes vides tombent, les sauts de ligne sont gardés
+   (« 4821Sonner chez la gardienne » : le saut de ligne retiré sans être remplacé collait le code au mot suivant) */
+const ACCES_LIGNES = 3;
+const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(Boolean);
+const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join('\n'), n || 200);
+/* cliNet(c) : la toilette ET, en dernier recours, la coupe au plafond ; cliNet(c, true) : la toilette SEULE, sans rien couper — c'est elle que lit clientPlafondRefus.
+   Les formulaires refusent AVANT d'appeler cliNet : la coupe ne sert plus qu'aux clients venus du dehors (e-mail reçu, cadre Documents) */
+const CLI_CHAMPS = [['nom', 'Nom', NOM_MAX], ['contact', 'Contact', NOM_MAX], ['tel', 'Téléphone', 60], ['mail', 'E-mail', 120], ['adr', 'Adresse', 160], ['acces', 'Consignes d’accès', 200]];
+const cliNet = (c, plein) => { const o = { ...c }; const m = n => plein ? 1e9 : n; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], m(n)); }); if (typeof o.acces === 'string') o.acces = accesNet(o.acces, m(200)); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, m(120)).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, m(60)); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
+/* LA règle de plafond, UNE seule fonction : une phrase qui dit le champ et la limite, ou '' — rien ne s'enregistre quand elle parle. Le texte compté est le texte nettoyé qui serait gardé (graphèmes) */
+const refusLong = (t, max, lib) => { const n = nbSignes(libelleSur(t, 1e9)); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : ''; };
+function clientPlafondRefus(c){ const o = cliNet(c, true);
+  for (const [k, lib, max] of CLI_CHAMPS) { if (typeof o[k] !== 'string') continue; const n = nbSignes(o[k]), nom = k === 'nom' ? (o.type === 'pro' ? 'Raison sociale' : 'Nom du client') : lib;
+    if (k === 'acces' && accesLignes(c.acces).length > ACCES_LIGNES) return { k, m:'Le champ « ' + lib + ' » tient sur ' + ACCES_LIGNES + ' lignes au plus (' + accesLignes(c.acces).length + ' écrites) : regroupe-les, rien n’a été enregistré.' };
+    if (n > max) return { k, m:'Le champ « ' + nom + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' }; }
+  return null; }
 const nomNorm = s => prNorm(s).replace(/ /g, '');
 const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
 const habEtat = d => d == null ? 'v' : tJours(d) < 0 ? 'r' : tJours(d) <= 60 ? 'o' : 'v';
@@ -10784,7 +10808,7 @@ function eqInviter(){
   ouvrirPanneau(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
     <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" autocomplete="off"></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
-    <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
+    <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
     <label class="fo-garder"><input type="checkbox" id="eq-terrain" checked> Travaille sur le terrain (apparaît dans le filtre « Terrain » de l’Équipe)</label>
     <span class="gris petit">${EQUIPE.filter(p => p.actif).length} comptes sur ${EQ_PLACES} places. La personne reçoit une invitation par e-mail. Son mot de passe provisoire s’affichera ensuite : remets-le-lui en main propre.</span>
@@ -10805,6 +10829,7 @@ document.addEventListener('click', ev => {
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');
+    { const pl = refusLong(document.getElementById('eq-r').value, 40, 'Rôle'); if (pl) { document.getElementById('eq-r').focus(); return toast(pl); } }
     const k = 'u' + Date.now().toString(36), prof = document.getElementById('eq-prof').value;
     EQUIPE.push({ k, prenom:pr, nom:no, role:libelleSur(document.getElementById('eq-r').value, 40) || PROFILS[prof].nom, mail:m, tel:'', actif:true, invite:true, terrain:document.getElementById('eq-terrain').checked, droits:copieProfil(prof), habil:[] });
     H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:'#6b7280' };
@@ -12212,7 +12237,7 @@ function cxSirenForm(){
 }
 function cxPlateforme(){
   ouvrirPanneau(`<span class="surtitre">Conformité · facture électronique</span><h2>Ta plateforme agréée</h2><span class="gris">Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir ses factures fournisseurs au format électronique, par une plateforme agréée par l’administration. Ta banque, ton expert-comptable ou ton logiciel peuvent t’en proposer une ; la liste officielle est sur impots.gouv.fr.</span>
-    <label class="champ">Le nom de ta plateforme<input class="saisie" id="pa-n" value="${esc(CX_CONF.pa)}" placeholder="celle que tu as choisie"></label>
+    <label class="champ">Le nom de ta plateforme<input class="saisie" id="pa-n" maxlength="60" value="${esc(CX_CONF.pa)}" placeholder="celle que tu as choisie"></label>
     <label class="champ">Inscrite depuis le<input class="saisie" type="date" id="pa-d" value="${CX_CONF.paDate || AUJ}" max="${AUJ}"></label>
     <label class="case"><input type="checkbox" id="pa-v" ${CX_CONF.paVerif ? 'checked' : ''}><span>J’ai vérifié : elle est sur la liste officielle des plateformes agréées, et je suis inscrit dans l’annuaire comme la recevant.</span></label>
     <span class="gris petit">OP GESTION est prévu pour s’y brancher : les factures reçues entreront toutes seules dans les Achats, et tes factures aux professionnels partiront par elle à partir de septembre 2027 (pour une PME ou une micro-entreprise).</span>
@@ -12243,6 +12268,7 @@ document.addEventListener('click', ev => {
     I.forEach(i => { const d = i.value.replace(/\s/g, ''); CLIENTS[i.dataset.cxsiren].siren = d ? d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : ''; });
     fermerPanneau(); rendre(); return toast('SIREN enregistrés : ils s’écrivent sur les factures de ces clients.'); }
   if (a === 'plateformeok') {
+    { const pl = refusLong((document.getElementById('pa-n') || {}).value, 60, 'Nom de la plateforme'); if (pl) { document.getElementById('pa-n').focus(); return toast(pl); } }
     const n = libelleSur((document.getElementById('pa-n') || {}).value, 60); if (!n) return toast('Écris le nom de ta plateforme.');
     CX_CONF.pa = n; CX_CONF.paDate = (document.getElementById('pa-d') || {}).value || AUJ; CX_CONF.paVerif = !!(document.getElementById('pa-v') || {}).checked; fermerPanneau(); rendre(); return toast(`Plateforme enregistrée : ${esc(n)}.`); }
 });
@@ -13226,7 +13252,7 @@ function rlFicheAPlanifier(i){
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.origine === 'client' ? ' · par son espace client' : ''}</div></div>` : ''}
     <div class="carte"><h3>Ce que c’est</h3><div>${esc(RL_TYPES[i.type] || i.type)}</div></div>
-    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div></div>
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div></div>
    <div class="col"><div class="carte rl-placer"><h3>La placer</h3>
       <div class="cx-2"><label class="champ" style="flex:1 1 150px">Jour<input class="saisie" type="date" id="pl-d" value="${jour}" min="${AUJ}"></label><label class="champ" style="flex:1 1 110px">Heure<select class="saisie" id="pl-h">${rlCreneaux().map(h => `<option ${h === (i.h && i.h >= '07:30' && i.h !== '08:00' ? i.h : '09:00') ? 'selected' : ''}>${h}</option>`).join('')}</select></label></div>
       <label class="champ">Durée<select class="saisie" id="pl-u">${[[30, '30 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h'], [240, '4 h']].map(([v, l]) => `<option value="${v}" ${v === (i.dur || 60) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -13248,7 +13274,7 @@ function rlFicheVisite(i){
   return tete + `<div class="info petit" style="margin-bottom:12px">Visite pour un devis : pas de contrôles, pas de signature, pas de paiement. Tu relèves ce qu’il faut pour chiffrer ; le client signera le devis.</div>
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div></div>` : ''}
-    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
     <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="rl-photos">${F.photos.map(p => `<span class="rl-ph" style="background-image:url(${p.src})"></span>`).join('')}<label class="rl-ph rl-ph-plus">＋ Photo<input type="file" accept="image/*" capture="environment" multiple data-rlvph="${i.id}" hidden></label></div></div></div>
    <div class="col">
     <div class="carte"><h3>Ce qu’il faut prévoir pour le devis</h3><label class="champ"><span class="faible">Le matériel, les travaux, les difficultés. Écris, ou dicte avec le micro du clavier.</span><textarea data-rlv="besoin|${i.id}" placeholder="ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.">${esc(F.besoin)}</textarea></label></div>
@@ -14195,8 +14221,8 @@ function rendreCreation_(){
     : `<input class="saisie" placeholder="Chercher un client…" data-cherchecli="1" value="${esc(CREA.cherche || '')}" aria-label="Chercher un client"><div class="liste-cli">${Object.entries(CLIENTS).filter(([kk,x]) => kk !== '__nv' && !x.archive && (!CREA.cherche || sansAccent(x.nom).includes(sansAccent(CREA.cherche)))).map(([kk,x]) => `<button type="button" class="cli-l" data-ccli="${kk}" aria-pressed="${CREA.cli===kk}"><span><b>${escN(x.nom)}</b><br><span class="gris petit">${esc(x.adr)} · ${SECT_CLI[kk] ? 'secteur ' + SECT_CLI[kk] : 'hors secteur'}</span></span><span>${CONTRATS.find(y=>y.cli===kk&&y.st==='signe')?'<span class="st st-v">contrat</span> ':''}${devisOk(kk)?'<span class="st st-b">devis accepté</span>':''}</span></button>`).join('')}</div>`}</section>`;
   const etape2 = `<section class="carte"><div class="ni-etape"><b>2</b><h2>L’intervention</h2></div>
     <div class="groupe" style="padding-top:0">Type</div><div class="puces">${TYPES.map(t => `<button type="button" class="puce-c" data-ctype="${esc(t)}" aria-pressed="${CREA.type===t}">${esc(t)}</button>`).join('')}<button type="button" class="puce-c ajout" data-action="cAjoutType">＋ Ajouter un type</button></div>
-    <label class="champ" style="margin-top:12px">Titre (ce que le technicien lit en premier)<input data-cchamp="titre" value="${esc(CREA.titre)}"></label>
-    <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
+    <label class="champ" style="margin-top:12px">Titre (ce que le technicien lit en premier)<input data-cchamp="titre" maxlength="120" value="${esc(CREA.titre)}"></label>
+    <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" maxlength="600" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
     <div class="groupe">Durée prévue</div><div class="puces">${[30,60,90,120,180,240].map(m => `<button type="button" class="puce-c" data-cdur="${m}" aria-pressed="${CREA.dur===m}">${duree(m)}</button>`).join('')}</div>
     <div class="groupe">Pièces à prévoir <span class="faible mini" style="font-weight:500">— le technicien les voit sans prix, et coche celles qu’il pose</span></div>
     <div class="puces" data-vis="crea-pieces">${crPiecesPuces()}</div>
@@ -14291,9 +14317,12 @@ const ACTIONS_CREA = {
   cPlusTot(){ for (const d of ouvres(10)) for (const t of TECHS.filter(x => x.id && (!CREA.secteurSeul || !secteurCrea() || SECT_TECH[x.id].includes(secteurCrea())))) { const p = plagesLibres(t.id, d).find(([a,z]) => z - a >= CREA.dur); if (p) { CREA.vue = 'jour'; CREA.jour = d; placerBrouillon(t.id, d, p[0]); rendre(); toast(`Premier créneau libre : ${esc(t.nom)} · ${jlong(d)} · ${hm(p[0])}`); return; } } toast('Aucun créneau libre sur les 10 prochains jours.'); },
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
+    { const pl = refusLong(CREA.titre, 120, 'Titre'), nm = nbSignes(texteNet(CREA.motif).trim()), pm = nm > 600 ? 'Le champ « Ce que le client a dit » est limité à 600 signes, ce texte en fait ' + nm + ' : raccourcis-le, rien n’a été enregistré.' : '';
+      if (pl || pm) { toast(pl || pm); const ch = document.querySelector('[data-cchamp="' + (pl ? 'titre' : 'motif') + '"]'); if (ch) ch.focus(); return; } }   /* un plafond dépassé refuse, il ne coupe pas */
     if (CREA.nouveau) {   /* mêmes contrôles que la fiche client : un numéro ou une adresse e-mail impossibles ne s'enregistrent pas (champs facultatifs, mais justes s'ils sont remplis) */
       const nvMail = String(CREA.nv.mail || '').trim(), mauvais = nvMail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nvMail) ? 'mail' : !cfTelOk(CREA.nv.tel) ? 'tel' : '';
       if (mauvais) { toast(mauvais === 'mail' ? 'L’adresse e-mail est à vérifier.' : TEL_MSG); const ch = document.querySelector('[data-cnv="' + mauvais + '"]'); if (ch) ch.focus(); return; }
+      { const pl = clientPlafondRefus(cliCrea()); if (pl) { toast(pl.m); const ch = document.querySelector('[data-cnv="' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '"]'); if (ch) ch.focus(); return; } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
       /* le technicien doit savoir OÙ aller, et le bureau comment prévenir le client : comme le formulaire du devis (clients-04, décision du 17 novembre) ; le refus nomme le champ qui manque */
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
@@ -14301,7 +14330,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau) { let nn = Object.keys(CLIENTS).length; while (CLIENTS['c' + nn]) nn++; k = 'c' + nn;   /* jamais un identifiant déjà pris : « Annuler » peut retirer un client au milieu de la liste, et le nombre de clients ne suffit plus */
       CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, NVSIG:CREA.nouveau ? JSON.stringify(CLIENTS[k]) : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
-    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: texteNet(CREA.motif).trim().slice(0, 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
+    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: coupeSure(texteNet(CREA.motif).trim(), 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
@@ -14628,6 +14657,7 @@ function clientEnregistrer(k){ const c = CLIENTS[k]; if (!c) return false; const
   if (!L.contact) return refus('Indique le contact du client.', 'contact');
   if (L.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(L.mail)) return refus('L’adresse e-mail est à vérifier.', 'mail');
   if (!cfTelOk(L.tel)) return refus(TEL_MSG, 'tel');
+  { const pl = clientPlafondRefus({ nom:L.nom, contact:L.contact, tel:cfTelFmt(L.tel), mail:L.mail, type:L.type, adr:L.adr, acces:L.acces }); if (pl) return refus(pl.m, pl.k); }   /* un plafond dépassé REFUSE (une seule règle pour les cinq formulaires) : plus de coupe silencieuse */
   if (!L.tel && !L.mail && (c.tel || c.mail)) return refus('Garde au moins un téléphone ou un e-mail : sans l’un des deux, on ne peut plus prévenir ce client (clients-12).', 'tel');
   const adrAvant = c.adr, nomAvant = c.nom;
   /* pour un particulier, le nom et le contact sont la même personne : si on ne touche pas au contact, il suit le nom (sinon la fiche montre deux noms, recontrôle casse 2) */
@@ -14681,15 +14711,17 @@ function clientSeulFen(){ const f = CS_F, pro = f.type === 'pro'; ouvrirPanneau.
 function clientSeulLire(){ const v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; }; ['nom', 'contact', 'tel', 'mail', 'adr'].forEach(k => { const x = v('cs-' + k); if (x != null) CS_F[k] = x; }); }
 ACTIONS.clientSeul = function(){ fermerPanneau(); CS_F = { type:'part', nom:'', contact:'', tel:'', mail:'', adr:'', err:'', doublonOk:false }; clientSeulFen(); setTimeout(() => document.getElementById('cs-nom')?.focus(), 50); };
 ACTIONS.clientSeulType = function(b){ clientSeulLire(); CS_F.type = b.dataset.v; CS_F.err = ''; clientSeulFen(); };
+const csClientObj = (f, nom) => ({ nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] });
 ACTIONS.clientSeulOk = function(){ clientSeulLire(); const f = CS_F; f.err = '';
   if (!nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (!f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir le prévenir.';
   else if (f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (!cfTelOk(f.tel)) f.err = TEL_MSG;
   const nom = cfNomClient(f);
+  if (!f.err) { const pl = clientPlafondRefus(csClientObj(f, nom)); if (pl) f.err = pl.m; }
   if (!f.err && cfNomCle(nom) && Object.entries(CLIENTS).some(([kk, x]) => kk !== '__nv' && cfNomCle(x.nom) === cfNomCle(nom) && !f.doublonOk)) { f.doublonOk = true; f.err = 'Un client porte déjà ce nom : « ' + nom + ' ». Touche encore « Créer le client » pour le créer quand même.'; }
   else if (!f.err && !f.doublonOk) { const dj = cfDoublonDe({ ...f, nom }); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer le client » pour le créer quand même.'; } }
   if (f.err) return clientSeulFen();
   const k = 'c' + Date.now().toString(36);
-  CLIENTS[k] = cliNet({ nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }); clientFinir(k);
+  CLIENTS[k] = cliNet(csClientObj(f, nom)); clientFinir(k);
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:nom, cli:k }, { det:'sa fiche seule' });
   CS_F = null; fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('client-x-' + k); toast('Client créé : ' + esc(nom) + '. Tu peux maintenant lui créer une intervention ou un devis.'); };
 /* clients-17 : un client ne s'efface jamais (ses factures doivent garder leur client) : il s'ARCHIVE, et se remet dans la liste d'un geste */
@@ -17723,7 +17755,7 @@ function fournListe(){
     <div class="fo-bloc" id="fo-dir">${dir.map(ligneDir).join('') || '<div class="gris" style="padding:12px 4px">Aucun fournisseur ne correspond.</div>'}</div>
     <span class="gris petit">Liste préparée par TEAM OP pour chacun des 24 métiers (${Object.keys(FOURN_DIR).length} entreprises), sans lien commercial avec elles. Il en manque un ? Dis-le-nous, on l’ajoute pour tout le métier.</span>`;
   const autre = `<span class="gris">Ton grossiste du coin, une agence locale : trois champs suffisent.</span>
-    <label class="champ">Nom<input id="fo-l-nom" placeholder="ex. Quincaillerie du Port" autocomplete="off"></label>
+    <label class="champ">Nom<input id="fo-l-nom" maxlength="80" placeholder="ex. Quincaillerie du Port" autocomplete="off"></label>
     <div class="deux-champs"><label class="champ">E-mail des commandes<input id="fo-l-mail" type="email" placeholder="commandes@…"></label><label class="champ">Téléphone<input id="fo-l-tel" inputmode="tel"></label></div>
     <details class="ms-acc ms-plus"><summary>Plus de détails</summary><label class="champ">Métier<select id="fo-l-pack">${PACKS_ENT.map(k => `<option value="${k}">${esc(PACKS[k].nom)}</option>`).join('')}</select></label></details>
     <div class="fo-pied"><button type="button" class="btn" data-fo="localok">Ajouter ce fournisseur</button></div>`;
@@ -21492,7 +21524,7 @@ function eqxFormModif(p) {
   return `<div class="carte eqx-modif"><div class="deux-champs"><label class="champ">Prénom<input id="eqx-mp" value="${esc(p.prenom)}" autocomplete="off"></label><label class="champ">Nom<input id="eqx-mn" value="${esc(p.nom)}" autocomplete="off"></label></div>
     <div id="eqx-mhomo" class="gris petit" aria-live="polite"></div>
     <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eqx-mm" type="email" value="${esc(p.mail)}" autocomplete="off"></label><label class="champ">Téléphone<input id="eqx-mt" type="tel" value="${esc(p.tel || '')}" autocomplete="off"></label></div>
-    <label class="champ">Rôle (un simple nom)<input id="eqx-mr" list="eqx-roles" value="${esc(p.role)}" autocomplete="off"><datalist id="eqx-roles">${['Technicien', 'Technicienne', 'Chef d’équipe', 'Secrétariat', 'Apprenti', 'Responsable'].map(o => `<option value="${o}">`).join('')}</datalist></label>
+    <label class="champ">Rôle (un simple nom)<input id="eqx-mr" maxlength="40" list="eqx-roles" value="${esc(p.role)}" autocomplete="off"><datalist id="eqx-roles">${['Technicien', 'Technicienne', 'Chef d’équipe', 'Secrétariat', 'Apprenti', 'Responsable'].map(o => `<option value="${o}">`).join('')}</datalist></label>
     <label class="fo-garder"><input type="checkbox" id="eqx-mter" ${eqxTerrain(p) ? 'checked' : ''} ${droitAdmin(p) || p.k === acteur() ? 'disabled' : ''}> Travaille sur le terrain<span class="gris petit">coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés ; décoché : sur les écrans du bureau</span></label>
     <div class="actions"><button type="button" class="btn" data-eqx="modifok|${p.k}">Enregistrer</button><button type="button" class="btn gris" data-eqx="modifx|${p.k}">Annuler</button></div></div>`;
 }
@@ -21537,7 +21569,7 @@ eqInviter = function () {
   eqxPan(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
     <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off" aria-describedby="eq-p-err"><span class="erreur" id="eq-p-err" role="alert" hidden></span></label><label class="champ">Nom<input id="eq-n" autocomplete="off" aria-describedby="eq-n-err"><span class="erreur" id="eq-n-err" role="alert" hidden></span></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
-    <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off" aria-describedby="eq-m-err"><span class="erreur" id="eq-m-err" role="alert" hidden></span></label><label class="champ">Rôle (un simple nom)<input id="eq-r" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
+    <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off" aria-describedby="eq-m-err"><span class="erreur" id="eq-m-err" role="alert" hidden></span></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off" aria-describedby="eq-r-err"><span class="erreur" id="eq-r-err" role="alert" hidden></span></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
     <div id="eqx-profdit" class="gris petit">${eqxProfilDit('tech')}</div>
     <label class="fo-garder"><input type="checkbox" id="eq-terrain" checked> Travaille sur le terrain (se planifie, apparaît aux interventions)</label>
@@ -21720,7 +21752,8 @@ document.addEventListener('click', ev => {
     const V = entVerifier([
       ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : nomRefus(v)],
       ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : nomRefus(v)],
-      ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : '']]);
+      ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : ''],
+      ['eq-r', v => refusLong(v, 40, 'Rôle')]]);   /* un plafond dépassé refuse, sous son champ */
     if (!V) return;
     const pr = nomPersonneOk(V['eq-p']), no = nomPersonneOk(V['eq-n']), m = V['eq-m'];
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
@@ -21757,6 +21790,7 @@ document.addEventListener('click', ev => {
     if (t && !/^[0-9 +.()-]{6,20}$/.test(t)) return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.');
     const h = eqHomonyme(pr, no, x); if (h) { document.getElementById('eqx-mhomo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide.');
+    { const pl = refusLong(eqxVal('eqx-mr'), 40, 'Rôle'); if (pl) { document.getElementById('eqx-mr').focus(); return toast(pl); } }
     { const dup = EQUIPE.find(o => o.k !== x && String(o.mail || '').trim().toLowerCase() === m.toLowerCase()); if (dup) return toast(`Cette adresse est déjà celle de ${esc(eqNom(dup))} : chaque personne se connecte avec la sienne.`); }
     const avant = eqxPrise(), nomAv = eqNom(p), ch = [];
     if (nomAv !== pr + ' ' + no) ch.push(['son nom', nomAv, pr + ' ' + no]); if (p.mail !== m) ch.push(['son e-mail', p.mail, m]); if ((p.tel || '') !== t) ch.push(['son téléphone', p.tel || '—', t || '—']);
@@ -22860,6 +22894,7 @@ function dxClientErr(){
     if (!DX.nom.trim()) return 'Indique le nom du client.';
     if (!DX.tel.trim() && !DX.mail.trim()) return 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
     if (DX.mail.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(DX.mail.trim())) return 'L’adresse e-mail est à vérifier.';
+    { const pl = clientPlafondRefus(dxClientObj()); if (pl) return pl.m; }
   }
   return '';
 }
@@ -23012,10 +23047,12 @@ function dxSaisie(t, fin){
 }
 document.addEventListener('input', ev => { const t = ev.target; if (t && t.matches && t.matches('[data-dx]')) dxSaisie(t, false); });
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.matches && t.matches('[data-dx]')) dxSaisie(t, true); });
+function dxClientObj(){ const nom = DX.nom.trim(), pre = DX.prenom.trim(), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
+  return { nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] }; }
 function dxClientCreer(){
   if (DX.cli) return DX.cli;
   const nom = DX.nom.trim(), pre = DX.prenom.trim(), k = 'n' + Date.now().toString(36), r = reconnaitre(DX.adr), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
-  CLIENTS[k] = cliNet({ nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] });
+  CLIENTS[k] = cliNet(dxClientObj());
   if (r) SECT_CLI[k] = r.secteur; clientFinir(k);   /* le point de la carte aussi, comme tous les clients créés (recontrôle clients, casse 3) */
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, { det:'depuis le devis xylophage' });
   DX.cli = k; DX.nv = false; DX.nom = DX.prenom = DX.tel = DX.mail = DX.adr = ''; return k;
