@@ -19048,7 +19048,7 @@ function vxPleinOk(force){
 function vxKmPanel(vid, from){
   const v = vehDe(vid); if (!v) return; const dr = v.releves[v.releves.length - 1];
   ouvrirPanneau(`${vhEnt(v)}<h2>Relever le compteur</h2>
-    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
+    <label class="champ">Kilomètres au compteur<input id="vx-nkm" inputmode="numeric" placeholder="ex. ${v.km.toLocaleString('fr-FR')}" autocomplete="off"></label>
     <span class="gris petit">Dernier relevé : ${vxKm(v.km)}${dr ? ', le ' + esc(vhJM(dr.d)) : ''}. Les échéances au kilomètre se recalculent.</span><div id="vx-al"></div>
     ${vhGros(`kmok|${v.id}|${from || ''}`, 'Enregistrer', vhRet(from, v.id))}`);
 }
