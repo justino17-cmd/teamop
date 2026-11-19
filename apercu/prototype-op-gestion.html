@@ -3753,6 +3753,8 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+/* regard technicien b (320 px) : les deux champs du plein sont empilés, et la ligne « toutes taxes comprises » collait au libellé du champ suivant (on la lisait comme son titre) : de l'air entre les deux champs */
+@media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}
 
 /* ══ TEMPS DE TRAVAIL — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (rien d'autre : pas de teinte, de rayon ni d'ombre neufs) ══ */
 .tt-k .kpi{cursor:pointer;font:inherit}.tt-k .kpi[aria-pressed="true"]{border-color:var(--lien)}

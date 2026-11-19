@@ -37,6 +37,10 @@ const lignes = (c, sel) => ev(c, s => { const e = document.querySelector(s); if 
       if (m && m.haut) { deborde++; v(nom + ' · ' + lib + ' : le pied touche le bas de la feuille (écart ' + m.ecart + ' px) et c\'est lui qu\'on touche au ras du bas', m.ecart <= 1.5 && m.dessous, m); }
       if (lib === 'plein') { const h = await ev(c, () => { const a = document.getElementById('vx-m'), b = document.getElementById('vx-km'); return a && b ? { m: Math.round(a.getBoundingClientRect().top), km: Math.round(b.getBoundingClientRect().top) } : null; });
         /* côte à côte : même hauteur ; empilés (320 px) : l'alignement va de soi */ v(nom + ' · plein : « Montant payé » et « Kilomètres au compteur » ont leur champ à la même hauteur', !!h && (Math.abs(h.m - h.km) <= 1 || h.km >= h.m + 40), h); }
+      if (lib === 'plein') { /* K · empilés (≤ 340 px), la ligne « toutes taxes comprises » ne colle pas au libellé du champ suivant (vue au regard : on la lisait comme son titre) */
+        const k = await ev(c, () => { const pet = document.querySelector('#vx-m ~ small'), suiv = document.querySelector('#vx-km'), lib = suiv && suiv.closest('label'); if (!pet || !lib) return null; const rp = pet.getBoundingClientRect(), rl = lib.getBoundingClientRect(); return { empile: rl.top > rp.bottom - 2, air: Math.round((rl.top - rp.bottom) * 10) / 10, petit: rp.height > 0 }; });
+        if (k && k.empile) v(nom + ' · plein : de l\'air (≥ 10 px) entre « toutes taxes comprises » et le champ suivant', k.air >= 10, k);
+        else v(nom + ' · plein : champs côte à côte, la ligne d\'aide est sous son champ', !!k && k.petit, k); }
       await fermer(c);
     }
     if (tel) v(nom + ' · …au moins une feuille déborde (sinon le contrôle ne regardait rien)', deborde >= 1, deborde);
