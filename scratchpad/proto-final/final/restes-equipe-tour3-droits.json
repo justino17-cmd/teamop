@@ -1,0 +1,3826 @@
+{
+ "tour": "restes équipe 3 — droits (19 novembre 2026)",
+ "page": "apercu/prototype-op-gestion.html",
+ "sonde_neuve": "scratchpad/proto-final/campagne/sondes/equipe-droits-joues.js (profils iPhone, Mac, Android, iPad : 89 ✓ · 0 ✗ chacun, au dernier passage)",
+ "methode": "personne test créée par le formulaire d'Équipe (Rémi Poulain), toutes les cases cochées, UNE case décochée par la vraie case de sa fiche, ouverture « comme elle » (secuVoirComme), chemins HORS du bouton visible (clic droit / appui long, touches du clavier, boutons fabriqués comme le fait le menu, adresse directe, autre écran, sélection multiple…). Données comparées = copie JSON de 28 tableaux de la page + tout le rangement local (localStorage), avant/après. Verdict d'un chemin SANS la case : données identiques ET (refus dit à l'écran OU chemin fermé) ; chemins de menus/boutons : FERMÉS exigés. Contre-épreuve AVEC la case : le même chemin écrit vraiment (ou ouvre sa fenêtre).",
+ "cases": [
+  {
+   "case": "planif.s",
+   "verdict": "VIVANTE — DEUX DÉFAUTS DE LA PAGE trouvés puis corrigés",
+   "constats": [
+    "« Supprimer l'absence » (menu du clic droit sur une barre du calendrier des absences, ou bouton data-asuppr fabriqué comme le fait aDeclencher) supprimait l'absence SANS « Planning et absences › Supprimer » : ABSENCES et JOURNAL changeaient, aucun refus. Cause : data-asuppr n'était pas dans la table GESTES (la garde en capture ne le connaissait pas) et le menu fabrique ses gestes sans attribut.",
+    "« Supprimer » d'un créneau bloqué (clic droit sur un bloc du planning) supprimait le bloc (BUREAU) SANS la case, aucun refus ; « Dupliquer le lendemain » du même menu écrivait SANS la case Créer.",
+    "(mineur) menu d'une intervention : « Supprimer… » et « Annuler l'intervention… » étaient proposés SANS la case, puis la fenêtre de confirmation s'ouvrait sans son bouton « Oui » (masqué par le CSS), sans phrase de refus."
+   ],
+   "correction": "ouvrirMenu : une entrée peut porter droit:[catégorie, x] — elle n'est pas proposée sans la case, et la garde du clic refuse en le disant (droitsRefus) ; posé sur Supprimer l'absence, Supprimer un créneau, Dupliquer le lendemain, Annuler/Supprimer une intervention ; GESTES.asuppr:{k:'planif',d:'s'} pour le bouton fabriqué.",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "absence : menu du clic droit › « Supprimer l’absence »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer l’absence » sur 3 éléments : [[\"✓Valider\",\"✎Proposer d’autres dates\",\"◉Voir la demande\",",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer l’absence » sur 5 éléments : [[\"✓Valider\",\"✎Proposer d’autres dates\",\"◉Voir la demande\",",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer l’absence » sur 5 éléments : [[\"✓Valider\",\"✎Proposer d’autres dates\",\"◉Voir la demande\",",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer l’absence » sur 3 éléments : [[\"✓Valider\",\"✎Proposer d’autres dates\",\"◉Voir la demande\",",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "absence : geste forcé (bouton data-asuppr fabriqué, comme le menu le fait)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ABSENCES",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Absence annuléeAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "planning : clic droit sur une intervention › « Supprimer… » › « Oui, supprimer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer… » sur 12 éléments",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisation — 6 cassettesRétablir",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer… » sur 9 éléments : [[\"◉Ouvrir la fiche\",\"⌖Voir sur la carte\",\"✎Modifier\",\"🗓Date et heur",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Dépannage climatisationRétablir",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer… » sur 9 éléments : [[\"◉Ouvrir la fiche\",\"⌖Voir sur la carte\",\"✎Modifier\",\"🗓Date et heur",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Dépannage climatisationRétablir",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer… » sur 12 éléments",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisation — 6 cassettesRétablir",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "planning : clic droit sur une intervention › « Annuler l’intervention… » › « Oui, annuler »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Annuler l’intervention » sur 12 éléments",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS",
+         "MVTS_ATT",
+         "NOTIFS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Annulée : Dépannage climatisation. Sophie reçoit une notific",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Annuler l’intervention » sur 9 éléments : [[\"◉Ouvrir la fiche\",\"⌖Voir sur la carte\",\"✎Modifier\",\"🗓",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS",
+         "NOTIFS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Annulée : Mise en service pompe à chaleur. Sophie reçoit une",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Annuler l’intervention » sur 9 éléments : [[\"◉Ouvrir la fiche\",\"⌖Voir sur la carte\",\"✎Modifier\",\"🗓",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS",
+         "NOTIFS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Annulée : Mise en service pompe à chaleur. Sophie reçoit une",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Annuler l’intervention » sur 12 éléments",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS",
+         "MVTS_ATT",
+         "NOTIFS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Annulée : Dépannage climatisation. Sophie reçoit une notific",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "planning : geste forcé (data-planconf=\"supprimer|…\")",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisationRétablir",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisationRétablir",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisationRétablir",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "INTS"
+        ],
+        "refus": 0,
+        "toast": "Supprimée : Entretien climatisationRétablir",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "planning : clic droit sur un créneau bloqué › « Supprimer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"✎Modifier\",\"⧉Dupliquer le lendemain\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Supprimé : Réunion d’équipeAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"✎Modifier\",\"⧉Dupliquer le lendemain\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Supprimé : Réunion d’équipeAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"✎Modifier\",\"⧉Dupliquer le lendemain\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Supprimé : Réunion d’équipeAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"✎Modifier\",\"⧉Dupliquer le lendemain\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : retirer du planning, annuler une absence. Demande",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Supprimé : Réunion d’équipeAnnuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "crm.m",
+   "verdict": "VIVANTE — un effet de bord corrigé",
+   "constats": [
+    "dvMailRanger : l'adresse e-mail tapée à l'envoi d'un devis (ou d'une relance) se rangeait dans la fiche du client sans e-mail, SANS « Clients › Modifier » (écriture de la fiche, journalisée « a ajouté l'adresse e-mail du client »). Les autres chemins (fiche Infos, ligne de liste, adresse directe, appareils, gestes forcés depuis un autre écran) refusent et disent."
+   ],
+   "correction": "dvMailRanger ne range plus l'adresse si !peut('crm','m') (l'envoi du devis, lui, se fait).",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "devis : l’adresse tapée à l’envoi se range dans la fiche d’un client sans e-mail (appel direct de dvMailRanger, le chemin d’écran passe par dvEnvoyer) — muet par conception",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "fiche client (adresse directe) › Infos : changer le nom puis « Enregistrer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés (« Tu peux regarder cette fiche »)",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom changé par essai enregistrée.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés (« Tu peux regarder cette fiche »)",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom changé par essai enregistrée.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés (« Tu peux regarder cette fiche »)",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom changé par essai enregistrée.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés (« Tu peux regarder cette fiche »)",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom changé par essai enregistrée.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "liste Clients › ligne › fiche : changer le téléphone puis « Enregistrer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Cabinet dentaire Martin enregistrée.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Cabinet dentaire Martin enregistrée.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Cabinet dentaire Martin enregistrée.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "champs de la fiche grisés",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Cabinet dentaire Martin enregistrée.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : saisie injectée dans le champ grisé + bouton data-action=\"clientEnreg\" fabriqué",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom forcé enregistrée.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom forcé enregistrée.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom forcé enregistrée.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom forcé enregistrée.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "fiche client › Appareils › « Modifier » un appareil puis « Enregistrer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Modifier » de l’appareil non proposé (onglet en lecture)",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Appareil renommé par essai.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Modifier » de l’appareil non proposé (onglet en lecture)",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Appareil renommé par essai.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Modifier » de l’appareil non proposé (onglet en lecture)",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Appareil renommé par essai.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Modifier » de l’appareil non proposé (onglet en lecture)",
+        "changed": [],
+        "refus": 0,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Appareil renommé par essai.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : enregistrer un appareil (data-action=\"clientAppEnreg\" fabriqué, formulaire ouvert avant par la voie permise)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Forcé.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Forcé.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Forcé.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil enregistré : Forcé.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé depuis un AUTRE écran (Devis) : data-action=\"clientEnreg\" avec des champs de fiche fabriqués — c'est l'étiquette « @crm » de la table qui décide, pas l'écran ouvert",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom depuis le devis enregistrée.",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom depuis le devis enregistrée.",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom depuis le devis enregistrée.",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Fiche de Nom depuis le devis enregistrée.",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : retirer un appareil du client (data-action=\"clientAppSupprOk\")",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil retiré : Forcé.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil retiré : Forcé.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil retiré : Forcé.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : changer un client, ses coordonnées, ses notes. De",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "CLIENTS",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Appareil retiré : Forcé.Annuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "achats.s",
+   "verdict": "VIVANTE POUR UN TERRAIN, SANS GESTE ATTEIGNABLE POUR UN COMPTE DU BUREAU",
+   "constats": [
+    "« Annuler la demande » d'achat (axa demannul) et « Supprimer cette note » (rl ndfsuppr) ne se trouvent que sur « Mes frais » (techfrais), écran de la forme terrain : un technicien sans la case ne les voit pas (CSS), un geste forcé est refusé et dit. Pour un compte du BUREAU, la route techfrais est refusée (« Cette page n'est pas dans ton espace ») : la case s'y dessine dans la fiche mais aucun écran ne lui offre ces boutons — case sans geste atteignable pour cette forme (non corrigé : à décider, p. ex. ne dessiner Achats › Supprimer que pour un terrain)."
+   ],
+   "correction": "aucune correction (aucun défaut d'écriture) ; la case reste dessinée pour le bureau — voir reste.",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "geste forcé : data-axa=\"demannul|…\" fabriqué",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : data-rl=\"ndfsuppr|…\" fabriqué",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "achats.s·terrain",
+   "verdict": "VIVANTE POUR UN TERRAIN, SANS GESTE ATTEIGNABLE POUR UN COMPTE DU BUREAU",
+   "constats": null,
+   "correction": null,
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "Mes frais (adresse directe) : « Annuler la demande » d’achat",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Annuler la demande » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Annuler la demande » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Annuler la demande » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Annuler la demande » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Mes frais (adresse directe) : « Modifier » la note › « Supprimer cette note »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer cette note » non proposé dans la fenêtre",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer cette note » non proposé dans la fenêtre",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer cette note » non proposé dans la fenêtre",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer cette note » non proposé dans la fenêtre",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "(terrain) geste forcé : data-axa=\"demannul|…\" fabriqué",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "DEM_ACHAT",
+         "JOURNAL"
+        ],
+        "refus": 0,
+        "toast": "Demande annulée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "(terrain) geste forcé : data-rl=\"ndfsuppr|…\" fabriqué",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : annuler une demande, supprimer une note. Demande ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "NDF"
+        ],
+        "refus": 0,
+        "toast": "Note supprimée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "com.c",
+   "verdict": "VIVANTE — aucun défaut",
+   "constats": [
+    "touche C, Transférer (barre de lecture et sélection), bouton « ＋ Écrire » de l'hôte fabriqué, Ajouter une boîte : fermés ou refusés avec la phrase de l'hôte, rien n'est écrit ; avec la case, l'envoi écrit (MAILS) ou la fenêtre s'ouvre.",
+    "« Répondre » est un geste de la case MODIFIER (phrase de la case : « répondre, marquer, archiver… ») : par conception, il passe avec com.m seul et pas avec com.c seul."
+   ],
+   "correction": "rien",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "Boîte mail : touche « C » (nouveau message) puis envoi",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : barre de lecture › « Transférer » puis envoi",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : clic droit sur un message › sélection de plusieurs › « Transférer » puis envoi",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Transférer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : bouton « ＋ Écrire » de l’hôte (data-mbx-ecrire) fabriqué, puis envoi",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "la fenêtre de rédaction ne s'ouvre pas",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : écrire un message, le transférer, connecter une b",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : « Ajouter une boîte » (data-addaccount) : la fenêtre de connexion s’ouvre (rien n’est écrit tant qu’on ne l’a pas remplie)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Ajouter une boîte » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Ajouter une boîte » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Ajouter une boîte » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Ajouter une boîte » non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": true
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "com.m",
+   "verdict": "VIVANTE — aucun défaut",
+   "constats": [
+    "touches F et E, menu du clic droit (lu/non lu, drapeau, Archiver), sélection de plusieurs › Archiver, Répondre : refusés (touches : toast « Ce geste n'est pas ouvert à ton compte ») ou absents du menu ; état du module identique avant/après."
+   ],
+   "correction": "rien",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "Boîte mail : touche « F » (drapeau)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : touche « E » (archiver)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message archivéAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message archivéAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message archivéAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : répondre, marquer, archiver, ranger, reconnecter ",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message archivéAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : clic droit › « Marquer comme lu / non lu »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer comme » : [\"Supprimer\",\"Sélectionner plusieurs…\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Marqué comme lu",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer comme » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Marqué comme lu",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer comme » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Marqué comme lu",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer comme » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Marqué comme lu",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : clic droit › « Répondre » puis envoi (répondre est un geste de la case Modifier)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Répondre » : [\"Supprimer\",\"Sélectionner plusieurs…\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Répondre » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Répondre » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Répondre » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "JOURNAL",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : clic droit › « Marquer d’un drapeau »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer d’un drapeau » : [\"Supprimer\",\"Sélectionner plusieurs…\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer d’un drapeau » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer d’un drapeau » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Marquer d’un drapeau » : [\"Supprimer\",\"Sélectionner plusieurs…\",\"Annuler\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message marqué",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : sélection de plusieurs messages › « Archiver »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Archiver » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message archivéAnnuler",
+        "clique": true
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Archiver » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message archivéAnnuler",
+        "clique": true
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Archiver » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message archivéAnnuler",
+        "clique": true
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Archiver » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message archivéAnnuler",
+        "clique": true
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "com.s",
+   "verdict": "VIVANTE — aucun défaut",
+   "constats": [
+    "touches # et Suppr, clic droit › Supprimer, sélection › Supprimer, bouton fabriqué data-mbx=decook : refusés ou absents ; rien n'est écrit."
+   ],
+   "correction": "rien",
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "Boîte mail : touche « # » (supprimer)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "MAILS",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : touche « Suppr » (supprimer)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : clic droit › « Supprimer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"Répondre\",\"Marquer comme non lu\",\"Marquer d’un drapeau\",\"Archiver\",\"Sélectionner p",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"Répondre\",\"Marquer comme non lu\",\"Marquer d’un drapeau\",\"Archiver\",\"Sélectionner p",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"Répondre\",\"Marquer comme non lu\",\"Marquer d’un drapeau\",\"Archiver\",\"Sélectionner p",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Supprimer » : [\"Répondre\",\"Marquer comme non lu\",\"Marquer d’un drapeau\",\"Archiver\",\"Sélectionner p",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "Message suppriméAnnuler",
+        "clique": false
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "Boîte mail : sélection de plusieurs messages › « Supprimer »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message déplacé dans la CorbeilleAnnuler",
+        "clique": true
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message déplacé dans la CorbeilleAnnuler",
+        "clique": true
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message déplacé dans la CorbeilleAnnuler",
+        "clique": true
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "bouton « Supprimer » de la sélection non proposé",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "1 message déplacé dans la CorbeilleAnnuler",
+        "clique": true
+       }
+      }
+     }
+    },
+    {
+     "geste_tente_et_chemin": "geste forcé : bouton data-mbx=\"decook\" (retirer une boîte connectée)",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ML_BOITES",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "marc@climservices17.fr est déconnectée.Annuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ML_BOITES",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "marc@climservices17.fr est déconnectée.Annuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ML_BOITES",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "marc@climservices17.fr est déconnectée.Annuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": true,
+        "note": "",
+        "changed": [],
+        "refus": 1,
+        "toast": "Ce geste n’est pas ouvert à ton compte : supprimer un e-mail, déconnecter une boîte, retir",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "ML_BOITES",
+         "LS"
+        ],
+        "refus": 0,
+        "toast": "marc@climservices17.fr est déconnectée.Annuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "case": "planif.c",
+   "verdict": null,
+   "constats": null,
+   "correction": null,
+   "chemins": [
+    {
+     "geste_tente_et_chemin": "planning : clic droit sur un créneau bloqué › « Dupliquer le lendemain »",
+     "resultats_par_profil": {
+      "mac": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Dupliquer le lendemain » : [\"✎Modifier\",\"🗑Supprimer\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Créneau copié au lendemainAnnuler",
+        "clique": false
+       }
+      },
+      "iphone": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Dupliquer le lendemain » : [\"✎Modifier\",\"🗑Supprimer\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Créneau copié au lendemainAnnuler",
+        "clique": false
+       }
+      },
+      "android": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Dupliquer le lendemain » : [\"✎Modifier\",\"🗑Supprimer\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Créneau copié au lendemainAnnuler",
+        "clique": false
+       }
+      },
+      "ipad": {
+       "sans": {
+        "propose": false,
+        "note": "menu sans « Dupliquer le lendemain » : [\"✎Modifier\",\"🗑Supprimer\"]",
+        "changed": [],
+        "refus": 0,
+        "toast": "",
+        "clique": false
+       },
+       "avec": {
+        "propose": true,
+        "note": "",
+        "changed": [
+         "BUREAU"
+        ],
+        "refus": 0,
+        "toast": "Créneau copié au lendemainAnnuler",
+        "clique": false
+       }
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "mutations": {
+  "avertissement_sur_les_27": "La liste « des 27 mutations du testeur (equipe-mutations.py) » n'existe pas telle quelle : equipe-mutations.py en compte 16 (M1 à M16, commit bfb264cc, jamais plus). Le chiffre 27 vient de l'étape 8 de la voie Véhicules/Temps de travail (commit b3270fae : « 27 mutations du correcteur », sondes/vehtemps-mutations.js — qui en compte aujourd'hui 45). J'ai donc rejoué TOUT ce qui touche Équipe ou ressemble : 16 + 12 + 7 (Équipe), 45 (Véhicules/Temps), + 15 neuves pour mes corrections = 95 mutations. Sur copies hors dépôt (/tmp/mutA, B, C, tmp), jamais dans le dépôt.",
+  "equipe-mutations.py (M1..M16)": [
+   {
+    "mutation": "M1 equipe-01 : secuReposer accepte son propre compte",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 1 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M2 equipe-02 : une personne du bureau garde l'ancien nom",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M3 equipe-19 : « Désactiver » redevient un « modifier »",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 4 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M4 equipe-11 : Temps de travail demande de nouveau « Supprimer »",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M5 equipe-11 : Dépôts et camions demande de nouveau « Supprimer »",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M6 equipe-18 : les cases d'un Responsable en lecture redeviennent actives",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M7 equipe-15 : le tableau reprend ses noms courts",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 4 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M8 equipe-16 : le tableau reste au lieu de passer en listes sur iPad",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M9 equipe-08 : la valeur longue repasse en une ligne",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 4 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M10 equipe-10 : « Annuler » du toast à 40 px",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M11 equipe-09 : e-mail et rôle côte à côte sur téléphone",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 4 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M12 equipe-13 : l'ancien nom « Reposer » revient",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 4 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M13 equipe-04 : l'e-mail faux ne s'écrit plus sous le champ",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M14 equipe-05 : une habilitation de même nom s'ajoute deux fois",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M15 equipe-06 : une fin avant l'obtention passe",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   },
+   {
+    "mutation": "M16 equipe-07 : une date vide passe en silence",
+    "resultat": "TOMBE",
+    "sonde_tombee": "equipe-mutations.py : 2 contrôle(s) tombé(s)"
+   }
+  ],
+  "mutations-restes-equipe-1.py (12)": [
+   {
+    "mutation": "1 la bulle ne reconnaît que les fiches de Mon entreprise (.ent-pan)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "2 [ÉQUIVALENTE : la feuille #calque .panneau est découpée au bas de l'écran (bottom == innerHeight mesuré à 320 et 390 px), la borne est redondante ici]",
+    "resultat": "ÉQUIVALENTE (déclarée par la sonde du tour 1 : la feuille #calque .panneau est découpée au bas de l'écran, bottom == innerHeight mesuré à 320 et 390 px) — non rejouée"
+   },
+   {
+    "mutation": "3 la phrase du nom redevient la liste de sept lignes",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "4 un compte désactivé reçoit de nouveau les gestes de mot de passe (fiche)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "5 un compte désactivé reçoit de nouveau le lien (rangée d'actions de la fiche)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "6 « Voir » seul dans le bandeau des comptes verrouillés",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "7 le filtre Invités vide redit « Personne ici pour le moment »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "8 la fiche de soi parle de nouveau à la troisième personne (bouton)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "9 [tour 2] la phrase du nom ne parle plus du PREMIER signe",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "10 [tour 2] la fiche de soi redevient « provisoire, à lui remettre en main propre »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "11 [tour 2] une invitée désactivée se voit de nouveau proposer « Renvoyer l'invitation »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "12 [tour 2] 61 signes : la phrase ne dit plus 60",
+    "resultat": "TOMBE"
+   }
+  ],
+  "mutations-restes-equipe-3.py (7)": [
+   {
+    "mutation": "1 l'en-tête ne dit plus « désactivé(e) »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "2 la phrase « ci-dessous » repasse AVANT les boutons",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "3 nomRefus ne voit plus les signes invisibles",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "4 nomPersonneOk laisse passer un signe invisible (un BOM en bout est rogné par trim)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "5 un compte désactivé reçoit de nouveau « Nouveau téléphone » et « Déconnecter partout »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "6 un compte désactivé reçoit de nouveau « Nouveau téléphone » seul",
+    "resultat": "TOMBE (au 2e passage : le premier a dépassé 300 s sous charge de 6 navigateurs, rejoué seul)"
+   },
+   {
+    "mutation": "7 le BOM en bout de nom est de nouveau rogné par trim() avant le contrôle (Inviter ET Modifier)",
+    "resultat": "TOMBE"
+   }
+  ],
+  "vehtemps-mutations.js (45)": [
+   {
+    "mutation": "1 « Terminer à… » écrit l'heure qu'il est au lieu de la fin d'habitude (et la garde de l'heure proposée tombe)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "2 terminer la journée ne retire plus la validation de la semaine (ptDevalide)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "3 terminer la journée n'écrit plus la trace (qui, quand, pourquoi)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "4 terminer une journée d'un mois fermé n'est plus refusé",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "5 « Ajouter une journée » n'exige plus le motif",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "6 « Ajouter une journée » dans un mois fermé n'est plus refusé",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "7 le toast de « Terminer à… » perd son « Annuler »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "8 la demande de Tom propose « Accepter la correction » au lieu de « Accepter 17:40 »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "9 valider le lot dans un mois fermé n'est plus refusé",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "10 le bouton de la semaine redevient « Valider 4 semaines » (personnes et semaines mêlées)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "11 la pastille de l'onglet Aujourd'hui ne compte plus ce qui attend",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "12 le bandeau bleu « La paie du mois est dans Comptabilité » reparaît",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "13 la grille de sept jours et la liste paraissent ENSEMBLE (le seuil de conteneur saute)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "14 les flèches de la semaine rétrécissent de nouveau sous 44 px au doigt",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "15 le mois ne propose plus « Valider ce qui est en règle » quand des semaines attendent",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "16 la journée oubliée de Tom est dite DEUX fois (une rangée en plus)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "17 « Enregistrer la correction » n'exige plus le motif (la fonction ne le vérifie plus)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "18 le bouton « Enregistrer la correction » n'est plus grisé tant que le motif est vide",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "19 choisir une heure écrit tout de suite (le défaut d'avant : écriture à la sortie du champ)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "20 la correction n'écrit plus la trace (avant",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "21 la correction ne retire plus la validation de la semaine (ptDevalide)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "22 la correction ne défait plus la confirmation du salarié (il ne reconfirme pas)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "23 le toast de la correction perd son « Annuler »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "24 le mois fermé laisse les champs d'heure ouverts dans la fiche",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "25 une heure dans le futur est acceptée dans la fiche",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "26 une pause plus longue que la journée est acceptée dans la fiche",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "27 un refus reste affiché après la réussite (le message d'erreur n'est plus effacé)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "28 « Mes heures » recopie la carte « Ma journée de travail » (la carte vue deux fois)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "29 confirmer ses heures n'avertit plus d'une journée restée ouverte",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "30 un mois fermé garde le bouton « Je confirme mes heures »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "31 la liste de « Mes heures » ouvre la fiche du GÉRANT (avec ses champs) au lieu de la feuille du salarié",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "32 « Il y a une erreur » retrouve son second bouton « Annuler » (deux gros boutons)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "33 « Mes heures » redit « sup. » (le mot d'artisan « en plus » disparaît)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "34 le mois fermé fait perdre à « Il y a une erreur » son retrait dans la feuille d'une journée",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "35 « Je confirme mes heures » demande toujours une fenêtre de plus (un geste de trop)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "36 une rangée au garage perd son geste « Le remettre en service »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "37 l'assurance du groupe revient sur CHAQUE rangée (une échéance dite quatre fois)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "38 le rendez-vous noté ne fait plus passer la ligne à « Noter le contrôle technique » (D11 : toujours « Noter le rendez-vous »)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "39 « Noter le rendez-vous » écrit la tâche dans 3 jours au lieu du jour saisi (le défaut d'avant)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "40 un rendez-vous noté pour un jour déjà passé est accepté",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "41 le bureau retrouve « ＋ Nouveau véhicule » (la liste des gestes interdits perd « nouveau »)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "42 la garde du bureau saute dans l'écouteur des véhicules (un geste forcé à la main ouvre la feuille)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "43 la garde du bureau saute dans l'ancien écouteur data-vx (modifier, conducteur, amende… se rouvrent)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "44 « Annuler » du matériel ne rétablit plus l'état d'AVANT « Tout est là » (la photo est prise après)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "45 la feuille « Cette dépense » perd « Supprimer cette dépense »",
+    "resultat": "TOMBE (au 2e passage : la mutation était mal visée — depuis 35f03b29 le bouton précède « Enregistrer » ; ancre corrigée dans vehtemps-mutations.js)"
+   }
+  ],
+  "mutations-restes-equipe-droits.py (15, neuves)": [
+   {
+    "mutation": "1 « Supprimer l'absence » n'est plus filtré par la case (et la garde du clic part avec)",
+    "resultat": "TOMBE (après le renforcement « chemin FERMÉ exigé » : 1re passe PASSE — le geste était proposé puis refusé par la garde en capture, la sonde ne le voyait pas)"
+   },
+   {
+    "mutation": "2 « Supprimer » un créneau bloqué n'est plus filtré par la case",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "3 « Dupliquer le lendemain » (créneau bloqué) n'est plus filtré par la case Créer",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "4 data-asuppr sort de la table des gestes (le bouton fabriqué passe)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "5 le menu ne filtre plus les entrées sans la case (la garde du clic reste : le geste serait refusé et dit, mais proposé)",
+    "resultat": "TOMBE (idem : 1re passe annoncée équivalente, fausse — la sonde exige maintenant l'entrée absente)"
+   },
+   {
+    "mutation": "6 ni le filtre du menu ni la garde du clic (les deux gardes de ouvrirMenu retirées)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "7 « Supprimer… » / « Annuler l'intervention… » du menu d'une intervention ne portent plus la case (la fenêtre s'ouvre sans son bouton)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "8 l'e-mail tapé à l'envoi d'un devis se range de nouveau dans la fiche sans « Modifier les clients »",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "9 « Enregistrer » de la fiche client perd son étiquette @crm (la classe retombe sur celle de l'écran ouvert)",
+    "resultat": "TOMBE (après ajout du chemin « clientEnreg forcé depuis Devis » : 1re passe PASSE — la sonde ne jouait que depuis l'écran Client, où la classe par défaut suffit)"
+   },
+   {
+    "mutation": "10 le module de courrier ne refuse plus « C » (nouveau message) sans la case Créer",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "11 le module de courrier ne refuse plus « # » (supprimer) sans la case Supprimer",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "12 le module de courrier ne refuse plus « F » (drapeau) sans la case Modifier",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "13 le module de courrier ne cache plus ses boutons sans la case (CSS data-ranger/data-supprimer/data-ecrire)",
+    "resultat": "TOMBE (après « bouton cliquable alors qu'il devait être caché » : 1re passe PASSE — le JS refusait le clic, le CSS redondant n'était pas vu)"
+   },
+   {
+    "mutation": "14 la case Supprimer des demandes d'achat (annuler une demande) n'est plus lue par la garde (axa demannul reclassé lecture)",
+    "resultat": "TOMBE"
+   },
+   {
+    "mutation": "15 « Supprimer cette note » (ndfsuppr) n'est plus classé supprimer",
+    "resultat": "TOMBE"
+   }
+  ],
+  "bilan": {
+   "total": 95,
+   "tombent": 94,
+   "equivalente": [
+    "2 [ÉQUIVALENTE : la feuille #calque .panneau est découpée au bas de l'écran (bottom == innerHeight mesuré à 320 et 390 px), la borne est redondante ici]"
+   ],
+   "ne_mordent_pas": []
+  }
+ },
+ "sondes_en_echec_reglees": {
+  "droits-fiche (2 ✗)": {
+   "fichier": "scratchpad/proto-final/sondes/droits-fiche.js",
+   "cause": "SONDE PÉRIMÉE, page juste. Commit 65dce4b3 (17/11, « Clients, restes tour 1 ») a ajouté « Archiver un client » : la case Clients › Supprimer a désormais un geste, donc elle est dessinée (la sonde exigeait qu'elle ne le soit pas) et la fiche sur téléphone a QUATRE lignes (Voir, Créer, Modifier, Supprimer = archiver), pas trois.",
+   "avant_apres": "ancienne sonde sur la page d'AVANT 65dce4b3 : 23 ✓ · 0 ✗ ; sur la page d'APRÈS : 21 ✓ · 2 ✗",
+   "reglement": "le contrôle « une case sans geste n'est pas dessinée » devient une règle vérifiée sur la population réelle (≥ 25 cases dessinées, chacune a un geste : droitCaseActive ; Clients › Supprimer est dessinée) — aujourd'hui AUCUNE case n'est sans geste (vérifié : droitCaseActive vrai pour 10 catégories × c/m/s) ; la ligne téléphone attend quatre lignes. Résultat : 23 ✓ · 0 ✗."
+  },
+  "coque-connexion (1 ✗)": {
+   "fichier": "scratchpad/proto-final/campagne/sondes/coque-connexion.js",
+   "cause": "SONDE PÉRIMÉE, page juste. Commit f0d8be67 (17/11) a refait le guide des nouveautés : plus de titre « Bienvenue » ni de bouton « Passer » ; le titre est celui de la première carte (« Où sont passées mes rubriques ? »), on ferme par ✕ ou « Plus tard » (data-nv=\"fermer\").",
+   "avant_apres": "ancienne sonde sur la page d'AVANT f0d8be67 : 40 ✓ · 0 ✗ ; sur la page d'APRÈS : 39 ✓ · 1 ✗",
+   "reglement": "le contrôle attend le titre de la première carte et le bouton de fermeture. Résultat : 40 ✓ · 0 ✗."
+  },
+  "equipe-droits-profonds (3 ✓ 13 ✗ « case … absente »)": {
+   "fichier": "scratchpad/proto-final/campagne/sondes/equipe-droits-profonds.js",
+   "cause": "DÉRIVE DE SONDE (profil téléphone), page juste. Au téléphone la grille à quatre colonnes (.eq-droits › .eq-dr) est cachée et la même case est dessinée une SECONDE fois dans .eq-dr-tel › details.eq-dr-m (commit 52f24875, 17/11) : querySelector prenait la copie cachée (offsetParent nul) → « absente ». Reproduit sur iPhone : 3 ✓ · 13 ✗ ; sur Mac : 10 ✓ · 6 ✗ (les six cases « sans geste visible à l'ouverture »).",
+   "reglement": "on choisit la case VISIBLE (sélecteur sans .eq-droits, :visible, détails dépliés) ; les six cases dont le geste n'est pas un bouton lisible sont déclarées « jouées par equipe-droits-joues.js » (elles y sont jouées, 0 ✗). Résultat : Mac 16 ✓ · 0 ✗, iPhone 16 ✓ · 0 ✗.",
+   "avant_apres": "identique avant et après le commit du tour 3 : la page n'a pas changé de ce côté"
+  },
+  "equipe-droits-effets (17 ✓ 1 ✗ « case non affichée »)": {
+   "fichier": "scratchpad/proto-final/campagne/sondes/equipe-droits-effets.js",
+   "cause": "MÊME DÉRIVE DE SONDE : la case décochée existe deux fois au téléphone, la sonde touchait (et cherchait) la copie cachée — au décochage puis, plus tard, au RE-cochage (« recochée, la donnée revient → false » sur 40 cases : seconde faille, trouvée en rejouant).",
+   "reglement": "case visible aux deux endroits (:visible). Résultat : Mac 138 ✓ · 0 ✗ (voir plus bas), iPhone 138 ✓ · 0 ✗, Android 138 ✓ · 0 ✗."
+  },
+  "double-auth-equipe (1 ✗, trouvé en rejouant les voisines)": {
+   "fichier": "scratchpad/proto-final/sondes/double-auth-equipe.js",
+   "cause": "SONDE PÉRIMÉE : le tour 3 a remplacé « utilise le lien ci-dessous » par « utilise le bouton « M'envoyer un lien… » ci-dessous » (phrase nommant le bouton). Déjà ✗ à l'identique avant mes commits (page d'avant : 47 ✓ · 1 ✗).",
+   "reglement": "le contrôle lit la nouvelle phrase. Résultat : 48 ✓ · 0 ✗."
+  },
+  "droits-gestes-reels (9 ✗, trouvé en rejouant les voisines)": {
+   "fichier": "scratchpad/proto-final/sondes/droits-gestes-reels.js + lib.js",
+   "cause": "SONDE QUE LA CSP DE LA PAGE ARRÊTE : la page interdit eval (CSP sans unsafe-eval) et la sonde évalue des chaînes APRÈS un await. Déjà ✗ à l'identique avant mes commits (26 ✓ · 9 ✗).",
+   "reglement": "lib.js accepte SANS_CSP=1 (bypassCSP du pilote, faux par défaut) ; la sonde le dit en tête. SANS_CSP=1 : 35 ✓ · 0 ✗ — et ces 35 contrôles passent sur la page corrigée (pas de régression de la garde)."
+  }
+ },
+ "sondes_voisines": {
+  "regle": "rejouées sur la page corrigée (commit 18a4c3a8), une par une, jamais en tâche de fond non surveillée",
+  "resultats": [
+   "equipe-corrections 29 ✓ 0 ✗ · equipe-droits-supprimer 7 ✓ 0 ✗ · equipe-entreprise 59 ✓ 0 ✗ · equipe-gestes 117 ✓ 0 ✗ · equipe-mise-en-page 44 ✓ 0 ✗ · (equipe-mots, equipe-parcours, equipe-recontrole-admin, equipe-recontrole-rejeu, equipe-recontrole, equipe-roles : 0 ✗ chacune, détail dans /tmp/res-lv-0*.txt de la session)",
+   "restes-equipe-1 · 1-recontrole · 1-recontrole-b · 2-recontrole : 0 ✗ ; restes-equipe-3-mineurs : tout.sh complet, 30 passages (5 profils × H/S/I/G, nuit H et G) : 0 ✗ chacun",
+   "secu-secrets 0 ✗ ; double-auth-* (appareils, compte, corrections, equipe[après réglage 48 ✓], fenetre, mots, pirate, recontrole-compte, recontrole-parcours, recontrole-recensement, securite, sensibles, vues) : 0 ✗",
+   "droits-table, droits-menus, droits-lecture-seule, droits-gestes-garde, droits-partiel, droits-ponts, droits-cases-voir, droits-compta, menu-recontrole : 0 ✗ ; droits-gestes-reels : voir plus haut",
+   "planning-parcours, planning-parcours2, planning-recontrole : 0 ✗ ; planning-gestes : 66 ✓ · 1 ✗ (« vue carte : chaque geste recensé a été touché 57/60 », les boutons de la carte crfocus/crsel/crdrag) — IDENTIQUE sur la page d'avant mes commits : préexistant, hors de ce lot, NON réglé"
+  ],
+  "controles_de_sauvegarde": "node scripts/verifier-syntaxe.js : 41 pages, 71 blocs, 0 en erreur · tests 835 (844 ✓), 836 (307 ✓), 837 (122 ✓), 1008 (54 ✓), 2994 (15 ✓) : 0 ✗ · scripts/verif-secrets.sh : code 0, aucune sortie"
+ },
+ "captures_regardees": "menu du clic droit sur un créneau bloqué pour un compte sans « Planning et absences › Supprimer » : iPhone, Android, iPad, Mac, jour ET nuit (hors dépôt, /tmp/capmenus) — deux entrées seulement (Modifier, Dupliquer le lendemain), pas de séparateur orphelin, lisible dans les deux thèmes.",
+ "reste_honnetement": [
+  "achats.s : aucun geste atteignable pour un compte de la forme BUREAU (Mes frais est un écran de terrain) — la case est dessinée dans sa fiche ; à décider (ne la dessiner que pour un terrain ?).",
+  "planning-gestes : 1 ✗ préexistant (vue carte 57/60), hors lot.",
+  "les 27 mutations « du testeur » : liste inexistante (equipe-mutations.py en compte 16) ; tout ce qui s'en approche est rejoué (95 mutations, 94 tombent, 1 équivalente déclarée par le tour 1 et non revérifiée).",
+  "blocOk (« Bloquer un créneau » / « Enregistrer » d'un créneau) est classé « inter › Modifier » dans la table, pas « planif » : un compte sans planif.m mais avec inter.m crée/modifie un créneau bloqué ; non touché (hors des six cases), à décider.",
+  "les chemins par glisser-déposer et par balayage du module de courrier ne sont pas joués (le module n'en offre pas au pointeur ; au doigt, l'appui long ouvre le même menu, joué par l'événement contextmenu).",
+  "aucune publication : la page reste un aperçu (bêta) ; rien n'a touché app.html/sw.js/server/."
+ ]
+}
