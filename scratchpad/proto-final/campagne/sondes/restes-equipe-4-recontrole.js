@@ -165,6 +165,18 @@ async function phaseT() {
   await L.fin(c);
 }
 
+
+// V : l'API du module repondre() et ce que l'œil voit (barre, menu, clic droit, réponses rapides) : sans Créer rien ; avec tout, tout (régression)
+async function phaseV(etiquette, h, ferme) {
+  const p = h.p; await L.aller(p, 'boiteMail'); await attendreMail(p); const ids = await mailsIds(p);
+  await choisirMail(p, 0);
+  const vu = await repondreProposes(p);
+  v(`${etiquette} · à l'œil (barre, menu Répondre ▾, clic droit, réponses rapides) : ${ferme ? 'RIEN de proposé' : 'Répondre est proposé (régression)'}`, ferme ? !vu.tout : vu.tout, vu);
+  const r = await tenter(p, () => p.evaluate(id => courrierQuand(c => c.repondre(id, 'sonde API')), ids.cli), 'boiteMail');
+  if (ferme) v(`${etiquette} · API du module repondre(id, texte) : pas de fenêtre, rien d'écrit`, !r.compose && r.changed.length === 0, r);
+  else v(`${etiquette} · API du module repondre() : la fenêtre s'ouvre (contre-épreuve)`, r.compose, r);
+}
+
 async function phaseU() {
   const c = await E.marc(PROFIL), p = c.p;
   await L.aller(p, 'equipe'); await p.evaluate(() => { eqDe('kb').actif = false; const cc = secuCompte('kb'); cc.verrou = { jusqua:null, depuis:secuMaint() }; cc.echecs = 5; rendre(); }); await L.calme(p, 300);
@@ -189,6 +201,7 @@ async function phaseU() {
       const b = await monter({ cat:'planif', x:'m' }); await phaseA(b, 'A SANS Planning', false, true); await L.fin(b.c);
       const d = await monter(null); await phaseA(d, 'A AVEC tout', false, false); await L.fin(d.c); }
     else if (ph === 'B') { const b = await monter({ cat:'planif', x:'m' }); await phaseB('B SANS Planning', b, 'sansPlan'); await L.fin(b.c); const d = await monter(null); await phaseStale(d); await L.fin(d.c); }
-    else if (ph === 'T') await phaseT(); else if (ph === 'U') await phaseU(); }
+    else if (ph === 'T') await phaseT(); else if (ph === 'U') await phaseU();
+    else if (ph === 'V') { const a = await monter({ cat:'com', x:'c' }); await phaseV('V SANS Créer', a, true); await L.fin(a.c); const d = await monter(null); await phaseV('V AVEC tout', d, false); await L.fin(d.c); } }
   await E.fin();
 })().catch(e => { console.error('ÉCHEC DE LA SONDE', e.message, String(e.stack).split('\n').slice(0, 4).join(' | ')); process.exit(2); });
