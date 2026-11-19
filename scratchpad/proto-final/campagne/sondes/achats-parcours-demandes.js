@@ -14,7 +14,7 @@ const { L, CAP, PNG, devenir, txt, toast, panneau, titrePanneau } = require('./a
   const notifs = k => E(k => NOTIFS.filter(n => n.k === k || n.pour === k || n.qui === k).length, k);
   await L.aller(p, 'techfrais');
   // ── P1 le technicien demande ───────────────────────────────────────────────────────────────────────────────
-  v('P1a Mes frais : le bouton « Demande d’achat » est là et nomme son geste', /Demande d’achat/.test(await txt(p)), (await txt(p)).slice(0, 200));
+  v('P1a Mes frais : le bouton « Demande d’achat » est là et nomme son geste', /demande d’achat/i.test(await txt(p)), (await txt(p)).slice(0, 200));
   await clic('[data-axa="dem"]'); await L.calme(p, 300);
   v('P1b la fenêtre « Il me faut… » s’ouvre', /Il me faut/.test(await titrePanneau(p)), await titrePanneau(p));
   const n0 = await nbDem();

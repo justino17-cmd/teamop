@@ -1,0 +1,68 @@
+{
+ "tour": "restes équipe 4 (19 novembre 2026) : une case se lit dans la fonction qui écrit",
+ "page": "apercu/prototype-op-gestion.html (+ apercu/prototype-courrier.js, le module chargé par la page, pour la case de « Répondre »)",
+ "sonde_neuve": "scratchpad/proto-final/campagne/sondes/restes-equipe-4.js (phases N3, D, T ; profils mac, iphone, android) + mutations-restes-equipe-4.py + restes-equipe-4-fiches-avant.json (fiches d'avant le correctif, référence de D)",
+ "resultats_sonde": {
+  "mac": "94 ✓ · 0 ✗",
+  "iphone": "94 ✓ · 0 ✗",
+  "android": "94 ✓ · 0 ✗"
+ },
+ "N3": {
+  "decision": "« Répondre », « Répondre à tous » (module), « Relancer », « Prévenir le client », « Proposer une visite/un créneau », « Confier à quelqu'un », « En faire une tâche » = Boîte mail › Créer. « Proposer une visite/un créneau » exige AUSSI Planning › Modifier (la case de mbxOptions/mbxPeutTenir, qui tient les options dans BUREAU).",
+  "ou": [
+   "table GESTES : mbx.c += repondre relancer prevenir confier confok ; ml.c += repondre modele creneau tache confok (confok quitte m ; prevenir quitte l)",
+   "courrierRepondre() : courrierPeutEcrire(cle) lit com.c puis, pour 'creneau', planif.m — phrase habituelle, ou phrase dédiée « tient des créneaux au planning : il faut aussi Planning › Modifier » ; DROITS_REFUS alimenté",
+   "mbxConfier() et mbxPanConfier() lisent com.c ; le gestionnaire ml:tache / ml:confok aussi",
+   "bandeau (courrierHoteApi.lecture) : ml:creneau retiré sans planif.m ; le blanc-seing « sans com.m, aucun bouton » devient « sans com.m ET sans com.c » (une personne qui crée sans pouvoir ranger garde ses boutons de Créer)",
+   "module prototype-courrier.js : ACT_DROIT reply/replyAll = ecrire (barre, menu, clic droit, touche R), réponses rapides [data-quick] et API repondre() = ecrire ; CSS data-ecrire=0 masque reply/replyAll/.rquick (data-ranger=0 ne les masque plus)",
+   "DROIT_PHRASES.com : « répondre » passe de la phrase Modifier à la phrase Créer (écran Équipe › fiche, aria-label des cases, refus)"
+  ],
+  "ecart_a_la_consigne": "« Confier à quelqu'un » n'exige PAS Planning › Modifier : mbxConfier ne pose aucun créneau dans BUREAU (il crée une tâche et une notification) ; seul « Proposer une visite/un créneau » écrit BUREAU (mbxOptions). Exiger Planning pour Confier aurait fermé un geste sans raison. À confirmer par Justin si voulu autrement.",
+  "maj_shift_R": "le module n'a AUCUN raccourci Maj+R (« Répondre à tous » n'est qu'un bouton/menu) : la sonde le prouve (rien ne s'ouvre ni n'écrit, avec ou sans case).",
+  "sondes_existantes_mises_a_jour": "equipe-droits-joues.js : le chemin « clic droit › Répondre puis envoi » quitte la case com.m (où il encodait l'ancien classement) pour com.c (fermé sans Créer, écrit avec). Aucune autre sonde n'encodait l'ancien classement."
+ },
+ "D_eqFiche": "la première déclaration (function eqFiche, 20 lignes) est supprimée ; la seconde (affectation) reste, avec son enveloppe de secuFicheConnexion. Sonde : 0 `function eqFiche`, 1 `eqFiche = function` ; fiches de kb, sm, lr et de l'administrateur IDENTIQUES signe pour signe à celles d'avant (seule différence voulue : les deux phrases de la case Boîte mail, remises dans leur forme d'avant pour comparer).",
+ "T_desactive": "secuPanTelephone, secuPanDeconnecter, secuNouveauTelephone et secuDeconnecter refusent un compte désactivé (toast « Le compte de X est désactivé : réactive-le d'abord. ») ; bouton fabriqué data-sec2 telephone|k, deconnecter|k, tel-ok|k, deco-ok|k : aucun panneau, rien d'écrit (SECU et EQUIPE identiques) ; compte actif : panneaux inchangés.",
+ "mutations": {
+  "total": "12 (1 à 12 ; la 9, d'abord sans effet, a été remplacée par une mutation visible)",
+  "resultat": "12/12 tombent",
+  "liste": [
+   "1 courrierRepondre sans com.c",
+   "2 « Proposer une visite » sans Planning",
+   "3 mbxConfier sans com.c",
+   "4 module : Répondre remis dans Modifier",
+   "5 bandeau sans filtre Planning",
+   "6 ml:tache et confok sans case Créer (gestionnaire + table)",
+   "7 la déclaration morte d'eqFiche revient",
+   "8 la fiche perd son bloc d'accès",
+   "9 la fiche perd la phrase « Dernier administrateur actif »",
+   "10 secuPanTelephone sans refus",
+   "11 secuPanDeconnecter sans refus",
+   "12 secuNouveauTelephone et secuDeconnecter sans refus"
+  ]
+ },
+ "voisines_a_zero_echec": {
+  "equipe-droits-joues": "mac 89/0, iphone 89/0, android 89/0",
+  "equipe-droits-effets": "mac 138/0, iphone 138/0 (rejouée avec timeout long : 590 s ne suffisent pas sur cette machine)",
+  "equipe-droits-profonds": "mac 16/0, iphone 16/0",
+  "droits-gestes-reels (SANS_CSP=1)": "35/0",
+  "restes-equipe-3-mineurs": "30 sections (une par navigateur : iphone, android, petit, mac, ipad × H S I G, nuit H G) toutes à 0 ✗",
+  "restes-equipe-1-recontrole": "mac 57/0, iphone 61/0",
+  "restes-equipe-2-recontrole": "mac 44/0, iphone 44/0",
+  "restes-equipe-3-recontrole": "C 5/0, ABD 6/0 ; K, L, P, F sont des relevés de données sans verdict (F dépasse 590 s)",
+  "secu-secrets": "56/0",
+  "double-auth-equipe": "48/0"
+ },
+ "verifs": {
+  "verifier-syntaxe": "41 pages, 0 en erreur",
+  "tests": "835 844/0 · 836 307/0 · 837 122/0 · 1008 54/0 · 2994 15/0",
+  "verif-secrets": "code 0"
+ },
+ "captures_regardees": "Boîte mail ouverte comme une personne sans Boîte mail › Créer : iPhone jour, Android 360 nuit, Mac jour (et avec la case, Mac) — barre de lecture sans répondre/transférer/écrire, bandeau sans Proposer une visite/Confier/tâche ; avec la case, tout est là. iPad nuit prise mais non relue en détail.",
+ "reste": [
+  "N1 SIREN, N2 « lu = Modifier ? », achats.s du bureau, blocOk : non touchés (liste de Justin)",
+  "Si Justin veut Planning aussi pour Confier : une ligne dans mbxConfier et dans le filtre du bandeau",
+  "opcourrier.js (module générique OP MESSAGES) non modifié : seul prototype-courrier.js, chargé par la page, porte la nouvelle case",
+  "Les réponses du module qui passent par le composeur (modèles « Proposer un créneau » du menu Réponse) ne lisent Planning qu'à l'envoi (mbxOptions ne tient rien sans la case, comme avant)"
+ ]
+}

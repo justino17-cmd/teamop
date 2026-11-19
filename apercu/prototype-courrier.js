@@ -851,13 +851,13 @@ var CSS = `
   .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
   /* LES DROITS DE LA PERSONNE (17 novembre 2026, « tout-08 ») : l'hôte dit ce qu'elle peut faire (capacites().droits) et le module pose data-ecrire / data-ranger / data-supprimer="0"
      sur son cadre. Un geste refusé n'est PAS proposé (la garde de doAct, multiAct et des raccourcis refuse aussi, pour qui passerait par le clavier ou l'hôte). */
-  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
-  .opc[data-ranger="0"] :is([data-act="reply"],[data-act="replyAll"],[data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-quick],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
+  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="reply"],[data-act="replyAll"],[data-quick],.rquick,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
+  .opc[data-ranger="0"] :is([data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
   .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
   .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
   .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
   /* la rangée « Réponse rapide » n'a plus un bouton à offrir : on la retire ENTIÈRE (sinon son libellé de bureau reste seul, et au téléphone sa marge de 26 px et ses deux écarts de flex laissent un blanc entre le suivi et la rangée Catégorie) */
-  .opc[data-ranger="0"] .rquick{display:none !important}
+  .opc[data-ecrire="0"] .rquick{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -1607,6 +1607,9 @@ var CSS = `
     .opc:where([data-fmt="pad"]) .list #btnNav .nb-lbl{display:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lb-title{font-size:14px}   /* à 17 px, « Boîte de réception » se coupait entre la flèche et « Sélectionner » dans la colonne de 315 px */
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .search-row{margin-top:4px;margin-bottom:6px}
+    /* l'aperçu (2 lignes) fait d'une ligne de 108 px une ligne de ~62 px : iPhone 8 / SE en travers (667×375) n'avait la place d'AUCUNE ligne entière entre les barres, avec l'aperçu on n'en voyait qu'une demie ; le nom, l'objet et l'étiquette restent */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg .m-prev{display:none}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg{padding-block:6px}   /* 67 px → ~59 px : une ligne entière dans la zone de 64 px que laissent les barres à 740×360 */
   }
 `;
 var FEUILLE = null;
@@ -1953,7 +1956,7 @@ var MARKUP = `
   function droit(x){ if(!CAP.droits||CAP.droits[x]!==false) return true;
     var ph=""; try{ ph=CAP.refus?String(CAP.refus(x)||""):""; }catch(e){}
     toast(ph||"Ce geste n’est pas ouvert à ton compte."); return false; }
-  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ranger",replyAll:"ranger",
+  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ecrire",replyAll:"ecrire",
     forward:"ecrire",editDraft:"ecrire",sendNow:"ecrire",unschedule:"ecrire",reschedule:"ecrire",trash:"supprimer"};
   // les entrées d'un menu : un geste refusé n'y figure pas
   function permis(items){ return items.filter(function(i){ return !ACT_DROIT[i.id]||!CAP.droits||CAP.droits[ACT_DROIT[i.id]]!==false; }); }
@@ -2368,6 +2371,7 @@ var MARKUP = `
     if(!isPhone()) return;
     var prev=app.getAttribute("data-view"); if(prev===view) return;
     app.setAttribute("data-view",view); histSync();
+    if(view==="list") listeCourtePlier();   // changer de dossier ou de boîte remonte la liste AVANT d'arriver sur elle (listeEnHaut) : en paysage court, listeCourtePlier voyait alors « la liste n'est pas à l'écran » et attendait pour toujours — la liste revenait dépliée, sans une ligne de message sous les yeux
     if(pendingUndo&&$("#tUndo")){ if(toastKind==="undo") $("#toast").classList.toggle("quiet",view!=="reading"); else { $("#tUndo").hidden=view!=="reading"; $("#toast").classList.toggle("two",view==="reading"&&!!$("#tAct")); } }
     var target=view==="mailboxes"?$("#sidebar"):view==="list"?$("#list"):$("#reading");
     try{ target.focus({preventScroll:true}); }catch(e){}
@@ -2956,12 +2960,16 @@ var MARKUP = `
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
   // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun e-mail ».
   // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
-  var COURT=false;
+  // COURT_VU : la liste a déjà été VUE en paysage court. Tant qu'elle ne l'a pas été, son défilement ne dit rien de la personne (c'est celui du portrait d'avant la rotation : 296 px, zéro ligne entière) et on la replie ;
+  // une fois vue, un défilement est un geste de la personne et on n'y touche plus (« une fois par ouverture »).
+  var COURT=false, COURT_VU=false;
   function listeCourtePlier(){
     try{ var court=window.matchMedia("(max-height:380px)").matches&&(isPhone()||layout()==="pad");
-      if(!court){ COURT=false; return; }
-      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1||ls.scrollTop>2) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
+      if(!court){ COURT=false; COURT_VU=false; return; }
+      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
       if(isPhone()&&app.getAttribute("data-view")!=="list") return;   // la liste n'est pas à l'écran : sa boîte vaut zéro, on attend
+      if(ls.scrollTop>2&&COURT_VU) return;
+      COURT_VU=true;
       var bar=$(".list .list-bar"), haut=Math.max(ls.getBoundingClientRect().top, bar?bar.getBoundingClientRect().bottom:0);   // sur téléphone la barre du haut est posée PAR-DESSUS la liste : la première ligne se cale sous elle, pas dessous
       COURT=true; ls.scrollTop=Math.round(m1.getBoundingClientRect().top-haut+ls.scrollTop); }catch(e){}
   }
@@ -4378,7 +4386,10 @@ var MARKUP = `
       var haut=(parseFloat(getComputedStyle(h).bottom)||0)+h.offsetHeight+10, b0=parseFloat(getComputedStyle(t).bottom)||0;
       if(b0<haut) t.style.setProperty("--opc-sur",Math.round(haut-b0)+"px"); }catch(e){}
   }
-  function toast(msg,action){ toastCorps(msg,action); surHote(); }
+  // --opc-sur ne se calculait qu'À L'APPARITION : l'hôte se tait avant nous (6 s contre 2,6 s) et la bulle restait montée de 52 px au-dessus d'un vide. Tant que notre bulle est à l'écran on la remesure (le coût : une lecture toutes les 300 ms).
+  var surTimer=null;
+  function suivreHote(){ clearInterval(surTimer); surTimer=setInterval(function(){ var t=$("#toast"); if(!t||!t.classList.contains("show")){ clearInterval(surTimer); surTimer=null; return; } surHote(); },300); }
+  function toast(msg,action){ toastCorps(msg,action); surHote(); suivreHote(); }
   function toastCorps(msg,action){
     clearTimeout(toastTimer);
     var t=$("#toast"); t.classList.remove("quiet");
@@ -4557,7 +4568,7 @@ var MARKUP = `
     var op=e.target.closest("[data-open]"); if(op){ var x=msgById(op.getAttribute("data-open")); if(x){ state.folder=x.folder; renderAll(); selectMessage(x.id); } return; }
     var hb=e.target.closest("[data-hote]"); if(hb&&HOTE&&typeof HOTE.agir==="function"){ var hm0=msgById(state.selected); closeOverlay();
       try{ HOTE.agir(hb.getAttribute("data-hote"),hm0?horsModule(hm0):null); }catch(x){ toast("Ce geste n’a pas pu s’ouvrir : "+((x&&x.message)||"erreur"),{refus:true}); } return; }
-    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ranger")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
+    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ecrire")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
   });
 
   $("#btnCompose").onclick=function(){ if(!droit("ecrire")) return; if(state.folder==="sign") openSignRequest(); else openCompose(); };
@@ -4641,7 +4652,7 @@ var MARKUP = `
       return ouvrir(); },
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
-    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ranger")) repondreA(id,intro); }); return true; },
+    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ecrire")) repondreA(id,intro); }); return true; },
     ecrire:function(m){ apresChargement(function(){ if(vivant&&droit("ecrire")) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
     rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte

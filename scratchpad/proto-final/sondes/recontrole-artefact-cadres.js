@@ -27,6 +27,8 @@ async function recenserVue(c, f, nomCadre, vue, allerVue, resultats, FIN) {
     // on remet l'écran d'aplomb, on retrouve le candidat par sa signature, on le touche
     await allerVue(vue); await L.calme(c.p, 300);
     const cs = await A.collecter(f, 'body'), kk = cs.find(x => x.tag + '|' + x.lib + '|' + x.href === k.tag + '|' + k.lib + '|' + k.href); if (!kk) { resultats.perdus++; continue; }
+    // le message du geste d'AVANT (« Ticket photographié… ») dure plusieurs secondes : laissé à l'écran il se confond avec celui du geste qu'on mesure (avant = après, « rien de visible » à tort). On attend qu'il s'éteigne.
+    for (let k = 0; k < 14 && (await photo(f).catch(() => ({ msg: '' }))).msg; k++) await c.p.waitForTimeout(500);
     const loc = f.locator(`[data-bac-i="${kk.i}"]`).first(); const e0 = await bac.etat(c), p0 = await photo(f);
     let ok = true;
     if (kk.fichier) { const inp = kk.tag === 'INPUT' ? loc : f.locator(`[data-bac-i="${kk.i}"] input[type=file]`).first(); try { await inp.setInputFiles({ name: 'essai.png', mimeType: 'image/png', buffer: PNG }, { timeout: 3000 }); } catch (e) { ok = false; } }
@@ -36,7 +38,8 @@ async function recenserVue(c, f, nomCadre, vue, allerVue, resultats, FIN) {
     resultats.liste.push({ cadre: nomCadre, vue, ...kk, ok, d, dit: dit(p0, p1), msg: p1.msg, fichier: (e1.fichiers || []).slice((e0.fichiers || []).length) });
     // un geste qui a ouvert une fenêtre ou changé de vue : on remet tout (la vue suivante repart d'une page d'aplomb)
     await f.evaluate(() => { try { document.querySelectorAll('[data-a="fermer"],[data-fermer],.fenetre .x,[aria-label="Fermer"]').forEach(b => b.click()); } catch (e) {} }).catch(() => {});
-    await c.hote.keyboard.press('Escape').catch(() => {});
+    // Échap ne se presse plus à l'aveugle : depuis « Retour ferme la couche du dessus » (b2ad1978, Restes Retour tour 4) il FERME le cadre de la Comptabilité quand rien d'autre n'est ouvert, et les vues suivantes se recensaient dans un cadre parti (0 candidat partout après le FEC). On ne l'envoie que si une couche de l'hôte est ouverte.
+    if (await c.hote.evaluate(() => !!document.querySelector('#calque .panneau, .fen-voile, [role=dialog]:not([hidden])')).catch(() => false)) await c.hote.keyboard.press('Escape').catch(() => {});
   }
 }
 function verdict(x) {
@@ -56,8 +59,19 @@ function verdict(x) {
   const R = { total: 0, vus: new Set(), liste: [], nonFaits: [], perdus: 0, internes: 0, caches: 0 };
   const c = await P.ouvrirHote({ profil: PROFIL, qui: 'marc', nuit: NUIT }, {});
   await A.calmer(c.p);
+  // ── le paiement (cadre) — JOUÉ EN PREMIER : après une visite de la Comptabilité, la route « comptabilite » n'affiche plus que « La comptabilité s'ouvre dans sa fenêtre » et ses groupes (Trésorerie…) n'y sont plus ──
+  if (CADRES.includes('paiement')) {
+    // Le paiement en ligne n'est plus une route de l'application : il vit dans la Comptabilité, Trésorerie › « Paiement en ligne » (8 novembre 2026, cxVueEnLigne) ; la sonde y va comme la personne (groupe puis section) au lieu de chercher un nom de route qui n'existe plus (« route paiement : null », cadre jamais recensé)
+    await L.aller(c.p, 'comptabilite'); await L.calme(c.p, 1200); if (!(await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|enligne"]'); return !!(b && b.offsetParent); }))) { await L.toucher(c, '[data-cx="grp|tresorerie"]').catch(() => {}); await L.calme(c.p, 400); }   // le groupe garde son état d'ouverture : un second toucher le REFERMERAIT
+    await c.p.evaluate(() => { const b = document.querySelector('[data-cx="sec|enligne"]'); if (b) b.click(); }); await L.calme(c.p, 2500);
+    const r = await c.p.evaluate(() => !!document.querySelector('#cx-enligne iframe')) ? 'comptabilite › Trésorerie › Paiement en ligne' : null;
+    console.log('  · route paiement :', r);
+    if (r) { const f = L.cadre(c.hote, /prototype-paiement\.html/);
+      v(`${PROFIL} paiement : population (le cadre est chargé)`, !!f, f && f.url()); if (f) await recenserVue(c, f, 'paiement', 'ouverture', async () => {}, R, Math.min(FIN0, Date.now() + DUREE / 3)); }
+  }
   // ── Comptabilité (cadre) ──
   if (CADRES.includes('compta')) {
+    await c.p.evaluate(() => { location.hash = 'accueil'; }); await L.calme(c.p, 800);   // le paiement a laissé la route « comptabilite » : le cadre de la Comptabilité ne s'ouvre qu'à l'ARRIVÉE sur elle
     await c.p.evaluate(() => { location.hash = 'comptabilite'; }); await L.calme(c.p, 2200);
     const f = L.cadre(c.hote, /prototype-comptabilite\.html/);
     v(`${PROFIL} compta : population (le cadre est chargé)`, !!f && await f.evaluate(() => typeof ROUTES !== 'undefined' && ROUTES.length > 5).catch(() => false), f && f.url());
@@ -73,13 +87,6 @@ function verdict(x) {
     if (f) { const vues = await f.evaluate(() => { try { return ['accueil', 'liste', 'editeur', 'modeles', 'clients'].filter(x => typeof S !== 'undefined'); } catch (e) { return []; } });
       const FIN = Math.min(FIN0, Date.now() + DUREE / CADRES.length);
       await recenserVue(c, f, 'atelier', 'ouverture', async () => {}, R, FIN); }
-  }
-  // ── le paiement (cadre) ──
-  if (CADRES.includes('paiement')) {
-    const r = await c.p.evaluate(() => Object.keys(vues()).find(k => /paiement|payer|abonnement/i.test(k)) || null);
-    console.log('  · route paiement :', r);
-    if (r) { await L.aller(c.p, r); await L.calme(c.p, 2200); const f = L.cadre(c.hote, /prototype-paiement\.html/);
-      v(`${PROFIL} paiement : population (le cadre est chargé)`, !!f, f && f.url()); if (f) await recenserVue(c, f, 'paiement', 'ouverture', async () => {}, R, Math.min(FIN0, Date.now() + DUREE / 3)); }
   }
   const evalues = R.liste.filter(x => x.ok), nonTouches = R.liste.filter(x => !x.ok);
   v(`${PROFIL} cadres : population recensée (${R.total} candidats, ${R.liste.length} touchés, ${R.nonFaits.length} vues non faites, ${R.perdus} perdus, ${R.internes} navigations internes écartées, ${R.caches} champs cachés écartés)`, R.total >= 5 && R.liste.length >= 3, { total: R.total, touches: R.liste.length, nonFaits: R.nonFaits });

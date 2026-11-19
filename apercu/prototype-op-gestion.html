@@ -2229,7 +2229,7 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .rl-app + .rl-az{margin-left:0}
 /* « Voir comme l'application » (17 novembre 2026) : même pastille que « Apprendre », sans pousser la rangée à droite */
 .rl-voir{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
-@media (pointer:coarse){.rl-voir{min-height:44px}}
+@media (pointer:coarse){.rl-voir,.rl-app,.rl-az{min-height:44px}}   /* « Apprendre » et « De A à Z » répondaient sur 40 px au doigt (162×40 et 170×40 mesurés sur l'espace client, iPhone) : même plancher que « Voir comme l'application » */
 /* pendant une visite parlée la bande reste, mais pas ce bouton : un effleurement aurait rechargé la page et perdu la place dans la visite sans un mot (recontrôle artefact, tour 1) */
 body.gd-on .rl-voir{display:none!important}
 .mch-b ~ .rl-voir{margin-left:0}
@@ -4920,6 +4920,8 @@ function toast(msg, action){ // action : { lib, fn }
   try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
   /* une fenêtre basse (petit téléphone en travers, clavier ouvert) : la bulle posée en bas tombait SUR le champ qui a le focus, sur « Chercher un client » ou sur les onglets de « Nouvelle intervention » (360 × 400 : bulle de 178 à 251, onglets de 158 à 202, champ de 216 à 262). On mesure : si elle en cache un, elle passe EN HAUT de l'écran (sur le titre, jamais sur ce qu'on tape) — et si le haut en cache davantage, elle reste en bas. */
   t.classList.remove('haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  /* l'inverse du cas du module (surHote) : « Annuler l'envoi » (classe act) reste quand l'hôte parle APRÈS elle — sans cette ligne la bulle de l'hôte (z-index 90) passait sous celle du module (200) et sa confirmation se lisait à moitié (« Command… » puis « …e et rangée dans les achats »). Elle se pose au-dessus. */
+  try { const mt2 = document.querySelector('#courrier-hote [data-opcourrier]'), mb2 = mt2 && mt2.shadowRoot && mt2.shadowRoot.querySelector('#toast.show.act'); if (mb2) { const r2 = mb2.getBoundingClientRect(), g2 = t.getBoundingClientRect(); if (r2.height && g2.right > r2.left + 1 && r2.right > g2.left + 1 && g2.bottom > r2.top - 2 && g2.top < r2.bottom) t.style.setProperty('--toast-bas', Math.round(innerHeight - r2.top + 10) + 'px'); } } catch (e) {}
   try { toastDegager(t); } catch (e) {}
 }
 function toastDegager(t){
@@ -10929,26 +10931,6 @@ function vueEquipe(){
       return `<button type="button" class="carte bx-c eq-c${p.actif ? '' : ' eq-off'}" data-eq="fiche|${p.k}"><span class="bx-t"><span class="eq-av" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><span class="fo-n"><b>${esc(eqNom(p))}</b><span class="gris petit">${esc(p.role)}</span></span>${!p.actif ? '<span class="st st-g">Désactivé</span>' : p.invite ? '<span class="st st-b">Invité</span>' : p.droits.profil === 'admin' ? '<span class="st st-p">Administrateur</span>' : ''}</span>
         <span class="eq-puces">${r.ints.length ? `<span>🗓 ${r.ints.length} intervention${r.ints.length > 1 ? 's' : ''} cette semaine</span>` : ''}${r.heures ? `<span${r.heures > 48 * 60 ? ' class="eq-rouge" title="Au-delà de 48 h dans la semaine (Code du travail, L3121-20)"' : ''}>⏱ ${ptH(r.heures)} travaillées</span>` : ''}${r.v ? `<span>🚐 ${esc(r.v.plaque)}</span>` : ''}${r.absEn ? `<span class="eq-abs">🏖 ${esc(absTexte(r.absEn))}</span>` : r.absPro && tJours(r.absPro.du) <= 21 ? `<span>🏖 ${esc(absTexte(r.absPro))}</span>` : ''}${r.hab.length ? `<span class="eq-alerte">⚠️ ${r.hab.length} habilitation${r.hab.length > 1 ? 's' : ''}</span>` : ''}</span></button>`; }).join('') || '<p class="gris">Personne ici pour le moment.</p>'}</div>`;
 }
-function eqFiche(k){
-  const p = eqDe(k), r = eqResume(p), c = (H_GENS[k] || {}).c || '#5b6676', admin = p.droits.profil === 'admin', seulAdmin = admin && EQUIPE.filter(o => o.actif && o.droits.profil === 'admin').length === 1;
-  const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${{ v:'voir', c:'créer', m:'modifier', s:'supprimer' }[x]}">`;
-  foOuvrir(`<span class="surtitre">${esc(p.role)}${!p.actif ? ' · désactivé(e)' : p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
-    <div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
-    <div class="groupe">Sa semaine</div>
-    <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
-    ${r.absEn || r.absPro ? `<div class="ve-e">🏖 ${r.absEn ? 'Absent : ' + esc(absTexte(r.absEn)) : 'Prochaine absence : ' + esc(absTexte(r.absPro))}${(r.absEn || r.absPro).motif ? ' · ' + esc((r.absEn || r.absPro).motif) : ''}</div>` : ''}
-    <div class="cmd-liens">${r.ints.length ? '<button type="button" class="lien" data-eq="planning|' + k + '">Voir au planning ›</button>' : ''}${p.tel && k !== 'marc' ? `<a class="lien" href="${lienTel(p.tel)}">Appeler ›</a>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ses heures ›</button>` : ''}${r.cp ? '<button type="button" class="lien" data-eq="conges">Ses congés ›</button>' : ''}${r.v ? `<button type="button" class="lien" data-ve="fiche|${r.v.id}">${esc(r.v.marque + ' ' + r.v.modele)} · ${esc(r.v.plaque)} ›</button><button type="button" class="lien" data-sk="lieu|${r.v.lieu}">Stock du camion ›</button>` : ''}</div>
-    <div class="groupe">Habilitations</div>
-    <div class="fo-bloc">${p.habil.map(([n, d], j) => `<div class="fo-r"><span class="ve-pt ve-${habEtat(d)}" aria-hidden="true"></span><span class="fo-n"><b>${esc(n)}</b><span class="gris petit">${d ? (tJours(d) < 0 ? 'expirée le ' : 'valable jusqu’au ') + dFr(d) : 'sans date de fin'}${habFormation(k, d) && habEtat(d) !== 'v' ? ' · formation prévue le ' + jCourt(habFormation(k, d).du) : ''}</span></span>${d && habEtat(d) !== 'v' ? `<button type="button" class="btn gris petit" data-eq="renouv|${k}|${j}">Renouvelée</button>` : ''}</div>`).join('') || '<div class="gris petit">Aucune.</div>'}</div>
-    <button type="button" class="lien" data-eq="habajout|${k}">＋ Ajouter une habilitation</button>
-    <div class="groupe">Droits · ${admin ? 'administrateur : tous les droits' : 'profil ' + esc(PROFILS[p.droits.profil.replace('*', '')] ? PROFILS[p.droits.profil.replace('*', '')].nom : 'sur mesure') + (p.droits.profil.endsWith('*') ? ', ajusté' : '')}</div>
-    ${admin ? '' : `<label class="champ">Appliquer un profil<select data-eqprof="${k}"><option value="">Choisir…</option>${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}">${esc(o.nom)}</option>`).join('')}</select></label>`}
-    ${enApp() ? '' : '<div class="gris petit">Dans ce prototype, ces cases ne changent pas encore ce que la personne voit : « Tester en tant que » montre des profils fixes.</div>'}<div class="eq-droits"><div class="eq-dr eq-dr-t" aria-hidden="true"><span></span><span>Voir</span><span>Créer</span><span>Modif.</span><span>Suppr.</span></div>
-      ${DR_CATS.map(([cat, lib]) => `<div class="eq-dr"><span>${esc(lib)}</span>${['v', 'c', 'm', 's'].map(x => `<label>${cas(cat, x)}</label>`).join('')}</div>`).join('')}</div>
-    <div class="fo-bloc">${DR_SP.map(([sp, lib, aide]) => `<label class="fo-garder eq-sp"><input type="checkbox" data-eqs="${k}|${sp}" ${p.droits.sp[sp] ? 'checked' : ''} ${admin ? 'disabled' : ''}><span><b>${esc(lib)}</b>${aide ? `<span class="gris petit"> · ${esc(aide)}</span>` : ''}</span></label>`).join('')}</div>
-    <div class="actions">${p.invite ? (p.actif ? `<button type="button" class="btn gris" data-eq="relancer|${k}">Renvoyer l’invitation</button>` : '') : p.actif ? `<button type="button" class="btn gris" data-eq="mdp|${k}">Lui envoyer un lien pour choisir le sien</button>` : ''}<button type="button" class="btn gris" data-eq="actif|${k}" ${seulAdmin ? 'disabled title="Le dernier administrateur ne se désactive pas"' : ''}>${p.actif ? 'Désactiver le compte' : 'Réactiver le compte'}</button></div>
-    ${seulAdmin ? '<span class="gris petit">Dernier administrateur actif : il ne se désactive pas et ses droits ne se retirent pas.</span>' : ''}`, true);
-}
 function eqInviter(){
   ouvrirPanneau(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
     <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" maxlength="60" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" maxlength="60" autocomplete="off"></label></div>
@@ -11106,6 +11088,7 @@ function mlTraite(m, quoi, lien){ m.fait = quoi; m.faitLien = lien || ''; m.lu =
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-ml]'); if (!b) return;
   const [a, x, y] = b.dataset.ml.split('|'), m = mlDe(x);
+  if ((a === 'tache' || a === 'confok') && !peut('com', 'c')) return droitsRefus('com', 'c', 'ml', a);   /* tour 4 : une tâche se CRÉE, la case se lit ici et pas seulement dans la garde du clic */
   if (a === 'ouvrir') return courrierOuvrir(x);
   if (a === 'reco') { const bo = ML_BOITES.find(o => o.id === x); if (bo.etat === 'ok') return fermerPanneau(); bo.etat = 'ok'; bo.vu = 'à l’instant'; fermerPanneau(); MAILS.push(mlM('m' + Date.now(), jour(-2), '15:12', { nom:'Clim Pièces Atlantique', mail:'commandes@climpieces-atlantique.fr' }, 'Votre compte professionnel', 'Bonjour,\n\nVotre remise de 32 % est reconduite pour 2027.\n\nL’équipe commerciale', { boite:'b2', info:true })); rendre(); return toast(`${esc(bo.adr)} est reconnectée : ses messages sont de nouveau lus.`); }
   if (a === 'boites') return ouvrirPanneau(`<span class="surtitre">Boîte mail</span><h2>Boîtes connectées</h2><div class="fo-bloc">${ML_BOITES.map(bo => `<div class="fo-r mbx-lig-bte"><span class="ve-pt ve-${bo.etat === 'ok' ? 'v' : 'o'}" aria-hidden="true"></span><span class="fo-n"><b>${esc(bo.adr)}</b><span class="gris petit">${bo.fourni} · ${bo.etat === 'ok' ? 'lue ' + bo.vu : 'à reconnecter'}</span></span><span class="mbx-bo-act">${bo.etat === 'ok' ? '' : `<button type="button" class="btn petit" data-ml="reco|${bo.id}">Reconnecter</button>`}</span></div>`).join('')}</div>
@@ -12661,8 +12644,8 @@ const GESTES = {
   mabarre:{ d:'l' }, metf:{ d:'l' }, htype:{ d:'l' }, creer:{ k:'inter', d:'c' }, rdv:{ k:'planif', d:'m' }, fogarder:{ k:'stock', d:'m' },
   /* boîte mail */
   /* les gestes du bandeau « OP GESTION a reconnu » écrivent AILLEURS que dans le courrier : chacun lit la case de ce qu'il écrit (le devis, les achats, l'intervention, la fiche client), pas seulement la Boîte mail (restes entreprise, tour 3) */
-  mbx:{ k:'com', c:'add addstop addpas addfin devis@ventes encaisser@ventes confcren@inter cestclient@crm cestfour@achats', m:'confok reco annonce@ventes ranger@crm photoint@inter', s:'decook rmregle deco', l:'prevenir lire devchoix devfait reglages dl ouvrir cli virrecu' },
-  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout creerint@inter planifdv@inter', m:'reco confok accord@ventes livraison@achats rappro@achats', l:'cmd annonce boites' },
+  mbx:{ k:'com', c:'add addstop addpas addfin repondre relancer prevenir confier confok devis@ventes encaisser@ventes confcren@inter cestclient@crm cestfour@achats', m:'reco annonce@ventes ranger@crm photoint@inter', s:'decook rmregle deco', l:'lire devchoix devfait reglages dl ouvrir cli virrecu' },
+  mbxf:{ k:'com', m:'mdp accord', l:'serveur adr' }, ml:{ k:'com', c:'ajout repondre modele creneau tache confok creerint@inter planifdv@inter', m:'reco accord@ventes livraison@achats rappro@achats', l:'cmd annonce boites' },
   mm:{ k:'com', d:'l' }, courrier:{ k:'com', d:'l' }, mailenvoi:{ k:'com', d:'l' },
   /* comptabilité */
   cp:{ k:'compta', m:'payer envoi', l:'fac rouvrir aide onglet go jf frais paiement remis depot chq regimes fec fecdl' },
@@ -12737,7 +12720,7 @@ const DROIT_PHRASES = {
   stock:{ v:'voir le stock, les fournisseurs, les dépôts et les camions', c:'créer un produit, un fournisseur, un dépôt, une commande', m:'modifier, inventorier, transférer, réceptionner, ajouter à son camion', s:'retirer, jeter, supprimer ; régler le stock et changer un prix de vente' },
   temps:{ v:'voir les véhicules et les heures de toute l’équipe', c:'ajouter un pointage, un véhicule, un plein', m:'modifier un véhicule, valider des heures, terminer une journée', s:'clore un pointage, supprimer un frais ou un document de véhicule' },
   /* « tout-08 » : le module de courrier lit capacites().droits (écrire = Créer, répondre et ranger = Modifier, supprimer = Supprimer) : un geste refusé n'est pas proposé et le dit s'il est tenté */
-  com:{ v:'voir et lire les e-mails', c:'écrire un message, le transférer, connecter une boîte, ajouter une règle', m:'répondre, marquer, archiver, ranger, reconnecter une boîte, changer son mot de passe', s:'supprimer un e-mail, déconnecter une boîte, retirer une règle' },
+  com:{ v:'voir et lire les e-mails', c:'écrire un message ou y répondre, le transférer, confier un e-mail, en faire une tâche, connecter une boîte, ajouter une règle', m:'marquer, archiver, ranger, reconnecter une boîte, changer son mot de passe', s:'supprimer un e-mail, déconnecter une boîte, retirer une règle' },
   achats:{ v:'voir les demandes et les notes de frais', c:'faire une demande ou une note de frais', m:'décider d’une demande, valider une note, fixer un budget', s:'annuler une demande, supprimer une note' },
   admin:{ v:'voir l’accueil, les statistiques, l’historique, l’équipe et l’entreprise', c:'inviter une personne, ajouter une habilitation', m:'régler l’entreprise, les comptes et les droits, et la paie', s:'désactiver un compte, annuler une invitation' }
 };
@@ -20213,8 +20196,15 @@ function courrierBandeau(m){
 }
 const courrierSansFin = t => String(t).split('\n\nBien cordialement')[0];
 /* « Répondre », « Proposer un créneau », « Relancer », « Prévenir le client » : le message s'ouvre dans le composeur du module, déjà écrit (le modèle du sujet) */
+/* tour 4 : répondre ÉCRIT un message (com › Créer), et « Proposer une visite / un créneau » tient en plus des options au planning (planif › Modifier, la case de mbxOptions) : la case se lit ICI, dans la fonction, pour l'appel direct, le raccourci R et le bouton fabriqué */
+function courrierPeutEcrire(cle){
+  if (!peut('com', 'c')) { droitsRefus('com', 'c', 'courrier', cle); return false; }
+  if (cle === 'creneau' && !peut('planif', 'm')) { DROITS_REFUS.push({ cat:'planif', x:'m', fam:'courrier', verbe:cle }); toast('Proposer une visite tient des créneaux au planning : il faut aussi la case « Planning › Modifier ». Demande à ' + esc(droitPremierAdmin()) + '.'); return false; }
+  return true;
+}
 function courrierRepondre(m, cle){
   if (!m) return;
+  if (!courrierPeutEcrire(cle)) return;
   const modele = ({ creneau:'creneau', relancer:'relance', prevenir:'confirm', repondre:mbxModeleDefaut(m) })[cle] || cle, M = mbxMod(m);
   mlRep = { id:m.id, modele };
   courrierQuand(c => c.repondre(m.id, courrierSansFin(M[modele] || M.recu) + '\n\nBien cordialement'));
@@ -20234,9 +20224,9 @@ function courrierAgir(id, x){
 const courrierHoteApi = {
   telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
   /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2). Avec « Modifier » à la Boîte mail seule, il ne garde que les gestes dont la case de destination est ouverte (tour 3) */
-  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm')) return { ...b, actions:[] };
+  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm') && !peut('com', 'c')) return { ...b, actions:[] };   /* tour 4 : répondre, confier, en faire une tâche sont de « Créer » — une personne qui peut créer sans pouvoir ranger garde ces boutons (chacun relit sa case ci-dessous) */
     /* chaque geste lit la case de ce qu'il écrit (la table GESTES) : on ne propose que ceux que la garde laisserait passer */
-    return { ...b, actions:b.actions.filter(o => { const i = o.id.indexOf(':'), g = geste(o.id.slice(0, i), o.id.slice(i + 1).split('|')[0]); return !g || !g.cat || peut(g.cat, g.x); }) }; },
+    return { ...b, actions:b.actions.filter(o => { const i = o.id.indexOf(':'), g = geste(o.id.slice(0, i), o.id.slice(i + 1).split('|')[0]); if (o.id.startsWith('ml:creneau|') && !peut('planif', 'm')) return false; /* tour 4 : proposer une visite tient des créneaux au planning */ return !g || !g.cat || peut(g.cat, g.x); }) }; },
   agir:(id, x) => courrierAgir(id, x),
   pastille:x => { if (x.local) return null; const m = mlDe(x.id); if (!m || m.dossier !== 'recu' || m.info) return null; const R = mlLire(m);   // une notification ou une promotion n'est pas un « nouveau contact »
     return R.qui === 'client' ? { texte:'Client', ton:'b' } : R.qui === 'four' ? { texte:'Fournisseur', ton:'v' } : R.qui === 'nouveau' ? { texte:'Nouveau contact', ton:'o' } : null; },
@@ -20274,7 +20264,8 @@ function courrierCaler(){
   if (!COURRIER.inst) { if (COURRIER.etat === 'rien') courrierCharger(); if (h) h.hidden = true; return; }
   const hote = courrierHoteEl(), barre = document.getElementById('barre-bas'), cs = barre ? getComputedStyle(barre) : null;
   const r0 = place.getBoundingClientRect(), bas = barre && cs.display !== 'none' && cs.position === 'fixed' ? barre.getBoundingClientRect().top : innerHeight;
-  const haut = Math.max(innerHeight < 500 ? 240 : innerWidth <= 760 ? 300 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
+  const barreFixe = bas < innerHeight;   /* la barre d'onglets flottante de l'hôte : sans elle le plancher de 240 px est sûr, avec elle il passait SOUS la barre et la barre du bas du module (« Écrire ») se perdait derrière (iPhone 8 / SE en travers, 667×375) */
+  const haut = Math.max(innerHeight < 500 ? (barreFixe ? 110 : 240) : innerWidth <= 760 ? 300 : 360, Math.round(bas - r0.top - (innerWidth <= 760 ? 6 : 16)));   /* un téléphone tenu en paysage (390 px de haut) : plancher de 240 px, la tête de page se range (voir @media max-height) */
   place.style.height = haut + 'px';
   const r = place.getBoundingClientRect();
   hote.hidden = false; Object.assign(hote.style, { left:Math.round(r.left + scrollX) + 'px', top:Math.round(r.top + scrollY) + 'px', width:Math.round(r.width) + 'px', height:haut + 'px' });
@@ -20418,11 +20409,13 @@ document.addEventListener('change', ev => { const t = ev.target; if (!t.matches)
 const MBX_ROLE_DE = { julie:'gestion', sm:'tech', kb:'tech', lr:'tech', tl:'tech' };
 const mbxAcces = k => eqDe(k) ? droitVoit('boiteMail', eqDe(k)) : !!(MBX_ROLE_DE[k] && MBX_ROLE_DE[k] !== 'tech');   /* la même porte que le menu : la case « Boîte mail » ET la forme de la personne · étape 5 */
 function mbxPanConfier(m){
+  if (!peut('com', 'c')) return droitsRefus('com', 'c', 'mbx', 'confier');
   const L = COLLEGUES.filter(k => k !== acteur() && eqDe(k) && eqDe(k).actif);
   ouvrirPanneau(`<span class="surtitre">Confier cet e-mail</span><h2>${esc(m.objet)}</h2><span class="gris petit">La personne reçoit une tâche et une notification, avec cet e-mail seul, en lecture : rien d’autre de ta boîte. Celles qui ont déjà la Boîte mail le retrouvent dedans.</span>
     <div class="fo-bloc">${L.map(k => { const d = dispoDe(k), ok = mbxAcces(k); return `<button type="button" class="ve-u" data-mbx="confok|${m.id}|${k}">${hAv(k)}<span class="fo-n"><b>${esc(H_NOM(k))}</b><span class="gris petit"><i class="ms-pt ms-${d.c}" aria-hidden="true"></i>${esc(d.t)}</span>${ok ? '<span class="mbx-acces ok">A déjà la Boîte mail</span>' : ''}</span><span class="fo-chev" aria-hidden="true">›</span></button>`; }).join('')}</div>`);
 }
 function mbxConfier(m, y){
+  if (!peut('com', 'c')) return droitsRefus('com', 'c', 'mbx', 'confok');   /* tour 4 : confier crée une tâche et une notification */
   const R = mlLire(m), quoi = ({ panne:'Organiser l’intervention', devis:'Préparer le devis', accord:'Planifier l’installation', facfour:'Rapprocher la facture', paiement:'Pointer le paiement', expedition:'Suivre la livraison', choixcren:'Confirmer le rendez-vous' })[R.sujet] || 'Répondre', acces = mbxAcces(y);
   const t = { id:'t' + Date.now(), t:`${quoi} : ${m.objet}`, qui:y, d:AUJ, h:null, urgent:!!R.urgent, cat:'mail', lien:acces ? { t:'aller', id:'boiteMail|' + m.id, lib:'Boîte mail', cat:'Boîte mail' } : null, creePar:acteur(), creeLe:'31/10', origine:'confiée depuis la Boîte mail', mailConfie:m.id };
   TACHES.push(t); notifier(y, `${H_NOM(acteur())} te confie un e-mail : ${m.objet}`); m.confie = { qui:y, tid:t.id, fini:false };
@@ -20941,7 +20934,7 @@ vueTechFrais = function () {
   const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d) || b.id.localeCompare(a.id)), D = axMesDemandes(moi);
   const aToi = NDF.filter(n => n.qui === moi && n.etat === 'validee').reduce((s, n) => s + n.ttc, 0), nAtt = D.filter(d => d.etat === 'attente').length;
   return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Tu as acheté quelque chose pour le travail ? Envoie la photo du ticket. Il te manque du matériel ? Écris-le : le bureau te répond.</span></div>
-      <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Demande d’achat</button></div></div>
+      <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Nouvelle demande d’achat</button></div></div>
     ${rlNotifsCarte(moi, true)}${aToi ? `<div class="carte ax-atoi"><span class="fo-n"><b>À toi avec la paie de novembre : ${eur(aToi)}</b><span class="gris petit">Les notes déjà validées par le bureau, hors salaire.</span></span></div>` : ''}
     <div class="carte ax-dems"><h3>Mes demandes${nAtt ? ' · ' + nAtt + ' en attente' : ''}</h3>
       ${D.length ? D.map(axTechDemLigne).join('') : '<span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide et tu es prévenu ici.</span>'}</div>
@@ -20950,7 +20943,7 @@ vueTechFrais = function () {
 /* « Ma journée » : la carte « Il me faut… » sous les notes de frais */
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
   const h = v0.apply(this, arguments), moi = rlQui(), D = axMesDemandes(moi), att = D.filter(d => d.etat === 'attente').length, ach = D.filter(d => d.etat === 'aacheter').length;
-  const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
+  const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Nouvelle demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
   const cle = 'data-go="techfrais">Voir mes frais</button></div></div>';
   return h.includes(cle) ? h.replace(cle, cle + carte) : h; }; })();
 
@@ -26669,6 +26662,7 @@ function secuProvTermine(){ const s = SECU.panProv; SECU.panProv = null; fermerP
 /* la case « J'ai vérifié l'identité en personne » : le bouton reste grisé tant qu'elle n'est pas cochée, ET la fonction la relit (un clic forcé ne la contourne pas) */
 const secuVerifCoche = () => { const i = document.getElementById('sec-verif'); return !!(i && i.checked); };
 function secuPanTelephone(k){ const p = eqDe(k); if (!p || !secuPeut()) return;
+  if (!p.actif) return toast('Le compte de ' + esc(p.prenom) + ' est désactivé : réactive-le d’abord.');   /* tour 4 : la garde est dans la fonction, pas seulement dans le bouton retiré */
   if (k === acteur()) return toast('Pour ton propre compte, demande à un autre administrateur.');
   eqxPan(`<span class="surtitre">Équipe</span><h2>Nouveau téléphone pour ${esc(p.prenom)}</h2>
     <p>Avant de continuer, <b>vérifie que c’est bien ${esc(p.prenom)}, en personne</b> (pas par message, pas par téléphone).</p>
@@ -26678,6 +26672,7 @@ function secuPanTelephone(k){ const p = eqDe(k); if (!p || !secuPeut()) return;
     <div class="actions"><button type="button" class="btn rouge" data-sec2="tel-ok|${esc(k)}" id="sec-tel-ok" disabled>Nouveau téléphone pour ${esc(p.prenom)}</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
 /* ⛔ UNE fonction fait le geste, quel que soit le chemin (la fiche, la carte rouge de la Sécurité) : droit, personne ≠ soi, case, puis re-confirmation, puis les effets */
 function secuNouveauTelephone(k, par){ const p = eqDe(k); if (!p || !secuPeut()) return false;
+  if (!p.actif) { toast('Le compte de ' + esc(p.prenom) + ' est désactivé : réactive-le d’abord.'); return false; }
   if (k === (par || acteur())) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
   if (!secuVerifCoche()) return false;
   if (!secuGarde('equipe-telephone', () => secuNouveauTelephone(k, par), { k, v:'tel' })) return false;
@@ -26705,11 +26700,13 @@ function secuDeverrouiller(k, par){ const p = eqDe(k), c = p && SECU.comptes[p.k
 /* le support TeamOP (hors de l'application) déverrouille un administrateur seul : le prototype le joue par un bouton marqué « démonstration » */
 function secuSupportDeverrouille(){ EQUIPE.forEach(p => { const c = SECU.comptes[p.k]; if (p.actif && droitAdmin(p) && c && secuVerrouMaj(c)) { c.verrou = null; c.echecs = 0; c.nVerrous = 0; c.appareils = []; secuProvisoireNeuf(p.k); secuJ('account.unlocked', p.k, 'support'); } }); opsDemo(); }
 function secuDeconnecter(k){ const p = eqDe(k); if (!p || !secuPeut()) return false;
+  if (!p.actif) { toast('Le compte de ' + esc(p.prenom) + ' est désactivé : réactive-le d’abord.'); return false; }
   if (k === acteur()) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
   if (!secuGarde('equipe-telephone', () => secuDeconnecter(k), { k, v:'deco' })) return false;
   SECU.demandes.forEach(d => { if (d.k === k && d.etat === 'attente') d.etat = 'annulee'; });
   secuFermerSessions(k, 'admin'); eqxJ('a déconnecté partout', p, {}); opsDessiner(true); opsDemo(); toast('Les connexions de ' + esc(p.prenom) + ' sont fermées.'); return true; }
 function secuPanDeconnecter(k){ const p = eqDe(k); if (!p || !secuPeut()) return;
+  if (!p.actif) return toast('Le compte de ' + esc(p.prenom) + ' est désactivé : réactive-le d’abord.');
   eqxPan(`<span class="surtitre">Équipe</span><h2>Déconnecter ${esc(p.prenom)} partout</h2><p>Fermer toutes les connexions de ${esc(p.prenom)} ? Il devra se reconnecter avec son téléphone.</p>
     <div class="actions"><button type="button" class="btn rouge" data-sec2="deco-ok|${esc(k)}">Déconnecter</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
 /* « Reposer un mot de passe provisoire » : la personne a oublié le sien ; un nouveau est tiré (l'ancien ne marche plus), ses connexions se ferment, son téléphone ne change PAS */

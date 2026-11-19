@@ -28,7 +28,9 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', tag='ncli-'+pr+
   await L.aller(p,'clients'); const lst=await p.evaluate(()=>document.querySelector('#contenu').innerText);
   v(`${tag} · il paraît dans la page Clients`,/Fournil/.test(lst));
   await L.capture(c,CAP+tag+'-clients.png');
-  if(k){ await L.aller(p,'client-x-'+k.id); const fiche=await p.evaluate(()=>document.querySelector('#contenu').innerText.replace(/\s+/g,' ')); v(`${tag} · sa fiche s'ouvre, le nom à signes HTML reste du texte`,/Au Fournil/.test(fiche)&&/<b>x<\/b>/.test(fiche),fiche.slice(0,160)); await L.capture(c,CAP+tag+'-fiche.png'); }
+  if(k){ await L.aller(p,'client-x-'+k.id); const fiche=await p.evaluate(()=>document.querySelector('#contenu').innerText.replace(/\s+/g,' ')); const gras=await p.evaluate(()=>[...document.querySelectorAll('#contenu b, #contenu i, #contenu script, #contenu img')].some(e=>e.textContent==='x'||e.tagName==='SCRIPT'||e.tagName==='IMG'&&!e.closest('.avatar,.logo')&&/onerror/.test(e.outerHTML)));
+    // Depuis l'audit de sécurité (R13, « Sécurité étape 8 » : « sans balise ni formule ») le nom tapé passe par la fonction d'entrée, qui ôte < et > : « <b>x</b> » devient « bx/b ». La promesse gardée est la même (un nom à signes HTML ne devient JAMAIS du code), vérifiée sur le DOM et non plus sur le texte brut.
+    v(`${tag} · sa fiche s'ouvre, le nom à signes HTML reste du texte (aucune balise créée, rien d'exécutable)`,/Au Fournil/.test(fiche)&&!gras&&!/<b>|<\/b>/.test(fiche),fiche.slice(0,160)); await L.capture(c,CAP+tag+'-fiche.png'); }
   // 2. doublon : même nom et même e-mail qu'un client existant
   await L.aller(p,'devis'); f=await A.ouvrirAtelier(c,'devis',null); await L.calme(p,900); await ouvrir();
   await form('nom','Restaurant Le Vieux Port'); await form('email','marc@vieuxport.fr'); await form('tel','06 12 34 56 78'); await X.clic(c,f,'.nv-client [data-ok]'); await p.waitForTimeout(900);

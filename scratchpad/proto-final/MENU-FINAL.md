@@ -69,7 +69,7 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 
 ## Client (espace client)
 - (sans titre) : Accueil · Mes factures · Mes interventions · Mes devis · Mon contrat
-- Barre du bas au téléphone : Accueil · Factures · Devis · Interventions · Contrat
+- Barre du bas au téléphone : Accueil · Factures · Interventions · Devis · Contrat (ordre posé par « Restes client » tour 1, client-14 : le même partout ; l'ordre d'avant était Devis puis Interventions)
 
 ## Comptable (ouvert depuis sa fiche Équipe) : inchangé.
 

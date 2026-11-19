@@ -150,3 +150,4 @@ Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2
 - 07 h 51 UTC : 21 (équipe tour 3) rendue : 6 cases jouées (89 ✓), défauts planif.s et crm.m corrigés, 94/95 mutations tombent. Court tour 4 demandé : N3 (Répondre/Proposer/Confier/En faire une tâche sans com.c), eqFiche déclarée deux fois, data-sec2 sur un désactivé. N1, N2, achats.s, blocOk → doute 60c.
 - 07 h 59 UTC : rejeu 4 (compta, contrats) fini : contrats 49/49, compta 90/103 vertes, les 13 rouges = décisions (A/B, nom de la clôture, Paiement en ligne, centime, bulletin) déjà dans la liste.
 - 08 h 18 UTC : rejeu 5 fini (202 sondes ; 5 défauts corrigés avec mutation ; client-gestes vert ; +33 pour Justin).
+- 10 h 30 UTC : Justin : « il n'y a pas d'alerte hebdomadaire, on est à 36 % ». La retenue sur les tours supplémentaires est levée : les vrais défauts repartent en tour comme avant.
