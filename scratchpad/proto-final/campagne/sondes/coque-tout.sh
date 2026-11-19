@@ -1,7 +1,7 @@
 #!/bin/bash
 # Rejoue les sondes de la COQUE (menu, connexion, recherche et clavier, création rapide, Jour/Nuit/adresses, espace client, mise en page),
 # UNE à la fois (un seul navigateur), et dit pour chacune « N ✓ · M ✗ » et son code de sortie. Sort en 1 si une exécution tombe.
-#   bash scratchpad/proto-final/campagne/sondes/coque-tout.sh            # l'essentiel : environ 24 minutes (mesuré le 17/11/2026 : 1 440 s)
+#   bash scratchpad/proto-final/campagne/sondes/coque-tout.sh            # l'essentiel : environ 25 minutes (mesuré le 19/11/2026 : 1 496 s, avec les trois sondes de la recherche et de la visite)
 #   TOUT=1 bash …/coque-tout.sh                                          # TOUT, tous les profils : environ 44 minutes (2 660 s) — à lancer en fond
 #   RAPIDE=1 bash …/coque-tout.sh                                        # ordinateur seul (mac), une exécution par sonde : une dizaine de minutes
 # Le verdict d'une exécution est son code de sortie ; le « N ✓ · M ✗ » n'est qu'un affichage. Journal complet : $CAP/coque-tout.log (hors dépôt).
@@ -60,6 +60,9 @@ tout "recontrole windows" PROFIL=windows node $S/coque-recontrole.js
 for p in $(profils "petit windows" "petit iphone windows"); do lance "regard $p" PROFIL=$p node $S/coque-regard.js; done
 [ -z "$RAPIDE" ] && lance "regard petit nuit" PROFIL=petit NUIT=1 node $S/coque-regard.js
 tout "regard windows nuit" PROFIL=windows NUIT=1 node $S/coque-regard.js
+lance "mots courants de chaque rôle (recherche) mac" PROFIL=mac node $S/coque-mots-roles.js
+lance "tour 2 recontrôle (mots cachés, visite parlée ; la partie C joue l'iphone) mac" PROFIL=mac node $S/coque-tour2-recontrole.js
+lance "visite parlée : raccourcis muets, mac" PROFIL=mac node $S/coque-visite-raccourcis.js
 tout "guide (3 sondes) mac" PROFIL=mac node $S/coque-guide.js
 echo FINI | tee -a "$J"
 exit $ko

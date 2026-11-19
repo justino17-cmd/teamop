@@ -284,7 +284,9 @@ body.guide-on .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top,0px))}
 .chaine i{color:var(--faible);font-style:normal}
 .glossaire dl{display:grid;grid-template-columns:minmax(150px,230px) minmax(0,1fr);gap:9px 18px;margin:0}
 .glossaire dt{font-weight:700}.glossaire dd{margin:0;color:var(--doux)}
-.tva-calc{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px;max-width:540px}
+.tva-calc{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+/* le tableau de calcul prend la largeur utile de sa carte ; seule une grande fenêtre à la souris le borne (une ligne de 700 px sépare trop le libellé de son montant) : Justin, iPad et iPhone, 19 novembre 2026 */
+@media (hover:hover) and (pointer:fine) and (min-width:1100px){.tva-calc{max-width:540px}}
 .tva-calc div{display:flex;justify-content:space-between;gap:12px}.tva-calc .tot{border-top:1px solid var(--trait2);padding-top:7px;font-weight:700;font-size:17px}
 .tva-calc b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .replie>summary{display:flex;gap:4px 12px;align-items:baseline;flex-wrap:wrap;cursor:pointer;min-height:36px;list-style:none}
