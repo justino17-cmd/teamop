@@ -8,6 +8,13 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   for (const qui of ['julie', 'kb', 'sm']) {
     const c = await L.ouvrir({ profil, qui }); const p = c.p;
     const droit = await p.evaluate(() => ({ role: ROLE, voit: rlPermis('contrats'), menu: [...document.querySelectorAll('body *')].some(e => !e.closest('#contenu') && e.children.length === 0 && e.offsetParent && e.textContent.trim() === 'Contrats') }));
+    // sur téléphone, le menu est la FEUILLE « Menu » (la barre du bas n'a que cinq entrées : MENU-FINAL, « une seule catégorie au menu ») : « Contrats » s'y lit une fois la feuille ouverte, plus dans la page nue
+    // la secrétaire (« Gestion des factures ») ouvre l'application DANS OP COMPTABLE (ROLES.gestion.accueil = comptabilité) : le « Menu » du haut est alors celui du cadre ; on revient à OP GESTION (« ‹ OP GESTION ») avant d'ouvrir le sien
+    if (droit.voit && !droit.menu && c.doigt && await p.$('[data-cpsys="retour"]')) { await L.toucher(c, '[data-cpsys="retour"]'); await L.calme(p, 600); }
+    if (droit.voit && !droit.menu && c.doigt && await p.$('[data-menu="ouvrir"]')) {
+      await L.toucher(c, '[data-menu="ouvrir"]'); await L.calme(p, 500);
+      droit.menu = await p.evaluate(() => [...document.querySelectorAll('#calque *')].some(e => e.children.length === 0 && e.getBoundingClientRect().width > 0 && /^Contrats\b/.test(e.textContent.trim()))   /* la feuille est en position fixe : offsetParent y vaut null */);
+      droit.menuDansLaFeuille = true; await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} }); await L.calme(p, 300); }
     console.log(`\n── ${qui} :`, JSON.stringify(droit));
     const liste = await vue(c, 'contrats'), fiche = await vue(c, 'contrat-x-c1'), nouv = await vue(c, 'contrat-nouveau'), sign = await vue(c, 'signer-x-c3');
     console.log('  · liste', JSON.stringify(liste), '\n  · fiche', JSON.stringify(fiche), '\n  · nouveau', JSON.stringify(nouv), '\n  · signature', JSON.stringify(sign));
@@ -31,7 +38,8 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   const e0 = await O.lire(p); console.log('\n── client (Cabinet dentaire Martin) :', JSON.stringify(e0));
   const nav = await p.evaluate(() => [...document.querySelectorAll('[data-go]')].filter(b => b.offsetParent).map(b => b.dataset.go + '|' + b.innerText.trim().slice(0, 24)).slice(0, 14)); console.log('  · navigation :', JSON.stringify(nav));
   await L.capture(c, O.CAP + `R-client-accueil-${profil}.png`);
-  await L.toucher(c, '[data-ec="tab|contrats"]'); await L.calme(p, 500); const ec = await O.lire(p);
+  // sur téléphone l'onglet « Contrat » du client est celui de la barre du bas ; l'onglet de la tête de page y existe, masqué (0 px) et vient le premier dans le document : on touche le VISIBLE
+  await L.toucher(c, '[data-ec="tab|contrats"]:visible'); await L.calme(p, 500); const ec = await O.lire(p);
   const txt = await p.evaluate(() => document.getElementById('contenu').innerText.replace(/\s+/g, ' ').trim().replace(/^.*Votre espace client/, '').slice(0, 600)); console.log('  · « Contrat » du client :', JSON.stringify(ec.hash), '\n   ', txt);
   await L.capture(c, O.CAP + `R-client-moncontrat-${profil}.png`);
   v('R-client : « Contrat » parle du contrat de ce client (CTR-2026-011)', /CTR-2026-011/.test(txt), txt);
