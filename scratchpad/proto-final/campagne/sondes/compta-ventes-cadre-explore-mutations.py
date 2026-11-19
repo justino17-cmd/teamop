@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Mutations sur COPIES (jamais sur la page livrée) : la sonde compta-ventes-cadre-explore.js doit tomber sur CHACUNE. usage : python3 compta-ventes-cadre-explore-mutations.py [numéros]
+# M9 à M14 (3e tour, 19/11) : date d'émission, échéance, relances, moyen, date du paiement, ordre — fusionnées depuis le recontrôle ; la sonde les lit désormais (V13).
 # Les quatre premières étaient survivantes (recontrôle du 18/11 : « 12 ✓ · 0 ✗ ») ; les deux suivantes étaient déjà couvertes (V6, V9) ; la dernière garde le FILTRE (ce qu'il montre, pas seulement sa pastille).
 # Une mutation vise l'OCCURRENCE réellement lue : la page porte deux fois « VUES.ventes » (l'ancienne, recouverte, et celle de la fenêtre) — `apres` ancre la mutation APRÈS la définition vivante,
 # et le script écrit la ligne touchée : une mutation qui frappe la copie recouverte ne prouve rien.
@@ -17,6 +18,12 @@ MUT = [
  ('M5 « Reste à encaisser » +1 €', "<span>Reste à encaisser</span><b>${eur(oplDus())}</b>", "<span>Reste à encaisser</span><b>${eur(oplDus() + 1)}</b>"),
  ('M6 la pastille « Payées » compte toutes les factures', "['payees', 'Payées', payees.length]", "['payees', 'Payées', L0.length]"),
  ('M7 le filtre « Payées » montre toutes les factures (la pastille reste juste)', "UI.vf === 'payees' ? payees : L0", "UI.vf === 'payees' ? L0 : L0"),
+ ('M9 la DATE d’émission de chaque ligne devient l’échéance', '${dCourt(f.e.date)}</td><td class="n lt-m"', '${dCourt(f.e.ech || f.e.date)}</td><td class="n lt-m"'),
+ ('M10 l’ÉCHÉANCE d’une facture en retard devient sa date d’émission', "due le ${dCourt(f.e.ech)}${F.relances ?", "due le ${dCourt(f.e.date)}${F.relances ?"),
+ ('M11 le nombre de RELANCES +1', "plur(F.relances, 'relance')", "plur(F.relances + 1, 'relance')"),
+ ('M12 le MOYEN de paiement de chaque ligne payée devient « carte »', '<span class="st ok">Payée · ${p.mode}${OPL_AVOIRS', '<span class="st ok">Payée · carte${OPL_AVOIRS'),
+ ('M13 l’ORDRE des lignes est inversé', ")).sort((a, b) => b.e.date.localeCompare(a.e.date) || b.e.piece.localeCompare(a.e.piece));", ")).sort((a, b) => a.e.date.localeCompare(b.e.date) || a.e.piece.localeCompare(b.e.piece));"),
+ ('M14 la DATE du paiement de chaque ligne payée est celle de l’émission', '<span class="sec">le ${dCourt(p.date)}</span>', '<span class="sec">le ${dCourt(f.e.date)}</span>'),
 ]
 def h(p): return hashlib.sha256(open(p, 'rb').read()).hexdigest()
 avant = {n: h(os.path.join(R, 'apercu', n)) for n in os.listdir(os.path.join(R, 'apercu')) if n.endswith('.html')}
