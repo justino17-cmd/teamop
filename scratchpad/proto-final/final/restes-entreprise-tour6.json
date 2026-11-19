@@ -1,0 +1,72 @@
+[
+  {
+    "nom": "Confirmer un créneau transforme CETTE option en intervention : l'option du créneau choisi doit disparaître toujours, quelle que soit la case Planning (consigne a ; défaut vu au tour 5 : une carte « Option » à côté de l'intervention créée)",
+    "defaut": "Reproduit (tour 5, s3) : B (Boîte mail + Interventions, Planning en Voir seul) confirme « samedi 31 octobre à 16 h » puis crée l'intervention : l'option d'A restait dessinée sur le même créneau, à côté de l'intervention, comme un doublon.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html. confcren pose CREA.optCren = { mail, t, d, h } ; cCreer retire de BUREAU, APRÈS la photo d'« Annuler » (donc « Annuler » la rend avec l'intervention retirée), l'option de CE créneau seulement (optMail + tech + jour + heure), sans lire la case Planning. mbxLiberer(id, garde) ne retire toujours que pour qui a la case Planning (règle du tour 5) et laisse l'option du créneau à cCreer (garde = mmeCren) : un formulaire abandonné ne fait donc pas disparaître un créneau tenu. Le toast reste vrai : « les autres options sont libérées » (A, avec Planning), « les options tenues par un collègue restent… » (seulement si une AUTRE option reste), aucun mot sur les options sinon (nResteOpt exclut l'option du créneau).",
+    "preuve": "sondes/restes-entreprise-tour6-creneau.js : 30 ✓ · 0 ✗ (c1 Mac + iPhone nuit : B confirme 3 → 3, abandonne 3, crée 3 → 2 et les deux restantes sont les AUTRES créneaux, Annuler rend 3 et retire l'intervention ; c2 Mac + Android nuit : A confirme 3 → 1 puis crée → 0, toast « libérées » ; c3 personne seule sans Planning, aucune option : pas de mot sur les options ; c4 A confirme et abandonne, B confirme : toast sans « options tenues par un collègue », B crée → 0). Mutations (restes-entreprise-tour6-mutations.py) T1 à T8 : 8 jouées, 8 qui mordent (T6 était muette avant la section c4 : ajoutée, elle mord). Capture relue : planning Mac jour et nuit, plus de carte « Option » sur le créneau 16:00 – 18:00 du samedi 31 (s3-planning-apres-B(-nuit).png). Sondes du tour 4/5 mises à jour sur ce nouveau comportement (A confirme : 3 → 1 avant création) : restes4-recontrole a 10 ✓ c 10 ✓, restes4-creneaux 12 ✓, restes5-deuxpersonnes 10 ✓, tour5-recontrole s1 36 ✓ s3 2 ✓, tous 0 ✗."
+  },
+  {
+    "nom": "droits-fiche (2 ✗) : « Supprimer » de Clients non dessinée pour Julie ; trois lignes au téléphone (consigne b)",
+    "defaut": "DANS LA SONDE : elle tenait « Supprimer » de Clients pour une case sans geste ; depuis le commit 65dce4b3 (17 novembre) la case porte « archiver un client », gardée par peut('crm','s') dans clientArchiverDemande, clientArchiverOk et clientRestaurer. La page dessine donc bien la case et la quatrième ligne au téléphone.",
+    "etat": "corrigé",
+    "changement": "sondes/droits-fiche.js : le contrôle devient général (pour CHAQUE catégorie et CHAQUE case c/m/s, dessinée ⇔ phrase déclarée dans DROIT_PHRASES, population de 27 cases comptée, « archiver un client » exigé) ; au téléphone, Clients a quatre lignes dont « Supprimer · archiver un client ». Page inchangée.",
+    "preuve": "droits-fiche.js 23 ✓ · 0 ✗ ; mutation D2 (la phrase « archiver un client » retirée de DROIT_PHRASES) : 21 ✓ · 2 ✗, mord."
+  },
+  {
+    "nom": "droits-restauration (1 ✗) : valeur du <select> du profil",
+    "defaut": "DANS LA SONDE : la page ne dessine plus le <select data-eqprof> pour une personne en lecture seule sur l'Équipe (droitsBlocFiche : fige = admin || soi || lecture, equipe-18) ; la sonde lisait un select absent (valeur null).",
+    "etat": "corrigé",
+    "changement": "sondes/droits-restauration.js : (a) pour Lou en lecture seule, le <select> n'est pas offert, les cases sont là, désactivées, le profil de Julie n'a pas changé ; (b) nouveau : une personne qui PEUT régler l'Équipe (admin en modifier) mais n'a pas les droits que le profil donnerait voit le <select>, choisit « Responsable » : refus « Tu ne peux pas donner un droit que tu n'as pas toi-même », la valeur revient à « Choisir… », profil inchangé.",
+    "preuve": "droits-restauration.js 8 ✓ · 0 ✗ ; mutation D1 (la garde « droit que tu n'as pas » retirée) : 7 ✓ · 1 ✗, mord."
+  },
+  {
+    "nom": "droits-fabrication-css (1 ✗) : un MutationObserver de plus (5 → 9)",
+    "defaut": "DANS LA SONDE : elle comparait à un décompte figé au commit 5616202 (5 observateurs). Quatre autres chantiers en ont ajouté depuis (fond de la fenêtre l. 9159, veille des panneaux l. 9252, repère de défilement l. 12974, témoin de connexion l. 25885) ; aucun ne touche aux droits (droitsMaj / droits-css ne s'abonne à rien).",
+    "etat": "corrigé",
+    "changement": "sondes/droits-fabrication-css.js : liste CHAQUE observateur de la page, exige 9 observateurs tous rattachés à un chantier connu (barres, thème, fond, veille, typographie, défilement, dates, métier, connexion), aucun inconnu et aucun mentionnant les droits.",
+    "preuve": "droits-fabrication-css.js 6 ✓ · 0 ✗ ; mutation D3 (un observateur appelant droitsMaj) : 5 ✓ · 1 ✗, mord."
+  },
+  {
+    "nom": "droits-gestes-reels (9 ✗, erreur de sécurité du navigateur dans la sonde)",
+    "defaut": "DANS LA SONDE : la page porte une politique de sécurité (Content-Security-Policy, script-src sans 'unsafe-eval') et la sonde faisait eval(m) et eval(j) DANS la page : les 9 ✗ « Evaluating a string as JavaScript violates… » étaient des erreurs de la sonde, pas des gestes refusés à tort.",
+    "etat": "corrigé",
+    "changement": "sondes/droits-gestes-reels.js : les expressions de mesure et de geste passent par page.evaluate(chaîne) (protocole du navigateur, non soumis à la politique de la page). La politique de la page, elle, est gardée : elle est voulue.",
+    "preuve": "droits-gestes-reels.js 35 ✓ · 0 ✗ (huit gestes avec la case qui ont lieu, neuf sans la case refusés avec le bon message) ; mutation D4 (créer un client n'est plus classé dans la case Créer) : 34 ✓ · 1 ✗, mord."
+  },
+  {
+    "nom": "droits-bureau-toutes-cases (2 ✗) : « sans Supprimer » ferme Temps de travail et Dépôts et camions",
+    "defaut": "DANS LA SONDE : la règle a changé le 17 novembre (equipe-11, décision du chef, ROUTE_CATS) : « Voir » décide SEUL si une personne voit une rubrique ; retirer « Supprimer » ne cache jamais un écran, seuls les boutons qui écrivent disparaissent. La sonde exigeait encore l'ancienne règle (spec § 8.1).",
+    "etat": "corrigé",
+    "changement": "sondes/droits-bureau-toutes-cases.js : la personne sans « Supprimer » doit OUVRIR ces deux écrans comme les autres (contenu > 150 caractères, aucune exception de page) ; population toujours de 63.",
+    "preuve": "droits-bureau-toutes-cases.js 63 ✓ · 0 ✗."
+  },
+  {
+    "nom": "droits-terrain (1 ✗) : mat|retire passe à un terrain",
+    "defaut": "DANS LA SONDE (périmée) : la table GESTES dit en toutes lettres que « Annuler / Retirer son envoi » est un geste libre de la technicienne ; la sonde le rangeait parmi les 16 gestes du bureau.",
+    "etat": "corrigé",
+    "changement": "sondes/droits-terrain.js : mat|retire passe de la liste des gestes refusés (15 désormais) à celle des gestes permis (35).",
+    "preuve": "droits-terrain.js 4 ✓ · 0 ✗."
+  },
+  {
+    "nom": "Rejeu de tout : droits-tout.sh et entreprise-tout.sh",
+    "defaut": "Aucun nouveau défaut. La sonde du tour 6 est ajoutée à entreprise-tout.sh ; droits-tout.sh contenait déjà les six sondes réparées.",
+    "etat": "corrigé",
+    "changement": "sondes/entreprise-tout.sh : ligne restes-entreprise-tour6-creneau.",
+    "preuve": "droits-tout.sh : 20 sondes, toutes à 0 ✗ (table 7, menus 57, cases-voir 46, formes 23, lecture-seule 36, partiel 58, fiche 23, restauration 8, soi-meme 10, acteur 8, fabrication-css 6, gestes-reels 35, gestes-garde 3, specifiques 6, ponts 9, bureau-toutes-cases 63, terrain 4, compta 8, restes5-verbes 6). entreprise-tout.sh RAPIDE=1 sur la tête : tout à 0 ✗ (rapide 21, structure 201, champs 116, destinations 45, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, restes2 5 et 11, restes3 9, 42, 30, recontrole a 7 b 2 c 4 d 16 e 4 f 14, restes4 12, 10, 10, restes5-deuxpersonnes 10, tour5-recontrole 36, 12, 2, 2, tour6-creneau 30) sauf achats-lisible 33 ✓ · 1 ✗ (plancher de six profils non atteint en RAPIDE, attendu)."
+  },
+  {
+    "nom": "À soumettre à Justin (toujours ouverts depuis le tour 4, non touchés)",
+    "defaut": "Le numéro +33 (0)5 … refusé comme téléphone de l'entreprise ; une facture avec le seul SIRET (point juridique : agent juriste) ; la secrétaire voit-elle la Boîte mail ; « Répondre » qui promet plus que le menu ne donne en Voir + Créer ; « Créer le client et son devis » qui ne lit que la case Devis ; le clavier d'un vrai iPhone (non vérifiable avec le navigateur émulé).",
+    "etat": "à soumettre à Justin",
+    "changement": "aucun",
+    "preuve": "décisions de Justin, pas des défauts de code."
+  },
+  {
+    "nom": "Décisions déjà prises par le chef (Proposer un créneau ne tient rien sans la case Planning ; Renommer / Changer le logo = réglages locaux de l'appareil)",
+    "defaut": "Non touchées.",
+    "etat": "déjà décidé",
+    "changement": "aucun",
+    "preuve": "restes5-deuxpersonnes et restes4-creneaux rejoués : verts."
+  }
+]

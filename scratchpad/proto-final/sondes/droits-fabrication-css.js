@@ -3,10 +3,14 @@
 const { L, v, ouvrirComme, fin } = require('./droits-commun.js');
 const fs = require('fs'), { execSync } = require('child_process');
 (async () => {
-  // aucun MutationObserver de plus que la branche d'avant l'étape
-  const page = fs.readFileSync(require('./droits-recensement.js').PAGE, 'utf8'), n1 = (page.match(/new MutationObserver/g) || []).length;
-  let n0 = null; try { n0 = (execSync('git show 5616202:apercu/prototype-op-gestion.html', { maxBuffer:1 << 28 }).toString().match(/new MutationObserver/g) || []).length; } catch (e) {}
-  v(`aucun MutationObserver ajouté par l'étape (${n0} avant, ${n1} maintenant)`, n0 !== null && n1 <= n0, { n0, n1 });
+  // aucun MutationObserver DES DROITS. Restes entreprise, tour 6 : la sonde comptait « pas plus que la branche d'avant l'étape » (5 observateurs au commit 5616202) ; or QUATRE autres chantiers en ont ajouté depuis
+  // (fond de la fenêtre, veille des panneaux, repère de défilement, pose du témoin de connexion) : le défaut était dans la SONDE, pas dans la page. Ce qui compte, c'est que la feuille des droits (droitsMaj, droits-css)
+  // ne s'abonne à rien : on liste CHAQUE observateur de la page, on le rattache à sa fonction, et on exige qu'aucun ne soit celui des droits et qu'aucun ne soit inconnu.
+  const page = fs.readFileSync(require('./droits-recensement.js').PAGE, 'utf8');
+  const OBS = [...page.matchAll(/new MutationObserver\(([^\n]{0,260})/g)].map(m => m[1]);
+  const CONNUS = ['docBarres', 'appliquerMode', 'fond', 'veille', 'typo(', 'defileRepereTout', 'dtAmeliorer', 'metiersTextes', 'cnxTestPoser'];
+  const inconnus = OBS.filter(t => !CONNUS.some(k => t.includes(k))), desDroits = OBS.filter(t => /droits|droitsMaj|droits-css/.test(t));
+  v(`aucun MutationObserver des droits : ${OBS.length} observateurs dans la page, tous rattachés à un autre chantier (barres, thème, fond, veille, défilement, dates, métier, connexion), aucun inconnu, aucun pour les droits`, OBS.length === 9 && inconnus.length === 0 && desDroits.length === 0, { n:OBS.length, inconnus, desDroits });
   const c = await ouvrirComme({ k:'rp', prenom:'Rémi', nom:'Poulain', pd:'resp', terrain:false, cases:Object.fromEntries(['planif', 'inter', 'crm', 'ventes', 'compta', 'stock', 'temps', 'com', 'achats', 'admin'].map(k => [k, '1000'])), sp:{} });
   const r = await c.p.evaluate(() => { const p = eqDe('rp'), vus = []; let nRegles = 0, nCaches = 0, nLecture = 0, faux = [];
     document.getElementById('droits-css') || droitsMaj();
