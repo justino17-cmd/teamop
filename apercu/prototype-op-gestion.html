@@ -10845,12 +10845,12 @@ const nomRefus = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) retu
   if (!/^[\p{L}\p{M}\p{N}]/u.test(x) || !NOM_VISIBLE.test(x)) return 'Commence par une lettre ou un chiffre.';
   if (x.length > 60) return '60 signes au plus.';
   return NOM_PERS_REFUS; };
-/* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
+/* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « U+FFFD » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
 const SEG_GRAPH = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('fr', { granularity:'grapheme' }) : null;
 const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Array.from(SEG_GRAPH.segment(t), x => x.segment) : Array.from(t); };
 /* nbSignes : les signes COMPTÉS COMME L'UTILISATEUR (un drapeau, une famille d'émojis ou un « é » décomposé = 1 ; un saut de ligne = 1) */
 const nbSignes = t => graphemes(t).length;
-/* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
+/* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « U+FFFD » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
 /* un signe de CONTRÔLE (C0, DEL, C1) entre deux mots est une ESPACE, jamais rien : « Code\u0007portail » restait « Codeportail » ; en tête ou en fin, rogné il disparaît */
 /* nfc : un titre libre se range en NFC comme les champs du client (120 « é » décomposés se rangeaient en NFD, 240 unités — recontrôle tour 5, N5) */
