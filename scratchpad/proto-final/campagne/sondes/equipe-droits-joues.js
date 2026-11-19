@@ -138,7 +138,7 @@ const CAS = [
     for (const ch of cas.chemins) { const s = dr.sans[ch.n], a = dr.avec[ch.n];
       res.chemins.push({ chemin:ch.n, sans:s, avec:a });
       const T = (s.toast || '').slice(0, 70);
-      if (!s.propose) { v(`${cas.c} · ${ch.n} : SANS la case, le chemin n'est pas proposé (${(s.note || '').slice(0, 110)}) et rien n'a bougé`, s.changed.length === 0 && !s.err && !/^aucun/.test(s.note || ''), s);
+      if (!s.propose) { v(`${cas.c} · ${ch.n} : SANS la case, le chemin n'est pas proposé (${(s.note || '').slice(0, 110)}) et rien n'a bougé`, s.changed.length === 0 && !s.err && !/^aucun/.test(s.note || '') && !/s'ouvre sans/.test(s.note || ''), s);   // « la fenêtre s'ouvre sans son bouton » = un geste proposé puis refusé en silence : défaut, pas « chemin fermé »
         v(`${cas.c} · ${ch.n} : AVEC la case, le même chemin existe et écrit (contre-épreuve : le chemin fermé sans la case était bien un geste)`, a.propose && (ch.ouvertureSeule || a.changed.length >= 1) && a.refus === 0, a); continue; }
       v(`${cas.c} · ${ch.n} : SANS la case, rien n'est écrit (${s.changed.join(',') || 'aucune donnée'})`, s.changed.length === 0 && !s.err, s);
       if (!ch.muet) v(`${cas.c} · ${ch.n} : SANS la case, le refus est DIT à l'écran (« ${T} »)`, /pas ouvert à ton compte|Demande à/.test(s.toast) || s.refus >= 1, s);
