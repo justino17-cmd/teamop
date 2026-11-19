@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "retour",
+  "defaut": "Boîte mail, menu « Principal » (et tout menu du module : Filtrer, Actions, Boîte…) ouvert : un Retour quittait la Boîte mail et laissait le menu ouvert",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : toute fenêtre posée par-dessus (menu compris) est un niveau d'historique (overlayDePage ne met plus les menus à part) ; un Retour ferme donc le menu et reste dans la Boîte mail, Échap ou un choix libère l'entrée",
+  "preuve": "retour-restes3.js G1 : mac, ipad, android, iphone, android nuit tout ✓ (25 à 32 contrôles, 0 ✗) ; G1b (choix « Répondre » qui ouvre un composeur) ✓ ; mutation M1 (menu remis hors historique) : 11 ✗ sur mac"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Composeur ouvert (ordinateur) puis départ par une adresse (⌘K, lien du menu) : une étape de Retour de trop, la Boîte mail s'affichait deux fois de suite",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : une entrée ORPHELINE du module (état {opcourrier:k} avec k au-dessus du niveau courant, laissée par une fenêtre fermée avec l'écran) est sautée aussitôt par un recul ; un seul Retour ramène à la Boîte mail, le suivant va à l'écran d'avant",
+  "preuve": "retour-restes3.js G2 (voies aller() et lien du menu latéral) ✓ sur mac, windows non joué, ipad/android/iphone ✓ ; constat avant : Retour 1 #boiteMail, Retour 2 #boiteMail encore, Retour 3 Clients ; après : Retour 1 #boiteMail, Retour 2 Clients ; mutation M2 : 5 ✗ sur mac"
+ },
+ {
+  "nom": "retour",
+  "defaut": "OP Security : une entrée {cal:1} reste après un aller() par programme (le téléphone simulé gardait la place par-dessus l'écran d'arrivée, deux entrées poussées, premier Retour muet)",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : aller() range le téléphone simulé en plein écran (opsRanger, comme fermerPanneau et fermerMenu) ; sans effet sur grand écran où c'est un volet permanent",
+  "preuve": "retour-restes3.js G3 (aller depuis un état posé, et dans la MÊME tâche que l'ouverture) ✓ sur android, iphone, ipad ; avant : pile « securite », n = 7, Retour 1 muet ; après : pile vide, n = 5, Retour 1 → Clients ; mutation M3 : 9 ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "OP Security élargi (volet permanent) puis rétréci : le téléphone revenait en plein écran sans que personne l'ait ouvert",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : un écouteur matchMedia(min-width:1100px) fait suivre SECU.ouvert à la largeur (ouvert en grand, rond en étroit) ; rétrécir ne verrouille pas le téléphone",
+  "preuve": "retour-restes3.js G4 ✓ android, iphone, ipad ; avant : « rétréci » → pile securite, une entrée {cal:1}, plein écran ; après : rond, pile vide, rouvrable à la main avec UNE entrée que UN Retour ferme ; mutation M4 : 3 ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "« ‹ OP GESTION » touché avec un panneau (Réglages) ou le tiroir ☰ du cadre de la Comptabilité ouvert laissait le panneau OUVERT : on le retrouvait en revenant dans la Comptabilité",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : cpCouchePartir() dit au cadre de fermer sa couche (opc_fermer_calque, le message du Retour du navigateur) avant de partir — la règle « Retour ferme la couche du dessus » s'applique, le choix du tour 2 est annulé",
+  "preuve": "retour-restes3-compta.js D2 (nouveau verdict : au retour, panneau absent, pile vide, cpCalque faux) : android 47 ✓ · 0 ✗, mac 38 ✓ ; D1, D4 à D8 inchangés ✓ ; mutation M5 : 5 ✗ sur android"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Deux clics dans la MÊME tâche JavaScript sur « ‹ OP GESTION » : le second (cpSysDe déjà vidé) allait à l'accueil par défaut au lieu de l'écran d'origine et AJOUTAIT une entrée ; un Retour rouvrait la Comptabilité",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : la branche 'retour' ne fait rien si le cadre est déjà quitté (cpSysteme faux) ; le bouton n'existe plus à l'écran à ce moment, seul un clic dédoublé peut y arriver",
+  "preuve": "retour-restes3-compta.js D3b (vrai double clic synchrone, origine Clients, avec et sans panneau) ✓ ; la sonde du tour 2 (D3) ne le jouait PAS vraiment (son second clic part d'un setTimeout 0 et vérifie que la barre est encore là) ; constat sans la protection sur android, iphone, mac : panneau ouvert → #accueil au lieu de #clients, puis Retour → #comptabilite ; mutation M6 : 5 ✗ sur android"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non vérifié : le Retour matériel d'un vrai appareil (balayage iOS, Safari réel, bouton physique d'Android) ; la Boîte mail au clavier physique d'un vrai Mac",
+  "etat": "ne se reproduit pas",
+  "changement": "rien : les sondes appellent goBack (ce que fait le bouton d'Android) mais n'émulent ni le geste de balayage iOS ni Safari réel",
+  "preuve": "limite d'outil, pas un défaut mesuré"
+ }
+]
