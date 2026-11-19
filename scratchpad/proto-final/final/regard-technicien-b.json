@@ -1,0 +1,20 @@
+{
+ "role": "technicienne (sm) puis chef d'équipe (kb)",
+ "etat": "Mon camion regardé sur iphone, petit (320), android, mac, windows, ipad, de jour et de nuit (le profil mac720 a été pris, planches non lues) ; trois tours de regard au total (les deux premiers par l'agent précédent, commits c17f99c7 et 172055f2)",
+ "rubriques": [
+  {
+   "nom": "Mon camion",
+   "ecrans": "haut, recherche, recherche vide, « J'ai utilisé chez un client », « J'ai pris à l'atelier », « Il me manque une pièce », Noter un plein, Relever le compteur, Un souci, À bord, contrôle technique en retard / souci signalé / garage / hors service / papiers manquants, camion complet, sans liste, sans camion, valeurs longues (nom de 60 signes, 12345,67, 123456 km), tout pris, chef d'équipe (haut, messages du bureau, utilisé, plein, à bord), références validées (Accueil, Clients, Équipe, Dépôts et camions)",
+   "captures": 922,
+   "regardees": "922 captures prises (34 scènes × 7 profils × jour et nuit, plusieurs défilements chacune) ; une planche lue pour chaque famille de profil et de mode, soit une trentaine de planches (≈ 240 vignettes) ; n'ont PAS été lues : planches mac720, ipad nuit, windows jour, iphone nuit"
+  }
+ ],
+ "defauts": [
+  {"n": 1, "ecran": "Noter un plein", "profils": "petit (320)", "jourNuit": "jour et nuit", "constat": "les deux champs sont empilés et « toutes taxes comprises » collait au libellé « Kilomètres au compteur » (on le lisait comme son titre)", "etat": "corrigé", "changement": "14 px d'air entre les deux champs empilés à 340 px et moins ; contrôle K, mutation 13"},
+  {"n": 2, "ecran": "Un souci avec le camion", "profils": "petit (320), android (360)", "jourNuit": "jour et nuit", "constat": "l'exemple « ex. voyant orange du moteur, sur la rocade » était coupé (« …sur la roca »)", "etat": "corrigé", "changement": "« ex. voyant orange au tableau » ; contrôle L (tous les exemples de champ des feuilles tiennent), mutation 14"},
+  {"n": 3, "ecran": "Mon camion à l'ordinateur", "profils": "mac, windows, ipad", "jourNuit": "jour et nuit", "constat": "la page est une colonne de 720 px : la moitié droite d'un écran de 1440 reste vide (surtout sans camion, une seule carte) ; Ma journée et Dépôts et camions emplissent la largeur", "etat": "à soumettre", "changement": "ne change pas : une colonne étroite se lit bien, et passer en deux colonnes (À bord à gauche, Mes envois à droite) redessine l'écran — décision de Justin"},
+  {"n": 4, "ecran": "Feuilles de Mon camion", "profils": "mac, windows, ipad", "jourNuit": "jour et nuit", "constat": "deux largeurs de feuille : « J'ai utilisé / J'ai pris / Il me manque » en grand panneau (840 px au Mac, plein écran à l'iPad, le « + » loin du nom), « Plein / Compteur / Souci » en panneau étroit (510 px)", "etat": "à soumettre", "changement": "ne change pas : c'est le choix « grand panneau pour les listes » ; à trancher si Justin les veut de même largeur"},
+  {"n": 5, "ecran": "Quantités à 5 chiffres", "profils": "tous", "jourNuit": "jour et nuit", "constat": "« 12345,67 flacons » s'écrit sans séparateur de milliers (prNum remplace seulement le point)", "etat": "à soumettre", "changement": "ne change pas : prNum sert aussi à des valeurs de champs ; 12 345 pièces dans un camion est improbable"},
+  {"n": 6, "ecran": "Feuilles à 320 × 568", "profils": "petit (320)", "jourNuit": "jour et nuit", "constat": "le pied (message + deux boutons empilés) prend ~150 px sur 568 : la feuille « J'ai utilisé chez un client » n'en montre que l'en-tête avant de défiler", "etat": "à soumettre", "changement": "ne change pas : empilement décidé au tour précédent pour que « Envoyer : 3 articles » tienne ; seul un iPhone SE de première génération est concerné"}
+ ]
+}

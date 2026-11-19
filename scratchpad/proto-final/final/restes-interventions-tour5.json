@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "interventions",
+  "defaut": "Relevé numérique tapé (« 10-12 », « 3 sur 18 », « 12x3 », « 1 2 3 », « 10- ») : retiré ou fondu à la frappe",
+  "etat": "corrigé",
+  "changement": "commit 5c7b2e73 : rien n'est retiré pendant la saisie ; la règle se joue à la sortie du champ et à Terminer (refus avec phrase, ancienne valeur gardée) ; « -5 » et « 1 200 » corrects",
+  "preuve": "interventions-restes-tour5-frappe.js : 40 ✓ · 0 ✗ sur les 7 profils, jour et nuit (14 passages) ; mutations 3 à 6 tombent"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Bulle « Lu … » sur ordinateur posée sur la barre Terminer / Je ne peux pas finir",
+  "etat": "corrigé",
+  "changement": "commit 5c7b2e73 : --toast-bas calé au-dessus de #collant sur ordinateur",
+  "preuve": "interventions-restes-tour5-toast.js : 4 ✓ · 0 ✗ sur mac, windows, iphone, android jour et nuit ; captures mac et petit regardées (bulle au-dessus de la barre ; sur téléphone elle reste dans la fenêtre) ; mutation 7 tombe"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Page de Marc à 340 px sur 320 (bandeau .t-ici) ; R17, R19, R20 tombaient sur petit",
+  "etat": "corrigé",
+  "changement": "réglé par la correction de la sœur 16, rien refait ici",
+  "preuve": "interventions-recontrole.js petit jour et nuit : R17, R19 retirer une ligne, R20 verts ; total 133 ✓ · 0 ✗"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Sonde R19 périmée : « 250 mL »/« 9 999,5 L » attendus acceptés, prix « abc » attendu nul",
+  "etat": "corrigé",
+  "changement": "sonde mise à jour (unité inconnue refusée = décision compta-ventes tour 6 ; prix illisible : l'ancien prix est gardé), page inchangée",
+  "preuve": "interventions-recontrole.js mac nuit 124 ✓ · 0 ✗ ; petit nuit 133 ✓ · 0 ✗"
+ },
+ {
+  "nom": "devis-contrats",
+  "defaut": "Plafonds du total par la quantité et du prix unitaire sans cas dédiés (mutations survivantes)",
+  "etat": "corrigé",
+  "changement": "sonde devis-contrats-plafond-tour5.js",
+  "preuve": "7 ✓ · 0 ✗ sur mac, iphone, petit ; mutations 1 et 2 tombent (7 sur 7 mutations, page restaurée à chaque fois)"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Casse 4 (20 chiffres) ; durée « 1 h 30 »",
+  "etat": "déjà décidé",
+  "changement": "consigne : ne pas toucher",
+  "preuve": "consigne de l'étape 9"
+ }
+]
