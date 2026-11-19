@@ -10837,7 +10837,8 @@ const NOM_MAX = 120;
    (« 4821Sonner chez la gardienne » : le saut de ligne retiré sans être remplacé collait le code au mot suivant) */
 const ACCES_LIGNES = 3;
 /* INVISIBLE : espace de largeur nulle, lien, jonction de mots, trait d'union conditionnel, BOM, NEL… — une ligne qui n'en est faite ne COMPTE pas (5 lignes dont 2 invisibles = 3 lignes d'accès) ; au milieu d'une ligne ils restent (un ZWJ lie un émoji) */
-const INVISIBLES = /^[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\s]*$/;
+/* la liste n'est plus écrite à la main (recontrôle tour 5, N3) : la propriété Unicode « Default_Ignorable_Code_Point » (espaces de largeur nulle, sélecteurs de variante, balises E0000-E007F, U+1D173…) + le braille blanc U+2800 + les ancres d'annotation U+FFF9-FFFB */
+const INVISIBLES = /^[\p{Default_Ignorable_Code_Point}\u2800\ufff9-\ufffb\s]*$/u;
 const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(l => l && !INVISIBLES.test(l));
 const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join('\n'), n || 200);
 /* cliNet(c) : la toilette ET, en dernier recours, la coupe au plafond ; cliNet(c, true) : la toilette SEULE, sans rien couper — c'est elle que lit clientPlafondRefus.

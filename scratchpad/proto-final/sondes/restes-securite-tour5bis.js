@@ -33,7 +33,7 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,champs,marque').split(',');
     await p.evaluate(b => { const e = document.querySelector('#n-titre'); e.focus(); e.value = b; e.setSelectionRange(b.length, b.length); }, base);
     await p.keyboard.type('e'); await pause(60); await p.keyboard.insertText('́'); await pause(100);
     let l = await lire('#n-titre');
-    v('N2 119 signes + « e » puis U+0301 envoyés séparément : « é » complet (120 signes, 122 unités)', l.g === 120 && l.v.endsWith('é') && l.v.length === 121, [l.g, l.u, JSON.stringify(l.v.slice(-3))]);
+    v('N2 119 signes + « e » puis U+0301 envoyés séparément : « é » complet (120 signes, 121 unités)', l.g === 120 && l.v.endsWith('é') && l.v.length === 121, [l.g, l.u, JSON.stringify(l.v.slice(-3))]);
     await p.keyboard.type('Z'); await pause(60); l = await lire('#n-titre');
     v('N2 puis une lettre de plus : refusée (le champ est plein)', l.g === 120 && !l.v.endsWith('Z'), [l.g, JSON.stringify(l.v.slice(-3))]);
     await p.keyboard.insertText('́'); await pause(60); l = await lire('#n-titre');
