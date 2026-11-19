@@ -1504,7 +1504,7 @@ html[data-app] #vue-accueil{display:none!important}
   .vv-pl .fen-pied{grid-column:2;grid-row:1;min-height:64px;padding:8px 24px 8px 12px;border-top:0;border-bottom:1px solid var(--trait)}
   .vv-pl .fen-pied .bt.primaire{flex:none;min-height:48px;font-size:16px}
   .vv-pl .vv-pied-tot{display:flex}
-  .vv-pl .vv-pied-tot small{font-size:12px}.vv-pl .vv-pied-tot b{font-size:20px}
+  .vv-pl .vv-pied-tot small{font-size:12.5px}.vv-pl .vv-pied-tot b{font-size:20px}   /* 12,5 comme la légende de la barre d'aperçu (.vv-pl .vv-ap-t span) : « Total TTC » et « Contrat » étaient les seuls textes de la fenêtre sous 12,5 px (relecture « tout », mise-en-page.js) */
   .vv-pl .fen-corps{grid-column:1/3;grid-row:2}
   .vv-pl .vv{display:grid;grid-template-columns:clamp(480px,40%,620px) minmax(0,1fr);grid-template-areas:"form ap";align-items:stretch}
   .vv-pl .vv-form{grid-area:form;padding:20px 28px 48px;border-right:1px solid var(--trait)}

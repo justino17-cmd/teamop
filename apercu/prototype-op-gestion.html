@@ -2229,7 +2229,7 @@ button.paie-r:hover{background:color-mix(in srgb,var(--encre) 4%,transparent)}
 .rl-app + .rl-az{margin-left:0}
 /* « Voir comme l'application » (17 novembre 2026) : même pastille que « Apprendre », sans pousser la rangée à droite */
 .rl-voir{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,#4f8cff 45%,var(--trait));background:color-mix(in srgb,#4f8cff 10%,var(--surf));color:var(--lien);font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
-@media (pointer:coarse){.rl-voir{min-height:44px}}
+@media (pointer:coarse){.rl-voir,.rl-app,.rl-az{min-height:44px}}   /* « Apprendre » et « De A à Z » répondaient sur 40 px au doigt (162×40 et 170×40 mesurés sur l'espace client, iPhone) : même plancher que « Voir comme l'application » */
 /* pendant une visite parlée la bande reste, mais pas ce bouton : un effleurement aurait rechargé la page et perdu la place dans la visite sans un mot (recontrôle artefact, tour 1) */
 body.gd-on .rl-voir{display:none!important}
 .mch-b ~ .rl-voir{margin-left:0}
@@ -4920,6 +4920,8 @@ function toast(msg, action){ // action : { lib, fn }
   try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
   /* une fenêtre basse (petit téléphone en travers, clavier ouvert) : la bulle posée en bas tombait SUR le champ qui a le focus, sur « Chercher un client » ou sur les onglets de « Nouvelle intervention » (360 × 400 : bulle de 178 à 251, onglets de 158 à 202, champ de 216 à 262). On mesure : si elle en cache un, elle passe EN HAUT de l'écran (sur le titre, jamais sur ce qu'on tape) — et si le haut en cache davantage, elle reste en bas. */
   t.classList.remove('haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  /* l'inverse du cas du module (surHote) : « Annuler l'envoi » (classe act) reste quand l'hôte parle APRÈS elle — sans cette ligne la bulle de l'hôte (z-index 90) passait sous celle du module (200) et sa confirmation se lisait à moitié (« Command… » puis « …e et rangée dans les achats »). Elle se pose au-dessus. */
+  try { const mt2 = document.querySelector('#courrier-hote [data-opcourrier]'), mb2 = mt2 && mt2.shadowRoot && mt2.shadowRoot.querySelector('#toast.show.act'); if (mb2) { const r2 = mb2.getBoundingClientRect(), g2 = t.getBoundingClientRect(); if (r2.height && g2.right > r2.left + 1 && r2.right > g2.left + 1 && g2.bottom > r2.top - 2 && g2.top < r2.bottom) t.style.setProperty('--toast-bas', Math.round(innerHeight - r2.top + 10) + 'px'); } } catch (e) {}
   try { toastDegager(t); } catch (e) {}
 }
 function toastDegager(t){
@@ -20941,7 +20943,7 @@ vueTechFrais = function () {
   const moi = rlQui(), L = NDF.filter(n => n.qui === moi).sort((a, b) => b.d.localeCompare(a.d) || b.id.localeCompare(a.id)), D = axMesDemandes(moi);
   const aToi = NDF.filter(n => n.qui === moi && n.etat === 'validee').reduce((s, n) => s + n.ttc, 0), nAtt = D.filter(d => d.etat === 'attente').length;
   return `<div class="tete"><div><span class="surtitre">${esc(H_NOM(moi))}</span><h1>Mes frais</h1><span class="gris">Tu as acheté quelque chose pour le travail ? Envoie la photo du ticket. Il te manque du matériel ? Écris-le : le bureau te répond.</span></div>
-      <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Demande d’achat</button></div></div>
+      <div class="actions"><button type="button" class="btn" data-rl="ndf">＋ Nouvelle note de frais</button><button type="button" class="btn gris" data-axa="dem">＋ Nouvelle demande d’achat</button></div></div>
     ${rlNotifsCarte(moi, true)}${aToi ? `<div class="carte ax-atoi"><span class="fo-n"><b>À toi avec la paie de novembre : ${eur(aToi)}</b><span class="gris petit">Les notes déjà validées par le bureau, hors salaire.</span></span></div>` : ''}
     <div class="carte ax-dems"><h3>Mes demandes${nAtt ? ' · ' + nAtt + ' en attente' : ''}</h3>
       ${D.length ? D.map(axTechDemLigne).join('') : '<span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide et tu es prévenu ici.</span>'}</div>
@@ -20950,7 +20952,7 @@ vueTechFrais = function () {
 /* « Ma journée » : la carte « Il me faut… » sous les notes de frais */
 (() => { const v0 = vueMaJournee; vueMaJournee = function () {
   const h = v0.apply(this, arguments), moi = rlQui(), D = axMesDemandes(moi), att = D.filter(d => d.etat === 'attente').length, ach = D.filter(d => d.etat === 'aacheter').length;
-  const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
+  const carte = `<div class="carte ax-jour"><h3>Il me faut du matériel${att ? ' · ' + att + ' en attente' : ''}</h3><span class="gris petit">Une échelle, des gants, du fluide : dis ce qu’il te faut, le bureau décide.${ach ? ' <b class="ve-ot">' + (ach > 1 ? ach + ' achats à faire' : '1 achat à faire') + ' : ajoute le ticket après.</b>' : ''}</span><div class="actions" style="margin-top:10px"><button type="button" class="btn" data-axa="dem">＋ Nouvelle demande d’achat</button><button type="button" class="btn gris" data-go="techfrais">Mes demandes</button></div></div>`;
   const cle = 'data-go="techfrais">Voir mes frais</button></div></div>';
   return h.includes(cle) ? h.replace(cle, cle + carte) : h; }; })();
 

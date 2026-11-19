@@ -31,7 +31,8 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', tag='cas-'+pr+(
   await L.toucher(c,'#contenu .opd-l[data-opd="doc"]'); f=await A.attendreAtelier(c); await L.calme(p,700);
   const menu=await f.evaluate(()=>[...document.querySelectorAll('#vue-editeur button, #vue-editeur [role=menuitem]')].filter(b=>/supprim|dupliqu|corbeille/i.test((b.textContent||'')+(b.getAttribute('aria-label')||'')+(b.title||''))).map(b=>(b.textContent||b.getAttribute('aria-label')).trim()));
   console.log('  gestes « supprimer / dupliquer » visibles dans l\'éditeur :',JSON.stringify(menu));
-  await X.clic(c,f,'[data-act="menu-editeur"], [aria-label="Plus"], [aria-label="Plus d’actions"], button:has-text("⋮")').catch(()=>{});
+  // tout-07 (refonte/compositeur-corrections.json) : « Supprimer ce brouillon » est dans le menu « ⋯ » (#b-plus) de l'éditeur, brouillons seulement ; l'ancienne sonde cherchait un bouton « Plus » qui n'existe plus
+  await X.clic(c,f,'#b-plus').catch(()=>{});
   await p.waitForTimeout(500);
   const menu2=await f.evaluate(()=>[...document.querySelectorAll('.menu button, [role=menu] button, [role=menuitem], .fen-v button')].map(b=>(b.textContent||'').trim().replace(/\s+/g,' ')).filter(Boolean).slice(0,25));
   console.log('  éléments du menu ouvert :',JSON.stringify(menu2));

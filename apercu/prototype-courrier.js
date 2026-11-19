@@ -2368,6 +2368,7 @@ var MARKUP = `
     if(!isPhone()) return;
     var prev=app.getAttribute("data-view"); if(prev===view) return;
     app.setAttribute("data-view",view); histSync();
+    if(view==="list") listeCourtePlier();   // changer de dossier ou de boîte remonte la liste AVANT d'arriver sur elle (listeEnHaut) : en paysage court, listeCourtePlier voyait alors « la liste n'est pas à l'écran » et attendait pour toujours — la liste revenait dépliée, sans une ligne de message sous les yeux
     if(pendingUndo&&$("#tUndo")){ if(toastKind==="undo") $("#toast").classList.toggle("quiet",view!=="reading"); else { $("#tUndo").hidden=view!=="reading"; $("#toast").classList.toggle("two",view==="reading"&&!!$("#tAct")); } }
     var target=view==="mailboxes"?$("#sidebar"):view==="list"?$("#list"):$("#reading");
     try{ target.focus({preventScroll:true}); }catch(e){}
@@ -2956,12 +2957,16 @@ var MARKUP = `
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
   // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun e-mail ».
   // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
-  var COURT=false;
+  // COURT_VU : la liste a déjà été VUE en paysage court. Tant qu'elle ne l'a pas été, son défilement ne dit rien de la personne (c'est celui du portrait d'avant la rotation : 296 px, zéro ligne entière) et on la replie ;
+  // une fois vue, un défilement est un geste de la personne et on n'y touche plus (« une fois par ouverture »).
+  var COURT=false, COURT_VU=false;
   function listeCourtePlier(){
     try{ var court=window.matchMedia("(max-height:380px)").matches&&(isPhone()||layout()==="pad");
-      if(!court){ COURT=false; return; }
-      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1||ls.scrollTop>2) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
+      if(!court){ COURT=false; COURT_VU=false; return; }
+      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
       if(isPhone()&&app.getAttribute("data-view")!=="list") return;   // la liste n'est pas à l'écran : sa boîte vaut zéro, on attend
+      if(ls.scrollTop>2&&COURT_VU) return;
+      COURT_VU=true;
       var bar=$(".list .list-bar"), haut=Math.max(ls.getBoundingClientRect().top, bar?bar.getBoundingClientRect().bottom:0);   // sur téléphone la barre du haut est posée PAR-DESSUS la liste : la première ligne se cale sous elle, pas dessous
       COURT=true; ls.scrollTop=Math.round(m1.getBoundingClientRect().top-haut+ls.scrollTop); }catch(e){}
   }
@@ -4378,7 +4383,10 @@ var MARKUP = `
       var haut=(parseFloat(getComputedStyle(h).bottom)||0)+h.offsetHeight+10, b0=parseFloat(getComputedStyle(t).bottom)||0;
       if(b0<haut) t.style.setProperty("--opc-sur",Math.round(haut-b0)+"px"); }catch(e){}
   }
-  function toast(msg,action){ toastCorps(msg,action); surHote(); }
+  // --opc-sur ne se calculait qu'À L'APPARITION : l'hôte se tait avant nous (6 s contre 2,6 s) et la bulle restait montée de 52 px au-dessus d'un vide. Tant que notre bulle est à l'écran on la remesure (le coût : une lecture toutes les 300 ms).
+  var surTimer=null;
+  function suivreHote(){ clearInterval(surTimer); surTimer=setInterval(function(){ var t=$("#toast"); if(!t||!t.classList.contains("show")){ clearInterval(surTimer); surTimer=null; return; } surHote(); },300); }
+  function toast(msg,action){ toastCorps(msg,action); surHote(); suivreHote(); }
   function toastCorps(msg,action){
     clearTimeout(toastTimer);
     var t=$("#toast"); t.classList.remove("quiet");
