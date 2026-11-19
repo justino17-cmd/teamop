@@ -28,7 +28,7 @@
   { "id": "bilan", "resultat": "4 mutations jouées sur une COPIE (/tmp/claude-0/copie, supprimée), 4 font tomber la sonde (M2 à la 2e tentative) ; git diff de apercu/ vide ; l'ancre est comptée (une seule occurrence) avant chaque mutation." }
  ],
  "sondes": [
-  { "fichier": "sondes/restes-securite-tour4-recontrole-a.js", "resultat": "40 ✓ · 1 ✗ (le ✗ est le drapeau coupé par maxlength, voir « casses »)" },
+  { "fichier": "sondes/restes-securite-tour4-recontrole-a.js", "resultat": "38 ✓ · 1 ✗ (le ✗ est le drapeau coupé par maxlength, voir « casses »)" },
   { "fichier": "sondes/restes-securite-tour4-recontrole-b.js", "resultat": "168 ✓ · 0 ✗ (13 écrans x 3 profils [320 jour, iPhone nuit, iPad jour] + 320 nom SANS espace ; population : client de 112 signes relié à intervention, devis, facture, nom lu dans >= 5 écrans)" },
   { "fichier": "sondes/restes-securite-tour4-recontrole-c.js", "resultat": "24 ✓ · 0 ✗ (iPad et Android, jour ET nuit : liste, fiche, Infos, toast ; 16 captures lues)" },
   { "fichier": "sondes/restes-securite-tour4-recontrole-d.js", "resultat": "26 ✓ · 0 ✗ (titre sans espace / émojis sur 5 profils, coût des graphèmes)" },
