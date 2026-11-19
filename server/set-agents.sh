@@ -10,6 +10,21 @@ CONF="${TEAMOP_CONFIG:-/opt/teamop/config.json}"
 echo ""
 echo "=== Agents IA : RETIRÉS le 19 novembre 2026 ==="
 echo "Le serveur n'appelle plus Anthropic pour les agents (config.agents.retires vaut true par défaut)."
+PRESENTE=$(python3 -c "
+import json, sys
+try:
+    c = json.load(open(sys.argv[1]))
+except Exception:
+    print('illisible'); sys.exit(0)
+a = c.get('agents') if isinstance(c.get('agents'), dict) else {}
+print('oui' if a.get('cleApi') else 'non')" "$CONF")
+case "$PRESENTE" in
+  illisible) echo "❌ Configuration illisible : rien n'est touché."; exit 1 ;;
+  non) echo "Aucune clé « agents » dans la configuration : rien à supprimer."; exit 0 ;;
+esac
+echo "Une clé « agents.cleApi » est encore dans la configuration (non affichée)."
+read -r -p "La SUPPRIMER de config.json ? [o/N] " REP
+case "$REP" in o|O|oui|OUI|y|Y) ;; *) echo "Rien n'a été changé."; exit 0 ;; esac
 python3 - "$CONF" <<'PYEOF'
 import json, sys, os, tempfile
 chemin = sys.argv[1]
@@ -18,15 +33,6 @@ try:
 except Exception:
     print("❌ Configuration illisible : rien n'est touché."); sys.exit(1)
 a = c.get('agents') if isinstance(c.get('agents'), dict) else {}
-if not a.get('cleApi'):
-    print("Aucune clé « agents » dans la configuration : rien à supprimer."); sys.exit(0)
-print("Une clé « agents.cleApi » est encore dans la configuration (non affichée).")
-try:
-    rep = input("La SUPPRIMER de config.json ? [o/N] ").strip().lower()
-except EOFError:
-    rep = ''
-if rep not in ('o', 'oui', 'y', 'yes'):
-    print("Rien n'a été changé."); sys.exit(0)
 del a['cleApi']
 c['agents'] = a
 rep_dir = os.path.dirname(os.path.abspath(chemin))

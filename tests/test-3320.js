@@ -75,6 +75,10 @@ const GRAND = { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 };
   const sh = fs.readFileSync(path.join(RACINE, 'server', 'set-agents.sh'), 'utf8');
   vrai('set-agents.sh ne pose plus de clé : il propose de SUPPRIMER agents.cleApi (écriture atomique, 600, rien d\'affiché)', /RETIRÉS/.test(sh) && /os\.replace/.test(sh) && /0o600/.test(sh) && !/read -rsp/.test(sh) && !/api\.anthropic\.com/.test(sh));
 
+  { const cp = require('child_process'), cfg = path.join(tmp, 'cfg.json'); fs.writeFileSync(cfg, JSON.stringify({ agents: { cleApi: 'sk-ant-secret-3320', x: 1 }, anthropic: { cleApi: 'k2' } }), { mode: 0o600 });
+    const r = cp.spawnSync('bash', [path.join(RACINE, 'server', 'set-agents.sh')], { input: 'o\n', env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfg }), encoding: 'utf8' });
+    const c = JSON.parse(fs.readFileSync(cfg, 'utf8'));
+    vrai('set-agents.sh JOUÉ : la clé des agents est supprimée, le reste intact, chmod 600, la clé n\'est jamais affichée', r.status === 0 && !('cleApi' in c.agents) && c.agents.x === 1 && c.anthropic.cleApi === 'k2' && (fs.statSync(cfg).mode & 0o777) === 0o600 && !/secret-3320/.test(r.stdout + r.stderr), r.stdout + r.stderr); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ banc mort : ' + e); process.exit(1); });
