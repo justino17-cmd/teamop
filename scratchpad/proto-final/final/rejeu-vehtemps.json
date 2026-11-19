@@ -1,0 +1,82 @@
+{
+  "familles": [
+    "vehtemps",
+    "secu",
+    "securite",
+    "artefact",
+    "retour",
+    "double"
+  ],
+  "passages": [
+    {
+      "date": "2026-11-19 05:15 à 08:55 (machine seule, un navigateur à la fois)",
+      "scripts": {
+        "vehtemps": "sondes/vehtemps-tout.sh : 22 exécutions, une rouge (Mon camion sur « petit ») ; profils par défaut mac + iphone (petit sur « Mon camion » seulement), COMPLET=1 pour les six ; ~26 min mesurées en deux passages",
+        "secu": "sondes/secu-tout.sh : 18 exécutions, 2 rouges (secu-crypto, secu-auto : sondes qui extraient du code de la page, périmées) ; ~12 min",
+        "securite": "sondes/securite-tout.sh : 7 exécutions, 2 rouges (injection A2, politique) ; ~2 min",
+        "artefact": "sondes/artefact-tout.sh : 13 exécutions, toutes vertes ; ~21 min (ajout du guide « Commencer au chapitre »)",
+        "double": "sondes/double-tout.sh : 15 exécutions, toutes vertes ; ~22 min (ajout de recontrole-compte)",
+        "retour": "sondes/retour-tout.sh (calques, parcours, atelier, courrier : vert, 13 min, PUIS recontrôle adverse essentiel, vert, ~10 min, 9 exécutions) et campagne/sondes/retour-tout.sh (NOUVEAU : restes des tours 1 à 4 du bouton Retour, 14 exécutions, 2 rouges (la même sonde sur mac et android), ~21 min). Le recontrôle complet (retour-recontrole-tout.sh, plus d'une heure) a été rejoué en entier ce jour : 24 exécutions sur 24 vertes."
+      },
+      "sondes": 109,
+      "vertes": 102,
+      "rouges": 7,
+      "outilsEcartes": "vehtemps-avant, -captures, -v-captures, -v4-captures, -v5-captures, -feuilles, -rc-balayage, -mutations ; securite-captures, securite-mutations.py ; artefact-commun, -mutations, -voir-app-mutations.py ; retour-captures, retour-mutations, retour-restes3-constat/-double/-apercu-pdf/-cap, retour-restes2-recontrole-cap, retour-restes3-mutations.sh, retour-restes4-mutations.sh ; double-auth-mutations.py ; secu-captures est rejoué (c'est un contrôle au pixel)",
+      "sondesRouges": 6
+    }
+  ],
+  "aNoter": [],
+  "lignes": [
+    {
+      "sonde": "sondes/secu-crypto.js",
+      "constat": "ReferenceError: AUJ is not defined (le bloc extrait lit AUJ et MAINT_MIN, déclarés plus haut dans la page)",
+      "cause": "sonde périmée",
+      "decision": "le bac à sable reçoit AUJ et MAINT_MIN, LUS dans la page (jamais recopiés) ; un contrôle ajouté prouve qu'ils sont trouvés",
+      "changement": "scratchpad/proto-final/sondes/secu-crypto.js",
+      "preuve": "48 ✓ · 0 ✗ (aucun contrôle retiré : les 47 d'avant sont désormais joués)"
+    },
+    {
+      "sonde": "sondes/secu-auto.js",
+      "constat": "SyntaxError : la sonde extrayait jusqu'à la fin de LA LIGNE, la déclaration de secuAutoPermis tient désormais sur deux lignes ; et la fonction lit window.OPG_MODE_APP",
+      "cause": "sonde périmée",
+      "decision": "extraction jusqu'à la fin du jugement (« includes(loc.hostname); }; ») ; bac à sable avec window ; contrôle ajouté : en mode application (la coque mobile) même 127.0.0.1 et localhost refusent (règle écrite dans le commentaire de la page)",
+      "changement": "scratchpad/proto-final/sondes/secu-auto.js",
+      "preuve": "35 ✓ · 0 ✗ (14 jugements d'adresse + comportement navigateur local / hors local)"
+    },
+    {
+      "sonde": "sondes/securite-injection.js",
+      "constat": "A2 témoin : 'a'.repeat(13) attendu refusé par uniteSure()",
+      "cause": "sonde périmée",
+      "decision": "la limite d'une unité est passée de 12 à 20 signes (« paquet de 100… », texte du refus de prFormulaire) ; le témoin joue les bords : 20 passe, 21 est refusé, « paquet de 100 » passe. La promesse (un texte trop long est refusé) est gardée",
+      "changement": "scratchpad/proto-final/sondes/securite-injection.js",
+      "preuve": "32 ✓ · 0 ✗"
+    },
+    {
+      "sonde": "sondes/securite-politique.js",
+      "constat": "« le gestionnaire injecté S'EXÉCUTE » = 0 et « le navigateur a REFUSÉ quelque chose » = 0",
+      "cause": "sonde périmée",
+      "decision": "le vecteur toast(CHARGE) est fermé EXPRÈS depuis 9a95511a (« bulles échappées à la sortie et filet de toast ») : première barrière. Contrôle ajouté (0b : toast(charge) n'exécute rien) ; la SECONDE barrière (la politique de contenu) est éprouvée en posant la charge directement dans la page (insertAdjacentHTML), ce que ferait un écran fautif",
+      "changement": "scratchpad/proto-final/sondes/securite-politique.js",
+      "preuve": "24 ✓ · 0 ✗ (6 canaux sortants à 0, zéro violation sur 37 écrans + carte + atelier + PDF + Comptabilité + courrier + paiement)"
+    },
+    {
+      "sonde": "campagne/sondes/retour-restes2-recontrole-b.js",
+      "constat": "E4 : h = #accueil au lieu de #comptabilite après Retour (mac et android)",
+      "cause": "sonde périmée",
+      "decision": "la règle du tour 3 (retour-restes3-compta.js D2 : « ‹ OP GESTION » FERME le panneau) rend la prémisse fausse ; E4 est porté sur l'état d'aujourd'hui avec la même promesse (jamais deux Retour muets d'affilée, jamais de retour dans la Comptabilité)",
+      "changement": "scratchpad/proto-final/campagne/sondes/retour-restes2-recontrole-b.js",
+      "preuve": "mac 19 ✓ · 0 ✗ ; android 19 ✓ · 0 ✗"
+    },
+    {
+      "sonde": "sondes/vehtemps-v5-camion.js (petit)",
+      "constat": "3 ✗ de jour comme de nuit : la carte « Le camion » est à 694 px d'un écran de 568, « le plein se note sans défiler » tombe",
+      "cause": "sonde périmée",
+      "decision": "CSS « écran de 320 × 568 (restes technicien 2, technicien-13) » : sur un écran COURT et étroit la liste de ce qui manque passe d'abord, la carte juste dessous, décision écrite dans la feuille de la page (une pièce visible sur le premier écran). La sonde garde la promesse sur l'ordre décidé de chaque taille : sur petit, la première ligne de « Il manque » est au-dessus de la barre, la carte vient après la liste et les gros boutons, UN défilement met « Noter un plein » à portée ; mac et iPhone inchangés",
+      "changement": "scratchpad/proto-final/sondes/vehtemps-v5-camion.js",
+      "preuve": "petit jour 59 ✓ · 0 ✗ ; petit nuit 59 ✓ · 0 ✗"
+    }
+  ],
+  "reste": [
+    "rejeu complet des six familles après réparations : voir passages[1] (à remplir à la fin du rejeu)"
+  ]
+}
