@@ -1,0 +1,10 @@
+{
+  "tour": 5,
+  "de": "chef de chantier (session_01Cw6RN2Nf56UygsM6AYoN1P), 19 novembre 2026",
+  "note": "Petit tour. Ce ne sont PAS des décisions : à corriger.",
+  "corrections": [
+    "1. dvdPreparer COUPE sur tout ce qui n'est pas lettre/chiffre, comme tkxNomEntier (`split(/[^a-z0-9]+/)` après retrait des accents) : « l’Océan », « L’Épi d’Or », « l’Escale », trait d'union, chiffre, point, apostrophe droite ET typographique — tous reconnus dits en entier, et « support mural » ne choisit toujours pas « Le Vieux Port ».",
+    "2. Carte client au nom d'un seul mot très long (54 signes) : le nom se coupe dans la carte (overflow-wrap:anywhere sur le nom), la page ne s'élargit jamais au téléphone (mesure contre documentElement.clientWidth, 320/360/390, jour et nuit)."
+  ],
+  "ensuite": "Mutation sur chaque point, `git diff --stat apercu/` vide au recontrôle, recontrôle à 0 ✗."
+}

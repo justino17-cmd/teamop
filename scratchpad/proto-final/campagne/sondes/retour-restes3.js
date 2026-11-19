@@ -36,7 +36,7 @@ const ouvrirMail = async () => { const c = await M.entrer({ profil: PROFIL, nuit
   }
   // G1b : un choix dans un menu qui OUVRE une feuille (Répondre) : le menu part, le composeur arrive, UN Retour ferme le composeur (la lecture reste au téléphone), jamais plus d'une entrée à la fois
   {
-    const c = await ouvrirMail(), p = c.p; const tel = L.PROFILS[PROFIL].w <= 760;
+    const c = await ouvrirMail(), p = c.p; const tel = L.PROFILS[PROFIL].w <= 760 || PROFIL === 'ipad';   // l'iPad en 820 px porte la mise en page du TÉLÉPHONE dans le module (lecture = un niveau d'historique) : mesuré au recontrôle du tour 3, le seuil de 760 px faisait tomber G1b sur l'iPad à tort
     await p.evaluate(() => { const m = window.R().querySelector('#rows .msg'); if (m) m.click(); }); await p.waitForTimeout(800);
     const ok = await p.evaluate(() => { const b = window.R().querySelector('[data-act="replyMenu"]'); if (!b) return false; b.click(); return !!window.R().querySelector('#overlay.ov-menu'); });
     v('G1b le menu « Répondre » s\'ouvre (population)', ok, await H(p));
@@ -57,9 +57,13 @@ const ouvrirMail = async () => { const c = await M.entrer({ profil: PROFIL, nuit
     else { await p.evaluate(() => { const a = document.querySelector('#menu a[href="#taches"], #menu [data-go="taches"]'); if (a) a.click(); }); await p.waitForTimeout(900); await L.calme(p, 300); }
     const e1 = await H(p); v('G2 ' + voie + ' : on est sur les tâches', e1.h === '#taches', e1);
     await C.retour(p); const e2 = await H(p);
-    v('G2 ' + voie + ' : UN Retour ramène à la Boîte mail, sans composeur', e2.h === '#boiteMail' && e2.ov === null, e2);
+    // DEPUIS 33192f69 (décision du chef) la Boîte mail GARDE son message en cours quand on va sur une autre rubrique : on le retrouve au retour. La règle reste « Retour ferme la couche du dessus » :
+    // Retour 1 ramène à la Boîte mail (message gardé), Retour 2 ferme le message, Retour 3 va à l'écran d'avant — jamais une entrée orpheline qui répète la Boîte mail.
+    v('G2 ' + voie + ' : UN Retour ramène à la Boîte mail, le message en cours est gardé (décision du 19/11)', e2.h === '#boiteMail' && e2.ov === 'overlay ov-compose', e2);
+    await C.retour(p); const e2b = await H(p);
+    v('G2 ' + voie + ' : le Retour suivant ferme le message, toujours dans la Boîte mail', e2b.h === '#boiteMail' && e2b.ov === null, e2b);
     await C.retour(p); const e3 = await H(p);
-    v('G2 ' + voie + ' : le Retour suivant va à l\'écran d\'avant (Clients), pas une seconde fois à la Boîte mail — ' + e3.h, e3.h === '#clients', e3);
+    v('G2 ' + voie + ' : puis le Retour suivant va à l\'écran d\'avant (Clients), pas une seconde fois à la Boîte mail — ' + e3.h, e3.h === '#clients', e3);
     v('G2 ' + voie + ' : aucune erreur de page', c.err.length === 0, c.err.slice(0, 3)); await M.fin(c);
   }
   // G3
