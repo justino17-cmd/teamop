@@ -20,9 +20,12 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
     await L.toucher(c, '#calque [data-rl="ndfok"]'); await p.waitForTimeout(300);
     // une demande de confirmation (« c'est bien ça ? ») compte comme un refus d'envoi tant qu'on ne la valide pas
     const t = await X.toasts(p), ap = await nb(), dit = await p.evaluate(() => { const z = document.getElementById('rn-dbl'); return z && !z.hidden ? z.innerText : ''; }); joues++;
-    const ttc = ap > av ? await p.evaluate(() => NDF[0].ttc) : null;
+    // anti-doublon décidé (axNdfEnvoyer, #rn-dbl) : une note du même montant le même jour demande « c'est la même ? » avant de partir ; la personne répond « Non, c'est une autre » et la note part au bon montant — on joue CE geste, la promesse (le montant lu juste) reste la même
+    let ap2 = ap, dit2 = dit;
+    if (attendu !== 'refus' && ap === av && /existe déjà[\s\S]*c.est la même/.test(dit)) { await L.toucher(c, '#calque [data-axa="dblautre"]'); await p.waitForTimeout(400); ap2 = await nb(); dit2 = ''; }
+    const ttc = ap2 > av ? await p.evaluate(() => NDF[0].ttc) : null;
     if (attendu === 'refus') v(`N · « ${saisie} » : la note n'est PAS enregistrée à un montant faux, et la personne lit pourquoi`, ap === av && (t.length > 15 || dit.length > 5), { t, dit, enregistre: ttc });
-    else v(`N · « ${saisie} » est lue ${attendu} € TTC`, ap === av + 1 && Math.abs(ttc - attendu) < .005 || (ap === av && /c.est bien ça/.test(dit)), { t, dit, ttc });
+    else v(`N · « ${saisie} » est lue ${attendu} € TTC`, ap2 === av + 1 && Math.abs(ttc - attendu) < .005 || (ap2 === av && /c.est bien ça/.test(dit2)), { t, dit, ttc });
     await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });
   }
   console.log('saisies jouées :', joues);

@@ -13,6 +13,8 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   v('le PDF est dans sa cellule et sa barre juste dessous', e.cell && e.pdf && e.barDansCellule && e.barApresPdf, e);
   v('un seul bouton « Télécharger » sur la fiche', e.telechargements === 1, e.telechargements);
   if (e.largeur >= 1100) v('les cartes sont à droite du PDF, en haut', e.colGauche >= e.pdfDroite - 4 && e.colHaut < e.pdfBas - 200, e);
+  // contrats-13 (décision de la campagne) : au téléphone le PDF et sa barre se replient derrière « Lire le contrat » ; on le déplie d'abord, comme la personne, avant de toucher « Voir en grand »
+  if (await p.evaluate(() => { const b = document.querySelector('.ctr-lire'); return !!b && b.getBoundingClientRect().width > 0; })) { await L.toucher(c, '.ctr-lire'); await L.calme(p, 400); }
   await L.toucher(c, '[data-pdfplein]'); await L.calme(p, 600);
   const g = await p.evaluate(() => { const d = document.getElementById('docplein'); return { ouvert: !!d && getComputedStyle(d).display !== 'none' && d.getBoundingClientRect().height > 100, pdf: !!(d && d.querySelector('.pdf')) }; });
   v('« Voir en grand » ouvre le document', g.ouvert && g.pdf, g);
