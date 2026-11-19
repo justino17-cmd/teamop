@@ -13,7 +13,8 @@ const M = [
   { n:7, nom:'le retour de la Paie par la barre ne garde plus l\'onglet (garde ET drapeau retirés)', parties:'retour', de:"RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; }", vers:"}" },
   { n:9, nom:'le retour du SYSTÈME depuis la Paie rouvre « Aujourd\'hui » (drapeau viaPaie ignoré)', parties:'retour', de:" && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet", vers:") { ptOnglet" },
   { n:10, nom:'vhCourt élide de nouveau devant « y » (« l’Yaris »)', parties:'veh', de:"/^(?:[aeiouàâäéèêëîïôöûüœ]|ypsilon)/i.test(m)", vers:"/^[aeiouyàâäéèêëîïôöûüœ]/i.test(m)" },
-  { n:11, nom:'le départ guidé annonce de nouveau la semaine en cours comme une alerte', parties:'voisins', de:"const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);", vers:"const pt = ptGen && !PT_VALIDE[k + L0];" },
+  { n:11, nom:'le départ guidé dit la semaine en cours DANS l\'alerte', parties:'voisins', de:"`<span class=\"gris petit\">Sa semaine en cours se validera une fois finie, lundi prochain.</span>`", vers:"`<div class=\"a-alerte\"><b>Sa semaine en cours se validera une fois finie, lundi prochain.</b></div>`" },
+  { n:12, nom:'le départ guidé redit « Pointage de la semaine pas encore validé » (sans « dernière »)', parties:'voisins', de:"<b>Pointage de la semaine dernière pas encore validé</b>", vers:"<b>Pointage de la semaine pas encore validé</b>" },
   { n:8, nom:'le Mois compte la semaine en cours parmi les semaines à valider', parties:'tt', de:"nonValidees:semaines.filter(w => !w.valide && w.fini).length", vers:"nonValidees:semaines.filter(w => !w.valide).length" },
 ];
 const veut = (process.argv[2] || '').split(',').filter(Boolean).map(Number), tombe = [];

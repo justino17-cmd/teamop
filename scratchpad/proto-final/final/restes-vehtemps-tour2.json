@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "Mois › Voir la paie › retour du système (history.back, balayage iPhone, bouton Retour d'Android) rouvrait « Aujourd'hui » (gerant-16 / pasRegles du recontrôle tour 1)",
+  "defaut": "seule la barre « ‹ Revenir à Temps de travail » gardait l'onglet",
+  "etat": "corrigé",
+  "changement": "ttVue : un drapeau TT.viaPaie, posé par paieAller quand on part de Temps de travail, fait retrouver l'onglet et la semaine laissés au retour par n'importe quelle voie ; il est consommé au premier rendu de Temps de travail et effacé dès qu'on est ailleurs que dans la Comptabilité (un autre chemin vers Temps de travail rouvre « Aujourd'hui »)",
+  "preuve": "sonde restes-vehtemps-tour1-recontrole.js partie retour : voies barre, systeme, fuite, mac+iphone 18 ✓ · 0 ✗ ; mutations 7 et 9 tombent"
+ },
+ {
+  "nom": "« l'Yaris » : l'élision de vhCourt traitait « y » comme une voyelle",
+  "defaut": "« Le Trafic, l'Yaris et le Kangoo sont au garage »",
+  "etat": "corrigé",
+  "changement": "vhCourt : « y » est une consonne (Yaris, Yeti, Yamaha), sauf Ypsilon ; voyelles ajoutées ä ë ï ö ü œ. Balayage de 63 noms plausibles (utilitaires, citadines, chiffres, e-Expert, Up!, Éclipse…) : seuls A E I O U accentués et Ypsilon élident",
+  "preuve": "sonde partie veh ; mutation 10 tombe ; balayage node des 63 noms"
+ },
+ {
+  "nom": "Départ guidé : « Pointage de la semaine pas encore validé » alerte permanente et sans geste possible",
+  "defaut": "la semaine en cours ne se valide qu'une fois finie, l'alerte menait à une feuille qui le refusait",
+  "etat": "corrigé",
+  "changement": "eqxRestes : pt = semaine D'AVANT finie, non validée, avec des pointages (alerte, « Pointage de la semaine dernière pas encore validé », lien « Ouvrir ses heures ») ; ptEnCours = ligne grise hors alerte « Sa semaine en cours se validera une fois finie, lundi prochain. » qui n'ouvre pas à elle seule la fenêtre",
+  "preuve": "sonde partie voisins 11 ✓ · 0 ✗ ; mutations 11 et 12 tombent ; captures equipe-depart-mac- et iphone-nuit regardées (alerte ambre, ligne grise lisible, rien de coupé)"
+ },
+ {
+  "nom": "Compte « Prototype / données fictives » sur la fiche de paie (compta-reste-parcours-f F5)",
+  "defaut": "la fiche de paie reçue parlait de Prototype, de taux d'exemple et de données fictives en mode application",
+  "etat": "corrigé",
+  "changement": "pied de la fiche : en mode application (enApp() dans OP GESTION, ?app=1 dans le cadre Comptabilité), seule reste la mention « Conservez ce bulletin sans limitation de durée. » ; hors mode application (essai) le texte d'avant est inchangé",
+  "preuve": "compta-reste-parcours-f mac : 18 ✓ · 0 ✗ (F5 tombait)"
+ },
+ {
+  "nom": "Entrées « à soumettre » (Mon camion à 320 px, mots de la Paie et du Mois pour un même fait, hauteur de la liste Véhicules au téléphone) ; « le Ford » pour un véhicule sans modèle ; fiche au garage qui dit le fait deux fois ; « (hors taxes) » seul sur une ligne ; titre coupé du visionneur à 820 px ; anneau de focus de ✕",
+  "defaut": "doutes du recontrôle",
+  "etat": "à soumettre à Justin",
+  "changement": "rien",
+  "preuve": "non modifiés : doutes de goût ou propres à un vrai appareil, déjà notés au tour 1"
+ },
+ {
+  "nom": "Ligne non cochée de vus-par-le-chef.md (vehtemps tour 1) : ligne du menu « Fournisseurs, matériel & produits » qui change de hauteur, bloc Sécurité",
+  "defaut": "restent aux autres voies selon la ligne elle-même",
+  "etat": "déjà décidé",
+  "changement": "rien (hors de mes noms)",
+  "preuve": "la ligne dit elle-même que les parties vehtemps sont faites"
+ }
+]
