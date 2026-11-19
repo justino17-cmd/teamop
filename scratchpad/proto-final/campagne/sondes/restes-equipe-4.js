@@ -131,7 +131,8 @@ async function phaseD() {
   const nFonc = (src.match(/^function eqFiche\s*\(/gm) || []).length, nAff = (src.match(/^eqFiche\s*=\s*function/gm) || []).length, nTotal = nFonc + nAff;
   const c = await E.marc(PROFIL), p = c.p;
   const fiches = {};
-  for (const k of ['kb', 'sm', 'lr']) { await E.fiche(c, k); fiches[k] = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? q.innerHTML.replace(/\s+/g, ' ').replace(/\d{1,2}[:h]\d{2}/g, 'H') : null; }); await E.ranger(c); }
+  const moi = await p.evaluate(() => acteur());   /* la fiche d'un ADMINISTRATEUR (ses cases sont grisées) en plus de trois fiches de personnes ordinaires */
+  for (const k of ['kb', 'sm', 'lr', moi]) { await E.fiche(c, k); fiches[k === moi ? 'moi' : k] = await p.evaluate(() => { const q = document.querySelector('#calque .panneau'); return q ? q.innerHTML.replace(/\s+/g, ' ').replace(/\d{1,2}[:h]\d{2}/g, 'H') : null; }); await E.ranger(c); }
   const ouv = await p.evaluate(() => { eqFiche('kb'); const q = document.querySelector('#calque .panneau'); return { h2:q && q.querySelector('h2') ? q.querySelector('h2').textContent.trim() : null, cases:q ? q.querySelectorAll('input[data-eqd]').length : 0, comme:q ? !!q.querySelector('[data-cnx^="comme"]') : false, acces:q ? !!q.querySelector('.cn-acces') : false }; }); await E.ranger(c);
   if (DUMP) { fs.writeFileSync(DUMP, JSON.stringify(fiches)); console.log('référence écrite : ' + DUMP); await L.fin(c); return; }
   v('D eqFiche : UNE seule déclaration `function eqFiche` ne reste pas (la morte est retirée) et une seule affectation `eqFiche = function` ', nFonc === 0 && nAff === 1 && nTotal === 1, { nFonc, nAff, nTotal });
