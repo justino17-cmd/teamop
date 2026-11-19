@@ -1,0 +1,56 @@
+{
+ "noms": [
+  "Le refus du nom est une phrase de 4 lignes dans une demi-colonne sur Android (360 px)",
+  "Le refus du nom ne dit pas la règle du premier signe (« -Marie », « .Marie », « ’Marie »)",
+  "Sur sa propre fiche, le bloc Connexion du gérant reste à la troisième personne (« Provisoire : à lui remettre en main propre. Marc le change à sa première connexion », « Jamais »)",
+  "Une invitée désactivée se voit proposer « Renvoyer l'invitation » et « un nouveau mot de passe »",
+  "Compte désactivé : « Nouveau téléphone » et « Déconnecter partout » restent à côté de « Réactiver le compte »",
+  "Léa verrouillée ET désactivée : « utilise Déverrouiller » et « réactive d'abord son compte » côte à côte, sans ordre",
+  "Sur iPad et au bureau, la bulle redit toujours la phrase écrite sous le champ",
+  "Clavier virtuel réel : une phrase sous le champ peut passer sous le clavier"
+ ],
+ "regles": [
+  "Le refus du nom (phrase de 4 lignes sur Android) : REJOUÉ. Population de 53 valeurs hostiles dans la page : chaque refus dit une raison VRAIE (signe interdit / premier signe / 60 signes), aucune accusation à tort, aucun refus sans phrase. Les quatre endroits (champ Prénom, champ Nom, bulle d'Inviter, bulle de Modifier la fiche, côté Prénom ET côté Nom) disent la même raison ; un nom vide ou d'espaces ne reçoit pas « Commence par une lettre ». Lignes mesurées : 2 (premier signe), 1 (60 signes), 3 (signe interdit) à 360 px, 2 au plus à 320 px ; la phrase tient dans la limite de 3 lignes du recontrôle 1 (capture Android nuit regardée : lisible, rien de coupé).",
+  "« -Marie », « .Marie », « ’Marie », « 'Marie » (apostrophe droite) : REJOUÉ, « Commence par une lettre ou un chiffre. » ; « O'Neil », « Marie-Ève », « Jean 3 », 60 signes acceptés ; 61 signes « 60 signes au plus. » ; un tiret ET un signe interdit dit le signe interdit (il passe avant).",
+  "Fiche de soi à la première personne : REJOUÉ pour les SIX personnes de l'équipe (fonction secuFicheConnexion lue deux fois chacune, session changée le temps de l'appel puis rendue : « soi » sans aucune formule à la 3e personne, « autrui » sans aucune formule à la 1re personne). Secrétariat et technicien n'ont pas l'Équipe au menu (le gérant seul), donc la fonction est lue directement. Capture Android nuit + iPhone regardées. La fiche d'un AUTRE n'a pas bougé (« Personnel, choisi par Léa »).",
+  "Invitée désactivée : REJOUÉ le cycle entier (invitée → désactivée → réactivée → renvoi → annulée, et désactivée → annulée directement). Désactivée : ni « Renvoyer l'invitation » ni lien ni nouveau mot de passe, « Annuler l'invitation » et « Réactiver le compte » restent, une seule phrase « Inès ne peut pas se connecter : réactive d'abord son compte. » ; réactivée : « Renvoyer l'invitation » revient et dit « Invitation renvoyée à ines.garnier@… ». Elle est dans « Tout le monde » et « Désactivés » (pas dans « Invités »), sa carte n'a aucun bouton de renvoi. Un lecteur (Responsable, « Ouvrir l'application comme Julie ») ne voit aucun geste d'écriture sur la carte ni la fiche d'une invitée désactivée."
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "En-tête de la fiche d'une personne désactivée : la ligne du haut (« TECHNICIEN · INVITATION ENVOYÉE », code p.role + p.invite) ne dit jamais « désactivé ». Pour une invitée désactivée elle affirme « invitation envoyée » ; pour un lecteur (Responsable), la fiche d'un compte désactivé ne dit nulle part qu'il l'est (seule la pastille « Désactivé » de la carte le dit). Mineur, antérieur au tour 2, non corrigé (ligne de eqFiche : `${p.role}${p.invite ? ' · invitation envoyée' : ''}`). Capture rc2-restes-lecteur-invitee-android-nuit.png.",
+  "Sur sa propre fiche, « Pour ton propre mot de passe, utilise le lien ci-dessous » est écrit juste au-dessus de « Copier le lien et l'identifiant » : le premier « lien » en dessous est celui de l'entreprise, pas celui du mot de passe (« M'envoyer un lien pour choisir un nouveau mot de passe » est plus bas, sous « CHANGER MON MOT DE PASSE »). Pour un débutant la consigne est ambiguë ; mineur, non corrigé. Capture rc2-restes-soi-marc-android-nuit.png."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/restes-equipe-2-recontrole.js (neuve : sections N corpus, U quatre endroits, S fiche de soi des six personnes, I cycle de l'invitée, R lecteur)",
+   "resultat": "44 ✓ · 0 ✗ sur iPhone jour, Mac nuit, iPad nuit, petit (320) jour, Windows jour ; Android nuit 35 ✓ · 0 ✗ (sections N S I R) + 10 ✓ · 0 ✗ (section U) ; 5 mutations sur une COPIE de la page (hors dépôt) : toutes tombent (m1 premier signe retiré : 3 ✗ ; m2 « soi » retiré : 2 ✗ ; m3 « Renvoyer » rendu à une désactivée : 1 ✗ ; m4 phrase des 60 signes retirée : 3 ✗ ; m5 « nouveau mot de passe » rendu à l'invitée : 1 ✗)"
+  },
+  {
+   "fichier": "campagne/sondes/restes-equipe-1-recontrole.js",
+   "resultat": "Android nuit 61 ✓ · 0 ✗ ; iPhone jour 61/0 ; Mac nuit 57/0 ; iPad jour 58/0 ; petit nuit 61/0 ; Windows jour 57/0"
+  },
+  {
+   "fichier": "sondes/secu-secrets.js",
+   "resultat": "Android nuit 56 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/double-auth-equipe.js, sondes/double-auth-mots.js (lisent les anciennes phrases de la fiche)",
+   "resultat": "iPhone : 48 ✓ · 0 ✗ et 135 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/equipe-parcours.js, equipe-corrections.js, equipe-mots.js",
+   "resultat": "iPhone : 66 ✓ · 0 ✗, 32 ✓ · 0 ✗, 65 ✓ · 0 ✗"
+  }
+ ],
+ "doutes": [
+  "Compte désactivé : « Nouveau téléphone » et « Déconnecter partout » restent à côté de « Réactiver le compte » (aussi pour une invitée qui ne s'est jamais connectée, où ils ne servent à rien) : décision de Justin, rien changé (repris du tour 2 du correcteur).",
+  "Léa verrouillée ET désactivée : « utilise Déverrouiller » et « réactive d'abord son compte » côte à côte, sans ordre : décision de parcours, rien changé.",
+  "Sur iPad et au bureau, la bulle redit la phrase écrite sous le champ (doublon de présentation, rien de recouvert) : décision de Justin.",
+  "Clavier virtuel réel : une phrase sous le champ peut passer sous le clavier ; non vérifiable dans l'émulateur, à regarder sur un vrai téléphone.",
+  "Un signe invisible collé dans un nom (espace de largeur nulle, U+200B) est refusé par « Lettres, chiffres, espaces et tirets seulement. » alors que le nom paraît correct : la phrase est vraie mais la personne ne voit pas le signe fautif ; cas rare, rien changé.",
+  "Le compte rendu du correcteur annonçait « 2 lignes sur Android » : mesuré, la phrase du signe interdit prend 3 lignes à 360 px (2 à 320 px et pour le premier signe, 1 pour les 60 signes) ; dans la limite de 3 lignes du recontrôle 1, lisible sur capture, donc pas un défaut, mais le chiffre annoncé était inexact.",
+  "Une invitée désactivée n'est pas dans le filtre « Invités » (seulement « Tout le monde » et « Désactivés ») : cohérent avec « Désactivés », à confirmer comme voulu.",
+  "La trace d'un lien de mot de passe envoyé à soi-même se lit « Marc a envoyé un lien de mot de passe à marc@… » (relevé, repris du tour 1) : la journalisation à la première personne n'a pas été traitée."
+ ]
+}

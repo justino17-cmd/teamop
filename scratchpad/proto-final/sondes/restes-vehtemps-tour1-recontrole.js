@@ -119,17 +119,20 @@ const texte = (c, sel) => ev(c, s => { const e = document.querySelector(s || '#c
     }
     /* ═══════════════ LE RETOUR DEPUIS LA PAIE : la barre ET le retour du système (geste de l'iPhone, bouton d'Android) ═══════════════ */
     if (PARTIES.includes('retour')) {
-      for (const voie of ['barre', 'systeme']) {
+      for (const voie of ['barre', 'systeme', 'fuite']) {
         const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, 'pointage');
         await ev(c, () => { ttViaPaie('verrouok'); }); await L.toucher(c, '#contenu [data-tt="onglet|mois"]'); await L.calme(c.p, 300);
         const ok = await L.toucher(c, '#contenu >> text=/Passer à la paie|Voir la paie/'); await L.calme(c.p, 900);
         v(nom + voie + ' · population : on est dans la Paie', ok && (await actif(c)).route === 'comptabilite', await actif(c));
+        if (voie === 'fuite') {   // contre-épreuve : on quitte la Paie par le menu, on revient à la Comptabilité PAR AILLEURS, puis à Temps de travail : l'onglet « Mois » ne reste PAS collé
+          await ev(c, () => { aller('accueil'); }); await L.calme(c.p, 700); await ev(c, () => { aller('comptabilite'); }); await L.calme(c.p, 700); await ev(c, () => { aller('pointage'); }); await L.calme(c.p, 900);
+          const af = await actif(c); v(nom + 'fuite · un autre chemin vers Temps de travail rouvre « Aujourd’hui », pas « Mois » : ' + JSON.stringify(af), af.route === 'pointage' && /^Aujourd/.test(af.onglet), af);
+          v(nom + 'fuite · aucune erreur de page', c.err.filter(x => !/ERR_/.test(x)).length === 0, c.err.slice(0, 3)); await L.fin(c); continue; }
         if (voie === 'barre') await L.toucher(c, '.rl-retour'); else await ev(c, () => history.back());
         await L.calme(c.p, 1000); const ap = await actif(c);
         v(nom + voie + ' · le retour ramène sur « Temps de travail › Mois » (et non « Aujourd’hui ») : ' + JSON.stringify(ap), ap.route === 'pointage' && /^Mois/.test(ap.onglet), ap);
         // l'onglet Semaine, une semaine en arrière : le retour la retrouve aussi
         await ev(c, () => { ptOnglet = 'semaine'; ptSem = -1; aller('pointage'); }); await L.calme(c.p, 500);
-        v(nom + voie + ' · contre-épreuve : un autre accès (menu) ne reste pas collé sur « Mois »', true, '');
         v(nom + voie + ' · aucune erreur de page', c.err.filter(x => !/ERR_/.test(x)).length === 0, c.err.slice(0, 3)); await L.fin(c);
       }
     }
@@ -152,10 +155,12 @@ const texte = (c, sel) => ev(c, s => { const e = document.querySelector(s || '#c
     if (PARTIES.includes('voisins')) {
       const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, 'equipe');
       // le départ guidé d'une personne : « Pointage de la semaine pas encore validé » ne se dit pas d'une semaine qui ne peut PAS encore l'être
-      const D = await ev(c, () => { try { secuGarde = () => true; } catch (e) {} fermerPanneau(); eqxDepart('lr'); const z = document.querySelector('#calque .panneau'); return z ? { txt:z.innerText.replace(/\s+/g, ' '), pt:eqxRestes('lr').pt } : null; }); await L.calme(c.p, 500);
+      const D = await ev(c, () => { try { secuGarde = () => true; } catch (e) {} fermerPanneau(); eqxDepart('lr'); const z = document.querySelector('#calque .panneau'); return z ? { txt:z.innerText.replace(/\s+/g, ' '), pt:eqxRestes('lr').pt, alertes:[...z.querySelectorAll('.a-alerte')].map(x => x.innerText.replace(/\s+/g, ' ')) } : null; }); await L.calme(c.p, 500);
       v(nom + 'population : le départ guidé de Léa s’ouvre', !!D, D && D.txt && D.txt.slice(0, 200));
       if (D) {
         v(nom + 'départ guidé : la semaine en cours (non validable avant lundi) n’est pas annoncée comme « pas encore validée » à traiter', !/Pointage de la semaine pas encore validé/.test(D.txt), (D.txt.match(/.{0,40}Pointage de la semaine.{0,80}/) || [''])[0]);
+        v(nom + 'départ guidé : une ALERTE de pointage ne parle que d’une semaine FINIE (« la semaine dernière »), jamais de la semaine en cours', D.alertes.filter(x => /Pointage/.test(x)).length >= 1 && D.alertes.filter(x => /Pointage/.test(x)).every(x => /dernière/.test(x) && !/en cours/.test(x)), D.alertes);
+        v(nom + 'départ guidé : la semaine en cours se dit à part, hors alerte, sans promettre un geste impossible', /Sa semaine en cours se validera une fois finie/.test(D.txt) && !D.alertes.some(x => /semaine en cours/.test(x)), (D.txt.match(/.{0,30}semaine en cours.{0,60}/) || [''])[0]);
         await L.capture(c, CAP + 'equipe-depart-' + tag + '.png'); }
       await ev(c, () => fermerPanneau());
       // Mes heures d'une technicienne : la semaine en cours ne se dit pas « à valider » ni ne propose de geste réservé au bureau
