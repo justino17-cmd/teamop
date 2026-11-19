@@ -75,9 +75,11 @@ button{cursor:pointer}
 .menu .pied{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:10px;flex:none}
 .menu .m-liste{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px;overscroll-behavior:contain}
 /* un voile dit qu'il reste des lignes au-dessus ou en dessous (la colonne défile sans barre visible sur Mac) : posé par menuRepere() */
-.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
-.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 34px);mask-image:linear-gradient(transparent,#000 34px)}
-.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent)}
+.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
+.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 12px);mask-image:linear-gradient(transparent,#000 12px)}
+.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent)}   /* fondu de 12 px (34 avant) : une entrée dont la rangée est entièrement visible n'est plus grisée, seul ce qui se coupe s'estompe (regard gérant F, retouche 6) */
+.menu .m-liste.m-plus-haut.m-pile-haut{-webkit-mask-image:none;mask-image:none}
+.menu .m-liste.m-plus-haut.m-plus-bas.m-pile-haut{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
 /* un écran bas (portable 1366×768, 1280×720) : la tête de la colonne se tasse pour laisser des lignes au menu. Le nom de la personne reste
    dans le pied (« Se déconnecter »), donc la carte « moi » n'est plus nécessaire ; à la souris, une ligne n'a pas besoin de 44 px */
 @media (min-width:761px) and (max-height:820px){
@@ -1082,6 +1084,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .rg-doc .d3-plan{aspect-ratio:4/3;background:#f3f5f9;border-color:#d5dbe7;margin-top:4px}
 .rg-doc .d3-z{background:#fff;border-color:#cbd3e2}.rg-doc .d3-z i{color:#4a5672}
 .rg-doc .d3-box{cursor:default}
+@media (max-width:760px){.rg-doc .d3-plan{aspect-ratio:3/4}}   /* le plan de l'aperçu reprend le 3/4 de la page sur téléphone : en 4/3 réduit à ~280 px les pastilles (28 px) tombaient sur « Cuisine », « Réserve », « Cour » (regard gérant F, retouche 1) */
 .rg-doc .d3-leg{color:#4a5672}
 @media (max-width:760px){
   .rg-th{display:none}
@@ -1246,6 +1249,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   .dx-barre .dx-tot b{font-size:18px;font-weight:750}
   .dx-barre .dx-tot small{color:var(--doux);font-size:12.5px;line-height:1.25}
   .dx-barre .btn{flex:none;min-height:48px;max-width:46%;white-space:normal;line-height:1.15;padding:0 16px}
+  @media (max-width:380px){.dx-barre{gap:8px;padding:10px}.dx-barre .btn{padding:0 12px;max-width:54%}}   /* à 320 et 360 px « Créer le devis » passait sur deux lignes ; le prix garde sa place (regard gérant F, retouche 3) */
   .dx-v .xy-r .dx-creer-carte{display:none}
 }
 
@@ -1708,8 +1712,8 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 @media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
 .d3-info{font-size:14px}.d3-cli{flex-wrap:wrap;align-self:flex-start}
 .d3-cli button{flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}   /* un nom de site de 60 signes sortait de la pastille et se coupait à droite à 320 px (regard gérant F) */
-.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}
-.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:34px;height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
+.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}   /* les colonnes se partagent la carte : trois barres ne restent plus serrées à gauche d'une carte de 1 100 px (regard gérant F, retouche 4) */
+.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1 1 64px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:clamp(34px,45%,72px);height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
 .ve-u[data-d3^="voir|"]>.st{flex:none;min-width:88px;justify-content:center}   /* « Forte » (60 px) et « Moyenne » (80 px) décalaient le titre de chaque passage (regard gérant F) */
 .d3-v{background:var(--vert)}.d3-o{background:var(--orange)}.d3-r{background:var(--rouge)}.d3-g{background:var(--doux)}
 .d3-reco{align-items:flex-start;padding:8px 0;border-top:1px solid var(--trait)}.d3-reco:first-of-type{border-top:0}.d3-reco input{margin-top:2px;flex:none}
@@ -1732,7 +1736,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
 @media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:minmax(0,1fr)}.xy-r{position:static}}   /* « 1fr » = minmax(auto,1fr) : le relevé en cours, dont un bouton ne se coupait pas, poussait toute la carte 13 px hors d'un écran de 360 (regard gérant F) */
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
-  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
+  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{flex-basis:52px;min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
 .t-ctx [data-taller]{font-weight:650}
 /* ══ Comptabilité (7 novembre 2026) : une catégorie, six rubriques ══ */
 .cx-nav{display:flex;gap:4px;padding:4px;border-radius:15px;background:var(--surf-in);border:1px solid var(--trait);overflow-x:auto;scrollbar-width:none}
@@ -2651,6 +2655,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
   #contenu .tete .actions:has(> .ctr-choix){max-width:none}
 }
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.doc-barre+.actions{justify-content:center}   /* « Fermer » sous la barre de trois boutons centrés : centré comme elle, pas seul à gauche (regard gérant F, retouche 2) */
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
 #ml-m{min-height:200px;font:inherit;font-size:16px;line-height:1.5}   /* 16 px : sous cette taille un iPhone zoome toute la page au toucher (devis-atelier-12) */
@@ -5858,6 +5863,7 @@ function vueClients(){
     return mots.every(m => botte.includes(m)) || (cqt && cfTelChiffres(c.tel).includes(cqt)); };
   const L = Object.entries(CLIENTS).filter(e => !!e[1].archive === enArch && trouve(e)).sort((a,b) => a[1].nom.localeCompare(b[1].nom));
   const nArchTrouves = !enArch && cq ? Object.entries(CLIENTS).filter(e => e[1].archive && trouve(e)).length : 0;   /* la recherche ne doit pas dire « aucun client » quand un client ARCHIVÉ correspond (recontrôle clients) */
+  const nActTrouves = enArch && cq ? Object.entries(CLIENTS).filter(e => !e[1].archive && trouve(e)).length : 0;   /* l'autre sens : dans « Archivés », un client ACTIF qui correspond ne doit pas faire proposer d'en créer un doublon (clients, restes tour 3) */
   const nArch = Object.values(CLIENTS).filter(c => c.archive).length;   /* le bouton « Archivés » n'existe que s'il y en a, ou si on y est */
   /* pendant une recherche, UN seul rangement paraît choisi : la recherche couvre « Tous les clients » (ou les archivés quand on y est) — jamais deux boutons enfoncés (recontrôle, casse 5) */
   const seg = `<div class="seg" role="group" aria-label="Ranger les clients">${[['tous','Tous les clients'],['semaine','Par semaine'],['mois','Par mois'], ...(nArch || enArch ? [['archives','Archivés · ' + nArch]] : [])].map(([k,l])=>`<button type="button" data-rangc="${k}" aria-pressed="${chercheClient.trim() && !enArch ? k==='tous' : rangClients===k}">${l}</button>`).join('')}</div>`;
@@ -5865,9 +5871,9 @@ function vueClients(){
     <input class="saisie" placeholder="Chercher un client…" value="" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}${rangClients==='mois'?vueClientsMois():vueClientsSemaine()}`;
   return `<div class="tete cl-tete"><div><span class="surtitre">Clients et ventes</span><h1>Clients</h1>${enArch ? '<span class="gris">Les clients rangés hors de la liste. Leur historique, leurs factures et leurs contrats restent : « Remettre dans la liste » les ramène.</span>' : ''}</div><button type="button" class="btn" data-action="clientNouveau">＋ Nouveau client</button></div>
   <input class="saisie" placeholder="Chercher un client…" value="${esc(chercheClient)}" data-cherche="1" aria-label="Chercher un client" style="max-width:420px">${seg}
-  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">${nArchTrouves ? 'Aucun client de ta liste' : 'Aucun client'} ne correspond à « ${esc(chercheClient.trim())} ». ${nArchTrouves ? `${nArchTrouves === 1 ? 'Un client archivé correspond' : nArchTrouves + ' clients archivés correspondent'}.<div class="actions" style="margin-top:10px"><button type="button" class="btn gris" data-rangc="archives" data-garde="1">Voir ${nArchTrouves === 1 ? 'le client archivé' : 'les clients archivés'}</button></div>` : `Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.`}</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
+  ${L.length ? '' : enArch && !chercheClient.trim() ? '<div class="carte gris">Aucun client archivé.</div>' : chercheClient.trim() ? `<div class="carte gris" style="overflow-wrap:anywhere">${nArchTrouves ? 'Aucun client de ta liste' : enArch && nActTrouves ? 'Aucun client archivé' : 'Aucun client'} ne correspond à « ${esc(chercheClient.trim())} ». ${enArch && nActTrouves ? `${nActTrouves === 1 ? 'Un client de ta liste correspond' : nActTrouves + ' clients de ta liste correspondent'}.<div class="actions" style="margin-top:10px"><button type="button" class="btn gris" data-rangc="tous" data-garde="1">Voir ${nActTrouves === 1 ? 'le client' : 'les clients'} de ma liste</button></div>` : nArchTrouves ? `${nArchTrouves === 1 ? 'Un client archivé correspond' : nArchTrouves + ' clients archivés correspondent'}.<div class="actions" style="margin-top:10px"><button type="button" class="btn gris" data-rangc="archives" data-garde="1">Voir ${nArchTrouves === 1 ? 'le client archivé' : 'les clients archivés'}</button></div>` : `Vérifie l’orthographe${peut('crm', 'c') ? ', ou touche « ＋ Nouveau client » pour l’ajouter' : ''}.`}</div>` : `<div class="carte gris">Tu n’as pas encore de client. Touche « ＋ Nouveau client » pour ajouter le premier : tu retrouveras ici ses coordonnées, ses interventions, ses devis et ses factures.</div>`}<div class="cartes-clients">${L.map(([k,c]) => { const paye = payeClient(k), du = FACTURES.filter(f => f.cli === k && ['envoyee','retard','partielle'].includes(f.st)).reduce((s,f)=>s+restant(f),0), ctr = CONTRATS.find(x => x.cli === k && x.st === 'signe'), proch = INTS.filter(i => i.cli === k && i.d >= AUJ && i.st !== 'fait' && i.st !== 'annulee' && i.st !== 'aplanifier').sort((a,b)=>a.d.localeCompare(b.d))[0];
     const carte = `<button type="button" class="carte client-carte" data-go="client-x-${k}"><span style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b style="font-size:17px">${esc(c.nom)}</b>${ctr?'<span class="st st-v">contrat</span>':''}</span><span class="gris petit">${[c.contact && c.contact !== c.nom ? esc(c.contact) : '', esc((c.adr || '').split(',').pop().trim())].filter(Boolean).join(' · ')}</span>
-      <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; return enArch && peut('crm', 's') ? `<div class="client-arch">${carte}<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button></div>` : carte; }).join('')}</div>`;
+      <span class="client-chiffres"><span><b>${eur(paye)}</b><small>payé</small></span><span><b style="color:${du?'var(--orange)':'inherit'}">${eur(du)}</b><small>à recevoir</small></span><span><b>${proch?jcourt(proch.d):'—'}</b><small>prochain passage</small></span></span></button>`; return enArch && peut('crm', 's') ? `<div class="client-arch">${carte}<button type="button" class="btn gris" data-action="clientRestaurer" data-cli="${k}">Remettre dans la liste</button></div>` : carte; }).join('')}</div>${L.length && nArchTrouves ? `<p class="gris petit" style="margin:12px 0 0">${nArchTrouves === 1 ? 'Un client archivé correspond aussi' : nArchTrouves + ' clients archivés correspondent aussi'}. <button type="button" class="lien" data-rangc="archives" data-garde="1">Voir ${nArchTrouves === 1 ? 'le client archivé' : 'les clients archivés'}</button></p>` : ''}`;   /* un client rangé qui porte le même mot que des clients actifs ne disparaît pas sans un mot (clients, restes tour 3) */
 }
 function histoClient(k){
   const L = INTS.filter(i => i.cli === k).map(i => ({ d:i.d, c: i.st === 'fait' ? 'var(--vert)' : i.st === 'retard' ? 'var(--rouge)' : i.st === 'annulee' ? 'var(--doux)' : 'var(--bleu)', t:i.titre + ' · ' + (i.tech ? tech(i.tech).nom.split(' ')[0] : 'à attribuer'), s: i.st === 'fait' ? (fiche(i.id).compte.slice(0,70) + '…') : ST[i.st][0], go:'inter-x-' + i.id, droite: (FACTURES.find(f => f.int === i.id) ? STF[FACTURES.find(f => f.int === i.id).st][0] : '') }));
@@ -8599,8 +8605,9 @@ function dvDicter(){
 }
 function dvdPreparer(){
   const t = (document.getElementById('dvd-t').value || '').trim(); if (!t) { toast('Dis ou écris ce qu’il faut faire, puis touche « Préparer le devis ».'); return; } const s = sansAccent(t);
-  const cli = Object.keys(CLIENTS).find(k => k !== '__nv' && sansAccent(CLIENTS[k].nom).split(/\s+/).filter(m => m.length > 3 && !['madame','monsieur','restaurant','cabinet','camping','hotel','copropriete','dentaire'].includes(m)).some(m => s.includes(m)));
-  if (!cli) { toast('Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
+  const dit = k => sansAccent(CLIENTS[k].nom).split(/\s+/).filter(m => m.length > 3 && !['madame','monsieur','restaurant','cabinet','camping','hotel','copropriete','dentaire'].includes(m)).some(m => s.includes(m));
+  const cli = Object.keys(CLIENTS).find(k => k !== '__nv' && !CLIENTS[k].archive && dit(k));   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) : la dictée non plus */
+  if (!cli) { const arch = Object.keys(CLIENTS).find(k => k !== '__nv' && CLIENTS[k].archive && dit(k)); toast(arch ? esc(CLIENTS[arch].nom) + ' est archivé : restaure-le depuis « Clients » avant de lui faire un devis.' : 'Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
   const L = [];
   CATALOGUE.forEach(([nom, pu]) => { if (s.includes(sansAccent(nom).replace(/\s*\(.*$/, ''))) L.push([nom, 1, pu]); });
   const h = /(\d+|une|deux|trois|quatre)\s+heures?/.exec(s), nh = h ? ({ une:1, deux:2, trois:3, quatre:4 }[h[1]] || +h[1]) : 0;
@@ -9097,7 +9104,8 @@ var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closes
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
   /* l'adresse a changé sans passer par aller() (retour du navigateur ou du téléphone, adresse tapée) alors que « Infos » porte une saisie non enregistrée : on remet l'adresse de la fiche, puis on demande (clients-15, recontrôle) */
-  if (route === 'client' && h !== ici && cliInfosRetenir(() => aller(h), true)) { histRemplacer('#' + ici); return; }
+  /* ⚠️ l'historique n'est PAS touché tant que la personne n'a pas choisi : réécrire l'entrée où le retour a posé le navigateur (« Devis ») en « fiche » faisait revenir le retour suivant sur la fiche abandonnée (clients, restes tour 3). « Abandonner » rejoue lireHash() sur l'adresse DÉJÀ posée ; « Continuer » rouvre une entrée de fiche (cliAdresseRendre). */
+  if (route === 'client' && h !== ici && cliInfosRetenir(() => lireHash(), true)) return;
   /* un changement d'adresse que ni aller() ni la barre n'ont demandé (cpProg vide) est le retour ou l'avance du SYSTÈME : seul celui-là garde la vue de Temps de travail (ttVue) ; un chemin par le menu efface le drapeau « Voir la paie » */
   try { TT.sys = cpProg === null && Date.now() - navClic > 700; if (!TT.sys) TT.viaPaie = TT.viaPaie === 'neuf'; } catch (e) {}   /* TT n'existe pas encore au premier chargement */
   calApresNavigation();
@@ -9123,7 +9131,7 @@ function ouvrirPanneau(html, large){
   { const z = document.getElementById('cpsys'), v = document.querySelector('#calque .voile'); if (z && !z.hidden && v) v.style.zIndex = '9100'; }   // un panneau ouvert pendant la Comptabilité plein écran (z-index 9000) restait dessous, invisible
   if (!saisie) document.querySelector('#calque .panneau .x')?.focus({ preventScroll:true }); }
 let PANNEAU_AVANT = null;
-function fermerPanneau(){ const c = document.getElementById('calque'), avait = !!c.querySelector('.panneau'); c.innerHTML = '';
+function fermerPanneau(){ const c = document.getElementById('calque'), avait = !!c.querySelector('.panneau'); if (CLI_RETENU && CLI_RETENU.adr) { CLI_RETENU = null; cliAdresseRendreApres(); }   /* « Continuer la saisie », ✕, Échap ou clic à côté après un retour du navigateur */ c.innerHTML = '';
   if (avait && PANNEAU_AVANT) { const a = PANNEAU_AVANT; PANNEAU_AVANT = null; if (a.isConnected && !a.disabled && a.focus && !a.closest('[inert]')) a.focus({ preventScroll:true }); } }
 /* ── une fenêtre garde le focus, et le rend ── campagne coque, 17 novembre 2026 (coque-01, coque-11)
    Toutes les fenêtres se déclarent aria-modal, mais rien ne retenait Tab : au clavier (ou avec un lecteur d'écran, ou le clavier d'un iPad)
@@ -9638,6 +9646,9 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
   const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[   ]\d{3})+(?!\d)/g, m => m.replace(/[   ]/g, ''));
   if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
+  /* « 1.200,5 » est UN nombre à la française : la même lecture que les montants de la page (cxNum) le dit, pas une règle de plus ; « 1,2,3 » reste refusé */
+  { const t = val.trim(), neg = /^-/.test(t), nb = (t.match(/[.,]/g) || []).length;
+    if (nb > 1 && /^-?\d[\d.,]*$/.test(t)) { const n = cxNum(neg ? t.slice(1) : t); if (isFinite(n)) { lu = lu || t; val = (neg ? '-' : '') + String(n).replace('.', ','); } } }
   /* « 3 sur 18 », « 10-12 », « 10 – 12 » et « 10- » ne sont pas UN nombre : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; tout autre tiret refuse. */
   const sans = val.replace(/^\s*-/, '');
   if (/\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|-|\d[.,]\d+[.,]\d/.test(sans)) return { refus:true };
@@ -9646,20 +9657,24 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
 }
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
-  const R = G.releves = G.releves || {}, av = R[t.dataset.releve] == null ? '' : String(R[t.dataset.releve]), r = releveLire(t.value);
-  if (r.refus) { t.value = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
+  if (t.value === av) return true;   /* champ pas touché : aucune écriture (un clic ailleurs ne fait pas passer releves de undefined à {…:''}) */
+  const R = G.releves = G.releves || {}, r = releveLire(t.value);
+  if (r.refus) { t.value = av; t.dataset.refuse = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
   if (t.value !== r.val) t.value = r.val;
   if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
   else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
-  R[t.dataset.releve] = r.val; return true;
+  delete t.dataset.refuse; R[t.dataset.releve] = r.val; return true;
 }
-function releveFlush(){ document.querySelectorAll('input[data-releve]').forEach(t => { try { releveValider(t); } catch (e) {} }); }   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+/* le refus se joue au moment où le doigt quitte le champ (le clic sur « Terminer » le fait sortir AVANT que le clic n'arrive) : la marque « refuse » le retient jusqu'au geste qui finit la fiche, qui s'arrête et redit la phrase ; elle s'efface dès qu'on retape */
+function releveRefuse(){ const t = document.querySelector('input[data-releve][data-refuse]'); if (!t) return false; toast('Un seul nombre ici : écris une seule mesure (ex. ' + t.dataset.refuse + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); return true; }
+function releveFlush(){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse()) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
-document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) releveFlush(); }, true);
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush() && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+  if (t.dataset.releve) { delete t.dataset.refuse; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
     if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
@@ -12933,7 +12948,10 @@ function menu(base){ return rlMenu(base, true); }
    qu'on venait de toucher sortait de la vue (sur un portable on ne voit que 8 lignes sur 19). On relève le défilement AVANT, on le remet APRÈS
    la dernière écriture du menu, puis on rentre la ligne courante dans la colonne (à la main : scrollIntoView ferait défiler la page aussi). */
 function menuRepere(l){ l = l || document.querySelector('#menu .m-liste'); if (!l) return; const reste = l.scrollHeight - l.clientHeight;
-  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); }
+  /* en haut, une rangée qui tombe pile contre le bord n'est pas coupée : elle reste lisible, le fondu ne la grise pas (m-pile-haut le retire ; le repère « il en reste » reste posé, c'est lui que les autres contrôles lisent) — regard gérant F, retouche 6 */
+  const m = l.getBoundingClientRect(); let pileHaut = false;
+  for (const e of l.children) { if (Math.abs(e.getBoundingClientRect().top - m.top) < 1.5) { pileHaut = true; break; } }
+  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); l.classList.toggle('m-pile-haut', pileHaut); }
 function menuGarderPlace(haut){ const l = document.querySelector('#menu .m-liste'); if (!l) return; l.scrollTop = haut;
   const a = l.querySelector('a.on'); if (a) { const r = a.getBoundingClientRect(), m = l.getBoundingClientRect(); if (r.top < m.top) l.scrollTop -= m.top - r.top + 8; else if (r.bottom > m.bottom) l.scrollTop += r.bottom - m.bottom + 8; }
   /* et le GROUPE de la ligne courante se montre en entier quand il tient : « Stock » seul au bas de la colonne cachait « Dépôts et camions » et « Fournisseurs » sous le pied (iPad, 1180 px) */
@@ -13348,7 +13366,7 @@ document.addEventListener('click', ev => {
     if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:acteur(), quand:'31/10', quoi:'planifiée' }; });
     journalAjout('marc', 'inter', 'a planifié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:jlong(d) + ' à ' + h + ' · ' + tech(t).nom });
     rendre(); scrollTo({ top:0 }); return toast(`Planifiée ${jlong(d)} à ${h} avec ${tech(t).nom.split(' ')[0]} : elle apparaît dans sa journée.`); }
-  if (a === 'visitefin' && i) { if (i.st === 'annulee') return toast(ANNULEE_REFUS); const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
+  if (a === 'visitefin' && i) { if (!releveFlush()) return; if (i.st === 'annulee') return toast(ANNULEE_REFUS); const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
     F.etat = 'bureau'; i.st = 'fait'; dvInit();
     const x = { id:'BR' + Date.now().toString(36).toUpperCase(), num:null, cli:i.cli, objet:'Devis suite à la visite du ' + jcourt(i.d), d:AUJ, e:'brouillon', source:`Visite de ${tech(i.tech).nom} le ${jcourt(i.d)}`, int0:i.id,
       lignes:[...F.besoin.split(/\n|;/).map(z => z.trim()).filter(Boolean).slice(0, 6).map(z => [z.replace(/^[-•]\s*/, ''), 1, null]), ['Déplacement', 1, 29.17]],
@@ -14726,7 +14744,11 @@ let CLI_RETENU = null, CLI_LIBRE = false, CLI_PASSE = false;
 /* Toute autre porte que le clic (palette, Ctrl+1…9, retour du navigateur, adresse tapée) passe par ici : vrai = la sortie est retenue et la fenêtre posée. `CLI_PASSE` : la personne a déjà choisi, le prochain changement d'adresse (asynchrone) ne redemande pas. */
 function cliInfosRetenir(suite, parAdresse){ if (CLI_LIBRE || !clientInfosSale()) return false;
   if (CLI_PASSE) { if (parAdresse) CLI_PASSE = false; return false; }   /* seul le changement d'adresse consomme le choix : aller() le précède et le laisse */
-  CLI_RETENU = { suite }; cliInfosDemande(); return true; }
+  CLI_RETENU = { suite, adr:!!parAdresse }; cliInfosDemande(); return true; }
+/* l'adresse a déjà changé (retour du navigateur) et la personne reste sur la fiche : on remet une entrée de la fiche DEVANT celle où elle est, sans réécrire l'autre — le retour suivant retrouve « Devis » et redemande, au lieu de tomber sur une fiche fantôme */
+/* ⚠️ la fenêtre ouverte a SA PROPRE entrée d'historique (calSync) : la fermer recule d'une entrée, ASYNCHRONE. Pousser la fiche avant ce recul la ferait reculer elle-même (et rouvrirait la fenêtre) : on attend la fin du recul, qui rejoue `CAL.suite`. */
+function cliAdresseRendreApres(){ if (typeof CAL !== 'undefined' && !CAL.off && CAL.pousse > 0) CAL.suite = cliAdresseRendre; else cliAdresseRendre(); }
+function cliAdresseRendre(){ try { const ici = route + (param ? '-x-' + param : ''); if (route === 'client' && location.hash.slice(1) !== ici) history.pushState(null, '', '#' + ici); } catch (e) {} }
 function cliInfosDemande(){ ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
     <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`); }
 document.addEventListener('click', ev => {
@@ -14737,7 +14759,7 @@ document.addEventListener('click', ev => {
   ev.preventDefault(); ev.stopPropagation(); CLI_RETENU = { el, sel }; cliInfosDemande();
 }, true);
 ACTIONS.clientInfosSuite = function(b){ const R = CLI_RETENU; CLI_RETENU = null; if (!R) return fermerPanneau();
-  if (b.dataset.v === 'enreg' && !clientEnregistrer(param)) return fermerPanneau();   /* un champ est refusé : on reste sur la fiche, avec son message */
+  if (b.dataset.v === 'enreg' && !clientEnregistrer(param)) { if (R.adr) cliAdresseRendreApres(); return fermerPanneau(); }   /* un champ est refusé : on reste sur la fiche, avec son message */
   fermerPanneau();
   /* le choix est fait : la sortie rejouée ne redemande pas, y compris au changement d'adresse qui arrive APRÈS (hashchange est asynchrone) ; un délai le périme si l'adresse ne change pas */
   CLI_PASSE = true; setTimeout(() => { CLI_PASSE = false; }, 1500);
@@ -22100,10 +22122,10 @@ function rgVue(){
   const tech = ROLE === 'tech';
   let ks = Object.keys(D3_CLI);
   /* aucun site suivi (l'entreprise vient de prendre le métier) : un tableau vide sous « Rien d'urgent : tous les sites sont à jour » disait faux, et « Saisir un passage » n'avait aucun site où écrire (regard gérant F) */
-  if (!tech && !ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations.</div>`;
+  if (!tech && !ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;   /* le geste qui mène au remplissage (regard gérant F, retouche 5) */
   if (tech) {
     ks = rgSitesTech();
-    if (!ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre sur ta journée. Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</div>`;
+    if (!ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre-tech"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre sur ta journée</b><span class="gris">Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</span><span class="ms-vb"><button type="button" class="btn" data-go="majournee">Voir ma journée</button></span></div>`;
     rgTous = false; if (!ks.includes(d3Cli)) d3Cli = ks[0];
   }
   return rgTous ? rgVueTous(ks) : rgVueSite(ks, tech);
@@ -22257,7 +22279,7 @@ function rgSigInit(){
   const fin = () => { on = false; }; cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
 }
 function rgSaisieOk(){
-  const S = rgSaisie; if (!S) return;
+  const S = rgSaisie; if (!S) return; if (!releveFlush()) return;
   const k = S.k, P = D3_POSTES[k].filter(p => p.actif), ap = S.appl, cert = rgCertif(ap), cam = RG_CAMION[ap] || {};
   if (!cert.ok) { rgGet('rg-appl') && rgGet('rg-appl').scrollIntoView({ block:'center' }); return toast(`${esc(rgPrenom(ap))} n’a pas de certificat Certibiocide valable : choisis un autre technicien.`); }
   const reste = P.filter(p => S.etats[p.id] === undefined).map(p => p.id);
@@ -22595,7 +22617,7 @@ function cbTypeChoix(){
 /* ─ la vue ─ */
 function vueCarteBox(){
   /* aucun site : la carte n'a rien à montrer (elle jetait une erreur sur le nom du site) */
-  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici.</div>`;
+  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte ms-vide" data-vide="carte"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;
   if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; histRemplacer('#carteBox'); }
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c], pro = rgProchain(c).d, act = d3Activite(der), sel = d3Sel && P.find(p => p.id === d3Sel), R = cbReleve && cbReleve.cli === c ? cbReleve : null, ro = cbRO();
   const att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))), neuves = P.filter(p => cbEtat(c, p.id) == null).length;
@@ -23685,7 +23707,7 @@ function cfHEl(j){ return j.type === 'tache' && j.el && j.el.t && j.det ? j.det.
 function cfHDet(j, seul){ if (!(j.type === 'tache' && j.el && j.el.t && j.det)) return j.det; const reste = j.det.split(' · ').slice(1).join(' · '); return (seul ? '' : 'À propos de ') + j.el.lib + (reste ? ' · ' + reste : ''); }
 /* Relevés : la valeur saisie ; vide quand rien n'a été saisi sur une fiche déjà touchée ; l'exemple seulement pour une fiche d'exemple déjà faite */
 function cfReleve(F, i, l, v){ const R = F.releves, x0 = R ? R[l] : undefined, x = l === 'Charge de fluide' && (x0 === undefined || x0 === null || x0 === '') ? (fixFluideCharge(i) || x0) : x0; return x !== undefined && x !== null ? String(x) : (R ? '' : (i.st === 'fait' ? v : '')); }
-(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ releveFlush(); const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
+(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ if (!releveFlush()) return; const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
 /* Clients : les appareils d'une fiche à compléter ne sont pas des appareils */
 function cfLieuDe(k){ return (((CLIENTS[k] || {}).appareils) || []).filter(a => a && a.det !== 'à compléter').map(a => a.nom).join(', '); }
 function cfLieuContrat(k){ return k.lieu != null ? k.lieu : (k.titre.split('·')[1] || ''); }

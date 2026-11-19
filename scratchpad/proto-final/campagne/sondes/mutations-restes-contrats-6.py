@@ -13,6 +13,7 @@ MUT = [
  ("M3 20 chiffres redit « au moins 1 € » au lieu de « trop grand »", "if (t.replace(/\\D/g, '').length >= 20) return 'Ce prix est trop grand : maximum ' + eur(CTR_PRIX_MAX) + ' par an.';", "if (t.replace(/\\D/g, '').length >= 20) return 'Indique le prix du contrat : au moins 1 €.';"),
  ("M4 le seuil de la liste redescend à 840 px", "@container ctrl (max-width:920px)", "@container ctrl (max-width:840px)"),
  ("M5 « 1.000,50 » lu en 1 000 500 (séparateurs mal lus)", "const u = ctrPrixClair(t), n = u != null ? u : cxNum(t);", "const u = ctrPrixClair(t), n = u != null ? u : Number(t.replace(/[.,]/g, ''));"),
+ ("M7 Facturation et Début se remettent côte à côte au téléphone", "@media (max-width:420px){.deux-champs.ctr-fact{grid-template-columns:minmax(0,1fr)}}", "@media (max-width:420px){.deux-champs.ctr-fact{grid-template-columns:1fr 1fr}}"),
  ("M6 un prix illisible redit « au moins 1 € »", "if (r && !/^« /.test(r) && !/^Un montant a au plus/.test(r)) return r; }", "if (r && !/^« /.test(r) && !/^Un montant a au plus/.test(r)) return 'Indique le prix du contrat : au moins 1 €.'; }"),
 ]
 filtre = sys.argv[1] if len(sys.argv) > 1 else ''; bilan = []
@@ -24,7 +25,7 @@ def appliquer(page, old, new):
 for nom, old, new in MUT:
     if filtre and filtre not in nom: continue
     open(os.path.join(COPIE, 'apercu', 'prototype-op-gestion.html'), 'w', encoding='utf-8').write(appliquer(PAGE, old, new))
-    try: r = subprocess.run(['node', os.path.join(ICI, 'restes-contrats-6.js')], env=dict(os.environ, RACINE=COPIE), capture_output=True, text=True, timeout=300); code = r.returncode; sortie = r.stdout
+    try: r = subprocess.run(['node', os.path.join(ICI, 'restes-contrats-6.js')] + (['android'] if nom.startswith('M7') else []), env=dict(os.environ, RACINE=COPIE), capture_output=True, text=True, timeout=300); code = r.returncode; sortie = r.stdout
     except subprocess.TimeoutExpired: code, sortie = 2, 'délai'
     ligne = [l for l in sortie.splitlines() if '✓' in l and '✗' in l][-1:] or ['']
     bilan.append((nom, code)); print(('MORD    ' if code else 'SURVIT  ') + nom, '|', ligne[0].strip(), flush=True)
