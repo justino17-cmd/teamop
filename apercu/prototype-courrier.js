@@ -2354,7 +2354,7 @@ var MARKUP = `
   /* TOUTE fenêtre posée par-dessus (message en cours d'écriture, « Ajouter une boîte », et aussi un menu : Filtrer, Actions, Boîte…) est un niveau. Le menu était tenu hors historique « parce qu'il se ferme d'un toucher dehors » :
      mais un Retour qui le laissait ouvert en QUITTANT la Boîte mail faisait perdre sa place à qui voulait seulement refermer un menu (recontrôle du 18 novembre, décision du 19 : Retour ferme la couche du dessus, rien d'autre). */
   function overlayDePage(){ return !!$("#overlay"); }
-  function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0); }   // une fenêtre ouverte est un niveau sur TOUS les formats (sur ordinateur aussi, Retour la fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
+  function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)+(pdfv?1:0)+($("#cDiscard")?1:0); }   // l'aperçu d'un PDF est la couche du DESSUS (recontrôle tour 3 : un Retour restait muet au téléphone, ou fermait aperçu ET message sur ordinateur) ; une fenêtre ouverte est un niveau sur TOUS les formats (sur ordinateur aussi, Retour la fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
     HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
@@ -2887,7 +2887,8 @@ var MARKUP = `
     if(!pdfv) return; var v=pdfv; pdfv=null;
     try{ URL.revokeObjectURL(v.url); }catch(e){}
     v.el.remove(); if(!$("#overlay")) app.inert=false;
-    if(v.retour&&sr.contains(v.retour)&&v.retour!==document.body){ try{ v.retour.focus({preventScroll:true}); }catch(e){} } }
+    if(v.retour&&sr.contains(v.retour)&&v.retour!==document.body){ try{ v.retour.focus({preventScroll:true}); }catch(e){} }
+    histSync(); }   // son niveau d'historique part avec lui (Fermer, Échap ou Retour) : sans quoi une entrée resterait derrière
   finis.push(fermerApercu);
   function apercuPDF(blob,nom){
     fermerApercu();
@@ -2900,6 +2901,7 @@ var MARKUP = `
       var f=document.createElement("iframe"); f.setAttribute("title","Aperçu : "+nom); f.setAttribute("referrerpolicy","no-referrer"); f.src=url;
       $(".pdfv-body",el).appendChild(f); }
     app.inert=true; $("#overlays").appendChild(el); pdfv={el:el,url:url,retour:retour,nom:nom};
+    histSync();   // l'aperçu pose son niveau : un Retour le ferme, lui seul
     el.addEventListener("click",function(e){ var b=e.target.closest("[data-pv]"); if(!b) return;
       if(b.getAttribute("data-pv")==="close"){ fermerApercu(); return; }
       enregistrerFichier(new Blob([blob],{type:"application/pdf"}),nomFichierSur(nom),el); });
@@ -3854,8 +3856,8 @@ var MARKUP = `
         '<button type="button" class="mitem dng" role="menuitem" data-dpick="discard"><span class="mlbl">'+(editSched?"Ignorer les modifications":"Supprimer le brouillon")+'</span></button>'+
         '<button type="button" class="mitem" role="menuitem" data-dpick="save"><span class="mlbl">Enregistrer le brouillon</span></button></div>'+
         '<div class="ag"><button type="button" class="mitem cancel" role="menuitem" data-dpick="cancel">Annuler</button></div></div>';
-      ov.appendChild(ns); sheet.inert=true;
-      var back=function(){ ns.remove(); sheet.inert=false; $("#cCancel").focus({preventScroll:true}); };
+      ov.appendChild(ns); sheet.inert=true; histSync();   // la feuille est la couche du dessus : son niveau d'historique, comme l'aperçu d'un PDF
+      var back=function(){ ns.remove(); sheet.inert=false; $("#cCancel").focus({preventScroll:true}); histSync(); };
       ns.addEventListener("click",function(e){
         var b=e.target.closest("[data-dpick]"); if(!b){ if(e.target===ns) back(); return; }
         var k=b.getAttribute("data-dpick");
@@ -4433,11 +4435,16 @@ var MARKUP = `
     if(st>HIST.niv){ HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); try{ history.go(HIST.niv-st); }catch(e){ HIST.ignorer=0; HIST.off=true; } return; }   // l'entrée atteinte est une entrée ORPHELINE du module (la fenêtre a été fermée par un changement d'écran — lien, ⌘K — qui a laissé son entrée derrière lui) : on la saute, un seul Retour suffit pour revenir à la Boîte mail
     if(st>=HIST.niv||HIST.niv<=0) return;
     HIST.niv--;
-    if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
+    if(pdfv) fermerApercu();   // la couche du dessus d'abord : l'aperçu seul, puis la feuille « Fermer le message », le message en cours ou la lecture restent dessous
+    else if($("#cDiscard")){ var dc=$('#cDiscard [data-dpick="cancel"]'); if(dc) dc.click(); }   // « Annuler » de la feuille : le message reste ouvert, il ne se ferme pas par un second Retour
+    else if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");
     histSync(); });
   // retour sur la Boîte mail (menu, raccourci, Retour) avec un message encore ouvert : son niveau d'historique se repose, pour que « Retour » le ferme au lieu de quitter la rubrique
-  sur(window,"hashchange",function(){ if(!vivant||HIST.off||HIST.hash===null||location.hash!==HIST.hash) return; if(HIST.niv<histCible()) histSync(); });
+  sur(window,"hashchange",function(){ if(!vivant||HIST.off||HIST.hash===null) return;
+    // un MENU ouvert ne survit pas au départ de la Boîte mail (c'est une couche passagère : le message en cours, lui, est gardé — décision du 19/11) ; sans cela on le retrouvait ouvert au retour
+    if(location.hash!==HIST.hash){ var o=$("#overlay"); if(o&&o.classList.contains("ov-menu")) closeOverlay(); return; }
+    if(HIST.niv<histCible()) histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 
   // ---------- Colonne Boîtes (iPad) ----------

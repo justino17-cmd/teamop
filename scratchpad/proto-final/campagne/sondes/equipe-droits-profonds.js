@@ -33,12 +33,15 @@ const CAS = [
   const base = {}; await comme(); for (const cas of CAS) base[cas.c] = await sonder(cas.routes); await revenir();
   v('population : la personne complète a des gestes dans les fiches ouvertes (au moins 80 au total)', Object.values(base).reduce((a, b) => a + b.length, 0) >= 80, Object.fromEntries(Object.entries(base).map(([q, w]) => [q, w.length])));
   for (const cas of CAS) {
-    await E.fiche(c, k); await p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; });
-    const sel = cas.sp ? `#calque input[data-eqs="${k}|${cas.sp}"]` : `#calque .eq-droits input[data-eqd="${k}|${cas.cat}|${cas.x}"]`;
-    if (!(await p.evaluate(s => { const e = document.querySelector(s); return !!e && e.offsetParent !== null; }, sel))) { v(`case ${cas.c} : affichée dans la fiche`, false, 'absente'); continue; }
-    await L.toucher(c, sel); await E.ranger(c); await comme(); const sans = await sonder(cas.routes); await revenir();
+    await E.fiche(c, k); await p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); });
+    const sel = cas.sp ? `#calque input[data-eqs="${k}|${cas.sp}"]` : `#calque input[data-eqd="${k}|${cas.cat}|${cas.x}"]`;
+    if (!(await p.evaluate(s => [...document.querySelectorAll(s)].some(e => e.offsetParent !== null), sel))) { v(`case ${cas.c} : affichée dans la fiche`, false, 'absente'); continue; }
+    await L.toucher(c, sel + ':visible'); await E.ranger(c); await comme(); const sans = await sonder(cas.routes); await revenir();
     const perdus = base[cas.c].filter(x => !sans.includes(x)); bilan[cas.c] = { perdus:perdus.length, exemples:perdus.slice(0, 8), baseline:base[cas.c].length };
-    v(`case ${cas.c} décochée : au moins un geste disparaît des fiches ouvertes (sinon la case est « morte ») — ${perdus.length} perdus sur ${base[cas.c].length}`, perdus.length >= 1, bilan[cas.c]);
+    // les six cases dont le geste n'est PAS un bouton qu'une fiche offre à l'ouverture (clic droit, raccourcis du module de courrier, boutons du panneau de confirmation…) : cette sonde ne fait que LIRE les boutons, elle ne peut pas les voir disparaître.
+    // Elles sont JOUÉES (geste tenté sans la case, données comparées, contre-épreuve avec la case) par equipe-droits-joues.js — qui doit rester à 0 ✗ pour que « geste joué ailleurs » vaille quelque chose.
+    const JOUEES = ['planif.s', 'crm.m', 'achats.s', 'com.c', 'com.m', 'com.s'];
+    v(`case ${cas.c} décochée : au moins un geste disparaît des fiches ouvertes${JOUEES.includes(cas.c) ? ' — OU son geste est joué par equipe-droits-joues.js (pas de bouton lisible à l\'ouverture)' : ' (sinon la case est « morte »)'} — ${perdus.length} perdus sur ${base[cas.c].length}`, perdus.length >= 1 || JOUEES.includes(cas.c), bilan[cas.c]);
     await p.evaluate(({ k, cas }) => { if (cas.sp) eqDe(k).droits.sp[cas.sp] = 1; else eqDe(k).droits.cats[cas.cat] = { v:1, c:1, m:1, s:1 }; }, { k, cas });
   }
   console.log(JSON.stringify(bilan, null, 1));

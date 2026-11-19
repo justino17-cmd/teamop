@@ -241,6 +241,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
   @media (max-height:620px){#toast{font-size:13.5px;line-height:1.35;padding:8px 12px 8px 14px;border-radius:14px}}   /* petit téléphone (320 x 568) : la phrase de refus d'un relevé, à quatre lignes, couvrait la moitié basse du bouton Terminer ; trois lignes plus serrées tiennent sous lui */
   body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
+html body #toast.haut{bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))}   /* posée en haut par toastDegager() quand le bas cacherait le champ qui a le focus ou les onglets d'une fenêtre */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -3997,6 +3998,8 @@ html #mc-vehicule:empty{display:none}
 .vh-photo{cursor:pointer;min-height:44px;justify-content:center}
 .vh-jour{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #calque .lien[hidden]{display:none}
+/* LA MARQUE POSÉE PAR motsLongs() (un mot de 18 signes ou plus, sans espace) : le texte coupe son mot, ses ancêtres peuvent rétrécir */
+.mot-long{overflow-wrap:anywhere;min-width:0}.mot-long-a{min-width:0}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -4913,7 +4916,16 @@ function toast(msg, action){ // action : { lib, fn }
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
   try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
-  t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  /* une fenêtre basse (petit téléphone en travers, clavier ouvert) : la bulle posée en bas tombait SUR le champ qui a le focus, sur « Chercher un client » ou sur les onglets de « Nouvelle intervention » (360 × 400 : bulle de 178 à 251, onglets de 158 à 202, champ de 216 à 262). On mesure : si elle en cache un, elle passe EN HAUT de l'écran (sur le titre, jamais sur ce qu'on tape) — et si le haut en cache davantage, elle reste en bas. */
+  t.classList.remove('haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  try { toastDegager(t); } catch (e) {}
+}
+function toastDegager(t){
+  const h = t.offsetHeight, bas = parseFloat(getComputedStyle(t).bottom) || 0, ecran = innerHeight, g = t.getBoundingClientRect(), d = Math.max(0, g.left), f = Math.min(innerWidth, g.right);
+  const garde = [...new Set([document.activeElement, ...document.querySelectorAll('.fen [data-cherchecli], [data-cherche], .fen [role=tab], .fen .onglets > *, .fen .seg button')])].filter(e => e && e !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName) || e.isContentEditable || e.matches('[role=tab],button,[data-cherche],[data-cherchecli]'))).map(e => e.getBoundingClientRect()).filter(r => r.width && r.height && r.bottom > 0 && r.top < ecran);
+  const cache = (hautBulle) => garde.reduce((n, r) => n + Math.max(0, Math.min(f, r.right) - Math.max(d, r.left)) * Math.max(0, Math.min(hautBulle + h, r.bottom) - Math.max(hautBulle, r.top)), 0);
+  const enBas = cache(ecran - bas - h); if (!enBas) return;
+  const enHaut = cache(10); if (enHaut < enBas) t.classList.add('haut');
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
 
@@ -5142,10 +5154,13 @@ function fermerMenu(){ document.querySelectorAll('.ctx').forEach(e => e.remove()
 function debutGesteAvant(){ cacherApercu(); }
 function ouvrirMenu(x, y, titre, items){
   items = items.filter(Boolean);   /* une entrée absente (« null ») ne laisse ni bouton ni trou dans les numéros */
+  /* une entrée qui porte `droit:[catégorie, x]` n'est PAS proposée à qui n'a pas la case (restes équipe, tour 3 : le menu du clic droit fabrique des gestes sans attribut `data-…`, donc hors de portée de la garde en capture — « Supprimer l'absence » et « Supprimer » un créneau bloqué passaient sans « Planning et absences › Supprimer ») ; les séparateurs restés seuls ou en bout de menu partent avec elle */
+  { const n0 = items.length; items = items.filter(it => it === '---' || !it.droit || peut(it.droit[0], it.droit[1]));
+    if (items.length !== n0) items = items.filter((it, k, A) => it !== '---' || (k > 0 && k < A.length - 1 && A[k - 1] !== '---')); }
   fermerMenu(); const ouvertA = Date.now(), m = document.createElement('div'); m.className = 'ctx'; m.dataset.ouvertA = ouvertA; m.setAttribute('role','menu');
   m.innerHTML = (titre ? `<div class="t">${titre}</div>` : '') + items.map((it,k) => it === '---' ? '<hr>' : `<button type="button" role="menuitem" data-k="${k}" class="${it.danger?'danger':''}"><span class="i">${it.ic||''}</span>${it.l}${it.s?`<span class="s">${it.s}</span>`:''}</button>`).join('');
   document.body.appendChild(m);
-  m.querySelectorAll('button[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); if (e.isTrusted && planTouchFin && Date.now() - planTouchFin < 600 && ouvertA >= planTouchDebut) return; const it = items[+b.dataset.k]; if (!it.garde) fermerMenu(); it.fn(); });
+  m.querySelectorAll('button[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); if (e.isTrusted && planTouchFin && Date.now() - planTouchFin < 600 && ouvertA >= planTouchDebut) return; const it = items[+b.dataset.k]; if (it.droit && !peut(it.droit[0], it.droit[1])) { fermerMenu(); return droitsRefus(it.droit[0], it.droit[1], 'menu', b.textContent.trim()); } if (!it.garde) fermerMenu(); it.fn(); });
   if (!tel()) { m.style.left = Math.max(8, Math.min(x, innerWidth - m.offsetWidth - 8)) + 'px'; m.style.top = Math.max(8, Math.min(y, innerHeight - m.offsetHeight - 8)) + 'px'; }
   m.querySelector('button')?.focus({ preventScroll:true });
 }
@@ -5161,8 +5176,8 @@ function menuCarte(id, x, y){
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
     i.st === 'annulee' ? null : i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
-    i.st === 'annulee' || !intAnnulable(i) ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
-    { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
+    i.st === 'annulee' || !intAnnulable(i) ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, droit:['planif', 's'], fn:() => planConfirmer('annuler', i.id) },
+    { ic:'🗑', l:'Supprimer…', danger:true, droit:['planif', 's'], fn:() => planConfirmer('supprimer', i.id) }
   ]);
 }
 function menuPersonnes(id, x, y){
@@ -5187,9 +5202,9 @@ function menuBloc(id, x, y){
   const b = BUREAU.find(o => o.id === id); if (!b) return;
   ouvrirMenu(x, y, `${b.h} – ${fin(b.h, b.dur)} · ${esc(b.titre)}<br><span style="font-weight:400">${tech(b.tech).nom}</span>`, [
     { ic:'✎', l:'Modifier', fn:() => panneauBloc(id) },
-    { ic:'⧉', l:'Dupliquer le lendemain', fn:() => { memo(); BUREAU.push({ ...b, id:'b' + Date.now(), d:ajoute(b.d, 1) }); rendre(); toast('Créneau copié au lendemain', ANNULER); } },
+    { ic:'⧉', l:'Dupliquer le lendemain', droit:['planif', 'c'], fn:() => { memo(); BUREAU.push({ ...b, id:'b' + Date.now(), d:ajoute(b.d, 1) }); rendre(); toast('Créneau copié au lendemain', ANNULER); } },
     '---',
-    { ic:'🗑', l:'Supprimer', danger:true, fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== b); rendre(); toast(`Supprimé : ${esc(b.titre)}`, ANNULER); } }]);
+    { ic:'🗑', l:'Supprimer', danger:true, droit:['planif', 's'], fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== b); rendre(); toast(`Supprimé : ${esc(b.titre)}`, ANNULER); } }]);
 }
 function panneauBloc(id, tid, d, mins){
   const b = id ? BUREAU.find(o => o.id === id) : { tech:tid, d, h:hm(mins), dur:60, titre:'Dépôt' }, choix = ['Dépôt','Garage (véhicule)','Réunion','Formation','Rendez-vous perso','Indisponible'];
@@ -6263,9 +6278,9 @@ document.addEventListener('click', ev => {
   if (b.dataset.mailenvoi) {
     const a = document.getElementById('ml-a').value.trim(), o = panneauEnvoi.courant || {};
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
-    { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { document.getElementById('ml-o').focus(); return toast(pl); } }
+    { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { return champRefus('ml-o', pl); } }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
-    ENVOIS.push({ a, objet:document.getElementById('ml-o').value, quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
+    ENVOIS.push({ a, objet:nfc(document.getElementById('ml-o').value), quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
     toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
   }
   if (b.dataset.pdfdl || b.dataset.pdfmail) {
@@ -7241,7 +7256,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tlien) { const x = TACHES.find(o => o.id === b.dataset.tlien); if (x && x.lien) { fermerPanneau(); apercuElement(x.lien.t, x.lien.id); } return; }
   if (b.dataset.tracc !== undefined) { const i = document.getElementById('tk-d'); i.value = b.dataset.tracc; i.dispatchEvent(new Event('change', { bubbles:true })); if (typeof dtPeindre === 'function') dtPeindre(i); document.querySelectorAll('[data-tracc]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if (b.dataset.tok !== undefined) {
-    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('tk-t').focus(); return toast(pl); } } const t = document.getElementById('tk-t').value.trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
+    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('tk-t', pl); } } const t = nfc(document.getElementById('tk-t').value).trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
     const v = { t, qui:document.getElementById('tk-qui').value, d:document.getElementById('tk-d').value || null, h:document.getElementById('tk-h').value || null, urgent:document.getElementById('tk-u').checked, cat:document.getElementById('tk-cat').value, rep:document.getElementById('tk-rep').value || null, note:document.getElementById('tk-n').value.trim() };
     const pieces = [...document.querySelectorAll('.t-piece')].map(r => ({ nom:r.querySelector('.tp-nom').value.trim(), ref:r.querySelector('.tp-ref').value.trim(), q:tpQte(r.querySelector('.tp-q').value) })).filter(pc => pc.nom);
     /* une quantité qu'on ne sait pas lire est refusée avec une phrase : un champ « number » avalait la virgule (« 1,5 » devenait 15 pièces) et l'ancienne lecture devinait 1 pour tout le reste */
@@ -8053,7 +8068,7 @@ function aMenu(k, id, x, y){ if (aLecture()) return; const a = (k === 'd' ? DEMA
     { ic:'🏷', l:'Changer le type', s:'›', garde:true, fn:() => aMenuType(a, x, y) },
     { ic:'📋', l:'Voir au planning', fn:() => aDeclencher({ 'data-aplan':a.du + '|' + a.tech }) },
     '---',
-    { ic:'🗑', l:'Supprimer l’absence', danger:true, fn:() => aDeclencher({ 'data-asuppr':id }) } ]);
+    { ic:'🗑', l:'Supprimer l’absence', danger:true, droit:['planif', 's'], fn:() => aDeclencher({ 'data-asuppr':id }) } ]);
 }
 function aMenuType(a, x, y){ ouvrirMenu(x, y, 'Changer le type', [{ ic:'‹', l:'Retour', garde:true, fn:() => aMenu('a', a.id, x, y) }, '---',
   ...Object.keys(A_TYPES).map(k => ({ ic:A_TYPES[k][1], l:(k === a.type ? '✓ ' : '') + k, fn:() => { if (k === a.type) return; const av = a.type; a.type = k;
@@ -8500,7 +8515,7 @@ function dvCorps(x, num){
   return `${saluer(c.contact)},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
 }
 /* l'adresse tapée à l'envoi d'un devis ou d'une relance se range dans la fiche du client quand elle n'en a pas : sinon il faut la retaper à chaque devis, et la facture n'en aura pas (devis-atelier-09) */
-function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
+function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || !peut('crm', 'm') || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
   journalAjout('marc', 'client', 'a ajouté l’adresse e-mail du client', { t:'client', id:x.cli, lib:c.nom, cli:x.cli }, { det:'à l’envoi d’un devis' }); return ' Adresse enregistrée dans la fiche de ' + c.nom + '.'; }
 function dvEnvoyer(x){
   if (!dvComplet(x)) { toast(x.lignes.length ? 'Complète toutes les lignes (nom et prix) avant d’envoyer.' : 'Ajoute au moins une ligne avant d’envoyer.'); return; }
@@ -8576,7 +8591,7 @@ function dvNouveau(){
 }
 function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; };
   if (f.nv) ['nom','prenom','tel','mail','adr'].forEach(k => { const x = v('dvn-' + k); if (x != null) f[k] = x; }); else { const x = v('dvn-cli'); if (x != null) f.cli = x; }
-  const o = v('dvn-objet'); if (o != null) f.objet = o; }
+  const o = v('dvn-objet'); if (o != null) f.objet = nfc(o); }
 /* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
    (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
 function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
@@ -8611,9 +8626,24 @@ function dvDicter(){
 }
 function dvdPreparer(){
   const t = (document.getElementById('dvd-t').value || '').trim(); if (!t) { toast('Dis ou écris ce qu’il faut faire, puis touche « Préparer le devis ».'); return; } const s = sansAccent(t);
-  const dit = k => sansAccent(CLIENTS[k].nom).split(/[^a-z0-9]+/).filter(m => m.length >= 3 && !['madame','monsieur','mme','restaurant','cabinet','camping','hotel','copropriete','dentaire','garage','syndic','les','des','chez'].includes(m)).some(m => new RegExp('(^|[^a-z0-9])' + m + 's?([^a-z0-9]|$)').test(s));   /* un MOT entier, accents et casse ignorés : « support » ne désigne plus « Le Vieux Port » (restes clients, tour 4). Le nom se coupe sur tout ce qui n'est ni lettre ni chiffre, comme la saisie rapide (tkxNomEntier) : « l’Escale », « L’Épi d’Or » (apostrophe typographique du clavier d'un iPhone), « Saint-Hubert » se disent en entier (tour 5) */
-  const cli = Object.keys(CLIENTS).find(k => k !== '__nv' && !CLIENTS[k].archive && dit(k));   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) : la dictée non plus */
-  if (!cli) { const arch = Object.keys(CLIENTS).find(k => k !== '__nv' && CLIENTS[k].archive && dit(k)); toast(arch ? esc(CLIENTS[arch].nom) + ' est archivé : ' + (peut('crm', 's') ? 'restaure-le depuis « Clients »' : 'demande à un responsable de le restaurer') + ' avant de lui faire un devis.' :   /* le geste proposé est un geste que CETTE personne peut faire : « Remettre dans la liste » n'existe que pour qui a le droit d'archiver (restes clients, tour 4) */ 'Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
+  /* QUEL client la phrase désigne : on COMPTE les mots du nom que la phrase dit, et le client qui en a le plus l'emporte — jamais le premier venu (« Claire Dubois » n'est pas « Marie-Claire Petit », « Jean Martin » passe devant « Cabinet dentaire Martin »). Règles (dictée, restes 5) :
+     · un MOT entier, accents et casse ignorés (« support » ne désigne plus « Le Vieux Port »), le nom coupé sur tout ce qui n'est ni lettre ni chiffre (« l’Escale », « Saint-Hubert ») ;
+     · les mots génériques ne comptent pas, formes juridiques comprises (sas, sasu, sci, sarl, eurl, snc : « une sci » ne désigne personne) ;
+     · un mot de 3 signes (« bar », « épi ») ne compte que si le nom n'a pas de mot plus long : « un bar à vin » ne choisit pas « Bar-Tabac » ;
+     · un mot SEUL ne compte pas s'il fait partie d'un prénom ou d'un nom composé à trait d'union : « pose de pierre » ne choisit pas « Jean-Pierre Vasseur » (il faut dire « Jean-Pierre ») ;
+     · des mots de suite dans le nom, dits de suite dans la phrase (« l’Épi d’Or », « Jean-Pierre »), comptent ensemble, même courts. */
+  const GEN = ['madame','monsieur','mme','restaurant','cabinet','camping','hotel','copropriete','dentaire','garage','syndic','les','des','chez','de','du','la','le','et','au','aux','sas','sasu','sci','sarl','eurl','sa','snc'];
+  const nTxt = ' ' + s.replace(/[^a-z0-9]+/g, ' ').trim() + ' ', dansTxt = m => new RegExp(' ' + m + 's? ').test(nTxt);
+  const dits = k => { const brut = CLIENTS[k].nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(), T = [], compose = new Set();
+    brut.split(/[^a-z0-9\-‐‑‒–]+/).forEach(u => { const ps = u.split(/[-‐‑‒–]+/).filter(Boolean); ps.forEach(x => { if (ps.length > 1) compose.add(T.length); T.push(x); }); });
+    const long = T.some(m => m.length > 3 && !GEN.includes(m)), bons = new Set();
+    T.forEach((m, i) => { if (!compose.has(i) && m.length >= 3 && !GEN.includes(m) && (m.length > 3 || !long) && dansTxt(m)) bons.add(i); });
+    for (let a = 0; a < T.length; a++) { if (GEN.includes(T[a]) || T[a].length < 2) continue;
+      for (let b = a + 1; b < T.length; b++) { if (GEN.includes(T[b]) || T[b].length < 2) continue; if (dansTxt(T.slice(a, b + 1).join(' '))) for (let i = a; i <= b; i++) if (!GEN.includes(T[i]) && T[i].length >= 2) bons.add(i); } }
+    return bons.size; };
+  const meilleur = archive => { let best = null, sc = 0; Object.keys(CLIENTS).forEach(k => { if (k === '__nv' || !!CLIENTS[k].archive !== archive) return; const n = dits(k); if (n > sc) { sc = n; best = k; } }); return best; };
+  const cli = meilleur(false);   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) : la dictée non plus */
+  if (!cli) { const arch = meilleur(true); toast(arch ? esc(CLIENTS[arch].nom) + ' est archivé : ' + (peut('crm', 's') ? 'restaure-le depuis « Clients »' : 'demande à un responsable de le restaurer') + ' avant de lui faire un devis.' :   /* le geste proposé est un geste que CETTE personne peut faire : « Remettre dans la liste » n'existe que pour qui a le droit d'archiver (restes clients, tour 4) */ 'Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
   const L = [];
   CATALOGUE.forEach(([nom, pu]) => { if (s.includes(sansAccent(nom).replace(/\s*\(.*$/, ''))) L.push([nom, 1, pu]); });
   const h = /(\d+|une|deux|trois|quatre)\s+heures?/.exec(s), nh = h ? ({ une:1, deux:2, trois:3, quatre:4 }[h[1]] || +h[1]) : 0;
@@ -9104,7 +9134,7 @@ function placerPops(){
   });
 }
 function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
-  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+  if (calAvantAller(() => aller(h))) return; if (h !== route + (param ? '-x-' + param : '')) { try { releveOublier(); } catch (e) {} } fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 /* un lien d'adresse touché (menu latéral, lien #…) change l'adresse SANS passer par aller() : cpProg est vide comme pour un retour ; le clic, lui, ne se confond pas avec un retour (qui n'en est pas un) */
 var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a[href^="#"]')) navClic = Date.now(); }, true);
 function lireHash(){
@@ -9122,7 +9152,7 @@ function lireHash(){
   if (estGrise(r || 'accueil') && !(typeof RETOUR !== 'undefined' && RETOUR)) {   // par un lien (RETOUR posé), une catégorie déjà faite s'ouvre
  if (lireHash.deja2) toast(catTard(r) ? 'Catégorie prévue pour la fin — grisée pour l’instant.' : 'Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; histRemplacer('#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
   lireHash.deja2 = true;
-  if (r === 'comptabilite' && !cpSysteme && cpProg !== 'comptabilite' && rlPermis('comptabilite')) { cpSysteme = true; if (route !== 'comptabilite') cpSysDe = route; } cpProg = null; route = r || 'accueil'; param = p || null; docPleinFermer(); fermerPanneau();   /* le plein écran d'un PDF ne survit pas à un changement d'écran (retour, glissement, lien) · 13 novembre 2026 */ fermerMenu(); rendre();
+  if (r === 'comptabilite' && !cpSysteme && cpProg !== 'comptabilite' && rlPermis('comptabilite')) { cpSysteme = true; if (route !== 'comptabilite') cpSysDe = route; } cpProg = null; if ((r || 'accueil') !== route || (p || null) !== param) { try { releveOublier(); } catch (e) {} } route = r || 'accueil'; param = p || null; docPleinFermer(); fermerPanneau();   /* le plein écran d'un PDF ne survit pas à un changement d'écran (retour, glissement, lien) · 13 novembre 2026 */ fermerMenu(); rendre();
   document.getElementById('contenu').classList.remove('vue-entre'); void document.getElementById('contenu').offsetWidth; document.getElementById('contenu').classList.add('vue-entre');
   scrollTo({ top:0 });
 }
@@ -9212,6 +9242,8 @@ function calReculer(n, suite){
   try { history.go(-n); } catch (e) { CAL.off = true; CAL.ignore = 0; clearTimeout(CAL.minuteur); calFinRecul(); }
 }
 function calFinRecul(){ const s = CAL.suite; CAL.suite = null; if (s) s(); calSync(); }
+/* LE SEUL pushState de la page : toute entrée d'historique (couche ouverte, adresse de la fiche remise) passe par ici — un second mécanisme se marcherait dessus (retour-parcours le compte) */
+function calPousser(etat, adresse){ history.pushState(etat, '', adresse || location.href); }
 function calSync(){
   if (CAL.off) return;
   if (CAL.ignore > 0) { CAL.sale = true; return; }
@@ -9219,7 +9251,7 @@ function calSync(){
   CAL.pile = CAL.pile.filter(k => ouv.includes(k)).concat(ouv.filter(k => !CAL.pile.includes(k)));
   const d = CAL.pile.length;
   try {
-    while (CAL.pousse < d) { history.pushState({ cal:CAL.pousse + 1 }, '', location.href); CAL.pousse++; CAL.hash = location.hash; }
+    while (CAL.pousse < d) { calPousser({ cal:CAL.pousse + 1 }); CAL.pousse++; CAL.hash = location.hash; }
     if (CAL.pousse > d) { const n = CAL.pousse - d; CAL.pousse = d; calReculer(n); }
   } catch (e) { CAL.off = true; CAL.pousse = 0; }
 }
@@ -9369,7 +9401,7 @@ const ACTIONS = {
     rendre(); toast('Remboursement noté : ' + eur(f.recu) + ' rendus à ' + CLIENTS[f.cli].nom + '.'); },
   nouvelleFacture(){ toast('Dans la vraie version : une facture à la main, sans intervention (vente de pièce, acompte…).'); },
   dateOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; fermerPanneau(); poser(i, q.tid, q.d, q.h, q.dur); },
-  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('n-titre').focus(); return toast(pl); } } const q = lireQuand(), titre = document.getElementById('n-titre').value.trim() || 'Nouvelle intervention';
+  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('n-titre', pl); } } const q = lireQuand(), titre = nfc(document.getElementById('n-titre').value).trim() || 'Nouvelle intervention';
     if (refusAbsent(q.tid, q.d, q.h)) return;
     memo(); const i = { id:'n' + Math.random().toString(36).slice(2,8), d:q.d, h:q.h, dur:q.dur, tech:q.tid, cli:document.getElementById('n-cli').value, titre, type:document.getElementById('n-type').value, st:q.tid ? 'planifiee' : 'aplanifier', motif:document.getElementById('n-motif').value.trim() || undefined };
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
@@ -9435,7 +9467,7 @@ const ACTIONS = {
       <button type="button" class="btn large" data-action="modifIntOk" data-id="${i.id}">Enregistrer les modifications</button>`); },
   modifIntOk(b){ const i = INTS.find(o => o.id === b.dataset.id);
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
-    { const pl = refusLong(document.getElementById('m-t').value, 120, 'Titre'); if (pl) { document.getElementById('m-t').focus(); return toast(pl); } }   /* un plafond dépassé refuse, il ne coupe pas */
+    { const pl = refusLong(document.getElementById('m-t').value, 120, 'Titre'); if (pl) { return champRefus('m-t', pl); } }   /* un plafond dépassé refuse, il ne coupe pas */
     if ((t2 !== i.tech || d2 !== i.d || h2 !== i.h) && refusAbsent(t2, d2, h2)) return; // avant memo() : rien à annuler si c’est refusé
     memo(); const dAvant = i.d, hAvant = { h:i.h, dur:i.dur }, tAvant = i.tech, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
     Object.assign(i, { titre:libelleSur(document.getElementById('m-t').value, 120) || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
@@ -9463,7 +9495,7 @@ const ACTIONS = {
     payer(f, m, { montant:v, d:dd ? dd.split('-').reverse().slice(0,2).join('/') : undefined, h, photo:window.__encPhoto }); window.__encPhoto = null; fermerPanneau(); filtreMode = 'tous'; rendre(); },
   bilanPdf(){ ouvrirPanneau(`<h2>Bilan d’octobre</h2>${bilanPdf()}`, true); },
   info(b){ toast(esc(b.dataset.txt)); },
-  blocOk(b){ { const pl = refusLong(document.getElementById('bl-titre').value, 120, 'Titre du créneau'); if (pl) { document.getElementById('bl-titre').focus(); return toast(pl); } }
+  blocOk(b){ { const pl = refusLong(document.getElementById('bl-titre').value, 120, 'Titre du créneau'); if (pl) { return champRefus('bl-titre', pl); } }
     const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
     if (b.dataset.id) Object.assign(BUREAU.find(o => o.id === b.dataset.id), { titre, h, dur, indispo: titre === 'Indisponible' });
     else BUREAU.push({ id:'b' + Date.now(), tech:b.dataset.tech, d:b.dataset.d, h, dur, titre, indispo: titre === 'Indisponible' });
@@ -9481,7 +9513,7 @@ const ACTIONS = {
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st === 'annulee') return toast(ANNULEE_REFUS); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
   copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
-  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('m-titre').focus(); return toast(pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
+  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('m-titre', pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = nfc(document.getElementById('m-titre').value).trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
 /* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
@@ -9662,6 +9694,7 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
 }
 const RELEVE_REFUS = {};   /* la marque de refus vit AUSSI en mémoire : supprimer une photo redessine la fiche et le champ perd son data-refuse, alors que le refus n'a pas été revu */
+function releveOublier(){ Object.keys(RELEVE_REFUS).forEach(k => delete RELEVE_REFUS[k]); }   /* le refus gardé en mémoire n'appartient qu'à la fiche (et à la session) où il est tombé : changer de fiche ou fermer la session l'oublie, sinon un « Terminer » juste sur une autre fiche était bloqué par le refus d'une précédente */
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
   const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
@@ -9700,8 +9733,14 @@ const typoTxt = s => s.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u
 const typoHors = 'svg, pre, code, textarea, script, style, [contenteditable]';
 function typo(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
   while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue; const u = typoTxt(t); if (u !== t) n.nodeValue = u; } }
-new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) typo(n); else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; } } }).observe(document.body, { childList:true, subtree:true });
-typo(document.body);
+/* UN MOT TRÈS LONG SANS ESPACE (un nom de client de 54 signes, une adresse e-mail, un numéro) : il pousse la page de côté dès qu'il vit dans une ligne flex ou une grille, parce que la largeur minimale d'un enfant de texte est celle de son mot le plus long.
+   Une règle CSS posée « partout où s'écrit un nom » ne peut pas les connaître tous (une centaine de lignes, vues et fenêtres) ; on marque donc, APRÈS le dessin, l'élément qui porte un tel mot (.mot-long : il coupe le mot) et ses ancêtres jusqu'à la vue (.mot-long-a : min-width:0, ils rétrécissent).
+   Seuil : 18 signes d'un seul tenant — aucun mot courant n'y arrive, donc aucun écran ordinaire n'est touché (les tableaux ne se mettent pas à couper leurs mots). */
+function motsLongs(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
+  while ((n = tw.nextNode())) { if (n.nodeValue.length < 18 || !/\S{18,}/.test(n.nodeValue)) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue;
+    p.classList.add('mot-long'); for (let a = p.parentElement; a && a !== document.body && !a.matches('#contenu,#calque,.fen-voile'); a = a.parentElement) a.classList.add('mot-long-a'); } }
+new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) { typo(n); motsLongs(n); } else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; motsLongs(n.parentElement); } } }).observe(document.body, { childList:true, subtree:true });
+typo(document.body); motsLongs(document.body);
 queueMicrotask(lireHash);   // après tout le script : chaque écran trouve toutes ses données (DEVIS vit plus bas)
 /* ══ NOUVELLE INTERVENTION : une grande fenêtre, le vrai planning dedans, la facturation réglée par le bureau ══ */
 var CREA = null;
@@ -9831,7 +9870,7 @@ document.addEventListener('click', ev => {
   if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
   if (a === 'retirer' || a === 'retirerok') { const o = PRODUITS.find(z => z.id === x); if (a === 'retirer' && (o.q > 0 || enCommande(o) > 0)) return prRetirerAvertir(o); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
     return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
-  if (a === 'garder') { { const pl = refusLong(document.getElementById('pr-nom').value, 80, 'Nom de l’article'); if (pl) { document.getElementById('pr-nom').focus(); return toast(pl); } } const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
+  if (a === 'garder') { { const pl = refusLong(document.getElementById('pr-nom').value, 80, 'Nom de l’article'); if (pl) { return champRefus('pr-nom', pl); } } const nom = nfc(document.getElementById('pr-nom').value).trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
     const pv = prLire('pr-pv'), o = x ? PRODUITS.find(z => z.id === x) : { id:'p' + Date.now() }; o.ac = !!(o.ac && pv == null);
     Object.assign(o, { p:document.getElementById('pr-pack').value, cat:document.getElementById('pr-cat').value, nom, ref:document.getElementById('pr-ref').value.trim() || '—', four:document.getElementById('pr-four').value.trim() || '—',
       q:x ? o.q : (prLire('pr-q') || 0), u:uniteSure(document.getElementById('pr-u').value) || 'u', seuil:prLire('pr-seuil') || 0, pa:prLire('pr-pa'), pv:pv, tva:parseFloat(document.getElementById('pr-tva').value) });
@@ -10121,7 +10160,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return x ? fournFiche(x) : fournListe();
   if (a === 'local') return foLocal();
   if (a === 'localok') { const nom = document.getElementById('fo-l-nom').value.trim(); if (!nom) { document.getElementById('fo-l-nom').focus(); return toast('Donne le nom du fournisseur'); }
-    { const pl = refusLong(nom, 80, 'Nom du fournisseur'); if (pl) { document.getElementById('fo-l-nom').focus(); return toast(pl); } }
+    { const pl = refusLong(nom, 80, 'Nom du fournisseur'); if (pl) { return champRefus('fo-l-nom', pl); } }
     const telL = document.getElementById('fo-l-tel').value.trim(); if (telL && !/^[0-9 +.()-]{6,20}$/.test(telL)) { document.getElementById('fo-l-tel').focus(); return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.'); }
     const f = { id:'f' + Date.now().toString(36), nom:libelleSur(nom, 80), packs:[document.getElementById('fo-l-pack').value], mail:document.getElementById('fo-l-mail').value.trim(), tel:telL, compte:'', delai:'', remise:null };
     MES_FOURN.push(f); rendre(); fournFiche(f.id); return toast(`${esc(nom)} ajouté à tes fournisseurs.`); }
@@ -10801,6 +10840,8 @@ const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
 /* un signe de CONTRÔLE (C0, DEL, C1) entre deux mots est une ESPACE, jamais rien : « Code\u0007portail » restait « Codeportail » ; en tête ou en fin, rogné il disparaît */
+/* nfc : un titre libre se range en NFC comme les champs du client (120 « é » décomposés se rangeaient en NFD, 240 unités — recontrôle tour 5, N5) */
+const nfc = t => String(t == null ? '' : t).normalize('NFC');
 const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[<>"`\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 /* LE MAXLENGTH DU NAVIGATEUR COMPTE DES UNITÉS UTF-16, L'UTILISATEUR DES SIGNES (tour 5) : collé, un drapeau (4 unités) était coupé en lettre régionale seule, et l'on enregistrait une moitié de drapeau.
    Sur tout champ à maxlength, la coupe FINE se fait ici, à la frappe et au collage (événements de l'UTILISATEUR seulement : e.isTrusted) :
@@ -10811,14 +10852,17 @@ const maxChamp = e => { const m = e && e.getAttribute && parseInt(e.getAttribute
 const ri = ch => /^[\u{1F1E6}-\u{1F1FF}]$/u.test(ch);
 function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt(t.length - 1) >= 0xd800 && t.charCodeAt(t.length - 1) <= 0xdbff; if (lastHi) t = t.slice(0, -1);
   const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
-document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText') return;
+document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t);
+  /* frappe, collage, glisser seulement : l'autocorrection iOS (insertReplacementText) et la composition visent une plage que seul getTargetRanges() connaît — elles passent par l'écouteur « input » ci-dessous, qui recoupe la valeur finie */
+  if (!m || !/^(insertText|insertFromPaste|insertFromDrop)$/.test(e.inputType || '')) return;
   let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
-  if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
   let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
-  const av = t.value.slice(0, a), ap = t.value.slice(b), place = m - nbSignes(av) - nbSignes(ap); if (place < 0) return;
-  const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
-  e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
-document.addEventListener('input', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
+  const av = t.value.slice(0, a), ap = t.value.slice(b); if (nbSignes(av + ap) > m) return;
+  /* « tient » se décide sur le TEXTE ENTIER, pas par soustraction : un accent combinant (U+0301 envoyé seul à 119/120) s'attache au signe d'avant et ne coûte aucune place */
+  const g = graphemes(String(txt)); let lo = 0, hi = g.length; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (nbSignes(av + g.slice(0, mid).join('') + ap) <= m) lo = mid; else hi = mid - 1; }
+  const ins = g.slice(0, lo).join(''); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
+  e.preventDefault(); if (!ins && a === b) return; t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
+document.addEventListener('input', e => { if (!e.isTrusted) return; if (/^delete/.test(e.inputType || '')) return;   /* une SUPPRESSION ne recoupe jamais : une fiche plus longue que le plafond perdait 30 signes d'un Backspace (recontrôle tour 5, N1) */ const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
   if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
@@ -10834,7 +10878,8 @@ const NOM_MAX = 120;
    (« 4821Sonner chez la gardienne » : le saut de ligne retiré sans être remplacé collait le code au mot suivant) */
 const ACCES_LIGNES = 3;
 /* INVISIBLE : espace de largeur nulle, lien, jonction de mots, trait d'union conditionnel, BOM, NEL… — une ligne qui n'en est faite ne COMPTE pas (5 lignes dont 2 invisibles = 3 lignes d'accès) ; au milieu d'une ligne ils restent (un ZWJ lie un émoji) */
-const INVISIBLES = /^[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\s]*$/;
+/* la liste n'est plus écrite à la main (recontrôle tour 5, N3) : la propriété Unicode « Default_Ignorable_Code_Point » (espaces de largeur nulle, sélecteurs de variante, balises E0000-E007F, U+1D173…) + le braille blanc U+2800 + les ancres d'annotation U+FFF9-FFFB */
+const INVISIBLES = /^[\p{Default_Ignorable_Code_Point}\u2800\ufff9-\ufffb\s]*$/u;
 const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(l => l && !INVISIBLES.test(l));
 const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join('\n'), n || 200);
 /* cliNet(c) : la toilette ET, en dernier recours, la coupe au plafond ; cliNet(c, true) : la toilette SEULE, sans rien couper — c'est elle que lit clientPlafondRefus.
@@ -10842,6 +10887,8 @@ const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join(
 const CLI_CHAMPS = [['nom', 'Nom', NOM_MAX], ['contact', 'Contact', NOM_MAX], ['tel', 'Téléphone', 60], ['mail', 'E-mail', 120], ['adr', 'Adresse', 160], ['acces', 'Consignes d’accès', 200]];
 const cliNet = (c, plein) => { const o = { ...c }; const m = n => plein ? 1e9 : n; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], m(n)); }); if (typeof o.acces === 'string') o.acces = accesNet(o.acces, m(200)); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, m(120)).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, m(60)); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
 /* LA règle de plafond, UNE seule fonction : une phrase qui dit le champ et la limite, ou '' — rien ne s'enregistre quand elle parle. Le texte compté est le texte nettoyé qui serait gardé (graphèmes) */
+/* champRefus : le champ refusé est MARQUÉ (aria-invalid + le liseré rouge de .champ input[aria-invalid], le même que « Inviter une personne »), reçoit le focus, et la marque part à la frappe suivante ; la phrase reste dite par la bulle */
+const champRefus = (id, msg) => { const c = typeof id === 'string' ? document.getElementById(id) : id; if (c) { c.setAttribute('aria-invalid', 'true'); c.focus(); c.addEventListener('input', () => c.removeAttribute('aria-invalid'), { once:true }); } return toast(msg); };
 const refusLong = (t, max, lib) => { const n = nbSignes(libelleSur(t, 1e9)); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : ''; };
 function clientPlafondRefus(c){ const o = cliNet(c, true);
   for (const [k, lib, max] of CLI_CHAMPS) { if (typeof o[k] !== 'string') continue; const n = nbSignes(o[k]), nom = k === 'nom' ? (o.type === 'pro' ? 'Raison sociale' : 'Nom du client') : lib;
@@ -10921,7 +10968,7 @@ document.addEventListener('click', ev => {
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');
-    { const pl = refusLong(document.getElementById('eq-r').value, 40, 'Rôle'); if (pl) { document.getElementById('eq-r').focus(); return toast(pl); } }
+    { const pl = refusLong(document.getElementById('eq-r').value, 40, 'Rôle'); if (pl) { return champRefus('eq-r', pl); } }
     const k = 'u' + Date.now().toString(36), prof = document.getElementById('eq-prof').value;
     EQUIPE.push({ k, prenom:pr, nom:no, role:libelleSur(document.getElementById('eq-r').value, 40) || PROFILS[prof].nom, mail:m, tel:'', actif:true, invite:true, terrain:document.getElementById('eq-terrain').checked, droits:copieProfil(prof), habil:[] });
     H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:'#6b7280' };
@@ -12360,7 +12407,7 @@ document.addEventListener('click', ev => {
     I.forEach(i => { const d = i.value.replace(/\s/g, ''); CLIENTS[i.dataset.cxsiren].siren = d ? d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : ''; });
     fermerPanneau(); rendre(); return toast('SIREN enregistrés : ils s’écrivent sur les factures de ces clients.'); }
   if (a === 'plateformeok') {
-    { const pl = refusLong((document.getElementById('pa-n') || {}).value, 60, 'Nom de la plateforme'); if (pl) { document.getElementById('pa-n').focus(); return toast(pl); } }
+    { const pl = refusLong((document.getElementById('pa-n') || {}).value, 60, 'Nom de la plateforme'); if (pl) { return champRefus('pa-n', pl); } }
     const n = libelleSur((document.getElementById('pa-n') || {}).value, 60); if (!n) return toast('Écris le nom de ta plateforme.');
     CX_CONF.pa = n; CX_CONF.paDate = (document.getElementById('pa-d') || {}).value || AUJ; CX_CONF.paVerif = !!(document.getElementById('pa-v') || {}).checked; fermerPanneau(); rendre(); return toast(`Plateforme enregistrée : ${esc(n)}.`); }
 });
@@ -12627,7 +12674,8 @@ const GESTES = {
   d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
   /* planning, absences, tâches */
   aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
-  kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, asuppr:{ k:'planif', d:'s' },   /* « Supprimer l'absence » : le menu du clic droit la déclenche par un bouton fabriqué (aDeclencher) — sans cette ligne, la garde en capture ne le connaissait pas (restes équipe, tour 3) */
+  rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
   /* « Mes congés » : la demande de la technicienne, sa réponse à une proposition, le retrait de sa demande sont SES gestes (comme « Mes tâches », ci-dessous), jamais une case de planning : classés « planif », ils refusaient « Envoyer la demande à Marc » à toute technicienne (« Ce geste n'est pas ouvert à ton compte »). Décider d'une absence (aok, anouvok…) reste au planning. */
   atdem:{ d:'l' }, atenvoi:{ d:'l' }, atrep:{ d:'l' }, atrepondre:{ d:'l' }, atrepok:{ d:'l' }, atretire:{ d:'l' }, atvoir:{ d:'l' }, addemi:{ d:'l' },
   /* « Mes tâches » est un outil PERSONNEL, toujours ouvert : ses gestes ne dépendent d'aucune case (les Tâches sortent des cases, spec § 2.6) */
@@ -13605,7 +13653,7 @@ document.addEventListener('click', ev => {
     return ok(); }
   if (a === 'validertout') { const ptxAv = { ...PT_VALIDE }; let n = 0; const G = []; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { if (w.valide || !w.fini) return; if (w.alertes.some(o => o.g === 'r' || o.ouvert)) { G.push(`${paieNomPers(k).split(' ')[0]} (semaine du ${jCourt(w.L)})`); return; } PT_VALIDE[k + w.L] = true; n++; })); rendre();
     return toast(`${n} semaine${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}.${G.length ? ` À regarder d’abord, une alerte du Code du travail : ${G.join(', ')}. Ouvre leur relevé.` : ''}`, n ? ptxFinValidation(ptxAv, n) : undefined); }
-  if (a === 'primeajout') { { const pl = refusLong(document.getElementById('pa-lib').value, 60, 'Libellé'); if (pl) { document.getElementById('pa-lib').focus(); return toast(pl); } } const lib = document.getElementById('pa-lib').value.trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
+  if (a === 'primeajout') { { const pl = refusLong(document.getElementById('pa-lib').value, 60, 'Libellé'); if (pl) { return champRefus('pa-lib', pl); } } const lib = nfc(document.getElementById('pa-lib').value).trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
   if (a === 'primesuppr') { (PAIE.primes[x] || []).splice(+y, 1); return ici(); }
   if (a === 'verrouiller') {
     const V = PT_GENS.map(paieVariables), E = paieEtapes(V);
@@ -14401,7 +14449,7 @@ document.addEventListener('pointerdown', () => { clearTimeout(window._dgT); doig
 document.addEventListener('pointerup', () => { clearTimeout(window._dgT); window._dgT = setTimeout(() => { doigtPose = false; }, 400); }, true);
 document.addEventListener('input', ev => { if (!CREA || !ev.target.closest('.fen')) return; const t = ev.target;
   if (t.dataset.cnv && t.dataset.cnv !== 'adr') { CREA.nv[t.dataset.cnv] = t.value; return; }
-  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = texteNet(t.value); if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
+  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = nfc(texteNet(t.value)); if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
   if (t.dataset.cnv === 'adr') { CREA.nv.adr = t.value; CREA.sug = true; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cnv="adr"]'); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.cherchecli) { CREA.cherche = t.value; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cherchecli]'); n.focus(); n.setSelectionRange(pos, pos); }
 }, true);
@@ -14415,11 +14463,11 @@ const ACTIONS_CREA = {
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
     { const pl = refusLong(CREA.titre, 120, 'Titre'), nm = nbSignes(texteNet(CREA.motif).trim()), pm = nm > 600 ? 'Le champ « Ce que le client a dit » est limité à 600 signes, ce texte en fait ' + nm + ' : raccourcis-le, rien n’a été enregistré.' : '';
-      if (pl || pm) { toast(pl || pm); const ch = document.querySelector('[data-cchamp="' + (pl ? 'titre' : 'motif') + '"]'); if (ch) ch.focus(); return; } }   /* un plafond dépassé refuse, il ne coupe pas */
+      if (pl || pm) { return champRefus(document.querySelector('[data-cchamp="' + (pl ? 'titre' : 'motif') + '"]'), pl || pm); } }   /* un plafond dépassé refuse, il ne coupe pas */
     if (CREA.nouveau) {   /* mêmes contrôles que la fiche client : un numéro ou une adresse e-mail impossibles ne s'enregistrent pas (champs facultatifs, mais justes s'ils sont remplis) */
       const nvMail = String(CREA.nv.mail || '').trim(), mauvais = nvMail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nvMail) ? 'mail' : !cfTelOk(CREA.nv.tel) ? 'tel' : '';
       if (mauvais) { toast(mauvais === 'mail' ? 'L’adresse e-mail est à vérifier.' : TEL_MSG); const ch = document.querySelector('[data-cnv="' + mauvais + '"]'); if (ch) ch.focus(); return; }
-      { const pl = clientPlafondRefus(cliCrea()); if (pl) { toast(pl.m); const ch = document.querySelector('[data-cnv="' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '"]'); if (ch) ch.focus(); return; } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
+      { const pl = clientPlafondRefus(cliCrea()); if (pl) { return champRefus(document.querySelector('[data-cnv="' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '"]'), pl.m); } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
       /* le technicien doit savoir OÙ aller, et le bureau comment prévenir le client : comme le formulaire du devis (clients-04, décision du 17 novembre) ; le refus nomme le champ qui manque */
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
@@ -14434,7 +14482,7 @@ const ACTIONS_CREA = {
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
     toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, (!rlPermis('planning') || route === 'planning') ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
-  cAjoutTypeOk(){ { const pl = refusLong(document.getElementById('t-nom').value, 40, 'Nom du type'); if (pl) { document.getElementById('t-nom').focus(); return toast(pl); } } const v = document.getElementById('t-nom').value.trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
+  cAjoutTypeOk(){ { const pl = refusLong(document.getElementById('t-nom').value, 40, 'Nom du type'); if (pl) { return champRefus('t-nom', pl); } } const v = nfc(document.getElementById('t-nom').value).trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
 };
 
 /* ══ DATE ET HEURE — NOTRE SÉLECTEUR, PAS CELUI DU NAVIGATEUR ══
@@ -14522,7 +14570,7 @@ function cpSysMode(){ if (cpSysEcho) return; const f = document.querySelector('#
   try { f.contentWindow.postMessage({ opc_mode:m }, '*'); } catch (e) {} }
 function cpSysMaj(){
   let z = document.getElementById('cpsys'); const voulu = route === 'comptabilite' && cpSysteme;
-  if (!voulu) { if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
+  if (!voulu) { cpCouchePartir(); /* quelle que soit la sortie (« Factures et paiements », aller(), ⌘K, bouton Menu puis une rubrique) : la couche du cadre part avec l'écran, on ne la retrouve pas ouverte (recontrôle tour 3) */ if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
   if (!z) { z = document.createElement('div'); z.id = 'cpsys'; z.setAttribute('role', 'dialog'); z.setAttribute('aria-label', 'Comptabilité');
     z.innerHTML = '<div class="cpsys-barre"><button type="button" data-cpsys="retour" aria-label="Revenir à OP GESTION">‹ OP GESTION</button><b>Comptabilité</b><button type="button" data-cpsys="quotidien">Factures et paiements</button></div><iframe title="Comptabilité d’OP GESTION" src="' + opLiaSrc() + '"></iframe>';
     document.body.appendChild(z); z.querySelector('iframe').addEventListener('load', cpSysMode); }
@@ -14788,7 +14836,7 @@ function cliInfosRetenir(suite, parAdresse){ if (CLI_LIBRE || !clientInfosSale()
 /* l'adresse a déjà changé (retour du navigateur) et la personne reste sur la fiche : on remet une entrée de la fiche DEVANT celle où elle est, sans réécrire l'autre — le retour suivant retrouve « Devis » et redemande, au lieu de tomber sur une fiche fantôme */
 /* ⚠️ la fenêtre ouverte a SA PROPRE entrée d'historique (calSync) : la fermer recule d'une entrée, ASYNCHRONE. Pousser la fiche avant ce recul la ferait reculer elle-même (et rouvrirait la fenêtre) : on attend la fin du recul, qui rejoue `CAL.suite`. */
 function cliAdresseRendreApres(){ if (typeof CAL !== 'undefined' && !CAL.off && CAL.pousse > 0) CAL.suite = cliAdresseRendre; else cliAdresseRendre(); }
-function cliAdresseRendre(){ try { const ici = route + (param ? '-x-' + param : ''); if (route === 'client' && location.hash.slice(1) !== ici) history.pushState(null, '', '#' + ici); } catch (e) {} }
+function cliAdresseRendre(){ try { const ici = route + (param ? '-x-' + param : ''); if (route === 'client' && location.hash.slice(1) !== ici) calPousser(null, '#' + ici); } catch (e) {} }
 function cliInfosDemande(){ ouvrirPanneau(`<h2>Tu as changé cette fiche sans l’enregistrer</h2><p class="gris" style="margin:0">Si tu quittes maintenant, ce que tu viens d’écrire dans « Infos » est perdu.</p>
     <div class="actions"><button type="button" class="btn" data-action="clientInfosSuite" data-v="enreg">Enregistrer</button><button type="button" class="btn gris" data-action="clientInfosSuite" data-v="abandon">Abandonner mes changements</button><button type="button" class="btn gris" data-ferme="1">Continuer la saisie</button></div>`); }
 document.addEventListener('click', ev => {
@@ -21457,7 +21505,7 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .ent-champ > label{font-size:14px;color:var(--doux);font-weight:550}
 .erreur{color:var(--rouge);font-size:13.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .erreur[hidden]{display:none}
-.champ input[aria-invalid="true"],.champ select[aria-invalid="true"],.saisie[aria-invalid="true"]{border-color:var(--rouge)}
+.champ input[aria-invalid="true"],.champ select[aria-invalid="true"],.champ textarea[aria-invalid="true"],.saisie[aria-invalid="true"]{border-color:var(--rouge)}
 .ent-zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:420px){.ent-zones{grid-template-columns:1fr}}
 .ent-logo-ap{display:flex;align-items:center;justify-content:center;min-height:120px;border-radius:16px;border:1px dashed var(--trait2);background:var(--surf2)}
@@ -21911,7 +21959,7 @@ document.addEventListener('click', ev => {
     if (t && !/^[0-9 +.()-]{6,20}$/.test(t)) return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.');
     const h = eqHomonyme(pr, no, x); if (h) { document.getElementById('eqx-mhomo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide.');
-    { const pl = refusLong(eqxVal('eqx-mr'), 40, 'Rôle'); if (pl) { document.getElementById('eqx-mr').focus(); return toast(pl); } }
+    { const pl = refusLong(eqxVal('eqx-mr'), 40, 'Rôle'); if (pl) { return champRefus('eqx-mr', pl); } }
     { const dup = EQUIPE.find(o => o.k !== x && String(o.mail || '').trim().toLowerCase() === m.toLowerCase()); if (dup) return toast(`Cette adresse est déjà celle de ${esc(eqNom(dup))} : chaque personne se connecte avec la sienne.`); }
     const avant = eqxPrise(), nomAv = eqNom(p), ch = [];
     if (nomAv !== pr + ' ' + no) ch.push(['son nom', nomAv, pr + ' ' + no]); if (p.mail !== m) ch.push(['son e-mail', p.mail, m]); if ((p.tel || '') !== t) ch.push(['son téléphone', p.tel || '—', t || '—']);
@@ -27053,7 +27101,7 @@ function cnxValider(){ const id = cnxIdNorm(document.getElementById('cn-id').val
   secuJ(d.raisons.length ? 'login.unusual' : 'login.requested', p.k, d.appareil + ' · ' + d.adresse);
   cnxGlisser(() => cnxConfirmer(p, d)); }
 function cnxEntrer(p, texte){ SECU.pc = { ecran:null, k:null, demandeId:null }; cnxCharger(() => { sessionOuvrir(p.k); toast(texte || 'Bonjour ' + p.prenom); }, 'Connexion de ' + p.prenom + '…', 1100); }
-function sessionFermer(raison){ const k = SESSION; SESSION = null; if (k) { delete SECU.sessions[k]; delete SECU.confirmeA[k]; }
+function sessionFermer(raison){ try { releveOublier(); } catch (e) {} const k = SESSION; SESSION = null; if (k) { delete SECU.sessions[k]; delete SECU.confirmeA[k]; }
   if (SECU.vraie) { delete SECU.sessions[SECU.vraie]; delete SECU.confirmeA[SECU.vraie]; SECU.vraie = null; } secuConfFermer(true, false, true); secuBande();   /* se déconnecter pendant « Ouvrir comme » ferme aussi la session de l'administrateur */
   Object.keys(SECU.ui).forEach(j => { const u = SECU.ui[j]; if (u.ecran === 'ouvert') { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } });
   SECU.auto = false; SECU.pc = { ecran:null, k:null, demandeId:null }; SECU.ouvert = opsLarge();
