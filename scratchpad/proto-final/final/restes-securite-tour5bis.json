@@ -1,0 +1,64 @@
+{
+ "tour": "5 bis",
+ "date": "2026-11-19",
+ "commits": [
+  "N1 Backspace",
+  "PDF devis NFC",
+  "N2",
+  "N3",
+  "N5",
+  "beforeinput restreint",
+  "marque du champ refusé (7)"
+ ],
+ "corrections": {
+  "1_N1": "garde `if (/^delete/.test(e.inputType||'')) return;` dans l'écouteur input. Sonde recontrole-a : 56 ✓ · 1 ✗ (N2 seul). Mutation (garde retirée) : 54 ✓ · 3 ✗ (A1 nom 150→120, adresse 200→160, N2). Page restaurée, git diff --stat apercu/ vide.",
+  "2_PDF_devis": "pdfWinAnsi du cadre : normalize('NFC') avant conversion (atelier/page.source, fabriquer.sh relancé). Sonde tour5bis section P : objet ET désignation décomposés, lus au texte (pdftotext) et rastérisés (PNG regardé) : 5 ✓. Recontrôle-b section pdf : 11 ✓ · 0 ✗. Mutation (NFC retiré de la page fabriquée) : 2 ✓ · 3 ✗ (« e?lectrovanne e?te? »). Restaurée.",
+  "3_N2": "décision par nbSignes(av+inséré+ap) <= plafond, recherche dichotomique du plus long préfixe de graphèmes. « e » puis U+0301 à 119/120 = « é » entier ; contre-épreuves : vrai signe et drapeau à 120/120 refusés. Mutation (ancienne soustraction) : 6 ✗ dont N2 « noe ».",
+  "4_N3": "INVISIBLES = /^[\\p{Default_Ignorable_Code_Point}\\u2800\\ufff9-\\ufffb\\s]*$/u. 13 invisibles essayés (U+2800, tags E0020/E007F, E0100, 1D173, 1BCA0, FFF9-FFFB, 3164, 200B, 00AD, 034F) : 0 compté ; vraies lignes (é, famille ZWJ) gardées. Mutation (ancienne liste) : 7 ✓ · 5 ✗.",
+  "5_N5": "fonction nfc() ; lue à l'enregistrement par n-titre, m-titre, tk-t, pr-nom, t-nom, pa-lib, ml-o (objet courriel), objet du devis (dvnLire), titre de création (CREA). Mesuré au navigateur : n-titre et m-titre (120 « é » NFD rangés en NFC, 120 unités) ; les 7 autres sites contrôlés par lecture du code servi (non joués au navigateur). Les champs déjà passés par libelleSur (m-t, bl-titre, eq-r, pa-n, fournisseur) étaient déjà NFC. Pas de mutation demandée.",
+  "6_beforeinput": "restreint à insertText, insertFromPaste, insertFromDrop. Remplacement/autocorrection et composition passent par l'écouteur input (recoupe la valeur finie, comme avant). Mesuré : A4 (méthode de saisie CDP Hangul/drapeaux) reste vert dans recontrole-a (57 ✓). insertReplacementText iOS non jouable ici : non mesuré sur appareil.",
+  "7_marque_refus": "champRefus(id,msg) : aria-invalid=true + focus + retrait à la frappe ; liseré = règle existante .champ input[aria-invalid] (ajout de textarea). Branché sur les 13 refus refusLong, la création (titre/motif) et le client neuf de la création. Mesuré sur mac/iPhone/iPad/Android × jour/nuit : liseré = jeton --rouge du thème (rgb(176,38,60) jour, rgb(255,125,142) nuit), retiré au Backspace, bulle ne recouvre jamais le champ refusé : 56 ✓ · 0 ✗. 8 captures regardées (Android jour/nuit, iPhone jour, iPad nuit relues) : le liseré rouge se voit à l'intérieur de l'anneau de focus bleu."
+ },
+ "consigne_sans_correction": {
+  "bulle_sur_ecrans_suivants": "comportement général de toast() (6 s, non vidé par la navigation) : mesuré, la bulle est encore posée 0,5 s après un changement d'écran (route clients). Non corrigé : touche tous les toasts de l'app.",
+  "android_iphone_recouvrement": "mesuré : Android 360x740, la bulle (328x91) recouvre Jour 6678 px², Début 6678, Durée 6201 ; iPhone 390x844 : Durée 5046 px² ; Mac et iPad : 0. Le champ refusé n'est jamais recouvert. Non corrigé : la vraie solution (phrase sous le champ comme entErr, et pas de toast) touche 15 formulaires et toutes les sondes qui lisent le toast. Cibles tactiles 44 px inchangées.",
+  "N4": "liste Clients, nom de 112 « Wm » sans espace à 320 px : 11 lignes de 180 px, commit 7fa56356 d'un autre lot. Constaté seulement : sonde tour 4 b rend 167 ✓ · 1 ✗ (cet unique ✗, N4), comme avant ce lot.",
+  "pdf2": "tour4 pdf2 : 7 ✓ · 1 ✗ — artefact de pdftotext -layout déjà avoué au tour 5, inchangé."
+ },
+ "rejeu": {
+  "restes-garde": "33 ✓",
+  "tour1_recontrole": "10 ✓",
+  "tour2_captures": "15 ✓",
+  "tour2_recontrole": "95 ✓",
+  "tour3": "27 ✓",
+  "tour3_recontrole": "160 ✓",
+  "tour4": "132 ✓",
+  "tour4_a": "39 ✓",
+  "tour4_b": "167 ✓ · 1 ✗ (N4)",
+  "tour4_c": "24 ✓",
+  "tour4_d": "26 ✓",
+  "tour4_pdf": "17 ✓",
+  "tour4_pdf2": "7 ✓ · 1 ✗ (artefact)",
+  "tour4_titre": "60 ✓",
+  "tour5": "193 ✓",
+  "tour5_compta": "12 ✓",
+  "tour5_recontrole_a": "57 ✓ · 0 ✗",
+  "tour5_recontrole_b": "20 ✓ · 0 ✗ (avant : 19 ✓ · 2 ✗)",
+  "tour5bis": "76 ✓ · 0 ✗ (pdf 5, champs 15, marque 56)",
+  "test-835": "844 ✓",
+  "test-836": "307 ✓",
+  "test-837": "122 ✓",
+  "test-1008": "54 ✓",
+  "test-2994": "15 ✓",
+  "verifier-syntaxe": "41 pages, 71 blocs, 0 en erreur",
+  "compiler-pages": "code 0",
+  "verif-secrets": "code 0"
+ },
+ "sonde": "scratchpad/proto-final/sondes/restes-securite-tour5bis.js (SECTIONS=pdf,champs,marque)",
+ "non_fait": [
+  "N5 : 7 des 9 sites non joués au navigateur (code lu seulement)",
+  "insertReplacementText iOS / dictée / Safari / Firefox non jouables",
+  "mutation de N5, de l'étape 6 et de la marque du refus non demandées, non jouées",
+  "pas de mutation rejouée sur les mutations du tour 5 non rejouées au recontrôle"
+ ]
+}

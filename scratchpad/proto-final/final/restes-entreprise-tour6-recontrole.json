@@ -1,0 +1,51 @@
+{
+  "noms": [
+    "entreprise"
+  ],
+  "tour": 6,
+  "regles": [
+    "Confirmer un créneau : l'option du créneau choisi disparaît à la création, quelle que soit la case Planning (restes-entreprise-tour6-creneau.js rejouée : 30 ✓ · 0 ✗ ; Mac, iPhone nuit, Android nuit ; B sans Planning 3 → 2 avec les deux AUTRES créneaux restants, A 3 → 1 → 0, Annuler rend 3 et retire l'intervention, un formulaire abandonné ne retire rien). Mutations du correcteur rejouées sur une copie : 8 jouées, 8 qui mordent, dépôt resté propre.",
+    "droits-fiche, droits-restauration, droits-fabrication-css, droits-gestes-reels, droits-bureau-toutes-cases, droits-terrain : toutes à 0 ✗ au rejeu de droits-tout.sh (20 sondes, 0 ✗) ; les défauts étaient bien dans les SONDES (périmées ou erreur de politique de sécurité), la page est inchangée",
+    "Rien cassé à côté : entreprise-tout.sh RAPIDE=1 (35 exécutions) tout à 0 ✗ ; restes4-creneaux 12 ✓, restes4-recontrole a/c 10 ✓, restes5-deuxpersonnes 10 ✓, tour5-recontrole s1 36 ✓ s2 12 ✓ s3 2 ✓ s4 2 ✓ ; contrôles de sauvegarde (compiler-pages, verifier-syntaxe, tests 835/836/837/1008/2994, verif-secrets) à 0 ✗",
+    "Captures relues : toast long « options tenues par un collègue » sur iPhone nuit (390 px, tient de 16 à 374, rien ne déborde) ; planning Mac jour et iPhone nuit après création (intervention au créneau choisi, plus de carte « Option » sur ce créneau)"
+  ],
+  "pasRegles": [],
+  "casses": [
+    {
+      "titre": "Confirmer un créneau dont le technicien est devenu absent : la confirmation est refusée, mais les AUTRES options de la proposition sont déjà libérées et celle de l'absent reste orpheline",
+      "gravite": "mineure",
+      "etapes": "Proposer trois créneaux à un client (A a la case Planning et tient les options) ; ajouter une absence au technicien du créneau choisi ce jour-là ; A touche « Confirmer ce créneau » dans la réponse du client.",
+      "constat": "Toast « Impossible de poser une intervention à Karim Benali : il est absent ce jour-là (Congé). », aucun formulaire — mais BUREAU passe de 3 options à 1 (mbxLiberer, appelé dans confcren AVANT ouvrirCreation et son refusAbsent) : les deux autres créneaux tenus disparaissent sans un mot, et l'option du créneau de l'absent reste sans rien pour la remplacer jusqu'à son échéance. Ancien du tour 5 (la libération avant ouverture) ; le tour 6 laisse en plus l'option du créneau choisi en place. Piste : ne libérer qu'une fois CREA ouvert (après `if (!CREA) return`). Sonde : sondes/restes-entreprise-tour6-adverse.js a2 (1 ✗ attendu tant que non corrigé)."
+    }
+  ],
+  "nouveaux": [
+    "Le défaut ci-dessus (casses[0]) est le seul nouveau constat : le correctif du tour 6 n'a rien cassé, il met en lumière l'ordre « libérer puis ouvrir » du tour 5"
+  ],
+  "sondes": [
+    {
+      "fichier": "sondes/restes-entreprise-tour6-creneau.js",
+      "resultat": "30 ✓ · 0 ✗"
+    },
+    {
+      "fichier": "sondes/restes-entreprise-tour6-mutations.py 1 8",
+      "resultat": "8 jouées, 8 mordent, 0 muette, dépôt propre"
+    },
+    {
+      "fichier": "sondes/droits-tout.sh (20 sondes)",
+      "resultat": "table 7, menus 57, cases-voir 46, formes 23, lecture-seule 36, partiel 58, fiche 23, restauration 8, soi-meme 10, acteur 8, fabrication-css 6, gestes-reels 35, gestes-garde 3, specifiques 6, ponts 9, bureau-toutes-cases 63, terrain 4, compta 8, restes5-verbes 6 : tout à 0 ✗"
+    },
+    {
+      "fichier": "sondes/entreprise-tout.sh RAPIDE=1",
+      "resultat": "tout à 0 ✗ ; une seule chute, entreprise-achats-lisible (33 ✓ · 1 ✗ « profils mesurés → 4 », un profil non ouvert sous charge de la machine partagée), rejouée seule : 142 ✓ · 0 ✗"
+    },
+    {
+      "fichier": "sondes/restes-entreprise-tour6-adverse.js (NOUVELLE, ce recontrôle)",
+      "resultat": "15 ✓ · 1 ✗ : a1 intervention déplacée à la main avant création (option du créneau d'origine retirée, les 2 autres restent), a2 technicien absent (1 ✗ : casses[0]), a3 refus de validation (titre de 300 signes) ne retire rien puis la création retire l'option du créneau, a5 captures Mac jour + iPhone nuit (toast dans la largeur, planning sans carte « Option » sur le créneau)"
+    }
+  ],
+  "doutes": [
+    "Si la personne DÉPLACE le brouillon (autre heure, autre technicien) avant de créer, l'option du créneau d'origine disparaît quand même, alors que l'intervention est ailleurs : cohérent avec « cette option devient l'intervention », mais le créneau que le client avait choisi est alors rendu libre sans que rien ne le dise. À trancher par Justin (retirer seulement si l'intervention est posée sur le créneau choisi ?).",
+    "Après création, le toast propose « Voir au planning » alors que la personne est déjà dans le Planning (vu sur la capture iPhone et Mac) : ancien, sans gravité.",
+    "Les sondes droits-fabrication-css (exige exactement 9 observateurs de mutation connus) cassera au prochain observateur ajouté : voulu (elle liste et nomme), mais à mettre à jour à ce moment-là."
+  ]
+}

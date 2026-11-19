@@ -1,0 +1,57 @@
+{
+ "noms": [
+  "Dans « Archivés », un client actif correspond aussi : la ligne symétrique (corrigé, rejoué : tient)",
+  "Message de la dictée sur un archivé selon le droit (corrigé, rejoué : tient)",
+  "« Se déconnecter » demande avant de perdre une saisie (corrigé, rejoué : tient, Échap, refus d'enregistrer et session suivante compris)",
+  "Dictée : comparaison par mot entier (corrigé pour « support » / « port », mais CASSE un nom à apostrophe typographique)",
+  "Fil de la Comptabilité sous le nom actuel du client (corrigé, rejoué : tient, nom très long, deux renommages)",
+  "Nouveau : une carte client au nom fait d'un seul mot de 54 signes sort de la carte et élargit la page au téléphone (préexistant, faible)"
+ ],
+ "regles": [
+  "Une correction « mot entier » doit COUPER sur tout signe non alphanumérique, pas les retirer : dvdPreparer retire l'apostrophe typographique ’ (« l’Océan » devient « locean ») alors que sansAccent ne remplace que « - » et « ' ». La saisie rapide d'une tâche (tkxNomEntier, `split(/[^a-z0-9]+/)`) coupe, elle, correctement : deux écrans qui désignent un client par son nom ont deux règles différentes. Un correctif de comparaison se rejoue avec des noms à apostrophe, trait d'union, chiffre et point, pas seulement avec « support » et « Port ».",
+  "Une sonde qui change de personne (reouvrir autre session) doit rouvrir la personne du départ avant de continuer : sinon les captures étiquetées « marc » montrent Julie (vu sur mes captures aussi-long-mac-marc : secrétariat, sans bouton « Remettre dans la liste »)."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Le fil de la Comptabilité dit « Mme Rouxel » alors que le libellé de l'écriture validée garde « Mme Roux »",
+   "defaut": "Deux noms pour le même client sur le même écran après un renommage.",
+   "constat": "Voulu et annoncé par le correcteur : une écriture validée ne se réécrit pas. Pas un défaut de code ; un doute produit (voir doutes)."
+  },
+  {
+   "nom": "Dictée : « Devis pour Escale » ne reconnaît pas « Café de l’Escale »",
+   "defaut": "Le mot « l’Escale » est un seul mot dans la règle.",
+   "constat": "Même résultat avant et après la correction (mesuré avec l'ancienne règle recopiée en Node) : préexistant, même cause et même correctif que la casse 1, ce n'est pas une régression."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Dictée du devis : un client dont le nom porte une apostrophe typographique n'est plus reconnu quand on le dit en entier (« l’Océan », « L’Épi d’Or », « l’Escale »)",
+   "gravite": "faible à moyenne (une phrase d'erreur, aucune donnée perdue ; mais une régression de la correction « mot entier », sur des noms courants en restauration et commerce)",
+   "etapes": [
+    "Créer le client « Café de l’Escale » (apostrophe typographique, ce que le clavier d'un iPhone met par défaut)",
+    "Devis > Dicter un devis > « Devis pour l’Escale, une heure »",
+    "toast « Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »). » ; avant la correction, le client était reconnu"
+   ],
+   "constat": "dvdPreparer : `sansAccent(nom).split(/\\s+/).map(m => m.replace(/[^a-z0-9]/g, ''))` fait de « l’escale » le mot « lescale », et le texte dicté garde « l’escale » avec son ’ : `(^|[^a-z0-9])lescale` ne le trouve pas. Ancienne règle (sous-chaîne) : reconnu. Mesuré sur 8 profils (mac, ipad, windows, iphone, android, petit ; gérant et secrétariat ; jour et nuit) par scratchpad/proto-final/campagne/sondes/clients-restes4-recontrole.js R1, 1 ✗ chacun, les 32 autres contrôles verts. Comparaison avant/après en Node : « Café de l’Escale » + « l’Escale » avant true, après false ; « Boulangerie L’Épi d’Or » + « L’Épi d’Or » avant true, après false ; « Restaurant L’Océan » + « l’Océan » avant true, après false ; les noms à trait d'union (« Saint-Hubert », « Jean-Pierre », « Bar-Tabac ») passent (sansAccent remplace « - » par une espace). Correctif proposé, une ligne : dans `dit`, découper comme la saisie rapide, `sansAccent(nom).split(/[^a-z0-9]+/).filter(m => m.length > 3 && !stop.includes(m))`, au lieu de split(/\\s+/) puis retirer les signes ; le texte dicté garde son `[^a-z0-9]` en bordure. « l’Escale » donne alors « escale » (6) et « Escale » seul est reconnu aussi."
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "Un nom de client fait d'UN seul mot de 54 signes sort de sa carte et élargit la page au téléphone",
+   "gravite": "faible (cas rare, préexistant ; ne vient pas des corrections du tour 4)",
+   "constat": "`<b style=\"font-size:17px\">` du nom dans `.client-carte` n'a pas de `overflow-wrap`. « Etablissementsdupontdelaunayfreresetassociesdusudouest » : sur iPhone la page passe à 535 px dans 390 (innerWidth a grandi avec elle), le nom sort de la carte de 161 px, dans « Tous les clients » comme dans « Archivés » (captures carte-mot-unique-*). Des noms longs AVEC espaces ou traits d'union (« Établissements Dupont-Delaunay Frères et Associés du Sud-Ouest », « Société Civile Immobilière des Hauts de la Vieille Ville de La Rochelle », « M. et Mme Van Der Westhuizen-Ouedraogo ») tiennent dans la carte, jour et nuit, sur tous les profils (R6). Correctif : `overflow-wrap:anywhere` sur le nom de la carte (même réglage que la phrase « Aucun client ne correspond à … » juste au-dessus)."
+  }
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/clients-tout.sh (jeu essentiel : 41 exécutions, mac gérant jour et iphone secrétariat nuit)", "resultat": "41 exécutions, 0 tombée (liste 51/54, fiche 107/107, création 35/37, modification 22/23, gestes 29/29, recontrôles création 14/14, fiche 31/31, liste 44/46, parcours 34/36, petits 16/21, croisé 11, corrigés 23, rôles 23, droits 4, restes 65/67, restes-création 16, restes-recontrôle 49/28, restes2-adverse 24/24, restes3-adverse 26/24, restes4-adverse 27/21, clavier mac et windows 8/8)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes4-adverse.js", "resultat": "27 ✓ · 0 ✗ mac gérant ; 21 ✓ · 0 ✗ iphone secrétariat nuit ; ensuite 27 ✓ ipad secrétariat, 27 ✓ windows gérant nuit, 21 ✓ android gérant, 21 ✓ petit secrétariat nuit : 0 ✗ partout. Les cinq corrections annoncées « corrigé » tiennent telles que le correcteur les a jouées." },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes4-recontrole.js (NEUVE : R1 noms à apostrophe et trait d'union, R2 faux amis, R3 Se déconnecter, R4 fil de la Comptabilité, R5 « aussi » dans Archivés, R6 carte au nom long)", "resultat": "8 profils (mac gérant, ipad nuit, windows secrétariat, iphone nuit secrétariat, petit nuit, android, mac nuit secrétariat, iphone gérant) : 33 ✓ · 1 ✗ sur les trois ordinateurs et l'iPad, 27 ✓ · 1 ✗ sur les téléphones (R3 est ignoré au téléphone : « Menu » demande avant, couvert par restes3-adverse S1). Le seul ✗ est R1 « l’Escale » (la casse 1). R3 (Échap garde la saisie et la connexion, un second appui redemande, nom vide + Enregistrer refusé et on reste connecté, Abandonner puis autre personne : aucune saisie ni fenêtre héritée), R4 (nom de plus de 80 signes (rogné à 80 par la page), deux renommages d'affilée et retour : une seule ligne, mêmes écritures, aucune autre ligne touchée, la ligne tient dans l'écran) et R5 (carte d'archivé au nom très long, 3 clients, recherche vide, majuscules, « Tous » : une seule des deux lignes « aussi ») sont verts partout." }
+ ],
+ "doutes": [
+  "Après un renommage, le fil de la Comptabilité dit le nom actuel (« Mme Rouxel ») mais le libellé de l'écriture validée garde « Mme Roux » : voulu (une écriture validée ne se réécrit pas), mais deux noms pour un même reçu sur le même écran de la Comptabilité. À soumettre à Justin : accepter, ou écrire le libellé du reçu avec l'identifiant du client plutôt que son nom.",
+  "La dictée désigne un client par son nom, la saisie rapide d'une tâche aussi, avec deux règles de coupe différentes (voir règle 1) : à unifier en une seule fonction, c'est la cause des deux défauts d'apostrophe.",
+  "Le bouton « Se déconnecter » du compte Comptabilité seul (`#cpsys [data-cpsys=retour]`, libellé « Se déconnecter » en mode application) ferme la session sans passer par la garde de saisie : sans effet réel aujourd'hui (ce rôle n'ouvre aucune fiche client), à garder en tête si ce rôle reçoit un jour une saisie.",
+  "Le doute du tour 3 « suggestions d'adresse à 320 px, défilement au doigt » reste à confirmer sur un appareil réel : le Chromium émulé ne transmet pas un défilement tactile court.",
+  "Les décisions produit reportées par le correcteur (retirer le premier appareil d'un client, tâche rapide rattachée à un client archivé, garder ou retirer la ligne « correspond aussi ») restent à Justin ; la ligne « aussi » ne déborde ni ne se duplique (R5), je n'ai rien vu qui plaide pour la retirer."
+ ]
+}

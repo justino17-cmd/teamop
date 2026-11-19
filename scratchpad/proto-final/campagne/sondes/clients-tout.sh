@@ -71,6 +71,18 @@ done
 lance "clients-clavier PROFIL=mac" PROFIL=mac node "$S/clients-clavier.js"
 lance "clients-clavier PROFIL=windows" PROFIL=windows node "$S/clients-clavier.js"
 
+# Les restes des tours 4 et 5 (dictée au plus grand nombre de mots, nom d'un seul mot de 54 signes) et le nom très long dans TOUTES les vues (sœur 5, 18 novembre 2026). Le gérant sur ordinateur, le secrétariat sur téléphone de nuit.
+for f in clients-restes4-recontrole clients-restes5 clients-restes5-recontrole; do
+  lance "$f PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/$f.js"
+  lance "$f PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/$f.js"
+done
+lance "clients-restes3-captures PROFIL=mac" PROFIL=mac node "$S/clients-restes3-captures.js"
+# clients-nom-long-vues : les téléphones (320, 360, 390), les tablettes et l'ordinateur étroit, jour ET nuit ; le technicien (kb) a d'autres vues (Mes heures, Frais).
+for cfg in "iphone marc" "petit marc" "android marc" "ipad marc" "mac720 marc" "iphone kb"; do set -- $cfg
+  lance "clients-nom-long-vues PROFIL=$1 QUI=$2" PROFIL=$1 QUI=$2 node "$S/clients-nom-long-vues.js"
+  lance "clients-nom-long-vues PROFIL=$1 QUI=$2 NUIT=1" PROFIL=$1 QUI=$2 NUIT=1 node "$S/clients-nom-long-vues.js"
+done
+
 echo "TOTAL : $n exécution(s) · $ko tombée(s)" | tee -a "$J"
 echo FINI | tee -a "$J"
 [ $ko -eq 0 ]
