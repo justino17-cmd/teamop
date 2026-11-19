@@ -93,8 +93,8 @@ async function menuTemps(c) { // clic réel sur le lien du menu, ou la feuille d
       v(nom + 'D aucune erreur', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c);
       // mois verrouillé : les semaines du mois verrouillé ne comptent plus ; « Ouvrir ses heures » ne ment pas
       const c2 = await L.ouvrir({ profil, nuit, qui:'marc', calme:true });
-      const M = await ev(c2, () => { ttViaPaie('verrouok'); const out = PT_GENS.map(k => { const r = eqxRestes(k); const brut = [...new Set(POINTAGES.filter(o => o.qui === k).map(o => lundi(o.date)))].filter(Lx => ttSemFinie(Lx) && !PT_VALIDE[k + Lx]); return { k, pt:r.pt ? r.pt.length : 0, brut:brut.length, verr:brut.filter(Lx => ptxJours(Lx).every(d => paieMoisVerrou(d))).length }; }); return { out, mois:PAIE_MOIS }; });
-      v(nom + 'D4 mois verrouillé : pt = non validées − celles dont tous les jours sont verrouillés', M.out.every(x => x.pt === x.brut - x.verr), M);
+      const M = await ev(c2, () => { ttViaPaie('verrouok'); const out = PT_GENS.map(k => { const r = eqxRestes(k); const brut = [...new Set(POINTAGES.filter(o => o.qui === k).map(o => lundi(o.date)))].filter(Lx => ttSemFinie(Lx) && !PT_VALIDE[k + Lx]); return { k, pt:r.pt ? r.pt.length : 0, brut:brut.length, verr:brut.filter(Lx => ptxJours(Lx).some(d => paieMoisVerrou(d))).length }; }); return { out, mois:PAIE_MOIS }; });
+      v(nom + 'D4 mois verrouillé : pt = non validées − celles dont UN jour au moins est verrouillé (comme valsem)', M.out.every(x => x.pt === x.brut - x.verr), M);
       v(nom + 'D4 population : au moins une semaine non validée avant verrou, ou aucune (dit)', M.out.some(x => x.brut > 0) || true, M.out.map(x => x.k + ':' + x.brut + '/' + x.verr + '/' + x.pt).join(' '));
       await L.fin(c2);
     }
