@@ -5154,10 +5154,13 @@ function fermerMenu(){ document.querySelectorAll('.ctx').forEach(e => e.remove()
 function debutGesteAvant(){ cacherApercu(); }
 function ouvrirMenu(x, y, titre, items){
   items = items.filter(Boolean);   /* une entrée absente (« null ») ne laisse ni bouton ni trou dans les numéros */
+  /* une entrée qui porte `droit:[catégorie, x]` n'est PAS proposée à qui n'a pas la case (restes équipe, tour 3 : le menu du clic droit fabrique des gestes sans attribut `data-…`, donc hors de portée de la garde en capture — « Supprimer l'absence » et « Supprimer » un créneau bloqué passaient sans « Planning et absences › Supprimer ») ; les séparateurs restés seuls ou en bout de menu partent avec elle */
+  { const n0 = items.length; items = items.filter(it => it === '---' || !it.droit || peut(it.droit[0], it.droit[1]));
+    if (items.length !== n0) items = items.filter((it, k, A) => it !== '---' || (k > 0 && k < A.length - 1 && A[k - 1] !== '---')); }
   fermerMenu(); const ouvertA = Date.now(), m = document.createElement('div'); m.className = 'ctx'; m.dataset.ouvertA = ouvertA; m.setAttribute('role','menu');
   m.innerHTML = (titre ? `<div class="t">${titre}</div>` : '') + items.map((it,k) => it === '---' ? '<hr>' : `<button type="button" role="menuitem" data-k="${k}" class="${it.danger?'danger':''}"><span class="i">${it.ic||''}</span>${it.l}${it.s?`<span class="s">${it.s}</span>`:''}</button>`).join('');
   document.body.appendChild(m);
-  m.querySelectorAll('button[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); if (e.isTrusted && planTouchFin && Date.now() - planTouchFin < 600 && ouvertA >= planTouchDebut) return; const it = items[+b.dataset.k]; if (!it.garde) fermerMenu(); it.fn(); });
+  m.querySelectorAll('button[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); if (e.isTrusted && planTouchFin && Date.now() - planTouchFin < 600 && ouvertA >= planTouchDebut) return; const it = items[+b.dataset.k]; if (it.droit && !peut(it.droit[0], it.droit[1])) { fermerMenu(); return droitsRefus(it.droit[0], it.droit[1], 'menu', b.textContent.trim()); } if (!it.garde) fermerMenu(); it.fn(); });
   if (!tel()) { m.style.left = Math.max(8, Math.min(x, innerWidth - m.offsetWidth - 8)) + 'px'; m.style.top = Math.max(8, Math.min(y, innerHeight - m.offsetHeight - 8)) + 'px'; }
   m.querySelector('button')?.focus({ preventScroll:true });
 }
@@ -5173,8 +5176,8 @@ function menuCarte(id, x, y){
     { ic:'↻', l:'Créer le prochain passage', s:'›', garde:true, fn:() => menuPassage(id, x, y) },
     i.st === 'annulee' ? null : i.st === 'fait' ? { ic:'↺', l:'Remettre à faire', fn:() => { memo(); i.st = 'planifiee'; const remettre = argentSurPlaceRetirer(i.id); rendre(); toast('Remise à faire', remettre ? { lib:'Annuler', fn:() => { annuler(); remettre(); rendre(); } } : ANNULER); } } : { ic:'✓', l:'Marquer terminée', fn:() => { memo(); i.st = 'fait'; const defaire = argentSurPlaceCompter(i); rendre(); toast('Marquée terminée', defaire ? { lib:'Annuler', fn:() => { annuler(); defaire(); rendre(); } } : ANNULER); } },
     '---',
-    i.st === 'annulee' || !intAnnulable(i) ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, fn:() => planConfirmer('annuler', i.id) },
-    { ic:'🗑', l:'Supprimer…', danger:true, fn:() => planConfirmer('supprimer', i.id) }
+    i.st === 'annulee' || !intAnnulable(i) ? null : { ic:'⊘', l:'Annuler l’intervention…', danger:true, droit:['planif', 's'], fn:() => planConfirmer('annuler', i.id) },
+    { ic:'🗑', l:'Supprimer…', danger:true, droit:['planif', 's'], fn:() => planConfirmer('supprimer', i.id) }
   ]);
 }
 function menuPersonnes(id, x, y){
@@ -5199,9 +5202,9 @@ function menuBloc(id, x, y){
   const b = BUREAU.find(o => o.id === id); if (!b) return;
   ouvrirMenu(x, y, `${b.h} – ${fin(b.h, b.dur)} · ${esc(b.titre)}<br><span style="font-weight:400">${tech(b.tech).nom}</span>`, [
     { ic:'✎', l:'Modifier', fn:() => panneauBloc(id) },
-    { ic:'⧉', l:'Dupliquer le lendemain', fn:() => { memo(); BUREAU.push({ ...b, id:'b' + Date.now(), d:ajoute(b.d, 1) }); rendre(); toast('Créneau copié au lendemain', ANNULER); } },
+    { ic:'⧉', l:'Dupliquer le lendemain', droit:['planif', 'c'], fn:() => { memo(); BUREAU.push({ ...b, id:'b' + Date.now(), d:ajoute(b.d, 1) }); rendre(); toast('Créneau copié au lendemain', ANNULER); } },
     '---',
-    { ic:'🗑', l:'Supprimer', danger:true, fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== b); rendre(); toast(`Supprimé : ${esc(b.titre)}`, ANNULER); } }]);
+    { ic:'🗑', l:'Supprimer', danger:true, droit:['planif', 's'], fn:() => { memo(); BUREAU = BUREAU.filter(o => o !== b); rendre(); toast(`Supprimé : ${esc(b.titre)}`, ANNULER); } }]);
 }
 function panneauBloc(id, tid, d, mins){
   const b = id ? BUREAU.find(o => o.id === id) : { tech:tid, d, h:hm(mins), dur:60, titre:'Dépôt' }, choix = ['Dépôt','Garage (véhicule)','Réunion','Formation','Rendez-vous perso','Indisponible'];
@@ -8065,7 +8068,7 @@ function aMenu(k, id, x, y){ if (aLecture()) return; const a = (k === 'd' ? DEMA
     { ic:'🏷', l:'Changer le type', s:'›', garde:true, fn:() => aMenuType(a, x, y) },
     { ic:'📋', l:'Voir au planning', fn:() => aDeclencher({ 'data-aplan':a.du + '|' + a.tech }) },
     '---',
-    { ic:'🗑', l:'Supprimer l’absence', danger:true, fn:() => aDeclencher({ 'data-asuppr':id }) } ]);
+    { ic:'🗑', l:'Supprimer l’absence', danger:true, droit:['planif', 's'], fn:() => aDeclencher({ 'data-asuppr':id }) } ]);
 }
 function aMenuType(a, x, y){ ouvrirMenu(x, y, 'Changer le type', [{ ic:'‹', l:'Retour', garde:true, fn:() => aMenu('a', a.id, x, y) }, '---',
   ...Object.keys(A_TYPES).map(k => ({ ic:A_TYPES[k][1], l:(k === a.type ? '✓ ' : '') + k, fn:() => { if (k === a.type) return; const av = a.type; a.type = k;
@@ -8512,7 +8515,7 @@ function dvCorps(x, num){
   return `${saluer(c.contact)},\n\nVoici notre devis ${num} pour : ${x.objet.toLowerCase()}, d’un montant de ${eur(dvTTC(x))} TTC.\n\nVous pouvez l’accepter et le signer en ligne depuis le lien de ce message. Il est valable jusqu’au ${dvFr(ajoute(AUJ, x.valid))}.${x.acompte ? `\nUn acompte de ${x.acompte} % vous sera demandé à l’accord.` : ''}\n\nBien cordialement,\n${ENTREPRISE.nom}\n${ENTREPRISE.tel}`;
 }
 /* l'adresse tapée à l'envoi d'un devis ou d'une relance se range dans la fiche du client quand elle n'en a pas : sinon il faut la retaper à chaque devis, et la facture n'en aura pas (devis-atelier-09) */
-function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
+function dvMailRanger(x, a){ const c = CLIENTS[x.cli]; if (!c || !peut('crm', 'm') || (c.mail || '').trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a || '')) return ''; c.mail = a;
   journalAjout('marc', 'client', 'a ajouté l’adresse e-mail du client', { t:'client', id:x.cli, lib:c.nom, cli:x.cli }, { det:'à l’envoi d’un devis' }); return ' Adresse enregistrée dans la fiche de ' + c.nom + '.'; }
 function dvEnvoyer(x){
   if (!dvComplet(x)) { toast(x.lignes.length ? 'Complète toutes les lignes (nom et prix) avant d’envoyer.' : 'Ajoute au moins une ligne avant d’envoyer.'); return; }
@@ -12671,7 +12674,8 @@ const GESTES = {
   d3:{ k:'inter', c:'ajout', m:'deplacer passageok', s:'retirer', l:'cli passage pdf voir carte lien box registre fermer' },
   /* planning, absences, tâches */
   aok:{ k:'planif', d:'m' }, anouvok:{ k:'planif', d:'c' }, anouv:{ k:'planif', d:'c' }, amodif:{ k:'planif', d:'m' }, ademid:{ k:'planif', d:'m' }, adeplx:{ k:'planif', d:'m' }, aprepond:{ k:'planif', d:'m' },
-  kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
+  kabsnouv:{ k:'planif', d:'c' }, kplacer:{ k:'planif', d:'m' }, rdvok:{ k:'planif', d:'m' }, rdvraz:{ k:'planif', d:'m' }, rdvnote:{ k:'planif', d:'m' }, planconf:{ k:'planif', s:'annuler supprimer' }, asuppr:{ k:'planif', d:'s' },   /* « Supprimer l'absence » : le menu du clic droit la déclenche par un bouton fabriqué (aDeclencher) — sans cette ligne, la garde en capture ne le connaissait pas (restes équipe, tour 3) */
+  rr:{ k:'planif', s:'delai', l:'apresDevis horizon' },
   /* « Mes congés » : la demande de la technicienne, sa réponse à une proposition, le retrait de sa demande sont SES gestes (comme « Mes tâches », ci-dessous), jamais une case de planning : classés « planif », ils refusaient « Envoyer la demande à Marc » à toute technicienne (« Ce geste n'est pas ouvert à ton compte »). Décider d'une absence (aok, anouvok…) reste au planning. */
   atdem:{ d:'l' }, atenvoi:{ d:'l' }, atrep:{ d:'l' }, atrepondre:{ d:'l' }, atrepok:{ d:'l' }, atretire:{ d:'l' }, atvoir:{ d:'l' }, addemi:{ d:'l' },
   /* « Mes tâches » est un outil PERSONNEL, toujours ouvert : ses gestes ne dépendent d'aucune case (les Tâches sortent des cases, spec § 2.6) */

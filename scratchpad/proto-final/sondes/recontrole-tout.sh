@@ -4,9 +4,11 @@
 #   2. le recontrôle de l'artefact (le prototype dans un cadre, sans réseau, sans téléchargement direct) : recontrole-artefact-*.js, dans ce dossier.
 #   bash scratchpad/proto-final/sondes/recontrole-tout.sh        # tout
 #   RAPIDE=1 bash …/recontrole-tout.sh                           # seulement ce qui ne lance pas de navigateur (fuzz des liens)
+#   TOUT=1 bash …/recontrole-tout.sh                             # ajoute les sondes de sécurité lourdes (plus d'une heure de plus) : à lancer en fond
 # Un ✗ de la partie 1 est une faille qui reste OUVERTE (ou une casse), pas une erreur de la sonde : les ✗ attendus sont listés dans securite/recontrole.json.
 # Durée visée : 25 minutes au plus. Journal complet : $CAP/recontrole-tout.log (hors dépôt).
-# LAISSÉ DE CÔTÉ pour tenir ce temps (à rejouer à la main : PROFIL=<p> QUI=<q> node recontrole-artefact-recensement.js) :
+# LAISSÉ DE CÔTÉ pour tenir ce temps (TOUT=1 rejoue les sondes de sécurité lourdes ; à la main : PROFIL=<p> QUI=<q> node recontrole-artefact-recensement.js) :
+#   - sécurité : nomclient, client, chemins, clientsaisi, casse2, fichiers et les deux balayages « données » (de 214 à 574 s chacune, plus d'une heure en tout) ;
 #   - le recensement de l'artefact n'est joué que pour le gérant sur ordinateur et la technicienne sur iPhone (la secrétaire n'ajoute pas d'écran propre) ;
 #   - les sondes d'artefact à profil (cadres, historique, hôte) ne sont jouées que sur mac ; la carte joue ses deux profils (mac, iphone) d'elle-même.
 # Écartés : recontrole-artefact-pose.js (bibliothèque de pose du bac, aucune exécution propre) et recontrole-artefact-captures.js (captures à regarder, sans contrôle).
@@ -26,12 +28,16 @@ S=scratchpad/proto-final/sondes
 SEC=scratchpad/proto-final/securite
 
 lance "securite liens (fuzz, sans navigateur)" node $SEC/recontrole-liens-fuzz.js
+lourd(){ [ -n "$TOUT" ] && [ -z "$RAPIDE" ] && lance "$@"; return 0; }   # les sondes de plus de trois minutes : TOUT=1
 if [ -z "$RAPIDE" ]; then
   lance "securite restes (garde rapide : clients, expéditeurs, FEC, liens, bulles, unités, import — la contre-épreuve est mutations-restes-securite.py)" node $SEC/restes-garde.js
   lance "securite restes (unité sans entité)" node $SEC/restes-unite-entite.js
-  for f in nomclient confiance casse url client acces-client fichiers sortie chemins clientsaisi titre casse2 saisie; do lance "securite $f" node $SEC/recontrole-$f.js; done
-  lance "securite données (4 clics, gérant)" node $SEC/recontrole-donnees.js --clics=4 --decal=0
-  lance "securite données (4 clics, décalage 3, secrétaire)" node $SEC/recontrole-donnees.js --clics=4 --decal=3 --qui=julie
+  for f in confiance casse url acces-client sortie titre saisie; do lance "securite $f" node $SEC/recontrole-$f.js; done
+  # Mesuré le 19/11/2026 (secondes) : nomclient 469, client 574, chemins 474, clientsaisi 298, casse2 214, fichiers 240, données 395 chacune — ensemble plus d'une heure. Le reste de la famille tient en 23 minutes.
+  for f in nomclient client chemins clientsaisi casse2 fichiers; do lourd "securite $f (lourd)" node $SEC/recontrole-$f.js; done
+  lourd "securite données (4 clics, gérant) (lourd)" node $SEC/recontrole-donnees.js --clics=4 --decal=0
+  lourd "securite données (4 clics, décalage 3, secrétaire) (lourd)" node $SEC/recontrole-donnees.js --clics=4 --decal=3 --qui=julie
+  lance "intervention annulée et droit Ventes › Voir (recontrôle adverse)" PROFIL=mac node $S/recontrole-annulee-ventes.js
 
   # 2. l'artefact
   DEP="${DEP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/dep}"; export DEP

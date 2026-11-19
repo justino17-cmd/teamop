@@ -1,0 +1,49 @@
+{
+ "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
+ "date": "2026-11-19",
+ "familles": {
+  "materiel": {
+   "script": "scratchpad/proto-final/sondes/materiel-tout.sh",
+   "duree": "~25 min (mac+iphone)",
+   "executions": 69,
+   "rouges": 7
+  }
+ },
+ "aNoter": [
+  {
+   "sonde": "materiel-fonctions.js",
+   "arguments": "",
+   "constat": "nvCarteMat : une définition → 0 : la fonction n'existe plus dans la page (le guide des nouveautés a renommé nvCartes/nvPages) ; sonde périmée à mettre à jour"
+  },
+  {
+   "sonde": "materiel-depots-roles.js",
+   "arguments": "",
+   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?) (2 ✗)"
+  },
+  {
+   "sonde": "materiel-four-roles.js",
+   "arguments": "",
+   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?)"
+  },
+  {
+   "sonde": "materiel-stock-roles.js",
+   "arguments": "",
+   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?)"
+  },
+  {
+   "sonde": "materiel-roles.js",
+   "arguments": "mac, iphone",
+   "constat": "Julie (Secrétariat) : le menu montre désormais « Dépôts et camions » (commit 31f66490, « menu qui montre tout le groupe Matériel ») ; la sonde attend encore qu'il soit fermé et que #boxes la renvoie à l'ouverture. Sonde périmée ou page à trancher par Justin (une rubrique fermée visible au menu ?) (Dépôts et camions annoncé FERMÉ pour Julie)"
+  },
+  {
+   "sonde": "materiel-voisins.js",
+   "arguments": "mac, iphone",
+   "constat": "Julie : la carte de la Comptabilité ne rend plus seulement des lignes d'achat (route #comptabilite, carte présente) ; même cause probable que le menu Matériel, à relire"
+  },
+  {
+   "sonde": "materiel-stock-gestes.js",
+   "arguments": "mac, iphone",
+   "constat": "bureau : le menu porte Stock et Fournisseurs, pas « Dépôts et camions » ; même cause que le menu Matériel"
+  }
+ ]
+}
