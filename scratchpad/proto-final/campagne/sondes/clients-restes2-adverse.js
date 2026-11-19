@@ -39,6 +39,15 @@ const veut = k => !SEUL || SEUL.split(',').includes(k);
     v('H2 : « Abandonner » mène à la rubrique d’où l’on venait (' + RB + ') (' + e2.r + ')', e2.r.startsWith(RB), e2);
     await p.evaluate(() => history.back()); await L.calme(p, 700); const e3 = await etat();
     v('H3 : le retour SUIVANT du navigateur ne ramène pas sur la fiche abandonnée (route lue : ' + e3.r + ' · sans saisie, la référence donne ' + ref2.r + ')', !e3.r.startsWith('client'), { e3, ref1, ref2 });
+    // H4 (tour 3) : « Continuer la saisie » après le retour du navigateur : on reste sur la fiche, l'adresse DIT la fiche, et le retour suivant retrouve la rubrique d'où l'on venait (en redemandant)
+    await p.evaluate(() => { aller('accueil'); }); await L.calme(p, 500); await p.evaluate(x => { aller(x); }, RB); await L.calme(p, 500);
+    await ouvrirInfos('md'); await salir(' Yy');
+    await p.evaluate(() => history.back()); await L.calme(p, 700); await choix('Continuer la saisie'); const f1 = await etat();
+    v('H4 : « Continuer la saisie » garde la fiche, sa saisie et une adresse qui dit la fiche (route ' + f1.r + ', adresse ' + f1.h + ')', f1.r === 'client|md' && !f1.dem && f1.sale && f1.h === '#client-x-md', f1);
+    await p.evaluate(() => history.back()); await L.calme(p, 700); const f2 = await etat();
+    v('H4b : le retour suivant retrouve ' + RB + ' et redemande, sans quitter la fiche tout seul (route ' + f2.r + ')', f2.dem && f2.r === 'client|md', f2);
+    await choix('Abandonner mes changements'); const f3 = await etat();
+    v('H4c : « Abandonner » mène à ' + RB + ' (route ' + f3.r + ')', f3.r.startsWith(RB), f3);
     await L.ranger(p);
   }
 
