@@ -14522,7 +14522,7 @@ function cpSysMode(){ if (cpSysEcho) return; const f = document.querySelector('#
   try { f.contentWindow.postMessage({ opc_mode:m }, '*'); } catch (e) {} }
 function cpSysMaj(){
   let z = document.getElementById('cpsys'); const voulu = route === 'comptabilite' && cpSysteme;
-  if (!voulu) { if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
+  if (!voulu) { cpCouchePartir(); /* quelle que soit la sortie (« Factures et paiements », aller(), ⌘K, bouton Menu puis une rubrique) : la couche du cadre part avec l'écran, on ne la retrouve pas ouverte (recontrôle tour 3) */ if (z && !z.hidden) { z.hidden = true; document.body.style.overflow = ''; } return; }
   if (!z) { z = document.createElement('div'); z.id = 'cpsys'; z.setAttribute('role', 'dialog'); z.setAttribute('aria-label', 'Comptabilité');
     z.innerHTML = '<div class="cpsys-barre"><button type="button" data-cpsys="retour" aria-label="Revenir à OP GESTION">‹ OP GESTION</button><b>Comptabilité</b><button type="button" data-cpsys="quotidien">Factures et paiements</button></div><iframe title="Comptabilité d’OP GESTION" src="' + opLiaSrc() + '"></iframe>';
     document.body.appendChild(z); z.querySelector('iframe').addEventListener('load', cpSysMode); }

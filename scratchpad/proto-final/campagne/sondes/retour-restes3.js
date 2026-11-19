@@ -57,9 +57,13 @@ const ouvrirMail = async () => { const c = await M.entrer({ profil: PROFIL, nuit
     else { await p.evaluate(() => { const a = document.querySelector('#menu a[href="#taches"], #menu [data-go="taches"]'); if (a) a.click(); }); await p.waitForTimeout(900); await L.calme(p, 300); }
     const e1 = await H(p); v('G2 ' + voie + ' : on est sur les tâches', e1.h === '#taches', e1);
     await C.retour(p); const e2 = await H(p);
-    v('G2 ' + voie + ' : UN Retour ramène à la Boîte mail, sans composeur', e2.h === '#boiteMail' && e2.ov === null, e2);
+    // DEPUIS 33192f69 (décision du chef) la Boîte mail GARDE son message en cours quand on va sur une autre rubrique : on le retrouve au retour. La règle reste « Retour ferme la couche du dessus » :
+    // Retour 1 ramène à la Boîte mail (message gardé), Retour 2 ferme le message, Retour 3 va à l'écran d'avant — jamais une entrée orpheline qui répète la Boîte mail.
+    v('G2 ' + voie + ' : UN Retour ramène à la Boîte mail, le message en cours est gardé (décision du 19/11)', e2.h === '#boiteMail' && e2.ov === 'overlay ov-compose', e2);
+    await C.retour(p); const e2b = await H(p);
+    v('G2 ' + voie + ' : le Retour suivant ferme le message, toujours dans la Boîte mail', e2b.h === '#boiteMail' && e2b.ov === null, e2b);
     await C.retour(p); const e3 = await H(p);
-    v('G2 ' + voie + ' : le Retour suivant va à l\'écran d\'avant (Clients), pas une seconde fois à la Boîte mail — ' + e3.h, e3.h === '#clients', e3);
+    v('G2 ' + voie + ' : puis le Retour suivant va à l\'écran d\'avant (Clients), pas une seconde fois à la Boîte mail — ' + e3.h, e3.h === '#clients', e3);
     v('G2 ' + voie + ' : aucune erreur de page', c.err.length === 0, c.err.slice(0, 3)); await M.fin(c);
   }
   // G3

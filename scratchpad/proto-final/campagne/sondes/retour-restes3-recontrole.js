@@ -155,7 +155,19 @@ const clic = (p, s) => p.evaluate(sel => { const b = window.R().querySelector(se
     if (e2.pdf) {
       await C.retour(p); const e3 = await H(p);
       v('F2 UN Retour ferme l\'aperçu SEUL : le composeur reste (aperçu ' + e3.pdf + ', fenêtre ' + e3.ov + ')', e3.pdf === false && e3.ov === 'overlay ov-compose', e3);
-      await C.retour(p); const e4 = await H(p); v('F2 le Retour suivant ferme le composeur — ' + e4.ov + ' ' + e4.h, e4.ov === null && e4.h === '#boiteMail', e4);
+      const disc = () => p.evaluate(() => window.R().querySelectorAll('#cDiscard').length);
+      await C.retour(p); const e4 = await H(p), d4 = await disc();
+      if (tel) {
+        // au téléphone, un message modifié (ici : une pièce jointe) ne se ferme pas sans question : « Annuler » propose Supprimer / Enregistrer le brouillon (comme Mail) — la feuille EST la couche du dessus
+        v('F2 téléphone : le Retour suivant pose la feuille « Fermer le message » (UNE), le composeur reste dessous — feuilles ' + d4 + ', ' + e4.ov, d4 === 1 && e4.ov === 'overlay ov-compose' && e4.h === '#boiteMail', e4);
+        await C.retour(p); const e5 = await H(p), d5 = await disc();
+        v('F2 téléphone : un Retour de plus ferme la feuille SEULE (composeur gardé, pas deux feuilles) — feuilles ' + d5, d5 === 0 && e5.ov === 'overlay ov-compose', e5);
+        await C.retour(p); const d6 = await disc(); await C.retour(p); const e7 = await H(p), d7 = await disc();
+        v('F2 téléphone : rouvrir la feuille puis Retour la referme encore, jamais deux feuilles (' + d6 + ' puis ' + d7 + ')', d6 === 1 && d7 === 0 && e7.ov === 'overlay ov-compose', e7);
+        await C.retour(p); await p.evaluate(() => { const b = window.R().querySelector('#cDiscard [data-dpick="discard"]'); if (b) b.click(); }); await p.waitForTimeout(700); const e8 = await H(p);
+        v('F2 téléphone : « Supprimer le brouillon » ferme le composeur, reste dans la Boîte mail, aucune entrée de trop (état ' + JSON.stringify(e8.st) + ')', e8.ov === null && e8.h === '#boiteMail' && !(e8.st && e8.st.opcourrier), e8);
+        await C.retour(p); const e9 = await H(p); v('F2 téléphone : le Retour suivant quitte la Boîte mail — ' + e9.h, e9.h === '#clients', e9);
+      } else v('F2 le Retour suivant ferme le composeur — ' + e4.ov + ' ' + e4.h, e4.ov === null && e4.h === '#boiteMail', e4);
     }
     v('F aucune erreur de page', c.err.length === 0, c.err.slice(0, 3)); await M.fin(c);
   }
@@ -177,7 +189,7 @@ const clic = (p, s) => p.evaluate(sel => { const b = window.R().querySelector(se
       let f = await entrer(c); v('G ' + nom + ' : le cadre est affiché (population)', !!f); if (!f) { await L.fin(c); continue; }
       const pose = await reglages(f, p); v('G ' + nom + ' : le panneau Réglages est posé (population)', pose === true, await etat(p));
       await sortir(c, p); const e1 = await etat(p);
-      v('G ' + nom + ' : on a quitté la Comptabilité (' + e1.h + '), aucun calque du cadre en pile', e1.h !== '#comptabilite' && e1.pile === '' && !e1.cpCalque && !e1.off, e1);
+      v('G ' + nom + ' : on a quitté le cadre plein écran (' + e1.h + ' ; « Factures et paiements » reste sur la page Comptabilité, sans cadre), aucun calque du cadre en pile', (e1.h !== '#comptabilite' || !e1.cpsys) && e1.pile === '' && !e1.cpCalque && !e1.off, e1);
       f = await entrer(c); const reste = await couche(f), e2 = await etat(p);
       try { await L.capture(c, require('path').join(M.CAP, 'rr3-G-' + PROFIL + (NUIT ? '-nuit' : '') + '-' + sorties.findIndex(x => x[0] === nom) + '.png')); } catch (x) {}
       v('G ' + nom + ' : on revient dans la Comptabilité, le panneau d\'avant n\'est PAS resté ouvert (cadre : ' + reste + ', page : pile « ' + e2.pile + ' »)', reste === false && e2.pile === '' && !e2.cpCalque, e2);
