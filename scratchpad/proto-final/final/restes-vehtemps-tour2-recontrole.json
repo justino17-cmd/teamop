@@ -1,0 +1,34 @@
+{
+ "noms": ["vehtemps"],
+ "regles": [
+  { "nom": "Mois › Voir la paie › retour du système (history.back, balayage, bouton Retour d'Android) rend « Mois » et non « Aujourd'hui »", "rejoue": "sonde restes-vehtemps-tour2-recontrole.js partie retour (mac, iphone, iphone nuit, android) + restes-vehtemps-tour1-recontrole.js voies barre/systeme/fuite (mac 78 ✓, iphone+petit jour/nuit 312 ✓, ipad+windows+android 234 ✓, 0 ✗) ; mutation 1 tombe" },
+  { "nom": "« l'Yaris » : « y » consonne (Yaris, Yeti, Yamaha), « l'Ypsilon » seul élide ; voyelles ä ë ï ö ü œ", "rejoue": "53 noms de modèle (utilitaires, citadines, accents, chiffres, « Up! », « e-Expert », « ID.Buzz ») : 0 faux ; phrase du haut de Véhicules avec Yaris/Ami/Hilux/Kangoo au garage lue sur capture (« L'Ami, le Yaris, le Hilux et le Kangoo sont au garage. ») ; mac, iphone, android, petit, ipad, windows, jour et nuit ; mutations 2 et 3 tombent" },
+  { "nom": "Départ guidé : « Pointage de la semaine dernière pas encore validé » n'est plus une alerte permanente, et le geste existe", "rejoue": "boucle entière sur les données d'origine : alerte (sm) → « Ouvrir ses heures › » → Semaine du 19 oct. → « Valider la semaine de Sophie » → alerte disparue, ligne grise gardée (6 ✓ · 0 ✗) ; sans pointage la semaine d'avant, pas d'alerte ; captures regardées (alerte ambre + ligne grise lisibles, rien de coupé) ; mutations 4 et 5 tombent" },
+  { "nom": "Fiche de paie : plus un mot de prototype / données fictives / taux d'exemple en mode application (OP GESTION et cadre Comptabilité)", "rejoue": "les 6 fiches une par une + visionneur ouvert par le geste réel (2 548 caractères) ; hors mode application le texte d'essai reste ; compta-reste-parcours-f 18 ✓ · 0 ✗ ; mac, iphone, android, petit, ipad, windows, jour et nuit ; mutation 6 tombe" }
+ ],
+ "pasRegles": [
+  { "nom": "Retour du système : retour → AVANCE (history.forward) → retour rouvre « Aujourd'hui »", "defaut": "le drapeau TT.viaPaie n'est posé que par paieAller ; l'avance du navigateur remonte à la Paie par popstate, sans le poser, puis le second retour retombe sur « Aujourd'hui »", "constat": "Temps de travail › Mois › Voir la paie › retour (Mois ✓) › avance (Paie) › retour : « Aujourd'hui 1 ». Mesuré sur mac, iphone jour et nuit, android. Mineur : l'avance du navigateur est un geste rare ; avant le tour 2 le premier retour était aussi faux, ce n'est pas une régression. Piste : poser le drapeau aussi quand la Paie est (re)quittée vers Temps de travail par popstate, ou le garder dans l'état de l'entrée d'historique (history.state) plutôt que dans une variable." }
+ ],
+ "casses": [
+  { "titre": "« Temps de travail » pris DANS LE MENU depuis la Paie rouvre « Mois » au lieu de « Aujourd'hui »", "gravite": "mineure (incohérence, aucune perte, aucune erreur de page)", "etapes": "Temps de travail › Mois › Voir la paie › (dans la Paie) menu latéral « Temps de travail » (bureau) ou Menu › Temps de travail (téléphone)", "constat": "Le drapeau TT.viaPaie, posé par paieAller, reste vrai tant que la vue courante est la Comptabilité ; ttVue lit alors TT.avant === 'comptabilite' && TT.viaPaie et garde l'onglet Mois. Tout autre chemin vers Temps de travail (depuis l'accueil, le planning, un autre écran) rouvre « Aujourd'hui » ; ce chemin-ci, qui ne vient pas du retour, aussi devrait. Mesuré mac, iphone, android (jour) : onglet « Mois ». Avant la correction : « Aujourd'hui ». Piste : effacer TT.viaPaie dans le chemin du menu (clic [data-go] / lireHash) ou ne le faire valoir que lorsque l'arrivée est un popstate ou la barre « ‹ Revenir »." }
+ ],
+ "nouveaux": [
+  "casse ci-dessus (menu › Mois) : le seul effet de bord trouvé des quatre corrections",
+  "Doute (goût) : la ligne grise « Sa semaine en cours se validera une fois finie, lundi prochain. » s'écrit pour toute personne pointable, même sans aucun pointage cette semaine-là (un congé, un arrivant) ; elle ne dit rien d'actionnable. Elle ne paraît d'ailleurs qu'avec une autre alerte (la fenêtre ne s'ouvre pas pour elle seule), donc le bruit reste borné",
+  "Doute : sur les données d'origine, les six personnes portent « semaine dernière pas encore validée » alors que les semaines du 5 et du 12 octobre sont aussi « à valider » ; l'alerte n'en parle pas, elle ne nomme que la semaine d'avant. Le geste (valider) existe pour chacune dans « Ses semaines » : à garder ou à dire « 3 semaines »",
+  "Hors lot, vu à la lecture : le mutateur mutations-restes-vehtemps.js (tour 1) vise encore l'ancienne expression de vhCourt (mutation 6 : l'ancre n'existe plus). Elle est remplacée par les mutations 2 et 3 du fichier tour 2 ; à retirer au prochain passage"
+ ],
+ "sondes": [
+  { "fichier": "sondes/restes-vehtemps-tour1-recontrole.js", "resultat": "mac 78 ✓ · 0 ✗ ; iphone+petit jour/nuit 312 ✓ · 0 ✗ ; ipad+windows+android 234 ✓ · 0 ✗" },
+  { "fichier": "sondes/restes-vehtemps-1.js", "resultat": "96 ✓ · 0 ✗ (mac)" },
+  { "fichier": "campagne/sondes/compta-reste-parcours-f.js", "resultat": "18 ✓ · 0 ✗ (mac)" },
+  { "fichier": "sondes/restes-vehtemps-tour2-recontrole.js (NEUVE : retour, veh, depart, boucle, bulletin)", "resultat": "mac complet : 2 ✗ attendus (menu et avance, voir casses) ; mac nuit 22 ✓ · 0 ✗ ; petit 22 ✓ · 0 ✗ ; ipad+windows jour/nuit 88 ✓ · 0 ✗ ; iphone/android : mêmes 2 ✗ que mac, le reste ✓ ; boucle 6 ✓ · 0 ✗" },
+  { "fichier": "sondes/mutations-restes-vehtemps-tour2-recontrole.js (NEUVE)", "resultat": "6 mutations sur copie : 6 tombent · 0 survivent" },
+  { "fichier": "contrôles de sauvegarde", "resultat": "compiler-pages, verifier-syntaxe, tests 835 (844 ✓) 836 (307 ✓) 837 (122 ✓) 1008 (54 ✓) 2994 (15 ✓), verif-secrets : 0 ✗" }
+ ],
+ "doutes": [
+  "Les entrées « à soumettre à Justin » du tour 2 (Mon camion à 320 px, « le Ford », fiche au garage qui redit le fait, « (hors taxes) » seul sur une ligne, titre du visionneur à 820 px, anneau de focus de ✕) n'ont pas été modifiées : non rejouées ici, ce sont des doutes de goût",
+  "La phrase « lundi prochain » est juste partout, mais le samedi 31 octobre (la date fixe du prototype) « lundi » suffirait ; rien de faux",
+  "Non vérifié : un vrai iPhone/Android physique (retour par balayage). history.back() de Chromium émulé en tient lieu"
+ ]
+}

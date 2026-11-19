@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "« Confirmer le créneau » dit « les deux autres options sont libérées » alors qu'aucune option n'avait été tenue (consigne a)",
+  "defaut": "Boîte mail sans la case Planning : le toast de la confirmation affirmait une libération d'options qui n'avaient jamais existé (phrase écrite en dur, apercu/prototype-op-gestion.html, branche a === 'confcren').",
+  "etat": "corrigé",
+  "changement": "la phrase dit ce qui s'est passé : « les autres options sont libérées » quand des options ont été retirées, « les options tenues par un collègue restent au planning jusqu'à leur échéance » quand il y en a qu'on n'a pas le droit de toucher, et aucun mot sur les options quand il n'y en avait pas (« … à 16 h). Vérifie et crée. »). mbxLiberer rend maintenant le nombre d'options retirées.",
+  "preuve": "sondes/entreprise-restes4-recontrole.js : a 10 ✓ · 0 ✗ et c 10 ✓ · 0 ✗ (avant : 17 ✓ · 3 ✗), ajoutées à entreprise-tout.sh ; capture relue (Mac et iPhone nuit : le toast est lisible sur la fenêtre « Nouvelle intervention »)"
+ },
+ {
+  "nom": "Retirer une option du planning par un collègue qui n'a pas la case Planning (consigne b)",
+  "defaut": "« Confirmer le créneau » appelait mbxLiberer sans condition : une personne sans la case Planning retirait du planning les options qu'un collègue avec la case avait tenues (écriture au planning par un chemin que la garde ne voyait pas).",
+  "etat": "corrigé",
+  "changement": "mbxLiberer ne retire RIEN sans peut('planif','m') ; les options d'un collègue restent et s'éteignent à leur échéance (mbxPurge). Son geste à elle n'est pas bloqué : l'intervention s'ouvre quand même (case Interventions).",
+  "preuve": "sondes/entreprise-restes5-deuxpersonnes.js (neuve, jouée à DEUX personnes dans la même page : A avec Boîte mail + Planning tient 3 options, B avec Boîte mail + Interventions sans Planning confirme : 3 → 3 options, toast « restent au planning » ; contre-épreuve A confirme : 3 → 0, « libérées »), Mac et iPhone nuit : 10 ✓ · 0 ✗ ; mutation (garde de mbxLiberer retirée) : 4 ✓ · 6 ✗, deux fois ; entre dans entreprise-tout.sh"
+ },
+ {
+  "nom": "droits-table à 0 ✗ : verbes d'Achats et de Stock hors de la table des gestes (consigne c)",
+  "defaut": "droits-table : 4 ✓ · 3 ✗. Familles sxdadd et sxdcop dans la table mais plus dans la page ; rembourseNote, transfertok, trfannul, pdx|piece non nommés (classés « modifier » par défaut) ; archives, enregistrer, confirmer, data-v enreg d'une famille inconnue à forme d'écriture.",
+  "etat": "corrigé",
+  "changement": "table GESTES : sxdadd et sxdcop retirés ; rembourseNote@ventes (suite de l'avoir), transfertok (ac, achats), trfannul (axa, achats ; aussi réservé au bureau pour un terrain), piece (pdx, stock) nommés en modification ; reglages (axa) nommé lecture ; quatre familles de lecture déclarées : sortie (enregistrer sur l'appareil), rangc (voir les clients archivés), secv (confirmer mon identité pour ouvrir une vue sensible), v (valeur d'un data-action). Gardes dans les fonctions, avant la première écriture : rembourseNote, trfannul, piece (peut(...) puis droitsRefus), transfertok (dans la liste axLect du premier écouteur). Effet réel corrigé au passage : « Voir les clients archivés », « Enregistrer sur cet appareil » et « Confirmer sur mon téléphone » étaient refusés à qui n'avait que « Voir » (leur verbe avait la forme d'une écriture).",
+  "preuve": "droits-table 7 ✓ · 0 ✗ ; sondes/droits-restes5-verbes.js (neuve : 4 gestes gardés par la table, 4 par leur fonction garde éteinte, 6 de lecture jouées par une personne qui n'a que Voir — population de ce « Voir seul » prouvée) : 6 ✓ · 0 ✗ ; 4 mutations tombent (rangc retiré, garde rembourseNote, transfertok hors liste, garde piece : chacune 5 ✓ · 1 ✗), trfannul hors table tombe dans droits-table (6 ✓ · 1 ✗) ; entre dans droits-tout.sh"
+ },
+ {
+  "nom": "« Proposer un créneau » : la réponse part, rien n'est tenu sans la case Planning",
+  "defaut": "décidé par le chef (consigne)",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "restes-entreprise-tour5-consigne.json"
+ },
+ {
+  "nom": "« Renommer… » / « Changer le logo… » d'une boîte mail en Voir seul",
+  "defaut": "réglages locaux de l'appareil (SAVED.names/logos dans localStorage), rien dans les données partagées",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "restes-entreprise-tour5-consigne.json"
+ },
+ {
+  "nom": "Sondes de droits rouges AVANT ce tour, sans rapport avec mes verbes (droits-fiche 2 ✗, droits-restauration 1 ✗, droits-fabrication-css 1 ✗, droits-gestes-reels 9 ✗ dont une erreur de politique de sécurité du navigateur dans la sonde, droits-bureau-toutes-cases 2 ✗, droits-terrain 1 ✗ « mat|retire »)",
+  "defaut": "rejouées sur la page de la tête e6b71bac (avant mes commits) : exactement les mêmes totaux (21/2, 5/1, 5/1, 26/9, 61/2, 3/1) ; ce ne sont pas des régressions de ce tour",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : voies droits / matériel / menu, hors de mes noms",
+  "preuve": "scratchpad/cap : base.out du tour (même totaux sur la page d'avant)"
+ },
+ {
+  "nom": "Les entrées « à soumettre à Justin » des tours précédents (numéro +33, SIRET seul, secrétaire et Boîte mail, clavier d'iPhone, Voir + Créer, « Créer le client et son devis »)",
+  "defaut": "inchangées",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "restes-entreprise-tour4-recontrole.json, doutes"
+ },
+ {
+  "nom": "Doute nouveau : une option « libre sous 48 h » tenue par un collègue reste affichée sur le créneau choisi quand une personne sans la case Planning confirme",
+  "defaut": "le créneau devient l'intervention créée, et l'option du même créneau reste dessinée dessous jusqu'à son échéance (elle ne bloque rien : le planning ne la compte pas dans les conflits)",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun : le chef a imposé « jamais celles d'un collègue sans la case » ; retirer seulement l'option du créneau choisi serait une variante possible",
+  "preuve": "entreprise-restes5-deuxpersonnes : 3 → 3 options après la confirmation de B"
+ }
+]
