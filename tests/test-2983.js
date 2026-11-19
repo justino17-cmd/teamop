@@ -63,7 +63,7 @@ const mois = new Date().toISOString().slice(0, 7);
 
   /* ── réglé à 10 $ ── */
   const fauxA = B2.fauxAnthropic(); await new Promise(r => fauxA.s.listen(0, '127.0.0.1', r));
-  const S = await B2.lancer({ essai: true, anthropic: fauxA, config: { agents: { cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } }, donnees: (D) => {} }); vivants.push(S);
+  const S = await B2.lancer({ essai: true, anthropic: fauxA, config: { agents: { retires: false, cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } }, donnees: (D) => {} }); vivants.push(S);
   vrai('le serveur de test démarre (clé des agents posée, plafond 10 $)', S.vivant);
   vrai('le semis est fait (les agents sont déjà en Brouillon)', await attendre(() => fs.existsSync(path.join(S.D, 'essais-semis.json')), 200));
   fs.writeFileSync(path.join(S.D, 'agents-budget.json'), JSON.stringify({ mois, parAgent: { examen: 9.9999999 } }));
@@ -87,7 +87,7 @@ const mois = new Date().toISOString().slice(0, 7);
   /* ── espaceTest SANS réglage : le plafond de 10 $ s'applique quand même (jamais les 195 $ de la production) ── */
   {
     const f3 = B2.fauxAnthropic(); await new Promise(r => f3.s.listen(0, '127.0.0.1', r));
-    const S3 = await B2.lancer({ essai: true, anthropic: f3, config: { agents: { cleApi: 'sk-ant-banc', reunionsAuto: false } } }); vivants.push(S3);
+    const S3 = await B2.lancer({ essai: true, anthropic: f3, config: { agents: { retires: false, cleApi: 'sk-ant-banc', reunionsAuto: false } } }); vivants.push(S3);
     await attendre(() => fs.existsSync(path.join(S3.D, 'essais-semis.json')), 200);
     fs.writeFileSync(path.join(S3.D, 'agents-budget.json'), JSON.stringify({ mois, parAgent: { examen: 10.5 } }));
     await S3.arreter(); await S3.demarrer();
@@ -98,7 +98,7 @@ const mois = new Date().toISOString().slice(0, 7);
     await S3.nettoyer(); f3.s.close();
   }
   /* ── plafond de 500 $ : ramené à 195, le même mois dépensé ne retient personne ── */
-  for (const [nom, agentsConf] of [['500 $', { cleApi: 'sk-ant-banc', plafondMoisTotal: 500, reunionsAuto: false }]]) {
+  for (const [nom, agentsConf] of [['500 $', { retires: false, cleApi: 'sk-ant-banc', plafondMoisTotal: 500, reunionsAuto: false }]]) {
     const f2 = B2.fauxAnthropic(); await new Promise(r => f2.s.listen(0, '127.0.0.1', r));
     const S2 = await B2.lancer({ essai: true, anthropic: f2, config: { agents: agentsConf } }); vivants.push(S2);
     await attendre(() => fs.existsSync(path.join(S2.D, 'essais-semis.json')), 200);

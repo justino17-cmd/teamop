@@ -56,7 +56,7 @@ async function lancerTour(opts = {}) {
   const cfg = path.join(banc, 'config.json');
   if (!fs.existsSync(cfg)) { const vap = webpush.generateVAPIDKeys(); fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha(MDP) })); }
   const c = JSON.parse(fs.readFileSync(cfg, 'utf8'));
-  c.agents = { cleApi: 'sk-ant-banc', reunionsAuto: false };
+  c.agents = { retires: false, cleApi: 'sk-ant-banc', reunionsAuto: false };
   c.pauline = { jetonSha256: sha(JETON_P) };
   if (opts.pont === null) delete c.opmsgPont; else c.opmsgPont = opts.pont;
   fs.writeFileSync(cfg, JSON.stringify(c));

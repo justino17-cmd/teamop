@@ -848,7 +848,7 @@ async function executer(o) {
   const maxAppels = o.maxAppels || MAX_APPELS, usdMax = o.usdMax || USD_MAX;
   const garde = { appels: 0, usd: 0, reserver() { if (this.appels >= maxAppels || this.usd >= usdMax) return false; this.appels++; return true; }, depense(u) { this.usd += u; if (typeof o.surDepense === 'function') { try { o.surDepense(u); } catch (e) {} } } };
   const partage = { messages: [], mails: [], reunion: [], techniques: 0 };
-  const X = { cle: o.cle, appeler: o.appeler, tmp: o.tmp, signature: o.signature, capacites: o.capacites || {}, garde, partage, capa: nom => !!(o.capacites && o.capacites[nom]) };
+  const X = { retires: o.retires, cle: o.cle, appeler: o.appeler, tmp: o.tmp, signature: o.signature, capacites: o.capacites || {}, garde, partage, capa: nom => !!(o.capacites && o.capacites[nom]) };
   /* le juge : une équipe réduite à Inès, qui compte dans le même plafond */
   const JE = monterEquipe({ retires: o.retires, cle: o.cle, appeler: o.appeler, allumes: ['ines'], garde, appelsMax: 20, tmp: o.tmp });
   X.juge = JE.cerveau;
@@ -942,6 +942,7 @@ function monterExamen(app, ctx) {
   /* ── pouvoir lancer ? ── */
   function peutLancer() {
     if (illisibles.has(F_ETAT) || illisibles.has(F_RES)) return { code: 503, error: 'Les fichiers de l’examen sont illisibles : rien n’est lancé', raison: 'illisible' };
+    if (ctx.retires !== false) return { code: 409, error: 'Les agents sont retirés (19 novembre 2026) : l’examen ne peut pas jouer', raison: 'agents_retires' };
     if (!ctx.cleApi) return { code: 409, error: 'La clé des agents n’est pas posée : l’examen ne peut pas jouer avec le vrai modèle', raison: 'pas_de_cle' };
     if (courant) return { code: 409, error: 'Un examen est déjà en cours', raison: 'en_cours' };
     const now = maintenant();
@@ -971,7 +972,7 @@ function monterExamen(app, ctx) {
     if (!ecrire(F_ETAT, etat)) { Object.assign(etat, avant); return { code: 503, error: 'Examen non enregistré : rien n’est lancé', raison: 'ecriture' }; }
     courant = { id, debut: now, source, scenarios: SCENARIOS.map(d => ({ n: d.n, titre: d.titre, etat: 'a_venir' })), appels: 0, usd: 0, imputé: 0, appelsMax: ctx.maxAppels || MAX_APPELS, usdMax: ctx.usdMax || USD_MAX };
     noter('examen lancé', { cible: 'examen', resultat: 'ok', detail: source, qui: qui || '' });
-    const fin = executer({ cle: ctx.cleApi, appeler: ctx.appeler, tmp: ctx.tmp, signature: ctx.mail && typeof ctx.mail.signature === 'function' ? ctx.mail.signature : null,
+    const fin = executer({ retires: ctx.retires, cle: ctx.cleApi, appeler: ctx.appeler, tmp: ctx.tmp, signature: ctx.mail && typeof ctx.mail.signature === 'function' ? ctx.mail.signature : null,
       capacites: ctx.capacites || {}, maxAppels: ctx.maxAppels, usdMax: ctx.usdMax,
       /* la dépense s'impute AU FUR ET À MESURE (chaque appel), pas à la fin : une erreur, un redémarrage en cours d'examen ne laissent rien de non compté, et les vrais
          agents voient dès maintenant ce que l'examen consomme du mois. */
