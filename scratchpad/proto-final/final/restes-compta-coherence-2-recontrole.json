@@ -1,0 +1,78 @@
+{
+ "noms": [
+  "restes-compta-coherence-2 (reçu sur place au cadre, crédit de TVA, promesse sur les heures, sonde des ventes du cadre)"
+ ],
+ "regles": [
+  {
+   "titre": "Reçu I6 au cadre",
+   "verdict": "confirmé",
+   "preuve": "geste : moyen Carte/Chèque/Virement/Espèces (467100/511200/512000/530000, PS/BQ/CA), montant 55 / 40,50 / 1000 (TVA cadre = hôte à 1 ct), montants 0/abc/-5 (reçu disparu des deux côtés), reçu supprimé puis rétabli, « payé en totalité » (103,04 €), cadre rechargé et page rouverte (une seule écriture), facture qui part (écriture contrepassée, 419100 = 0, caisse 530000 inchangée à 340,00 €, TVA 482,80 / 482,81, Encaissé 3 085,00 = hôte, Reste 1 538,04 = hôte) ; balance équilibrée à chaque pas ; ventes sans fausse facture ; 62 écritures ; TVA arrêtée puis reçu passé à 55 € : écriture suivie, aucune erreur"
+  },
+  {
+   "titre": "Crédit de TVA",
+   "verdict": "confirmé",
+   "preuve": "56 écrans/listes du cadre relus (simple et expert), 10 mois de l'écran TVA, accueil, fil, à faire, arrêt : aucun « à payer 0,00 », « Total à payer 0,00 », montant négatif mal formaté ; solde positif (911,44 €) : « À payer à l'État », lignes 28 et 32, aucun mot de crédit ; pas de PDF CA3 dans le cadre"
+  },
+  {
+   "titre": "Promesse sur les heures",
+   "verdict": "confirmé pour les promesses nommées",
+   "preuve": "66 textes du cadre en mode application et 22 écrans de l'hôte : aucune occurrence de « heures validées / d'OP GESTION » ; la démonstration (sans ?app=1, 26 écrans) garde son récit ; le film (visite guidée) porte encore la phrase mais ne se lance pas en mode application"
+  },
+  {
+   "titre": "Sondes du correcteur rejouées",
+   "verdict": "confirmé",
+   "preuve": "coherence-2 26 ✓ · 0 ✗ ; ventes-cadre-explore 20 ✓ · 0 ✗ ; annulee-cadre 9/0 ; reste-cadre-parcours 32/0 ; cadre-mots 40/0 ; reste-mots 18/0 ; restes-compta-plein-ecran 77 ✓ · 0 ✗ (il a fini : code 0) ; compta-reste-cadre-coherence 3 ✓ · 7 ✗ (CC2 à CC8 : fournisseurs, banque, TVA collectée 482,80/482,81, achats, TVA à payer, paie, écritures 62/51 : les écarts de la décision A/B) ; 14 mutations du correcteur : 14/14 tombent"
+  }
+ ],
+ "pasRegles": [
+  {
+   "titre": "Les sondes du correcteur ne lisent pas toutes les colonnes de la ventes du cadre ni tous les moyens du reçu",
+   "gravite": "faible (sonde, pas page)",
+   "detail": "compta-ventes-cadre-explore (20 ✓) : 6 mutations à moi sur copies SURVIVENT toutes (date d'émission, échéance d'une facture en retard, nombre de relances, moyen de paiement, date de paiement, ordre des lignes) ; la page, elle, est juste (ma sonde A1b compare les 8 lignes à l'hôte, 0 écart). coherence-2 : le chèque reçu rangé en 512000 au lieu de 511200 (R1) et la ligne de relevé d'un virement jamais retirée (R2) SURVIVENT (26 ✓) ; ma sonde les attrape (A5, A5r). R3 et R4 tombent des deux côtés",
+   "etat": "corrigé par ma sonde neuve (compta-restes-coherence-2-recontrole.js, 53 ✓) ; les sondes du correcteur ne sont pas modifiées"
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Hôte : « à payer −837,25 € » quand les achats dépassent les ventes (le correcteur jugeait la limite inutile)",
+   "gravite": "faible à moyenne",
+   "etapes": "OP GESTION, Comptabilité (fenêtre de l'hôte, onglet TVA ou Vue d'ensemble) avec un achat déductible de 5 000 € HT : « TVA d'octobre · à payer −837,25 € » et « TVA d'octobre à déclarer en novembre » sur un solde négatif (cpTva().aPayer < 0). Joué en posant l'achat par script dans l'hôte (pas par la saisie d'une facture d'achat) : la saisie existe dans l'application mais je ne l'ai pas rejouée au doigt. Le cadre, lui, dit « Crédit de TVA »",
+   "population": "4 écrans de l'hôte montrent −837,25 € ; 2 disent « à payer » devant"
+  },
+  {
+   "titre": "Le cadre dit « L'État te doit 3 830,56 € » pendant que l'hôte dit « TVA à payer 162,75 € » pour le même octobre",
+   "gravite": "moyenne (visible, sens opposé)",
+   "etapes": "mode application : OP GESTION > Comptabilité (écran de l'hôte) : 162,75 € à payer ; Fenêtre OP COMPTABLE > accueil / TVA : crédit de 3 830,56 €. Cause : les achats du cadre sont ses chiffres d'exemple (décision A/B de Justin non tranchée). Le correcteur a rendu le défaut plus lisible, pas plus petit : avant, le cadre disait « à payer 0,00 €» (faux aussi). À trancher par Justin"
+  },
+  {
+   "titre": "Reçu de 1 000 000 000 € : l'hôte le compte, le cadre l'ignore sans rien dire",
+   "gravite": "très faible (saisie absurde)",
+   "etapes": "fiche I6, montant « 1e9 » : hôte encaissé d'octobre 1 000 003 045 €, cadre : aucune écriture (refus > 1 000 000 €). Aucune erreur affichée ; borner la saisie à l'hôte réglerait les deux"
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "En mode application la paie du cadre affirme encore « Toutes les heures du mois sont validées — 6 salariés, 4 semaines complètes » et « Heures du mois »",
+   "gravite": "faible",
+   "detail": "sans nommer OP GESTION donc hors du motif de la promesse, mais c'est un constat de validation que la liaison ne transmet pas (les heures sont une copie, PAIE_OCT_VARS). Le coût de la paie du cadre (26 734,12 €) n'est pas celui de l'hôte (24 592,69 €) : même cause (A/B)"
+  },
+  {
+   "titre": "Texte « moins la TVA payée sur tes achats − 4 313,36 € »",
+   "gravite": "cosmétique",
+   "detail": "un signe moins après « moins » se lit comme une double négation ; la ligne montre une déduction par un signe"
+  }
+ ],
+ "sondes": [
+  "scratchpad/proto-final/campagne/sondes/compta-restes-coherence-2-recontrole.js : 53 ✓ · 0 ✗ (mac, marc), 2 constats imprimés (1e9, hôte négatif)",
+  "compta-restes-coherence-2-recontrole-mutations.py (6 mutations sur compta-ventes-cadre-explore : 6 SURVIVENT)",
+  "compta-restes-coherence-2-recontrole-mutations-recu.py (R1 et R2 survivent à la sonde du correcteur et tombent à la mienne ; R3, R4 tombent aux deux)",
+  "compta-restes-coherence-2-recontrole-captures.js (iphone, ipad, mac × jour, nuit : aucun débordement 390/820/1440)",
+  "compta-reste-recontrole-paiement-mots : 2 ✓ · 3 ✗ IDENTIQUE avant (da1eab55~1, worktree jetable) et après : non causé par ces changements ; ce n'est pas une sonde périmée mais une trouvaille ouverte du recontrôle du 17/11 (mots « coulisses », « SIMULATION », « Nous sommes le », « Voici comment un client paie… » dans le module Paiement en ligne) : à soumettre à Justin ou à retirer de la liste",
+  "contrôles : compiler-pages, verifier-syntaxe, tests 835 836 837 1008 2994, verif-secrets : code 0"
+ ],
+ "doutes": [
+  "Doute 1 du correcteur (argent du reçu en caisse du bureau alors qu'il est chez le technicien) : FONDÉ mais cohérent avec ce que le cadre fait déjà pour les espèces d'une intervention ; la tuile « Argent en banque 22 332,59 € banque et caisse » contient donc 40 € qui ne sont pas au bureau. Décision de produit (un compte de caisse chez le technicien) ; à soumettre à Justin",
+  "Doute 2 (texte sur le report / remboursement du crédit de TVA) : FONDÉ. « L'État te doit cette somme » laisse croire à un virement automatique alors que la règle est le report sur la CA3 suivante (ligne 22) et le remboursement sur demande, avec seuils ; à faire relire par l'expert-comptable, et « te doit » à adoucir",
+  "Ce que je n'ai pas pu prouver : le reçu et le crédit joués par la saisie réelle d'un technicien au doigt (j'ai joué les gestes de la fiche en script, les mêmes lignes que le gestionnaire de clic) ; les captures du Windows et Android ; la clôture du mois après un reçu"
+ ]
+}
