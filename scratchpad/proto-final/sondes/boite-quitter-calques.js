@@ -15,6 +15,7 @@ const departs = {
   for (const profil of PROFILS) {
     const nom = profil + (NUIT ? ' nuit' : '') + ' · ';
     for (const [dep, partir] of Object.entries(departs)) {
+      if (dep === 'cmdk' && !['mac', 'windows', 'mac720'].includes(profil)) continue;   // ⌘K (la palette) n'existe que dans la mise en page de bureau (rcBureau) : ni tablette ni téléphone
       // (1) feuille « Ajouter une boîte mail » ouverte, on part
       { const c = await M.entrer({ profil, nuit: NUIT }); await c.p.evaluate(() => window.R().querySelector('[data-addaccount]').click()); await c.p.waitForTimeout(700);
         const a = await E(c.p); v(nom + dep + ' · population : la feuille « Ajouter une boîte mail » est ouverte', a.feuille && a.h === '#boiteMail', a);
