@@ -20145,7 +20145,8 @@ function courrierSource(){
     lire:id => { const m = mlDe(id); return m ? Promise.resolve({ corps:m.txt }) : Promise.reject(new Error('Message introuvable')); },
     marquer:(id, p) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); if (p.lu != null) m.lu = !!p.lu; if (p.drapeau != null) m.drapeau = !!p.drapeau; courrierEnteteMaj(); return Promise.resolve(); },
     deplacer:(id, dos) => { const m = mlDe(id); if (!m) return Promise.reject(new Error('Message introuvable')); m.arch = dos === 'archive'; courrierEnteteMaj(); return Promise.resolve(); },
-    envoyer:mail => { const bo = boite(mail.boite) || ML_BOITES.find(o => o.etat === 'ok'), orig = mail.enReponseA ? mlDe(mail.enReponseA) : null;
+    envoyer:mail => { if (!peut('com', 'c')) { DROITS_REFUS.push({ cat:'com', x:'c', fam:'ml', verbe:'ecrire' }); return Promise.reject(new Error('Ce geste n’est pas ouvert à ton compte : ' + DROIT_PHRASES.com.c + '. Demande à ' + droitPremierAdmin() + '.')); }   /* tour 5 : la case se relit AU MOMENT de l'envoi (retirée pendant qu'une fenêtre de réponse est ouverte) */
+      const bo = boite(mail.boite) || ML_BOITES.find(o => o.etat === 'ok'), orig = mail.enReponseA ? mlDe(mail.enReponseA) : null;
       MAILS.push(mlM('m' + Date.now() + Math.floor(Math.random() * 99), AUJ, hm(MAINT_MIN), { nom:'Toi', mail:bo.adr }, mail.objet, mail.texte, { boite:bo.id, dossier:'envoye', lu:true, a:mail.a, pj:(mail.pieces || []).map(f => [f.name, Math.max(1, Math.round(f.size / 1024)) + ' Ko']) }));
       if (orig) (orig.reponses = orig.reponses || []).push({ h:hm(MAINT_MIN), txt:mail.texte });
       return Promise.resolve(); },
@@ -26735,6 +26736,7 @@ function secuPanDeconnecter(k){ const p = eqDe(k); if (!p || !secuPeut()) return
     <div class="actions"><button type="button" class="btn rouge" data-sec2="deco-ok|${esc(k)}">Déconnecter</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`); }
 /* « Reposer un mot de passe provisoire » : la personne a oublié le sien ; un nouveau est tiré (l'ancien ne marche plus), ses connexions se ferment, son téléphone ne change PAS */
 function secuReposer(k){ const p = eqDe(k); if (!p || !peut('admin', 'm')) return false;
+  if (!p.actif) { toast('Le compte de ' + esc(p.prenom) + ' est désactivé : réactive-le d’abord.'); return false; }   /* tour 5 : refus DANS la fonction (bouton fabriqué, appel direct) */
   /* ⛔ jamais pour son propre compte : la session se coupe avant que le mot de passe soit lu, et le seul administrateur reste dehors */
   if (k === acteur()) { toast('Pour ton propre compte, demande à un autre administrateur.'); return false; }
   if (!secuGarde('equipe-inviter', () => secuReposer(k), { k, v:'repose' })) return false;

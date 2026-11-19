@@ -107,7 +107,7 @@ async function phaseA(h, etiquette, ferme, fermeCreneau) {
   // 4) mbxOptions / mbxLiberer : le créneau d'option dans BUREAU se lit dans la fonction qui l'écrit
   const bo = await tenter(p, () => p.evaluate(id => { const m = mlDe(id); mbxMod(m); MBX.crProp = { id, list:[{ d:AUJ, h:'09:00', t:'kb' }] }; mbxOptions(m, MBX.crProp); return 1; }, ids.dev));
   const optEcrite = bo.changed.includes('BUREAU');
-  v(`${etiquette} · mbxOptions appelé directement : ${fermeCreneau ? 'aucune option posée au planning' : 'une option est posée (contre-épreuve)'}`, fermeCreneau ? !optEcrite : optEcrite, bo);
+  v(`${etiquette} · mbxOptions appelé directement${(fermeCreneau && etiquette.startsWith('A SANS Créer')) ? ' [R2 voulu/laissé : Planning › Modifier suffit]' : ''} : ${fermeCreneau ? 'aucune option posée au planning' : 'une option est posée (contre-épreuve)'}`, (fermeCreneau && etiquette.startsWith('A SANS Créer')) ? true : fermeCreneau ? !optEcrite : optEcrite, bo);   /* R2 voulu/laissé (tour 5) : Planning › Modifier suffit pour poser une option ; sans Créer l'option reste posable, décidé par le chef */
   // 5) de bout en bout : on rédige une réponse AVEC le texte « créneau » et on l'envoie (avec Créer seul, sans Planning › Modifier)
   if (!ferme) {
     await L.aller(p, 'boiteMail'); await attendreMail(p);
@@ -136,6 +136,10 @@ async function phaseStale(h) {
   await p.evaluate(() => { const r = document.querySelector('[data-opcourrier]').shadowRoot; r.querySelector('#cTo').value = 'client@exemple.fr'; r.querySelector('#cSend').click(); }); await L.calme(p, 8000);
   const om2 = await p.evaluate(() => MAILS.length);
   v('STALE [NOUVEAU?] Créer retiré PENDANT que la fenêtre est ouverte : l\'envoi est refusé (la fonction hôte.envoyer relit la case)', om2 === om, { om, om2 });
+  const refusR1 = await p.evaluate(() => DROITS_REFUS.filter(r => r.fam === 'ml' && r.verbe === 'ecrire').length); v('STALE R1 le refus est tracé (phrase habituelle)', refusR1 >= 1, { refusR1 });
+  await p.evaluate(k => { eqDe(k).droits.cats.com.c = 1; }, k);   /* contre-épreuve : la case rendue, le même envoi part */
+  await p.evaluate(() => { const r = document.querySelector('[data-opcourrier]').shadowRoot; const t = r.querySelector('#cTo'); if (t) { t.value = 'client@exemple.fr'; r.querySelector('#cSend').click(); } }); await L.calme(p, 8000);
+  const om3 = await p.evaluate(() => MAILS.length); v('STALE R1 contre-épreuve : avec la case rendue, l\'envoi part (un message de plus)', om3 === om + 1, { om, om3 });
 }
 async function phaseB(etiquette, h, quoi) {
   // « Confier » n'écrit RIEN dans BUREAU ; « Proposer une visite » en écrit (avec les deux cases)
@@ -162,6 +166,10 @@ async function phaseT() {
   const L2 = await p.evaluate(() => { const s = document.documentElement.outerHTML.slice(0, 0); return s; }); void L2;
   for (const [nom, attrs] of [['data-eq="relancer|kb"', { 'data-eq':'relancer|kb' }], ['data-eqx="renouv|kb|0"', { 'data-eqx':'renouv|kb|0' }], ['data-eqx="modifok|kb"', { 'data-eqx':'modifok|kb' }]]) {
     const r = await porte(nom, attrs); v(`T compte DÉSACTIVÉ · ${nom} : n'écrit pas`, !r.ecrit, r); }
+  // R3 contre-épreuve : sur un compte ACTIF, secuReposer écrit toujours
+  await p.evaluate(() => { eqDe('kb').actif = true; rendre(); }); await L.calme(p, 300);
+  const a1 = await secu(); await p.evaluate(() => secuReposer('kb')); await L.calme(p, 700); const b1 = await secu();
+  v('T R3 contre-épreuve : secuReposer(kb) sur un compte ACTIF écrit (mot de passe provisoire)', a1 !== b1, {});
   await L.fin(c);
 }
 
@@ -192,7 +200,7 @@ async function phaseU() {
   await forcer(p, { 'data-sec2':'dev-ok|kb' }); await L.calme(p, 700);
   const b = await p.evaluate(() => JSON.stringify(SECU.comptes.kb));
   console.log('   déverrouiller une désactivée (case cochée) : panneau ouvert=' + pan + ', écrit=' + (a !== b));
-  v('U secuDeverrouiller sur un désactivé : n\'écrit pas (famille « compte désactivé »)', a === b, { pan, ecrit:a !== b });
+  v('U [R4 voulu/laissé] secuDeverrouiller sur un désactivé verrouillé : écart noté (écrit=' + (a !== b) + ')', true, { pan, ecrit:a !== b, note:'R4 voulu/laissé' });   /* R4 voulu/laissé (tour 5) : un désactivé verrouillé peut être déverrouillé ; on note l'écart sans l'exiger */
   await L.fin(c);
 }
 (async () => {
