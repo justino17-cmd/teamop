@@ -121,8 +121,10 @@ const L = require('../lib.js');
   const cj = await L.ouvrir({ profil, qui:'julie' }), j = cj.p;
   await L.aller(j, 'accueil'); await L.calme(j, 500);
   // le bureau n'a pas d'Accueil (son écran d'ouverture est la Comptabilité) : la carte ne s'écrit pas, et ce que la fonction rendrait ne contient jamais Stock ni Dépôts
-  const J = await j.evaluate(() => ({ route:location.hash, carte:!!document.querySelector('[data-vis="accueil-materiel"]'), lignes:matAFaire().map(o => o.t + ' · ' + o.rub), nc:cmdNbACommander() }));
-  v('Julie : la fonction de la carte ne rend que des lignes d\'achat (' + J.lignes.length + ') : ni « envois à accepter » ni « camions », jamais un lien vers une rubrique fermée', J.lignes.length >= 1 && !J.lignes.some(t => /envoi|camion|Dépôts|· Stock/.test(t)) && J.lignes.every(t => /· (Fournisseurs|Commandes)$/.test(t)), J);
+  const J = await j.evaluate(() => ({ route:location.hash, carte:!!document.querySelector('[data-vis="accueil-materiel"]'), lignes:matAFaire().map(o => o.t + ' · ' + o.rub), nc:cmdNbACommander(), menu:document.getElementById('menu').innerText.replace(/[\u00a0\u202f]/g, ' ') }));
+  // « Voir » décide seule (équipe-11, MENU-FINAL.md) : le Secrétariat a Dépôts et camions, la ligne des camions est donc permise — mais JAMAIS un lien vers une rubrique que son menu n'a pas, ni « envois à accepter » (case à lui donner)
+  const rubDe = t => t.split(' · ').pop();
+  v('Julie : la fonction de la carte ne mène qu\'à des rubriques de son menu (' + J.lignes.length + ' lignes), jamais « envois à accepter »', J.lignes.length >= 1 && !J.lignes.some(t => /envoi/.test(t)) && J.lignes.every(t => /^(Commandes|Fournisseurs)$/.test(rubDe(t)) ? /Fournisseurs, matériel/.test(J.menu) : J.menu.includes(rubDe(t))) && J.lignes.some(t => /· (Fournisseurs|Commandes)$/.test(t)), J);
   v('Julie : elle n\'a pas d\'Accueil, donc aucune carte « Matériel » flottante sur son écran d\'ouverture (' + J.route + ')', !J.carte, J);
   v('aucune erreur de page (bureau)', cj.err.length === 0, cj.err.slice(0, 3));
   await L.fin(cj);
