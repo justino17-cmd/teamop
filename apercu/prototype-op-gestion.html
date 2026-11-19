@@ -10811,13 +10811,16 @@ const maxChamp = e => { const m = e && e.getAttribute && parseInt(e.getAttribute
 const ri = ch => /^[\u{1F1E6}-\u{1F1FF}]$/u.test(ch);
 function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt(t.length - 1) >= 0xd800 && t.charCodeAt(t.length - 1) <= 0xdbff; if (lastHi) t = t.slice(0, -1);
   const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
-document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText') return;
+document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t);
+  /* frappe, collage, glisser seulement : l'autocorrection iOS (insertReplacementText) et la composition visent une plage que seul getTargetRanges() connaît — elles passent par l'écouteur « input » ci-dessous, qui recoupe la valeur finie */
+  if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText' || e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
   let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
-  if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
   let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
-  const av = t.value.slice(0, a), ap = t.value.slice(b), place = m - nbSignes(av) - nbSignes(ap); if (place < 0) return;
-  const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
-  e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
+  const av = t.value.slice(0, a), ap = t.value.slice(b); if (nbSignes(av + ap) > m) return;
+  /* « tient » se décide sur le TEXTE ENTIER, pas par soustraction : un accent combinant (U+0301 envoyé seul à 119/120) s'attache au signe d'avant et ne coûte aucune place */
+  const g = graphemes(String(txt)); let lo = 0, hi = g.length; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (nbSignes(av + g.slice(0, mid).join('') + ap) <= m) lo = mid; else hi = mid - 1; }
+  const ins = g.slice(0, lo).join(''); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
+  e.preventDefault(); if (!ins && a === b) return; t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
 document.addEventListener('input', e => { if (!e.isTrusted) return; if (/^delete/.test(e.inputType || '')) return;   /* une SUPPRESSION ne recoupe jamais : une fiche plus longue que le plafond perdait 30 signes d'un Backspace (recontrôle tour 5, N1) */ const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
   if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
