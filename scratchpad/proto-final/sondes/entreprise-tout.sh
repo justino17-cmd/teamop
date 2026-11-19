@@ -35,6 +35,8 @@ lance "entreprise-restes4-creneaux" $S/entreprise-restes4-creneaux.js
 lance "entreprise-restes4-recontrole a" $S/entreprise-restes4-recontrole.js a
 lance "entreprise-restes4-recontrole c" $S/entreprise-restes4-recontrole.js c
 lance "entreprise-restes5-deuxpersonnes" $S/entreprise-restes5-deuxpersonnes.js
+# recontrôle adverse du tour 5 : les trois phrases du toast sur quatre appareils, les gestes nommés joués par les vraies personnes, l'option qui reste sur le planning, la population des verbes de lecture
+for n in s1 s2 s3 s4; do lance "restes-entreprise-tour5-recontrole $n" $S/restes-entreprise-tour5-recontrole.js $n; done
 if [ -z "$RAPIDE" ]; then
   # « 12 » est jouée avec « 01 » (même bloc) ; « 06 » n'a pas de section
   for n in 01 02 03 04 05 07 08 09 10 11 13; do lance "entreprise-corrections $n" $S/entreprise-corrections.js $n; done
