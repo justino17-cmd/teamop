@@ -9606,7 +9606,7 @@ document.addEventListener('change', ev => {
     if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
-  else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
+  else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim().replace(/[\s.,;]+$/, '');   /* « 2. » ou « 2 , » : la ponctuation de fin n'est pas une unité */
     if (ligneAcompte(l)) { t.value = l.q; toast(ACOMPTE_PHRASE + ' Je garde ' + (l.q || '1') + '.'); return; }   /* la quantité d'une déduction non plus : « 2 » déduisait l'acompte deux fois */
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mn = dureeMinutes(v);
@@ -19841,7 +19841,7 @@ function mbxFin(){ return '\n\nBien cordialement' + (MBX.sig ? ',\n' + MBX.sigTx
 /* ── ce que dit un e-mail : on relit le montant et la surface, on ne devine rien d'autre ── */
 function mbxMontant(m){ const x = /(\d[\d  ]*(?:[.,]\d{1,2})?)\s*(?:€|euros?)/i.exec(m.txt); if (!x) return null; const v = parseFloat(x[1].replace(/[  ]/g, '').replace(',', '.')); return isFinite(v) ? v : null; }
 function mbxSurface(m){ const x = /(\d{1,4})\s*m(?:²|2)/i.exec(m.objet + ' ' + m.txt); return x ? +x[1] : null; }
-function mbxFacLue(c){ if (!c || !c.facLue) return null; const F = c.facLue; const ht = Math.round(c.lignes.reduce((s, l) => s + (F.q[l.pid] != null ? F.q[l.pid] : l.recu) * (F.pu[l.pid] != null ? F.pu[l.pid] : l.pu), 0) * 100) / 100; return { ht, att:cmdHT(c), num:F.num }; }
+function mbxFacLue(c){ if (!c || !c.facLue) return null; const F = c.facLue; const ht = Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT({ q:(F.q[l.pid] != null ? F.q[l.pid] : l.recu), pu:(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu) }), 0) * 100 + 1e-7) / 100;   /* même arrondi de ligne que cmdHT : « lus » = « commandés » au centime */ return { ht, att:cmdHT(c), num:F.num }; }
 
 /* ── les sujets de plus : un e-mail sans mot-clé ne disparaît plus ── */
 Object.assign(ML_SUJET, { msgcli:'Message de client', msgfour:'Message de fournisseur', trier:'À trier', choixcren:'Choix de créneau' });
@@ -20069,7 +20069,7 @@ function courrierBandeau(m){
   if (R.facture) lien('tvoir:facture|' + R.facture.id, 'Facture ' + R.facture.num);
   if (R.devis) lien('tvoir:devis|' + R.devis.num, 'Devis ' + R.devis.num);
   const L = [ML_TAG[R.qui][0]]; let det = '', note = '';
-  if (R.sujet === 'facfour' && R.cmd) { const F = mbxFacLue(R.cmd); det = F ? `${eur(F.ht)} HT lus dans la facture, ${eur(F.att)} HT commandés` : `${eur(R.cmd.lignes.reduce((s, l) => s + (l.recu != null ? l.recu : l.q) * l.pu, 0))} HT attendus d’après la commande`;
+  if (R.sujet === 'facfour' && R.cmd) { const F = mbxFacLue(R.cmd); det = F ? `${eur(F.ht)} HT lus dans la facture, ${eur(F.att)} HT commandés` : `${eur(Math.round(R.cmd.lignes.reduce((s, l) => s + cmdLigneHT({ q:(l.recu != null ? l.recu : l.q), pu:l.pu }), 0) * 100 + 1e-7) / 100)} HT attendus d’après la commande`;
     if (F) { const e = Math.round((F.ht - F.att) * 100) / 100; note = e ? `Écart de ${e > 0 ? '+' : '−'}${eur(Math.abs(e))} HT avec ta commande : à regarder avant de payer.` : 'La facture est conforme à la commande.'; } }
   else if (R.sujet === 'expedition' && R.cmd) det = `date de livraison actuellement dans OP GESTION : ${R.cmd.prevue ? jCourt(R.cmd.prevue) : 'aucune'}`;
   else if (R.sujet === 'paiement' && R.facture) { det = `${eur(R.ttc)} TTC, ${R.facture.st === 'payee' ? 'déjà payée' : 'pas encore réglée'}`;
