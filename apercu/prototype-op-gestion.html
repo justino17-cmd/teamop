@@ -239,6 +239,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (pointer:coarse){#toast button{min-height:44px;min-width:44px}}   /* equipe-10 : « Annuler » mesurait 90 × 40 au doigt */
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
+  @media (max-height:620px){#toast{font-size:13.5px;line-height:1.35;padding:8px 12px 8px 14px;border-radius:14px}}   /* petit téléphone (320 x 568) : la phrase de refus d'un relevé, à quatre lignes, couvrait la moitié basse du bouton Terminer ; trois lignes plus serrées tiennent sous lui */
   body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
@@ -9657,26 +9658,31 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   const net = val.replace(/[^\d.,-]/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
   return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
 }
+const RELEVE_REFUS = {};   /* la marque de refus vit AUSSI en mémoire : supprimer une photo redessine la fiche et le champ perd son data-refuse, alors que le refus n'a pas été revu */
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
   const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
   if (t.value === av) return true;   /* champ pas touché : aucune écriture (un clic ailleurs ne fait pas passer releves de undefined à {…:''}) */
   const R = G.releves = G.releves || {}, r = releveLire(t.value);
-  if (r.refus) { t.value = av; t.dataset.refuse = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  if (r.refus) { t.value = av; t.dataset.refuse = ex; RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve] = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
   if (t.value !== r.val) t.value = r.val;
   if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
   else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
-  delete t.dataset.refuse; R[t.dataset.releve] = r.val; return true;
+  delete t.dataset.refuse; delete RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve]; R[t.dataset.releve] = r.val; return true;
 }
 /* le refus se joue au moment où le doigt quitte le champ (le clic sur « Terminer » le fait sortir AVANT que le clic n'arrive) : la marque « refuse » le retient jusqu'au geste qui finit la fiche, qui s'arrête et redit la phrase ; elle s'efface dès qu'on retape */
-function releveRefuse(){ const t = document.querySelector('input[data-releve][data-refuse]'); if (!t) return false; toast('Un seul nombre ici : écris une seule mesure (ex. ' + t.dataset.refuse + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); return true; }
-function releveFlush(){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse()) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+function releveRefuse(consomme){   /* la fiche affichée porte-t-elle un refus pas encore dit ? (marque du champ OU mémoire, car une photo supprimée redessine la fiche) */
+  const ids = new Set([...document.querySelectorAll('input[data-releve]')].map(x => x.dataset.id)), cles = Object.keys(RELEVE_REFUS).filter(k => ids.has(k.split('|')[0]));
+  const t = document.querySelector('input[data-releve][data-refuse]'); if (!t && !cles.length) return false;
+  if (consomme === false) return true;   /* un autre bouton de la fiche ne consomme PAS la marque : seul le geste qui termine la dit et l'efface */
+  toast('Un seul nombre ici : écris une seule mesure (ex. ' + (t ? t.dataset.refuse : RELEVE_REFUS[cles[0]]) + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); cles.forEach(k => delete RELEVE_REFUS[k]); return true; }
+function releveFlush(consomme){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse(consomme)) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
-document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush() && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush(b.dataset.action === 'terminer') && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { delete t.dataset.refuse; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+  if (t.dataset.releve) { delete t.dataset.refuse; delete RELEVE_REFUS[t.dataset.id + '|' + t.dataset.releve]; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
     if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
