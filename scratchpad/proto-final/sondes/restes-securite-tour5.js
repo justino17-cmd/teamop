@@ -121,6 +121,59 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
     await pause(500); const m = await p.evaluate(() => ({ t: window.__t.join(' | '), a: CLIENTS[window.__k0].acces }));
     v('fiche client réelle : 5 lignes collées dont 2 invisibles → enregistrées sur 3 lignes, sans refus', m.a === 'Code portail 4821\nSonner chez la gardienne\nLocal à gauche' && !/lignes au plus/.test(m.t), m);
   }
+
+  // ─────────── 5. les dix champs libres : MESURÉS à l'exécution (avant : illimités ; après : maxlength + refus avec phrase, rien d'enregistré) ───────────
+  if (SECTIONS.includes('dix')) {
+    await p.evaluate(() => { window.__cpt = 0; window.__u = (n, pre) => { const b = (pre || '') + (++window.__cpt).toString(26).replace(/[0-9]/g, c => 'qrstuvwxyz'[+c]) + 'q'; return (b + 'x'.repeat(n)).slice(0, n); };
+      window.__ouvrirDvn = async () => {}; });
+    const tp = (sel, v0) => p.evaluate(([s, v]) => { const e = document.querySelector(s); e.focus(); e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); }, [sel, v0]);
+    const clic = (a, k, val) => p.evaluate(([a, k, val]) => { const b = document.createElement('button'); b.dataset[a] = k; if (val) b.dataset.id = val; document.body.appendChild(b); b.click(); b.remove(); }, [a, k, val]);
+    const msg = () => p.evaluate(() => { const t = window.__t.join(' | '); window.__t = []; const al = [...document.querySelectorAll('.alerte, .erreur:not([hidden])')].map(e => e.textContent.trim()).filter(Boolean).join(' | '); return t + ' ' + al; });
+    const DIX = [
+      { n: 'n-titre', sel: '#n-titre', max: 120, lib: /Ce qu’il faut faire/, ouvrir: async () => { await p.evaluate(() => panneauCreer('sm', AUJ, '09:00')); }, valider: () => p.evaluate(() => document.querySelector('[data-action="creerOk"]').click()), etat: () => p.evaluate(() => INTS.length + '|' + INTS[INTS.length - 1].titre.length) },
+      { n: 'm-titre', sel: '#m-titre', max: 120, lib: /Ce qu’il faut faire/, ouvrir: async () => { await p.evaluate(() => { window.__iid = INTS.find(i => i.st !== 'annulee' && i.id !== 'brouillon').id; panneauModifier(window.__iid); }); }, valider: () => p.evaluate(() => document.querySelector('[data-action="modifierOk"]').click()), etat: () => p.evaluate(() => INTS.find(i => i.id === window.__iid).titre.slice(0, 3) + '|' + INTS.find(i => i.id === window.__iid).titre.length) },
+      { n: 'tk-t', sel: '#tk-t', max: 120, lib: /Ce qu’il faut faire/, ouvrir: async () => { await p.evaluate(() => tPanneau(null)); }, valider: () => p.evaluate(() => document.querySelector('[data-tok]').click()), etat: () => p.evaluate(() => TACHES.length + '|' + TACHES[TACHES.length - 1].t.length) },
+      { n: 'pr-nom', sel: '#pr-nom', max: 80, lib: /Nom de l’article/, ouvrir: async () => { await p.evaluate(() => prFormulaire(null, PACKS_ENT[0], '')); }, valider: () => p.evaluate(() => document.querySelector('[data-pr^="garder|"]').click()), etat: () => p.evaluate(() => PRODUITS.length + '|' + PRODUITS[PRODUITS.length - 1].nom.length) },
+      { n: 'dvn-objet', sel: '#dvn-objet', max: 120, lib: /Objet du devis/, ouvrir: async () => { await p.evaluate(() => { DVN_F = null; dvNouveau(); }); await pause(400); await p.evaluate(() => document.querySelector('#calque [data-dvn="nv|1"]').click()); await pause(400); await p.evaluate(() => document.querySelector('#calque [data-dvn="type|pro"]').click()); await pause(400); },
+        prep: () => p.evaluate(() => { window.__set('#dvn-nom', window.__u(30, 'S')); window.__set('#dvn-tel', '05461' + String(10000 + (++window.__cpt)).slice(1).padStart(5, '0')); window.__set('#dvn-mail', 'e' + (++window.__cpt) + 'q@exemple.fr'); window.__set('#dvn-adr', window.__u(20, 'R')); }),
+        valider: () => p.evaluate(() => document.querySelector('#calque [data-dvn="creer|1"]').click()), etat: () => p.evaluate(() => DV.length + '|' + (DV[DV.length - 1] || { objet: '' }).objet.length) },
+      { n: 'ml-o', sel: '#ml-o', max: 200, lib: /Objet/, ouvrir: async () => { await p.evaluate(() => panneauEnvoi({ objet: '', corps: 'x', pj: 'a.pdf' })); }, prep: () => p.evaluate(() => { window.__set('#ml-a', 'a@exemple.fr'); window.__set('#ml-m', 'Bonjour'); }), valider: () => p.evaluate(() => document.querySelector('[data-mailenvoi]').click()), etat: () => p.evaluate(() => ENVOIS.length + '|' + (ENVOIS[ENVOIS.length - 1] || { objet: '' }).objet.length) },
+      { n: 'eq-p', sel: '#eq-p', max: 60, lib: /./, phrase: /60 signes au plus/, ouvrir: async () => { await p.evaluate(() => eqInviter()); }, prep: () => p.evaluate(() => { window.__set('#eq-n', window.__u(8, 'D')); window.__set('#eq-m', 'inv' + (++window.__cpt) + 'q@exemple.fr'); }), valider: () => p.evaluate(() => document.querySelector('[data-eq="inviterok"]').click()), etat: () => p.evaluate(() => EQUIPE.length + '|' + EQUIPE[EQUIPE.length - 1].prenom.length), tel: true },
+      { n: 'eq-n', sel: '#eq-n', max: 60, lib: /./, phrase: /60 signes au plus/, ouvrir: async () => { await p.evaluate(() => eqInviter()); }, prep: () => p.evaluate(() => { window.__set('#eq-p', window.__u(8, 'C')); window.__set('#eq-m', 'inv' + (++window.__cpt) + 'q@exemple.fr'); }), valider: () => p.evaluate(() => document.querySelector('[data-eq="inviterok"]').click()), etat: () => p.evaluate(() => EQUIPE.length + '|' + EQUIPE[EQUIPE.length - 1].nom.length) },
+      { n: 'pa-lib', sel: '#pa-lib', max: 60, lib: /Libellé/, ouvrir: async () => { await p.evaluate(() => paieReleve(EQUIPE.find(o => o.actif).k)); await pause(300); }, prep: () => p.evaluate(() => window.__set('#pa-m', '60')), valider: () => p.evaluate(() => document.querySelector('[data-paie^="primeajout|"]').click()), etat: () => p.evaluate(() => JSON.stringify(Object.values(PAIE.primes).map(a => a.length)) + '|' + Object.values(PAIE.primes).flat().map(x => x.lib.length).join(',')) },
+      { n: 't-nom', sel: '#t-nom', max: 40, lib: /Nom du type/, ouvrir: async () => { await creaOuvrir(); await p.evaluate(() => { const b = document.querySelector('[data-action="cAjoutType"]'); if (b) b.click(); }); await pause(300); }, valider: () => p.evaluate(() => document.querySelector('[data-action="cAjoutTypeOk"]').click()), etat: () => p.evaluate(() => TYPES.length + '|' + TYPES[TYPES.length - 1].length) },
+    ];
+    // population : les valeurs DÉJÀ rangées dans la démonstration tiennent sous les plafonds (un plafond ne doit pas bloquer l'enregistrement d'une fiche existante)
+    const pop = await p.evaluate(() => ({ ints: Math.max(...INTS.map(i => nbSignes(i.titre || ''))), taches: Math.max(...TACHES.map(t => nbSignes(t.t || ''))), prod: Math.max(...PRODUITS.map(x => nbSignes(x.nom || ''))), dv: Math.max(...DV.map(d => nbSignes(d.objet || ''))), types: Math.max(...TYPES.map(t => nbSignes(t))), primes: Math.max(0, ...Object.values(PAIE.primes).flat().map(x => nbSignes(x.lib || ''))), n: [INTS.length, TACHES.length, PRODUITS.length, DV.length, TYPES.length] }));
+    v('population : ' + pop.n.join(' + ') + ' valeurs existantes (interventions, tâches, articles, devis, types) comptées avant tout test', pop.n.every(x => x > 0), pop.n);
+    v('les valeurs existantes tiennent sous les nouveaux plafonds (interventions ≤ 120, tâches ≤ 120, articles ≤ 80, devis ≤ 120, types ≤ 40, primes ≤ 60)', pop.ints <= 120 && pop.taches <= 120 && pop.prod <= 80 && pop.dv <= 120 && pop.types <= 40 && pop.primes <= 60, pop);
+    let vus = 0, refus = 0; const mesure = {};
+    for (const F of DIX) {
+      await fermer(); await F.ouvrir(); await pause(300);
+      const at = await p.evaluate(s => { const e = document.querySelector(s); return e ? e.getAttribute('maxlength') : null; }, F.sel);
+      v('population · ' + F.n + ' : le champ est à l’écran', at !== null || (await p.evaluate(s => !!document.querySelector(s), F.sel)), F.sel); vus++;
+      v(F.n + ' : maxlength = ' + F.max, at === String(F.max), at);
+      await tp(F.sel); await p.keyboard.insertText('y'.repeat(F.max + 300)); const l1 = await p.evaluate(s => nbSignes(document.querySelector(s).value), F.sel);
+      v(F.n + ' : ' + (F.max + 300) + ' signes collés (clavier réel), le champ s’arrête à ' + F.max, l1 === F.max, l1);
+      // un de trop : refus avec phrase, RIEN d'enregistré
+      await fermer(); await F.ouvrir(); await pause(300); if (F.prep) await F.prep(); const s1 = await F.etat();
+      await p.evaluate(([s, val]) => window.__set(s, val), [F.sel, await p.evaluate(n => window.__u(n, 'K'), F.max + 1)]); await p.evaluate(() => { window.__t = []; }); await F.valider(); await pause(500);
+      const mKo = await msg(), sKo = await F.etat();
+      const phrase = F.phrase || new RegExp('limité à ' + F.max + ' signes');
+      v(F.n + ' : ' + (F.max + 1) + ' signes : refus avec phrase (' + phrase + ')', F.lib.test(mKo) && phrase.test(mKo) && (F.phrase || /rien n’a été enregistré/.test(mKo)), mKo.slice(0, 200));
+      v(F.n + ' : ' + (F.max + 1) + ' signes : rien d’enregistré', sKo === s1, [s1, sKo]); if (phrase.test(mKo) && sKo === s1) refus++;
+      // la limite exacte : enregistrée (APRÈS le refus : inviter une personne consomme une place, la démonstration en compte 8 au plus)
+      await fermer(); await F.ouvrir(); await pause(300); if (F.prep) await F.prep(); const s0 = await F.etat();
+      await p.evaluate(([s, val]) => window.__set(s, val), [F.sel, await p.evaluate(n => window.__u(n, 'K'), F.max)]); await p.evaluate(() => { window.__t = []; }); await F.valider(); await pause(500);
+      const mOk = await msg(), sOk = await F.etat();
+      v(F.n + ' : ' + F.max + ' signes (la limite) : enregistrés ENTIERS', sOk !== s0 && sOk.split('|').pop().split(',').includes(String(F.max)) && !/limité à|signes au plus/.test(mOk), [s0, sOk, mOk.slice(0, 100)]);
+      mesure[F.n] = { maxlength: at, collage: l1, limiteEnregistree: sOk !== s0, refus: phrase.test(mKo) && sKo === s1 ? 'refuse (phrase + rien enregistré)' : 'NON' };
+    }
+    console.log('  · mesure par champ :', JSON.stringify(mesure));
+    if (process.env.JSON_DIX) fs.writeFileSync(process.env.JSON_DIX, JSON.stringify(mesure, null, 1));
+    v('population : ' + DIX.length + ' champs libres joués, ' + vus + ' retrouvés à l’écran', vus === DIX.length, vus);
+    v('population : ' + DIX.length + ' refus avec phrase mesurés sur ' + DIX.length, refus === DIX.length, refus);
+  }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
