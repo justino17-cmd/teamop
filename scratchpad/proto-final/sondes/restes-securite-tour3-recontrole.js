@@ -151,7 +151,7 @@ const ACCES200 = 'Sonner à l’interphone « Jardins », code du portail 4821B 
     const aff = await p.evaluate(async () => { const orph = t => /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(t);
       const k = Object.keys(CLIENTS).find(x => x !== '__nv' && INTS.some(i => i.cli === x && i.st !== 'fait')); const i = INTS.find(o => o.cli === k && o.st !== 'fait'); if (!i) return { absent: true };
       const avant = i.titre; i.titre = 'a'.repeat(30) + '😀 chantier du port'; aller('client-x-' + k); ongletClient = 'histo'; rendre(); await new Promise(r => setTimeout(r, 700));
-      const txt = (document.getElementById('contenu') || document.body).textContent || ''; const m = txt.match(/a{30}.{0,2}…/); i.titre = avant; return { trouve: !!m, extrait: m && m[0], orphelin: m ? orph(m[0]) : null }; });
+      const txt = (document.getElementById('contenu') || document.body).textContent || ''; const m = txt.match(/a{30}.{0,2}(…| chantier du port)/);   /* tour 4 : depuis la fusion du jour le titre s'affiche ENTIER (la coupe est faite par la mise en page) : l'ellipse OU la fin du titre */ i.titre = avant; return { trouve: !!m, extrait: m && m[0], orphelin: m ? orph(m[0]) : null }; });
     console.log('  · prochain passage :', JSON.stringify(aff));
     L.v('D4. population : le titre à émoji est lu dans la fiche (« prochain passage »)', aff.trouve === true, aff);
     L.v('NOUVEAU D4. (défaut à noter) la coupe d’affichage du titre ne laisse pas de signe orphelin', aff.orphelin === false, aff);

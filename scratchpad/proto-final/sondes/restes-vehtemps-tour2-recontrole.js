@@ -52,6 +52,16 @@ async function parMenu(c, dest) {
         v(nom + 'menu · population : le menu a été touché (' + ok + ') et on est sur Temps de travail', ok && a.route === 'pointage', a);
         v(nom + 'menu · « Temps de travail » pris DANS le menu depuis la Paie rouvre « Aujourd’hui », comme depuis tout autre écran : ' + JSON.stringify(a), a.route === 'pointage' && /^Aujourd/.test(a.onglet), a);
         await L.capture(c, CAP + 'menu-' + tag + '.png'); v(nom + 'menu · aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c); }
+      // 3 bis. on revient par la BARRE « ‹ Retour · Temps de travail » (un clic, pas un retour du système) : l'onglet Mois est gardé, et un menu pris ensuite rouvre « Aujourd'hui »
+      { const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); const dedans = await versPaie(c, 'mois');
+        v(nom + 'barre · population : on est dans la Paie', dedans, await actif(c));
+        const ok = await L.toucher(c, '#contenu [data-retourva]'); await L.calme(c.p, 900); const a = await actif(c);
+        v(nom + 'barre · population : la barre « Revenir » a été touchée (' + ok + ')', ok === true, a);
+        v(nom + 'barre · « ‹ Revenir » ouvre Mois (' + JSON.stringify(a.onglet) + ')', a.route === 'pointage' && /^Mois/.test(a.onglet), a);
+        const drap = await ev(c, () => !!TT.viaPaie); v(nom + 'barre · le drapeau ne reste pas posé après la barre (' + drap + ')', drap === false, drap);
+        await ev(c, () => { aller('accueil'); }); await L.calme(c.p, 500); const ok2 = await parMenu(c, 'pointage'); const b = await actif(c);
+        v(nom + 'barre · puis « Temps de travail » pris par le menu rouvre « Aujourd’hui » (' + ok2 + ')', ok2 && b.route === 'pointage' && /^Aujourd/.test(b.onglet), b);
+        v(nom + 'barre · aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c); }
       // 4. depuis le Planning ou « Mes heures » : le drapeau ne doit PAS être posé, et un « Temps de travail » pris ensuite rouvre « Aujourd'hui »
       for (const dep of ['planning', 'accueil']) {
         const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, dep);
@@ -97,11 +107,12 @@ async function parMenu(c, dest) {
       v(nom + 'jamais les deux à la fois pour une personne (alerte ET ligne grise)', R.every(r => !(r.pt && r.enCours)) || true, R.filter(r => r.pt && r.enCours));
       // une personne avec un pointage la semaine d'avant, non validée : l'alerte paraît ; son lien ouvre ses heures ET la semaine est validable depuis là
       await ev(c, () => { const L0 = lundi(AUJ), Lp = ajoute(L0, -7); const k = 'sm'; POINTAGES.push({ qui:k, date:Lp, debut:'08:00', fin:'17:00', pause:60, id:'t2rc-' + Lp }); delete PT_VALIDE[k + Lp]; });
+      await ev(c, () => { const L0 = lundi(AUJ); POINTAGES.filter(o => o.qui === 'sm' && lundi(o.date) < ajoute(L0, -7)).forEach(o => { PT_VALIDE['sm' + lundi(o.date)] = true; }); });   // les semaines plus anciennes sont réglées : ne reste que la dernière (le texte « la semaine dernière »)
       const R2 = await ev(c, () => { const r = eqxRestes('sm'); return { pt:!!r.pt, enCours:!!r.ptEnCours }; });
       v(nom + 'sm : avec un pointage non validé la semaine d’avant → alerte (pt) vrai', R2.pt === true, R2);
       await ev(c, () => eqxDepart('sm')); await L.calme(c.p, 800);
       const T = net(await ev(c, () => (document.querySelector('#calque .panneau') || { innerText:'' }).innerText));
-      v(nom + 'la fenêtre de départ dit « Pointage de la semaine dernière pas encore validé » et propose « Ouvrir ses heures »', /Pointage de la semaine dernière pas encore validé/.test(T) && /Ouvrir ses heures/.test(T), T.slice(0, 300));
+      v(nom + 'la fenêtre de départ dit « Pointage de la semaine dernière pas encore validé » et propose « Ouvrir ses heures »', /Pointage de la semaine dernière pas encore validé/.test(T) && /Ouvrir ses heures/.test(T), T.replace(/^.*?Voir ce qui est proposé/, '').slice(0, 500));
       await L.capture(c, CAP + 'depart-pt-' + tag + '.png');
       const ouvert = await L.toucher(c, '#calque .panneau [data-eq^="heures|"]'); await L.calme(c.p, 900);
       const A = await actif(c), P = net(await ev(c, () => (document.querySelector('#calque .panneau') || { innerText:'' }).innerText));
@@ -111,10 +122,31 @@ async function parMenu(c, dest) {
       v(nom + 'le geste promis existe : une semaine finie qu’on peut valider depuis les heures de la personne (' + (val.length ? val.join(' | ') : 'aucun bouton « Valider… » vu') + '; semaine d’avant finie=' + lp + ')', lp === true && val.length >= 1, val);
       await L.capture(c, CAP + 'depart-heures-' + tag + '.png'); await L.ranger(c.p);
       // la ligne grise : une personne SANS pointage la semaine d'avant, semaine en cours non validée → ligne grise seule, pas d'alerte, et la fenêtre ne s'ouvre pas pour elle seule
-      await ev(c, () => { const L0 = lundi(AUJ), Lp = ajoute(L0, -7); for (let i = POINTAGES.length - 1; i >= 0; i--) if (POINTAGES[i].qui === 'sm' && lundi(POINTAGES[i].date) === Lp) POINTAGES.splice(i, 1); ['ints'].forEach(() => {}); INTS.forEach(i => { if (i.tech === 'sm' && i.st !== 'fait' && i.st !== 'annulee') i.st = 'annulee'; }); VEHICULES.forEach(x => { if (x.conducteur === 'sm') x.conducteur = ''; }); TACHES.forEach(t => { if (t.qui === 'sm') t.fait = true; }); });
+      await ev(c, () => { const L0 = lundi(AUJ), Lp = ajoute(L0, -7); for (let i = POINTAGES.length - 1; i >= 0; i--) if (POINTAGES[i].qui === 'sm' && lundi(POINTAGES[i].date) <= Lp) POINTAGES.splice(i, 1); ['ints'].forEach(() => {}); INTS.forEach(i => { if (i.tech === 'sm' && i.st !== 'fait' && i.st !== 'annulee') i.st = 'annulee'; }); VEHICULES.forEach(x => { if (x.conducteur === 'sm') x.conducteur = ''; }); TACHES.forEach(t => { if (t.qui === 'sm') t.fait = true; }); });
       const R3 = await ev(c, () => { const r = eqxRestes('sm'); return { pt:!!r.pt, enCours:!!r.ptEnCours, rien:!r.ints.length && !r.veh.length && !r.taches.length && !r.pt && !(r.cp && r.cp.reste > 0) }; });
       v(nom + 'population : sm sans rien d’autre à reprendre (' + JSON.stringify(R3) + ')', R3.pt === false, R3);
       v(nom + 'sans pointage la semaine d’avant : pas d’alerte, et la semaine en cours donne la ligne grise seule', R3.pt === false && R3.enCours === true, R3);
+      // (c) la ligne grise ne s'écrit que pour une personne qui a pointé CETTE semaine ; l'alerte dit TOUTES les semaines finies non validées et se résorbe une à une
+      { const Lx = await ev(c, () => { const L0 = lundi(AUJ); return [ajoute(L0, -21), ajoute(L0, -14), ajoute(L0, -7)]; });
+        const etat = () => ev(c, () => { const r = eqxRestes('sm'); return { n:r.pt ? r.pt.length : 0, enCours:!!r.ptEnCours }; });
+        const texte = async () => { await ev(c, () => { fermerPanneau(); eqxDepart('sm'); }); await L.calme(c.p, 700); return net(await ev(c, () => (document.querySelector('#calque .panneau') || { innerText:'' }).innerText)); };
+        const sansCetteSemaine = await ev(c, () => { const L0 = lundi(AUJ); for (let i = POINTAGES.length - 1; i >= 0; i--) if (POINTAGES[i].qui === 'sm' && lundi(POINTAGES[i].date) === L0) POINTAGES.splice(i, 1); delete PT_VALIDE['sm' + L0]; return POINTAGES.filter(o => o.qui === 'sm' && lundi(o.date) === L0).length; });
+        v(nom + 'population : sm n’a aucun pointage cette semaine (' + sansCetteSemaine + ')', sansCetteSemaine === 0, sansCetteSemaine);
+        const e0 = await etat(); v(nom + 'sm sans pointage cette semaine : pas de ligne grise (' + JSON.stringify(e0) + ')', e0.enCours === false, e0);
+        await ev(c, Lx => { Lx.forEach(L => { POINTAGES.push({ qui:'sm', date:L, debut:'08:00', fin:'17:00', pause:60, id:'t3-' + L }); delete PT_VALIDE['sm' + L]; }); }, Lx);
+        const e1 = await etat(), t1 = await texte();
+        v(nom + 'trois semaines finies non validées : l’alerte le dit (3), pas seulement la dernière (' + JSON.stringify(e1) + ')', e1.n === 3 && /Pointage de 3 semaines pas encore validé/.test(t1) && /Du \d+ \S+ au \d+ \S+/.test(t1) && !/semaine dernière pas encore/.test(t1), t1.slice(0, 400));
+        v(nom + 'toujours sans ligne grise dans la fenêtre (pas de pointage cette semaine)', !/Sa semaine en cours/.test(t1), t1.slice(0, 200));
+        await L.capture(c, CAP + 'depart-3sem-' + tag + '.png');
+        await ev(c, Lx => { PT_VALIDE['sm' + Lx[0]] = true; }, Lx); const e2 = await etat(), t2 = await texte();
+        v(nom + 'une semaine validée : l’alerte se résorbe (2) — ' + JSON.stringify(e2), e2.n === 2 && /Pointage de 2 semaines/.test(t2), t2.slice(0, 200));
+        await ev(c, Lx => { PT_VALIDE['sm' + Lx[1]] = true; }, Lx); const e3 = await etat(), t3 = await texte();
+        v(nom + 'deux validées : reste la dernière, dite « la semaine dernière » — ' + JSON.stringify(e3), e3.n === 1 && /Pointage de la semaine dernière pas encore validé/.test(t3), t3.slice(0, 200));
+        await ev(c, Lx => { PT_VALIDE['sm' + Lx[2]] = true; }, Lx); const e4 = await etat();
+        v(nom + 'toutes validées : plus d’alerte (' + JSON.stringify(e4) + ')', e4.n === 0, e4);
+        await ev(c, Lx => { fermerPanneau(); delete PT_VALIDE['sm' + Lx[2]]; const L0 = lundi(AUJ); POINTAGES.push({ qui:'sm', date:L0, debut:'08:00', fin:'12:00', pause:0, id:'t3-ec' }); }, Lx); const e5 = await etat(), t5 = await texte();
+        v(nom + 'sm a pointé cette semaine : la ligne grise paraît, avec l’alerte (' + JSON.stringify(e5) + ')', e5.enCours === true && /Sa semaine en cours se validera/.test(t5) && /semaine dernière pas encore validé/.test(t5), t5.slice(0, 400));
+        await L.capture(c, CAP + 'depart-grise-' + tag + '.png'); }
       v(nom + 'aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c);
     }
     /* ═══════════ (c bis) LA BOUCLE ENTIÈRE sur les données d'origine : alerte → « Ouvrir ses heures » → valider la semaine → plus d'alerte ═══════════ */
@@ -125,6 +157,7 @@ async function parMenu(c, dest) {
       v(nom + 'population : au moins une personne a l’alerte « semaine dernière » dans les données d’origine (' + (k || 'aucune') + ')', !!k, R);
       if (k) {
         const Lp = await ev(c, () => ajoute(lundi(AUJ), -7));
+        const R0n = await ev(c, k => eqxRestes(k).pt.length, k);
         await ev(c, k => eqxDepart(k), k); await L.calme(c.p, 800);
         await L.toucher(c, '#calque .panneau [data-eq^="heures|"]'); await L.calme(c.p, 900);
         const sem = await L.toucher(c, '#calque .panneau [data-tt^="sem|' + k + '|' + Lp + '"], #calque .panneau button:has-text("Semaine du ' + (await ev(c, d => jlong(d).split(' ').slice(1, 2).join(' ') + ' ' + jlong(d).split(' ')[2].slice(0, 4), Lp)) + '")'); await L.calme(c.p, 800);
@@ -136,8 +169,16 @@ async function parMenu(c, dest) {
           const t = net(await ev(c, () => (document.getElementById('toast') || { innerText:'' }).innerText));
           const ok = await ev(c, ([k, Lp]) => !!PT_VALIDE[k + Lp], [k, Lp]);
           v(nom + 'la semaine est validée (toast « ' + t + ' »)', ok === true, t);
-          const R2 = await ev(c, k => { const r = eqxRestes(k); return { pt:!!r.pt, enCours:!!r.ptEnCours }; }, k);
-          v(nom + 'l’alerte a disparu de la fenêtre de départ, la ligne grise reste : ' + JSON.stringify(R2), R2.pt === false, R2); }
+          const R2 = await ev(c, k => { const r = eqxRestes(k); return { n:r.pt ? r.pt.length : 0, pt:!!r.pt, enCours:!!r.ptEnCours }; }, k);
+          v(nom + 'la semaine validée sort de l’alerte, les autres restent à valider une à une (' + JSON.stringify(R2) + ')', R2.n === R0n - 1, R2);
+          // on valide les autres par le même geste, une semaine après l'autre : l'alerte se résorbe jusqu'à disparaître
+          let reste = R2.n, garde = 8; while (reste > 0 && garde-- > 0) {
+            const Lr = await ev(c, k => eqxRestes(k).pt[0], k); await ev(c, k => { fermerPanneau(); eqxDepart(k); }, k); await L.calme(c.p, 600);
+            await L.toucher(c, '#calque .panneau [data-eq^="heures|"]'); await L.calme(c.p, 800);
+            await L.toucher(c, '#calque .panneau [data-tt="sem|' + k + '|' + Lr + '"]'); await L.calme(c.p, 700);
+            await ev(c, () => { const b = [...document.querySelectorAll('#calque .panneau button')].find(b => /^Valider/.test(b.textContent.trim())); if (b) b.click(); }); await L.calme(c.p, 700);
+            const n2 = await ev(c, k => { const r = eqxRestes(k); return r.pt ? r.pt.length : 0; }, k); if (n2 >= reste) break; reste = n2; }
+          v(nom + 'toutes les semaines validées par le geste : l’alerte a disparu de la fenêtre de départ (reste ' + reste + ')', reste === 0, reste); }
       }
       v(nom + 'aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c);
     }

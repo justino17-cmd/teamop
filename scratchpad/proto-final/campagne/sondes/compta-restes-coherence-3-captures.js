@@ -11,6 +11,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8635c152-538b-540f-897d-db2367154ee
   await X.compta(c, 'tva'); await L.capture(c, CAP + tag + '-hote-tva.png');
   await p.evaluate(() => { const e = [...document.querySelectorAll('.carte')].find(x => /Crédit de TVA/.test(x.innerText)); if (e) e.scrollIntoView({ block: 'start' }); }); await p.waitForTimeout(400); await L.capture(c, CAP + tag + '-hote-tva-carte.png');
   await X.compta(c, 'ensemble'); await p.evaluate(() => { const e = [...document.querySelectorAll('.cx-af')].find(x => /Crédit de TVA/.test(x.innerText)); if (e) e.scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(400); await L.capture(c, CAP + tag + '-hote-afaire.png');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400); await p.evaluate(() => { try { location.hash = '#accueil'; } catch (e) {} }); await p.waitForTimeout(600);
   const f = await X.cadreCompta(c); L.v('le cadre est ouvert', !!f); await p.waitForTimeout(1200);
   const va = async (r, nom, haut) => { await f.evaluate(k => { UI.expert = false; try { aller(k); } catch (e) {} }, r); await p.waitForTimeout(900); if (haut) await f.evaluate(s => { const e = document.querySelector(s); if (e) e.scrollIntoView({ block: 'center' }); }, haut); await p.waitForTimeout(500); await L.capture(c, CAP + tag + '-' + nom + '.png'); };
   await f.evaluate(() => { try { toutTraiter(); rendre(); } catch (e) {} }); await p.waitForTimeout(900);
