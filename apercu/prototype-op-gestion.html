@@ -75,9 +75,11 @@ button{cursor:pointer}
 .menu .pied{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:10px;flex:none}
 .menu .m-liste{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px;overscroll-behavior:contain}
 /* un voile dit qu'il reste des lignes au-dessus ou en dessous (la colonne défile sans barre visible sur Mac) : posé par menuRepere() */
-.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
-.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 34px);mask-image:linear-gradient(transparent,#000 34px)}
-.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(transparent,#000 34px,#000 calc(100% - 34px),transparent)}
+.menu .m-liste.m-plus-bas{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
+.menu .m-liste.m-plus-haut{-webkit-mask-image:linear-gradient(transparent,#000 12px);mask-image:linear-gradient(transparent,#000 12px)}
+.menu .m-liste.m-plus-haut.m-plus-bas{-webkit-mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(transparent,#000 12px,#000 calc(100% - 12px),transparent)}   /* fondu de 12 px (34 avant) : une entrée dont la rangée est entièrement visible n'est plus grisée, seul ce qui se coupe s'estompe (regard gérant F, retouche 6) */
+.menu .m-liste.m-plus-haut.m-pile-haut{-webkit-mask-image:none;mask-image:none}
+.menu .m-liste.m-plus-haut.m-plus-bas.m-pile-haut{-webkit-mask-image:linear-gradient(#000 calc(100% - 12px),transparent);mask-image:linear-gradient(#000 calc(100% - 12px),transparent)}
 /* un écran bas (portable 1366×768, 1280×720) : la tête de la colonne se tasse pour laisser des lignes au menu. Le nom de la personne reste
    dans le pied (« Se déconnecter »), donc la carte « moi » n'est plus nécessaire ; à la souris, une ligne n'a pas besoin de 44 px */
 @media (min-width:761px) and (max-height:820px){
@@ -1079,6 +1081,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .rg-doc .d3-plan{aspect-ratio:4/3;background:#f3f5f9;border-color:#d5dbe7;margin-top:4px}
 .rg-doc .d3-z{background:#fff;border-color:#cbd3e2}.rg-doc .d3-z i{color:#4a5672}
 .rg-doc .d3-box{cursor:default}
+@media (max-width:760px){.rg-doc .d3-plan{aspect-ratio:3/4}}   /* le plan de l'aperçu reprend le 3/4 de la page sur téléphone : en 4/3 réduit à ~280 px les pastilles (28 px) tombaient sur « Cuisine », « Réserve », « Cour » (regard gérant F, retouche 1) */
 .rg-doc .d3-leg{color:#4a5672}
 @media (max-width:760px){
   .rg-th{display:none}
@@ -1243,6 +1246,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
   .dx-barre .dx-tot b{font-size:18px;font-weight:750}
   .dx-barre .dx-tot small{color:var(--doux);font-size:12.5px;line-height:1.25}
   .dx-barre .btn{flex:none;min-height:48px;max-width:46%;white-space:normal;line-height:1.15;padding:0 16px}
+  @media (max-width:380px){.dx-barre{gap:8px;padding:10px}.dx-barre .btn{padding:0 12px;max-width:54%}}   /* à 320 et 360 px « Créer le devis » passait sur deux lignes ; le prix garde sa place (regard gérant F, retouche 3) */
   .dx-v .xy-r .dx-creer-carte{display:none}
 }
 
@@ -1701,8 +1705,8 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 @media (max-width:760px){.ach-l{flex-wrap:wrap;gap:8px 10px}.ach-l .fo-n{flex:1 1 calc(100% - 34px)}.ach-ech{margin-left:30px;flex:1}.ach-vir{flex-direction:column;align-items:stretch;bottom:calc(84px + env(safe-area-inset-bottom,0px))}.ach-bar{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.ach-bar .ach-jauge{grid-column:1 / -1;grid-row:2}.ach-n{flex-wrap:wrap}.ach-na{width:100%;justify-content:flex-start;padding-left:40px}}
 .d3-info{font-size:14px}.d3-cli{flex-wrap:wrap;align-self:flex-start}
 .d3-cli button{flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;line-height:1.2;padding-top:6px;padding-bottom:6px}   /* un nom de site de 60 signes sortait de la pastille et se coupait à droite à 320 px (regard gérant F) */
-.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}
-.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:34px;height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
+.d3-histo{display:flex;gap:14px;align-items:flex-end;min-height:150px;overflow-x:auto}   /* les colonnes se partagent la carte : trois barres ne restent plus serrées à gauche d'une carte de 1 100 px (regard gérant F, retouche 4) */
+.d3-h{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1 1 64px;min-width:64px}.d3-hb{display:flex;align-items:flex-end;width:clamp(34px,45%,72px);height:110px;border-radius:10px;background:var(--surf2);overflow:hidden}.d3-hb i{display:block;width:100%;border-radius:10px 10px 0 0}
 .ve-u[data-d3^="voir|"]>.st{flex:none;min-width:88px;justify-content:center}   /* « Forte » (60 px) et « Moyenne » (80 px) décalaient le titre de chaque passage (regard gérant F) */
 .d3-v{background:var(--vert)}.d3-o{background:var(--orange)}.d3-r{background:var(--rouge)}.d3-g{background:var(--doux)}
 .d3-reco{align-items:flex-start;padding:8px 0;border-top:1px solid var(--trait)}.d3-reco:first-of-type{border-top:0}.d3-reco input{margin-top:2px;flex:none}
@@ -1725,7 +1729,7 @@ button.fo-l{cursor:pointer}.fo-bloc>.fo-l:last-child,.fo-bloc>.fo-r:last-child{b
 .xy-r{display:flex;flex-direction:column;gap:2px;position:sticky;top:14px}.xy-r .ligne span{font-size:14px}.xy-t b,.xy-t span{font-weight:750}.xy-r .btn{margin-top:12px}
 @media (max-width:1080px){.d3-carte-g,.xy-g{grid-template-columns:minmax(0,1fr)}.xy-r{position:static}}   /* « 1fr » = minmax(auto,1fr) : le relevé en cours, dont un bouton ne se coupait pas, poussait toute la carte 13 px hors d'un écran de 360 (regard gérant F) */
 @media (max-width:760px){.d3-tr{grid-template-columns:62px minmax(0,1fr) auto;gap:2px 10px}.d3-tr>span:nth-child(3),.d3-tr>span:nth-child(4),.d3-tr>span:nth-child(5){grid-column:2;font-size:12.5px;color:var(--doux)}.d3-tr>span:nth-child(3)::before{content:'Type : '}.d3-tr>span:nth-child(4)::before{content:'N° d’AMM : '}.d3-tr>span:nth-child(5)::before{content:'Lot '}.d3-tr>span:nth-child(6){grid-column:3;grid-row:1}
-  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
+  .d3-th{display:none}.d3-lien{flex-wrap:wrap}.d3-lien .btn{width:100%}.d3-lien>.actions{flex:1 1 100%}.d3-box{width:28px;height:28px}.d3-plan{aspect-ratio:3/4}.d3-histo{gap:8px}.d3-h{flex-basis:52px;min-width:52px}.d3-sl{flex-wrap:wrap}.d3-sl select{max-width:100%;width:100%}}
 .t-ctx [data-taller]{font-weight:650}
 /* ══ Comptabilité (7 novembre 2026) : une catégorie, six rubriques ══ */
 .cx-nav{display:flex;gap:4px;padding:4px;border-radius:15px;background:var(--surf-in);border:1px solid var(--trait);overflow-x:auto;scrollbar-width:none}
@@ -2643,6 +2647,7 @@ button.st-barre-l{display:block;width:100%;border:0;background:none;padding:6px 
   #contenu .tete .actions:has(> .ctr-choix){max-width:none}
 }
 .doc-barre{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.doc-barre+.actions{justify-content:center}   /* « Fermer » sous la barre de trois boutons centrés : centré comme elle, pas seul à gauche (regard gérant F, retouche 2) */
 .mail-pj{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--surf-in);border:1px solid var(--trait)}.mail-pj>span:last-child{display:flex;flex-direction:column}.mail-pj small{color:var(--faible)}
 .mail-pj-i{width:38px;height:46px;border-radius:7px;background:#b0263c;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none}
 #ml-m{min-height:200px;font:inherit;font-size:16px;line-height:1.5}   /* 16 px : sous cette taille un iPhone zoome toute la page au toucher (devis-atelier-12) */
@@ -12853,7 +12858,10 @@ function menu(base){ return rlMenu(base, true); }
    qu'on venait de toucher sortait de la vue (sur un portable on ne voit que 8 lignes sur 19). On relève le défilement AVANT, on le remet APRÈS
    la dernière écriture du menu, puis on rentre la ligne courante dans la colonne (à la main : scrollIntoView ferait défiler la page aussi). */
 function menuRepere(l){ l = l || document.querySelector('#menu .m-liste'); if (!l) return; const reste = l.scrollHeight - l.clientHeight;
-  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); }
+  /* en haut, une rangée qui tombe pile contre le bord n'est pas coupée : elle reste lisible, le fondu ne la grise pas (m-pile-haut le retire ; le repère « il en reste » reste posé, c'est lui que les autres contrôles lisent) — regard gérant F, retouche 6 */
+  const m = l.getBoundingClientRect(); let pileHaut = false;
+  for (const e of l.children) { if (Math.abs(e.getBoundingClientRect().top - m.top) < 1.5) { pileHaut = true; break; } }
+  l.classList.toggle('m-plus-bas', reste > 4 && l.scrollTop < reste - 4); l.classList.toggle('m-plus-haut', l.scrollTop > 4); l.classList.toggle('m-pile-haut', pileHaut); }
 function menuGarderPlace(haut){ const l = document.querySelector('#menu .m-liste'); if (!l) return; l.scrollTop = haut;
   const a = l.querySelector('a.on'); if (a) { const r = a.getBoundingClientRect(), m = l.getBoundingClientRect(); if (r.top < m.top) l.scrollTop -= m.top - r.top + 8; else if (r.bottom > m.bottom) l.scrollTop += r.bottom - m.bottom + 8; }
   /* et le GROUPE de la ligne courante se montre en entier quand il tient : « Stock » seul au bas de la colonne cachait « Dépôts et camions » et « Fournisseurs » sous le pied (iPad, 1180 px) */
@@ -21972,10 +21980,10 @@ function rgVue(){
   const tech = ROLE === 'tech';
   let ks = Object.keys(D3_CLI);
   /* aucun site suivi (l'entreprise vient de prendre le métier) : un tableau vide sous « Rien d'urgent : tous les sites sont à jour » disait faux, et « Saisir un passage » n'avait aucun site où écrire (regard gérant F) */
-  if (!tech && !ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations.</div>`;
+  if (!tech && !ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, son site paraît ici, avec ses passages, les produits posés et les recommandations. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;   /* le geste qui mène au remplissage (regard gérant F, retouche 5) */
   if (tech) {
     ks = rgSitesTech();
-    if (!ks.length) return rgTete('') + `<div class="carte gris">Aucun site au registre sur ta journée. Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</div>`;
+    if (!ks.length) return rgTete('') + `<div class="carte ms-vide" data-vide="registre-tech"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre sur ta journée</b><span class="gris">Quand une intervention d’un client suivi au registre t’est confiée, tu relèves les box ici, ou depuis « Ma journée ».</span><span class="ms-vb"><button type="button" class="btn" data-go="majournee">Voir ma journée</button></span></div>`;
     rgTous = false; if (!ks.includes(d3Cli)) d3Cli = ks[0];
   }
   return rgTous ? rgVueTous(ks) : rgVueSite(ks, tech);
@@ -22467,7 +22475,7 @@ function cbTypeChoix(){
 /* ─ la vue ─ */
 function vueCarteBox(){
   /* aucun site : la carte n'a rien à montrer (elle jetait une erreur sur le nom du site) */
-  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte gris">Aucun site au registre pour l’instant. Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici.</div>`;
+  if (!Object.keys(D3_CLI).length) return `<div class="tete"><div><span class="surtitre">Hygiène anti-nuisibles (3D)</span><h1>Carte des box</h1><span class="gris">Où sont les box chez le client, et ce qui s’y passe.</span></div></div><div class="carte ms-vide" data-vide="carte"><span class="ms-vic">${svg('registre')}</span><b>Aucun site au registre pour l’instant</b><span class="gris">Quand un client est suivi au registre sanitaire, le plan de ses box paraît ici. Pour commencer, ouvre un client.</span><span class="ms-vb"><button type="button" class="btn" data-go="clients">Voir mes clients</button></span></div>`;
   if (param && /^t\d\.P\d+$/.test(param)) { const [k, id] = param.split('.'); if (D3_CLI[k] && D3_POSTES[k].some(p => p.id === id && p.actif)) { d3Cli = k; cbReleveDebut(k, id); cbFiltre = 'tout'; cbZone = ''; } param = null; histRemplacer('#carteBox'); }
   const c = d3Cli, P = cbPostes(c), der = d3Dernier(c), D = D3_CLI[c], pro = rgProchain(c).d, act = d3Activite(der), sel = d3Sel && P.find(p => p.id === d3Sel), R = cbReleve && cbReleve.cli === c ? cbReleve : null, ro = cbRO();
   const att = P.filter(p => ['r', 'o', 'g'].includes(cbCl(cbAff(c, p)))), neuves = P.filter(p => cbEtat(c, p.id) == null).length;
