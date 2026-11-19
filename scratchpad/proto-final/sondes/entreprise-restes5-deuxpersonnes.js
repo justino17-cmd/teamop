@@ -13,7 +13,7 @@ async function jouer(nom, qui2, appareil, nuit) {
   await p.evaluate(D.INJECTER, { k:'zb', prenom:'Basile', nom:'Bis', pd:'secr', terrain:false, cases:cases({ ...FERMEES, com:'1110' }) });
   await p.evaluate(D.INJECTER, { k:'za', prenom:'Aline', nom:'Alpha', pd:'secr', terrain:false, cases:cases({ ...FERMEES, com:'1110', planif:'1110' }) }); await L.calme(p, 600);
   await L.aller(p, 'boiteMail'); await L.calme(p, 3000);
-  const r = await p.evaluate(async (qui2) => { const o = [...document.querySelectorAll('*')].find(e => e.shadowRoot).shadowRoot; let cible = null;
+  let r = await p.evaluate(async (qui2) => { const o = [...document.querySelectorAll('*')].find(e => e.shadowRoot).shadowRoot; let cible = null;
     for (const m of o.querySelectorAll('.msg[data-id]')) { m.click(); await new Promise(z => setTimeout(z, 200)); if (o.querySelector('.hacts [data-hote^="ml:creneau"]')) { cible = m.getAttribute('data-id'); break; } }
     if (!cible) return { cible:null };
     o.querySelector('.hacts [data-hote^="ml:creneau"]').click(); await new Promise(z => setTimeout(z, 900));
@@ -28,13 +28,15 @@ async function jouer(nom, qui2, appareil, nuit) {
     sessionOuvrir(qui2); await new Promise(z => setTimeout(z, 600)); const qB = acteur();
     try { courrierAgir('mbx:confcren|' + rep.id, { id:rep.id }); } catch (e) { return { cible, erreur:String(e) }; }
     await new Promise(z => setTimeout(z, 500));
-    const apB = opt(), toastB = toast(), creaB = typeof CREA !== 'undefined' && !!CREA;
+    window.__rep = rep.id; return { cible, av, tenus, qA, qB, apB:opt(), toastB:toast(), creaB:typeof CREA !== 'undefined' && !!CREA }; }, qui2);
+  // la capture se prend ICI, avec le toast de B à l'écran (la fenêtre « Nouvelle intervention » ouverte derrière) : on REGARDE ce que B lit
+  try { require('fs').mkdirSync(CAP, { recursive:true }); await L.capture(c, CAP + 'deux-personnes-B-' + (appareil || 'mac') + (nuit ? '-nuit' : '') + '.png', false); } catch (e) {}
+  const r2 = await p.evaluate(async () => { const opt = () => BUREAU.filter(b => b.option).length, toast = () => { const t = document.getElementById('toast'); return t ? t.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : ''; };
     if (typeof CREA !== 'undefined' && CREA) { try { fermerCreation(); } catch (e) { try { CREA = null; } catch (f) {} } }
     sessionOuvrir('za'); await new Promise(z => setTimeout(z, 600));
-    try { courrierAgir('mbx:confcren|' + rep.id, { id:rep.id }); } catch (e) { return { cible, erreur:String(e) }; }
-    await new Promise(z => setTimeout(z, 500));
-    return { cible, av, tenus, qA, qB, apB, toastB, creaB, apA:opt(), toastA:toast() }; }, qui2);
-  try { require('fs').mkdirSync(CAP, { recursive:true }); await L.capture(c, CAP + 'deux-personnes-' + (appareil || 'mac') + (nuit ? '-nuit' : '') + '.png', false); } catch (e) {}
+    try { courrierAgir('mbx:confcren|' + window.__rep, { id:window.__rep }); } catch (e) { return { erreur:String(e) }; }
+    await new Promise(z => setTimeout(z, 500)); return { apA:opt(), toastA:toast() }; });
+  Object.assign(r, r2);
   console.log('  mesure :', JSON.stringify(r));
   v(`${nom} : population (message de créneau, réponse du client, deux personnes distinctes)`, !!r.cible && !r.sansCompose && !r.sansReponse && !r.erreur && r.qA !== r.qB && r.qB && r.av === 3, r);
   v(`${nom} : B (sans la case Planning) ne retire aucune option d'A (${r.av} → ${r.apB})`, r.apB === 3, r);
