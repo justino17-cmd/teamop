@@ -69,6 +69,9 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,champs,marque').split(',');
     const ids = ['tk-t', 'pr-nom', 't-nom', 'pa-lib', 'ml-o'], man = ids.filter(i => !new RegExp("nfc\\(document\\.getElementById\\('" + i + "'\\)\\.value\\)").test(page));
     v('N5 code : tk-t, pr-nom, t-nom, pa-lib, ml-o sont lus par nfc(…) (5 sur 5)', man.length === 0, man);
     v('N5 code : l’objet du devis (dvnLire) et le titre de la création (CREA) passent par nfc', /f\.objet = nfc\(o\)/.test(page) && /CREA\[t\.dataset\.cchamp\] = nfc\(texteNet/.test(page), 'dvnLire / CREA');
+    // beforeinput : seules la frappe, le collage et le glisser sont pris (code lu) ; remplacement/composition passent par « input » (mesuré par A4 de la sonde recontrole-a : méthode de saisie CDP)
+    const bi = page.slice(page.indexOf("document.addEventListener('beforeinput'"), page.indexOf("document.addEventListener('input', e => { if (!e.isTrusted)")).replace(/\/\*[\s\S]*?\*\//g, '');
+    v('B6 code : le beforeinput ne vise que insertText, insertFromPaste, insertFromDrop (ni remplacement, ni composition)', /\^\(insertText\|insertFromPaste\|insertFromDrop\)\$/.test(bi) && !/insertReplacementText|insertCompositionText/.test(bi), 'beforeinput');
     v('N5 aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
   }

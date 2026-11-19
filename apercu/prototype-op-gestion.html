@@ -10815,7 +10815,7 @@ function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt
   const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
 document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t);
   /* frappe, collage, glisser seulement : l'autocorrection iOS (insertReplacementText) et la composition visent une plage que seul getTargetRanges() connaît — elles passent par l'écouteur « input » ci-dessous, qui recoupe la valeur finie */
-  if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText' || e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
+  if (!m || !/^(insertText|insertFromPaste|insertFromDrop)$/.test(e.inputType || '')) return;
   let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
   let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
   const av = t.value.slice(0, a), ap = t.value.slice(b); if (nbSignes(av + ap) > m) return;
