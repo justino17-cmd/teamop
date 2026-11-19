@@ -4453,8 +4453,9 @@ var MARKUP = `
     histSync(); });
   // retour sur la Boîte mail (menu, raccourci, Retour) avec un message encore ouvert : son niveau d'historique se repose, pour que « Retour » le ferme au lieu de quitter la rubrique
   sur(window,"hashchange",function(){ if(!vivant||HIST.off||HIST.hash===null) return;
-    // un MENU ouvert ne survit pas au départ de la Boîte mail (c'est une couche passagère : le message en cours, lui, est gardé — décision du 19/11) ; sans cela on le retrouvait ouvert au retour
-    if(location.hash!==HIST.hash){ var o=$("#overlay"); if(o&&o.classList.contains("ov-menu")) closeOverlay(); return; }
+    // une couche passagère ne survit pas au départ de la Boîte mail — un MENU, l'APERÇU d'un PDF, la feuille « Ajouter une boîte mail » (règle « Retour ou départ ferme la couche du dessus ») ; sans cela on la retrouvait ouverte au retour.
+    // Le message en cours d'écriture, lui, est gardé (décision du 19/11) : seul son aperçu part, jamais la feuille du message.
+    if(location.hash!==HIST.hash){ if(pdfv) fermerApercu(); var o=$("#overlay"); if(o&&(o.classList.contains("ov-menu")||o.querySelector(".sheet.acct"))) closeOverlay(); return; }
     if(HIST.niv<histCible()) histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 

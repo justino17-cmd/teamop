@@ -5271,7 +5271,7 @@ function panneauModifier(id){
   <label class="champ">Ce qu’il faut faire<input id="m-titre" maxlength="120" value="${esc(i.titre)}"></label>
   <label class="champ">Type<select id="m-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option ${x===i.type?'selected':''}>${x}</option>`).join('')}</select></label>
   ${champsQuand(i.tech, i.d, i.h, i.dur)}
-  <label class="champ">Ce que le client a dit<textarea id="m-motif">${esc(i.motif||'')}</textarea></label>
+  <label class="champ">Ce que le client a dit<textarea id="m-motif" maxlength="600">${esc(i.motif||'')}</textarea></label>
   <button type="button" class="btn large" data-action="modifierOk" data-id="${id}">Enregistrer</button>`);
 }
 function panneauDate(id){
@@ -5285,7 +5285,7 @@ function panneauCreer(tid, d, h){
   <label class="champ">Ce qu’il faut faire<input id="n-titre" maxlength="120" placeholder="ex. entretien climatisation"></label>
   <label class="champ">Type<select id="n-type">${['Dépannage','Entretien','Installation','Mise en service','Contrat','2ᵉ passage'].map(x=>`<option>${x}</option>`).join('')}</select></label>
   ${champsQuand(tid ?? '', d || plRef, h || '09:00', 60)}
-  <label class="champ">Ce que le client a dit (le technicien le lira)<textarea id="n-motif" placeholder="ex. la clim fait du bruit depuis ce matin"></textarea></label>
+  <label class="champ">Ce que le client a dit (le technicien le lira)<textarea id="n-motif" maxlength="600" placeholder="ex. la clim fait du bruit depuis ce matin"></textarea></label>
   <button type="button" class="btn large" data-action="creerOk">Créer et placer au planning</button>`);
   setTimeout(() => document.getElementById('n-titre')?.focus(), 60);
 }
@@ -6272,7 +6272,7 @@ function panneauEnvoi(o){
   ouvrirPanneau(`<h2>${esc(o.titre || 'Envoyer par e-mail')}</h2><span class="gris">Le message part de l’adresse de ${ENTREPRISE.nom} (${ENTREPRISE.mail}).</span>
     <label class="champ">À<input id="ml-a" type="email" value="${esc(o.a || '')}" placeholder="adresse@exemple.fr"></label>
     <label class="champ">Objet<input id="ml-o" maxlength="200" value="${esc(o.objet || '')}"></label>
-    <label class="champ">Message<textarea id="ml-m" rows="9">${esc(o.corps || '')}</textarea></label>
+    <label class="champ">Message<textarea id="ml-m" rows="9" maxlength="5000">${esc(o.corps || '')}</textarea></label>
     ${pj}
     <div class="actions"><button type="button" class="btn" data-mailenvoi="1">Envoyer</button><button type="button" class="btn gris" data-ferme="1">Annuler</button></div>`, o.large);
   panneauEnvoi.courant = o;
@@ -6282,7 +6282,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.mailenvoi) {
     const a = document.getElementById('ml-a').value.trim(), o = panneauEnvoi.courant || {};
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
-    { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { return champRefus('ml-o', pl); } }
+    { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { return champRefus('ml-o', pl); } } { const mz = document.getElementById('ml-m'), pl = mz ? refusTexte(mz.value, COURRIEL_MAX, 'Message') : ''; if (pl) { return champRefus('ml-m', pl); } }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
     ENVOIS.push({ a, objet:nfc(document.getElementById('ml-o').value), quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
     toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
@@ -7216,7 +7216,7 @@ function tPanneau(x){
     <div class="t-racc"><span class="gris petit">${neuf ? 'Vite :' : 'Reporter :'}</span>${raccourcis.map(([l, n]) => `<button type="button" class="puce-c" data-tracc="${jour(n)}">${l}</button>`).join('')}<button type="button" class="puce-c" data-tracc="">Sans date</button></div>
     <label class="champ">Sujet<select id="tk-cat">${T_CATS.map(([k, l, ic]) => `<option value="${k}" ${tCat(x) === k ? 'selected' : ''}>${ic} ${l}</option>`).join('')}</select></label>
     <label class="case"><input type="checkbox" id="tk-u" ${x.urgent ? 'checked' : ''}> Urgent</label>
-    <label class="champ">Note (facultatif)<textarea id="tk-n" rows="3">${esc(x.note || '')}</textarea></label>
+    <label class="champ">Note (facultatif)<textarea id="tk-n" rows="3" maxlength="600">${esc(x.note || '')}</textarea></label>
     <details class="t-cmd-ed" ${x.type === 'commande' ? 'open' : ''}><summary>Commande de pièces</summary>
       <div class="t-pieces">${(x.pieces && x.pieces.length ? x.pieces : [{ nom:'', ref:'', q:1 }]).map(pc => `<div class="t-piece"><input class="saisie tp-nom" placeholder="Pièce" value="${esc(pc.nom)}"><input class="saisie tp-ref" placeholder="Réf." value="${esc(pc.ref || '')}"><input class="saisie tp-q" inputmode="decimal" autocomplete="off" value="${esc(String(pc.q).replace('.', ','))}" aria-label="Quantité"></div>`).join('')}</div>
       <button type="button" class="lien" data-tpiece="1">＋ Ajouter une pièce</button>
@@ -7260,7 +7260,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tlien) { const x = TACHES.find(o => o.id === b.dataset.tlien); if (x && x.lien) { fermerPanneau(); apercuElement(x.lien.t, x.lien.id); } return; }
   if (b.dataset.tracc !== undefined) { const i = document.getElementById('tk-d'); i.value = b.dataset.tracc; i.dispatchEvent(new Event('change', { bubbles:true })); if (typeof dtPeindre === 'function') dtPeindre(i); document.querySelectorAll('[data-tracc]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if (b.dataset.tok !== undefined) {
-    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('tk-t', pl); } } const t = nfc(document.getElementById('tk-t').value).trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
+    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('tk-t', pl); } } { const pl = refusTexte(document.getElementById('tk-n').value, NOTE_MAX, 'Note'); if (pl) { return champRefus('tk-n', pl); } } const t = nfc(document.getElementById('tk-t').value).trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
     const v = { t, qui:document.getElementById('tk-qui').value, d:document.getElementById('tk-d').value || null, h:document.getElementById('tk-h').value || null, urgent:document.getElementById('tk-u').checked, cat:document.getElementById('tk-cat').value, rep:document.getElementById('tk-rep').value || null, note:document.getElementById('tk-n').value.trim() };
     const pieces = [...document.querySelectorAll('.t-piece')].map(r => ({ nom:r.querySelector('.tp-nom').value.trim(), ref:r.querySelector('.tp-ref').value.trim(), q:tpQte(r.querySelector('.tp-q').value) })).filter(pc => pc.nom);
     /* une quantité qu'on ne sait pas lire est refusée avec une phrase : un champ « number » avalait la virgule (« 1,5 » devenait 15 pièces) et l'ancienne lecture devinait 1 pour tout le reste */
@@ -9113,7 +9113,7 @@ function vues(){ return { securite:vueSecurite, accueil:vueAccueil, mesheures:vu
 const routeConnue = r => Object.hasOwn(vues(), r) || CAT_LIGNES.some(c => c.k === r);
 function rendre(){
   document.getElementById('cr-ftel')?.remove();
-  if (!routeConnue(route)) { const o = rlOuverture(); toast('Cette page n’existe pas.'); route = o; param = null; try { history.replaceState(null, '', '#' + o); } catch (e) {} }
+  if (!routeConnue(route)) { const o = rlOuverture(); toast('Cette page n’existe pas.'); route = o; param = null; try { history.replaceState(navEtatGarder(), '', '#' + o); } catch (e) {} }
   const V = vues();
   const base = BASE[route] || route, x = scrollX, defs = [...document.querySelectorAll('.pl-defile')].map(d => d.scrollLeft);
   document.getElementById('menu').innerHTML = menu(base);
@@ -9140,14 +9140,19 @@ function placerPops(){
 function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
   if (calAvantAller(() => aller(h))) return; if (h !== route + (param ? '-x-' + param : '')) { try { releveOublier(); } catch (e) {} } fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 /* un lien d'adresse touché (menu latéral, lien #…) change l'adresse SANS passer par aller() : cpProg est vide comme pour un retour ; le clic, lui, ne se confond pas avec un retour (qui n'en est pas un) */
-var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a[href^="#"]')) navClic = Date.now(); }, true);
+/* ⛔ Retour du SYSTÈME ou clic ? Pas par une minuterie (un retour donné moins de 700 ms après un clic d'ancre passait pour une navigation du menu, R4 du tour 3) mais par l'ÉTAT d'historique : chaque entrée que la page a rendue porte {nav:1} (posé juste après, par lireHash).
+   Un changement d'adresse qui arrive sur une entrée DÉJÀ marquée est un retour ou une avance (le navigateur y revient) ; sur une entrée sans marque (lien touché, adresse tapée), c'est une entrée neuve : navigation du menu. */
+function navEtatVu(){ try { return !!(history.state && history.state.nav); } catch (e) { return false; } }
+function navEtatMarquer(){ try { history.replaceState(Object.assign({}, history.state, { nav:1 }), '', location.href); } catch (e) {} }
+function navEtatGarder(){ return navEtatVu() ? { nav:1 } : null; }   /* un replaceState qui réécrit l'adresse de l'entrée courante garde sa marque */
 function lireHash(){
   const h = (location.hash || '#accueil').slice(1), [r, p] = h.split('-x-'), ici = route + (param ? '-x-' + param : '');
   /* l'adresse a changé sans passer par aller() (retour du navigateur ou du téléphone, adresse tapée) alors que « Infos » porte une saisie non enregistrée : on remet l'adresse de la fiche, puis on demande (clients-15, recontrôle) */
   /* ⚠️ l'historique n'est PAS touché tant que la personne n'a pas choisi : réécrire l'entrée où le retour a posé le navigateur (« Devis ») en « fiche » faisait revenir le retour suivant sur la fiche abandonnée (clients, restes tour 3). « Abandonner » rejoue lireHash() sur l'adresse DÉJÀ posée ; « Continuer » rouvre une entrée de fiche (cliAdresseRendre). */
   if (route === 'client' && h !== ici && cliInfosRetenir(() => lireHash(), true)) return;
   /* un changement d'adresse que ni aller() ni la barre n'ont demandé (cpProg vide) est le retour ou l'avance du SYSTÈME : seul celui-là garde la vue de Temps de travail (ttVue) ; un chemin par le menu efface le drapeau « Voir la paie » */
-  try { TT.sys = cpProg === null && Date.now() - navClic > 700; if (!TT.sys) TT.viaPaie = TT.viaPaie === 'neuf'; } catch (e) {}   /* TT n'existe pas encore au premier chargement */
+  try { TT.sys = cpProg === null && navEtatVu(); if (!TT.sys) TT.viaPaie = TT.viaPaie === 'neuf'; } catch (e) {}   /* TT n'existe pas encore au premier chargement */
+  navEtatMarquer();
   calApresNavigation();
   // le chemin parcouru, tenu par la page : l'historique du navigateur ne répond pas dans toutes les fenêtres (artefact, iframe)
   if (enRetour) enRetour = false; else if (ici !== h && lireHash.deja) histo.push(ici);
@@ -9405,7 +9410,7 @@ const ACTIONS = {
     rendre(); toast('Remboursement noté : ' + eur(f.recu) + ' rendus à ' + CLIENTS[f.cli].nom + '.'); },
   nouvelleFacture(){ toast('Dans la vraie version : une facture à la main, sans intervention (vente de pièce, acompte…).'); },
   dateOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; fermerPanneau(); poser(i, q.tid, q.d, q.h, q.dur); },
-  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('n-titre', pl); } } const q = lireQuand(), titre = nfc(document.getElementById('n-titre').value).trim() || 'Nouvelle intervention';
+  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('n-titre', pl); } } { const pl = refusTexte(document.getElementById('n-motif').value, MOTIF_MAX, 'Ce que le client a dit'); if (pl) { return champRefus('n-motif', pl); } } const q = lireQuand(), titre = nfc(document.getElementById('n-titre').value).trim() || 'Nouvelle intervention';
     if (refusAbsent(q.tid, q.d, q.h)) return;
     memo(); const i = { id:'n' + Math.random().toString(36).slice(2,8), d:q.d, h:q.h, dur:q.dur, tech:q.tid, cli:document.getElementById('n-cli').value, titre, type:document.getElementById('n-type').value, st:q.tid ? 'planifiee' : 'aplanifier', motif:document.getElementById('n-motif').value.trim() || undefined };
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
@@ -9517,7 +9522,7 @@ const ACTIONS = {
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st === 'annulee') return toast(ANNULEE_REFUS); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
   copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
-  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('m-titre', pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = nfc(document.getElementById('m-titre').value).trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
+  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { return champRefus('m-titre', pl); } } { const pl = refusTexte(document.getElementById('m-motif').value, MOTIF_MAX, 'Ce que le client a dit'); if (pl) { return champRefus('m-motif', pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = nfc(document.getElementById('m-titre').value).trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
 /* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
@@ -10860,18 +10865,23 @@ const maxChamp = e => { const m = e && e.getAttribute && parseInt(e.getAttribute
 const ri = ch => /^[\u{1F1E6}-\u{1F1FF}]$/u.test(ch);
 function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt(t.length - 1) >= 0xd800 && t.charCodeAt(t.length - 1) <= 0xdbff; if (lastHi) t = t.slice(0, -1);
   const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
+/* UNITÉS UTF-16 : un signe combinant collé derrière un signe plein ne coûte aucune place (« tient » compte des signes) — 5 000 U+0301 collés à 120/120 s'enregistraient (tour 5 bis, C2). Le plafond borne donc AUSSI les unités : quatre par signe de plafond (un drapeau ou une famille d'émojis en pèse jusqu'à 11, un « é » décomposé 2) */
+const unitesMax = m => m * 4;
+const coupeUnites = (t, n) => { t = String(t); if (t.length <= n) return t; let r = ''; for (const g of graphemes(t)) { if (r.length + g.length > n) break; r += g; } return r; };
 document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t);
+  /* R1 : la valeur d'AVANT tenait-elle dans le plafond ? Une fiche déjà plus longue (posée par le code, ou une ancienne donnée) ne se recoupe ni à Ctrl+Z ni à Ctrl+V : seul un champ qui tenait peut être recoupé (tour 5 bis, R1) */
+  if (m) { try { t._tenait = nbSignes(t.value) <= m && t.value.length <= unitesMax(m); } catch (x) {} }
   /* frappe, collage, glisser seulement : l'autocorrection iOS (insertReplacementText) et la composition visent une plage que seul getTargetRanges() connaît — elles passent par l'écouteur « input » ci-dessous, qui recoupe la valeur finie */
   if (!m || !/^(insertText|insertFromPaste|insertFromDrop)$/.test(e.inputType || '')) return;
   let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
   let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
   const av = t.value.slice(0, a), ap = t.value.slice(b); if (nbSignes(av + ap) > m) return;
   /* « tient » se décide sur le TEXTE ENTIER, pas par soustraction : un accent combinant (U+0301 envoyé seul à 119/120) s'attache au signe d'avant et ne coûte aucune place */
-  const g = graphemes(String(txt)); let lo = 0, hi = g.length; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (nbSignes(av + g.slice(0, mid).join('') + ap) <= m) lo = mid; else hi = mid - 1; }
+  const g = graphemes(String(txt)); let lo = 0, hi = g.length; const tient = x => nbSignes(av + x + ap) <= m && av.length + x.length + ap.length <= unitesMax(m); while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (tient(g.slice(0, mid).join(''))) lo = mid; else hi = mid - 1; }
   const ins = g.slice(0, lo).join(''); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
   e.preventDefault(); if (!ins && a === b) return; t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
-document.addEventListener('input', e => { if (!e.isTrusted) return; if (/^delete/.test(e.inputType || '')) return;   /* une SUPPRESSION ne recoupe jamais : une fiche plus longue que le plafond perdait 30 signes d'un Backspace (recontrôle tour 5, N1) */ const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
-  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
+document.addEventListener('input', e => { if (!e.isTrusted) return; if (/^delete/.test(e.inputType || '')) return;   /* une SUPPRESSION ne recoupe jamais : une fiche plus longue que le plafond perdait 30 signes d'un Backspace (recontrôle tour 5, N1) */ const t = e.target, m = maxChamp(t); if (!m) return; const tenait = t._tenait !== false; t._tenait = undefined; if (!tenait) return;   /* R1 : une fiche plus longue que le plafond avant le geste ne se recoupe pas */ let v = t.value;
+  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length > unitesMax(m)) v = coupeUnites(v, unitesMax(m)); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
@@ -10897,11 +10907,16 @@ const cliNet = (c, plein) => { const o = { ...c }; const m = n => plein ? 1e9 : 
 /* LA règle de plafond, UNE seule fonction : une phrase qui dit le champ et la limite, ou '' — rien ne s'enregistre quand elle parle. Le texte compté est le texte nettoyé qui serait gardé (graphèmes) */
 /* champRefus : le champ refusé est MARQUÉ (aria-invalid + le liseré rouge de .champ input[aria-invalid], le même que « Inviter une personne »), reçoit le focus, et la marque part à la frappe suivante ; la phrase reste dite par la bulle */
 const champRefus = (id, msg) => { const c = typeof id === 'string' ? document.getElementById(id) : id; if (c) { c.setAttribute('aria-invalid', 'true'); c.focus(); c.addEventListener('input', () => c.removeAttribute('aria-invalid'), { once:true }); } return toast(msg); };
-const refusLong = (t, max, lib) => { const n = nbSignes(libelleSur(t, 1e9)); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : ''; };
+/* refusTexte : le même refus pour un texte MULTILIGNE (motif, note, corps d'un courriel) : compté tel qu'il serait gardé (texteNet + rognage, sauts de ligne conservés) — recontrôle tour 5 bis, R5 */
+const refusTexte = (t, max, lib) => { const x = texteNet(t).trim(), n = nbSignes(x); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : x.length > unitesMax(max) ? refusCombinants(lib) : ''; };
+const MOTIF_MAX = 600, NOTE_MAX = 600, COURRIEL_MAX = 5000;
+const refusCombinants = lib => 'Le champ « ' + lib + ' » porte trop de signes combinants (accents, marques) : raccourcis-le, rien n’a été enregistré.';   /* le plafond compte des signes ET des unités (C2) : des accents empilés ne coûtent aucun signe mais pèsent */
+const refusLong = (t, max, lib) => { const x = libelleSur(t, 1e9), n = nbSignes(x); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : x.length > unitesMax(max) ? refusCombinants(lib) : ''; };
 function clientPlafondRefus(c){ const o = cliNet(c, true);
   for (const [k, lib, max] of CLI_CHAMPS) { if (typeof o[k] !== 'string') continue; const n = nbSignes(o[k]), nom = k === 'nom' ? (o.type === 'pro' ? 'Raison sociale' : 'Nom du client') : lib;
     if (k === 'acces' && accesLignes(c.acces).length > ACCES_LIGNES) return { k, m:'Le champ « ' + lib + ' » tient sur ' + ACCES_LIGNES + ' lignes au plus (' + accesLignes(c.acces).length + ' écrites) : regroupe-les, rien n’a été enregistré.' };
-    if (n > max) return { k, m:'Le champ « ' + nom + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' }; }
+    if (n > max) return { k, m:'Le champ « ' + nom + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' };
+    if (o[k].length > unitesMax(max)) return { k, m:refusCombinants(nom) }; }
   return null; }
 const nomNorm = s => prNorm(s).replace(/ /g, '');
 const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
@@ -14265,6 +14280,8 @@ function ouvrirCreation(pre){
   if (pre.tid != null && pre.d) placerBrouillon(pre.tid, pre.d, pre.h != null ? pre.h : PARAMS.debut);
   rendreCreation(); if (!cli0) setTimeout(() => document.querySelector('.fen [data-cherchecli]')?.focus({ preventScroll:true }), 60);   /* le curseur va dans « Chercher un client » seulement quand il n'y en a pas : un client déjà choisi (depuis un e-mail) n'ouvre pas le clavier d'un téléphone sur le formulaire */
 }
+/* un PARTICULIER s'écrit en deux champs (Prénom, Nom) dont le nom gardé est la réunion : l'excès se marque sur le champ qui est réellement le plus long, pas toujours sur le Prénom (recontrôle tour 5 bis, C1) ; un professionnel garde son champ */
+function clientNvChampRefuse(k){ if (CREA.nv.type === 'pro' || (k !== 'nom' && k !== 'contact')) return k; return nbSignes(CREA.nv.nom || '') >= nbSignes(CREA.nv.contact || '') ? 'nom' : 'contact'; }
 function cliCrea(){ if (!CREA.nouveau) return CLIENTS[CREA.cli] || { nom:'Client à choisir', type:'pro', contact:'', tel:'', mail:'', adr:'', acces:'', appareils:[{ nom:'Appareil', det:'à compléter' }], depuis:'2026' }; const r = reconnaitre(CREA.nv.adr); return { nom:cfNomClient(CREA.nv) || 'Nouveau client', type:CREA.nv.type, contact:cfContactClient(CREA.nv), tel:CREA.nv.tel, mail:CREA.nv.mail, adr:CREA.nv.adr, acces:'', appareils:[], depuis:'2026' }; }
 function secteurCrea(){ return CREA.nouveau ? (reconnaitre(CREA.nv.adr) || {}).secteur : SECT_CLI[CREA.cli]; }
 function zoneCrea(){ return CREA.nouveau ? ((reconnaitre(CREA.nv.adr) || {}).zone || 1) : ({ hp:2, cp:1, mr:1 }[CREA.cli] || 1); }
@@ -14456,7 +14473,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau) {   /* mêmes contrôles que la fiche client : un numéro ou une adresse e-mail impossibles ne s'enregistrent pas (champs facultatifs, mais justes s'ils sont remplis) */
       const nvMail = String(CREA.nv.mail || '').trim(), mauvais = nvMail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nvMail) ? 'mail' : !cfTelOk(CREA.nv.tel) ? 'tel' : '';
       if (mauvais) { toast(mauvais === 'mail' ? 'L’adresse e-mail est à vérifier.' : TEL_MSG); const ch = document.querySelector('[data-cnv="' + mauvais + '"]'); if (ch) ch.focus(); return; }
-      { const pl = clientPlafondRefus(cliCrea()); if (pl) { return champRefus(document.querySelector('[data-cnv="' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '"]'), pl.m); } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
+      { const pl = clientPlafondRefus(cliCrea()); if (pl) { return champRefus(document.querySelector('[data-cnv="' + clientNvChampRefuse(pl.k) + '"]'), pl.m); } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
       /* le technicien doit savoir OÙ aller, et le bureau comment prévenir le client : comme le formulaire du devis (clients-04, décision du 17 novembre) ; le refus nomme le champ qui manque */
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
@@ -21505,6 +21522,8 @@ document.head.insertAdjacentHTML('beforeend', `<style id="entreprise-css">
 .erreur{color:var(--rouge);font-size:13.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .erreur[hidden]{display:none}
 .champ input[aria-invalid="true"],.champ select[aria-invalid="true"],.champ textarea[aria-invalid="true"],.saisie[aria-invalid="true"]{border-color:var(--rouge)}
+/* le liseré de 1 px disparaissait sous l'anneau de focus bleu de 3 px (le champ refusé est AUSSI celui qui a le focus) : l'anneau passe au rouge (tour 5 bis, N-b) */
+html body [aria-invalid="true"]:focus,html body [aria-invalid="true"]:focus-visible{outline:3px solid var(--rouge);outline-offset:2px}
 .ent-zones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:420px){.ent-zones{grid-template-columns:1fr}}
 .ent-logo-ap{display:flex;align-items:center;justify-content:center;min-height:120px;border-radius:16px;border:1px dashed var(--trait2);background:var(--surf2)}
@@ -21754,6 +21773,11 @@ function eqxRestes(k) {
   const cp = typeof aSolde === 'function' && EQX_BASE.includes(k) ? aSolde(k, 'Congé payé') : null;
   return { ints, veh, taches, pt, ptEnCours, cp };
 }
+/* des semaines NON contiguës ne se disent pas « du premier lundi au dernier dimanche » (cela suggère tout l'intervalle, validées comprises) : une plage par suite de semaines qui se touchent, chacune de son lundi à son dimanche */
+function eqxPlagesSem(L){
+  const R = []; L.slice().sort().forEach(m => { const d = R[R.length - 1]; if (d && ajoute(d.fin, 1) === m) d.fin = ajoute(m, 6); else R.push({ deb:m, fin:ajoute(m, 6) }); });
+  return R.map(r => 'Du ' + jCourt(r.deb) + ' au ' + jCourt(r.fin)).join(' · ');
+}
 function eqxMeilleur(i, sauf) {
   const R = aRemplacants(i, sauf).filter(r => !eqxManque(i, r.t.id).length);
   return R[0] || null;
@@ -21769,7 +21793,7 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>${R.pt.length > 1 ? 'Pointage de ' + R.pt.length + ' semaines pas encore validé' : R.pt[0] === Lp0 ? 'Pointage de la semaine dernière pas encore validé' : 'Pointage de la semaine du ' + esc(jCourt(R.pt[0])) + ' pas encore validé'}</b>${R.pt.length > 1 ? `<small>Du ${esc(jCourt(R.pt[0]))} au ${esc(jCourt(ajoute(R.pt[R.pt.length - 1], 6)))}</small>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>${R.pt.length > 1 ? 'Pointage de ' + R.pt.length + ' semaines pas encore validé' : R.pt[0] === Lp0 ? 'Pointage de la semaine dernière pas encore validé' : 'Pointage de la semaine du ' + esc(jCourt(R.pt[0])) + ' pas encore validé'}</b>${R.pt.length > 1 ? `<small>${esc(eqxPlagesSem(R.pt))}</small>` : ''}${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
     ${R.ptEnCours ? `<span class="gris petit">Sa semaine en cours se validera une fois finie, lundi prochain.</span>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
@@ -25660,10 +25684,10 @@ var MODE_APP = !!window.OPG_MODE_APP || /[?&]app=1\b/.test(location.search) || /
 /* entré par le bouton (et non par la coque ni par ?app=1) : seul cas où l'écran de connexion propose de revenir au mode test. Lu ICI, avant que le démarrage réécrive l'adresse. */
 var APP_PAR_BOUTON = MODE_APP && !window.OPG_MODE_APP && !/[?&](app|lien)=/.test(location.search) && (appDrapeau() || /^#lien-[a-z0-9-]+$/.test(location.hash));
 /* l'historique d'un cadre à origine opaque refuse replaceState : l'adresse n'est qu'un rappel, l'écran, lui, a déjà changé — un refus ne l'arrête jamais */
-function histRemplacer(h){ try { history.replaceState(null, '', h); } catch (e) {} }
+function histRemplacer(h){ try { history.replaceState(navEtatGarder(), '', h); } catch (e) {} }
 /* le message dit où l'on est : sur l'écran de connexion, sous le formulaire ; ailleurs, en bulle */
 function appDire(t){ if (document.getElementById('cn-err')) cnxDire(t); else toast(t); }
-function appAdresse(h){ try { history.replaceState(null, '', location.pathname + location.search + h); return true; } catch (e) { try { location.hash = h.replace(/^#/, ''); return true; } catch (e2) { return false; } } }
+function appAdresse(h){ try { history.replaceState(navEtatGarder(), '', location.pathname + location.search + h); return true; } catch (e) { try { location.hash = h.replace(/^#/, ''); return true; } catch (e2) { return false; } } }
 /* vers = true : « Voir comme l'application » ; vers = false : « Revenir au mode test ». On pose, on recharge, et si la page est encore là une seconde et demie
    plus tard (rechargement refusé ou sans effet), on le DIT et on remet les choses comme elles étaient : un rechargement manuel ne doit pas faire entrer
    dans un mode que le bouton avait déclaré impossible. `beforeunload` et `pagehide` disent qu'un rechargement a bien démarré (une page lente ne se défait pas). */
