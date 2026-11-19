@@ -140,7 +140,7 @@ const faux = cas => (cas.id[0] === 'c' ? fauxCamille(cas) : cas.id[0] === 'l' ? 
     const { spawnSync } = require('child_process'), os = require('os');
     const D = fs.mkdtempSync(path.join(os.tmpdir(), 'rejouer-3204-'));
     const CLE = 'sk-ant-api03-banc-3204-factice';   /* sous 30 signes après « sk-ant- » : verif-secrets.sh prend une clé plus longue pour une vraie */
-    fs.writeFileSync(path.join(D, 'config.json'), JSON.stringify({ agents: { cleApi: CLE, modeles: { camille: 'claude-opus-5-5' } } }));
+    fs.writeFileSync(path.join(D, 'config.json'), JSON.stringify({ agents: { retires: false, cleApi: CLE, modeles: { camille: 'claude-opus-5-5' } } }));
     const lancer = (a, env) => spawnSync('node', [path.join(EV, 'rejouer.js')].concat(a), { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(D, 'config.json'), ANTHROPIC_BASE_URL: 'http://127.0.0.1:9', HTTPS_PROXY: 'http://127.0.0.1:9', https_proxy: 'http://127.0.0.1:9' }, env || {}), encoding: 'utf8', timeout: 60000 });
     let x = lancer(['--estimer']);
     v('`--estimer` annonce le coût (avec le modèle réglé) et n’envoie rien', [x.status, /Cas choisis : 45/.test(x.stdout), /Coût estimé de l’envoi \(avant \+ après\) : environ \d+\.\d\d \$ RÉELS/.test(x.stdout), /claude-opus-5-5/.test(x.stdout)], [0, true, true, true]);

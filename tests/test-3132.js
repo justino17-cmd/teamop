@@ -179,7 +179,7 @@ const MARQUEURS = ['BANC3132AGENTS', 'BANC3132DEVIS', CLE_AGENTS, CLE_DEVIS];
   {
     const D = fs.mkdtempSync(path.join(os.tmpdir(), 'b3132-'));
     const config = path.join(D, 'config.json');
-    fs.writeFileSync(config, JSON.stringify({ agents: { cleApi: CLE_AGENTS }, anthropic: { cleApi: CLE_DEVIS }, autre: 'x' }), { mode: 0o600 });
+    fs.writeFileSync(config, JSON.stringify({ agents: { retires: false, cleApi: CLE_AGENTS }, anthropic: { cleApi: CLE_DEVIS }, autre: 'x' }), { mode: 0o600 });
     const recus = []; let mode = 'ok';
     const srv = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += d; }); q.on('end', () => {
       let j = {}; try { j = JSON.parse(b); } catch (e) { /* le banc lira l'absence */ }
@@ -203,7 +203,7 @@ const MARQUEURS = ['BANC3132AGENTS', 'BANC3132DEVIS', CLE_AGENTS, CLE_DEVIS];
       mode = '401'; r401 = await appeler(casDe('G02').vars, env); mode = 'ok';
       fs.writeFileSync(config, '{"agents": {"cleApi": x"' + CLE_AGENTS + '"}}'); rConf = await appeler(casDe('G02').vars, env);
       fs.writeFileSync(config, JSON.stringify({ agents: {}, anthropic: { cleApi: CLE_DEVIS } })); rVide = await appeler(casDe('G02').vars, env);
-      fs.writeFileSync(config, JSON.stringify({ agents: { cleApi: CLE_AGENTS }, anthropic: { cleApi: CLE_DEVIS } }));
+      fs.writeFileSync(config, JSON.stringify({ agents: { retires: false, cleApi: CLE_AGENTS }, anthropic: { cleApi: CLE_DEVIS } }));
       recus.length = 0;
       rAutre = await appeler(casDe('G02').vars, Object.assign({}, env, { TEAMOP_PF_CLE_CHAMP: 'anthropic.cleApi', TEAMOP_PF_MODELE: 'claude-banc-3132' })); apresAutre = recus.slice();
     } finally { process.stdout.write = ow; process.stderr.write = ew; console.log = cl; console.error = ce; console.warn = cw; }
@@ -299,7 +299,7 @@ const MARQUEURS = ['BANC3132AGENTS', 'BANC3132DEVIS', CLE_AGENTS, CLE_DEVIS];
     fs.writeFileSync(path.join(D2, 'sans-cle.json'), JSON.stringify({ agents: {}, anthropic: { cleApi: CLE_DEVIS } }));
     const reel1 = sh(['reel', '--oui'], { TEAMOP_CONFIG: path.join(D2, 'sans-cle.json'), TEAMOP_PF_DIR: D2 });
     vrai('⛔ « reel » sans clé dans agents.cleApi : refus (code 1), n’utilise PAS la clé du Devis IA, et ne la cite pas', reel1.status === 1 && /agents\.cleApi/.test(reel1.stderr) && !MARQUEURS.some(m => (reel1.stderr + reel1.stdout).includes(m)), reel1.stderr + reel1.stdout);
-    fs.writeFileSync(path.join(D2, 'avec-cle.json'), JSON.stringify({ agents: { cleApi: CLE_AGENTS } }));
+    fs.writeFileSync(path.join(D2, 'avec-cle.json'), JSON.stringify({ agents: { retires: false, cleApi: CLE_AGENTS } }));
     const reel2 = sh(['reel', '--oui'], { TEAMOP_CONFIG: path.join(D2, 'avec-cle.json'), TEAMOP_PF_DIR: D2, TEAMOP_PF_PLAFOND_USD: '0.01' });
     vrai('⛔ le plafond d’une évaluation (TEAMOP_PF_PLAFOND_USD) arrête AVANT l’envoi : le coût annoncé est affiché, rien ne part — et la clé n’est pas affichée', reel2.status === 1 && /Jeu « petit » : 11 appels/.test(reel2.stdout) && /dépasse le plafond/.test(reel2.stderr) && !MARQUEURS.some(m => (reel2.stderr + reel2.stdout).includes(m)) && !fs.existsSync(path.join(D2, 'node_modules')), reel2.stdout + reel2.stderr);
     const reel3 = sh(['reel'], { TEAMOP_CONFIG: path.join(D2, 'avec-cle.json'), TEAMOP_PF_DIR: D2 });

@@ -26,7 +26,7 @@ function creerBac() {
 
   /* ── La production, en sentinelles ── */
   ecrire(path.join(R, 'opt/teamop/data/socle-annuaire.db'), 'ANNUAIRE-DE-PRODUCTION');
-  ecrire(path.join(R, 'opt/teamop/config.json'), JSON.stringify({ apiKey: 'PROD-API-KEY', agents: { cleApi: CANARI_AGENTS, reunionsAuto: true }, stripe: { secretKey: 'sk_live_' + 'PRODUCTIONPRODUCTION' } }), 0o600);
+  ecrire(path.join(R, 'opt/teamop/config.json'), JSON.stringify({ apiKey: 'PROD-API-KEY', agents: { retires: false, cleApi: CANARI_AGENTS, reunionsAuto: true }, stripe: { secretKey: 'sk_live_' + 'PRODUCTIONPRODUCTION' } }), 0o600);
   ecrire(path.join(R, 'opt/teamop/repo/server/index.js'), '// code de production');
   ecrire(path.join(R, 'etc/systemd/system/teamop-api.service'), '[Service]\nExecStart=/usr/bin/node index.js\n');
   ecrire(path.join(R, 'etc/teamop/kek'), 'f'.repeat(64), 0o600);

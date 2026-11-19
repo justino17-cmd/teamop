@@ -36,7 +36,7 @@ function monter(o) {
     surMessage: m => (o.sansReveil ? null : eq.surMessage(m)), surAjout: m => { pont.push(m); }, fenetreFaitsMs: o.fenetreFaitsMs === undefined ? 25 : o.fenetreFaitsMs });
   annonceur = FAITS ? FAITS({ agents, conversations: conv }) : null;
   const appels = [];
-  const cerveau = CER({ DATA_DIR: D, agents, cleApi: 'cle-du-banc', maintenant, plafondsJour: o.plafondsJour, surBudget: x => { surBudget.push(x); if (o.surBudget) o.surBudget(x); },
+  const cerveau = CER({ DATA_DIR: D, agents, retires: false, cleApi: 'cle-du-banc', maintenant, plafondsJour: o.plafondsJour, surBudget: x => { surBudget.push(x); if (o.surBudget) o.surBudget(x); },
     appeler: async (cle, requete) => {
       const nom = (/^Tu es ([^,]+),/.exec(String(requete.system)) || [])[1] || '?';
       const trace = { id: NOM2ID.get(nom) || nom, system: requete.system, messages: JSON.parse(JSON.stringify(requete.messages)), requete: { max_tokens: requete.max_tokens, thinking: requete.thinking, tools: (requete.tools || []).map(t => t.name) }, ts: horloge.t };

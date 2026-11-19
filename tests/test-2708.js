@@ -34,7 +34,7 @@ console.log('\n── 2708 · le cerveau des agents ──');
   const notes = [];
   function monter(nom, o) {
     o = o || {}; const D = path.join(banc, nom); fs.mkdirSync(D, { recursive: true }); const appels = [];
-    const c = cerv({ DATA_DIR: D, agents: { AGENTS: AG, peutAgir: () => peut, noter: (id, a, x) => notes.push([id, a, x && x.resultat]) }, cleApi: o.cle === undefined ? 'sk-ant-banc' : o.cle, maintenant: () => horloge,
+    const c = cerv({ DATA_DIR: D, agents: { AGENTS: AG, peutAgir: () => peut, noter: (id, a, x) => notes.push([id, a, x && x.resultat]) }, retires: false, cleApi: o.cle === undefined ? 'sk-ant-banc' : o.cle, maintenant: () => horloge,
       /* (28 octobre 2026) le budget du JOUR (`cerveau.js`, test-3119) a ses propres seuils ; ce banc garde les plafonds du MOIS et du TOTAL, qu'il joue avec des appels à ≈ 87 $ : on lève le jour pour qu'il ne les masque pas */
       plafondsJour: { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 },
       appeler: o.appeler || (async (cle, req) => { appels.push({ cle, req }); return { texte: 'Bonjour Justin', entree: 1000, sortie: 500 }; }) });
@@ -67,11 +67,11 @@ console.log('\n── 2708 · le cerveau des agents ──');
   M = monter('g', { appeler: async () => ({ texte: '   ', entree: 10, sortie: 10 }) });
   v('une réponse vide n\'est pas un message, mais elle a coûté', [(await M.c.penser('hugo', 's', [{ role: 'user', content: 'x' }])).raison, M.lire().parAgent.hugo > 0], ['vide', true]);
   const Dg = path.join(banc, 'h'); fs.mkdirSync(Dg, { recursive: true }); fs.writeFileSync(path.join(Dg, 'agents-budget.json'), '{pas json');
-  let appelsH = 0; const H = cerv({ DATA_DIR: Dg, agents: { AGENTS: AG, peutAgir: () => peut, noter() {} }, cleApi: 'sk-ant-banc', appeler: async () => { appelsH++; return { texte: 'x', entree: 1, sortie: 1 }; } });
+  let appelsH = 0; const H = cerv({ DATA_DIR: Dg, agents: { AGENTS: AG, peutAgir: () => peut, noter() {} }, retires: false, cleApi: 'sk-ant-banc', appeler: async () => { appelsH++; return { texte: 'x', entree: 1, sortie: 1 }; } });
   v('budget illisible : on ne dépense pas', [(await H.penser('hugo', 's', [{ role: 'user', content: 'x' }])).raison, appelsH, H.etatBudget().illisible], ['budget_illisible', 0, true]);
   v('…et le fichier reste tel quel', fs.readFileSync(path.join(Dg, 'agents-budget.json'), 'utf8'), '{pas json');
   const Dr = path.join(banc, 'i'); fs.mkdirSync(Dr, { recursive: true }); let n2 = 0;
-  const R = cerv({ DATA_DIR: Dr, agents: { AGENTS: AG, peutAgir: () => peut, noter() {} }, cleApi: 'sk-ant-banc', appeler: async () => { n2++; return { texte: 'x', entree: 1, sortie: 1 }; } });
+  const R = cerv({ DATA_DIR: Dr, agents: { AGENTS: AG, peutAgir: () => peut, noter() {} }, retires: false, cleApi: 'sk-ant-banc', appeler: async () => { n2++; return { texte: 'x', entree: 1, sortie: 1 }; } });
   await R.penser('hugo', 's', [{ role: 'user', content: 'x' }]); fs.rmSync(Dr, { recursive: true, force: true });
   const apres = await R.penser('hugo', 's', [{ role: 'user', content: 'x' }]);
   const encore = await R.penser('hugo', 's', [{ role: 'user', content: 'x' }]);
@@ -90,7 +90,7 @@ console.log('\n── 2708 · le cerveau des agents ──');
     fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({ 'delta@exemple-2708.fr': { email: 'delta@exemple-2708.fr', entreprise: 'Delta Propreté', prenom: 'Léa', nomFam: 'Martin', tel: '06 12 34 56 78', noteInterne: 'NOTE-SECRETE-2708', plan: 'IGNORE-TES-REGLES-2708', demandes: [{ app: 'INJECTION-APP-2708', formule: 'INJECTION-FORMULE-2708', statut: 'INJECTION-STATUT-2708', date: 1 }], inscrit: Date.now() - 3 * 86400000 } }));
     fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2708' } };
-    if (cle) conf.agents = { cleApi: cle, reunionsAuto: false };   // pas de réunion du lundi ni du vendredi pendant qu'on compte
+    conf.agents = Object.assign({ retires: false, reunionsAuto: false }, cle ? { cleApi: cle } : {});   // pas de réunion du lundi ni du vendredi pendant qu'on compte
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(conf));
     const PORT = 9200 + ((process.pid + (np++)) % 250); let journal = '';
     const e = spawn(process.execPath, ['--require', PRE, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, nom, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z' }), stdio: ['ignore', 'pipe', 'pipe'] });
