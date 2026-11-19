@@ -14,7 +14,10 @@ const pr=process.env.PROFIL||'iphone', tag='menued-'+pr;
     console.log('  éléments du menu :',JSON.stringify([...new Set(items)]));
     await L.capture(c,CAP+tag+'-menu.png');
     v(tag+' · le menu de l\'éditeur offre « Supprimer »',[...new Set(items)].some(t=>/Supprimer/i.test(t)),items);
-    v(tag+' · le menu de l\'éditeur offre « Dupliquer »',[...new Set(items)].some(t=>/Dupliquer/i.test(t)),items);
+    // tout-07 (refonte/compositeur-corrections.json) a posé « Supprimer ce brouillon » (confirmation, brouillons seulement) et RIEN d'autre : « Dupliquer » n'a pas été construit, c'est
+    // une décision de produit à soumettre à Justin (rejeu-coque.json). La sonde garde le geste décidé, avec son mot exact, et dit l'absence de l'autre au lieu de la compter faux.
+    v(tag+' · le menu de l\'éditeur d\'un brouillon offre « Supprimer ce brouillon » (le mot exact de la décision tout-07)',[...new Set(items)].some(t=>/^Supprimer ce brouillon$/i.test(t)),items);
+    console.log('  · « Dupliquer » dans le menu :',[...new Set(items)].some(t=>/Dupliquer/i.test(t))?'oui':'non (à soumettre : jamais construit)');
   } else v(tag+' · un menu existe dans l\'éditeur',false,barre);
   await L.fin(c); await L.fermer(); process.exit(L.bilan()?1:0);
 })().catch(e=>{console.log('ERREUR SONDE',e.message.slice(0,600));process.exit(2);});

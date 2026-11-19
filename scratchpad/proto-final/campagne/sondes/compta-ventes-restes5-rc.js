@@ -57,8 +57,10 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
     L.v('prix « ' + v + ' » : le champ montre ce que la ligne porte', cv === (l.pu == null ? '' : String(l.pu).replace('.', ',')), cv + ' / ' + l.pu); }
   // 6. aperçu et envoi : la quantité « 90 min » se lit dans le document
   await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-rc5'); f.lignes = lignesDe(f).filter(l => l.pu != null && l.pu > 0); rendre(); }); await L.calme(p, 400);
-  await ch('fqte', kmo, '90 min');
-  await p.evaluate(() => apercuEnvoi({ dataset: { id: 'fx-rc5' } })).catch(() => {}); await L.calme(p, 600);
+  // l'étape 1 bis a retiré à la ligne son drapeau « à l'heure » (« 1 » ordinaire) et l'étape 1 a remisé son prix à 60 € : elle n'est plus à l'heure (ligneHeure : désignation + prix de l'heure, ou drapeau). On lui rend le prix de l'heure (65 €), comme le ferait la personne, avant de compter en minutes
+  await ch('prix', kmo, String(await p.evaluate(() => TARIFS.horaire))); await ch('fqte', kmo, '90 min');
+  // « Aperçu et envoi » est une ACTION du tableau ACTIONS (jamais une fonction globale : la sonde la nommait seule, la page jetait ReferenceError, le catch l'avalait et le panneau ne s'ouvrait pas)
+  await p.evaluate(() => ACTIONS.apercuEnvoi({ dataset: { id: 'fx-rc5' } })); await L.calme(p, 600);
   const pan = await X.panneau(p).catch(() => ''); console.log('  · aperçu :', pan.slice(0, 500).replace(/\n/g, ' | '));
   L.v('le panneau d’aperçu s’est ouvert (population)', pan.length > 50, pan.length);
   L.v('l’aperçu dit « 90 min » sans « NaN », « undefined » ni « [object »', /90 min/.test(pan) && !/NaN|undefined|\[object/.test(pan), pan.slice(0, 200));

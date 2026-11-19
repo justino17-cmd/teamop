@@ -9,14 +9,16 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   const ouvert = await p.evaluate(() => { const b = [...document.querySelectorAll('#contenu button')].find(x => /Bilan des encaissements/i.test((x.closest('.cx-ligne, .ligne, li, tr, div') || x).innerText) && /Ouvrir|Voir/i.test(x.textContent)); if (b) { b.click(); return true; } return false; });
   await p.waitForTimeout(700); v('B0 · le bilan s’ouvre', ouvert && await p.evaluate(() => !!document.querySelector('#calque table')));
   const m = await p.evaluate(() => { const cal = document.querySelector('#calque .panneau') || document.querySelector('#calque'); const cell = [...document.querySelectorAll('#calque table td, #calque table th')];
-    const lignes = e => { const cs = getComputedStyle(e), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3, h = e.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom); return Math.max(1, Math.round(h / lh)); };
-    const pire = cell.map(e => ({ t: e.innerText.trim().slice(0, 24), n: lignes(e), l: Math.round(e.getBoundingClientRect().width) })).sort((a, b) => b.n - a.n).slice(0, 6);
+    // les lignes se comptent sur le TEXTE (les rectangles du contenu), pas sur la hauteur de la cellule : celle-ci vaut la hauteur de la RANGÉE, qu'une voisine sur deux lignes suffit à doubler (faux « numéro coupé » mesuré à 390 px, le 19/11)
+    const lignes = e => { const r = document.createRange(); r.selectNodeContents(e); return Math.max(1, new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top / 4))).size); };
+    const pire = cell.map(e => ({ t: e.innerText.trim().slice(0, 24), n: lignes(e), l: Math.round(e.getBoundingClientRect().width) })).sort((a, b) => b.n - a.n).slice(0, 40);
     return { debPanneau: cal.scrollWidth - cal.clientWidth, cellules: cell.length, pire, largeur: innerWidth }; });
   console.log(JSON.stringify(m));
   v('B1 · population : le tableau a des cellules', m.cellules > 20, m.cellules);
   v('B2 · la fenêtre du bilan ne glisse pas de côté', m.debPanneau <= 2, m.debPanneau);
-  v('B3 · aucune cellule ne passe sur 3 lignes ou plus (« FAC- / 2026- / 0145 »)', m.pire[0].n <= 2, m.pire);
-  v('B4 · aucun numéro de facture n’est coupé au milieu', !(await p.evaluate(() => [...document.querySelectorAll('#calque table td')].some(e => /^FAC-\d{4}-\d{4}$/.test(e.innerText.trim()) && e.getBoundingClientRect().height > 40))), m.pire.slice(0, 2));
+  // un nom de client peut légitimement passer sur trois lignes à 360 px (« Cabinet / dentaire / Martin ») ; ce que B3 garde, c'est un mot SEUL (numéro, date, montant) coupé en morceaux : on ne regarde que les cellules d'un seul mot
+  v('B3 · aucune cellule d’un seul mot (numéro, date, montant) ne passe sur 2 lignes ou plus (« FAC- / 2026- / 0145 »)', m.pire.filter(x => !/\s/.test(x.t)).every(x => x.n <= 1), m.pire.filter(x => !/\s/.test(x.t)));
+  v('B4 · aucun numéro de facture n’est coupé au milieu', !(await p.evaluate(() => [...document.querySelectorAll('#calque table td')].some(e => /^FAC-\d{4}-\d{4}$/.test(e.innerText.trim()) && (() => { const r = document.createRange(); r.selectNodeContents(e); return new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top / 4))).size > 1; })()))), m.pire.slice(0, 2));
   await p.evaluate(() => { const t = document.querySelector('#calque table'); if (t) t.scrollIntoView({ block: 'start' }); }); await L.calme(p, 400);
   await L.capture(c, X.CAP + `rc-bilan-tableau-${suf}.png`);
   v('aucune erreur JavaScript', c.err.length === 0, c.err.slice(0, 3));

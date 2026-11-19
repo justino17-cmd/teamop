@@ -50,7 +50,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await tap('[data-creer="1"]'); await tap('#fenetre [data-ccli="hp"]'); await tap('#fenetre [data-ctype="Entretien"]'); await tap('#fenetre [data-cdur="90"]');
   await tap('#fenetre [data-cpq^="Nettoyant"]'); await tap('#fenetre [data-cfact="forfait"]'); await p.fill('#fenetre [data-cforfait]', '150'); await p.selectOption('#fenetre [data-ctva]', '10'); await L.calme(p, 300);
   t = await txt('#fenetre .fen-cote'); const lire = re => { const m = t.match(re); return m ? L.cents(m[1]) : null; }, N = '([\\d\\s\\u00a0\\u202f,.]+€)';
-  const ht = lire(new RegExp('Total HT\\s*' + N)), tva = lire(new RegExp('TVA 10 %\\s*' + N)), ttc = lire(new RegExp('Total TTC\\s*' + N));
+  const ht = lire(new RegExp('Total HT\\s*' + N)), tva = lire(new RegExp('TVA 10\\s*%\\s*' + N)), ttc = lire(new RegExp('Total TTC\\s*' + N));
   console.log('  · récapitulatif :', JSON.stringify(t.replace(/\n/g, ' | ').slice(0, 420)));
   v('B4 le récapitulatif calcule la TVA à 10 % au centime', ht != null && tva === Math.round(ht * .10) && ttc === ht + tva, { ht, tva, ttc });
   v('B4 « Facture prévue » ne chiffre pas ce qui n’a pas de prix (pièce « à chiffrer »)', true);
@@ -92,7 +92,7 @@ const I = require('./interventions-outils.js'), L = I.L;
   await L.aller(p, 'inter-x-i2'); await tap('[data-action="modifInt"]'); t = await txt('#calque .panneau'); v('B8 « Modifier » ouvre la fenêtre de modification', /Modifier l’intervention/.test(t), t.slice(0, 60));
   await p.fill('#m-t', 'Mise en service pompe à chaleur — titre très long '.repeat(3)); await tap('[data-action="modifIntOk"]'); e = await L.etat(p); v('B8 enregistrer : « Intervention modifiée » et le titre change', /Intervention modifiée/.test(e.toast) && /titre très long/.test(await txt('#contenu h1')), [e.toast, (await txt('#contenu h1')).slice(0, 50)]);
   // ── B9 retour du navigateur et double toucher
-  await L.aller(p, 'interventions'); await tap('[data-filtreint="tout"]'); await tap('[data-go="inter-x-i4"]'); let h1 = (await L.etat(p)).h1; await p.goBack(); await L.calme(p, 500); e = await L.etat(p);
+  await L.aller(p, 'interventions'); await tap('[data-filtreint="tout"]'); await tap('[data-go="inter-x-i4"]:visible'); let h1 = (await L.etat(p)).h1; await p.goBack(); await L.calme(p, 500); e = await L.etat(p);
   v('B9 le retour du navigateur ramène à la liste des interventions', /interventions/.test(e.hash) && e.h1 === 'Interventions', [h1, e.hash, e.h1]);
   await L.aller(p, 'interventions');
   await tap('[data-creer="1"]'); await tap('#fenetre [data-ccli="cm"]'); await tap('#fenetre [data-action="cPlusTard"]'); const n0 = await ev(() => INTS.length);

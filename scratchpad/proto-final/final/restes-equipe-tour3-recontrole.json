@@ -1,0 +1,85 @@
+{
+ "tour": "restes équipe 3 — RECONTRÔLE ADVERSE (19 novembre 2026)",
+ "page": "apercu/prototype-op-gestion.html (aucune page modifiée)",
+ "sondes_neuves": [
+  "scratchpad/proto-final/campagne/sondes/restes-equipe-3-recontrole.js (phases C invisibles, ABD en-têtes/phrase/gestes, F « clic sur tout » par case, K touches du courrier, L lecture=lu, P dossiers du courrier)",
+  "scratchpad/proto-final/campagne/sondes/mutations-restes-equipe-3-recontrole.py (6 mutations neuves, un site à la fois)"
+ ],
+ "points": {
+  "a_entete_desactivee": {
+   "verdict": "TENU",
+   "preuve": "8 passages (mac, iphone, android 360, ipad × jour/nuit) : invitée à nom très long (Anne-Sophie Montgolfier-Delacroix-Vandenberghe) « invitation envoyée » puis « désactivé(e) », sans débordement horizontal du panneau ; technicienne connue ; lecteur Julie (ouverte comme elle) 9 ✓ (restes-equipe-3-mineurs H, mac et android nuit). Captures relues à l'œil (android nuit, ipad nuit, mac jour). Remarque : eqFiche est déclarée DEUX fois (10926 et 21700, la seconde gagne) : le correcteur a patché les deux, la première est du code mort."
+  },
+  "b_fiche_de_soi": {
+   "verdict": "TENU",
+   "preuve": "ordre DOM mesuré : « Copier le lien et l'identifiant » puis la phrase puis le bouton ; la phrase nomme le bouton. 8 profils/thèmes 6 ✓ chacun ; captures iPhone jour, Android nuit relues. La fiche d'un autre ne porte aucune phrase « ci-dessous/ci-dessus ». (Un premier ✗ de ma sonde venait d'un test textuel faux — la phrase CONTIENT le nom du bouton — corrigé par l'ordre du DOM.)"
+  },
+  "c_signes_invisibles": {
+   "verdict": "TENU pour la liste annoncée, PAS TENU pour les voisins : TROU TROUVÉ",
+   "tenu": "U+00AD, 200B-200F, 202A-202E, 2060-206F, FEFF refusés avec phrase dans les 5 positions (début, milieu, fin, seul, doublé), par fonction ET par l'interface (collage = événement paste avec DataTransfer, insertText) aux sites testés ; U+180E, U+2800, U+061C, U+E0020, U+1D173 refusés (hors lettres/marques) ; U+00A0, 202F, 2007, 2028 normalisés en espace (« Le Goff » accepté) ; « O'Neil » et « Marie-Ève » acceptés et rangés.",
+   "trou": "nomPersonneOk accepte U+3164 (Hangul filler), U+115F, U+1160, U+FFA0, U+034F (combining grapheme joiner), U+17B4/17B5, U+FE00-FE0F (sélecteurs de variation) : ce sont des lettres ou des marques pour \\p{L}\\p{M}\\p{N}, donc admises par NOM_PERS_OK, et ils ne sont pas dans NOM_INVISIBLE. Mesuré : Modifier › Nom accepte U+3164 au milieu et en fin, par collage ET insertText (4/4) ; Inviter › Prénom l'accepte (collage, milieu) ; nomPersonneOk('ㅤ') = 'ㅤ' : UN NOM FAIT DU SEUL SIGNE INVISIBLE est accepté et rangé (nom blanc). nomPersonneNet (noms déjà rangés) garde aussi U+3164. Même classe de défaut que celle corrigée (nom invisible/introuvable), seulement non couverte.",
+   "statut": "NON CORRIGÉ (consigne : ne rien modifier)"
+  },
+  "d_compte_desactive": {
+   "verdict": "TENU",
+   "preuve": "actif : les deux gestes proposés (contre-épreuve) ; désactivé : ni « Nouveau téléphone » ni « Déconnecter partout » (8 profils/thèmes) ; la fiche se ferme à la désactivation (pas de panneau périmé). « Déverrouiller » gardé. Réserve mineure : un bouton data-sec2=\"telephone|k\" ou \"deconnecter|k\" FABRIQUÉ sur une désactivée ouvre encore le panneau (les boutons sont retirés, la route n'est pas gardée) ; sans conséquence mesurée (aucune erreur de page)."
+  },
+  "e_cases_profondes": {
+   "methode": "persona créée par le formulaire d'Équipe, toutes cases cochées sauf une, ouverte comme elle ; « clic sur tout » : chaque bouton et chaque entrée de menu des écrans concernés, un par un, plus touches clavier, fonctions appelées directement, panneaux ; données = copie JSON de 28 tableaux + localStorage avant/après ; contre-épreuve AVEC la case (la sonde voit bien les suppressions).",
+   "planif.s": {
+    "verdict": "TENU",
+    "chemins": "menu du clic droit sur créneau (1) et intervention (4) et absences (3) : entrées de suppression absentes ; panneau de détail d'absence : le bouton data-asuppr est caché ET son clic est refusé (refus dit) ; Delete, Retour arrière, touche Menu, Maj+F10 sur barre : rien ; appels directs menuBloc / aDeclencher(asuppr) / aDeclencher(planconf supprimer) : rien d'écrit, refus dit ; Ctrl+Z n'annule que le geste de la séance. Contre-épreuve : sans mutation, la même sonde AVEC la case supprime absence et créneau."
+   },
+   "crm.m": {
+    "verdict": "TENU sur la fiche, UN GESTE DE LA FICHE PASSE PAR UNE AUTRE CASE : nouveau",
+    "chemins": "toutes les boutons des 6 onglets de la fiche, liste Clients (menu clic droit : copier/ouvrir seulement), Devis, Interventions ; saisie injectée puis Entrée dans un champ ; dvMailRanger gardé par peut('crm','m') ; « Archiver/Remettre dans la liste » écrit CLIENTS sans crm.m mais c'est crm.s (classé @crm s, voulu).",
+    "nouveau": "Conformité › « Le SIREN de chaque client professionnel » (cxSirenForm, geste data-cx=sirenok) écrit CLIENTS[k].siren d'un client EXISTANT sans refus pour une personne SANS Clients › Modifier : le geste est classé compta › Modifier (GESTES.cx). Mesuré : siren '552 081 317' écrit, refus 0. C'est la fiche client qu'on modifie par une autre porte ; à trancher (voulu : conformité ; ou à classer aussi crm.m)."
+   },
+   "achats.s": {
+    "verdict": "TENU, SANS GESTE ATTEIGNABLE (déjà dit)",
+    "chemins": "forme BUREAU : 26 boutons d'Achats, commandes, fournisseurs, véhicules : aucune annulation de demande ni suppression de note de frais n'existe ; forme TERRAIN : Mes frais (5 boutons) et menus : rien ne supprime sans la case ; les mutations 14 et 15 tombent. Doute confirmé : la case est dessinée dans la fiche d'un compte BUREAU alors qu'elle n'y ouvre rien."
+   },
+   "com.c": {
+    "verdict": "TENU pour les gestes de rédaction directs, DOUTE pour les réponses",
+    "chemins": "bouton « Nouveau message », touche C, « Ajouter une boîte », Transférer, brouillon/« Envoyer maintenant », sélection multiple : fermés (refus dit : 1 pour C). Dans la lecture d'un message, « Répondre », « Répondre à tous », « Proposer une visite », « Confier à quelqu'un », « En faire une tâche » ouvrent un message qui PART (MAILS et JOURNAL changent, refus 0) : ils sont classés « Modifier » (ranger), pas « Créer » — décision documentée pour Répondre par le tour 3, jamais dite pour les trois gestes d'hôte (Proposer une visite crée en plus un créneau d'option dans BUREAU)."
+   },
+   "com.m": {
+    "verdict": "TENU, avec un état écrit à l'ouverture",
+    "chemins": "touches E, F, R, Maj+R refusées (refus 1) ; U, M, V, S, A, Z, 1-3 sans effet ; menu clic droit réduit à Supprimer / Sélectionner plusieurs ; boutons de rangement cachés. Mesuré (phase L) : ouvrir un message NON LU le marque lu (MAILS change, refus 0) pour une personne sans Modifier, alors que « Marquer comme non lu » lui est refusé. Même chose avec la case. Écrit sur l'appareil, pas chez le client : à trancher (« ouvrir n'écrit pas » ?)."
+   },
+   "com.s": {
+    "verdict": "TENU",
+    "chemins": "touches #, Suppr, Retour arrière refusées (refus 1) ; Maj+3, d, x, Ctrl+Retour arrière rien ; bouton et entrée de menu « Supprimer » absents ; dossiers Corbeille, Indésirables, Archive, Brouillons, À envoyer, Envoyés, Réception : aucune entrée « vider / supprimer définitivement » ; touches de suppression dans la corbeille : rien. « Déplacer dans les indésirables » reste (c'est un rangement, com.m)."
+   }
+  },
+  "f_sondes_remises_d_aplomb": {
+   "droits-fiche": "23 ✓ 0 ✗",
+   "coque-connexion": "40 ✓ 0 ✗",
+   "equipe-droits-profonds": "16 ✓ 0 ✗",
+   "equipe-droits-effets": "138 ✓ 0 ✗ (≈ 10 min en entier : au-delà du délai de 580 s d'une commande, lancée détachée)",
+   "double-auth-equipe": "48 ✓ 0 ✗",
+   "droits-gestes-reels": "35 ✓ 0 ✗ (SANS_CSP=1)",
+   "equipe-droits-joues": "89 ✓ 0 ✗ sur mac, iphone, android, ipad",
+   "restes-equipe-3-mineurs": "H 9 ✓, S 5 ✓, I 10 ✓, G 8 ✓ (mac) ; H android nuit 9 ✓ — 0 ✗"
+  }
+ },
+ "mutations": {
+  "rejouees": 28,
+  "tombent": 28,
+  "detail": "mutations-restes-equipe-droits.py 1 à 15 (15/15) ; mutations-restes-equipe-3.py 1 à 7 (7/7) ; 6 neuves à moi, un site à la fois (U+2061-206F, trim d'Inviter seul, trim de Modifier seul, Prénom de Modifier sans nomPersonneOk, Déconnecter partout seul, en-tête réservé aux invitées) : 6/6. Aucune ne passe. Ma première version de la mutation 5 cassait la syntaxe (tombait pour une mauvaise raison) : refaite, tombe pour la bonne.",
+  "reserve": "mutations-restes-equipe-3.py écrit sa copie dans un dossier de la session d'un autre agent (/tmp/claude-0/…/8050f26e…/scratchpad) : non portable."
+ },
+ "defauts_trouves_non_corriges": [
+  "C1 (PAS TENU) U+3164, U+115F, U+1160, U+FFA0, U+034F, U+17B4/5, U+FE00-FE0F acceptés dans Prénom/Nom, y compris un nom blanc (« ㅤ »)",
+  "N1 SIREN d'un client existant modifiable via Conformité sans Clients › Modifier",
+  "N2 ouvrir un message le marque lu sans Boîte mail › Modifier",
+  "N3 Répondre / Proposer une visite / Confier / En faire une tâche envoient un message sans Boîte mail › Créer"
+ ],
+ "doutes_pour_justin": [
+  "C1 : élargir NOM_INVISIBLE (U+034F, 115F, 1160, 17B4-17B5, 180B-180D, 3164, FE00-FE0F, FFA0) ou refuser tout nom sans une lettre/un chiffre visible ?",
+  "N1 : le SIREN est-il un geste de conformité (compta) ou de la fiche client (crm) ?",
+  "N2 : lire = marquer lu pour une lectrice sans Modifier ?",
+  "N3 : répondre est-il de « Modifier » ou de « Créer » ? (décision du tour 3 pour Répondre ; non dite pour les trois gestes d'hôte)",
+  "achats.s : ne plus dessiner la case dans la fiche d'un compte BUREAU ?"
+ ]
+}

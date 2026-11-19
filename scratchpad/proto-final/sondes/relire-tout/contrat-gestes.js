@@ -19,7 +19,13 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', tag='cgestes-'+
   await clic('[data-vv="tpl"][data-v="pro"]'); await p.waitForTimeout(500);
   const tt=await titres(); const dial=await f.evaluate(()=>!!document.querySelector('.dialogue')); const txtD=dial?await f.evaluate(()=>document.querySelector('.dialogue').innerText.replace(/\s+/g,' ')):'';
   console.log('  changer de modèle avec un article à moi : confirmation ?',dial,txtD,'· articles après :',tt.length,'· le mien est encore là :',tt.includes('Mon article à moi'));
-  v(`${tag} · changer de modèle ne PERD pas l'article écrit à la main sans le dire (gardé, ou confirmation)`,tt.includes('Mon article à moi')||dial,[tt.length,dial,txtD]);
+  // La décision du chantier (page.source, geste « tpl ») : changer de modèle REMPLACE les articles, et le DIT par un message à action « Modèle posé : N articles. — Annuler » (6,5 s) ;
+  // ce n'est ni une confirmation ni une conservation. Même promesse gardée : rien n'est perdu SANS le dire, et « Annuler » rend l'article écrit à la main (toasts.js joue le même geste sur le modèle d'avant).
+  const msgM=await f.evaluate(()=>{ const t=[...document.querySelectorAll('.toast, #toasts > *')].find(e=>e.offsetParent); return t?{txt:t.innerText.replace(/\s+/g,' '),annuler:!!t.querySelector('button')}:null; });
+  const dit=!!msgM&&/Modèle posé/.test(msgM.txt)&&msgM.annuler;
+  v(`${tag} · changer de modèle ne PERD pas l'article écrit à la main sans le dire (gardé, confirmation, ou message « Modèle posé… Annuler »)`,tt.includes('Mon article à moi')||dial||dit,[tt.length,dial,txtD,msgM]);
+  if(dit&&!tt.includes('Mon article à moi')){ await f.locator('.toast button, #toasts button').first().evaluate(b=>b.click()); await p.waitForTimeout(500);
+    v(`${tag} · « Annuler » rend l'article écrit à la main`,(await titres()).includes('Mon article à moi'),await titres()); }
   if(dial) await clic('.dialogue button[data-r="0"]');
   // 2. bibliothèque : ajouter, retirer
   await f.locator('#vv-bq').fill('assurance'); await p.waitForTimeout(300);

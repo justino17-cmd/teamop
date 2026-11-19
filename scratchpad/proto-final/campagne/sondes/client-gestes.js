@@ -28,7 +28,8 @@ const attendu = (g, a) => {
       L.v(`${cli}/${tab} : population recensée (${liste.length})`, liste.length >= 5, liste.length);
       for (const g of liste) { recenses++;
         // on retrouve l'élément par sa signature (libellé + data), jamais par son rang
-        await p.evaluate(({ cli, tab }) => { RL_CLI.cli = cli; EC.tab = tab; rendre(); }, { cli, tab }); await L.calme(p, 200);
+        /* l'aperçu d'un PDF est une COUCHE de Retour depuis le 18/11 (b2ad1978) et la carte « Copie ce texte » reste : un geste précédent les laisse ouvertes, et la cible suivante est derrière — on les ferme comme le ferait la personne */
+        await p.evaluate(({ cli, tab }) => { try { docPleinFermer(); } catch (e) {} try { fermerPanneau(); } catch (e) {} document.querySelectorAll('#sortie-carte').forEach(x => x.remove()); RL_CLI.cli = cli; EC.tab = tab; rendre(); }, { cli, tab }); await L.calme(p, 200);
         const marque = await p.evaluate(({ lib, data }) => { for (const e of document.querySelectorAll('body *')) { if (!e.offsetParent && getComputedStyle(e).position !== 'fixed') continue;
             const lb = (e.getAttribute('aria-label') || e.textContent || e.title || '').replace(/\s+/g, ' ').trim().slice(0, 60);
             const dd = [...e.attributes].filter(a => a.name.startsWith('data-')).map(a => a.name + '=' + a.value.slice(0, 40)).join(' ');
