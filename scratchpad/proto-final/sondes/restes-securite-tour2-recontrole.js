@@ -52,12 +52,12 @@ const ECRANS = ['accueil', 'planning', 'interventions', 'devis', 'factures', 'ta
         return { nom: orph(o.nom), contact: orph(o.contact), mail: orph(m), entree: orph(d), longueur: o.nom.length, gardeNav }; });
       console.log('  · coupe au milieu d’un émoji :', JSON.stringify(s));
       L.v('C. une coupe à 120 au milieu d’un émoji ne laisse aucun signe orphelin (nom, contact, expéditeur, entrée du courrier)', !s.nom && !s.contact && !s.mail && !s.entree, s);
-      // C2. la même coupe par le CLAVIER : on tape 119 « a » puis un émoji dans le vrai champ de la fiche (maxlength 120) et on relit ce que le navigateur a gardé
+      // C2 (tour 5 : le plafond se compte en signes, plus en unités UTF-16). La même coupe par le CLAVIER : on tape 119 « a » puis un émoji dans le vrai champ de la fiche (maxlength 120) et on relit ce que le navigateur a gardé
       await p.evaluate(k => { aller('client-x-' + k); ongletClient = 'infos'; rendre(); }, info.k); await p.waitForTimeout(700);
       const champ = p.locator('[data-ci="nom"]'); await champ.fill(''); await champ.focus(); await p.keyboard.insertText('a'.repeat(119) + '😀 fin');
-      const t = await p.evaluate(() => { const v = document.querySelector('[data-ci="nom"]').value; return { n: v.length, orphelin: /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(v) }; });
+      const t = await p.evaluate(() => { const v = document.querySelector('[data-ci="nom"]').value; return { n: nbSignes(v), unites: v.length, orphelin: /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(v) }; });
       console.log('  · frappe réelle d’un émoji à la limite :', JSON.stringify(t));
-      L.v('C2. taper un émoji à la limite du champ (maxlength 120) ne laisse aucun signe orphelin', t.n <= 120 && !t.orphelin, t);
+      L.v('C2. taper un émoji à la limite du champ (maxlength 120) ne laisse aucun signe orphelin — le plafond se compte en SIGNES depuis le tour 5 (119 « a » + l’émoji = 120 signes, 121 unités UTF-16 : gardés entiers)', t.n <= 120 && !t.orphelin, t);
       // D. bulles
       const b = await p.evaluate(() => { const dire = h => { toast(h); return document.getElementById('toast').innerHTML; };
         return { orange: dire('<span style="color:var(--orange)">⚠ Chevauche « X » (09:00)</span>'), classe: dire('<b class="ok">x</b> <i>y</i> <small>z</small> <strong>w</strong> <em>v</em><br>u'), onclick: dire('<b onclick="alert(1)" title="t" data-x="1">x</b>') }; });

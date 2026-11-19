@@ -1,0 +1,65 @@
+[
+ {
+  "nom": "retour",
+  "defaut": "Boîte mail, menu « Principal » (et tout menu du module : Filtrer, Actions, Boîte…) ouvert : un Retour quittait la Boîte mail et laissait le menu ouvert",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : toute fenêtre posée par-dessus (menu compris) est un niveau d'historique (overlayDePage ne met plus les menus à part) ; un Retour ferme donc le menu et reste dans la Boîte mail, Échap ou un choix libère l'entrée",
+  "preuve": "retour-restes3.js G1 et G1b (choix « Répondre » qui ouvre un composeur) : mac 25 ✓, windows 25 ✓, iphone 32 ✓, petit 32 ✓, iphone nuit 32 ✓, 0 ✗ (android et ipad 28 ✓ avant l'ajout de G1b) ; garde ancienne retour-recontrole-c.js : « Principal » → Retour → #boiteMail, menu fermé (android, mac) ; mutation M1 (menu remis hors historique) : 11 lignes ✗ sur mac"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Composeur ouvert (ordinateur) puis départ par une adresse (⌘K, lien du menu) : une étape de Retour de trop, la Boîte mail s'affichait deux fois de suite",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : une entrée ORPHELINE du module (état {opcourrier:k} avec k au-dessus du niveau courant, laissée par une fenêtre fermée avec l'écran) est sautée aussitôt par un recul ; un seul Retour ramène à la Boîte mail, le suivant va à l'écran d'avant",
+  "preuve": "retour-restes3.js G2 (voies aller() et lien du menu latéral à l'ordinateur) ✓ sur mac, windows, ipad, android, iphone, petit ; constat avant : Retour 1 #boiteMail, Retour 2 #boiteMail encore, Retour 3 Clients ; après : Retour 1 #boiteMail, Retour 2 Clients ; mutation M2 : 5 lignes ✗ sur mac"
+ },
+ {
+  "nom": "retour",
+  "defaut": "OP Security : une entrée {cal:1} reste après un aller() par programme (le téléphone simulé gardait la place par-dessus l'écran d'arrivée, deux entrées poussées, premier Retour muet)",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : aller() range le téléphone simulé en plein écran (opsRanger, comme fermerPanneau et fermerMenu) ; sans effet sur grand écran où c'est un volet permanent",
+  "preuve": "retour-restes3.js G3 (aller() depuis un état posé, et dans la MÊME tâche que l'ouverture) ✓ sur iphone, petit, android, ipad ; avant : pile « securite », n = 7, Retour 1 muet ; après : pile vide, n = 5, Retour 1 → Clients ; mutation M3 : 9 lignes ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "OP Security élargi (volet permanent) puis rétréci : le téléphone revenait en plein écran sans que personne l'ait ouvert",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : un écouteur matchMedia(min-width:1100px) fait suivre SECU.ouvert à la largeur (ouvert en grand, rond en étroit) ; rétrécir ne verrouille pas le téléphone",
+  "preuve": "retour-restes3.js G4 ✓ iphone, petit, android, ipad (et nuit) ; avant : « rétréci » → pile securite, entrée {cal:1}, plein écran ; après : pas de plein écran, pile vide, rouvrable à la main avec UNE entrée que UN Retour ferme ; capture r3-*-8-opsecurity-retreci regardée (jour android, nuit iphone) ; mutation M4 : 3 lignes ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "« ‹ OP GESTION » touché avec un panneau (Réglages) ou le tiroir ☰ du cadre de la Comptabilité ouvert laissait le panneau OUVERT : on le retrouvait en revenant dans la Comptabilité",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : cpCouchePartir() dit au cadre de fermer sa couche (opc_fermer_calque, le message du Retour du navigateur) avant de partir — la règle « Retour ferme la couche du dessus » s'applique, le choix du tour 2 est annulé",
+  "preuve": "retour-restes3-compta.js (D1 à D8, D2 au nouveau verdict : au retour, panneau absent, pile vide, cpCalque faux) : android 47 ✓, iphone 47 ✓, android nuit 47 ✓, secrétariat (julie, origine Clients) android 47 ✓, mac 38 ✓, ipad 38 ✓, 0 ✗ ; captures r3-android, r3-iphone-nuit, r3-mac « 3 → 4 → 5 » regardées (panneau Réglages ouvert, arrivée propre à Clients, Comptabilité rouverte sans panneau) ; mutation M5 : 5 lignes ✗ sur android"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Deux clics dans la MÊME tâche JavaScript sur « ‹ OP GESTION » : le second (cpSysDe déjà vidé) allait à l'accueil par défaut au lieu de l'écran d'origine et AJOUTAIT une entrée ; un Retour rouvrait la Comptabilité",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : la branche 'retour' ne fait rien si le cadre est déjà quitté (cpSysteme faux) ; le bouton n'existe plus à l'écran à ce moment, seul un clic dédoublé peut y arriver",
+  "preuve": "retour-restes3-compta.js D3b (vrai double clic synchrone, origine Clients, avec et sans panneau) ✓ sur les mêmes profils que D2 ; la sonde du tour 2 (D3) ne le jouait PAS vraiment (son second clic part d'un setTimeout 0 et vérifie que la barre est encore là) ; constat sans la protection (retour-restes3-double.js) sur android, iphone, mac : panneau ouvert → #accueil au lieu de #clients, puis Retour → #comptabilite ; mutation M6 : 5 lignes ✗ sur android"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non vérifié : le Retour matériel d'un vrai appareil (balayage iOS, Safari réel, bouton physique d'Android) ; la Boîte mail au clavier physique d'un vrai Mac",
+  "etat": "ne se reproduit pas",
+  "changement": "rien : les sondes appellent goBack (ce que fait le bouton d'Android) mais n'émulent ni le geste de balayage iOS ni Safari réel",
+  "preuve": "limite d'outil, pas un défaut mesuré"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non-régression : sondes des tours précédents rejouées après les corrections",
+  "etat": "corrigé",
+  "changement": "aucun",
+  "preuve": "retour-courrier.js android 7 ✓ iphone 7 ✓ ; retour-recontrole.js SECTION=courrier mac 4 ✓ android 4 ✓ ; retour-recontrole-d.js android 8 ✓ ; retour-calques.js android, mac : 151 ✓ · 0 ✗ chacune avant le délai de 280 s de la commande (les sondes sont longues, la fin n'a pas été atteinte : OP Security et l'atelier de devis étaient joués), iphone : coupée au délai sans ✗ relevé ; retour-recontrole-c.js android et mac : coupées au délai, 6 ✓ · 0 ✗ relevés ; retour-parcours.js android : 50 ✓ · 1 ✗ — le ✗ compte les « history.pushState » du fichier (2, dont celui de cliAdresseRendre d'une autre voie : déjà 2 avant mes changements, git show), sans lien avec ce lot"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Absence de recontrôle du tour 3 (restes-retour-tour3-recontrole.json n'existe pas)",
+  "etat": "ne se reproduit pas",
+  "changement": "rien",
+  "preuve": "le tour 2 était recontrôlé (0 casse, 0 nouveau) ; ce tour-ci, ses corrections ne l'ont pas encore été : à faire jouer"
+ }
+]

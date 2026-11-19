@@ -82,6 +82,15 @@ sonde C "reste recontrole iphone nuit partie chiffres" node $S/compta-reste-reco
 sonde E "reste roles (marc, julie, sm, kb)" node $S/compta-reste-roles.js
 duo E "reste tableaux" node $S/compta-reste-tableaux.js
 
+# Restes de cohérence (cadre OP COMPTABLE / OP GESTION, tours 2 et 3) et pièces du recontrôle qui n'avaient pas leur ligne : « profil [qui] » pour les deux premières, « profil [nuit] » pour les autres.
+duo E "reste coherence-2" node $S/compta-restes-coherence-2.js
+duo E "reste coherence-2 recontrole" node $S/compta-restes-coherence-2-recontrole.js
+duon E "reste coherence-3" node $S/compta-restes-coherence-3.js
+duon E "reste coherence-3 recontrole" node $S/compta-restes-coherence-3-recontrole.js
+duon E "reste recontrole-bulletin" node $S/compta-reste-recontrole-bulletin.js
+duon E "reste recontrole-cadre-mots" node $S/compta-reste-recontrole-cadre-mots.js
+duo E "reste recontrole-coh" node $S/compta-reste-recontrole-coh.js
+
 # ───────────── compta-ventes : ventes, clients, paiements, caisse ─────────────
 duo E "ventes annulee-cadre" node $S/compta-ventes-annulee-cadre.js
 sonde E "ventes corrections-mep mac jour" node $S/compta-ventes-corrections-mep.js mac jour
@@ -103,6 +112,20 @@ for r in r1 r2 r3; do
 done
 for r in r2b r4 r5; do duo C "ventes recontrole-$r" node $S/compta-ventes-recontrole-$r.js; done
 for x in 1 2 3; do duon E "ventes restes-$x" node $S/compta-ventes-restes-$x.js; done
+
+# Restes des ventes (lots 1 à 7) et leurs recontrôles (rc) : tous prennent « profil [nuit] » sauf mention.
+for x in restes1-rc1 restes1-rc2 restes2-1 restes2-2 restes2-rc-pdf restes2-rc-qte restes2-rc-remb restes3-lignes restes3-rc restes4 restes4-rc-a restes4-rc-b restes5-qte restes5-rc restes5-rc2 restes6 restes6-commande restes6-rc restes6-rc2; do duon E "ventes $x" node $S/compta-ventes-$x.js; done
+duo E "ventes restes2-rc-dvt" node $S/compta-ventes-restes2-rc-dvt.js
+sonde E "ventes restes2-rc-julie mac" node $S/compta-ventes-restes2-rc-julie.js mac julie
+sonde E "ventes restes2-rc-julie iphone" node $S/compta-ventes-restes2-rc-julie.js iphone julie
+duo E "ventes restes3-rc-duree" node $S/compta-ventes-restes3-rc-duree.js
+duon E "ventes restes3-rc-fait (julie)" node $S/compta-ventes-restes3-rc-fait.js
+duon E "ventes restes3-rc-remb (julie)" node $S/compta-ventes-restes3-rc-remb.js
+duon E "ventes restes3-remb (julie)" node $S/compta-ventes-restes3-remb.js
+sonde E "ventes restes3-rc-largeurs mac jour" node $S/compta-ventes-restes3-rc-largeurs.js
+sonde E "ventes restes3-rc-largeurs mac nuit" node $S/compta-ventes-restes3-rc-largeurs.js nuit
+sonde E "ventes restes7-boite mac jour" PROFIL=mac node $S/compta-ventes-restes7-boite.js
+sonde E "ventes restes7-boite iphone nuit" PROFIL=iphone NUIT=1 node $S/compta-ventes-restes7-boite.js
 
 # ───────────── balayages (opt-in) ─────────────
 if [ -n "$AVEC_BALAYAGE" ]; then

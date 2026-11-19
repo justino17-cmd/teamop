@@ -12,7 +12,7 @@
 cd "$(dirname "$0")/../../../.." || exit 9   # racine du dépôt
 CAPB=/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap
 # Les sondes rangent leurs captures dans ces dossiers (codés en dur) : un redémarrage de la machine les efface, et une sonde sans dossier meurt à sa première capture.
-mkdir -p "$CAPB"/{campagne-accueil,campagne-client,campagne-clients,campagne-interventions,campagne-taches-absences,campagne-technicien,campagne-technicien-recontrole,clients-recontrole} 2>/dev/null
+mkdir -p "$CAPB"/{campagne-accueil,campagne-client,campagne-clients,campagne-interventions,campagne-taches-absences,campagne-technicien,campagne-technicien-recontrole,clients-recontrole,restes-clients3-recontrole,restes-clients4} 2>/dev/null
 J="${CAP:-/tmp}/clients-tout.log"; mkdir -p "$(dirname "$J")" 2>/dev/null; : > "$J"; ko=0; n=0
 S=scratchpad/proto-final/campagne/sondes
 # lance <libellé> <VARIABLES=valeur…> node <sonde> : UNE sonde à la fois, 400 s au plus. Le verdict est le CODE DE SORTIE (une sonde qui imprime
@@ -60,9 +60,28 @@ if [ -n "$AVEC_TOUS" ]; then for p in ipad windows; do lance "clients-restes PRO
 lance "clients-restes2-adverse PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/clients-restes2-adverse.js"
 lance "clients-restes2-adverse PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/clients-restes2-adverse.js"
 
+# Les restes des tours 3 et 4 (19 novembre) : l'historique après « Abandonner », la recherche dans « Archivés », la dictée, « Se déconnecter » avec une saisie, le fil de la Comptabilité sous le nom ACTUEL du client. Le gérant sur ordinateur, le secrétariat sur téléphone (ses droits changent le message de la dictée).
+for f in clients-restes3-adverse clients-restes4-adverse; do
+  lance "$f PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/$f.js"
+  lance "$f PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/$f.js"
+  if [ -n "$AVEC_TOUS" ]; then lance "$f PROFIL=ipad QUI=julie" PROFIL=ipad QUI=julie node "$S/$f.js"; lance "$f PROFIL=windows QUI=marc NUIT=1" PROFIL=windows QUI=marc NUIT=1 node "$S/$f.js"; for p in android petit; do lance "$f PROFIL=$p QUI=marc" PROFIL=$p QUI=marc node "$S/$f.js"; done; fi
+done
+
 # Le clavier n'existe que sur ordinateur : mac et windows.
 lance "clients-clavier PROFIL=mac" PROFIL=mac node "$S/clients-clavier.js"
 lance "clients-clavier PROFIL=windows" PROFIL=windows node "$S/clients-clavier.js"
+
+# Les restes des tours 4 et 5 (dictée au plus grand nombre de mots, nom d'un seul mot de 54 signes) et le nom très long dans TOUTES les vues (sœur 5, 18 novembre 2026). Le gérant sur ordinateur, le secrétariat sur téléphone de nuit.
+for f in clients-restes4-recontrole clients-restes5 clients-restes5-recontrole; do
+  lance "$f PROFIL=mac QUI=marc" PROFIL=mac QUI=marc node "$S/$f.js"
+  lance "$f PROFIL=iphone QUI=julie NUIT=1" PROFIL=iphone QUI=julie NUIT=1 node "$S/$f.js"
+done
+lance "clients-restes3-captures PROFIL=mac" PROFIL=mac node "$S/clients-restes3-captures.js"
+# clients-nom-long-vues : les téléphones (320, 360, 390), les tablettes et l'ordinateur étroit, jour ET nuit ; le technicien (kb) a d'autres vues (Mes heures, Frais).
+for cfg in "iphone marc" "petit marc" "android marc" "ipad marc" "mac720 marc" "iphone kb"; do set -- $cfg
+  lance "clients-nom-long-vues PROFIL=$1 QUI=$2" PROFIL=$1 QUI=$2 node "$S/clients-nom-long-vues.js"
+  lance "clients-nom-long-vues PROFIL=$1 QUI=$2 NUIT=1" PROFIL=$1 QUI=$2 NUIT=1 node "$S/clients-nom-long-vues.js"
+done
 
 echo "TOTAL : $n exécution(s) · $ko tombée(s)" | tee -a "$J"
 echo FINI | tee -a "$J"

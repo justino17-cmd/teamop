@@ -1,0 +1,16 @@
+[
+  {
+    "nom": "Dictée du devis : un client dont le nom porte une apostrophe typographique n'est plus reconnu quand on le dit en entier (« l’Océan », « L’Épi d’Or », « l’Escale »)",
+    "defaut": "dvdPreparer coupait le nom sur les espaces puis retirait les signes : « l’escale » devenait « lescale », introuvable dans le texte dicté (régression de la correction « mot entier » du tour 4).",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html, dvdPreparer : le nom se coupe sur tout ce qui n'est ni lettre ni chiffre (comme tkxNomEntier), mots de 3 signes et plus ; la liste des mots génériques gagne « mme », « garage », « syndic », « les », « des », « chez » (sinon « Mme Durand » aurait reconnu « Mme Roux »). Reconnus dits en entier : apostrophe droite ET typographique, trait d'union (y compris insécable), chiffre, point final collé, majuscules. « support mural » ne choisit toujours pas « Le Vieux Port ».",
+    "preuve": "scratchpad/proto-final/campagne/sondes/clients-restes5.js D1 (23 phrases de reconnaissance, 5 faux amis dont « support mural », deux noms dans la phrase = un seul devis, archivé refusé avec sa phrase) : 40 ✓ · 0 ✗ sur mac, iphone nuit, petit nuit, android, ipad nuit, windows nuit, petit, iphone. Mutations : ancienne coupe rétablie 8 ✗ ; seuil à 4 signes 1 ✗ (« Épi ») ; « mme » retiré de la liste 1 ✗."
+  },
+  {
+    "nom": "Carte client au nom d'un seul mot de 54 signes : le nom sort de la carte et élargit la page au téléphone",
+    "defaut": "Le nom (<b> de .client-carte) n'avait aucun overflow-wrap : sur iPhone la page passait à 535 px dans 390.",
+    "etat": "corrigé",
+    "changement": "apercu/prototype-op-gestion.html, carte de la liste des clients : min-width:0 et overflow-wrap:anywhere sur le nom (même réglage que la phrase « Aucun client ne correspond à… »).",
+    "preuve": "clients-restes5.js D2 (mot de 54 signes et mot de 54 signes accentué, dans « Tous les clients » et « Archivés », mesure contre documentElement.clientWidth : page, corps, carte, descendants) : 40 ✓ · 0 ✗ sur iphone, petit (320), android, ipad, windows, mac, jour et nuit. Mutation (overflow-wrap retiré) : 4 ✗ sur iphone ET sur mac. Captures relues : mac jour, petit nuit, iphone nuit archivé : le nom se coupe en deux lignes dans la carte, rien ne sort."
+  }
+]

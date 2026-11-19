@@ -9,7 +9,7 @@ const { L, ATTENDU, ROUTES, G3D, lireMenu, aplatir, aplatirAttendu } = require('
     v(`${tag} : le menu existe`, !!m);
     if (!m) { await L.fin(c); continue; }
     v(`${tag} : groupes, ordre et noms comme décidé`, aplatir(m.G) === aplatirAttendu(ATTENDU[qui]), { eu:aplatir(m.G) });
-    v(`${tag} : aucun groupe d'une seule ligne (hors rôle technicien : sa ligne 3D ; hors bureau : « Personnel » ne porte que Véhicules — VEHICULES-TEMPS.md § 11, exception DITE à Justin)`, qui === 'sm' || m.G.every(g => g.L.length > 1 || g.t === '' || (qui === 'julie' && g.t === 'Personnel' && g.L.length === 1 && g.L[0].l === 'Véhicules')), m.G.map(g => g.t + ':' + g.L.length));
+    v(`${tag} : aucun groupe d'une seule ligne (hors rôle technicien : sa ligne 3D ; l'exception du bureau « Personnel › Véhicules seul » est tombée avec equipe-11 : Temps de travail s'y est joint)`, qui === 'sm' || m.G.every(g => g.L.length > 1 || g.t === ''), m.G.map(g => g.t + ':' + g.L.length));
     v(`${tag} : aucun groupe ne porte le nom d'une de ses lignes`, m.G.every(g => !g.t || !g.L.some(l => l.l === g.t)));
     const cg = m.G.flatMap(g => g.L).find(l => l.l === 'Comptabilité');
     v(`${tag} : petit gris sous Comptabilité`, qui === 'sm' ? !cg : !!cg && cg.sous === 'Factures, paiements, paie', cg);

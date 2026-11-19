@@ -1,0 +1,39 @@
+{
+ "noms": ["(a) TT.viaPaie / TT.sys : le drapeau ne vaut que pour un retour", "(c) eqxRestes : toutes les semaines, ligne grise seulement si pointage", "(d) mutation 6 recalée", "voisins : vhCourt, bulletin sans « Prototype », autres retours depuis la Paie"],
+ "regles": [
+  "(a) menu (clic réel sur le lien ou feuille du menu) depuis la Paie ouvre Aujourd'hui ; retour/avance ensuite ne ressuscitent pas Mois — 6 profils, jour et nuit",
+  "(a) retour du système depuis la Paie ouvre Mois, avec ou sans mois verrouillé (bouton « Voir la paie » et paieAller sans verrou) ; retour, avance, retour rouvre Mois ; la barre « ‹ Revenir » ouvre Mois et ne laisse pas le drapeau posé",
+  "(a) rechargement à chaud dans la Paie puis retour : aucune erreur de page ; adresse tapée #pointage : une vue valide s'ouvre",
+  "(a) Planning > Paie : la barre dit « Planning », ramène au Planning, puis Temps de travail pris par aller() ouvre Aujourd'hui ; Mes heures et accueil de même",
+  "(a) rôles : technicienne, chef d'équipe, Léa ne voient ni Temps de travail ni la Paie (routent vers Ma journée), aucune erreur, drapeau jamais collé ; la secrétaire (qui voit les deux) retombe sur Aujourd'hui",
+  "(c) ligne grise seulement pour qui a pointé cette semaine ; personne sans aucun pointage (23 effacés) : ni alerte ni ligne grise ; une seule vieille semaine : alerte datée (« la semaine du … »), pas « dernière » ; 4 semaines : « Pointage de 4 semaines pas encore validé, Du 28 sept. au 25 oct. » lisible sur mac, ipad, iphone, petit (jour et nuit), sans débordement (scrollWidth = largeur posée)",
+  "(d) mutation 6 : tombe (voir sonde du correcteur) ; vhCourt : aucune exception sur 12 noms dont Ypsilon, Œuvre, vide ; bulletin en mode application : aucune mention « Prototype » (2475 caractères lus)"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "L'alerte du départ guidé compte une semaine à cheval sur un mois verrouillé, que personne ne peut plus valider : elle ne se résorbe jamais",
+   "gravite": "faible à moyenne (n'empêche pas la désactivation ; l'alerte ment et ne peut pas disparaître)",
+   "etapes": "Temps de travail, geste « verrouiller » (ttViaPaie('verrouok'), octobre verrouillé) ; ouvrir le départ guidé de Sophie Martin (eqxDepart('sm')). eqxRestes exclut une semaine seulement si TOUS ses jours sont verrouillés (ptxJours(L).every(paieMoisVerrou)) ; la semaine du 28 sept. au 4 oct. a 4 jours en septembre, donc reste comptée.",
+   "constat": "Mesuré : après le verrou, pt = [2026-09-28] pour les 6 personnes. Valider cette semaine par le geste valsem de la Paie répond « Le mois est verrouillé. » (valsem teste paieVerrouille() global) ; l'onglet Temps de travail refuse aussi (S.J.some(paieMoisVerrou) → « est fermé »). L'alerte « Pointage de la semaine du 28 sept. pas encore validé » + « Ouvrir ses heures › » promet un geste impossible. Correctif possible : exclure aussi une semaine dont UN jour est verrouillé (some au lieu de every), comme le font déjà les deux portes de validation. Rien dans la sonde du correcteur ne couvre ce cas (D4 de mon banc ne fait que reproduire la règle every)."
+  }
+ ],
+ "nouveaux": [
+  "Mineur (R4) : TT.sys est une heuristique de temps (cpProg vide ET plus de 700 ms depuis le dernier clic sur un lien #…). Un retour du système donné moins de 700 ms après un clic d'ancre (retour de geste très rapide sur Android, ou clic sur un lien d'ancre qui ne change pas l'adresse) est pris pour une navigation du menu : on retombe sur Aujourd'hui au lieu de Mois. Reproduit sur 6 profils x jour/nuit (12 sur 12 par construction). Pas d'erreur, aucune donnée touchée ; rare en pratique.",
+  "Mineur : « Du 28 sept. au 25 oct. » est une plage, pas la liste : avec des semaines non contiguës (ex. 28 sept. et 19 oct. seulement), le texte laisserait croire que tout l'intervalle est concerné.",
+  "Note : mon capture mac de la fenêtre de départ n'a pas montré le panneau (artefact de la sonde, le panneau existe : alerte-mac.png le montre) ; aucun défaut d'écran constaté."
+ ],
+ "sondes": [
+  {"fichier": "scratchpad/proto-final/sondes/restes-vehtemps-tour2-recontrole.js (6 profils, jour et nuit)", "resultat": "708 ✓ · 0 ✗"},
+  {"fichier": "scratchpad/proto-final/sondes/restes-vehtemps-tour3-recontrole.js (6 profils, jour et nuit, neuve : chemins différents)", "resultat": "408 ✓ · 12 ✗ — les 12 sont R4 (retour < 700 ms après un clic d'ancre), voir nouveaux"},
+  {"fichier": "scratchpad/proto-final/sondes/restes-vehtemps-1.js", "resultat": "96 ✓ · 0 ✗"},
+  {"fichier": "scratchpad/proto-final/sondes/vehtemps-rc-parcours.js", "resultat": "37 ✓ · 0 ✗"},
+  {"fichier": "scripts/verifier-syntaxe.js", "resultat": "41 pages, 0 en erreur"},
+  {"fichier": "tests/test-835.js", "resultat": "844 ✓ · 0 ✗"}
+ ],
+ "doutes": [
+  "Le rôle technicien/salarié n'ouvre ni Temps de travail ni la Paie dans ce prototype : le drapeau viaPaie ne s'y pose donc jamais ; seul un administrateur ou une secrétaire l'exerce.",
+  "Mes heures : l'administrateur est redirigé vers l'accueil (la vue est celle du salarié) ; le chemin Mes heures > Paie n'a donc été joué qu'en administrateur, pas avec un salarié qui a un accès Paie (aucun dans les données).",
+  "Scripts compta-reste-parcours-f et compiler-pages.js introuvables dans l'arbre : non rejoués."
+ ]
+}
