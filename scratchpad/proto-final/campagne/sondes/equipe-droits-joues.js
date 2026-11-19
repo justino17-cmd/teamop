@@ -41,10 +41,10 @@ const toastModule = p => p.evaluate(() => { const h = document.querySelector('#c
 async function tenter(h, ch) {
   const p = h.p; await E.ranger(h.c); await L.aller(p, ch.route); if (ch.prep) await ch.prep(h);
   const avant = await p.evaluate(SNAP + ''); const r0 = await p.evaluate(() => DROITS_REFUS.length);
-  let propose = false, err = ''; try { propose = await ch.jouer(h); } catch (e) { err = String(e.message || e).slice(0, 120); }
+  h.clique = false; let propose = false, err = ''; try { propose = await ch.jouer(h); } catch (e) { err = String(e.message || e).slice(0, 120); }
   await L.calme(p, 700);
   const toast = ((await E.toast(p)) || (await toastModule(p)) || '').slice(0, 140); const apres = await p.evaluate(SNAP + ''); const refus = (await p.evaluate(() => DROITS_REFUS.length)) - r0;
-  return { propose:propose === true, note:typeof propose === 'string' ? propose : '', changed:diff(avant, apres), refus, toast, err };
+  return { clique:!!h.clique, propose:propose === true, note:typeof propose === 'string' ? propose : '', changed:diff(avant, apres), refus, toast, err };
 }
 // clic droit / appui long / touche Menu : le même événement quel que soit l'appareil
 const droit = (p, sel, i) => p.evaluate(({ sel, i }) => { const e = [...document.querySelectorAll(sel)].filter(q => q.offsetParent !== null)[i || 0]; if (!e) return false; e.scrollIntoView({ block:'center' }); const r = e.getBoundingClientRect(); e.dispatchEvent(new MouseEvent('contextmenu', { bubbles:true, cancelable:true, clientX:r.left + r.width / 2, clientY:r.top + Math.min(r.height / 2, 12), button:2 })); return true; }, { sel, i });
@@ -62,6 +62,8 @@ const attendreMail = async p => { await p.waitForFunction(() => { const h = docu
   // au téléphone le module n'affiche qu'un volet à la fois (liste OU lecture) et se souvient du dernier : on revient à la liste
   for (let i = 0; i < 3; i++) { const liste = await p.evaluate(() => { const h = document.querySelector('[data-opcourrier]'); const r = h && h.shadowRoot; const a = r && r.querySelector('[data-view]'); if (!a || a.getAttribute('data-view') === 'list') return true; const b = r.querySelector('#btnBack'); if (b && b.offsetParent !== null) { b.click(); return false; } return true; }); if (liste) break; await L.calme(p, 400); } };
 const choisirMail = async (h, i) => { await attendreMail(h.p); try { await h.p.locator('#rows .msg').nth(i || 0).click({ timeout:6000 }); } catch (e) { const d = await h.p.evaluate(() => { const hh = document.querySelector('[data-opcourrier]'); const r = hh && hh.shadowRoot; const a = r && r.querySelector('[data-view]'); return JSON.stringify({ view:a && a.getAttribute('data-view'), compose:!!(r && r.querySelector('#cSheet')), overlay:!!(r && r.querySelector('#overlay')), route, hash:location.hash }); }); await h.p.screenshot({ path:'/tmp/echec-mail-' + PROFIL + '.png' }); throw new Error('message non cliquable : ' + d); } await L.calme(h.p, 400); };
+// un bouton du module qu'on a VRAIMENT pu cliquer : `clique` le dit à la sonde (un bouton qui devait être caché et qui l'est mal est un défaut, même si le clic est ensuite refusé)
+const cliqueMail = async (h, sel) => { await h.p.locator(sel + ':visible').first().click(); h.clique = true; };
 const touche = async (p, k) => { await p.keyboard.press(k); await L.calme(p, 500); };
 // si le message s'ouvre, on l'envoie pour de vrai (c'est le seul moyen de prouver qu'une écriture a eu lieu) ; sinon on dit qu'il ne s'est pas ouvert
 const composeEtEnvoie = async p => { if (!(await p.locator('#cSub').count())) return 'la fenêtre de rédaction ne s\'ouvre pas'; await p.fill('#cTo', 'client@exemple.fr'); await p.keyboard.press('Enter'); await p.fill('#cSub', 'Essai de droits'); await p.fill('#cBody', 'Bonjour').catch(() => {}); await p.locator('#cSend').click(); await p.waitForTimeout(6500); await L.calme(p, 300); return true; };   // l'envoi a un délai d'annulation de 5 s : on l'attend, sinon il se termine pendant le chemin suivant
@@ -105,11 +107,11 @@ const CAS = [
     { n:'Boîte mail : touche « C » (nouveau message) puis envoi', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'c'); return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : barre de lecture › « Transférer » puis envoi', fermeAttendu:true, route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { if (!(await dansMail(h.p, '[data-act="forward"]'))) { // au téléphone, « Transférer » est dans le menu « Répondre ▾ »
         if (await dansMail(h.p, '[data-act="replyMenu"]')) { await h.p.locator('[data-act="replyMenu"]:visible').first().click(); await L.calme(h.p, 400); const it = h.p.locator('[role=menuitem]', { hasText:'Transférer' }); if (await it.count()) { await it.first().click(); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } } return 'bouton « Transférer » non proposé'; }
-      await h.p.locator('[data-act="forward"]:visible').first().click(); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } },
-    { n:'Boîte mail : clic droit sur un message › sélection de plusieurs › « Transférer » puis envoi', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="forward"]'))) return 'bouton « Transférer » de la sélection non proposé'; await h.p.locator('[data-multi="forward"]:visible').first().click(); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } },
+      await cliqueMail(h, '[data-act="forward"]'); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } },
+    { n:'Boîte mail : clic droit sur un message › sélection de plusieurs › « Transférer » puis envoi', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="forward"]'))) return 'bouton « Transférer » de la sélection non proposé'; await cliqueMail(h, '[data-multi="forward"]'); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } },
     { n:'geste forcé : bouton « ＋ Écrire » de l’hôte (data-mbx-ecrire) fabriqué, puis envoi', route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { await forcer(h.p, { 'data-mbx-ecrire':'1' }); await L.calme(h.p, 600); return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : « Ajouter une boîte » (data-addaccount) : la fenêtre de connexion s’ouvre (rien n’est écrit tant qu’on ne l’a pas remplie)', ouvertureSeule:true, fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { if (!(await dansMail(h.p, '[data-addaccount]')) && (await dansMail(h.p, '#btnNav'))) { await h.p.locator('#btnNav:visible').first().click(); await L.calme(h.p, 500); }   // au téléphone la liste des boîtes est dans le tiroir
-      if (!(await dansMail(h.p, '[data-addaccount]'))) return 'bouton « Ajouter une boîte » non proposé'; await h.p.locator('[data-addaccount]:visible').first().click(); await L.calme(h.p, 500); return (await h.p.locator('#aMail').count()) ? true : 'la fenêtre de connexion d\'une boîte ne s\'ouvre pas'; } }
+      if (!(await dansMail(h.p, '[data-addaccount]'))) return 'bouton « Ajouter une boîte » non proposé'; await cliqueMail(h, '[data-addaccount]'); await L.calme(h.p, 500); return (await h.p.locator('#aMail').count()) ? true : 'la fenêtre de connexion d\'une boîte ne s\'ouvre pas'; } }
   ] },
   { c:'com.m', cat:'com', x:'m', chemins:[
     { n:'Boîte mail : touche « F » (drapeau)', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'f'); return true; } },
@@ -117,13 +119,13 @@ const CAS = [
     { n:'Boîte mail : clic droit › « Marquer comme lu / non lu »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => await menuMail(h.p, 'Marquer comme') },
     { n:'Boîte mail : clic droit › « Répondre » puis envoi (répondre est un geste de la case Modifier)', route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Répondre'); if (m !== true) return m; return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : clic droit › « Marquer d’un drapeau »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => await menuMail(h.p, 'Marquer d’un drapeau') },
-    { n:'Boîte mail : sélection de plusieurs messages › « Archiver »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="archive"]'))) return 'bouton « Archiver » de la sélection non proposé'; await h.p.locator('[data-multi="archive"]:visible').first().click(); await L.calme(h.p, 500); return true; } }
+    { n:'Boîte mail : sélection de plusieurs messages › « Archiver »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="archive"]'))) return 'bouton « Archiver » de la sélection non proposé'; await cliqueMail(h, '[data-multi="archive"]'); await L.calme(h.p, 500); return true; } }
   ] },
   { c:'com.s', cat:'com', x:'s', chemins:[
     { n:'Boîte mail : touche « # » (supprimer)', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, '#'); return true; } },
     { n:'Boîte mail : touche « Suppr » (supprimer)', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'Delete'); return true; } },
     { n:'Boîte mail : clic droit › « Supprimer »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => await menuMail(h.p, 'Supprimer') },
-    { n:'Boîte mail : sélection de plusieurs messages › « Supprimer »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="trash"]'))) return 'bouton « Supprimer » de la sélection non proposé'; await h.p.locator('[data-multi="trash"]:visible').first().click(); await L.calme(h.p, 500); return true; } },
+    { n:'Boîte mail : sélection de plusieurs messages › « Supprimer »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="trash"]'))) return 'bouton « Supprimer » de la sélection non proposé'; await cliqueMail(h, '[data-multi="trash"]'); await L.calme(h.p, 500); return true; } },
     { n:'geste forcé : bouton data-mbx="decook" (retirer une boîte connectée)', route:'boiteMail', jouer: h => forcer(h.p, { 'data-mbx':'decook|b2' }) }
   ] }
 ];
@@ -139,8 +141,10 @@ const CAS = [
     for (const ch of cas.chemins) { const s = dr.sans[ch.n], a = dr.avec[ch.n];
       res.chemins.push({ chemin:ch.n, sans:s, avec:a });
       const T = (s.toast || '').slice(0, 70);
+      if (!s.propose && ch.fermeAttendu && s.clique) v(`${cas.c} · ${ch.n} : SANS la case, ce chemin est FERMÉ (le bouton a pu être cliqué : il devait être caché)`, false, s);
       if (!s.propose) { v(`${cas.c} · ${ch.n} : SANS la case, le chemin n'est pas proposé (${(s.note || '').slice(0, 110)}) et rien n'a bougé`, s.changed.length === 0 && !s.err && !/^aucun/.test(s.note || '') && !/s'ouvre sans/.test(s.note || ''), s);   // « la fenêtre s'ouvre sans son bouton » = un geste proposé puis refusé en silence : défaut, pas « chemin fermé »
         v(`${cas.c} · ${ch.n} : AVEC la case, le même chemin existe et écrit (contre-épreuve : le chemin fermé sans la case était bien un geste)`, a.propose && (ch.ouvertureSeule || a.changed.length >= 1) && a.refus === 0, a); continue; }
+      if (ch.fermeAttendu && s.clique && !s.propose) v(`${cas.c} · ${ch.n} : SANS la case, ce chemin est FERMÉ (le bouton a pu être cliqué : il devait être caché)`, false, s);
       if (ch.fermeAttendu) v(`${cas.c} · ${ch.n} : SANS la case, ce chemin est FERMÉ (l'entrée ou le bouton n'est pas proposé ; un geste proposé puis refusé est un défaut d'affichage)`, false, s);
       v(`${cas.c} · ${ch.n} : SANS la case, rien n'est écrit (${s.changed.join(',') || 'aucune donnée'})`, s.changed.length === 0 && !s.err, s);
       if (!ch.muet) v(`${cas.c} · ${ch.n} : SANS la case, le refus est DIT à l'écran (« ${T} »)`, /pas ouvert à ton compte|Demande à/.test(s.toast) || s.refus >= 1, s);
