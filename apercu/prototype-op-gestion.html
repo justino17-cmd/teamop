@@ -9609,7 +9609,7 @@ document.addEventListener('change', ev => {
     if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
-  else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
+  else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim().replace(/[\s.,;]+$/, '');   /* « 2. » ou « 2 , » : la ponctuation de fin n'est pas une unité */
     if (ligneAcompte(l)) { t.value = l.q; toast(ACOMPTE_PHRASE + ' Je garde ' + (l.q || '1') + '.'); return; }   /* la quantité d'une déduction non plus : « 2 » déduisait l'acompte deux fois */
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mn = dureeMinutes(v);
@@ -10769,13 +10769,15 @@ let eqSel = null, eqFiltre = 'tous';
 const eqDe = k => EQUIPE.find(p => p.k === k);
 /* un NOM de personne s'écrit dans cent endroits (planning, absences, documents, messages) : on garde une LISTE de ce qui est permis (lettres, chiffres, espace, point, tiret, apostrophe typographique), jamais une liste de ce qui est interdit.
    nomPersonneOk() juge ce qu'on tape (refus avec un message qui dit pourquoi) ; nomPersonneNet() nettoie ce qui est DÉJÀ rangé : même une fiche d'avant, ou venue d'ailleurs, ne peut plus porter de balise */
+/* tour 3 : un signe invisible (espace de largeur nulle, soft hyphen, BOM, marques de sens d'écriture) collé dans un nom ne se voit pas, ne se cherche pas, et un BOM en bout passait même le « trim » : on le refuse sur le texte BRUT, avant tout nettoyage */
+const NOM_INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/;
 const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
-const nomPersonneOk = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
+const nomPersonneOk = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return null; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
 const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
 /* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
 /* tour 2 : la phrase DIT LA VRAIE RAISON (le premier signe, la longueur, ou un signe interdit) au lieu de redire toute la règle : une seule phrase de 67 signes passait à quatre lignes dans une demi-colonne d'Android (360 px), et « -Marie » était refusé avec une phrase qui ne parlait pas du premier signe */
 const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';
-const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
+const nomRefus = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return 'Un signe invisible s’est glissé : retape le nom à la main.'; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
   if (/[^\p{L}\p{M}\p{N} .’-]/u.test(x)) return NOM_PERS_REFUS;
   if (!/^[\p{L}\p{M}\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';
   if (x.length > 60) return '60 signes au plus.';
@@ -10845,7 +10847,7 @@ function vueEquipe(){
 function eqFiche(k){
   const p = eqDe(k), r = eqResume(p), c = (H_GENS[k] || {}).c || '#5b6676', admin = p.droits.profil === 'admin', seulAdmin = admin && EQUIPE.filter(o => o.actif && o.droits.profil === 'admin').length === 1;
   const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${{ v:'voir', c:'créer', m:'modifier', s:'supprimer' }[x]}">`;
-  foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}${!p.actif ? ' · désactivé(e)' : p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
     <div class="ligne"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="groupe">Sa semaine</div>
     <div class="fo-stats"><span><b>${r.ints.length}</b>${r.ints.length > 1 ? 'interventions' : 'intervention'}</span><span><b${r.heures > 48 * 60 ? ' style="color:var(--rouge)"' : ''}>${ptH(r.heures)}</b>travaillées${r.heures > 48 * 60 ? ', au-delà de 48 h' : ''}</span>${r.cp ? `<span><b>${String(r.cp.reste).replace('.', ',')} j</b>de congés payés restants</span>` : ''}</div>
@@ -14395,6 +14397,8 @@ const ACTIONS_CREA = {
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, NVSIG:CREA.nouveau ? JSON.stringify(CLIENTS[k]) : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
     Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: coupeSure(texteNet(CREA.motif).trim(), 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
+    /* confirmer un créneau transforme CETTE option en intervention : elle s'efface toujours, quelle que soit la case Planning (ce n'est pas un droit sur le planning, c'est la même chose qui change de forme) ; posée APRÈS la photo d'« Annuler », qui la rend avec l'intervention retirée. Les autres options, elles, restent régies par la case (mbxLiberer). */
+    if (CREA.optCren) { const oc = CREA.optCren; for (let q = BUREAU.length - 1; q >= 0; q--) { const o = BUREAU[q]; if (o.option && o.optMail === oc.mail && o.tech === oc.t && o.d === oc.d && o.h === oc.h) BUREAU.splice(q, 1); } }
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
     toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, !rlPermis('planning') ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
@@ -19855,7 +19859,7 @@ function mbxFin(){ return '\n\nBien cordialement' + (MBX.sig ? ',\n' + MBX.sigTx
 /* ── ce que dit un e-mail : on relit le montant et la surface, on ne devine rien d'autre ── */
 function mbxMontant(m){ const x = /(\d[\d  ]*(?:[.,]\d{1,2})?)\s*(?:€|euros?)/i.exec(m.txt); if (!x) return null; const v = parseFloat(x[1].replace(/[  ]/g, '').replace(',', '.')); return isFinite(v) ? v : null; }
 function mbxSurface(m){ const x = /(\d{1,4})\s*m(?:²|2)/i.exec(m.objet + ' ' + m.txt); return x ? +x[1] : null; }
-function mbxFacLue(c){ if (!c || !c.facLue) return null; const F = c.facLue; const ht = Math.round(c.lignes.reduce((s, l) => s + (F.q[l.pid] != null ? F.q[l.pid] : l.recu) * (F.pu[l.pid] != null ? F.pu[l.pid] : l.pu), 0) * 100) / 100; return { ht, att:cmdHT(c), num:F.num }; }
+function mbxFacLue(c){ if (!c || !c.facLue) return null; const F = c.facLue; const ht = Math.round(c.lignes.reduce((s, l) => s + cmdLigneHT({ q:(F.q[l.pid] != null ? F.q[l.pid] : l.recu), pu:(F.pu[l.pid] != null ? F.pu[l.pid] : l.pu) }), 0) * 100 + 1e-7) / 100;   /* même arrondi de ligne que cmdHT : « lus » = « commandés » au centime */ return { ht, att:cmdHT(c), num:F.num }; }
 
 /* ── les sujets de plus : un e-mail sans mot-clé ne disparaît plus ── */
 Object.assign(ML_SUJET, { msgcli:'Message de client', msgfour:'Message de fournisseur', trier:'À trier', choixcren:'Choix de créneau' });
@@ -19902,7 +19906,7 @@ const mbxPeutTenir = () => peut('planif', 'm');
 function mbxOptions(m, prop){ if (!prop || prop.id !== m.id || !mbxPeutTenir()) return; mbxLiberer(m.id);
   prop.list.forEach((c, k) => BUREAU.push({ id:'o' + Date.now() + k, tech:c.t, d:c.d, h:c.h, dur:120, titre:'Option · ' + mailNom(m), option:true, optMail:m.id, optExp:ajoute(AUJ, 2) })); }
 /* retirer une option est une écriture au planning, comme en poser une : sans la case Planning (modifier) on ne retire RIEN — les options qu'un collègue a tenues restent, et s'éteignent d'elles-mêmes à leur échéance (mbxPurge). Rend le nombre d'options retirées (restes entreprise, tour 5). */
-function mbxLiberer(id){ let n = 0; if (!mbxPeutTenir()) return n; for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id) { BUREAU.splice(k, 1); n++; } return n; }
+function mbxLiberer(id, garde){ let n = 0; if (!mbxPeutTenir()) return n; for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optMail === id && !(garde && garde(BUREAU[k]))) { BUREAU.splice(k, 1); n++; } return n; }
 function mbxPurge(){ for (let k = BUREAU.length - 1; k >= 0; k--) if (BUREAU[k].option && BUREAU[k].optExp < AUJ) BUREAU.splice(k, 1); }
 (() => { const c0 = carteBur; carteBur = function(b){ let h = c0.apply(this, arguments);
   if (b.option) h = h.replace('class="pc bur ', 'class="pc bur mbx-opt ').replace('Créneau bloqué', 'Option · libre sous 48 h'); return h; }; })();
@@ -20083,7 +20087,7 @@ function courrierBandeau(m){
   if (R.facture) lien('tvoir:facture|' + R.facture.id, 'Facture ' + R.facture.num);
   if (R.devis) lien('tvoir:devis|' + R.devis.num, 'Devis ' + R.devis.num);
   const L = [ML_TAG[R.qui][0]]; let det = '', note = '';
-  if (R.sujet === 'facfour' && R.cmd) { const F = mbxFacLue(R.cmd); det = F ? `${eur(F.ht)} HT lus dans la facture, ${eur(F.att)} HT commandés` : `${eur(R.cmd.lignes.reduce((s, l) => s + (l.recu != null ? l.recu : l.q) * l.pu, 0))} HT attendus d’après la commande`;
+  if (R.sujet === 'facfour' && R.cmd) { const F = mbxFacLue(R.cmd); det = F ? `${eur(F.ht)} HT lus dans la facture, ${eur(F.att)} HT commandés` : `${eur(Math.round(R.cmd.lignes.reduce((s, l) => s + cmdLigneHT({ q:(l.recu != null ? l.recu : l.q), pu:l.pu }), 0) * 100 + 1e-7) / 100)} HT attendus d’après la commande`;
     if (F) { const e = Math.round((F.ht - F.att) * 100) / 100; note = e ? `Écart de ${e > 0 ? '+' : '−'}${eur(Math.abs(e))} HT avec ta commande : à regarder avant de payer.` : 'La facture est conforme à la commande.'; } }
   else if (R.sujet === 'expedition' && R.cmd) det = `date de livraison actuellement dans OP GESTION : ${R.cmd.prevue ? jCourt(R.cmd.prevue) : 'aucune'}`;
   else if (R.sujet === 'paiement' && R.facture) { det = `${eur(R.ttc)} TTC, ${R.facture.st === 'payee' ? 'déjà payée' : 'pas encore réglée'}`;
@@ -20283,7 +20287,8 @@ document.addEventListener('click', ev => {
   if (a === 'regle') { if (!MBX.regles.some(r => r.mail === mailAdr(m).toLowerCase())) MBX.regles.push({ mail:mailAdr(m).toLowerCase(), nom:m.de.nom }); let n = 0; MAILS.forEach(o => { if (o.dossier === 'recu' && mailAdr(o).toLowerCase() === mailAdr(m).toLowerCase() && !o.arch) { o.info = true; o.arch = true; o.regleAuto = true; n++; } }); mlSel = null; rafraichir();
     return toast(`Règle créée : les e-mails de ${esc(m.de.nom)} arrivent archivés, en Information. ${mbxNb(n, 'message rangé', 'messages rangés')} tout de suite.`, { lib:'Annuler', fn:() => { MBX.regles = MBX.regles.filter(r => r.mail !== mailAdr(m).toLowerCase()); MAILS.forEach(o => { if (o.regleAuto && mailAdr(o).toLowerCase() === mailAdr(m).toLowerCase()) { o.arch = false; o.regleAuto = false; } }); rendre(); } }); }
   if (a === 'confcren') { const c = m.cren.choix; let cl = R.cli; if (!cl) { cl = 'c' + Date.now().toString(36); CLIENTS[cl] = cliNet({ nom:mailNom(m), type:'part', contact:mailNom(m), tel:R.tel || '', mail:mailAdr(m), adr:R.ville ? R.ville + ' (adresse à compléter)' : '', acces:'', depuis:'2026', appareils:[] }); clientFinir(cl); }
-    const nLib = mbxLiberer(m.cren.orig), nResteOpt = BUREAU.filter(b => b.option && b.optMail === m.cren.orig).length; fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return;
+    const mmeCren = o => o.option && o.optMail === m.cren.orig && o.tech === c.t && o.d === c.d && o.h === c.h;   /* l'option de CE créneau n'est PAS libérée ici : l'intervention la remplace, et elle s'efface à la création (cCreer), pour tout le monde — sans quoi un abandon du formulaire ferait disparaître un créneau tenu */
+    const nLib = mbxLiberer(m.cren.orig, mmeCren), nResteOpt = BUREAU.filter(o => o.option && o.optMail === m.cren.orig && !mmeCren(o)).length; fermerPanneau(); ouvrirCreation({ cli:cl, tid:c.t, d:c.d, h:hmin(c.h) }); if (!CREA) return; CREA.optCren = { mail:m.cren.orig, t:c.t, d:c.d, h:c.h };
     const o = mlDe(m.cren.orig) || m; CREA.type = 'Dépannage'; CREA.titre = libelleSur(o.objet.replace(/^re\s*:\s*/i, ''), 120); CREA.titreTouche = true; CREA.motif = o.txt.split('\n').filter(l => l.trim()).slice(1, 3).join(' '); CREA.dur = 120; const bb = brouillon(); if (bb) { bb.dur = 120; bb.titre = CREA.titre; } rendreCreation(); CREA.mail = m.id;
     /* la phrase dit ce qui s'est PASSÉ : des options retirées, des options laissées à un collègue (sans la case Planning on n'y touche pas), ou rien du tout quand aucune n'avait été tenue */
     return toast('Intervention préremplie au créneau choisi (' + esc(jlong(c.d)) + ' à ' + mlH(c.h) + ')' + (nLib ? ' : les autres options sont libérées. ' : nResteOpt ? ' : les options tenues par un collègue restent au planning jusqu’à leur échéance. ' : '. ') + 'Vérifie et crée.'); }
@@ -21160,7 +21165,7 @@ function entErr(id, msg){ const e = document.getElementById(id + '-err'), c = do
 /* regles : [[id, valeur => message ou '']] ; rend les valeurs (rognées) ou null après avoir écrit chaque message sous son champ, mis le focus sur le premier et dit le premier en toast */
 function entVerifier(regles){
   entEffacer(); const V = {}, E = [];
-  regles.forEach(([id, fn]) => { const el = document.getElementById(id); V[id] = el ? el.value.trim() : ''; const m = fn(V[id], V); if (m) E.push([id, m]); });
+  regles.forEach(([id, fn]) => { const el = document.getElementById(id); V[id] = el ? blancsRogne(el.value) : ''; const m = fn(V[id], V); if (m) E.push([id, m]); });
   E.forEach(([id, m]) => entErr(id, m));
   if (!E.length) return V;
   const c = document.getElementById(E[0][0]); if (c) c.focus();
@@ -21606,7 +21611,7 @@ eqFiche = function (k) {
   const cas = (cat, x) => `<input type="checkbox" data-eqd="${k}|${cat}|${x}" ${p.droits.cats[cat][x] ? 'checked' : ''} ${admin ? 'disabled' : ''} aria-label="${esc(DR_CATS.find(o => o[0] === cat)[1])} : ${EQX_X[x]}">`;
   const pk = p.droits.profil.replace('*', ''), ajuste = p.droits.profil.endsWith('*') && PROFILS[pk];
   const edit = eqxEdition === k;
-  foOuvrir(`<span class="surtitre">${esc(p.role)}${p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
+  foOuvrir(`<span class="surtitre">${esc(p.role)}${!p.actif ? ' · désactivé(e)' : p.invite ? ' · invitation envoyée' : ''}</span><div class="eq-tete"><span class="eq-av grand" style="--c:${c}">${esc(p.prenom[0] + p.nom[0])}</span><h2>${esc(eqNom(p))}</h2></div>
     ${edit ? eqxFormModif(p) : `<div class="ligne eqx-l"><span>E-mail</span><b>${esc(p.mail)}</b></div><div class="ligne eqx-l"><span>Téléphone</span><b>${esc(p.tel || '—')}</b></div>
     <div class="actions"><button type="button" class="btn gris petit" data-eqx="modifier|${k}">✎ Modifier la fiche</button></div>`}
     <div class="groupe">Sa semaine</div>
@@ -21790,7 +21795,9 @@ function eqxReglesPanneau() {
 }
 
 /* ═ 10. Les gestes de l'écran (clics) ═ */
-const eqxVal = id => ((document.getElementById(id) || {}).value || '').trim();
+/* tour 3 : un BOM (U+FEFF) compte comme « blanc » pour trim() — collé en bout de nom il disparaissait AVANT le contrôle et le nom passait sans refus : on rogne les blancs ordinaires, jamais le BOM */
+const blancsRogne = t => String(t).replace(/^[^\S\uFEFF]+|[^\S\uFEFF]+$/g, '');
+const eqxVal = id => blancsRogne((document.getElementById(id) || {}).value || '');
 /* ce que la page faisait déjà, refait avec sa trace : on passe AVANT les anciens écouteurs et on les empêche de rejouer */
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-eq]'); if (!b) return;
@@ -26619,7 +26626,7 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
   /* ⛔ aucun mot de passe ne s'écrit ici ni dans le texte à envoyer : le provisoire se remet en main propre (il n'est lisible que dans le panneau d'un geste et dans le bloc « Démonstration ») */
   const texte = ['OP GESTION — ' + ENTREPRISE.nom, '1. Ouvre ce lien : ' + ESPACE_LIEN, '2. Ton identifiant : ' + id, '3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe OP Security sur ton téléphone : l’application te guide à ta première connexion.'].join('\n');
   const telTxt = verrou ? `<b style="color:var(--rouge)">${esc(secuVerrouFiche(c))}</b>` : c.tel ? `<b>${esc(c.tel.nom)} · activé le ${secuJJMM(c.tel.activeLe)}</b>` : soi ? '<b>À activer depuis ton téléphone</b>' : '<b>À activer à sa première connexion</b>';
-  const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : '';
+  const gestes = sec && !soi ? `${verrou ? `<button type="button" class="btn" data-sec2="deverrouiller|${esc(k)}">Déverrouiller</button>` : ''}${p.actif ? `<button type="button" class="btn gris" data-sec2="telephone|${esc(k)}">Nouveau téléphone</button><button type="button" class="btn gris" data-sec2="deconnecter|${esc(k)}">Déconnecter partout</button>` : ''}` : '';   /* tour 3 : un compte désactivé n'a ni session (eqxSynchro les ferme à chaque désactivation, la connexion lui est refusée) ni téléphone à remplacer avant sa réactivation : ces deux gestes ne feraient rien ; « Déverrouiller » reste (un verrou survit à la désactivation) */
   /* equipe-13 (décision du chef, 17/11) : deux gestes qui changent un mot de passe, deux noms qu'on ne confond pas, UNE phrase sous chacun.
      Pas pour son propre compte (equipe-01) : la session se couperait avant la lecture du provisoire. Le bouton « lien » de la fiche est repris ici
      (même geste data-eq=mdp) pour que les deux soient côte à côte ; un compte verrouillé n'en reçoit aucun (« Déverrouiller » d'abord). */
@@ -26635,8 +26642,8 @@ function secuFicheConnexion(k){ const p = eqDe(k), c = secuCompte(k), id = cnxLo
     <div class="ligne"><span>Téléphone</span>${telTxt}</div>
     <div class="ligne"><span>Dernière connexion</span><b>${der ? esc(secuMaj(secuQuand(der.ts))) + ' · ' + esc(der.appareil) : soi ? 'En ce moment' : 'Jamais'}</b></div>
     ${verrou ? '<small class="gris">Compte verrouillé : utilise « Déverrouiller », après avoir vérifié son identité en personne.</small>' : ''}
-    ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le lien ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     <div class="actions" style="margin:4px 0 0"><button type="button" class="btn gris" data-cnx="copier" data-t="${esc(texte)}">Copier le lien et l’identifiant</button>${gestes}</div>
+    ${sec && soi ? '<small class="gris">Pour ton propre mot de passe, utilise le bouton « M’envoyer un lien pour choisir un nouveau mot de passe » ci-dessous ; le reste (téléphone, connexions) demande un autre administrateur.</small>' : ''}
     ${mdpOutils}</div>`; }
 { const f0 = eqFiche; eqFiche = function(k){ const v = f0.apply(this, arguments), p = eqDe(k), P = document.querySelector('#calque .panneau'), A = P && [...P.querySelectorAll('.actions')].pop();
   if (p && p.actif && k !== acteur() && secuPeut() && A && !P.querySelector('[data-cnx^="comme"]')) A.insertAdjacentHTML('afterbegin', `<button type="button" class="btn" data-cnx="comme|${esc(k)}">Ouvrir l’application comme ${esc(p.prenom)}</button>`);

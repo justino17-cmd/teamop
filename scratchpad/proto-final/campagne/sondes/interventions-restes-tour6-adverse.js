@@ -59,6 +59,9 @@ const I = require('./interventions-outils.js'), L = I.L;
   v('fiche complète, Terminer avec « 10-12 » en cours : jamais 1012 ni 10-12 enregistré', t2.mem === '14', t2);
   v('TOUR 6 : fiche complète + relevé refusé : la fiche ne se termine PAS (etat inchangé, pas de facture/mail)', t2.etat !== 'bureau', t2);
   v('TOUR 6 : la phrase de refus reste visible (pas remplacée par « Terminée »)', /Un seul nombre/.test(t2.toast) && !/Terminée/.test(t2.toast), t2);
+  { // la porte directe (sans passer par le clic : appel de l'action) s'arrête aussi sur un relevé refusé
+    const d = await p.evaluate(() => { const e = document.querySelector('input[data-releve="Soufflage"]'); if (!e) return null; e.value = '10-12'; ACTIONS.terminer({ dataset: { id: 'i1' } }); return { etat: fiche('i1').etat, mem: (fiche('i1').releves || {}).Soufflage }; });
+    v('TOUR 6 : ACTIONS.terminer appelée avec un relevé refusé ne termine pas', d && d.etat !== 'bureau' && d.mem === '14', d); }
   console.log('  · info fiche complète + Terminer « 10-12 » :', JSON.stringify(t2));
   await L.capture(c, I.CAP + `tour5-adverse-terminer-complet-${profil}${nuit ? '-nuit' : ''}.png`);
   await p.keyboard.press('Escape'); await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });

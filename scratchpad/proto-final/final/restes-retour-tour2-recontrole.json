@@ -1,0 +1,32 @@
+{
+ "noms": ["retour"],
+ "regles": [
+  "« ‹ OP GESTION » touché avec un panneau (Réglages) ou le tiroir ☰ du cadre de la Comptabilité ouvert : on arrive à l'écran d'où l'on venait (Clients ou Accueil), la pile du cadre est vide, l'historique n'est pas éteint, et UN Retour va à l'écran d'AVANT (Interventions ou Clients) — ni Retour muet, ni la Comptabilité qui se rouvre (android, iphone, petit, ipad, mac, windows ; jour et nuit)",
+  "Mêmes garanties avec deux couches (panneau puis tiroir), avec Échap côté hôte, avec un double toucher à 80 ms et 200 ms, avec Retour puis Avancer, et depuis un lien direct #comptabilite (historique d'une seule entrée)",
+  "« Factures et paiements » touché panneau ouvert : le cadre se referme sans calque fantôme et UN Retour ne reste pas muet",
+  "Panneau fermé par le Retour du navigateur, par sa croix, ou resté ouvert puis refermé après retour dans la Comptabilité : « ‹ OP GESTION » fait ensuite le recul normal, deux Retour d'affilée ne tombent jamais deux fois sur la même adresse",
+  "Cadre rouvert depuis la Comptabilité classique (cpSysDe = 'comptabilite'), panneau ouvert, « ‹ OP GESTION » : historique sain, aucun cadre fantôme",
+  "Rôle secrétariat (sans accueil : l'origine est Clients) sur téléphone et ordinateur : 34 ✓ · 28 ✓, même comportement",
+  "Barre « ‹ OP GESTION » visible et touchable au-dessus du panneau : 44 px au doigt (android, iphone), 30 px à la souris (mac), jour et nuit — captures regardées, écran d'arrivée propre"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes2-recontrole.js (neuve ; D1 à D8, 40 contrôles au téléphone)", "resultat": "android 40 ✓ · 0 ✗ ; iphone 37 ✓ ; petit 37 ✓ ; ipad 28 ✓ ; mac 31 ✓ ; windows 31 ✓ ; nuit android 37 ✓, mac 28 ✓, iphone 40 ✓ ; secrétariat (julie) android 34 ✓, mac 28 ✓ ; 0 ✗ partout. Le technicien (sm) et le chef d'équipe (kb) n'ont pas la Comptabilité : la sonde le constate (population) et ne joue rien, ce n'est pas un défaut" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes2-recontrole-b.js (neuve ; E1 à E4, chemins voisins)", "resultat": "android 19 ✓ · 0 ✗, iphone 19 ✓, mac 19 ✓, ipad 19 ✓, android nuit 19 ✓" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes2-recontrole-cap.js (captures jour et nuit)", "resultat": "15 ✓ · 0 ✗ après avoir ramené le seuil de cible de la souris à 28 px (la sonde exigeait 32 px à la souris : défaut de sonde, pas de page) ; 10 captures regardées en planches" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes1-attaque.js SECTION=compta (la sonde du correcteur)", "resultat": "android 14 ✓ · iphone 14 ✓ · mac 14 ✓ · ipad 14 ✓ · 0 ✗" },
+  { "fichier": "scratchpad/proto-final/sondes/retour-calques.js GENRE=securite,confirmation,feuille,cadre", "resultat": "iphone 57 ✓ · petit 57 ✓ · 0 ✗ (les profils que le correcteur n'avait pas rejoués)" },
+  { "fichier": "scratchpad/proto-final/sondes/retour-recontrole.js SECTION=courrier", "resultat": "windows 4 ✓ · petit 4 ✓ · iphone 4 ✓ · 0 ✗ (idem)" },
+  { "fichier": "scratchpad/proto-final/sondes/retour-recontrole-d.js (cadre de la Comptabilité)", "resultat": "android 8 ✓ · iphone 8 ✓ · 0 ✗" },
+  { "fichier": "mutation : la ligne de la branche 'retour' remise à l'ancienne (calRevenirA(d) || aller(d))", "resultat": "retour-restes2-recontrole.js android : 6 ✗ (D1 panneau et tiroir, D3 à 80 et 200 ms, D4, D5) ; page restaurée à l'identique (cmp)" }
+ ],
+ "doutes": [
+  "À décider par Justin : « ‹ OP GESTION » touché panneau ouvert laisse le panneau OUVERT dans le cadre (on le retrouve en revenant dans la Comptabilité, et la page le sait : UN Retour le ferme). Cohérent avec la règle admise au tour 1 (le panneau est l'état du cadre, pas de l'application), mais une personne débutante peut s'étonner de retrouver Réglages ouvert. Fermer le panneau en partant serait un choix de produit, pas un défaut",
+  "À décider par Justin (inchangé, non rejoué comme défaut) : menu « Principal » de la Boîte mail, un Retour quitte la Boîte mail et laisse le menu ouvert",
+  "Inchangé : Boîte mail ordinateur composeur ouvert puis départ par l'adresse (une étape de Retour de plus) ; OP Security entrée {cal:1} orpheline après un aller() par programme ; OP Security élargi puis rétréci. Sans donnée perdue et sans chemin au doigt",
+  "Deux clics sur « ‹ OP GESTION » dans la MÊME tâche JavaScript (0 ms) laissent une entrée de trop sur téléphone ; inatteignable au doigt ou à la souris (80 ms passent), consigné en doute par la sonde",
+  "Non vérifié : technicien et chef d'équipe (pas de Comptabilité : sans objet) ; le Retour matériel d'un vrai appareil (la sonde appelle goBack, comme le bouton d'Android, mais ni le geste de balayage iOS ni Safari réel ne sont émulés)"
+ ]
+}
