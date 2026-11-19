@@ -95,5 +95,17 @@
    "Compter un lieu à 320 px : le pied de la feuille (phrase + deux boutons empilés) prend ~155 px sur 568 — lisible, à soumettre",
    "Fiche fournisseur : « Choisir l'heure » sur deux lignes à 820 px (iPad) — lisible, laissé"
   ]
+ },
+ "tour4": {
+  "date": "2026-11-19",
+  "sonde_rejouee": "regard-gerant-c.js EN ENTIER, code final : 270 ✓ · 0 ✗, code de sortie 0",
+  "mutations": "1 à 32 en un seul lot : 32 sur 32 tombent (30 à 32 neuves)",
+  "corriges": [
+   23,
+   24,
+   25
+  ],
+  "captures": "464 prises (53 scènes : mac nuit, windows nuit, android jour, iphone jour) + 15 des écrans corrigés (petit nuit, iphone jour, ipad nuit, haut et bas défilés) ; regardées en planches : mac nuit 9/9, windows nuit 4/9 (1, 2, 4, 7), android jour 7/7, iphone jour 7/7, corrigés 2/3",
+  "pasRejoue": "défilement s1 et s2 des 464 captures non relu (seuls les écrans corrigés l'ont été, haut et bas) ; windows planches 3, 5, 6, 8, 9 non lues ; ipad jour et android nuit non recapturés ce tour"
  }
 }

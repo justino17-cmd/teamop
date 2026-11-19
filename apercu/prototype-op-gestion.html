@@ -232,7 +232,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 .ctx button.danger{color:var(--rouge)}.ctx button.danger .i{color:var(--rouge)}
 .ctx hr{border:0;border-top:1px solid var(--trait);margin:4px 6px}
 @media (max-width:760px){.ctx{left:8px!important;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));top:auto!important;max-width:none;border-radius:22px;padding:8px;animation-name:entreB}.ctx button{min-height:50px;font-size:16px}}
-#toast{overflow-wrap:anywhere;position:fixed;left:50%;bottom:26px;translate:-50% 16px;opacity:0;pointer-events:none;z-index:90;display:flex;gap:14px;align-items:center;max-width:min(600px,calc(100vw - 32px));padding:12px 14px 12px 18px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;transition:opacity .2s,translate .3s var(--ressort)}
+#toast{overflow-wrap:anywhere;position:fixed;left:50%;bottom:var(--toast-bas,26px);translate:-50% 16px;opacity:0;pointer-events:none;z-index:90;display:flex;gap:14px;align-items:center;max-width:min(600px,calc(100vw - 32px));padding:12px 14px 12px 18px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;transition:opacity .2s,translate .3s var(--ressort)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (pointer:coarse){#toast button{min-height:44px;min-width:44px}}   /* equipe-10 : « Annuler » mesurait 90 × 40 au doigt */
@@ -590,6 +590,7 @@ html .ms-att{border:0;min-height:44px;cursor:pointer}
 html span.ms-att{min-height:0;cursor:default}   /* pour qui n’accepte pas : une étiquette, pas un bouton */
 html .ms-puces{display:flex;flex-wrap:wrap;gap:8px}html .ms-puces .puce-c{min-height:44px}
 html .ms-seg2{display:flex;max-width:100%;width:100%}html .ms-seg2 button{flex:1 1 0;min-width:0;white-space:normal;line-height:1.2;padding:6px 8px;min-height:44px}
+@media (max-width:340px){html .ms-seg2 button{padding:6px 3px;font-size:13px}}   /* « Un achat au comptoir » tenait sur TROIS lignes à 320 px (boutons à 92 px) : marges et corps réduits, il en prend deux */
 html .ms-quoi{display:flex;flex-direction:column;gap:10px;margin-top:8px}html .ms-q{min-height:76px;gap:14px;justify-content:flex-start}html .ms-q>.fo-n{flex:1 1 0;min-width:0}
 html .ms-qi{width:44px;height:44px;border-radius:14px}html .ms-qi svg{width:26px;height:26px}
 html .ms-envois{display:flex;flex-direction:column;padding:6px 14px}
@@ -602,6 +603,7 @@ html .ms-reg{display:flex;flex:none;gap:12px;align-items:flex-start;padding:12px
 html .fo-garder>span:not(.gris){display:flex;flex-direction:column;gap:2px;min-width:0}   /* le titre d'une case et sa phrase sur deux lignes, jamais collés */
 html .ms-cbar{display:flex;gap:8px;flex-wrap:wrap}html .ms-cbar .btn{min-height:44px}
 html .ms-cliste{padding:4px 14px}html .ms-csom{flex:1 1 100%}
+html .ms-cpied{gap:6px}html .ms-cpied .btn{flex:1 1 100%}   /* le pied qui reste collé en bas ne garde que la somme et le bouton qui enregistre (« Changer de lieu » est dans la barre du haut) : ~155 px de pied sur 568 mangeaient la liste, il en reste ~95 */
 html .ms-rep{display:flex;flex-direction:column;gap:8px}html .ms-big{font-size:30px;font-weight:750;line-height:1.15;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}html .ms-big .st{font-size:14px}
 html .ms-seuil{display:flex;flex-direction:column;gap:4px}html .ms-fb{display:flex;gap:8px;flex-wrap:wrap}
 html .ms-boutons{display:flex;gap:10px;flex-wrap:wrap}html .ms-boutons .btn{flex:1 1 130px}
@@ -726,7 +728,7 @@ html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:
 html .fx-mailv{display:none}   /* l'adresse e-mail des commandes, en toutes lettres : sur un petit téléphone le champ la coupe (« …-atl »), et un champ de saisie ne passe pas à la ligne — la ligne dessous, si (voir ≤ 400 px) */
 html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .saisie[type=email]{width:min(70%,340px)}   /* « commandes@climpieces-atlantique.fr » se lit en entier (il était coupé à « …-atl ») */html .fx-lg .fx-n{width:112px;text-align:right}
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
-html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
+html .fx-lg .dt-btn{width:176px;min-width:0;flex:none;min-height:46px}html .fx-lg .dt-btn span{white-space:nowrap}   /* « Choisir l’heure » passait sur deux lignes à 150 px (iPad, ordinateur) ; sur téléphone le bouton prend toute la ligne (règle ≤ 400 px) */
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
 html .fo-depot{flex:none}   /* la feuille est une colonne flex : la zone « Choisir le fichier » (min-height 64) se laissait écraser à 64 px sous son propre texte, et le trait pointillé coupait le titre */
 html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
@@ -946,7 +948,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .ax-bud{padding:8px 12px;border-radius:12px;background:var(--surf-in)}
 .ax-gros,.ax-prec{padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--orange) 9%,transparent)}
 .ax-prec{background:color-mix(in srgb,var(--bleu) 9%,transparent)}
-.ax-lm{min-height:44px;text-align:left}
+.ax-lm{min-height:44px;text-align:left;margin:-12px 0;vertical-align:middle}   /* le bouton de 44 px dans une ligne de texte écartait toutes les lignes (33 px d’interligne sur iPad) : la zone reste de 44, la ligne reprend sa hauteur */
 .ax-lien{background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;display:flex;align-items:center}
 .ax-lien:hover b{text-decoration:underline;text-underline-offset:3px}
 .ax-n{align-items:flex-start}
@@ -3753,6 +3755,8 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+/* regard technicien b (320 px) : les deux champs du plein sont empilés, et la ligne « toutes taxes comprises » collait au libellé du champ suivant (on la lisait comme son titre) : de l'air entre les deux champs */
+@media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}
 
 /* ══ TEMPS DE TRAVAIL — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (rien d'autre : pas de teinte, de rayon ni d'ombre neufs) ══ */
 .tt-k .kpi{cursor:pointer;font:inherit}.tt-k .kpi[aria-pressed="true"]{border-color:var(--lien)}
@@ -4895,7 +4899,7 @@ function toast(msg, action){ // action : { lib, fn }
   // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
-  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -5106,7 +5110,7 @@ function infoCarte(i){
     <div class="ap-l"><b>${esc(c.nom)}</b><br><span class="gris">${esc(c.adr)}</span></div>
     <div class="ap-l" style="display:flex;gap:8px;align-items:center">${avatar(t,'p')}<span>${t.nom}</span><span class="st ${s[1]}" style="margin-left:auto">${s[0]}</span></div>
     ${i.motif ? `<div class="ap-l ap-motif">« ${esc(i.motif)} »</div>` : ''}
-    <div class="ap-l gris petit">${esc(c.contact)} · ${insec(c.tel)}${c.acces ? '<br>' + esc(c.acces) : ''}</div>`;
+    <div class="ap-l gris petit">${esc(c.contact)} · ${insec(c.tel)}${c.acces ? '<br>' + esc(c.acces).replace(/\n/g, '<br>') : ''}</div>`;
 }
 let apTimer = null;
 function cacherApercu(){ clearTimeout(apTimer); document.querySelector('.apercu')?.remove(); }
@@ -5178,7 +5182,7 @@ function panneauBloc(id, tid, d, mins){
   const b = id ? BUREAU.find(o => o.id === id) : { tech:tid, d, h:hm(mins), dur:60, titre:'Dépôt' }, choix = ['Dépôt','Garage (véhicule)','Réunion','Formation','Rendez-vous perso','Indisponible'];
   ouvrirPanneau(`<h2>${id ? 'Modifier le créneau bloqué' : 'Bloquer un créneau'}</h2><span class="gris">${tech(b.tech).nom} · ${jlong(b.d)} · personne ne pourra y être planifié.</span>
     <div class="puces">${choix.map(c => `<button type="button" class="puce-c" data-blocchoix="${c}" aria-pressed="${b.titre===c}">${c}</button>`).join('')}</div>
-    <label class="champ">Ou un autre nom<input id="bl-titre" value="${esc(b.titre)}"></label>
+    <label class="champ">Ou un autre nom<input id="bl-titre" maxlength="120" value="${esc(b.titre)}"></label>
     <div class="deux-champs"><label class="champ">Début<input type="time" id="bl-h" step="300" value="${b.h}"></label><label class="champ">Durée<select id="bl-dur">${dureesAvec(b.dur).map(m=>`<option value="${m}" ${m===b.dur?'selected':''}>${duree(m)}</option>`).join('')}</select></label></div>
     <button type="button" class="btn large" data-action="blocOk" data-id="${id || ''}" data-tech="${b.tech}" data-d="${b.d}">${id ? 'Enregistrer' : 'Bloquer'}</button>`);
 }
@@ -5412,7 +5416,7 @@ function vueFiche(id){
   <div class="grille2">
     <div class="col">
       ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.id === 'i1' ? ' · appel d’hier, 14 h 12' : ''}</div></div>` : ''}
-      <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
+      <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${i.note ? `<div class="info petit" style="margin-top:8px"><b>${/^n-ret-/.test(i.id) ? 'Note' : 'Note du bureau'} :</b> ${esc(i.note)}</div>` : ''}<div class="gris petit" style="margin-top:8px">Dernier passage : ${dernierPassage(i)}</div></div>
       <div class="carte"><h3>Appareils chez ce client</h3>${c.appareils.length ? '' : '<div class="gris petit">Aucun appareil enregistré pour l’instant.</div>'}${c.appareils.map(a=>`<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
       <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="photos">${F.photos.map((p,k)=>`<div class="ph" style="${p.src?`background-image:url(${p.src})`:''}"><span>${esc(p.nom)}</span><button type="button" aria-label="Retirer la photo ${esc(p.nom)}" data-action="photoSuppr" data-k="${k}">✕</button></div>`).join('')}<label class="ph ajout">＋ Photo<input type="file" accept="image/*" capture="environment" data-photo="${id}" hidden></label></div></div>
       <div class="carte"><h3>Ce que j’ai trouvé</h3><label class="champ"><span class="faible">Écris, ou dicte avec le micro du clavier</span><textarea data-champ="trouve" aria-label="Ce que j’ai trouvé" data-id="${id}">${esc(F.trouve)}</textarea></label></div>
@@ -5674,6 +5678,10 @@ const STF = { avalider:['À valider','st-o'], envoyee:['Envoyée · en attente',
 let filtreF = 'tous', reglages = { auto:false, relance:true };
 /* une ligne est prête quand elle a un nom ET un prix : sans nom, elle partirait chez le client sous « Ligne libre » (compta-ventes-02) */
 const ligneOk = l => l.pu != null && String(l.d || '').trim() !== '';
+/* La ligne qui DÉDUIT l'acompte déjà facturé est verrouillée : ni son prix ni sa quantité ne se retapent, ne s'effacent ni ne se doublent (« 2 » déduisait 100 € pour 50 € versés ; vider le prix puis taper « 50 » facturait +50 €).
+   Reconnue par le drapeau posé à sa création, ou — pour une ligne qui n'en porte pas — par son prix négatif : sur une facture à valider, seule une déduction est négative (compta-ventes, tour 6, décision du chef du 18/11). */
+const ligneAcompte = l => !!l && (l.acompte === true || l.pu < 0);
+const ACOMPTE_PHRASE = 'L’acompte se reprend tel qu’il a été facturé : son montant et sa quantité ne se retapent pas ici.';
 const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main-d’œuvre et déplacement', q:'1', pu:f.ht }];
 /* UNE seule fonction pour le total d'une ligne : celle du total de la facture (17/11, compta-ventes-11 : « Prix HT » voulait dire tantôt l'unité,
    tantôt la ligne ; la fiche, le PDF et le total de la facture lisent maintenant la même multiplication) */
@@ -5697,12 +5705,14 @@ const lignePiece = p => /[a-z]/i.test(String(p.q)) ? { d:p.nom, q:p.q, pu:p.pu !
    comptait 25,825 chacune — les lignes lues à l'écran faisaient 207,49 € pour un Total HT de 207,47 € sur un document remis au client (recontrôle, tour 3). */
 const totLigne = l => Math.round((l.pu || 0) * qteDe(l) * 100 + 1e-7) / 100;
 const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 100 + 1e-7) / 100;
+/* Les seules unités qu'une quantité tapée sait compter : aucune (un nombre), les heures (« 2 h »), et un décompte (« 3 u », « 2 pièces »). Toute autre — « forfaits », « mL », « kg » — changerait le total d'une ligne sans qu'on sache le convertir. */
+const qteUniteConnue = v => { const m = String(v).trim().match(/^(?:\d{1,4}\s?h(?:eures?)?\s?\d{0,2}(?:\s?min(?:utes?)?)?|(?:\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(h(?:eures?)?|u|unités?|pièces?|pcs?))?)$/i); return !!m; };
 /* Une durée tapée EN MINUTES (« 90 min », « 45 mn ») : sa valeur en minutes, ou null. Elle ne vaut des heures que sur une ligne facturée à l'heure (`ligneHeure`) :
    « 90 min » lu comme « 90 » au prix de l'HEURE écrivait 5 850,00 € pour 97,50 € dus, sans un mot (recontrôle, tour 3). */
 const dureeMinutes = v => { const m = String(v).trim().match(/^(\d{1,4}(?:[.,]\d+)?)\s?(?:min(?:ute)?s?|mn)$/i); return m ? parseFloat(m[1].replace(',', '.')) : null; };
 /* Une ligne est « à l'heure » par ce que SA QUANTITÉ dit (« 2h »), par le drapeau qu'une durée acceptée lui pose (`l.heure` : sans lui, la ligne cessait de l'être dès qu'elle avait reçu « 90 min », et la saisie suivante était refusée avec une phrase fausse),
    ou par une désignation d'heure DONT LE PRIX EST CELUI DE L'HEURE. Jamais par la désignation seule : « Main-d'œuvre remplacement (2 h) » d'un devis est une quantité 1 au prix des deux heures, et « 90 min » y écrivait 195 € pour 130 € dus, sans un mot (recontrôle, tour 4). */
-const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
+const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && !/forfait/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
 /* « même texte = même total » ne tient pas à la casse ni aux espaces : « 0,5 l » et « 0,5L » sont le flacon de « 0,5 L » (recontrôle, tour 3). */
 const qteNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[\s\u00a0\u202f]/g, '');
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -5722,7 +5732,7 @@ function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
-    if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
+    if (dv.acompte && dv.facAcompte) L3.push({ acompte:true, d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
     FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:dv.objet, lignes:L3, ht:0, tva:dv.tva, st:'avalider', emise:'—', ech:'—' }); dv.facSolde = 'f-' + i.id; return; }
   const kc = ctrDeVisite(i), fi = i.fact || (kc ? { mode:'contrat', tva:CLIENTS[i.cli].type === 'part' ? 10 : 20 } : null);   // une visite de contrat facturée « à chaque visite » se prépare au prix du contrat, jamais au tarif de dépannage
   if (fi) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = fi.mode, L2 = [];
@@ -8533,15 +8543,16 @@ function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementBy
 /* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
    (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
 function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
+function dvnClientObj(f){ return { nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }; }
 function dvnCreer(){
   dvnLire(); const f = DVN_F; f.err = '';
   if (f.nv && !nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (f.nv && !f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
-  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.';
+  else if (f.nv && f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (f.nv && !cfTelOk(f.tel)) f.err = TEL_MSG; else if (f.nv && clientPlafondRefus(dvnClientObj(f))) f.err = clientPlafondRefus(dvnClientObj(f)).m; else if (!f.nv && !f.cli) f.err = 'Choisis le client.'; else if (!f.objet) f.err = 'Indique l’objet du devis.';
   if (!f.err && f.nv && !f.doublonOk) { const dj = cfDoublonDe(f); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Préparer le devis » pour le créer quand même, ou choisis-le dans « Client existant ».'; } }
   if (f.err) return dvNouveau();
   let cli = f.cli;
   if (f.nv) { cli = 'n' + Date.now().toString(36); const r = reconnaitre(f.adr);
-    CLIENTS[cli] = cliNet({ nom:f.type === 'pro' ? f.nom : [f.prenom, f.nom].filter(Boolean).join(' '), type:f.type, contact:f.type === 'pro' ? (f.prenom || f.nom) : [f.prenom, f.nom].filter(Boolean).join(' '), tel:cfTelFmt(f.tel), mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] });
+    CLIENTS[cli] = cliNet(dvnClientObj(f));
     clientFinir(cli);   /* le point de la carte des tournées, le secteur et le numéro à la française : une seule fonction pour toutes les portes (clients-05) */
     journalAjout('marc', 'client', 'a créé le client', { t:'client', id:cli, lib:CLIENTS[cli].nom, cli }, { det:'depuis un nouveau devis' }); }
   const m = f.modele >= 0 ? DV_MODELES[f.modele][1] : [['', 1, null]];
@@ -9362,7 +9373,7 @@ const ACTIONS = {
     if (chezCli) { EC.tab = 'contrats'; aller('espaceclient'); } else aller('contrat-x-' + k.id); toast(chezCli ? 'Contrat signé. La copie signée vous est envoyée par e-mail.' : `Contrat signé. ${k.freq} visite${k.freq>1?'s':''} posée${k.freq>1?'s':''} au planning « à planifier ».${k.fact === 'an' ? ' La facture de l’année est préparée dans Factures.' : k.fact === 'mois' ? ' La facture du premier mois est préparée dans Factures.' : ''}`); },
   modifInt(b){ const i = INTS.find(o => o.id === b.dataset.id); if (!i) return;
     ouvrirPanneau(`<h2>Modifier l’intervention</h2><span class="gris">${esc(CLIENTS[i.cli].nom)} · ${ST[i.st][0].toLowerCase()}${i.st === 'encours' ? ' — le technicien voit la correction tout de suite' : ''}</span>
-      <label class="champ">Titre<input id="m-t" value="${esc(i.titre)}"></label>
+      <label class="champ">Titre<input id="m-t" maxlength="120" value="${esc(i.titre)}"></label>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="champ" style="flex:1 1 150px">Date<input type="date" id="m-d" value="${i.d}"></label><label class="champ" style="flex:1 1 110px">Heure<input type="time" id="m-h" value="${i.h}"></label><label class="champ" style="flex:1 1 110px">Durée<select id="m-dur">${[...new Set([30,60,90,120,180,240,480,i.dur])].sort((a,b)=>a-b).map(n=>`<option value="${n}" ${i.dur===n?'selected':''}>${duree(n)}</option>`).join('')}</select></label></div>
       <label class="champ">Technicien<select id="m-tech">${TECHS.map(t=>`<option value="${t.id}" ${i.tech===t.id?'selected':''}>${t.nom}</option>`).join('')}</select></label>
       <label class="champ">Type<select id="m-type">${[...new Set([i.type, ...TYPES])].map(t=>`<option ${i.type===t?'selected':''}>${esc(t)}</option>`).join('')}</select></label>
@@ -9370,6 +9381,7 @@ const ACTIONS = {
       <button type="button" class="btn large" data-action="modifIntOk" data-id="${i.id}">Enregistrer les modifications</button>`); },
   modifIntOk(b){ const i = INTS.find(o => o.id === b.dataset.id);
     const t2 = document.getElementById('m-tech').value, d2 = document.getElementById('m-d').value || i.d, h2 = document.getElementById('m-h').value || i.h;
+    { const pl = refusLong(document.getElementById('m-t').value, 120, 'Titre'); if (pl) { document.getElementById('m-t').focus(); return toast(pl); } }   /* un plafond dépassé refuse, il ne coupe pas */
     if ((t2 !== i.tech || d2 !== i.d || h2 !== i.h) && refusAbsent(t2, d2, h2)) return; // avant memo() : rien à annuler si c’est refusé
     memo(); const dAvant = i.d, hAvant = { h:i.h, dur:i.dur }, tAvant = i.tech, av = JSON.stringify([i.titre,i.d,i.h,i.dur,i.tech,i.type,i.note || '']);   /* une note absente et une note vide sont la même chose · 13 novembre 2026 */
     Object.assign(i, { titre:libelleSur(document.getElementById('m-t').value, 120) || i.titre, d:document.getElementById('m-d').value || i.d, h:document.getElementById('m-h').value || i.h, dur:+document.getElementById('m-dur').value, tech:document.getElementById('m-tech').value, type:document.getElementById('m-type').value, note:document.getElementById('m-n').value.trim() });
@@ -9397,7 +9409,8 @@ const ACTIONS = {
     payer(f, m, { montant:v, d:dd ? dd.split('-').reverse().slice(0,2).join('/') : undefined, h, photo:window.__encPhoto }); window.__encPhoto = null; fermerPanneau(); filtreMode = 'tous'; rendre(); },
   bilanPdf(){ ouvrirPanneau(`<h2>Bilan d’octobre</h2>${bilanPdf()}`, true); },
   info(b){ toast(esc(b.dataset.txt)); },
-  blocOk(b){ const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
+  blocOk(b){ { const pl = refusLong(document.getElementById('bl-titre').value, 120, 'Titre du créneau'); if (pl) { document.getElementById('bl-titre').focus(); return toast(pl); } }
+    const titre = libelleSur(document.getElementById('bl-titre').value, 120) || 'Créneau bloqué', h = document.getElementById('bl-h').value || '08:00', dur = +document.getElementById('bl-dur').value; memo();
     if (b.dataset.id) Object.assign(BUREAU.find(o => o.id === b.dataset.id), { titre, h, dur, indispo: titre === 'Indisponible' });
     else BUREAU.push({ id:'b' + Date.now(), tech:b.dataset.tech, d:b.dataset.d, h, dur, titre, indispo: titre === 'Indisponible' });
     fermerPanneau(); rendre(); toast(`${esc(titre)} · ${h} – ${fin(h, dur)}`, ANNULER); },
@@ -9537,19 +9550,22 @@ document.addEventListener('change', ev => {
   else if (t.dataset.bc) { BROUILLON[t.dataset.bc] = t.checked; rendre(); }
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
+    /* AVANT tout le reste (plafonds, signe) : une déduction d'acompte ne se retape pas, ne se vide pas, ne devient pas positive — et le refus dit la vérité au lieu de parler d'avoir */
+    if (ligneAcompte(f.lignes[+t.dataset.prix])) { toast(ACOMPTE_PHRASE + ' Le prix précédent est conservé.'); rendre(); return; }
     if (!isNaN(v) && v >= DV_PU_MAX) { toast('Ce prix est trop grand : un montant en euros inférieur à ' + eur(DV_PU_MAX) + ' (35 ou 35,50). Le précédent est conservé.'); rendre(); return; }   /* même plafond que le forfait de création */
     { const lg = f.lignes[+t.dataset.prix];   /* le plafond vaut aussi pour le TOTAL de la ligne : 9 999 × 999 999,99 € donnait près de 10 milliards, sans un mot */
       if (!isNaN(v) && v * qteDe(lg) > DV_PU_MAX) { toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse le prix ou la quantité. Le prix précédent est conservé.'); rendre(); return; } }
     /* un prix qu'on ne sait pas lire se DIT : « -10,33 » vidait le prix en silence et la ligne devenait « à chiffrer » sans raison (recontrôle, tour 4). Effacer le champ, lui, reste « à chiffrer ». */
-    { const lg0 = f.lignes[+t.dataset.prix];   /* une DÉDUCTION (l'acompte déjà facturé, prix négatif) ne change pas de signe en retapant « 40 » : le client paierait l'acompte une seconde fois au lieu de le déduire */
-      if (lg0.pu < 0 && t.value.trim() !== '') { toast('Cette ligne déduit un acompte déjà facturé : son montant ne se retape pas ici. Le prix précédent est conservé.'); rendre(); return; } }
     if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
+    if (ligneAcompte(l)) { t.value = l.q; toast(ACOMPTE_PHRASE + ' Je garde ' + (l.q || '1') + '.'); return; }   /* la quantité d'une déduction non plus : « 2 » déduisait l'acompte deux fois */
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mn = dureeMinutes(v);
     if (mn !== null && !(mn > 0 && ligneHeure(l))) { t.value = l.q; toast(mn > 0 ? 'Une durée en minutes se compte sur une ligne facturée à l’heure : écris-la en heures (1h30), ou une quantité. Je garde ' + (l.q || '1') + '.' : 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }
+    /* UNE unité que la ligne ne sait pas convertir se REFUSE : « 3 forfaits » ou « 250 mL » sur un flacon multipliaient le prix par 3 ou par 250, sans un mot. Sont lues : un nombre seul, une durée (2h, 1h30) et un décompte (u, pièce) ; le texte d'origine d'une ligne préparée (« 0,5 L ») redonne son propre total */
+    if (mn === null && !(l.q0 != null && qteNorm(v) === qteNorm(l.q0)) && qteLire(v) !== null && !qteUniteConnue(v)) { const un = (v.match(/^[\d\s\u00a0\u202f.,]+(\S.*)$/) || [])[1] || ''; t.value = l.q; toast('Je ne sais pas compter en « ' + un.trim() + ' » sur cette ligne : écris un nombre (2) ou une durée (1h30). Je garde ' + (l.q || '1') + '.'); return; }
     const lu = mn !== null ? mn / 60 : qteLire(v), nq = (l.q0 != null && qteNorm(v) === qteNorm(l.q0)) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
     if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
     if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + DV_Q_MAX.toLocaleString('fr-FR') + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
@@ -9572,27 +9588,37 @@ document.addEventListener('change', ev => {
   else if (t.dataset.preuve !== undefined && t.files[0]) { const e = ENCAISSEMENTS[+t.dataset.preuve], r = new FileReader(); r.onload = () => { e.photo = r.result; rendre(); toast(PREUVE[e.mode][0] + ' rangé' + PREUVE[e.mode][4] + ' avec le paiement de ' + esc(CLIENTS[e.cli].nom) + '.'); }; r.readAsDataURL(t.files[0]); }
   else if (t.dataset.ticket && t.files[0]) { const r = new FileReader(); r.onload = () => { TICKETS.push(r.result); rendre(); toast('Ticket rangé avec son paiement.'); }; r.readAsDataURL(t.files[0]); }
 });
+/* UN relevé numérique (kg, °C, bar…) : UNE règle, pour la valeur collée, tapée ou enregistrée en passant (releveLire), jouée à la SORTIE du champ (change) et par la fonction qui enregistre (releveValider). Un champ libre (Infestation, Arrivée, Départ) garde ce qu'on a tapé. */
+function releveExemple(t){ const G = fiche(t.dataset.id); return ((RELEVES[G.metier] || []).find(r => r[0] === t.dataset.releve) || [])[1]; }
+function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce qui a été recollé (milliers), net = ce qui a été retiré (lettres)
+  /* « − » (U+2212) et « – » sont des signes moins : sans ce passage le nettoyage les jetait et « −5 » devenait 5, une température fausse sans un mot */
+  let val = String(brut).replace(/[−–‒]/g, '-'), lu = '';
+  /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
+  const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[   ]\d{3})+(?!\d)/g, m => m.replace(/[   ]/g, ''));
+  if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
+  /* « 3 sur 18 », « 10-12 », « 10 – 12 » et « 10- » ne sont pas UN nombre : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; tout autre tiret refuse. */
+  const sans = val.replace(/^\s*-/, '');
+  if (/\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|-|\d[.,]\d+[.,]\d/.test(sans)) return { refus:true };
+  const net = val.replace(/[^\d.,-]/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
+  return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
+}
+function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
+  const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
+  const R = G.releves = G.releves || {}, av = R[t.dataset.releve] == null ? '' : String(R[t.dataset.releve]), r = releveLire(t.value);
+  if (r.refus) { t.value = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  if (t.value !== r.val) t.value = r.val;
+  if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
+  else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
+  R[t.dataset.releve] = r.val; return true;
+}
+function releveFlush(){ document.querySelectorAll('input[data-releve]').forEach(t => { try { releveValider(t); } catch (e) {} }); }   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) releveFlush(); }, true);
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { const G = fiche(t.dataset.id); let val = t.value, lu = '';
-    const ex = ((RELEVES[G.metier] || []).find(r => r[0] === t.dataset.releve) || [])[1];
-    if (/^\d+([.,]\d+)?$/.test(ex || '')) {   /* un relevé qui s'exprime en nombre (kg, °C, bar…) n'accepte que ça : « abc » partirait tel quel dans le compte rendu du client */
-      /* les deux conversions ne touchent QUE les relevés numériques : un champ libre (Infestation, Arrivée, Départ) garde ce qu'on a tapé, « 06:10 – 06:40 » comme « 2 100 individus » */
-      /* « − » (U+2212) et « – » sont des signes moins : sans ce passage le nettoyage les jetait et « −5 » devenait 5, une température fausse sans un mot */
-      val = val.replace(/[\u2212\u2013\u2012]/g, '-');
-      /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
-      const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?!\d)/g, m => m.replace(/[ \u00a0\u202f]/g, ''));
-      if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
-      /* « 3 sur 18 », « 10-12 » et « 10 – 12 » sont deux nombres, pas un : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; une plage, même à espaces, est refusée. On garde l'ancienne valeur. */
-      const deux = /\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|\d\s*-\s*\d|\d[.,]\d+[.,]\d/.test(val.replace(/^\s*-/, ''));
-      if (deux) { const av = (G.releves || {})[t.dataset.releve] || ''; t.value = av; val = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ».'); }
-      else { const net = val.replace(/[^\d.,-]/g, '').replace(/(?!^)-/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
-        if (net !== t.value) t.value = net;
-        if (net !== val) { toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').'); val = net; }
-        else if (lu) toast('Lu ' + lu + ' : enregistré ' + val + '.');
-        val = net; } }
-    (G.releves = G.releves || {})[t.dataset.releve] = val; }
+  if (t.dataset.releve) { const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+    if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
 /* ══ typographie : espace insécable avant : ; ? ! » et après « — posée sur le texte AFFICHÉ, jamais dans les données ══ */
@@ -10027,6 +10053,7 @@ document.addEventListener('click', ev => {
   if (a === 'fiche') return x ? fournFiche(x) : fournListe();
   if (a === 'local') return foLocal();
   if (a === 'localok') { const nom = document.getElementById('fo-l-nom').value.trim(); if (!nom) { document.getElementById('fo-l-nom').focus(); return toast('Donne le nom du fournisseur'); }
+    { const pl = refusLong(nom, 80, 'Nom du fournisseur'); if (pl) { document.getElementById('fo-l-nom').focus(); return toast(pl); } }
     const telL = document.getElementById('fo-l-tel').value.trim(); if (telL && !/^[0-9 +.()-]{6,20}$/.test(telL)) { document.getElementById('fo-l-tel').focus(); return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.'); }
     const f = { id:'f' + Date.now().toString(36), nom:libelleSur(nom, 80), packs:[document.getElementById('fo-l-pack').value], mail:document.getElementById('fo-l-mail').value.trim(), tel:telL, compte:'', delai:'', remise:null };
     MES_FOURN.push(f); rendre(); fournFiche(f.id); return toast(`${esc(nom)} ajouté à tes fournisseurs.`); }
@@ -10697,8 +10724,13 @@ const nomRefus = t => { const x = String(t == null ? '' : t).replace(/'/g, '’'
   if (x.length > 60) return '60 signes au plus.';
   return NOM_PERS_REFUS; };
 /* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
-const coupeSure = (t, n) => { const c = String(t).slice(0, n); return /[\ud800-\udbff]$/.test(c) ? c.slice(0, -1) : c; };
-const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+const SEG_GRAPH = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('fr', { granularity:'grapheme' }) : null;
+const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Array.from(SEG_GRAPH.segment(t), x => x.segment) : Array.from(t); };
+/* nbSignes : les signes COMPTÉS COMME L'UTILISATEUR (un drapeau, une famille d'émojis ou un « é » décomposé = 1 ; un saut de ligne = 1) */
+const nbSignes = t => graphemes(t).length;
+/* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
+const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
+const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
@@ -10709,7 +10741,22 @@ const nomClientNet = (t, n) => libelleSur(t, n || 80);
 /* Un nom de client ou d'expéditeur va jusqu'à 120 signes (« Syndicat des copropriétaires de la résidence … » en demande plus de 80) ; les champs de saisie portent le même plafond (maxlength) :
    on ne peut pas taper plus, donc rien n'est coupé en silence (recontrôle de la sécurité, tour 1 : un nom de 90 signes sortait coupé à 80) */
 const NOM_MAX = 120;
-const cliNet = c => { const o = { ...c }; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160], ['acces', 200]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], n); }); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, 120).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, 60); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
+/* consignes d'accès : un champ MULTILIGNE (3 lignes au plus) — chaque ligne est nettoyée à part (blancs réduits), les lignes vides tombent, les sauts de ligne sont gardés
+   (« 4821Sonner chez la gardienne » : le saut de ligne retiré sans être remplacé collait le code au mot suivant) */
+const ACCES_LIGNES = 3;
+const accesLignes = t => String(t == null ? '' : t).replace(/\r\n?|\u2028|\u2029/g, '\n').split('\n').map(l => libelleSur(l, 1e9)).filter(Boolean);
+const accesNet = (t, n) => coupeSure(accesLignes(t).slice(0, ACCES_LIGNES).join('\n'), n || 200);
+/* cliNet(c) : la toilette ET, en dernier recours, la coupe au plafond ; cliNet(c, true) : la toilette SEULE, sans rien couper — c'est elle que lit clientPlafondRefus.
+   Les formulaires refusent AVANT d'appeler cliNet : la coupe ne sert plus qu'aux clients venus du dehors (e-mail reçu, cadre Documents) */
+const CLI_CHAMPS = [['nom', 'Nom', NOM_MAX], ['contact', 'Contact', NOM_MAX], ['tel', 'Téléphone', 60], ['mail', 'E-mail', 120], ['adr', 'Adresse', 160], ['acces', 'Consignes d’accès', 200]];
+const cliNet = (c, plein) => { const o = { ...c }; const m = n => plein ? 1e9 : n; [['nom', NOM_MAX], ['contact', NOM_MAX], ['adr', 160]].forEach(([k, n]) => { if (typeof o[k] === 'string') o[k] = nomClientNet(o[k], m(n)); }); if (typeof o.acces === 'string') o.acces = accesNet(o.acces, m(200)); if (typeof o.nom === 'string' && !o.nom) o.nom = 'Nouveau client'; if (typeof o.mail === 'string') o.mail = libelleSur(o.mail, m(120)).replace(/\s/g, ''); if (typeof o.tel === 'string') o.tel = libelleSur(o.tel, m(60)); return o; };   /* deux numéros avec leurs espaces (« 05 46 12 12 12 / 06 12 34 56 78 », 31 signes) que cfTelOk admet : 30 signes en coupaient le second (recontrôle) */
+/* LA règle de plafond, UNE seule fonction : une phrase qui dit le champ et la limite, ou '' — rien ne s'enregistre quand elle parle. Le texte compté est le texte nettoyé qui serait gardé (graphèmes) */
+const refusLong = (t, max, lib) => { const n = nbSignes(libelleSur(t, 1e9)); return n > max ? 'Le champ « ' + lib + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' : ''; };
+function clientPlafondRefus(c){ const o = cliNet(c, true);
+  for (const [k, lib, max] of CLI_CHAMPS) { if (typeof o[k] !== 'string') continue; const n = nbSignes(o[k]), nom = k === 'nom' ? (o.type === 'pro' ? 'Raison sociale' : 'Nom du client') : lib;
+    if (k === 'acces' && accesLignes(c.acces).length > ACCES_LIGNES) return { k, m:'Le champ « ' + lib + ' » tient sur ' + ACCES_LIGNES + ' lignes au plus (' + accesLignes(c.acces).length + ' écrites) : regroupe-les, rien n’a été enregistré.' };
+    if (n > max) return { k, m:'Le champ « ' + nom + ' » est limité à ' + max + ' signes, ce texte en fait ' + n + ' : raccourcis-le, rien n’a été enregistré.' }; }
+  return null; }
 const nomNorm = s => prNorm(s).replace(/ /g, '');
 const eqHomonyme = (prenom, nom, sauf) => EQUIPE.find(p => p.k !== sauf && nomNorm(p.prenom + p.nom) === nomNorm(prenom + nom));
 const habEtat = d => d == null ? 'v' : tJours(d) < 0 ? 'r' : tJours(d) <= 60 ? 'o' : 'v';
@@ -10762,7 +10809,7 @@ function eqInviter(){
   ouvrirPanneau(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
     <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off"></label><label class="champ">Nom<input id="eq-n" autocomplete="off"></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
-    <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
+    <div class="deux-champs"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off"></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
     <label class="fo-garder"><input type="checkbox" id="eq-terrain" checked> Travaille sur le terrain (apparaît dans le filtre « Terrain » de l’Équipe)</label>
     <span class="gris petit">${EQUIPE.filter(p => p.actif).length} comptes sur ${EQ_PLACES} places. La personne reçoit une invitation par e-mail. Son mot de passe provisoire s’affichera ensuite : remets-le-lui en main propre.</span>
@@ -10783,6 +10830,7 @@ document.addEventListener('click', ev => {
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide pour envoyer le lien.');
     if (EQUIPE.filter(p => p.actif).length >= EQ_PLACES) return toast('Toutes les places de l’abonnement sont prises (' + EQ_PLACES + ' sur ' + EQ_PLACES + '). Désactive un compte, ou ajoute une place à ton abonnement.');
+    { const pl = refusLong(document.getElementById('eq-r').value, 40, 'Rôle'); if (pl) { document.getElementById('eq-r').focus(); return toast(pl); } }
     const k = 'u' + Date.now().toString(36), prof = document.getElementById('eq-prof').value;
     EQUIPE.push({ k, prenom:pr, nom:no, role:libelleSur(document.getElementById('eq-r').value, 40) || PROFILS[prof].nom, mail:m, tel:'', actif:true, invite:true, terrain:document.getElementById('eq-terrain').checked, droits:copieProfil(prof), habil:[] });
     H_GENS[k] = { nom:pr + ' ' + no, role:PROFILS[prof].nom, c:'#6b7280' };
@@ -12190,7 +12238,7 @@ function cxSirenForm(){
 }
 function cxPlateforme(){
   ouvrirPanneau(`<span class="surtitre">Conformité · facture électronique</span><h2>Ta plateforme agréée</h2><span class="gris">Depuis le 1er septembre 2026, toute entreprise doit pouvoir recevoir ses factures fournisseurs au format électronique, par une plateforme agréée par l’administration. Ta banque, ton expert-comptable ou ton logiciel peuvent t’en proposer une ; la liste officielle est sur impots.gouv.fr.</span>
-    <label class="champ">Le nom de ta plateforme<input class="saisie" id="pa-n" value="${esc(CX_CONF.pa)}" placeholder="celle que tu as choisie"></label>
+    <label class="champ">Le nom de ta plateforme<input class="saisie" id="pa-n" maxlength="60" value="${esc(CX_CONF.pa)}" placeholder="celle que tu as choisie"></label>
     <label class="champ">Inscrite depuis le<input class="saisie" type="date" id="pa-d" value="${CX_CONF.paDate || AUJ}" max="${AUJ}"></label>
     <label class="case"><input type="checkbox" id="pa-v" ${CX_CONF.paVerif ? 'checked' : ''}><span>J’ai vérifié : elle est sur la liste officielle des plateformes agréées, et je suis inscrit dans l’annuaire comme la recevant.</span></label>
     <span class="gris petit">OP GESTION est prévu pour s’y brancher : les factures reçues entreront toutes seules dans les Achats, et tes factures aux professionnels partiront par elle à partir de septembre 2027 (pour une PME ou une micro-entreprise).</span>
@@ -12221,6 +12269,7 @@ document.addEventListener('click', ev => {
     I.forEach(i => { const d = i.value.replace(/\s/g, ''); CLIENTS[i.dataset.cxsiren].siren = d ? d.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') : ''; });
     fermerPanneau(); rendre(); return toast('SIREN enregistrés : ils s’écrivent sur les factures de ces clients.'); }
   if (a === 'plateformeok') {
+    { const pl = refusLong((document.getElementById('pa-n') || {}).value, 60, 'Nom de la plateforme'); if (pl) { document.getElementById('pa-n').focus(); return toast(pl); } }
     const n = libelleSur((document.getElementById('pa-n') || {}).value, 60); if (!n) return toast('Écris le nom de ta plateforme.');
     CX_CONF.pa = n; CX_CONF.paDate = (document.getElementById('pa-d') || {}).value || AUJ; CX_CONF.paVerif = !!(document.getElementById('pa-v') || {}).checked; fermerPanneau(); rendre(); return toast(`Plateforme enregistrée : ${esc(n)}.`); }
 });
@@ -13204,7 +13253,7 @@ function rlFicheAPlanifier(i){
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div><div class="gris petit" style="margin-top:6px">${esc(c.contact)}${i.origine === 'client' ? ' · par son espace client' : ''}</div></div>` : ''}
     <div class="carte"><h3>Ce que c’est</h3><div>${esc(RL_TYPES[i.type] || i.type)}</div></div>
-    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div></div>
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div></div>
    <div class="col"><div class="carte rl-placer"><h3>La placer</h3>
       <div class="cx-2"><label class="champ" style="flex:1 1 150px">Jour<input class="saisie" type="date" id="pl-d" value="${jour}" min="${AUJ}"></label><label class="champ" style="flex:1 1 110px">Heure<select class="saisie" id="pl-h">${rlCreneaux().map(h => `<option ${h === (i.h && i.h >= '07:30' && i.h !== '08:00' ? i.h : '09:00') ? 'selected' : ''}>${h}</option>`).join('')}</select></label></div>
       <label class="champ">Durée<select class="saisie" id="pl-u">${[[30, '30 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h'], [240, '4 h']].map(([v, l]) => `<option value="${v}" ${v === (i.dur || 60) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -13226,7 +13275,7 @@ function rlFicheVisite(i){
   return tete + `<div class="info petit" style="margin-bottom:12px">Visite pour un devis : pas de contrôles, pas de signature, pas de paiement. Tu relèves ce qu’il faut pour chiffrer ; le client signera le devis.</div>
   <div class="grille2"><div class="col">
     ${i.motif ? `<div class="carte" style="border-color:color-mix(in srgb,var(--orange) 35%,transparent)"><h3>Ce que le client a dit</h3><div style="font-size:17px">« ${esc(i.motif)} »</div></div>` : ''}
-    <div class="carte"><h3>À savoir avant d’entrer</h3><div>${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
+    <div class="carte"><h3>À savoir avant d’entrer</h3><div style="white-space:pre-line">${esc(c.acces) || '—'}</div>${c.appareils.map(a => `<div class="ligne"><span><b>${esc(a.nom)}</b><br><span class="gris petit">${esc(a.det)}</span></span></div>`).join('')}</div>
     <div class="carte"><h3>Photos · ${F.photos.length}</h3><div class="rl-photos">${F.photos.map(p => `<span class="rl-ph" style="background-image:url(${p.src})"></span>`).join('')}<label class="rl-ph rl-ph-plus">＋ Photo<input type="file" accept="image/*" capture="environment" multiple data-rlvph="${i.id}" hidden></label></div></div></div>
    <div class="col">
     <div class="carte"><h3>Ce qu’il faut prévoir pour le devis</h3><label class="champ"><span class="faible">Le matériel, les travaux, les difficultés. Écris, ou dicte avec le micro du clavier.</span><textarea data-rlv="besoin|${i.id}" placeholder="ex. Remplacer la pompe à chaleur par un modèle 8 kW ; liaison de 6 m ; support mural à prévoir.">${esc(F.besoin)}</textarea></label></div>
@@ -13641,7 +13690,7 @@ function paieBulletinDoc(k, ym){
       <tr><td>Montant net social</td><td style="text-align:right">${nbFr(b.netSocial)}</td></tr>
       <tr><td>Total versé par l’employeur</td><td style="text-align:right">${nbFr(b.cout)}</td></tr></tbody></table>
     <div class="deux" style="margin-top:10px"><div><h6>Cumuls de l’année</h6>Salaire brut ${nbFr(b.cumulBrut)} € · net imposable ${nbFr(b.cumulImp)} €</div><div><h6>Congés payés</h6>${S.statut === 'cadre' ? 'Selon le mandat social' : 'Gérés par la caisse des congés payés du bâtiment (CIBTP)'}</div></div>
-    <div class="pdf-pied">Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.</div></div>`;
+    <div class="pdf-pied">${enApp() ? 'Conservez ce bulletin sans limitation de durée.' : `Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.`}</div></div>`;   /* en mode application, la fiche est celle que reçoit la personne : elle ne parle pas de prototype ni de données fictives (compta-reste-06) */
 }
 
 /* ─── l'espace « Paie » de la Comptabilité ─── */
@@ -13654,7 +13703,7 @@ function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
 }
-const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') RETOUR.garde = () => { TT.garder = true; }; } else aller('comptabilite'); };
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') { RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; } } else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -14173,8 +14222,8 @@ function rendreCreation_(){
     : `<input class="saisie" placeholder="Chercher un client…" data-cherchecli="1" value="${esc(CREA.cherche || '')}" aria-label="Chercher un client"><div class="liste-cli">${Object.entries(CLIENTS).filter(([kk,x]) => kk !== '__nv' && !x.archive && (!CREA.cherche || sansAccent(x.nom).includes(sansAccent(CREA.cherche)))).map(([kk,x]) => `<button type="button" class="cli-l" data-ccli="${kk}" aria-pressed="${CREA.cli===kk}"><span><b>${escN(x.nom)}</b><br><span class="gris petit">${esc(x.adr)} · ${SECT_CLI[kk] ? 'secteur ' + SECT_CLI[kk] : 'hors secteur'}</span></span><span>${CONTRATS.find(y=>y.cli===kk&&y.st==='signe')?'<span class="st st-v">contrat</span> ':''}${devisOk(kk)?'<span class="st st-b">devis accepté</span>':''}</span></button>`).join('')}</div>`}</section>`;
   const etape2 = `<section class="carte"><div class="ni-etape"><b>2</b><h2>L’intervention</h2></div>
     <div class="groupe" style="padding-top:0">Type</div><div class="puces">${TYPES.map(t => `<button type="button" class="puce-c" data-ctype="${esc(t)}" aria-pressed="${CREA.type===t}">${esc(t)}</button>`).join('')}<button type="button" class="puce-c ajout" data-action="cAjoutType">＋ Ajouter un type</button></div>
-    <label class="champ" style="margin-top:12px">Titre (ce que le technicien lit en premier)<input data-cchamp="titre" value="${esc(CREA.titre)}"></label>
-    <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
+    <label class="champ" style="margin-top:12px">Titre (ce que le technicien lit en premier)<input data-cchamp="titre" maxlength="120" value="${esc(CREA.titre)}"></label>
+    <label class="champ" style="margin-top:10px">Ce que le client a dit<textarea data-cchamp="motif" maxlength="600" placeholder="${esc(MOTIFS[CREA.type] || 'Ce que le client a demandé')}">${esc(CREA.motif)}</textarea></label>
     <div class="groupe">Durée prévue</div><div class="puces">${[30,60,90,120,180,240].map(m => `<button type="button" class="puce-c" data-cdur="${m}" aria-pressed="${CREA.dur===m}">${duree(m)}</button>`).join('')}</div>
     <div class="groupe">Pièces à prévoir <span class="faible mini" style="font-weight:500">— le technicien les voit sans prix, et coche celles qu’il pose</span></div>
     <div class="puces" data-vis="crea-pieces">${crPiecesPuces()}</div>
@@ -14269,9 +14318,12 @@ const ACTIONS_CREA = {
   cPlusTot(){ for (const d of ouvres(10)) for (const t of TECHS.filter(x => x.id && (!CREA.secteurSeul || !secteurCrea() || SECT_TECH[x.id].includes(secteurCrea())))) { const p = plagesLibres(t.id, d).find(([a,z]) => z - a >= CREA.dur); if (p) { CREA.vue = 'jour'; CREA.jour = d; placerBrouillon(t.id, d, p[0]); rendre(); toast(`Premier créneau libre : ${esc(t.nom)} · ${jlong(d)} · ${hm(p[0])}`); return; } } toast('Aucun créneau libre sur les 10 prochains jours.'); },
   cPlusTard(){ placerBrouillon('', CREA.jour, PARAMS.debut); CREA.vue = 'jour'; rendre(); },
   cCreer(){ const b = brouillon(); if (!b) return; if (CREA.fact === 'forfait' && Date.now() - (CREA.forfaitRefus || 0) < 1500) { toast('Prix du forfait invalide : un montant en euros, positif et inférieur à 1 000 000 €. Corrige-le, puis crée.'); return; }   /* 13 novembre 2026 */ if (b.tech && refusAbsent(b.tech, b.d, b.h)) return; let k = CREA.cli;
+    { const pl = refusLong(CREA.titre, 120, 'Titre'), nm = nbSignes(texteNet(CREA.motif).trim()), pm = nm > 600 ? 'Le champ « Ce que le client a dit » est limité à 600 signes, ce texte en fait ' + nm + ' : raccourcis-le, rien n’a été enregistré.' : '';
+      if (pl || pm) { toast(pl || pm); const ch = document.querySelector('[data-cchamp="' + (pl ? 'titre' : 'motif') + '"]'); if (ch) ch.focus(); return; } }   /* un plafond dépassé refuse, il ne coupe pas */
     if (CREA.nouveau) {   /* mêmes contrôles que la fiche client : un numéro ou une adresse e-mail impossibles ne s'enregistrent pas (champs facultatifs, mais justes s'ils sont remplis) */
       const nvMail = String(CREA.nv.mail || '').trim(), mauvais = nvMail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nvMail) ? 'mail' : !cfTelOk(CREA.nv.tel) ? 'tel' : '';
       if (mauvais) { toast(mauvais === 'mail' ? 'L’adresse e-mail est à vérifier.' : TEL_MSG); const ch = document.querySelector('[data-cnv="' + mauvais + '"]'); if (ch) ch.focus(); return; }
+      { const pl = clientPlafondRefus(cliCrea()); if (pl) { toast(pl.m); const ch = document.querySelector('[data-cnv="' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '"]'); if (ch) ch.focus(); return; } }   /* la même règle que la fiche client : un plafond dépassé refuse, rien ne s'enregistre */
       /* le technicien doit savoir OÙ aller, et le bureau comment prévenir le client : comme le formulaire du devis (clients-04, décision du 17 novembre) ; le refus nomme le champ qui manque */
       const manque = !String(CREA.nv.adr || '').trim() ? 'adr' : !String(CREA.nv.tel || '').trim() && !nvMail ? 'tel' : '';
       if (manque) { toast(manque === 'adr' ? 'Indique l’adresse de l’intervention : le technicien doit savoir où aller.' : 'Indique un téléphone ou un e-mail du client, pour pouvoir le prévenir.'); const ch = document.querySelector('[data-cnv="' + manque + '"]'); if (ch) ch.focus(); return; } }
@@ -14279,7 +14331,7 @@ const ACTIONS_CREA = {
     if (CREA.nouveau) { let nn = Object.keys(CLIENTS).length; while (CLIENTS['c' + nn]) nn++; k = 'c' + nn;   /* jamais un identifiant déjà pris : « Annuler » peut retirer un client au milieu de la liste, et le nombre de clients ne suffit plus */
       CLIENTS[k] = cliNet({ ...cliCrea() }); SECT_CLI[k] = secteurCrea(); clientFinir(k); }
     const mm = CREA.mail && mlDe(CREA.mail); pile.push(JSON.stringify({ INTS:INTS.filter(i => i.id !== 'brouillon'), BUREAU, NOTES, NVCLI:CREA.nouveau ? k : null, NVSIG:CREA.nouveau ? JSON.stringify(CLIENTS[k]) : null, MAIL: mm ? { id:mm.id, fait:mm.fait || '', faitLien:mm.faitLien || '', lu:!!mm.lu } : null })); const id = 'n' + Math.random().toString(36).slice(2,8); // Annuler retire l'intervention créée
-    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: texteNet(CREA.motif).trim().slice(0, 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
+    Object.assign(b, { id, cli:k, st: b.tech ? 'planifiee' : 'aplanifier', titre:libelleSur(b.titre, 120) || b.type, motif: coupeSure(texteNet(CREA.motif).trim(), 600) || undefined, prevues: Object.entries(CREA.prevues).filter(e => e[1] > 0).map(([nom, q]) => { const x = matPieceX({ nom }); return x ? { nom, q, pid:x.id } : { nom, q }; }),
       fact:{ mode:CREA.fact, forfait:+CREA.forfait, tva:CREA.tva ?? (CLIENTS[k].type === 'part' ? 10 : 20), zone:zoneCrea() } });
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
@@ -14387,7 +14439,7 @@ document.addEventListener('click', ev => {
   const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
   if (a === 'ouvrir') { cpSysteme = true; rendre(); }
   else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
-  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; calRevenirA(d) || aller(d); }
+  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; /* un panneau ou le tiroir du cadre ouvert est une entrée d'historique : elle part D'ABORD (un recul), puis on recule d'une entrée de plus vers l'écran d'avant — sans quoi calRevenirA refuse et aller() AJOUTE une entrée : [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité qui se rouvre */ if (!calAvantAller(() => calRevenirA(d) || aller(d))) calRevenirA(d) || aller(d); }
 }, true);
 document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
@@ -14610,6 +14662,7 @@ function clientEnregistrer(k){ const c = CLIENTS[k]; if (!c) return false; const
   if (!L.contact) return refus('Indique le contact du client.', 'contact');
   if (L.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(L.mail)) return refus('L’adresse e-mail est à vérifier.', 'mail');
   if (!cfTelOk(L.tel)) return refus(TEL_MSG, 'tel');
+  { const pl = clientPlafondRefus({ nom:L.nom, contact:L.contact, tel:cfTelFmt(L.tel), mail:L.mail, type:L.type, adr:L.adr, acces:L.acces }); if (pl) return refus(pl.m, pl.k); }   /* un plafond dépassé REFUSE (une seule règle pour les cinq formulaires) : plus de coupe silencieuse */
   if (!L.tel && !L.mail && (c.tel || c.mail)) return refus('Garde au moins un téléphone ou un e-mail : sans l’un des deux, on ne peut plus prévenir ce client (clients-12).', 'tel');
   const adrAvant = c.adr, nomAvant = c.nom;
   /* pour un particulier, le nom et le contact sont la même personne : si on ne touche pas au contact, il suit le nom (sinon la fiche montre deux noms, recontrôle casse 2) */
@@ -14663,15 +14716,17 @@ function clientSeulFen(){ const f = CS_F, pro = f.type === 'pro'; ouvrirPanneau.
 function clientSeulLire(){ const v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; }; ['nom', 'contact', 'tel', 'mail', 'adr'].forEach(k => { const x = v('cs-' + k); if (x != null) CS_F[k] = x; }); }
 ACTIONS.clientSeul = function(){ fermerPanneau(); CS_F = { type:'part', nom:'', contact:'', tel:'', mail:'', adr:'', err:'', doublonOk:false }; clientSeulFen(); setTimeout(() => document.getElementById('cs-nom')?.focus(), 50); };
 ACTIONS.clientSeulType = function(b){ clientSeulLire(); CS_F.type = b.dataset.v; CS_F.err = ''; clientSeulFen(); };
+const csClientObj = (f, nom) => ({ nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] });
 ACTIONS.clientSeulOk = function(){ clientSeulLire(); const f = CS_F; f.err = '';
   if (!nomClientNet(f.nom)) f.err = 'Indique le nom du client.'; else if (!f.tel && !f.mail) f.err = 'Indique un téléphone ou un e-mail, pour pouvoir le prévenir.';
   else if (f.mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.mail)) f.err = 'L’adresse e-mail est à vérifier.'; else if (!cfTelOk(f.tel)) f.err = TEL_MSG;
   const nom = cfNomClient(f);
+  if (!f.err) { const pl = clientPlafondRefus(csClientObj(f, nom)); if (pl) f.err = pl.m; }
   if (!f.err && cfNomCle(nom) && Object.entries(CLIENTS).some(([kk, x]) => kk !== '__nv' && cfNomCle(x.nom) === cfNomCle(nom) && !f.doublonOk)) { f.doublonOk = true; f.err = 'Un client porte déjà ce nom : « ' + nom + ' ». Touche encore « Créer le client » pour le créer quand même.'; }
   else if (!f.err && !f.doublonOk) { const dj = cfDoublonDe({ ...f, nom }); if (dj) { f.doublonOk = true; f.err = 'Ce client existe peut-être déjà : « ' + CLIENTS[dj].nom + ' » (même e-mail, même téléphone ou même adresse). Touche encore « Créer le client » pour le créer quand même.'; } }
   if (f.err) return clientSeulFen();
   const k = 'c' + Date.now().toString(36);
-  CLIENTS[k] = cliNet({ nom, type:f.type, contact:cfContactClient(f), tel:f.tel, mail:f.mail, adr:f.adr, acces:'', depuis:'2026', appareils:[] }); clientFinir(k);
+  CLIENTS[k] = cliNet(csClientObj(f, nom)); clientFinir(k);
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:nom, cli:k }, { det:'sa fiche seule' });
   CS_F = null; fermerPanneau(); chercheClient = ''; rangClients = 'tous'; aller('client-x-' + k); toast('Client créé : ' + esc(nom) + '. Tu peux maintenant lui créer une intervention ou un devis.'); };
 /* clients-17 : un client ne s'efface jamais (ses factures doivent garder leur client) : il s'ARCHIVE, et se remet dans la liste d'un geste */
@@ -16768,10 +16823,10 @@ function matCVue(){
     return `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="${e ? 'mc-o' : 'gris'} petit">${e ? phraseE(e) : 'Prévu ' + prNum(a)}</span></span><span class="mat-pas"><button type="button" data-ms="cmoins|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mscq="${x.id}" value="${prNum(c)}" aria-label="Compté : ${esc(x.nom)}"><button type="button" data-ms="cplus|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>${e && x.pa ? `<span class="gris petit ms-ev€">${eur(e * x.pa)}</span>` : ''}</div>`; };
   const corps = C.grp ? [...new Set(A.map(x => x.cat))].map(c => `<details class="ms-cat" open><summary class="groupe">${esc(c)}</summary>${A.filter(x => x.cat === c).map(ligne).join('')}</details>`).join('') : A.map(ligne).join('');
   foOuvrir(`<span class="surtitre">Stock</span><h2>Compter ${esc(nom)}</h2><span class="gris">Dernier comptage : ${msQuand(j).replace('compté ', '')}.</span>
-    <div class="ms-cbar"><button type="button" class="btn gris" data-ms="ctout">Tout est juste</button><button type="button" class="btn gris" data-ms="cgrp" aria-pressed="${C.grp}">${C.grp ? 'Tout afficher à plat' : 'Compter par catégorie'}</button></div>
+    <div class="ms-cbar"><button type="button" class="btn gris" data-ms="ctout">Tout est juste</button><button type="button" class="btn gris" data-ms="cgrp" aria-pressed="${C.grp}">${C.grp ? 'Tout afficher à plat' : 'Compter par catégorie'}</button><button type="button" class="btn gris" data-ms="cpt|">Changer de lieu</button></div>
     <span class="gris petit">Pour chaque article, dis combien il y en a. Touche seulement ceux qui sont différents.</span>
     <div class="carte ms-cliste">${corps || '<div class="gris">Rien à compter ici pour l’instant.</div>'}</div>
-    <div class="fo-pied"><span class="gris petit ms-csom">${E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.'}</span><button type="button" class="btn" data-ms="cok">Enregistrer le comptage</button><button type="button" class="btn gris" data-ms="cpt|">Changer de lieu</button></div>`, true);
+    <div class="fo-pied ms-cpied"><span class="gris petit ms-csom">${E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.'}</span><button type="button" class="btn" data-ms="cok">Enregistrer le comptage</button></div>`, true);
 }
 /* PENDANT la frappe, l’écart et le pied se mettent à jour SUR PLACE (la feuille ne se redessine pas : le curseur resterait nulle part) ; le redessin complet, lui, attend « change » */
 function matCMajPlace(t){
@@ -17705,7 +17760,7 @@ function fournListe(){
     <div class="fo-bloc" id="fo-dir">${dir.map(ligneDir).join('') || '<div class="gris" style="padding:12px 4px">Aucun fournisseur ne correspond.</div>'}</div>
     <span class="gris petit">Liste préparée par TEAM OP pour chacun des 24 métiers (${Object.keys(FOURN_DIR).length} entreprises), sans lien commercial avec elles. Il en manque un ? Dis-le-nous, on l’ajoute pour tout le métier.</span>`;
   const autre = `<span class="gris">Ton grossiste du coin, une agence locale : trois champs suffisent.</span>
-    <label class="champ">Nom<input id="fo-l-nom" placeholder="ex. Quincaillerie du Port" autocomplete="off"></label>
+    <label class="champ">Nom<input id="fo-l-nom" maxlength="80" placeholder="ex. Quincaillerie du Port" autocomplete="off"></label>
     <div class="deux-champs"><label class="champ">E-mail des commandes<input id="fo-l-mail" type="email" placeholder="commandes@…"></label><label class="champ">Téléphone<input id="fo-l-tel" inputmode="tel"></label></div>
     <details class="ms-acc ms-plus"><summary>Plus de détails</summary><label class="champ">Métier<select id="fo-l-pack">${PACKS_ENT.map(k => `<option value="${k}">${esc(PACKS[k].nom)}</option>`).join('')}</select></label></details>
     <div class="fo-pied"><button type="button" class="btn" data-fo="localok">Ajouter ce fournisseur</button></div>`;
@@ -18300,8 +18355,9 @@ function ttMoisPers(k){
 
 /* ── le cadre ── */
 function ttVue(){
-  if (TT.avant !== 'pointage' && !TT.garder) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
-  TT.garder = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
+  /* le retour du SYSTÈME (balayage, bouton Retour d'Android, history.back) ramène de la Paie sans passer par la barre « ‹ Revenir » : on a quitté Temps de travail par « Voir la paie », on le retrouve tel qu'on l'a laissé */
+  if (TT.avant !== 'pointage' && !TT.garder && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
+  TT.garder = false; TT.viaPaie = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
   Object.keys(PT_VALIDE).forEach(x => { if (PT_VALIDE[x]) TT.vus[x] = true; });   // de quoi dire « à revalider » quand une heure bouge après la validation
   const E = ttEtats(), R = ttAReglerLignes(), n = e => E.filter(e).length, travail = n(e => e.etat === 'travail' || e.etat === 'pause'), attendus = n(e => e.etat === 'attendu'), abs = E.filter(e => e.etat === 'absent');
   const kpi = (cle, nb, lib) => `<button type="button" class="kpi" data-tt="filtre|${cle}" aria-pressed="${TT.filtre === cle && ptOnglet === 'auj'}"><b>${nb}</b><span>${lib}</span></button>`;
@@ -18313,7 +18369,7 @@ function ttVue(){
     <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
     ${corps}`;
 }
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; if (route !== 'comptabilite') TT.viaPaie = false; return v; }; })();
 
 /* ── les feuilles ── */
 /* écrire une heure est une case à part (« Corriger les pointages ») : lue à la porte de CHAQUE fonction qui écrit, pas seulement par la garde des clics */
@@ -19164,7 +19220,7 @@ function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
   ouvrirPanneau(`${vhEnt(v)}<h2>Un souci avec le camion</h2><span class="gris">Le bureau est prévenu tout de suite : une tâche urgente est créée.</span>
     <div class="vh-q"><b>Qu’est-ce qui ne va pas ?</b>${vhChoix('vx-st', [['Voyant allumé', 'Un voyant s’est allumé'], ['Pneu', 'Un pneu'], ['Choc ou rayure', 'Un choc'], ['Autre', 'Autre chose']], '', 'Le souci', true)}</div>
-    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange du moteur, sur la rocade" autocomplete="off"></label>
+    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange au tableau" autocomplete="off"></label>
     <label class="btn gris vh-photo">Photo<input type="file" accept="image/*" capture="environment" id="vx-sp" hidden></label><span class="gris petit" id="vx-spn">Facultative.</span>
     <div id="vx-al"></div>
     ${vhGros(`soucisok|${v.id}`, 'Prévenir le bureau')}`);
@@ -19358,7 +19414,7 @@ const vhPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vhJM = d => jlong(d).split(' ').slice(1).join(' ');                 // « 28 octobre »
 const vhDL = d => vhJM(d) + ' ' + d.slice(0, 4);                          // « 11 décembre 2026 »
 const vhNom = v => v.marque + (v.modele ? ' ' + v.modele : '');
-const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^[aeiouyàâéèêîôû]/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert »
+const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^(?:[aeiouàâäéèêëîïôöûüœ]|ypsilon)/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert » ; le « y » est une CONSONNE (« le Yaris », « le Yeti », « le Yamaha ») sauf dans Ypsilon, seule voiture dont le nom se dit « i »
 const vhEuro2 = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }).replace(/ /g, ' ') + ' €';
 const vhSans = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const vhPren = k => k ? prenomDe(k) : '';
@@ -21473,7 +21529,7 @@ function eqxFormModif(p) {
   return `<div class="carte eqx-modif"><div class="deux-champs"><label class="champ">Prénom<input id="eqx-mp" value="${esc(p.prenom)}" autocomplete="off"></label><label class="champ">Nom<input id="eqx-mn" value="${esc(p.nom)}" autocomplete="off"></label></div>
     <div id="eqx-mhomo" class="gris petit" aria-live="polite"></div>
     <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eqx-mm" type="email" value="${esc(p.mail)}" autocomplete="off"></label><label class="champ">Téléphone<input id="eqx-mt" type="tel" value="${esc(p.tel || '')}" autocomplete="off"></label></div>
-    <label class="champ">Rôle (un simple nom)<input id="eqx-mr" list="eqx-roles" value="${esc(p.role)}" autocomplete="off"><datalist id="eqx-roles">${['Technicien', 'Technicienne', 'Chef d’équipe', 'Secrétariat', 'Apprenti', 'Responsable'].map(o => `<option value="${o}">`).join('')}</datalist></label>
+    <label class="champ">Rôle (un simple nom)<input id="eqx-mr" maxlength="40" list="eqx-roles" value="${esc(p.role)}" autocomplete="off"><datalist id="eqx-roles">${['Technicien', 'Technicienne', 'Chef d’équipe', 'Secrétariat', 'Apprenti', 'Responsable'].map(o => `<option value="${o}">`).join('')}</datalist></label>
     <label class="fo-garder"><input type="checkbox" id="eqx-mter" ${eqxTerrain(p) ? 'checked' : ''} ${droitAdmin(p) || p.k === acteur() ? 'disabled' : ''}> Travaille sur le terrain<span class="gris petit">coché : l’application s’ouvre sur sa journée, ses frais, ses heures, son camion et ses congés ; décoché : sur les écrans du bureau</span></label>
     <div class="actions"><button type="button" class="btn" data-eqx="modifok|${p.k}">Enregistrer</button><button type="button" class="btn gris" data-eqx="modifx|${p.k}">Annuler</button></div></div>`;
 }
@@ -21518,7 +21574,7 @@ eqInviter = function () {
   eqxPan(`<span class="surtitre">Équipe</span><h2>Inviter une personne</h2>
     <div class="deux-champs"><label class="champ">Prénom<input id="eq-p" autocomplete="off" aria-describedby="eq-p-err"><span class="erreur" id="eq-p-err" role="alert" hidden></span></label><label class="champ">Nom<input id="eq-n" autocomplete="off" aria-describedby="eq-n-err"><span class="erreur" id="eq-n-err" role="alert" hidden></span></label></div>
     <div id="eq-homo" class="gris petit" aria-live="polite"></div>
-    <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off" aria-describedby="eq-m-err"><span class="erreur" id="eq-m-err" role="alert" hidden></span></label><label class="champ">Rôle (un simple nom)<input id="eq-r" placeholder="ex. Technicien, Apprentie" autocomplete="off"></label></div>
+    <div class="deux-champs eqx-2c"><label class="champ">E-mail<input id="eq-m" type="email" autocomplete="off" aria-describedby="eq-m-err"><span class="erreur" id="eq-m-err" role="alert" hidden></span></label><label class="champ">Rôle (un simple nom)<input id="eq-r" maxlength="40" placeholder="ex. Technicien, Apprentie" autocomplete="off" aria-describedby="eq-r-err"><span class="erreur" id="eq-r-err" role="alert" hidden></span></label></div>
     <label class="champ">Ses droits de départ<select id="eq-prof">${Object.entries(PROFILS).filter(([pk]) => pk !== 'admin').map(([pk, o]) => `<option value="${pk}" ${pk === 'tech' ? 'selected' : ''}>${esc(o.nom)}</option>`).join('')}</select></label>
     <div id="eqx-profdit" class="gris petit">${eqxProfilDit('tech')}</div>
     <label class="fo-garder"><input type="checkbox" id="eq-terrain" checked> Travaille sur le terrain (se planifie, apparaît aux interventions)</label>
@@ -21530,9 +21586,12 @@ eqInviter = function () {
 function eqxRestes(k) {
   const ints = INTS.filter(i => i.tech === k && i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ);
   const veh = VEHICULES.filter(v => v.conducteur === k), taches = TACHES.filter(t => !t.fait && t.qui === k);
-  const pt = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k) && !PT_VALIDE[k + lundi(AUJ)];
+  /* une semaine ne se valide qu'une fois FINIE (ttSemFinie) : « pas encore validé » n'est une alerte que pour la semaine d'AVANT, que l'administrateur peut valider ; la semaine en cours se dit à part, sans alerte */
+  const ptGen = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k), L0 = lundi(AUJ), Lp = ajoute(L0, -7);
+  const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);
+  const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0];
   const cp = typeof aSolde === 'function' && EQX_BASE.includes(k) ? aSolde(k, 'Congé payé') : null;
-  return { ints, veh, taches, pt, cp };
+  return { ints, veh, taches, pt, ptEnCours, cp };
 }
 function eqxMeilleur(i, sauf) {
   const R = aRemplacants(i, sauf).filter(r => !eqxManque(i, r.t.id).length);
@@ -21549,7 +21608,8 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine dernière pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.ptEnCours ? `<span class="gris petit">Sa semaine en cours se validera une fois finie, lundi prochain.</span>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
 }
@@ -21697,7 +21757,8 @@ document.addEventListener('click', ev => {
     const V = entVerifier([
       ['eq-p', (v, W) => !v ? (W['eq-n'] === undefined && !eqxVal('eq-n') ? 'Écris son prénom ET son nom : les noms servent à savoir qui a reçu quoi.' : 'Écris son prénom.') : nomPersonneOk(v) ? '' : nomRefus(v)],
       ['eq-n', v => !v ? 'Écris son nom de famille : les noms servent à savoir qui a reçu quoi.' : nomPersonneOk(v) ? '' : nomRefus(v)],
-      ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : '']]);
+      ['eq-m', v => !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v) ? 'Il faut une adresse e-mail valide pour envoyer le lien.' : dejaMail(v) ? `Cette adresse est déjà celle de ${eqNom(dejaMail(v))} : chaque personne se connecte avec la sienne.` : ''],
+      ['eq-r', v => refusLong(v, 40, 'Rôle')]]);   /* un plafond dépassé refuse, sous son champ */
     if (!V) return;
     const pr = nomPersonneOk(V['eq-p']), no = nomPersonneOk(V['eq-n']), m = V['eq-m'];
     const h = eqHomonyme(pr, no); if (h) { document.getElementById('eq-homo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer (ex. ${esc(pr)} ${esc(no)} B.).`; return; }
@@ -21734,6 +21795,7 @@ document.addEventListener('click', ev => {
     if (t && !/^[0-9 +.()-]{6,20}$/.test(t)) return toast('Un numéro de téléphone s’écrit avec des chiffres, des espaces, +, ., - et des parenthèses.');
     const h = eqHomonyme(pr, no, x); if (h) { document.getElementById('eqx-mhomo').innerHTML = `<b class="fo-up">${esc(eqNom(h))} existe déjà.</b> Ajoute une initiale pour les distinguer.`; return; }
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(m)) return toast('Il faut une adresse e-mail valide.');
+    { const pl = refusLong(eqxVal('eqx-mr'), 40, 'Rôle'); if (pl) { document.getElementById('eqx-mr').focus(); return toast(pl); } }
     { const dup = EQUIPE.find(o => o.k !== x && String(o.mail || '').trim().toLowerCase() === m.toLowerCase()); if (dup) return toast(`Cette adresse est déjà celle de ${esc(eqNom(dup))} : chaque personne se connecte avec la sienne.`); }
     const avant = eqxPrise(), nomAv = eqNom(p), ch = [];
     if (nomAv !== pr + ' ' + no) ch.push(['son nom', nomAv, pr + ' ' + no]); if (p.mail !== m) ch.push(['son e-mail', p.mail, m]); if ((p.tel || '') !== t) ch.push(['son téléphone', p.tel || '—', t || '—']);
@@ -22837,6 +22899,7 @@ function dxClientErr(){
     if (!DX.nom.trim()) return 'Indique le nom du client.';
     if (!DX.tel.trim() && !DX.mail.trim()) return 'Indique un téléphone ou un e-mail, pour pouvoir lui envoyer le devis.';
     if (DX.mail.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(DX.mail.trim())) return 'L’adresse e-mail est à vérifier.';
+    { const pl = clientPlafondRefus(dxClientObj()); if (pl) return pl.m; }
   }
   return '';
 }
@@ -22989,10 +23052,12 @@ function dxSaisie(t, fin){
 }
 document.addEventListener('input', ev => { const t = ev.target; if (t && t.matches && t.matches('[data-dx]')) dxSaisie(t, false); });
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.matches && t.matches('[data-dx]')) dxSaisie(t, true); });
+function dxClientObj(){ const nom = DX.nom.trim(), pre = DX.prenom.trim(), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
+  return { nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] }; }
 function dxClientCreer(){
   if (DX.cli) return DX.cli;
   const nom = DX.nom.trim(), pre = DX.prenom.trim(), k = 'n' + Date.now().toString(36), r = reconnaitre(DX.adr), complet = DX.type === 'pro' ? nom : [pre, nom].filter(Boolean).join(' ');
-  CLIENTS[k] = cliNet({ nom:complet, type:DX.type, contact:DX.type === 'pro' ? (pre || nom) : complet, tel:DX.tel.trim(), mail:DX.mail.trim(), adr:DX.adr.trim(), acces:'', depuis:'2026', appareils:[{ nom:'Chantier', det:'traitement du bois' }] });
+  CLIENTS[k] = cliNet(dxClientObj());
   if (r) SECT_CLI[k] = r.secteur; clientFinir(k);   /* le point de la carte aussi, comme tous les clients créés (recontrôle clients, casse 3) */
   journalAjout('marc', 'client', 'a créé le client', { t:'client', id:k, lib:CLIENTS[k].nom, cli:k }, { det:'depuis le devis xylophage' });
   DX.cli = k; DX.nv = false; DX.nom = DX.prenom = DX.tel = DX.mail = DX.adr = ''; return k;
@@ -23570,7 +23635,7 @@ function cfHEl(j){ return j.type === 'tache' && j.el && j.el.t && j.det ? j.det.
 function cfHDet(j, seul){ if (!(j.type === 'tache' && j.el && j.el.t && j.det)) return j.det; const reste = j.det.split(' · ').slice(1).join(' · '); return (seul ? '' : 'À propos de ') + j.el.lib + (reste ? ' · ' + reste : ''); }
 /* Relevés : la valeur saisie ; vide quand rien n'a été saisi sur une fiche déjà touchée ; l'exemple seulement pour une fiche d'exemple déjà faite */
 function cfReleve(F, i, l, v){ const R = F.releves, x0 = R ? R[l] : undefined, x = l === 'Charge de fluide' && (x0 === undefined || x0 === null || x0 === '') ? (fixFluideCharge(i) || x0) : x0; return x !== undefined && x !== null ? String(x) : (R ? '' : (i.st === 'fait' ? v : '')); }
-(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
+(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ releveFlush(); const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
 /* Clients : les appareils d'une fiche à compléter ne sont pas des appareils */
 function cfLieuDe(k){ return (((CLIENTS[k] || {}).appareils) || []).filter(a => a && a.det !== 'à compléter').map(a => a.nom).join(', '); }
 function cfLieuContrat(k){ return k.lieu != null ? k.lieu : (k.titre.split('·')[1] || ''); }
@@ -26725,7 +26790,6 @@ document.head.insertAdjacentHTML('beforeend', `<style id="opsec3-css">
 .sec-demo .ops-btn.danger{color:var(--rouge);border-color:var(--rouge)}
 .sec-demo .ops-btn[disabled]{opacity:.55;cursor:not-allowed}
 .sec-kpis{margin-bottom:12px}
-.sec-verrou .actions{width:100%}.sec-verrou .actions .btn{max-width:100%;min-width:0;white-space:normal;text-align:center;line-height:1.2;padding-block:8px}   /* la carte de verrou à 320 px : « Confirmer sur mon téléphone » (265 px, sans coupure possible) sortait de 11 px de son rembourrage ; il passe à la ligne au lieu de déborder */
 .sec-verrous{border-color:color-mix(in srgb,var(--rouge) 45%,var(--trait));background:color-mix(in srgb,var(--rouge) 7%,var(--surf));margin-bottom:12px}
 .sec-vl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0}.sec-vl .fo-n{flex:1 1 220px;min-width:0}.sec-vl .btn{min-height:44px}.sec-soi{flex:1 1 220px}
 .sec-titre{margin:18px 0 8px}
