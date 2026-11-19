@@ -851,13 +851,13 @@ var CSS = `
   .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
   /* LES DROITS DE LA PERSONNE (17 novembre 2026, « tout-08 ») : l'hôte dit ce qu'elle peut faire (capacites().droits) et le module pose data-ecrire / data-ranger / data-supprimer="0"
      sur son cadre. Un geste refusé n'est PAS proposé (la garde de doAct, multiAct et des raccourcis refuse aussi, pour qui passerait par le clavier ou l'hôte). */
-  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
-  .opc[data-ranger="0"] :is([data-act="reply"],[data-act="replyAll"],[data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-quick],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
+  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="reply"],[data-act="replyAll"],[data-quick],.rquick,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
+  .opc[data-ranger="0"] :is([data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
   .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
   .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
   .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
   /* la rangée « Réponse rapide » n'a plus un bouton à offrir : on la retire ENTIÈRE (sinon son libellé de bureau reste seul, et au téléphone sa marge de 26 px et ses deux écarts de flex laissent un blanc entre le suivi et la rangée Catégorie) */
-  .opc[data-ranger="0"] .rquick{display:none !important}
+  .opc[data-ecrire="0"] .rquick{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -1956,7 +1956,7 @@ var MARKUP = `
   function droit(x){ if(!CAP.droits||CAP.droits[x]!==false) return true;
     var ph=""; try{ ph=CAP.refus?String(CAP.refus(x)||""):""; }catch(e){}
     toast(ph||"Ce geste n’est pas ouvert à ton compte."); return false; }
-  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ranger",replyAll:"ranger",
+  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ecrire",replyAll:"ecrire",
     forward:"ecrire",editDraft:"ecrire",sendNow:"ecrire",unschedule:"ecrire",reschedule:"ecrire",trash:"supprimer"};
   // les entrées d'un menu : un geste refusé n'y figure pas
   function permis(items){ return items.filter(function(i){ return !ACT_DROIT[i.id]||!CAP.droits||CAP.droits[ACT_DROIT[i.id]]!==false; }); }
@@ -4568,7 +4568,7 @@ var MARKUP = `
     var op=e.target.closest("[data-open]"); if(op){ var x=msgById(op.getAttribute("data-open")); if(x){ state.folder=x.folder; renderAll(); selectMessage(x.id); } return; }
     var hb=e.target.closest("[data-hote]"); if(hb&&HOTE&&typeof HOTE.agir==="function"){ var hm0=msgById(state.selected); closeOverlay();
       try{ HOTE.agir(hb.getAttribute("data-hote"),hm0?horsModule(hm0):null); }catch(x){ toast("Ce geste n’a pas pu s’ouvrir : "+((x&&x.message)||"erreur"),{refus:true}); } return; }
-    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ranger")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
+    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ecrire")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
   });
 
   $("#btnCompose").onclick=function(){ if(!droit("ecrire")) return; if(state.folder==="sign") openSignRequest(); else openCompose(); };
@@ -4652,7 +4652,7 @@ var MARKUP = `
       return ouvrir(); },
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
-    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ranger")) repondreA(id,intro); }); return true; },
+    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ecrire")) repondreA(id,intro); }); return true; },
     ecrire:function(m){ apresChargement(function(){ if(vivant&&droit("ecrire")) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
     rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte

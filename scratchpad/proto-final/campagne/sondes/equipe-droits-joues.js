@@ -104,6 +104,7 @@ const CAS = [
     { n:'(terrain) geste forcé : data-rl="ndfsuppr|…" fabriqué', route:'achats', prep: async h => { await h.p.evaluate(k => { NDF.unshift({ id:'nz1', qui:k, d:'2026-10-31', objet:'Péage essai', ttc:8.2, tva:20, recu:true, etat:'attente' }); rendre(); }, h.k); }, jouer: h => forcer(h.p, { 'data-rl':'ndfsuppr|nz1' }) }
   ] },
   { c:'com.c', cat:'com', x:'c', chemins:[
+    { n:'Boîte mail : clic droit › « Répondre » puis envoi (tour 4 : répondre écrit un message, c\'est un geste de la case Créer)', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Répondre'); if (m !== true) return m; return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : touche « C » (nouveau message) puis envoi', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'c'); return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : barre de lecture › « Transférer » puis envoi', fermeAttendu:true, route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { if (!(await dansMail(h.p, '[data-act="forward"]'))) { // au téléphone, « Transférer » est dans le menu « Répondre ▾ »
         if (await dansMail(h.p, '[data-act="replyMenu"]')) { await h.p.locator('[data-act="replyMenu"]:visible').first().click(); await L.calme(h.p, 400); const it = h.p.locator('[role=menuitem]', { hasText:'Transférer' }); if (await it.count()) { await it.first().click(); await L.calme(h.p, 500); return await composeEtEnvoie(h.p); } } return 'bouton « Transférer » non proposé'; }
@@ -118,7 +119,6 @@ const CAS = [
     { n:'Boîte mail : touche « F » (drapeau)', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'f'); return true; } },
     { n:'Boîte mail : touche « E » (archiver)', route:'boiteMail', prep: h => choisirMail(h, 0), jouer: async h => { await touche(h.p, 'e'); return true; } },
     { n:'Boîte mail : clic droit › « Marquer comme lu / non lu »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => await menuMail(h.p, 'Marquer comme') },
-    { n:'Boîte mail : clic droit › « Répondre » puis envoi (répondre est un geste de la case Modifier)', route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Répondre'); if (m !== true) return m; return await composeEtEnvoie(h.p); } },
     { n:'Boîte mail : clic droit › « Marquer d’un drapeau »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => await menuMail(h.p, 'Marquer d’un drapeau') },
     { n:'Boîte mail : sélection de plusieurs messages › « Archiver »', fermeAttendu:true, route:'boiteMail', prep: h => attendreMail(h.p), jouer: async h => { const m = await menuMail(h.p, 'Sélectionner plusieurs'); if (m !== true) return m; if (!(await dansMail(h.p, '[data-multi="archive"]'))) return 'bouton « Archiver » de la sélection non proposé'; await cliqueMail(h, '[data-multi="archive"]'); await L.calme(h.p, 500); return true; } }
   ] },
