@@ -71,9 +71,18 @@ async function lot(h, etiquette, quoi) {
   // quoi : 'sansC' (Boîte mail › Créer décochée) | 'sansPlan' (Planning › Modifier décochée) | 'avec' | 'sansM' (Modifier décochée : répondre PASSE)
   const p = h.p; await L.aller(p, 'boiteMail'); await attendreMail(p);
   if (process.env.TRACE) console.log('   · état', JSON.stringify(await p.evaluate(() => ({ route, ROLE, acteur:acteur(), permis:rlPermis('boiteMail'), raison:droitRaison('boiteMail'), toast:(document.getElementById('toast') || {}).textContent }))));
-  const ids = await p.evaluate(() => { const f = (s, q) => { const m = MAILS.find(m => m.dossier === 'recu' && !m.fait && !mlLire(m).relance && mlLire(m).sujet === s && (!q || mlLire(m).qui === q)); return m ? m.id : null; }; return { cli:f('msgcli'), dev:f('devis', 'nouveau'), panne:f('panne') }; });
+  const ids = await p.evaluate(() => { const f = (s, q) => { const m = MAILS.find(m => m.dossier === 'recu' && !m.fait && mlLire(m).sujet === s && (!q || mlLire(m).qui === q)); return m ? m.id : null; }; return { cli:f('msgcli'), dev:f('devis', 'nouveau'), panne:f('panne') }; });
   v(`${etiquette} : le décor existe (un message client, un nouveau contact en devis)`, !!ids.cli && !!ids.dev, ids);
   const sansC = quoi === 'sansC', sansP = quoi === 'sansPlan', avecTout = quoi === 'avec' || quoi === 'sansM';
+  // 0) le bandeau « OP GESTION a reconnu » (AVANT les écritures : « Confier » range le message en « traité » et le bandeau n'offre plus rien)
+  await p.evaluate(id => { const m = mlDe(id); if (m) m.attente = null; }, ids.cli);   /* le seul message client de la démonstration est « à relancer » : on le remet en « à répondre » pour que le bandeau offre « Répondre » */
+  const ba = await p.evaluate(ids => { const id = x => (courrierHoteApi.lecture({ id:x }) || { actions:[] }).actions.map(o => o.id.split('|')[0]); return { cli:id(ids.cli), dev:id(ids.dev) }; }, ids);
+  const a = [...ba.cli, ...ba.dev];
+  for (const [id, nom, ou] of [['mbx:repondre', 'Répondre', 'cli'], ['ml:tache', 'En faire une tâche', 'cli'], ['mbx:confier', 'Confier à quelqu’un', 'cli'], ['ml:creneau', 'Proposer une visite', 'dev']]) {
+    const la = ba[ou].includes(id), voulu = !(sansC || (sansP && id === 'ml:creneau'));
+    v(`${etiquette} · bandeau : « ${nom} » ${voulu ? 'est proposé (contre-épreuve)' : 'n\'est PAS proposé'}`, la === voulu, { ids:ba[ou] });
+  }
+  void a;
   // 1) la FONCTION appelée directement (le bouton n'est pas en cause)
   const D = async (cle, id) => tenter(p, () => p.evaluate(({ cle, id }) => courrierRepondre(mlDe(id), cle), { cle, id }), 'boiteMail');
   for (const [cle, id, nom] of [['repondre', ids.cli, 'Répondre'], ['creneau', ids.dev, 'Proposer une visite'], ['relancer', ids.cli, 'Relancer']]) {
@@ -83,7 +92,7 @@ async function lot(h, etiquette, quoi) {
     else v(`${etiquette} · appel direct courrierRepondre(« ${nom} ») : PASSE (contre-épreuve : la fenêtre de rédaction s'ouvre, pas de refus)`, r.compose && r.refus === 0, r);
   }
   // 2) la fonction qui CRÉE une tâche (Confier) : appel direct
-  const C = await tenter(p, () => p.evaluate(() => mbxConfier(mlDe(MAILS.find(m => m.dossier === 'recu' && !m.fait && !mlLire(m).relance && mlLire(m).sujet === 'msgcli').id), 'kb')), 'boiteMail');
+  const C = await tenter(p, () => p.evaluate(() => mbxConfier(mlDe(MAILS.find(m => m.dossier === 'recu' && mlLire(m).sujet === 'msgcli').id), 'kb')), 'boiteMail');
   if (sansC) v(`${etiquette} · appel direct mbxConfier : REFUSÉ — aucune tâche créée, refus dit`, C.changed.length === 0 && C.refus >= 1 && /pas ouvert à ton compte/.test(C.toast), C);
   else v(`${etiquette} · appel direct mbxConfier : PASSE (contre-épreuve : une tâche est créée pour Karim)`, C.changed.includes('TACHES') && C.refus === 0, C);
   // 3) boutons FABRIQUÉS (le menu, la console, un vieux cache fabriquent des boutons sans passer par l'écran)
@@ -105,14 +114,6 @@ async function lot(h, etiquette, quoi) {
   const pr = await repondreProposes(p);
   if (sansC) v(`${etiquette} · AUCUN bouton de réponse n'est proposé (barre, menu « Répondre ▾ », clic droit, réponses rapides)`, !pr.tout, pr);
   else v(`${etiquette} · « Répondre » est proposé (contre-épreuve${quoi === 'sansM' ? ' : sans la case Modifier, il l\'est quand même — répondre n\'est plus un geste de Modifier' : ''})`, pr.barre || pr.menuReponse || pr.clicDroit, pr);
-  // 6) le bandeau « OP GESTION a reconnu » : ses boutons suivent les cases
-  const ba = await p.evaluate(ids => { const id = x => (courrierHoteApi.lecture({ id:x }) || { actions:[] }).actions.map(o => o.id.split('|')[0]); return { cli:id(ids.cli), dev:id(ids.dev) }; }, ids);
-  const a = [...ba.cli, ...ba.dev];
-  for (const [id, nom, ou] of [['mbx:repondre', 'Répondre', 'cli'], ['ml:tache', 'En faire une tâche', 'cli'], ['mbx:confier', 'Confier à quelqu’un', 'cli'], ['ml:creneau', 'Proposer une visite', 'dev']]) {
-    const la = ba[ou].includes(id), voulu = !(sansC || (sansP && id === 'ml:creneau'));
-    v(`${etiquette} · bandeau : « ${nom} » ${voulu ? 'est proposé (contre-épreuve)' : 'n\'est PAS proposé'}`, la === voulu, { ids:ba[ou] });
-  }
-  void a;
 }
 async function phaseN3() {
   const ph = await monter(null); const t = await ph.p.evaluate(() => ({ m:DROIT_PHRASES.com.m, c:DROIT_PHRASES.com.c, tab:['repondre', 'creneau', 'tache', 'confok'].map(x => [x, JSON.stringify(geste('ml', x)), JSON.stringify(geste('mbx', x))]) }));

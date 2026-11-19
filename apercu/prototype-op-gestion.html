@@ -20222,7 +20222,7 @@ function courrierAgir(id, x){
 const courrierHoteApi = {
   telecharger:(nom, blob) => telechargerFichier(nom, blob),   /* H9 : un lien « download » ne fait rien dans l'artefact — le fichier part par le pont, qui dit lui-même ce qui s'est passé */
   /* « Voir seul » à la Boîte mail : le bandeau garde ce qu'il a compris et ses LIENS (ils ouvrent une fiche, ils ne changent rien) mais ne propose plus ses gestes — tous écrivent (créer le client, confier, noter un paiement, ranger…) et la garde les refuserait un par un (restes entreprise, tour 2). Avec « Modifier » à la Boîte mail seule, il ne garde que les gestes dont la case de destination est ouverte (tour 3) */
-  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm')) return { ...b, actions:[] };
+  lecture:x => { if (x.local) return null; const m = mlDe(x.id); const b = m ? courrierBandeau(m) : null; if (!b) return b; if (!peut('com', 'm') && !peut('com', 'c')) return { ...b, actions:[] };   /* tour 4 : répondre, confier, en faire une tâche sont de « Créer » — une personne qui peut créer sans pouvoir ranger garde ces boutons (chacun relit sa case ci-dessous) */
     /* chaque geste lit la case de ce qu'il écrit (la table GESTES) : on ne propose que ceux que la garde laisserait passer */
     return { ...b, actions:b.actions.filter(o => { const i = o.id.indexOf(':'), g = geste(o.id.slice(0, i), o.id.slice(i + 1).split('|')[0]); if (o.id.startsWith('ml:creneau|') && !peut('planif', 'm')) return false; /* tour 4 : proposer une visite tient des créneaux au planning */ return !g || !g.cat || peut(g.cat, g.x); }) }; },
   agir:(id, x) => courrierAgir(id, x),
