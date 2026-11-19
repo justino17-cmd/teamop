@@ -9646,6 +9646,9 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
   const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[   ]\d{3})+(?!\d)/g, m => m.replace(/[   ]/g, ''));
   if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
+  /* « 1.200,5 » est UN nombre à la française : la même lecture que les montants de la page (cxNum) le dit, pas une règle de plus ; « 1,2,3 » reste refusé */
+  { const t = val.trim(), neg = /^-/.test(t), nb = (t.match(/[.,]/g) || []).length;
+    if (nb > 1 && /^-?\d[\d.,]*$/.test(t)) { const n = cxNum(neg ? t.slice(1) : t); if (isFinite(n)) { lu = lu || t; val = (neg ? '-' : '') + String(n).replace('.', ','); } } }
   /* « 3 sur 18 », « 10-12 », « 10 – 12 » et « 10- » ne sont pas UN nombre : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; tout autre tiret refuse. */
   const sans = val.replace(/^\s*-/, '');
   if (/\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|-|\d[.,]\d+[.,]\d/.test(sans)) return { refus:true };
@@ -9654,20 +9657,24 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
 }
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
-  const R = G.releves = G.releves || {}, av = R[t.dataset.releve] == null ? '' : String(R[t.dataset.releve]), r = releveLire(t.value);
-  if (r.refus) { t.value = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
+  if (t.value === av) return true;   /* champ pas touché : aucune écriture (un clic ailleurs ne fait pas passer releves de undefined à {…:''}) */
+  const R = G.releves = G.releves || {}, r = releveLire(t.value);
+  if (r.refus) { t.value = av; t.dataset.refuse = ex; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
   if (t.value !== r.val) t.value = r.val;
   if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
   else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
-  R[t.dataset.releve] = r.val; return true;
+  delete t.dataset.refuse; R[t.dataset.releve] = r.val; return true;
 }
-function releveFlush(){ document.querySelectorAll('input[data-releve]').forEach(t => { try { releveValider(t); } catch (e) {} }); }   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+/* le refus se joue au moment où le doigt quitte le champ (le clic sur « Terminer » le fait sortir AVANT que le clic n'arrive) : la marque « refuse » le retient jusqu'au geste qui finit la fiche, qui s'arrête et redit la phrase ; elle s'efface dès qu'on retape */
+function releveRefuse(){ const t = document.querySelector('input[data-releve][data-refuse]'); if (!t) return false; toast('Un seul nombre ici : écris une seule mesure (ex. ' + t.dataset.refuse + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); document.querySelectorAll('input[data-releve][data-refuse]').forEach(x => delete x.dataset.refuse); return true; }
+function releveFlush(){ let ok = true; document.querySelectorAll('input[data-releve]').forEach(t => { try { if (!releveValider(t)) ok = false; } catch (e) {} }); if (ok && releveRefuse()) ok = false; return ok; }   /* faux = un relevé a été refusé : le geste qui termine une fiche s'arrête, la phrase de refus reste à l'écran */   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
 document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
-document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) releveFlush(); }, true);
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) { if (!releveFlush() && b.dataset.action === 'terminer') { ev.stopPropagation(); ev.preventDefault(); } } }, true);   /* terminer avec un relevé refusé : le clic ne va pas plus loin, la fiche reste ouverte et rien ne part au client */
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+  if (t.dataset.releve) { delete t.dataset.refuse; const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
     if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
@@ -13359,7 +13366,7 @@ document.addEventListener('click', ev => {
     if (typeof TACHES !== 'undefined') TACHES.filter(z => z.lien && z.lien.id === i.id && !z.fait).forEach(z => { z.fait = { par:acteur(), quand:'31/10', quoi:'planifiée' }; });
     journalAjout('marc', 'inter', 'a planifié l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:jlong(d) + ' à ' + h + ' · ' + tech(t).nom });
     rendre(); scrollTo({ top:0 }); return toast(`Planifiée ${jlong(d)} à ${h} avec ${tech(t).nom.split(' ')[0]} : elle apparaît dans sa journée.`); }
-  if (a === 'visitefin' && i) { if (i.st === 'annulee') return toast(ANNULEE_REFUS); const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
+  if (a === 'visitefin' && i) { if (!releveFlush()) return; if (i.st === 'annulee') return toast(ANNULEE_REFUS); const F = fiche(i.id); if (!F.besoin.trim()) return toast('Écris ce qu’il faut prévoir : c’est ce que le bureau chiffrera.');
     F.etat = 'bureau'; i.st = 'fait'; dvInit();
     const x = { id:'BR' + Date.now().toString(36).toUpperCase(), num:null, cli:i.cli, objet:'Devis suite à la visite du ' + jcourt(i.d), d:AUJ, e:'brouillon', source:`Visite de ${tech(i.tech).nom} le ${jcourt(i.d)}`, int0:i.id,
       lignes:[...F.besoin.split(/\n|;/).map(z => z.trim()).filter(Boolean).slice(0, 6).map(z => [z.replace(/^[-•]\s*/, ''), 1, null]), ['Déplacement', 1, 29.17]],
@@ -22272,7 +22279,7 @@ function rgSigInit(){
   const fin = () => { on = false; }; cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
 }
 function rgSaisieOk(){
-  const S = rgSaisie; if (!S) return;
+  const S = rgSaisie; if (!S) return; if (!releveFlush()) return;
   const k = S.k, P = D3_POSTES[k].filter(p => p.actif), ap = S.appl, cert = rgCertif(ap), cam = RG_CAMION[ap] || {};
   if (!cert.ok) { rgGet('rg-appl') && rgGet('rg-appl').scrollIntoView({ block:'center' }); return toast(`${esc(rgPrenom(ap))} n’a pas de certificat Certibiocide valable : choisis un autre technicien.`); }
   const reste = P.filter(p => S.etats[p.id] === undefined).map(p => p.id);
@@ -23700,7 +23707,7 @@ function cfHEl(j){ return j.type === 'tache' && j.el && j.el.t && j.det ? j.det.
 function cfHDet(j, seul){ if (!(j.type === 'tache' && j.el && j.el.t && j.det)) return j.det; const reste = j.det.split(' · ').slice(1).join(' · '); return (seul ? '' : 'À propos de ') + j.el.lib + (reste ? ' · ' + reste : ''); }
 /* Relevés : la valeur saisie ; vide quand rien n'a été saisi sur une fiche déjà touchée ; l'exemple seulement pour une fiche d'exemple déjà faite */
 function cfReleve(F, i, l, v){ const R = F.releves, x0 = R ? R[l] : undefined, x = l === 'Charge de fluide' && (x0 === undefined || x0 === null || x0 === '') ? (fixFluideCharge(i) || x0) : x0; return x !== undefined && x !== null ? String(x) : (R ? '' : (i.st === 'fait' ? v : '')); }
-(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ releveFlush(); const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
+(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ if (!releveFlush()) return; const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
 /* Clients : les appareils d'une fiche à compléter ne sont pas des appareils */
 function cfLieuDe(k){ return (((CLIENTS[k] || {}).appareils) || []).filter(a => a && a.det !== 'à compléter').map(a => a.nom).join(', '); }
 function cfLieuContrat(k){ return k.lieu != null ? k.lieu : (k.titre.split('·')[1] || ''); }
