@@ -62,3 +62,53 @@ jobs:
           SANTE=$(curl -sf --max-time 10 https://api.teamop.fr/health) || { echo "✗ api.teamop.fr ne répond pas après le déploiement"; exit 1; }
           echo "$SANTE" | grep -q '"ok":true' || { echo "✗ api.teamop.fr répond, mais pas ok:true"; exit 1; }
           echo "API en ligne et saine."
+
+  # ── OP MESSAGES (bêta) — sorti de GitHub le 20 novembre 2026 ──────────────────────────────────────────────────────────────────────
+  # Il part APRÈS le serveur : son miroir, sur le serveur des clients, lit /opt/teamop/repo (que `deployer` vient d'avancer).
+  # Seulement si server-msg/ (ou sa liste de bancs) a changé dans cet envoi. Clé de l'atelier : ~/.ssh/deploiement-msg-beta, bridée côté
+  # serveur en `/opt/opmsg/deployer.sh --seulement=beta` (scripts/atelier/installer-services-vps.sh). La production d'OP MESSAGES n'est
+  # pas installée : elle ne se déploie pas d'ici.
+  bancs-messages:
+    runs-on: atelier
+    timeout-minutes: 25
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Quelque chose à déployer ?
+        id: change
+        run: |
+          AVANT="${{ forge.event.before }}"
+          if [[ "$AVANT" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$AVANT^{commit}" 2>/dev/null && git diff --quiet "$AVANT" HEAD -- server-msg scripts/bancs-messages.liste; then
+            echo "rien de changé dans server-msg/ : OP MESSAGES n'est pas redéployé"; echo "oui=non" >> "${FORGEJO_OUTPUT:-$GITHUB_OUTPUT}"
+          else echo "oui=oui" >> "${FORGEJO_OUTPUT:-$GITHUB_OUTPUT}"; fi
+      - name: Les bancs d'OP MESSAGES
+        if: steps.change.outputs.oui == 'oui'
+        run: |
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server
+          find server-msg -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
+          for f in server-msg/*.sh; do bash -n "$f" || exit 1; done
+          BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-messages.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.liste)
+    outputs:
+      oui: ${{ steps.change.outputs.oui }}
+
+  deployer-messages-beta:
+    needs: [deployer, bancs-messages]
+    if: needs.bancs-messages.outputs.oui == 'oui'
+    runs-on: atelier
+    timeout-minutes: 10
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - name: Déployer la bêta d'OP MESSAGES (commande forcée)
+        run: |
+          set -euo pipefail
+          K="$HOME/.ssh/deploiement-msg-beta"; [ -s "$K" ] || { echo "✗ clé $K absente"; exit 1; }
+          KH="$(mktemp)"; trap 'rm -f "$KH"' EXIT
+          printf '%s\n' 'api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn' > "$KH"
+          SHA="$(git rev-parse HEAD)"
+          ssh -i "$K" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=yes root@api.teamop.fr "beta $SHA"
+      - name: Vérifier que la bêta répond de l'extérieur
+        run: |
+          SANTE=$(curl -sf --max-time 10 https://msg-beta.teamop.fr/health) || { echo "⚠ msg-beta.teamop.fr ne répond pas"; exit 0; }
+          printf '%s' "$SANTE" | grep -q '"ok":true' && echo "Bêta d'OP MESSAGES en ligne." || echo "⚠ msg-beta répond, mais pas ok:true"
