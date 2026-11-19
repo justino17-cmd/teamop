@@ -222,15 +222,39 @@
    "constat": "un « · » seul en bout de ligne quand le fournisseur passe dessous",
    "etat": "corrigé",
    "changement": "la ligne passe par msPts (sonde §22, mutation 29)"
+  },
+  {
+   "n": 23,
+   "ecran": "Stock › Ranger › « D'où ça vient ? » : « Un achat au comptoir »",
+   "profils": "petit (320)",
+   "jourNuit": "jour et nuit",
+   "constat": "le libellé passait sur trois lignes (boutons de 92 px)",
+   "etat": "corrigé",
+   "changement": "marges 3 px et corps 13 px sous 340 px : deux lignes (sonde §23, mutation 30)"
+  },
+  {
+   "n": 24,
+   "ecran": "Stock › Compter un lieu (feuille)",
+   "profils": "petit (320), android, iphone",
+   "jourNuit": "jour et nuit",
+   "constat": "le pied collé en bas faisait ~155 px sur 568 (phrase + deux boutons empilés)",
+   "etat": "corrigé",
+   "changement": "« Changer de lieu » monte dans la barre du haut ; le pied garde la somme et « Enregistrer le comptage » : 97 px sur 568 (sonde §24, mutation 31)"
+  },
+  {
+   "n": 25,
+   "ecran": "Fournisseurs › fiche fournisseur : « Commander avant » › « Choisir l'heure »",
+   "profils": "ipad, mac, windows",
+   "jourNuit": "nuit",
+   "constat": "le bouton de 150 px coupait le libellé sur deux lignes",
+   "etat": "corrigé",
+   "changement": "bouton de 176 px, libellé insécable (sonde §25, mutation 32)"
   }
  ],
  "laisses": [
   "fiche fournisseur, android 360 : l'adresse e-mail des commandes (36 signes) est coupée par « … » dans son champ (16 px minimum pour iOS) ; à soumettre : champ sur deux lignes",
   "bouton « ＋ Ajouter un fournisseur » sur deux lignes à 360 et 320 px (libellé le plus long) ; à soumettre : « ＋ Fournisseur »",
   "menu Métier de « Le rangement par métier » : texte de la liste déroulante coupé par sa flèche (natif)",
-  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu",
-  "Stock › Ranger › « Un achat au comptoir » : le segmenté passe sur trois lignes à 320 px (lisible, rien de coupé) — à soumettre à Justin",
-  "Compter un lieu à 320 px : le pied de la feuille (phrase + deux boutons empilés) prend ~155 px sur 568 — lisible, à soumettre",
-  "Fiche fournisseur : « Choisir l'heure » sur deux lignes à 820 px (iPad) — lisible, laissé"
+  "pastille « Commandé · arrive le 4/11 » sur deux lignes dans la fiche de l'atelier : voulu"
  ]
 }
