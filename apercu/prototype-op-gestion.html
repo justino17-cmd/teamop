@@ -13640,7 +13640,7 @@ function paieBulletinDoc(k, ym){
       <tr><td>Montant net social</td><td style="text-align:right">${nbFr(b.netSocial)}</td></tr>
       <tr><td>Total versé par l’employeur</td><td style="text-align:right">${nbFr(b.cout)}</td></tr></tbody></table>
     <div class="deux" style="margin-top:10px"><div><h6>Cumuls de l’année</h6>Salaire brut ${nbFr(b.cumulBrut)} € · net imposable ${nbFr(b.cumulImp)} €</div><div><h6>Congés payés</h6>${S.statut === 'cadre' ? 'Selon le mandat social' : 'Gérés par la caisse des congés payés du bâtiment (CIBTP)'}</div></div>
-    <div class="pdf-pied">Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.</div></div>`;
+    <div class="pdf-pied">${enApp() ? 'Conservez ce bulletin sans limitation de durée.' : `Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.`}</div></div>`;   /* en mode application, la fiche est celle que reçoit la personne : elle ne parle pas de prototype ni de données fictives (compta-reste-06) */
 }
 
 /* ─── l'espace « Paie » de la Comptabilité ─── */
@@ -13653,7 +13653,7 @@ function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
 }
-const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') RETOUR.garde = () => { TT.garder = true; }; } else aller('comptabilite'); };
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') { RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; } } else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -18295,8 +18295,9 @@ function ttMoisPers(k){
 
 /* ── le cadre ── */
 function ttVue(){
-  if (TT.avant !== 'pointage' && !TT.garder) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
-  TT.garder = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
+  /* le retour du SYSTÈME (balayage, bouton Retour d'Android, history.back) ramène de la Paie sans passer par la barre « ‹ Revenir » : on a quitté Temps de travail par « Voir la paie », on le retrouve tel qu'on l'a laissé */
+  if (TT.avant !== 'pointage' && !TT.garder && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
+  TT.garder = false; TT.viaPaie = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
   Object.keys(PT_VALIDE).forEach(x => { if (PT_VALIDE[x]) TT.vus[x] = true; });   // de quoi dire « à revalider » quand une heure bouge après la validation
   const E = ttEtats(), R = ttAReglerLignes(), n = e => E.filter(e).length, travail = n(e => e.etat === 'travail' || e.etat === 'pause'), attendus = n(e => e.etat === 'attendu'), abs = E.filter(e => e.etat === 'absent');
   const kpi = (cle, nb, lib) => `<button type="button" class="kpi" data-tt="filtre|${cle}" aria-pressed="${TT.filtre === cle && ptOnglet === 'auj'}"><b>${nb}</b><span>${lib}</span></button>`;
@@ -18308,7 +18309,7 @@ function ttVue(){
     <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
     ${corps}`;
 }
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; if (route !== 'comptabilite') TT.viaPaie = false; return v; }; })();
 
 /* ── les feuilles ── */
 /* écrire une heure est une case à part (« Corriger les pointages ») : lue à la porte de CHAQUE fonction qui écrit, pas seulement par la garde des clics */
@@ -19353,7 +19354,7 @@ const vhPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vhJM = d => jlong(d).split(' ').slice(1).join(' ');                 // « 28 octobre »
 const vhDL = d => vhJM(d) + ' ' + d.slice(0, 4);                          // « 11 décembre 2026 »
 const vhNom = v => v.marque + (v.modele ? ' ' + v.modele : '');
-const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^[aeiouyàâéèêîôû]/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert »
+const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^(?:[aeiouàâäéèêëîïôöûüœ]|ypsilon)/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert » ; le « y » est une CONSONNE (« le Yaris », « le Yeti », « le Yamaha ») sauf dans Ypsilon, seule voiture dont le nom se dit « i »
 const vhEuro2 = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }).replace(/ /g, ' ') + ' €';
 const vhSans = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const vhPren = k => k ? prenomDe(k) : '';
@@ -21525,9 +21526,12 @@ eqInviter = function () {
 function eqxRestes(k) {
   const ints = INTS.filter(i => i.tech === k && i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ);
   const veh = VEHICULES.filter(v => v.conducteur === k), taches = TACHES.filter(t => !t.fait && t.qui === k);
-  const pt = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k) && !PT_VALIDE[k + lundi(AUJ)];
+  /* une semaine ne se valide qu'une fois FINIE (ttSemFinie) : « pas encore validé » n'est une alerte que pour la semaine d'AVANT, que l'administrateur peut valider ; la semaine en cours se dit à part, sans alerte */
+  const ptGen = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k), L0 = lundi(AUJ), Lp = ajoute(L0, -7);
+  const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);
+  const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0];
   const cp = typeof aSolde === 'function' && EQX_BASE.includes(k) ? aSolde(k, 'Congé payé') : null;
-  return { ints, veh, taches, pt, cp };
+  return { ints, veh, taches, pt, ptEnCours, cp };
 }
 function eqxMeilleur(i, sauf) {
   const R = aRemplacants(i, sauf).filter(r => !eqxManque(i, r.t.id).length);
@@ -21544,7 +21548,8 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine dernière pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.ptEnCours ? `<span class="gris petit">Sa semaine en cours se validera une fois finie, lundi prochain.</span>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
 }
