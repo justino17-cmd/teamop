@@ -299,5 +299,39 @@ const invite = (p, sel) => p.evaluate(s => { const i = document.querySelector(s)
     await L.fin(c);
   }
   }
+  if (veut(23)) {
+  // 23. « Un achat au comptoir » (segmenté « D'où ça vient ? ») : DEUX lignes au plus, de 320 px à l'iPad (il en prenait trois à 320 px, boutons de 92 px)
+  for (const profil of ['petit', 'android', 'iphone', 'ipad']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'stock'); await c.p.evaluate(() => matGOuvrir('ranger', { origine: 'comptoir' })); await L.calme(c.p, 600);
+    const r = await c.p.evaluate(() => [...document.querySelectorAll('.ms-seg2[aria-label="D’où ça vient"] button')].map(b => { const g = document.createRange(); g.selectNodeContents(b); return { t: b.textContent.trim(), lignes: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size }; }));
+    v(`« D'où ça vient ? » (${profil}) : population — trois boutons`, r.length === 3, r);
+    const co = r.find(x => /comptoir/.test(x.t));
+    v(`« Un achat au comptoir » (${profil}) : deux lignes au plus`, !!co && co.lignes <= 2, r);
+    await L.fin(c);
+  }
+  }
+  if (veut(24)) {
+  // 24. Feuille « Compter un lieu » : le pied qui reste collé en bas laisse l'essentiel de l'écran à la liste (il faisait ~155 px sur 568 : la liste n'avait que 367 px visibles)
+  for (const profil of ['petit', 'android', 'iphone']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await aller(c, 'stock'); await c.p.evaluate(() => matCompter('atelier')); await L.calme(c.p, 600);
+    const r = await c.p.evaluate(() => { const f = document.querySelector('#calque .fo-pied'), b = f && f.getBoundingClientRect(); return f ? { pied: Math.round(b.height), haut: innerHeight, btns: [...f.querySelectorAll('.btn')].map(x => x.textContent.trim()), lieu: !![...document.querySelectorAll('#calque .ms-cbar .btn')].find(x => /Changer de lieu/.test(x.textContent)) } : null; });
+    v(`Compter un lieu (${profil}) : population — le pied existe et porte le bouton qui enregistre`, !!r && r.btns.includes('Enregistrer le comptage'), r);
+    v(`Compter un lieu (${profil}) : le pied fait au plus 20 % de l'écran (${r && r.pied} px sur ${r && r.haut})`, !!r && r.pied <= Math.max(100, r.haut * 0.2), r);
+    v(`Compter un lieu (${profil}) : « Changer de lieu » reste atteignable (barre du haut de la feuille)`, !!r && r.lieu, r);
+    await L.fin(c);
+  }
+  }
+  if (veut(25)) {
+  // 25. « Choisir l'heure » (fiche fournisseur, « Commander avant ») : UNE seule ligne, iPad et ordinateur compris (le bouton de 150 px la coupait en deux)
+  for (const profil of ['ipad', 'mac', 'windows', 'android']) {
+    const c = await L.ouvrir({ profil, qui: 'marc' }); await c.p.evaluate(() => { prVue = 'fournisseurs'; }); await aller(c, 'produits');
+    await c.p.evaluate(() => fournFiche('cpa')); await L.calme(c.p, 600);
+    const r = await c.p.evaluate(() => [...document.querySelectorAll('#calque .fx-lg .dt-btn, .fx-lg .dt-btn')].map(b => { const s = b.querySelector('span'), g = document.createRange(); g.selectNodeContents(s); return { t: s.textContent.trim(), lignes: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size, dedans: s.scrollWidth <= s.clientWidth + 1 }; }));
+    const h = r.find(x => /Choisir l’heure/.test(x.t));
+    v(`fiche fournisseur (${profil}) : population — le bouton « Choisir l’heure » existe`, !!h, r);
+    v(`fiche fournisseur (${profil}) : « Choisir l’heure » tient sur une ligne, sans être coupé`, !!h && h.lignes === 1 && h.dedans, r);
+    await L.fin(c);
+  }
+  }
   process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

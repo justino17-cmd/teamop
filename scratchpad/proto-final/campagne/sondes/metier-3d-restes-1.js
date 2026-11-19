@@ -19,7 +19,7 @@ const PHS = () => [...document.querySelectorAll('#calque [placeholder], .fen [pl
     const pourquoi = a.find(x => /la mienne|presque plus/i.test(x)), cherche = i.find(x => /condensateur|poste d|éponge|siphon|circulateur|une pièce/i.test(x));
     v(nom + ' : le « Pourquoi ? » de la demande d\'achat existe (population)', !!pourquoi, JSON.stringify(a));
     v(nom + ' : la recherche d\'article de « Nouvelle intervention » existe (population)', !!cherche, JSON.stringify(i));
-    if (nom === 'clim') { v('clim : garde « la mienne ne tient plus la charge »', /la mienne ne tient plus la charge/.test(pourquoi || ''), pourquoi); v('clim : garde « condensateur, siphon, fluide »', /condensateur, siphon, fluide/.test(cherche || ''), cherche); }
+    if (nom === 'clim') { v('clim : garde « la mienne ne tient plus la charge »', /la mienne ne tient plus la charge/.test(pourquoi || ''), pourquoi); v('clim : garde « condensateur, … fluide » (18/11 : « siphon » retiré, l\'original était coupé à 320 px — metier-3d-exemples-320)', /condensateur, fluide/.test(cherche || ''), cherche); }
     else { v(nom + ' : ni batterie ni charge dans le « Pourquoi ? »', !/la mienne|charge/i.test(pourquoi || ''), pourquoi); v(nom + ' : la recherche d\'article ne parle ni de condensateur ni de fluide', !/condensateur|fluide/i.test(cherche || ''), cherche); }
     if (nom === 'nuis' || nom === '3d') v('3d : la recherche d\'article parle de postes d\'appâtage', /poste d/i.test(cherche || ''), cherche);
     if (nom === 'nett') v('nett : la recherche d\'article parle d\'éponges', /éponge/i.test(cherche || ''), cherche);

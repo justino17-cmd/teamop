@@ -28,7 +28,7 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await p.locator('[data-prix="' + ka + '"]').first().fill('40'); await p.locator('[data-prix="' + ka + '"]').first().press('Tab'); await L.calme(p, 350);
   const ta = await X.toasts(p), pa = await p.evaluate(k => lignesDe(FACTURES.find(x => x.id === 'fx-b'))[k].pu, ka);
   L.v('population : la ligne d’acompte existe et porte −123,95', ka > k && pa !== undefined, ka + ' · ' + pa);
-  L.v('retaper « 40 » sur la ligne d’acompte ne la retourne pas en +40 : −123,95 reste, la phrase le dit', pa === -123.95 && /déduit un acompte/.test(ta), pa + ' · ' + ta);
+  L.v('retaper « 40 » sur la ligne d’acompte ne la retourne pas en +40 : −123,95 reste, la phrase le dit', pa === -123.95 && /acompte se reprend tel qu/.test(ta), pa + ' · ' + ta);
   await ch('prix', '');
   const l3 = await p.evaluate(k => lignesDe(FACTURES.find(x => x.id === 'fx-b'))[k].pu, k);
   L.v('effacer le champ reste « à chiffrer »', l3 === null, l3);

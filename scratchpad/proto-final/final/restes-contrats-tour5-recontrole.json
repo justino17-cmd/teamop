@@ -1,0 +1,47 @@
+{
+ "noms": [
+  "contrats"
+ ],
+ "regles": [
+  "Liste des Contrats : le tableau complet ne revient qu'à partir d'une carte de 846 px (fenêtre d'ordinateur ~1 176 px, menu ouvert) ; en dessous, cartes (nom, titre, prix HT/TTC et état dessous). Balayage 1 090 → 1 260 px (12 largeurs, contrats de départ) et 1 100 → 1 200 px (noms de 66 signes, titres de 85 signes) : « Copropriété » jamais coupé, colonnes de droite toutes visibles ou toutes repliées (jamais entre les deux), état visible sur chaque ligne, tableau qui ne sort pas de sa carte, page qui ne déborde pas ; un clic sur une ligne ouvre la fiche à 1 100 px (cartes) comme à 1 280 px (tableau). Captures liste-1100 et liste-1180, jour et nuit, regardées",
+  "Aperçu de « Composer un contrat » (article 4, prix par visite, TTC de l'aide) : ACCORD aperçu/création rejoué sur 33 saisies (1e999, -5, 0, 0,5, 0,99, 1, 1,004, 1,005, 12, 12 €, 12,5, 1 000,50, 1.000,50, 1000000, 1000000,004/,005/,01, 1234567890123, abc, vide, espaces, chiffres pleine chasse, 00012, .5, 5., 1,2,3, 1e5, 0x10, 99999999999999999999, Infinity, NaN) : l'article 4 vaut 0,00 € si et seulement si la création refuse (0 désaccord sur 33), jamais « NaN », « ∞ » ni « undefined », et pour toute saisie acceptée le HT de l'aperçu est le prix rangé à 0,006 € près",
+  "Un refus ne consomme pas de numéro (ctrNum inchangé) ; refusé (1e999) puis corrigé à 480 : l'aperçu écrit 480,00 € HT / 576,00 € TTC et le contrat créé porte 480 et le numéro annoncé ; prix refusé + 12 visites : « 0,00 € HT par visite », sans NaN",
+  "Ouverture à froid sur #contrat-nouveau (CTR_PRIX_MAX est déclarée vers la ligne 23 596, très après son premier usage) : article 4 écrit, aucune erreur de page ; la liste des Contrats s'ouvre avec quatre compteurs sans NaN",
+  "Autres rôles : secrétariat (julie) voit les Contrats (4 compteurs) et son aperçu refuse « 1e999 » en le disant ; technicienne et chef d'équipe n'ont pas la rubrique (comme décidé) ; aucune page ne déborde",
+  "Sondes des tours précédents rejouées sur la page corrigée : restes-contrats-5.js mac 92 ✓ · 0 ✗, iphone nuit 32 ✓ · 0 ✗ ; restes-contrats-4-recontrole.js mac 72 ✓ · 0 ✗, ipad nuit 38 ✓ · 0 ✗ ; restes-contrats-3-recontrole.js mac 62 ✓ · 0 ✗, petit nuit 58 ✓ · 0 ✗ ; restes-contrats-3-recontrole-liste.js 18 ✓ · 0 ✗ ; restes-contrats-2-recontrole.js mac 42 ✓ · 0 ✗ ; restes-contrats-1-recontrole.js mac 31 ✓ · 0 ✗",
+  "Mutations du tour 5 rejouées : C30, C31, C32, C33, C34, C19 et C23 mordent toutes les sept (une sonde tombe à chaque fois, sur le bon contrôle)",
+  "Le seul chemin qui donne un numéro de contrat est ctrNum (relu : max des contrats et des documents) ; aucun contrat ne se supprime dans le prototype : la ligne (j) de vus-par-le-chef est juste"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  "Mineur : « 12 € » ou « 12€ » dans le champ « Prix par an (HT) » est refusé (comme avant le tour) avec « Indique le prix hors taxes (au moins 1 €) » : un gérant qui écrit le symbole de l'euro lit une phrase qui ne dit pas pourquoi son 12 est refusé. Piste : ôter « € » à la lecture du champ (aperçu ET création ensemble, par ctrCentimes ou à l'endroit où le champ est lu), ou dire « écris seulement le nombre, sans € ». Pareil pour « 1.000,50 » (point des milliers + virgule), refusé avec la même phrase",
+  "Très mineur : un prix de 20 chiffres ou plus (« 99999999999999999999 ») est refusé avec « au moins 1 € » au lieu de « trop grand » (ctrCentimes rend NaN : Math.round(1e22) s'écrit « 1e+22 » et « 1e+22e-2 » n'est pas un nombre). Le refus est juste, c'est la phrase qui ne l'est pas ; saisie improbable",
+  "Très mineur : « 0x10 » est accepté comme 16 € (Number() lit l'hexadécimal) ; aperçu et création sont d'accord, aucune conséquence",
+  "Esthétique, à regarder : à 1 176–1 200 px (juste au-dessus du seuil), le tableau complet est serré : la colonne Client (124–148 px) passe « Cabinet dentaire Martin » sur trois lignes et « Visites » écrit « 2 / 4 faites » sur deux lignes. Rien n'est coupé en plein mot ni ne déborde (capture liste-1180-jour regardée) ; la forme en cartes de 1 100 px est plus aérée. Monter le seuil encore (900 px) la ferait durer jusqu'à ~1 230 px : à décider, pas un défaut"
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-5-recontrole.js (NEUVE : balayage fin de la largeur d'ordinateur, accord aperçu/création sur 33 saisies, refus sans numéro consommé, ouverture à froid, autres rôles, captures)",
+   "resultat": "mac 200 ✓ · 0 ✗ ; windows nuit 200 ✓ · 0 ✗ ; ipad nuit 118 ✓ · 0 ✗ ; iphone nuit 118 ✓ · 0 ✗ ; petit nuit (320 px) 118 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-5.js",
+   "resultat": "mac 92 ✓ · 0 ✗ ; iphone nuit 32 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-4-recontrole.js",
+   "resultat": "mac 72 ✓ · 0 ✗ ; ipad nuit 38 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/restes-contrats-3-recontrole.js / -liste.js, restes-contrats-2-recontrole.js, restes-contrats-1-recontrole.js",
+   "resultat": "62 ✓ (mac), 58 ✓ (petit nuit), 18 ✓, 42 ✓, 31 ✓ — 0 ✗ partout"
+  }
+ ],
+ "doutes": [
+  "Le PDF et le courriel réels d'un contrat restent hors du prototype (pas de serveur) : déjà décidé, à soumettre à Justin",
+  "Un total de 149 999 999,98 € à 320 px est sorti du périmètre (plafond de 1 M€ par contrat, 150 contrats) : à soumettre à Justin, déjà noté",
+  "Le symbole « € » tapé dans le champ du prix (et le point des milliers) : refus actuel jugé acceptable pour le prototype, mais peu accueillant pour un débutant ; à décider avec Justin (voir « nouveaux »)",
+  "Non vérifié : la sonde rend la main au bout de 300–500 ms après chaque geste ; un toast de confirmation resté affiché sur les captures d'aperçu (« Contrat envoyé à … ») vient du contrat créé juste avant dans la sonde, pas de la page"
+ ]
+}
