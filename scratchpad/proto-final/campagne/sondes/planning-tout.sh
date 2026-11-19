@@ -31,7 +31,9 @@ for p in $(profils "mac iphone" "mac ipad iphone petit"); do lance "mise en page
 
 # Les gestes de chaque vue (recensés depuis le DOM, tous touchés) coûtent environ 9 minutes par profil (mesuré le 19/11/2026 : mac 573 s, iphone 553 s, la limite de 590 s
 # d'une exécution) : l'essentiel joue l'iphone entier et, sur mac, la seule vue « carte » (la seule où un geste recensé n'est pas touché : 57 sur 60).
-[ -z "$RAPIDE" ] && lance "gestes de chaque vue iphone" node $S/planning-gestes.js iphone
+# coupée en deux exécutions (579 s mesurés le 19/11 pour 590 s de délai : un seul coup de charge de la machine la faisait tomber sur un « délai dépassé », pas sur la page) ; une vue par exécution ne change rien à ce qui est touché, chaque vue repart d'une page remise d'aplomb
+[ -z "$RAPIDE" ] && lance "gestes de chaque vue iphone (jour, semaine, mois)" node $S/planning-gestes.js iphone jour semaine mois
+[ -z "$RAPIDE" ] && lance "gestes de chaque vue iphone (vue d'ensemble, sur mesure, carte)" node $S/planning-gestes.js iphone general multi carte
 lance "gestes de la vue carte mac" node $S/planning-gestes.js mac carte
 tout "gestes de chaque vue mac (lourd)" node $S/planning-gestes.js mac jour semaine mois general multi
 tout "gestes de chaque vue ipad (lourd)" node $S/planning-gestes.js ipad
