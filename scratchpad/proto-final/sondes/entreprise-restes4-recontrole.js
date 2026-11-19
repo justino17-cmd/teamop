@@ -32,7 +32,7 @@ async function jouer(nom, o, tient, appareil, nuit) {
   console.log('  mesure :', JSON.stringify(r));
   v(`${nom} : population (message de créneau trouvé, réponse du client arrivée, confirmation lancée)`, !!r.cible && !r.sansCompose && !r.sansReponse && !r.erreur && typeof r.av === 'number', r);
   v(`${nom} : « tenus » = ${tient}`, r.tenus === tient, r);
-  if (tient) { v(`${nom} : 3 options avaient été tenues, la confirmation les libère (${r.av} → ${r.ap})`, r.av === 3 && r.ap === 0, r); v(`${nom} : le toast dit « options libérées »`, /options sont libérées/.test(r.toast), r.toast); }
+  if (tient) { v(`${nom} : 3 options avaient été tenues, la confirmation libère les deux autres (${r.av} → ${r.ap}) ; celle du créneau choisi attend la création (tour 6)`, r.av === 3 && r.ap === 1, r); v(`${nom} : le toast dit « options libérées »`, /options sont libérées/.test(r.toast), r.toast); }
   else { v(`${nom} : aucune option au planning avant ni après (${r.av} → ${r.ap})`, r.av === 0 && r.ap === 0, r); v(`${nom} : le toast ne parle PAS d'options libérées (il n'y en a jamais eu)`, r.toast && !/option/.test(r.toast), r.toast); }
   v(`${nom} : la confirmation ouvre bien la création d'intervention`, r.creationOuverte === true, r);
   await L.fin(c);
