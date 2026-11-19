@@ -75,5 +75,39 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,champs,marque').split(',');
     v('N5 aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
   }
+  if (SECTIONS.includes('marque')) {
+    for (const profil of ['mac', 'iphone', 'ipad', 'android']) for (const nuit of [false, true]) {
+      const tag = profil + (nuit ? '-nuit' : '-jour');
+      const c = await L.ouvrir({ profil, nuit, qui: 'marc', attente: 1500 }), p = c.p; p.on('dialog', d => d.accept().catch(() => {}));
+      await p.evaluate(() => { window.__t = []; const t0 = toast; toast = function (m) { window.__t.push(String(m).replace(/<[^>]+>/g, '')); return t0.apply(this, arguments); }; });
+      const pause = ms => L.calme(p, ms);
+      const rouge = await p.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--rouge)'; document.body.appendChild(d); const r = getComputedStyle(d).color; d.remove(); return r; });
+      await p.evaluate(() => { window.__iid = INTS.find(i => i.st !== 'annulee' && i.id !== 'brouillon').id; panneauModifier(window.__iid); }); await pause(600);
+      const avant = await p.evaluate(() => { const e = document.querySelector('#m-titre'); return { inv: e.getAttribute('aria-invalid'), bord: getComputedStyle(e).borderTopColor }; });
+      await p.evaluate(() => { const e = document.querySelector('#m-titre'); e.value = 'é'.repeat(125); });
+      await p.evaluate(() => document.querySelector('[data-action="modifierOk"]').click()); await pause(450);
+      const ap = await p.evaluate(() => { const e = document.querySelector('#m-titre'), t = document.querySelector('#toast'), r = x => { if (!x) return null; const b = x.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+        const champs = ['#q-d', '#q-h', '#q-dur'].map(s => { const x = document.querySelector(s), l = x && x.closest('.champ'); return l && l.offsetParent ? [s, r(l)] : null; }).filter(Boolean);
+        return { inv: e.getAttribute('aria-invalid'), bord: getComputedStyle(e).borderTopColor, focus: document.activeElement === e, toast: r(t), toastOn: t && t.classList.contains('on'), msg: window.__t.join(' | '), champs, titre: r(e) }; });
+      v(tag + ' population : le champ refusé et la bulle existent', !!ap.toast && ap.toastOn && /limité à 120/.test(ap.msg), [ap.toastOn, ap.msg.slice(0, 40)]);
+      v(tag + ' avant le refus : le champ n’est pas marqué (aria-invalid absent, liseré normal)', avant.inv === null && avant.bord !== rouge, avant);
+      v(tag + ' refus : aria-invalid="true" posé, liseré = jeton rouge du thème (' + rouge + '), focus sur le champ', ap.inv === 'true' && ap.bord === rouge && ap.focus, [ap.inv, ap.bord, ap.focus]);
+      const rec = (a, b) => a && b ? Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1])) : 0;
+      const rc = ap.champs.map(([s, r]) => [s, rec(ap.toast, r)]), rt = rec(ap.toast, ap.titre);
+      console.log('   · ' + tag + ' bulle', JSON.stringify(ap.toast), 'recouvrement px² champs', JSON.stringify(rc), 'titre', rt);
+      v(tag + ' population : Jour, Début, Durée mesurés (3 champs)', rc.length === 3, rc.length);
+      v(tag + ' la bulle ne recouvre pas le champ refusé (px² de recouvrement : 0)', rt === 0, rt);
+      console.log('   · CONSIGNÉ ' + tag + ' : la bulle recouvre Jour/Début/Durée de', rc.map(x => x[0] + '=' + x[1]).join(' '), 'px²');
+      await p.screenshot({ path: SORTIE + 'refus-' + tag + '.png' });
+      await p.keyboard.press('Backspace'); await pause(100);
+      const apres = await p.evaluate(() => { const e = document.querySelector('#m-titre'); return { inv: e.getAttribute('aria-invalid'), bord: getComputedStyle(e).borderTopColor }; });
+      v(tag + ' à la frappe suivante (Backspace) : la marque part (aria-invalid retiré, liseré normal)', apres.inv === null && apres.bord !== rouge, apres);
+      if (tag === 'android-jour') { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} aller('clients'); }); await pause(500);
+        const rest = await p.evaluate(() => { const t = document.querySelector('#toast'); return { on: t.classList.contains('on'), txt: t.textContent.slice(0, 40), route: typeof route !== 'undefined' ? route : '?' }; });
+        console.log('   · CONSIGNÉ (comportement général de toast(), 6 s, non vidé par la navigation) : 0,5 s après le refus et un changement d’écran, la bulle est encore là :', JSON.stringify(rest)); }
+      v(tag + ' aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
+      await L.fin(c);
+    }
+  }
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
 })().catch(async e => { console.error('SONDE EN PANNE', e); try { await L.fermer(); } catch (x) {} process.exit(2); });
