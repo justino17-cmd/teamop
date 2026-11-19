@@ -2350,13 +2350,15 @@ var MARKUP = `
      d'historique à la même adresse ; le retour du navigateur recule d'un niveau, et ce n'est qu'au niveau de la liste qu'il laisse l'hôte quitter la rubrique.
      La profondeur voulue se déduit de l'écran (histCible) et l'historique la rejoint (histSync) : un geste de l'application qui recule retire son entrée, il n'en laisse pas d'orpheline.
      Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
-  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
+  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null,hash:null};   // hash : l'adresse de la Boîte mail au moment où un niveau est posé — ce qui dit qu'on est TOUJOURS dans la Boîte mail quand l'historique bouge
   function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
   function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0); }   // le message en cours d'écriture ou la fenêtre « Ajouter une boîte » est un niveau sur TOUS les formats (sur ordinateur aussi, Retour le fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
     HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
+      if(HIST.hash!==null&&location.hash!==HIST.hash&&HIST.niv===0) return;   // la personne est sur une autre rubrique : le niveau se repose au retour (hashchange), jamais à l'adresse d'une autre page
       try{
+        if(HIST.niv===0) HIST.hash=location.hash;
         while(HIST.niv<c){ history.pushState({opcourrier:HIST.niv+1},"",location.href); HIST.niv++; }
         if(HIST.niv>c){ var n=HIST.niv-c; HIST.niv=c; HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); history.go(-n); }
       }catch(e){ HIST.off=true; } },0); }
@@ -4423,12 +4425,16 @@ var MARKUP = `
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
     if(HIST.niv<=0) return;
+    // la personne a touché une autre rubrique (l'adresse a changé) : ce n'est pas un recul d'un de nos niveaux. Le message en cours d'écriture reste ouvert, masqué avec l'hôte (comme avant l'historique sur ordinateur) ; ses niveaux appartiennent aux entrées laissées derrière
+    if(HIST.hash!==null&&location.hash!==HIST.hash){ HIST.niv=0; return; }
     // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
     if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
     HIST.niv--;
     if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");
     histSync(); });
+  // retour sur la Boîte mail (menu, raccourci, Retour) avec un message encore ouvert : son niveau d'historique se repose, pour que « Retour » le ferme au lieu de quitter la rubrique
+  sur(window,"hashchange",function(){ if(!vivant||HIST.off||HIST.hash===null||location.hash!==HIST.hash) return; if(HIST.niv<histCible()) histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 
   // ---------- Colonne Boîtes (iPad) ----------

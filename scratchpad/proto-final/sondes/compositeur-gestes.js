@@ -1,6 +1,6 @@
 // SONDE DURABLE du compositeur (lot « compositeur », étape 3 « corriger », 17 novembre 2026) — les GESTES : chaque contrôle garde un défaut de la relecture adverse « tout ».
 //   tout-06 un double clic sur « Créer » n'ouvre pas la fenêtre d'envoi · tout-10 Tab dans la confirmation d'abandon · tout-14 la pastille « Modifié » dès la première lettre
-//   tout-12 un client qui existe déjà se propose · tout-07 un brouillon se supprime (et rend son numéro) · tout-05 un prix se lit à deux décimales · tout-09 pas de pastille vide, des prestations au catalogue
+//   tout-12 un client qui existe déjà se propose · tout-07 un brouillon se supprime (sans rendre son numéro) · tout-05 un prix se lit à deux décimales · tout-09 pas de pastille vide, des prestations au catalogue
 // PROFIL=mac|windows|ipad|iphone|android|petit  NUIT=0|1  node compositeur-gestes.js — rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe.
 const A = require('./atelier-outils.js'), L = A.L, v = L.v;
 const pr = process.env.PROFIL || 'mac', nuit = process.env.NUIT === '1', tag = 'cgest-' + pr + (nuit ? '-nuit' : '-jour');
@@ -102,7 +102,7 @@ const fermee = p => p.evaluate(() => { const z = document.getElementById('opdz')
     await pu.fill('abc'); await pu.blur(); await p.waitForTimeout(200); const v4 = await pu.inputValue(); v(`${tag} · une saisie fausse reste telle quelle avec son message (${v4})`, v4 === 'abc' && await pu.getAttribute('aria-invalid') === 'true', v4);
     await p.keyboard.press('Escape'); await p.waitForTimeout(500); if (await f.locator('.dialogue').count()) { await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(900); }
   }
-  // ── tout-07 : un brouillon se supprime, et son numéro se rend ──────────────────────────────────────────────────────────────────────────
+  // ── tout-07 : un brouillon se supprime, et son numéro ne se redonne jamais ──────────────────────────────────────────────────────────────────────────
   for (const type of ['devis', 'contrat']) {
     await L.aller(p, type === 'devis' ? 'devis' : 'contrats'); const f = await A.ouvrirAtelier(c, type, null); await L.calme(p, 900);
     const n0 = await p.evaluate(() => ATD.docs.length);
@@ -123,7 +123,7 @@ const fermee = p => p.evaluate(() => { const z = document.getElementById('opdz')
     await clic(c, f, '#b-plus'); await p.waitForTimeout(300); await f.locator('button', { hasText: 'Supprimer ce brouillon' }).first().click(); await p.waitForTimeout(400); await clic(c, f, '.dialogue button[data-r="1"]'); await p.waitForTimeout(1500);
     const apres = await p.evaluate(() => ATD.docs.length), nApres = await p.evaluate(t => t === 'devis' ? dvNum() : ctrNum(), type);
     v(`${tag} ${type} · supprimé : l'atelier se ferme et la liste d'OP GESTION perd ce document (${n0 + 1} → ${apres})`, apres === n0 && await fermee(p), [n0, apres]);
-    v(`${tag} ${type} · son numéro se rend (le prochain était ${nSuiv}, redevient ${nApres})`, nApres !== nSuiv, [nSuiv, nApres]);
+    v(`${tag} ${type} · son numéro ne se rend PAS (le prochain était ${nSuiv}, reste ${nApres} : jamais en dessous)`, nApres === nSuiv, [nSuiv, nApres]);   // règle du 18/11 (9e8134e0, 7d9b4431) : un numéro DONNÉ ne se redonne jamais, même si son brouillon est supprimé — la sonde d'avant exigeait l'inverse
     // un document ENVOYÉ ne se supprime pas ainsi : pas de menu de suppression (jouée plus bas, sur un devis réellement envoyé)
   }
   {
