@@ -58,5 +58,5 @@ const OUT = process.env.SORTIE || '/tmp/claude-0/r5/b/'; fs.mkdirSync(OUT, { rec
   function nbG(t) { return [...new Intl.Segmenter('fr', { granularity: 'grapheme' }).segment(t)].length; }
   v('aucune erreur de page', erreurs.length === 0, erreurs.slice(0, 3));
   console.log('RAPPORT', JSON.stringify(rapport));
-  await L.fin(c); await L.fermer();
+  L.bilan(); await L.fin(c); await L.fermer();
 })().catch(e => { console.log('ÉCHEC', e.message); process.exit(1); });
