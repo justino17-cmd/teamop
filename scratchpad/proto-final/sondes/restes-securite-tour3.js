@@ -26,12 +26,12 @@ const ATTENDUS = [ // [motif de l'ouverture de la balise, maxlength attendu]
     const sain = libelleSur('x'.repeat(150), 120);
     return { nom: [o.nom.length, orph(o.nom)], contact: orph(o.contact), adr: [o.adr.length, orph(o.adr)], acces: [o.acces.length, orph(o.acces)],
       mail: [mailNom({ de: { nom: t119, mail: 'x@y.fr' } }).length, orph(mailNom({ de: { nom: t119, mail: 'x@y.fr' } }))], entree: orph(mlDeNet({ nom: t119, mail: 'x@y.fr' }).nom),
-      pair: libelleSur(t118, 120).endsWith(e) && libelleSur(t118, 120).length === 120, sain: sain.length };
+      pair: libelleSur(t119, 120).endsWith(e) && nbSignes(libelleSur(t119, 120)) === 120, sain: sain.length };
   });
   console.log('  ·', JSON.stringify(r));
   L.v('B. un émoji coupé en deux à 120 / 160 / 200 ne laisse aucun signe orphelin (nom, contact, adresse, accès, expéditeur, entrée du courrier)', !r.nom[1] && !r.contact && !r.adr[1] && !r.acces[1] && !r.mail[1] && !r.entree, r);
-  L.v('B. la coupe a bien eu lieu (population : la coupe tombait sur la paire, longueurs 119 / 159 / 199)', r.nom[0] === 119 && r.adr[0] === 159 && r.acces[0] === 199 && r.mail[0] === 119, r);
-  L.v('B. un émoji ENTIER à la limite est gardé (118 + 2 signes = 120)', r.pair, r.pair);
+  L.v('B. (tour 4, graphèmes) la coupe a bien eu lieu : à 120 / 160 / 200 SIGNES, l’émoji entier tient dans le plafond (119 lettres + 1 émoji = 120 signes = 121 unités UTF-16)', r.nom[0] === 121 && r.adr[0] === 161 && r.acces[0] === 201 && r.mail[0] === 121, r);
+  L.v('B. un émoji ENTIER à la limite est gardé (119 lettres + 1 émoji = 120 signes)', r.pair, r.pair);
   L.v('B. un texte sans émoji est coupé à la même longueur qu’avant (150 → 120)', r.sain === 120, r.sain);
   const f = await p.evaluate(async () => { const k = Object.keys(CLIENTS)[0]; aller('client-x-' + k); await new Promise(r => setTimeout(r, 500)); ongletClient = 'infos'; rendre(); await new Promise(r => setTimeout(r, 600));
     return ['contact', 'tel', 'mail', 'adr', 'acces'].map(q => { const e = document.querySelector('[data-ci="' + q + '"]'); return [q, e && e.getAttribute('maxlength')]; }); });

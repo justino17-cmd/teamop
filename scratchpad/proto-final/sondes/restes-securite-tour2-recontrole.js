@@ -41,7 +41,7 @@ const ECRANS = ['accueil', 'planning', 'interventions', 'devis', 'factures', 'ta
         set('contact', ctc); set('adr', adr); set('acces', acc); const ok = clientEnregistrer(k); const c = CLIENTS[k];
         return { champs, ok, contact: [ctc.length, c.contact.length], adr: [adr.length, c.adr.length], acces: [acc.length, c.acces.length], toast: (document.getElementById('toast') || {}).textContent }; }, info.k);
       console.log('  · autres champs :', JSON.stringify(r));
-      L.v('B. population : la fiche a été enregistrée par clientEnregistrer', r.ok === true, r);
+      L.v('B. (tour 4) population : un contact de 149, une adresse de 168 et des consignes de 240 signes sont REFUSÉS par clientEnregistrer, avec la phrase du plafond (plus de coupe silencieuse)', r.ok === false && /limité à 120 signes/.test(r.toast || ''), r);
       L.v('B. le contact (130 signes) se range entier OU son champ porte un plafond qui empêche d’en taper plus', r.contact[1] === r.contact[0] || r.champs.contact.maxlength, r);
       L.v('B. l’adresse (' + r.adr[0] + ' signes) se range entière OU son champ porte un plafond', r.adr[1] === r.adr[0] || r.champs.adr.maxlength, r);
       L.v('B. les consignes d’accès (' + r.acces[0] + ' signes) se rangent entières OU leur champ porte un plafond', r.acces[1] === r.acces[0] || r.champs.acces.maxlength, r);
