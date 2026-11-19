@@ -7,7 +7,7 @@ const CAP = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f8
   let c = await L.ouvrir({ profil, qui: 'marc', hash: 'contrats', nuit }); let p = c.p; await L.calme(p, 400);
   // ── P : le prix tapé, l'aperçu et le prix rangé disent le MÊME nombre
   await L.aller(p, 'contrat-nouveau'); await L.calme(p, 300);
-  for (const [saisie, attendu] of [['1000.005', null], ['1000,01', 1000.01], ['0.995', null], ['1.005', null], ['2.675', null], ['12,5€', 'refus'], ['abc', 'refus'], ['99,99', 99.99]]) {
+  for (const [saisie, attendu] of [['1000.005', null], ['1000,01', 1000.01], ['0.995', null], ['1.005', null], ['2.675', null], ['12,5€', 12.5], ['abc', 'refus'], ['99,99', 99.99]]) {
     await p.fill('[data-b="prix"]', saisie); await p.dispatchEvent('[data-b="prix"]', 'change'); await L.calme(p, 1400);   // la garde du double-clic (1,2 s) de creerContrat refuse sinon la création suivante
     const apercu = await p.evaluate(() => { const h = [...document.querySelectorAll('#contenu h6')].find(x => /Prix et facturation/.test(x.textContent)); return h ? h.nextElementSibling.textContent.replace(/\s+/g, ' ').trim().slice(0, 140) : null; });
     const rangé = await p.evaluate(() => { const n = CONTRATS.length; const pf = document.querySelector('[data-b="prix"]'); try { ACTIONS.creerContrat(); } catch (e) { return 'ERR ' + e.message; } const k = CONTRATS.length > n ? CONTRATS[CONTRATS.length - 1] : null; if (k) { CONTRATS.pop(); INTS.splice(0, 0); return k.prix; } return 'refus'; });

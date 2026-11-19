@@ -1,0 +1,51 @@
+[
+ {
+  "nom": "Ligne d'acompte : effacer le prix puis retaper « 50 » facture +50 € ; la quantité « 2 » déduit 100 € pour 50 € versés (décision (1) du chef)",
+  "defaut": "la garde de l'acompte ne regardait que `pu < 0` : une ligne vidée valait null, et la quantité n'était pas gardée",
+  "etat": "corrigé",
+  "changement": "drapeau `acompte:true` posé à la création de la ligne (factureDepuis) ; `ligneAcompte` (drapeau OU prix négatif, pour les lignes d'avant) refuse, AVANT tout autre contrôle, prix retapé, prix effacé, prix positif et quantité, avec la phrase « L'acompte se reprend tel qu'il a été facturé : son montant et sa quantité ne se retapent pas ici. » (plus de « fais un avoir »)",
+  "preuve": "compta-ventes-restes6.js : 8 refus (drapeau et sans drapeau × quantité, effacement, « 50 », même montant) + acompte vidé à drapeau seul ; 33 ✓ · 0 ✗ mac et iPhone nuit ; mutations M1 à M4 tombent ; captures cv-r6/r6-facture-mac.png et r6-facture-iphone-nuit.png relues"
+ },
+ {
+  "nom": "Unité inconnue qui multiplie un montant (« 3 forfaits », « 250 mL » sur un flacon, « 5 m », « 2 kg ») (décision (2))",
+  "defaut": "qteLire ignorait l'unité : « 250 mL » sur une pièce au flacon valait 250 × le prix, sans un mot",
+  "etat": "corrigé",
+  "changement": "`qteUniteConnue` : seuls un nombre seul, les heures (2h, 1h30, 2 heures) et un décompte (u, pièce(s)) se lisent ; toute autre unité est refusée (« Je ne sais pas compter en « mL » sur cette ligne : écris un nombre (2) ou une durée (1h30). Je garde 1. »), la quantité d'avant reste. Le texte d'origine d'une ligne préparée (« 0,5 L ») redonne son total comme avant",
+  "preuve": "restes6 : 5 unités refusées sur le déplacement, 250 mL refusé sur le flacon (10,33 € gardé), 0,5 l / 0,5L / 2 / 3 / 2 u / 2 pièces / 2h / 1h30 / 2 h / 90 min / 2 heures toujours lues ; mutation M5 tombe. Deux sondes périmées mises à jour : restes4 (« 250 mL » = 2 582,50 € devient un refus) et restes2-1 (« 0,5 L » = 50 € devient un refus), vertes aux deux profils"
+ },
+ {
+  "nom": "Commande fournisseur (« Nouvelle commande ») : prix et total de ligne non arrondis comme devis et facture (décision (3))",
+  "defaut": "« 3 × 12,345 € » s'affichait 37,04 € sur la ligne et le Total HT en comptait 37,035 ; le champ s'appelait « Prix HT » ; le prix 12,345 s'affichait 12,35",
+  "etat": "corrigé",
+  "changement": "`cmdLigneHT` (même arrondi au centime que `dvLigneHT` et `totLigne`) partout : cmdHT, cmdTVA, franco, bon de commande (PDF), « Tout préparer », panier, éditeur, fiche ; `cmdPuTexte` écrit le prix comme stocké (deux décimales au moins) ; champ « Prix unitaire HT » (texte et aria-label). Début du travail fait par l'agent interrompu (commit b60921e6), relu, complété par la garde",
+  "preuve": "restes6-commande.js 6 ✓ · 0 ✗ mac nuit et iPhone (lignes 37,04 €, Total 74,08 € = somme des lignes lues, libellé, pas de débordement) ; restes6 (calcul : ligne, total, franco, 12,345 / 12,30) ; mutations M7 et M8 tombent ; capture r6-commande-iphone.png relue"
+ },
+ {
+  "nom": "« Forfait main-d'œuvre » au prix de l'heure accepte « 90 min » (97,50 €) (décision (4))",
+  "defaut": "la désignation « main-d'œuvre » + prix de l'heure suffisait à faire une ligne « à l'heure »",
+  "etat": "corrigé",
+  "changement": "`ligneHeure` : la désignation ne fait plus l'heure si elle contient « forfait » ; la quantité (« 2h ») ou le drapeau d'une durée acceptée la font toujours",
+  "preuve": "restes6 : forfait en quantité 1 refuse « 90 min » (65 € gardés, phrase des minutes), forfait à « 2h » l'accepte (97,50 €) ; mutation M6 tombe"
+ },
+ {
+  "nom": "Déjà décidés, non touchés (retour, cases d'absences, boîte mail, menu bureau, bouton Menu, réglage RDV, heures, mot « atelier », prix HT et TTC du contrat, numéros de devis, bandeau du planning, planning téléphone / glisser / boîte mail bureau)",
+  "defaut": "—",
+  "etat": "déjà décidé",
+  "changement": "aucun",
+  "preuve": "REPRISE.md, décisions du chef ; aucun des cinq recontrôles ouverts de ma partie ne les rouvre"
+ },
+ {
+  "nom": "Restent à soumettre à Justin, inchangés (doutes du recontrôle du tour 5)",
+  "defaut": "remboursement d'une facture payée puis avoirée ; « Paiement en ligne » sur les factures d'exemple ; nom « OP COMPTABLE » ; cadre qui ne redessine pas sa liste si un changement vient d'ailleurs ; prix à trois décimales accepté sur une FACTURE (la commande, elle, l'affiche maintenant tel quel)",
+  "etat": "à soumettre à Justin",
+  "changement": "aucun",
+  "preuve": "doutes du recontrôle du tour 5"
+ },
+ {
+  "nom": "restes5-rc.js tombe à 14 ✓ · 2 ✗ (aperçu d'envoi)",
+  "defaut": "la sonde appelle `apercuEnvoi` directement au lieu du bouton : défaut de la SONDE, déjà noté par son auteur, remplacé par restes5-rc2 (vert : l'aperçu s'ouvre et dit « 90 min »)",
+  "etat": "ne se reproduit pas",
+  "changement": "aucun",
+  "preuve": "échoue à l'identique avant mes changements d'après le recontrôle du tour 5 ; restes5-rc2 6 ✓ · 0 ✗ mac et iPhone nuit"
+ }
+]
