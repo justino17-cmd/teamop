@@ -4,7 +4,7 @@ const I = require('./interventions-outils.js'), L = I.L;
 (async () => {
   const profil = process.argv[2] || 'iphone', nuit = process.argv[3] === 'nuit', cap = process.argv.includes('capture');
   const c = await L.ouvrir({ profil, qui: 'sm', nuit }); const p = c.p, v = L.v; const ev = (f, a) => p.evaluate(f, a);
-  const poser = async (sel, val) => { await ev(([s, x]) => { const e = document.querySelector(s); e.focus(); e.value = x; e.dispatchEvent(new Event('input', { bubbles: true })); }, [sel, val]); };
+  const poser = async (sel, val) => { await ev(([s, x]) => { const e = document.querySelector(s); e.focus(); e.value = x; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, [sel, val]); };
   const lire = sel => ev(s => { const e = document.querySelector(s); return { champ: e.value, mem: (fiche(e.dataset.id).releves || {})[e.dataset.releve] }; }, sel);
   const toast = () => ev(() => (document.getElementById('toast') || {}).textContent || '');
   const metier = m => ev(x => { fiche('i1').metier = x; return x; }, m);
@@ -25,10 +25,10 @@ const I = require('./interventions-outils.js'), L = I.L;
   if (cap) await L.capture(c, I.CAP + `t4-longue-${profil}-${nuit ? 'nuit' : 'jour'}.png`);
   await poser(S('Soufflage'), '1 234 567 890,5'); const t3 = await toast(); const r3 = await lire(S('Soufflage')); v('milliers longs recollés, borne 12', r3.champ.length <= 12, [r3, t3]);
   // frappe RÉELLE au clavier, caractère par caractère (un vrai téléphone ne colle pas la valeur d'un coup)
-  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('-5'); let r = await lire(S('Soufflage')); v('frappe « -5 » au clavier → -5', r.champ === '-5' && r.mem === '-5', r);
-  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('12,5'); r = await lire(S('Soufflage')); v('frappe « 12,5 » → 12,5', r.champ === '12,5', r);
-  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('1 200'); r = await lire(S('Soufflage')); console.log('  · NOTE frappe « 1 200 » caractère par caractère →', JSON.stringify(r), ' toast:', await toast());
-  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('10 - 12'); r = await lire(S('Soufflage')); v('frappe « 10 - 12 » : jamais 1012', r.champ !== '1012' && r.mem !== '1012', r);
+  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('-5'); await p.keyboard.press('Tab'); let r = await lire(S('Soufflage')); v('frappe « -5 » au clavier → -5', r.champ === '-5' && r.mem === '-5', r);
+  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('12,5'); await p.keyboard.press('Tab'); r = await lire(S('Soufflage')); v('frappe « 12,5 » → 12,5', r.champ === '12,5', r);
+  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('1 200'); await p.keyboard.press('Tab'); r = await lire(S('Soufflage')); console.log('  · NOTE frappe « 1 200 » caractère par caractère →', JSON.stringify(r), ' toast:', await toast());
+  await poser(S('Soufflage'), ''); await p.locator(S('Soufflage')).click(); await p.keyboard.type('10 - 12'); await p.keyboard.press('Tab'); r = await lire(S('Soufflage')); v('frappe « 10 - 12 » : jamais 1012', r.champ !== '1012' && r.mem !== '1012', r);
   // les trois relevés de la clim se comportent pareil
   for (const l of ['Charge de fluide', 'Reprise']) { await poser(S(l), '7'); await poser(S(l), '10 – 12'); const x = await lire(S(l)); v(`${l} : plage refusée`, x.champ === '7', x); await poser(S(l), '−3'); const y = await lire(S(l)); v(`${l} : −3 négatif`, y.champ === '-3', y); }
   // libres + autres métiers (numériques : Surface, Postes, Pression…)

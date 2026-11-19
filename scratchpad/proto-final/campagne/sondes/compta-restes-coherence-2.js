@@ -1,7 +1,7 @@
 // Restes de cohérence cadre OP COMPTABLE / OP GESTION, 2e tour (18 novembre 2026) — chaque contrôle porte son numéro de point :
 //  1  le « Reçu I6 » (argent reçu sur place, avant facture) part au cadre avec les autres encaissements : TVA collectée à 1 centime près (l'arrondi par taux / par paiement est laissé),
 //     l'argent entre dans la caisse, le reste est un acompte (419100) ; quand la facture part le reçu est repris, quand le moyen change l'écriture suit.
-//  2  un SOLDE DE TVA négatif se dit « Crédit de TVA » (« L'État te doit ») partout où le cadre le montre, jamais « À payer 0,00 € ».
+//  2  un SOLDE DE TVA négatif se dit « Crédit de TVA » (il se reporte sur la déclaration suivante : on ne promet pas un remboursement) partout où le cadre le montre, jamais « À payer 0,00 € ».
 //  3  la paie n'est plus dite « calculée avec les heures validées dans OP GESTION » : la liaison n'envoie pas les heures.
 // usage : node compta-restes-coherence-2.js [profil] [qui]      « N ✓ · M ✗ », code 1 si un contrôle tombe
 const X = require('./compta-reste-outils.js'), L = X.L, v = L.v; X.CAP2 = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-compta-2/';
@@ -29,6 +29,14 @@ const cts = t => { const m = String(t || '').replace(/[\s  ]/g, '').match(/[�
   K = await lit(); v('1f contre-épreuve : le moyen noté passe à « Carte » → une seule écriture active, dans 467100, et l’ancienne est contrepassée', K.actifs.length === 1 && K.actifs[0].l[0][0] === '467100' && K.contres === 1, { actifs: K.actifs.map(a => a.l[0]), contres: K.contres });
   await p.evaluate(() => { fiche('i6').paiement.mode = 'Espèces'; rendre(); }); await p.waitForTimeout(900);
   K = await lit(); v('1g retour aux espèces : une écriture active dans la caisse', K.actifs.length === 1 && K.actifs[0].l[0][0] === '530000' && K.contres === 2, { actifs: K.actifs.map(a => a.l[0]), contres: K.contres });
+  // 3e tour (19/11) : chaque MOYEN va dans son compte, et la ligne de relevé d'un virement est retirée quand le moyen change — deux mutations (chèque rangé en 512000, ligne de relevé jamais retirée)
+  // survivaient à « 26 ✓ » parce que la sonde ne jouait que Carte et Espèces. Population comptée avant chaque zéro : le relevé doit AVOIR une ligne de plus avant qu'on dise qu'elle est repartie.
+  { const rel = () => f.evaluate(() => RELEVE.length), base = await rel(), att = { 'Chèque': ['511200', 'BQ'], Virement: ['512000', 'BQ'] };
+    for (const mo of ['Chèque', 'Virement']) { await p.evaluate(m => { fiche('i6').paiement.mode = m; rendre(); }, mo); await p.waitForTimeout(900); K = await lit();
+      v('1g1 moyen « ' + mo + ' » : une seule écriture active, dans ' + att[mo][0] + ' (journal ' + att[mo][1] + '), équilibrée', K.actifs.length === 1 && K.actifs[0].l[0][0] === att[mo][0] && K.actifs[0].j === att[mo][1] && K.actifs[0].equilibre, K.actifs.map(a => [a.j, a.l[0]])); }
+    const apresVir = await rel(); v('1g2 population : le virement noté sur place ajoute UNE ligne de relevé à pointer (' + base + ' → ' + apresVir + ')', apresVir === base + 1, { base, apresVir });
+    await p.evaluate(() => { fiche('i6').paiement.mode = 'Espèces'; rendre(); }); await p.waitForTimeout(900);
+    const retour = await rel(); v('1g3 le moyen repasse aux espèces : la ligne de relevé du virement est RETIRÉE (' + apresVir + ' → ' + retour + ')', retour === base, { base, retour }); K = await lit(); }
   // la facture part : le reçu devient l'encaissement de la facture, l'écriture d'acompte s'en va
   const F = await p.evaluate(() => { factureDepuis(INTS.find(o => o.id === 'i6')); const f = FACTURES.find(x => x.int === 'i6' && x.num === '—' && x.st !== 'annulee'); if (!f) return null; const ok = envoyerFacture(f, true, true); rendre(); return { ok, num: f.num, recus: opLiaDonnees().recus.length, enc: ENCAISSEMENTS.filter(e => e.int === 'i6').map(e => e.ttc) }; });
   v('1h population : la facture de l’intervention I6 est partie et a repris l’argent (' + JSON.stringify(F) + ')', !!F && F.ok && F.recus === 0 && F.enc.length === 1, F); await p.waitForTimeout(1000);
@@ -49,7 +57,7 @@ const cts = t => { const m = String(t || '').replace(/[\s  ]/g, '').match(/[�
   v('2b l’accueil dit « Crédit de TVA d’octobre » et la somme (' + credTxt + '), pas « TVA d’octobre 0,00 € »', acc.includes('Crédit de TVA d’octobre ' + credTxt) && !/TVA d’octobre 0,00/.test(acc), acc.slice(acc.indexOf('TVA d’octobre') - 20, acc.indexOf('TVA d’octobre') + 120));
   await L.capture(c, X.CAP2 + `${profil}-accueil-credit.png`);
   const tv = await vue('tva');
-  v('2c l’écran TVA dit « Crédit de TVA » + la somme + « l’État te doit », jamais « À payer à l’État »', new RegExp('Crédit de TVA\\s*' + credTxt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(tv) && /l’État te doit/.test(tv) && !/À payer à l’État/.test(tv), tv.slice(0, 500));
+  v('2c l’écran TVA dit « Crédit de TVA » + la somme + le report sur la prochaine déclaration + le remboursement « sur demande » + la mention « à faire relire par l’expert-comptable », jamais « À payer à l’État »', new RegExp('Crédit de TVA\\s*' + credTxt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(tv) && /se reporte sur ta prochaine déclaration/.test(tv) && /remboursement est possible sur demande/.test(tv) && /à faire relire par l’expert-comptable/.test(tv) && !/l’État te doit/.test(tv) && !/À payer à l’État/.test(tv), tv.slice(0, 500));
   await L.capture(c, X.CAP2 + `${profil}-tva-credit.png`);
   const bd = await f.evaluate(() => { const b = document.querySelector('#tva-auto [data-a="tva-auto"]'); return !!b; });
   v('2d population : le bouton « Arrêter la TVA d’octobre » existe', bd);
