@@ -1,0 +1,13 @@
+{
+  "tour": 4,
+  "de": "chef de chantier (session_01Cw6RN2Nf56UygsM6AYoN1P), 19 novembre 2026",
+  "note": "Ce ne sont PAS des décisions à soumettre : à corriger.",
+  "corrections": [
+    "1. Dans « Archivés », la ligne symétrique : « Un client actif correspond aussi » (même geste que dans l'autre sens).",
+    "2. Message de la dictée sur un archivé, selon le droit : qui peut restaurer -> « restaure-le depuis Clients » ; qui ne peut pas -> « Demande à un responsable de le restaurer » (aucune impasse).",
+    "3. « Se déconnecter » avec une saisie non enregistrée : même comportement que « Menu » au téléphone — on demande AVANT, la fenêtre de garde au premier plan (elementFromPoint), sur ordinateur et iPad. Règle : un geste ne perd pas une saisie sans le dire.",
+    "4. Dictée : comparaison par mot entier (« support mural » ne choisit plus « Le Vieux Port »), accents et casse ignorés.",
+    "5. clients-recontrole-fiche 1 ✗ (fil de la Comptabilité qui garde « Mme Roux » après renommage, commit da1eab55) : le fil lit le nom ACTUEL du client par son identifiant. À corriger même si c'est dans la partie Comptabilité."
+  ],
+  "ensuite": "Ajouter restes3-adverse à clients-tout.sh (0 ✗ attendu), mutations sur chaque point, recontrôle par un agent neuf, `git diff --stat apercu/` vide."
+}
