@@ -10792,6 +10792,24 @@ const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
 const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+/* LE MAXLENGTH DU NAVIGATEUR COMPTE DES UNITÉS UTF-16, L'UTILISATEUR DES SIGNES (tour 5) : collé, un drapeau (4 unités) était coupé en lettre régionale seule, et l'on enregistrait une moitié de drapeau.
+   Sur tout champ à maxlength, la coupe FINE se fait ici, à la frappe et au collage (événements de l'UTILISATEUR seulement : e.isTrusted) :
+   - beforeinput : le texte inséré est posé par nous, coupé par GRAPHÈMES à la place restante — le navigateur ne coupe plus au milieu d'un signe ;
+   - input (autre chemin : glisser, dictée, saisie automatique) : on recoupe par graphèmes et on retire une moitié orpheline laissée par la coupe du navigateur.
+   L'attribut maxlength RESTE (un plafond de sécurité : il borne déjà la frappe, et les contrôles de plafond le lisent) ; la valeur POSÉE PAR LE CODE n'est pas touchée : refusLong/clientPlafondRefus la refusent avec une phrase. */
+const maxChamp = e => { const m = e && e.getAttribute && parseInt(e.getAttribute('maxlength'), 10); return m > 0 && (e.tagName === 'TEXTAREA' || e.tagName === 'INPUT') ? m : 0; };
+const ri = ch => /^[\u{1F1E6}-\u{1F1FF}]$/u.test(ch);
+function sansOrphelin(t){ t = String(t); const lastHi = t.length && t.charCodeAt(t.length - 1) >= 0xd800 && t.charCodeAt(t.length - 1) <= 0xdbff; if (lastHi) t = t.slice(0, -1);
+  const pts = Array.from(t); let n = 0; while (n < pts.length && ri(pts[pts.length - 1 - n])) n++; if (n % 2) pts.pop(); return pts.join(''); }
+document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m || !/^insert/.test(e.inputType || '') || e.inputType === 'insertCompositionText') return;
+  let txt = e.data; if (txt == null && e.dataTransfer) { try { txt = e.dataTransfer.getData('text/plain'); } catch (x) {} } if (txt == null) return;
+  if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') return;
+  let a, b; try { a = t.selectionStart; b = t.selectionEnd; } catch (x) { return; } if (a == null) return;
+  const av = t.value.slice(0, a), ap = t.value.slice(b), place = m - nbSignes(av) - nbSignes(ap); if (place < 0) return;
+  const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
+  e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
+document.addEventListener('input', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
+  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m) v = sansOrphelin(v); if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.

@@ -34,6 +34,59 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
     const o = await p.evaluate(() => ({ nfd: pdfOctets('été'), nfc: pdfOctets('été'), ex: pdfOctets('Å') }));
     v('pdfOctets : « été » décomposé et composé donnent les MÊMES octets WinAnsi (é = 0xE9) ; « Å » décomposé aussi', o.nfd === o.nfc && o.nfd.charCodeAt(0) === 0xe9 && o.ex.charCodeAt(0) === 0xc5, [o.nfd.length, o.nfc.length, o.ex.length]);
   }
+
+  // ─────────── les champs à maxlength : comment on les ouvre (copiés du tour 4, qui les a recensés) ───────────
+  const pause = ms => L.calme(p, ms);
+  const fermer = () => p.evaluate(() => { try { fermerPanneau(); } catch (e) {} try { fermerCreation(); } catch (e) {} try { document.querySelectorAll('#calque').forEach(x => x.innerHTML = ''); } catch (e) {} });
+  const creaOuvrir = async () => { await p.evaluate(() => { try { fermerCreation(); } catch (e) {} const k = Object.keys(CLIENTS).find(x => x !== '__nv' && INTS.some(i => i.cli === x)); ouvrirCreation({ cli: k }); }); await pause(600); await p.evaluate(() => { const b = document.querySelector('.fen [data-cfact="temps"]'); if (b) b.click(); }); await pause(250); await p.evaluate(() => { const b = document.querySelector('.fen [data-action="cPlusTot"]'); if (b) b.click(); }); await pause(400); };
+  const FICHE = async () => { await p.evaluate(async () => { window.__k0 = Object.keys(CLIENTS).find(k => k !== '__nv' && CLIENTS[k].tel); aller('client-x-' + window.__k0); await new Promise(r => setTimeout(r, 500)); ongletClient = 'infos'; rendre(); await new Promise(r => setTimeout(r, 600)); }); };
+  const CH = [
+    { n: 'fiche client · nom', sel: '[data-ci="nom"]', ouvrir: FICHE },
+    { n: 'fiche client · contact', sel: '[data-ci="contact"]', ouvrir: FICHE },
+    { n: 'fiche client · adresse', sel: '[data-ci="adr"]', ouvrir: FICHE },
+    { n: 'fiche client · consignes d’accès (textarea)', sel: '[data-ci="acces"]', ouvrir: FICHE },
+    { n: 'titre d’une intervention (m-t)', sel: '#m-t', ouvrir: async () => { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} window.__iid = INTS.find(i => i.st !== 'annulee' && i.id !== 'brouillon').id; const b = document.createElement('button'); b.dataset.action = 'modifInt'; b.dataset.id = window.__iid; document.body.appendChild(b); b.click(); b.remove(); }); await pause(400); } },
+    { n: 'titre d’un créneau bloqué (bl-titre)', sel: '#bl-titre', ouvrir: async () => { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} panneauBloc('', 'sm', AUJ); }); await pause(400); } },
+    { n: 'nom d’un fournisseur local (fo-l-nom)', sel: '#fo-l-nom', ouvrir: async () => { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} foLocal(); }); await pause(600); } },
+    { n: 'rôle d’une personne invitée (eq-r)', sel: '#eq-r', ouvrir: async () => { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} eqInviter(); }); await pause(500); } },
+    { n: 'nom de la plateforme de facturation (pa-n)', sel: '#pa-n', ouvrir: async () => { await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} cxPlateforme(); }); await pause(500); } },
+    { n: 'motif d’une intervention (textarea)', sel: '[data-cchamp="motif"]', ouvrir: creaOuvrir },
+    { n: 'titre de la fenêtre de création', sel: '[data-cchamp="titre"]', ouvrir: creaOuvrir },
+  ];
+  const orphelin = t => /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(t) || /(?:^|[^\u{1F1E6}-\u{1F1FF}])(?:[\u{1F1E6}-\u{1F1FF}]{2})*[\u{1F1E6}-\u{1F1FF}](?![\u{1F1E6}-\u{1F1FF}])/u.test(t) || /�/.test(t);
+  const lire = sel => p.evaluate(s => { const e = document.querySelector(s); return e ? { v: e.value, max: +e.getAttribute('maxlength'), g: nbSignes(e.value) } : null; }, sel);
+  const coller = async (sel, avant, txt) => { await p.evaluate(([s, a]) => { const e = document.querySelector(s); e.focus(); e.value = a; e.setSelectionRange(e.value.length, e.value.length); }, [sel, avant]); await p.keyboard.insertText(txt); await pause(50); };
+  const DRAP = ['🇫🇷', '🇩🇪', '🇪🇸', '🇮🇹'];
+  let champsVus = 0, collages = 0;
+
+  // ─────────── 2. maxlength en graphèmes : frappe et collage RÉELS, jamais de demi-drapeau ───────────
+  if (SECTIONS.includes('graph')) {
+    for (const F of CH) {
+      await F.ouvrir(); const l0 = await lire(F.sel);
+      v('population · ' + F.n + ' : le champ est à l’écran avec un maxlength', !!l0 && l0.max > 0, l0 && l0.max);
+      if (!l0 || !(l0.max > 0)) continue; champsVus++; const M = l0.max;
+      // (a) collage de « Z » + 3 × plafond drapeaux : on garde EXACTEMENT M signes, tous entiers, jamais une lettre régionale seule
+      const flags = Array.from({ length: M * 3 }, (_, i) => DRAP[i % 4]).join('');
+      await coller(F.sel, '', 'Z' + flags); const a = await lire(F.sel); collages++;
+      v(F.n + ' · collage de Z + ' + M * 3 + ' drapeaux : le champ garde exactement ' + M + ' signes', a.g === M && a.v[0] === 'Z', [a.g, M, a.v.length]);
+      v(F.n + ' · … sans demi-drapeau, sans moitié de signe, sans « � »', !orphelin(a.v), JSON.stringify(a.v.slice(-12)));
+      // (b) collage quand il reste PEU de place : « ab » déjà là, il reste M-2 signes, un nombre IMPAIR d'unités ne coupe pas un drapeau
+      await coller(F.sel, 'ab', '🇫🇷'.repeat(M)); const b = await lire(F.sel); collages++;
+      v(F.n + ' · « ab » + ' + M + ' drapeaux collés : ' + M + ' signes au total, aucun demi-drapeau', b.g === M && b.v.startsWith('ab') && !orphelin(b.v), [b.g, JSON.stringify(b.v.slice(-8))]);
+      // (c) ce qui TIENT en signes mais dépasse l'unité UTF-16 est gardé ENTIER (M/2 drapeaux = 2M unités > maxlength) : plus de coupe silencieuse en deux
+      const demi = Math.floor(M / 2); await coller(F.sel, '', DRAP.join('').repeat(Math.ceil(demi / 4)).match(/(?:[\u{1F1E6}-\u{1F1FF}]{2})/gu).slice(0, demi).join('')); const c3 = await lire(F.sel); collages++;
+      v(F.n + ' · ' + demi + ' drapeaux (' + demi * 2 + ' signes de texte, ' + demi * 4 + ' unités UTF-16 pour un maxlength de ' + M + ') : gardés ENTIERS', c3.g === demi && c3.v.length === demi * 4, [c3.g, c3.v.length]);
+      // (d) frappe réelle de M + 50 lettres : le champ s'arrête à M
+      await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.value = ''; }, F.sel); await p.keyboard.type('q'.repeat(Math.min(M + 50, 260)), { delay: 0 }); const d = await lire(F.sel);
+      v(F.n + ' · ' + Math.min(M + 50, 260) + ' lettres tapées : le champ s’arrête à ' + Math.min(M, Math.min(M + 50, 260)), d.g === Math.min(M, Math.min(M + 50, 260)), d.g);
+      // (e) une famille ZWJ et un « é » décomposé collés en fin de limite ne sont pas scindés
+      await coller(F.sel, 'x'.repeat(M - 1), '👨‍👩‍👧‍👦😀'); const e5 = await lire(F.sel); collages++;
+      v(F.n + ' · famille ZWJ collée avec une seule place : entière ou absente, jamais en morceaux', e5.g === M && !orphelin(e5.v) && !/[‍]$/.test(e5.v) && (e5.v.endsWith('👨‍👩‍👧‍👦') || e5.v === 'x'.repeat(M - 1) + '👨‍👩‍👧‍👦'), JSON.stringify(e5.v.slice(-14)));
+      await fermer();
+    }
+    v('population : ' + CH.length + ' champs joués, ' + champsVus + ' retrouvés à l’écran avec un maxlength', champsVus === CH.length, champsVus);
+    v('population : ' + collages + ' collages réels (clavier, événements de confiance) joués', collages >= CH.length * 4, collages);
+  }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
