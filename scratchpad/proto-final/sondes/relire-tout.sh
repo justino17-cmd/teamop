@@ -2,12 +2,13 @@
 # Rejoue la RELECTURE ADVERSE de l'application : le menu au téléphone (relire-menu-telephone*.js, ici) et le compositeur de devis et de contrat
 # (relire-tout/*.js, la relecture « tout »), UNE sonde à la fois (un seul navigateur), et dit pour chacune « N ✓ · M ✗ » et son code de sortie.
 # Sort en 1 si une exécution tombe.
-#   bash scratchpad/proto-final/sondes/relire-tout.sh          # tout
+#   bash scratchpad/proto-final/sondes/relire-tout.sh          # l'essentiel : 24 minutes (mesuré le 19/11/2026 : 1 462 s ; tout avec TOUT=1 : 1 613 s)
+#   TOUT=1 bash …/relire-tout.sh                               # y compris le menu complet (380 contrôles, 152 s) sur android
 #   RAPIDE=1 bash …/relire-tout.sh                             # le menu sur iphone seul, et le compositeur sur mac seul
 # Durée visée : 25 minutes au plus. Journal complet : $CAP/relire-tout.log (hors dépôt).
 # PROFILS LAISSÉS DE CÔTÉ pour tenir ce temps (à rejouer à la main : PROFIL=<p> NUIT=<0|1> QUI=<q> node relire-tout/<sonde>.js) :
 #   - compositeur : mac720 et android (même colonne que mac / même téléphone qu'iphone), la nuit hors mise en page et devis complet ;
-#   - menu au téléphone : android de nuit (iphone et petit de nuit sont joués).
+#   - menu au téléphone : android de nuit, et android de jour pour la sonde « 1 » de 380 contrôles (iphone et petit, jour et nuit, sont joués ; android passe les sondes 2 et 3).
 # Les sondes d'une famille voisine ne sont pas jouées ici : « atelier » (atelier-tout.sh) joue le compositeur lui-même, ici on rejoue sa RELECTURE.
 ICI="$(cd "$(dirname "$0")" && pwd)"; cd "$ICI/../../.." || exit 1
 CAP="${CAP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/relire-tout}"; mkdir -p "$CAP"; J="$CAP/relire-tout.log"; : > "$J"
@@ -25,7 +26,8 @@ profils(){ if [ -n "$RAPIDE" ]; then echo "$1"; else echo "$@"; fi; }
 
 # 1. le menu au téléphone (jour et nuit, trois rôles) — une exécution par profil et par moment
 for p in $(profils iphone android petit); do
-  lance "menu téléphone 1 $p jour" PROFILS=$p NUITS=0 node $S/relire-menu-telephone.js
+  if [ "$p" = android ]; then [ -n "$TOUT" ] && [ -z "$RAPIDE" ] && lance "menu téléphone 1 $p jour" PROFILS=$p NUITS=0 node $S/relire-menu-telephone.js
+  else lance "menu téléphone 1 $p jour" PROFILS=$p NUITS=0 node $S/relire-menu-telephone.js; fi
   [ "$p" != android ] && [ -z "$RAPIDE" ] && lance "menu téléphone 1 $p nuit" PROFILS=$p NUITS=1 node $S/relire-menu-telephone.js
   lance "menu téléphone 2 (barre du bas, Jour/Nuit retenu) $p" PROFILS=$p node $S/relire-menu-telephone-2.js
   lance "menu téléphone 3 (mes congés, espace client) $p" PROFILS=$p node $S/relire-menu-telephone-3.js

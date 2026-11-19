@@ -1,8 +1,8 @@
 #!/bin/bash
 # Rejoue les sondes du PLANNING (mise en page, gestes, marqueurs de la carte, parcours du bureau, recontrôle adverse), UNE à la fois
 # (un seul navigateur), et dit pour chacune « N ✓ · M ✗ » et son code de sortie. Sort en 1 si une exécution tombe.
-#   bash scratchpad/proto-final/campagne/sondes/planning-tout.sh        # l'essentiel
-#   TOUT=1 bash …/planning-tout.sh                                       # tous les profils, jour et nuit : à lancer en fond
+#   bash scratchpad/proto-final/campagne/sondes/planning-tout.sh        # l'essentiel : environ 21 minutes (mesuré le 19/11/2026 : 1 268 s)
+#   TOUT=1 bash …/planning-tout.sh                                       # plus de profils, la nuit et les gestes de chaque vue : à lancer en fond (une heure et demie)
 #   RAPIDE=1 bash …/planning-tout.sh                                     # ordinateur (mac) seul, une exécution par sonde
 # Le verdict d'une exécution est son code de sortie ; le « N ✓ · M ✗ » n'est qu'un affichage. Journal complet : $CAP/planning-tout.log (hors dépôt).
 # Les sondes « restes-planning-* » (tours 2 à 4 des restes) sont de la famille « restes » : campagne/sondes/restes-tout.sh les joue.
@@ -29,8 +29,13 @@ tout(){ [ -n "$TOUT" ] && [ -z "$RAPIDE" ] && lance "$@"; return 0; }
 for p in $(profils "mac iphone" "mac windows ipad iphone android petit"); do lance "mise en page $p jour" node $S/planning-mise-en-page.js $p; done
 for p in $(profils "mac iphone" "mac ipad iphone petit"); do lance "mise en page $p nuit" node $S/planning-mise-en-page.js $p nuit; done
 
-for p in $(profils "mac iphone" "mac ipad iphone android petit"); do lance "gestes de chaque vue $p" node $S/planning-gestes.js $p; done
-tout "gestes iphone nuit" node $S/planning-gestes.js iphone nuit
+# Les gestes de chaque vue (recensés depuis le DOM, tous touchés) coûtent environ 9 minutes par profil (mesuré le 19/11/2026 : mac 573 s, iphone 553 s, la limite de 590 s
+# d'une exécution) : l'essentiel joue l'iphone entier et, sur mac, la seule vue « carte » (la seule où un geste recensé n'est pas touché : 57 sur 60).
+[ -z "$RAPIDE" ] && lance "gestes de chaque vue iphone" node $S/planning-gestes.js iphone
+lance "gestes de la vue carte mac" node $S/planning-gestes.js mac carte
+tout "gestes de chaque vue mac (lourd)" node $S/planning-gestes.js mac jour semaine mois general multi
+tout "gestes de chaque vue ipad (lourd)" node $S/planning-gestes.js ipad
+tout "gestes de chaque vue iphone nuit (lourd)" node $S/planning-gestes.js iphone nuit
 
 for p in $(profils "mac iphone" "mac iphone ipad"); do lance "marqueurs de la carte $p" node $S/planning-marqueurs.js $p; done
 lance "carte : plugin injoignable, « Réessayer » reste là" node $S/planning-carte-reessayer.js
@@ -43,8 +48,8 @@ tout "parcours du bureau P1 à P8 iphone nuit" node $S/planning-parcours.js ipho
 [ -z "$RAPIDE" ] && lance "poser chez une personne absente, au doigt, iphone" node $S/planning-recontrole-absent-doigt.js iphone
 
 lance "recontrôle R1 à R14 mac" node $S/planning-recontrole.js mac
-[ -z "$RAPIDE" ] && lance "recontrôle R1 à R14 iphone" node $S/planning-recontrole.js iphone
-[ -z "$RAPIDE" ] && lance "recontrôle R1 à R14 iphone nuit" node $S/planning-recontrole.js iphone nuit
+tout "recontrôle R1 à R14 iphone" node $S/planning-recontrole.js iphone
+tout "recontrôle R1 à R14 iphone nuit" node $S/planning-recontrole.js iphone nuit
 [ -z "$RAPIDE" ] && lance "recontrôle parcours PA iphone" node $S/planning-recontrole-parcours.js iphone PA
 lance "recontrôle parcours PB mac" node $S/planning-recontrole-parcours.js mac PB
 [ -z "$RAPIDE" ] && lance "recontrôle parcours PC petit" node $S/planning-recontrole-parcours.js petit PC

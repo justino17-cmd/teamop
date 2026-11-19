@@ -1,0 +1,134 @@
+{
+ "tour": "5 bis — recontrôle adverse",
+ "date": "2026-11-19",
+ "head_corrections": "3143c5c5",
+ "head_recontrole": "1b37eea0 (la branche a reçu des lots d'une autre session entre-temps : mots longs, toast, retour)",
+ "regles": {
+  "N1_suppression": "Backspace, Suppr, Ctrl+Backspace et couper sur un nom de 150 signes (plafond 120) : 149 / 149 / mot retiré / 140, jamais 120. Mutation (garde retirée) : 24 ✓ · 9 ✗ (base 27 ✓ · 6 ✗). TIENT pour les suppressions ; ne tient pas pour annuler et coller (voir pasRegles 1).",
+  "PDF_devis": "Vrai PDF du cadre Documents, objet ET 4 désignations décomposés : lu au texte (pdftotext -raw) et à l'image (pdftoppm, PNG regardé) : 10 ✓ · 1 ✗ (le ✗ : « Ł » devient « ? » dans la couche texte seulement ; l'image montre Ł ś ž correctement). Mutation (NFC retiré) : 7 ✓ · 4 ✗. TIENT.",
+  "N2": "119 + « e » puis U+0301 envoyés séparément, 119 + « é » décomposé collé, 118 + trois « é » décomposés (deux gardés), drapeau envoyé en deux moitiés à 119, famille ZWJ à 118, insertion au milieu d'un champ plein : tous corrects. Mutation (ancienne soustraction) : 26 ✓ · 7 ✗. TIENT (sauf bourrage, nouveaux 2).",
+  "N3": "Population énumérée par le navigateur : 0x20 à 0x10FFFF dessinés sur un canevas, chaque point de code sans aucun pixel testé comme ligne d'accès : 0 non couvert, à l'exception de U+FFFC (blanc dans la police du conteneur, case visible sur Mac/Windows : compté comme ligne, voir doutes). Mutation (ancienne liste) : 2 ✓ · 1 ✗ contre 3 ✓ · 0 ✗. TIENT.",
+  "N5_neuf_sites": "Les 9 sites joués au navigateur (frappe CDP de 120 « é » NFD, vrai bouton, donnée relue) : n-titre, m-titre, tk-t, pr-nom (80), t-nom (40), pa-lib (60), ml-o (200), dvn-objet, titre de création : rangés en NFC, longueur = plafond ; 121 tapés : le champ s'arrête au plafond ; 121 posés par le code : phrase « limité à N signes… rien n'a été enregistré » sur 9 sites sur 9 (dvn-objet : dans l'alerte du panneau, pas sur le champ). Mutations : tk-t, pa-lib, ml-o, dvn, t-nom mordent (71 ✓ · 2 ✗ contre 73 ✓ · 1 ✗) ; titre de création : INERTE (libelleSur normalise déjà), puis motif de création ajouté à la sonde : mord (72 ✓ · 2 ✗).",
+  "beforeinput": "Ctrl+V réel, remplacement d'une sélection (20 par 40, 20 par 10), 6 drapeaux à 110/120, composition Hangul (CDP) à 119/120 et 120/120, famille émoji en composition, execCommand(insertText), glisser-déposer depuis un textarea : tous bornés à 120 signes, texte posé au point de dépôt, curseur juste. Mutation « /^insert/ » : mord (26 ✓ · 7 ✗). Mutation « ancienne liste (avec insertReplacementText) » : NE MORD PAS (27 ✓ · 6 ✗ = base) — insertReplacementText n'est pas jouable ici (voir doutes).",
+  "marque_refus": "13 refus refusLong + titre et motif de la création : aria-invalid=true sur CE champ seulement, focus, liseré = jeton --rouge (jour rgb(176,38,60), nuit rgb(255,125,142)), retiré au Backspace réel, plus de liseré rouge ensuite, aucune marque à la réouverture, champ dans l'écran. Mac, iPhone, iPad, Android × jour, nuit : 138 ✓ · 4 ✗ à chaque passage (les 4 ✗ = le client neuf, nouveaux 4). Mutations : sans aria-invalid 96 ✓ · 46 ✗, sans retrait à la frappe 110 ✓ · 32 ✗, sans focus 96 ✓ · 46 ✗. eq-r (entErr) intact : marqué, focus, rouge.",
+  "perf_curseur_champs": "Frappe 1,46 ms/signe avec plafond contre 1,05 sans (aller-retour inclus) ; collage de 1 000 000 « a » 207 ms, 300 000 « é » NFD 122 ms, 200 000 émojis famille 153 ms (120 signes gardés) ; curseur juste (milieu, après collage partiel) ; annuler/rétablir d'une frappe et d'un collage court corrects ; téléphone, e-mail, nom accentué, montant « 1234,56 », prime avec drapeau saisis sans altération (8 champs atteints)."
+ },
+ "pasRegles": [
+  {
+   "id": "R1",
+   "gravite": "moyenne",
+   "quoi": "N1 n'est réglé que pour les suppressions : Ctrl+Z (historyUndo) et Ctrl+V dans une fiche plus longue que le plafond recoupent encore à 120 (150 → 120 après Backspace + Ctrl+Z ; 140 → 120 en recollant 10 signes). Reproduit à la frappe réelle, aussi avant le tour (ancien) : la garde /^delete/ est trop étroite.",
+   "correctif_propose": "dans l'écouteur input, ne recouper que si la valeur AVANT l'événement tenait dans le plafond (la longueur est mémorisée dans beforeinput) ; à défaut étendre la garde à /^(delete|history)/ et laisser un collage qui n'agrandit pas la fiche."
+  },
+  {
+   "id": "R2",
+   "gravite": "basse",
+   "quoi": "Annuler (Ctrl+Z) après un collage COUPÉ ne fait rien : setRangeText vide la pile d'annulation du navigateur (120 → 120). Ancien, présent aussi avant le tour.",
+   "correctif_propose": "insérer le texte coupé par document.execCommand('insertText', false, ins) (garde la pile d'annulation) au lieu de setRangeText."
+  },
+  {
+   "id": "R3",
+   "gravite": "basse",
+   "quoi": "N5 incomplet : 5 autres textes libres sont encore rangés en NFD (joués) : nom d'appareil, détail d'appareil, motif du panneau Nouvelle intervention, motif du panneau Modifier, note de tâche (tk-n). Non joués : pt-motif, cb-zn.",
+   "correctif_propose": "nfc(…) à l'enregistrement dans clientAppEnreg, creerOk (motif), modifierOk (motif), tâche (note), pointage (motif), zone de box."
+  },
+  {
+   "id": "R4",
+   "gravite": "basse",
+   "quoi": "Les refus de plafond du devis nouveau (dvnCreer), du client seul (clientSeulOk) et du devis xylophage (dxClientErr) ne passent pas par champRefus : phrase dans une alerte, ni aria-invalid ni focus ; l'alerte du devis nouveau n'a pas de role=alert ; à 360×740 la phrase tombe sous le pli (capture android-jour-3).",
+   "correctif_propose": "après le redessin du panneau, appeler champRefus sur le champ en cause (dvn-objet, dvn-nom…, cs-nom…) et poser role=alert sur .alerte du devis."
+  },
+  {
+   "id": "R5",
+   "gravite": "basse",
+   "quoi": "Les textareas « Ce que le client a dit » (n-motif, m-motif), la note de tâche (tk-n) et le corps du courriel n'ont ni maxlength ni refus : un motif d'un million de signes est rangé (mesuré : 1 000 000). La création complète, elle, refuse à 600."
+  }
+ ],
+ "casses": [
+  {
+   "id": "C1",
+   "gravite": "moyenne",
+   "quoi": "Client NEUF, particulier : quand l'excès est dans le champ Nom, la marque, le focus et le liseré vont sur le PRÉNOM (contact) — vu sur capture iPad et Android, jour et nuit (Nom de 121 : le Prénom « Jean » est encadré de rouge). Même cas à Prénom 61 + Nom 61. Le professionnel est juste (nom, contact, adresse, e-mail : 4 sur 4).",
+   "cause": "champRefus(document.querySelector('[data-cnv=\"' + (pl.k === 'nom' && CREA.nv.type !== 'pro' ? 'contact' : pl.k) + '\"]'))",
+   "correctif_propose": "pour un particulier, marquer le plus long des deux champs (nbSignes(nom) >= nbSignes(contact) ? nom : contact), ou le champ Nom par défaut."
+  },
+  {
+   "id": "C2",
+   "gravite": "moyenne",
+   "quoi": "Régression du plafond : un signe combinant collé à 120/120 est accepté sans limite d'unités (5 000 U+0301 → 5 120 unités ; avant le tour : refusé). Dans un champ vide, 'a' + 100 000 accents : 100 001 unités (ancien). Le plafond compte des signes : un titre de 11 signes et 4 510 unités s'enregistre (mesuré, intervention créée).",
+   "correctif_propose": "borner aussi les unités UTF-16 dans beforeinput (ex. nombre d'unités ≤ plafond × 4) et dans refusLong, ou limiter les signes combinants par graphème (≤ 8)."
+  }
+ ],
+ "nouveaux": [
+  {
+   "id": "N-a",
+   "quoi": "tour4_b sur HEAD : 165 ✓ · 3 ✗ (accueil et factures à 320 px, avec le client sans espace, en plus de clients/N4). À 3143c5c5, même sonde : 167 ✓ · 1 ✗. Régression apparue entre 3143c5c5 et HEAD, probablement b07b1153 « Sœur 5 : un mot très long… » d'une autre session ; HORS périmètre, constatée seulement."
+  },
+  {
+   "id": "N-b",
+   "quoi": "Le liseré rouge se voit peu sur le champ refusé et focalisé : 1 px de rouge sous l'anneau de focus bleu de 3 px (captures iPad et Android, jour et nuit). Correctif proposé : anneau de focus rouge sur [aria-invalid=\"true\"]:focus."
+  },
+  {
+   "id": "N-c",
+   "quoi": "Lecteur d'écran : aucun champ refusé n'a aria-describedby (0 sur 15 sites × 8 passages) ; la phrase est annoncée par la bulle role=status (zone vivante), non liée au champ. Suffisant pour une annonce, pas pour une relecture du champ."
+  }
+ ],
+ "sondes": {
+  "restes-securite-tour5bis-recontrole-a.js": "27 ✓ · 6 ✗ (R1 ×3, R2, C2 ×2)",
+  "restes-securite-tour5bis-recontrole-b.js": "73 ✓ · 1 ✗ (dvn-objet non marqué, R4)",
+  "restes-securite-tour5bis-recontrole-c.js": "138 ✓ · 4 ✗ sur 8 passages (C1)",
+  "restes-securite-tour5bis-recontrole-cn.js": "12 ✓ · 4 ✗ (C1 ×2 ; téléphone de 61 : refusé avant le plafond, plafond de 60 inatteignable)",
+  "restes-securite-tour5bis-recontrole-e.js": "21 ✓ · 3 ✗ (R2 ; deux ✗ = selectionStart nul d'un champ e-mail, artefact de la sonde)",
+  "restes-securite-tour5bis-recontrole-n3.js": "3 ✓ · 0 ✗",
+  "restes-securite-tour5bis-recontrole-n5pop.js": "0 ✓ · 6 ✗ (R3 ×5, R5)",
+  "restes-securite-tour5bis-recontrole-pdf.js": "10 ✓ · 1 ✗ (Ł dans la couche texte)",
+  "restes-securite-tour5bis-recontrole-zalgo.js": "1 ✓ · 1 ✗ (C2)",
+  "restes-securite-tour5bis-recontrole-captures.js": "12 PNG, toutes regardées",
+  "mutations-securite-tour5bis-recontrole.py": "15 mutations : 14 mordent, 1 ne mord pas (bi-ancienne-liste)",
+  "rejeu-securite-tour5bis-recontrole.sh": "voir passesJouees"
+ },
+ "doutes": [
+  "insertReplacementText (autocorrection iOS, suggestion orthographique) : aucun moyen de le produire dans ce Chromium piloté ; la mutation « ancienne liste » ne mord pas, la sonde ne regarde pas ce chemin. Lecture du code : la valeur finie repasse par l'écouteur input, donc recoupée (et soumise à R1).",
+  "Safari, Firefox, vrai iPhone et vrai Android non joués : tout est Chromium émulé. Le glisser-déposer a été joué (Playwright) mais pas le dépôt d'un fichier ni d'un texte venu d'une autre application.",
+  "U+FFFC (caractère de remplacement d'objet) : blanc dans la police du conteneur, compté comme ligne d'accès par INVISIBLES ; sur Mac/Windows il se dessine en case, donc légitime. Non tranché.",
+  "Le « Ł » du PDF de devis devient « ? » dans la couche texte (recherche, copier-coller), correct à l'image : limite WinAnsi, sans lien avec NFC ; non traité.",
+  "Le plafond du téléphone (60) est inatteignable dans le client neuf : le contrôle de forme refuse avant.",
+  "Les pages ont reçu des commits d'une autre session pendant le recontrôle (toast, mots longs) : les mesures de C et A tiennent sur deux HEAD, la couture a été relue sur 1b37eea0."
+ ],
+ "passesJouees": {
+  "A": "N1, N2, bourrage, beforeinput : 33 vérifications, frappe réelle, presse-papiers réel, CDP (Input.imeSetComposition), dépôt à la souris",
+  "B": "9 sites × (120 NFD tapés, enregistrer, relire, 121 tapés, 121 posés) + motif de création : 74 vérifications",
+  "C": "4 profils (mac, iphone, ipad, android) × jour/nuit × 18 sites : 8 passages, 1 104 + 32 vérifications",
+  "E": "performance, curseur, annuler, 10 champs de saisie ; 12 captures regardées",
+  "D": "15 mutations jouées sur copies, dépôt propre (git diff --stat apercu/ vide)",
+  "F": {
+   "restes-garde": "33 ✓",
+   "tour1_recontrole": "10 ✓",
+   "tour2_captures": "15 ✓",
+   "tour2_recontrole": "95 ✓",
+   "tour3": "27 ✓",
+   "tour3_recontrole": "160 ✓",
+   "tour4": "132 ✓",
+   "tour4_a": "39 ✓",
+   "tour4_b": "165 ✓ · 3 ✗ sur HEAD (167 ✓ · 1 ✗ à 3143c5c5)",
+   "tour4_c": "24 ✓",
+   "tour4_d": "26 ✓",
+   "tour4_pdf": "17 ✓",
+   "tour4_pdf2": "7 ✓ · 1 ✗ (artefact pdftotext, attendu)",
+   "tour4_titre": "60 ✓",
+   "tour5": "193 ✓",
+   "tour5_compta": "12 ✓",
+   "tour5_recontrole_a": "57 ✓",
+   "tour5_recontrole_b": "20 ✓",
+   "tour5bis": "76 ✓",
+   "test-835": "844 ✓",
+   "test-836": "307 ✓",
+   "test-837": "122 ✓",
+   "test-1008": "54 ✓",
+   "test-2994": "15 ✓",
+   "verifier-syntaxe": "41 pages, 71 blocs, 0 en erreur",
+   "compiler-pages": "code 0",
+   "verif-secrets": "code 0"
+  }
+ }
+}

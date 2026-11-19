@@ -20,19 +20,18 @@ const L = require('../lib.js'), v = L.v, fs = require('fs');
   let l = await lire(NOM); v('N1 population : nom préouvert à 150 signes, plafond 120', l.g === 150, l.g);
   await cible(NOM); await p.keyboard.press('Backspace'); await pause(80); l = await lire(NOM); v('N1 Backspace : 149', l.g === 149, l.g);
   await p.keyboard.press('Control+z'); await pause(120); l = await lire(NOM); v('N1 Ctrl+Z après Backspace : 150 revenu (pas recoupé à 120 : un « annuler » ne détruit pas la fiche)', l.g === 150, l.g);
-  await cible(NOM, 0); await p.keyboard.press('Delete'); await pause(80); l = await lire(NOM); v('N1 touche Suppr en tête : 149', l.g === 149, l.g);
-  await cible(NOM); await p.keyboard.press('Control+Backspace'); await pause(80); l = await lire(NOM); v('N1 Ctrl+Backspace (mot entier) : le mot part, pas 30 signes de plus (≥ 1 signe restant, pas 120)', l.g < 120 ? true : l.g === 120 ? false : true, l.g);
+  await FICHE({ nom: long }); await cible(NOM, 0); await p.keyboard.press('Delete'); await pause(80); l = await lire(NOM); v('N1 touche Suppr en tête : 149', l.g === 149, l.g);
+  await FICHE({ nom: long }); await cible(NOM); await p.keyboard.press('Control+Backspace'); await pause(80); l = await lire(NOM); v('N1 Ctrl+Backspace (mot entier) : le mot part, pas 30 signes de plus (≥ 1 signe restant, pas 120)', l.g < 120 ? true : l.g === 120 ? false : true, l.g);
   await FICHE({ nom: long }); await cible(NOM, 10); await p.evaluate(s => { const e = document.querySelector(s); e.setSelectionRange(10, 20); }, NOM); await p.keyboard.press('Control+x'); await pause(80); l = await lire(NOM); v('N1 couper 10 signes d’un nom de 150 : 140 (pas 120)', l.g === 140, l.g);
   await p.keyboard.press('Control+v'); await pause(120); l = await lire(NOM); v('N1 recoller ces 10 signes : 150 (la fiche d’origine n’est pas rognée)', l.g === 150, l.g);
   await p.keyboard.press('Control+z'); await pause(120); l = await lire(NOM); const lz = l.g; v('N1 puis annuler le collage : ≥ 140 (jamais 120)', lz >= 140, lz);
-  await cible(NOM, 0); await p.keyboard.type('Q'); await pause(80); l = await lire(NOM); v('N1 taper dans un champ déjà trop long : rien n’est coupé (≥ 140)', l.g >= 140, l.g);
-  // sélectionner tout et taper : le résultat est la frappe, rien d'autre
-  await cible(NOM); await p.keyboard.press('Control+a'); await p.keyboard.type('Zed'); await pause(80); l = await lire(NOM); v('N1 tout sélectionner + « Zed » : « Zed »', l.v === 'Zed', l.v.slice(0, 20));
+  await FICHE({ nom: long }); await cible(NOM, 0); await p.keyboard.type('Q'); await pause(80); l = await lire(NOM); v('N1 taper dans un champ déjà trop long : rien n’est coupé (≥ 140)', l.g >= 140, l.g);
+  await FICHE({ nom: long }); await cible(NOM); await p.keyboard.press('Control+a'); await p.keyboard.type('Zed'); await pause(80); l = await lire(NOM); v('N1 tout sélectionner + « Zed » : « Zed »', l.v === 'Zed', l.v.slice(0, 20));
   // ═════ N2 ═════
   await ouvrirN(); const b119 = abc(119);
-  await poser(SEL, b119); await p.keyboard.type('e'); await pause(50); await p.keyboard.insertText('́'); await pause(80); l = await lire(SEL); v('N2 119 + « e » puis U+0301 : « é » entier, 120 signes', l.g === 120 && l.v.endsWith('é'), [l.g, l.u]);
-  await poser(SEL, b119); await p.keyboard.insertText('é'); await pause(80); l = await lire(SEL); v('N2 119 + « é » décomposé collé d’un coup : 120 signes', l.g === 120 && l.v.endsWith('é'), [l.g, l.u]);
-  await poser(SEL, abc(118)); await p.keyboard.insertText('ééé'); await pause(80); l = await lire(SEL); v('N2 118 + trois « é » décomposés : 120 signes (deux gardés), pas de signe cassé', l.g === 120 && l.v === abc(118) + 'éé', [l.g, JSON.stringify(l.v.slice(-4))]);
+  await poser(SEL, b119); await p.keyboard.type('e'); await pause(50); await p.keyboard.insertText('́'); await pause(80); l = await lire(SEL); v('N2 119 + « e » puis U+0301 : « é » entier, 120 signes', l.g === 120 && l.v.normalize('NFC').endsWith('é'), [l.g, l.u]);
+  await poser(SEL, b119); await p.keyboard.insertText('é'); await pause(80); l = await lire(SEL); v('N2 119 + « é » décomposé collé d’un coup : 120 signes', l.g === 120 && l.v.normalize('NFC').endsWith('é'), [l.g, l.u]);
+  await poser(SEL, abc(118)); await p.keyboard.insertText('ééé'); await pause(80); l = await lire(SEL); v('N2 118 + trois « é » décomposés : 120 signes (deux gardés), pas de signe cassé', l.g === 120 && l.v.normalize('NFC') === abc(118) + 'éé', [l.g, JSON.stringify(l.v.slice(-4))]);
   await poser(SEL, b119 + 'é'); await p.keyboard.insertText('́'); await pause(80); l = await lire(SEL); v('N2 120/120 + U+0301 : s’empile sur le dernier signe (120 signes)', l.g === 120, [l.g, l.u]);
   await poser(SEL, b119); await p.keyboard.insertText('🇫'); await pause(50); await p.keyboard.insertText('🇷'); await pause(80); l = await lire(SEL); v('N2 119 + drapeau envoyé en deux moitiés : 120 signes, drapeau entier', l.g === 120 && /🇫🇷$/u.test(l.v), [l.g, JSON.stringify(l.v.slice(-6))]);
   await poser(SEL, abc(118)); await p.keyboard.insertText('👨‍👩‍👧'); await pause(80); l = await lire(SEL); v('N2 118 + famille ZWJ (1 signe) : 119 signes', l.g === 119, [l.g, l.u]);

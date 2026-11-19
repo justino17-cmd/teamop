@@ -31,7 +31,7 @@ const L = require('../lib.js');
   const { marc, julie, sm } = M, FERME = /(n’existe pas|fermée à ton compte|n’est pas dans ton espace)/;   // les trois façons de dire « pas pour toi » : page inconnue, rubrique fermée au compte, page hors de l'espace de la personne
   // ── les routes
   v('Marc : Stock, Fournisseurs et Dépôts s\'ouvrent', marc.routes.stock.h === 'Stock' && /Fournisseurs/.test(marc.routes.produits.h) && /Dépôts et camions/.test(marc.routes.boxes.h), marc.routes);
-  v('Julie : Stock et Fournisseurs s\'ouvrent ; Dépôts et camions est FERMÉ (retour à son écran d\'ouverture, « Cette page n\'existe pas. »)', julie.routes.stock.h === 'Stock' && /Fournisseurs/.test(julie.routes.produits.h) && !/Dépôts/.test(julie.routes.boxes.h) && FERME.test(julie.routes.boxes.toast), julie.routes);
+  v('Julie : Stock, Fournisseurs ET Dépôts et camions s\'ouvrent (équipe-11, MENU-FINAL.md : « Voir » décide seule, le Secrétariat a stock 1110)', julie.routes.stock.h === 'Stock' && /Fournisseurs/.test(julie.routes.produits.h) && /Dépôts et camions/.test(julie.routes.boxes.h), julie.routes);
   v('Sophie : AUCUNE des trois rubriques (« Cette page n\'existe pas. » chaque fois, retour sur son écran d\'ouverture)', ['stock', 'produits', 'boxes'].every(r => !/^(Stock|Fournisseurs|Dépôts)/.test(sm.routes[r].h) && FERME.test(sm.routes[r].toast)), sm.routes);
   // ── les portes de Marc et de Julie
   v('population : Marc voit le bandeau/ses portes (Mettre à jour, recherche) et Julie aussi', marc.stock.maj && marc.stock.recherche && julie.stock.maj && julie.stock.recherche, { marc:marc.stock, julie:julie.stock });
