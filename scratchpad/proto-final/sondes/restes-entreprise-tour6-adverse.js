@@ -103,7 +103,24 @@ async function a5(profil, nuit) {
   v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2));
   await L.fin(c);
 }
+// a6 : créer une intervention DEPUIS le planning ne propose pas « Voir au planning » ; depuis la boîte mail, si (contre-épreuve)
+async function a6() {
+  const nom = 'a6 mac';
+  const c = await D.ouvrirComme({ qui:'marc', appareil:'mac', nuit:false });
+  await c.p.evaluate(D.INJECTER, { k:'za', prenom:'Aline', nom:'Alpha', pd:'secr', terrain:false, cases:cases({ ...FERMEES, com:'1110', planif:'1110' }) }); await L.calme(c.p, 600);
+  await L.aller(c.p, 'boiteMail'); await L.calme(c.p, 3000);
+  const pr = await PROPOSER(c.p); await CONFIRMER(c.p, 'za');
+  const ailleurs = await c.p.evaluate(async () => { document.getElementById('toast') && document.getElementById('toast').classList.remove('on'); const bt = document.getElementById('fenetre').querySelector('[data-action="cCreer"]'); if (!bt || bt.disabled) return { pasPret:true }; bt.click(); await new Promise(z => setTimeout(z, 800)); const t = document.getElementById('toast'); return { route:route, texte:t ? t.textContent.replace(/\s+/g, ' ') : '', voir:/Voir au planning/.test(t ? t.textContent : '') }; });
+  v(`${nom} : population (créé depuis la boîte mail, hors planning)`, pr.opt === 3 && ailleurs.route !== 'planning' && /Intervention créée/.test(ailleurs.texte), ailleurs);
+  v(`${nom} : hors du planning, « Voir au planning » est proposé`, ailleurs.voir === true, ailleurs);
+  await c.p.evaluate(async () => { aller('planning'); await new Promise(z => setTimeout(z, 600)); ouvrirCreation({ cli:Object.keys(CLIENTS)[0], tid:TECHS[0] && (TECHS[0].id || TECHS[0]), d:AUJ, h:540 }); await new Promise(z => setTimeout(z, 400)); if (CREA) { CREA.titre = 'Dépannage depuis le planning'; CREA.titreTouche = true; rendreCreation(); } });
+  const dedans = await c.p.evaluate(async () => { document.getElementById('toast') && document.getElementById('toast').classList.remove('on'); const f = document.getElementById('fenetre'); const bt = f && f.querySelector('[data-action="cCreer"]'); if (!bt || bt.disabled) return { pasPret:true, route:route }; bt.click(); await new Promise(z => setTimeout(z, 800)); const t = document.getElementById('toast'); return { route:route, texte:t ? t.textContent.replace(/\s+/g, ' ') : '', voir:/Voir au planning/.test(t ? t.textContent : '') }; });
+  v(`${nom} : population (créé depuis le planning)`, dedans.route === 'planning' && /Intervention créée/.test(dedans.texte || ''), dedans);
+  v(`${nom} : dans le planning, on ne propose pas d'aller au planning`, dedans.voir === false, dedans);
+  v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2));
+  await L.fin(c);
+}
 (async () => {
-  await a1(); await a2(); await a3(); await a5('mac', false); await a5('iphone', true);
+  await a1(); await a2(); await a3(); await a5('mac', false); await a5('iphone', true); await a6();
   process.exit(L.bilan ? L.bilan() : 0);
 })().catch(e => { console.error(e); process.exit(1); });
