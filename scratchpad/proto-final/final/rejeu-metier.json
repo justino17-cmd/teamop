@@ -1,14 +1,89 @@
 {
-  "familles": ["metier", "hote"],
+  "familles": [
+    "metier",
+    "hote"
+  ],
   "passages": [
-    { "date": "2026-11-19 03:39", "sondes": 21, "vertes": 19, "rouges": 2, "sansTotal": 0, "note": "metier-3d-fiches (86 ✓ · 12 ✗), metier-3d-parcours (93 ✓ · 4 ✗) ; trois exécutions de « mots » rendaient 1 ✗ avec code 0" },
-    { "date": "2026-11-19 (après corrections de sondes)", "fiches": "98 ✓ · 0 ✗", "mots": "plomberie 2 relevés (le nom « Clim Services 17 », exclu), nettoyage 2, 3d 2", "parcours": "93 ✓ · 4 ✗ (inchangé : les 4 sont des « à soumettre »)" }
+    {
+      "date": "2026-11-19 03:39",
+      "sondes": 21,
+      "vertes": 19,
+      "rouges": 2,
+      "sansTotal": 0,
+      "note": "metier-3d-fiches (86 ✓ · 12 ✗), metier-3d-parcours (93 ✓ · 4 ✗) ; trois exécutions de « mots » rendaient 1 ✗ avec code 0"
+    },
+    {
+      "date": "2026-11-19 (après corrections de sondes)",
+      "fiches": "98 ✓ · 0 ✗",
+      "mots": "plomberie 2 relevés (le nom « Clim Services 17 », exclu), nettoyage 2, 3d 2",
+      "parcours": "93 ✓ · 4 ✗ (inchangé : les 4 sont des « à soumettre »)"
+    },
+    {
+      "date": "2026-11-19 04:2x",
+      "options": "TOUS=1",
+      "sondes": 32,
+      "resultat": "toutes vertes sauf metier-3d-parcours (93 ✓ · 4 ✗, les « à soumettre »)",
+      "detail": "fiches 98 ✓ · 0 ✗ ; mots (6 jeux) 0 ✗ ; gestes windows, mac720, mac:sm 9/9/5 ✓ ; mise en page windows et mac720 28 ✓"
+    }
   ],
   "lignes": [
-    { "sonde": "metier-3d-fiches", "constat": "12 ✗ : « condensateur du ventilateur remplacé » lu comme mot de climatisation dans la fiche d'une intervention copiée sur un client « vp »", "cause": "sonde périmée", "decision": "ce texte est le dernier passage d'EXEMPLE écrit en dur dans dernierPassage() (apercu/prototype-op-gestion.html, ligne 5457) pour le client vp : une donnée, comme les appareils Daikin déjà exemptés", "changement": "metier-3d-fiches.js : l'exemption des données d'exemple porte aussi « condensateur du ventilateur remplacé » (motif exact, rien d'autre)", "preuve": "98 ✓ · 0 ✗ ; contre-épreuve : avant la correction, 86 ✓ · 12 ✗ (le rejeu)" },
-    { "sonde": "metier-3d-mots (3 exécutions)", "constat": "1 relevé « [clim] ＋ Nouvelle commande : … Remplacer la carte électronique de l’unité extérieure » compté dans un TEXTE, code de sortie 0", "cause": "sonde périmée", "decision": "c'est le titre de l'intervention i13 (ligne 4050 du prototype) : une donnée. La reconnaissance collait un espace après « l’ » et ne retrouvait jamais « l’unité extérieure »", "changement": "metier-3d-mots.js : l'apostrophe colle au mot (pas d'espace inséré)", "preuve": "plomberie, nettoyage, 3d : 2 relevés chacun, tous « Clim Services 17 » (nom propre de l'entreprise fictive, exclu par metier-tout.sh) ; avant : 3 relevés dont celui-là" },
-    { "sonde": "metier-3d-parcours", "constat": "4 ✗ : B « RAS » (metier-3d-09), E mac et iphone « devis xylophage sans mesure d'exemple » (metier-3d-06), et un quatrième que le script n affiche pas (il coupe à trois lignes), non relevé ici", "cause": "à soumettre", "decision": "décisions de Justin en attente, déjà listées dans metier-3d-corrections.json (06, 08, 09) : on ne change rien", "changement": "aucun", "preuve": "93 ✓ · 4 ✗ stable sur deux passages" },
-    { "sonde": "famille « hote »", "constat": "aucune sonde ne porte ce préfixe : seul hote-artefact.html existe (page d'hôte servie par lib.js, utilisée par recontrole-artefact-hote.js, famille « recontrole »)", "cause": "machine", "decision": "pas de script à écrire ; tout-rejouer.sh ne liste que les .js et .sh", "changement": "aucun", "preuve": "tableau du 19/11 : seule la famille metier apparaît" }
+    {
+      "sonde": "metier-3d-fiches",
+      "constat": "12 ✗ : « condensateur du ventilateur remplacé » lu comme mot de climatisation dans la fiche d'une intervention copiée sur un client « vp »",
+      "cause": "sonde périmée",
+      "decision": "ce texte est le dernier passage d'EXEMPLE écrit en dur dans dernierPassage() (apercu/prototype-op-gestion.html, ligne 5457) pour le client vp : une donnée, comme les appareils Daikin déjà exemptés",
+      "changement": "metier-3d-fiches.js : l'exemption des données d'exemple porte aussi « condensateur du ventilateur remplacé » (motif exact, rien d'autre)",
+      "preuve": "98 ✓ · 0 ✗ ; contre-épreuve : avant la correction, 86 ✓ · 12 ✗ (le rejeu)"
+    },
+    {
+      "sonde": "metier-3d-mots (3 exécutions)",
+      "constat": "1 relevé « [clim] ＋ Nouvelle commande : … Remplacer la carte électronique de l’unité extérieure » compté dans un TEXTE, code de sortie 0",
+      "cause": "sonde périmée",
+      "decision": "c'est le titre de l'intervention i13 (ligne 4050 du prototype) : une donnée. La reconnaissance collait un espace après « l’ » et ne retrouvait jamais « l’unité extérieure »",
+      "changement": "metier-3d-mots.js : l'apostrophe colle au mot (pas d'espace inséré)",
+      "preuve": "plomberie, nettoyage, 3d : 2 relevés chacun, tous « Clim Services 17 » (nom propre de l'entreprise fictive, exclu par metier-tout.sh) ; avant : 3 relevés dont celui-là"
+    },
+    {
+      "sonde": "metier-3d-parcours",
+      "constat": "4 ✗ : B « RAS » (metier-3d-09), E mac et iphone « devis xylophage sans mesure d'exemple » (metier-3d-06), et un quatrième que le script n affiche pas (il coupe à trois lignes), non relevé ici",
+      "cause": "à soumettre",
+      "decision": "décisions de Justin en attente, déjà listées dans metier-3d-corrections.json (06, 08, 09) : on ne change rien",
+      "changement": "aucun",
+      "preuve": "93 ✓ · 4 ✗ stable sur deux passages"
+    },
+    {
+      "sonde": "famille « hote »",
+      "constat": "aucune sonde ne porte ce préfixe : seul hote-artefact.html existe (page d'hôte servie par lib.js, utilisée par recontrole-artefact-hote.js, famille « recontrole »)",
+      "cause": "machine",
+      "decision": "pas de script à écrire ; tout-rejouer.sh ne liste que les .js et .sh",
+      "changement": "aucun",
+      "preuve": "tableau du 19/11 : seule la famille metier apparaît"
+    }
   ],
-  "reste": ["metier-3d-06, -08, -09 à soumettre à Justin", "metier-tout.sh : TOUS=1 (windows, mac720, gestes de la technicienne sur Mac, trois métiers de plus pour « mots ») non rejoué", "metier-3d-parcours garde 4 ✗ : le script sort donc en 1 tant que ces décisions ne sont pas prises"]
+  "reste": [
+    "metier-3d-06, -08, -09 à soumettre à Justin",
+    "metier-3d-parcours garde 4 ✗ : le script sort donc en 1 tant que ces décisions ne sont pas prises"
+  ],
+  "mutations": [
+    {
+      "sonde": "metier-3d-fiches",
+      "mutation": "exemption retirée",
+      "resultat": "86 ✓ · 12 ✗"
+    },
+    {
+      "sonde": "metier-3d-fiches",
+      "mutation": "vraie fuite clim (titre « compresseur gainable » dans une fiche plomberie), exemption en place",
+      "resultat": "74 ✓ · 24 ✗"
+    },
+    {
+      "sonde": "metier-3d-mots",
+      "mutation": "vieux contrôle (espace après l'apostrophe)",
+      "resultat": "3 relevés au lieu de 2"
+    },
+    {
+      "sonde": "metier-3d-mots",
+      "mutation": "vraie fuite clim injectée dans chaque écran",
+      "resultat": "52 relevés dans des textes"
+    }
+  ]
 }
