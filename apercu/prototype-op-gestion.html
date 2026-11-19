@@ -19172,7 +19172,7 @@ function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
   ouvrirPanneau(`${vhEnt(v)}<h2>Un souci avec le camion</h2><span class="gris">Le bureau est prévenu tout de suite : une tâche urgente est créée.</span>
     <div class="vh-q"><b>Qu’est-ce qui ne va pas ?</b>${vhChoix('vx-st', [['Voyant allumé', 'Un voyant s’est allumé'], ['Pneu', 'Un pneu'], ['Choc ou rayure', 'Un choc'], ['Autre', 'Autre chose']], '', 'Le souci', true)}</div>
-    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange du moteur, sur la rocade" autocomplete="off"></label>
+    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange au tableau" autocomplete="off"></label>
     <label class="btn gris vh-photo">Photo<input type="file" accept="image/*" capture="environment" id="vx-sp" hidden></label><span class="gris petit" id="vx-spn">Facultative.</span>
     <div id="vx-al"></div>
     ${vhGros(`soucisok|${v.id}`, 'Prévenir le bureau')}`);
