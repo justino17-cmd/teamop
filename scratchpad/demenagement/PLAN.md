@@ -28,3 +28,13 @@ Détail des 13 travaux automatiques et des 16 secrets : `INVENTAIRE-GITHUB.md`.
 En changeant la zone DNS chez OVH, la ligne `api` A a été supprimée avec les 4 lignes de GitHub : `api.teamop.fr` n'a plus existé
 pendant 3 à 5 minutes (les clients ne joignaient plus le serveur). Recréée à 0 h 25, `/health` 200. Leçon : avant de toucher une zone
 DNS, relever TOUTES ses lignes (capture complète), supprimer une ligne à la fois en lisant son sous-domaine, et vérifier `api` juste après.
+
+## Où on en est le 20/11 à 0 h 50
+- ✅ OP MESSAGES bêta : déployé depuis l'atelier (job `deployer-messages-beta` de `deploiement-serveur.yml`, clé `atelier-msg-beta` bridée,
+  essayée : commande forcée exécutée, faux commit refusé). Son miroir lit /opt/teamop/repo (réinstaller OP MESSAGES avec OPMSG_DEPOT=/opt/teamop/repo).
+- ✅ Les 3 clés que tenait GitHub sont RETIRÉES du serveur des clients ; il ne reste que `atelier-deploiement-serveur` et `atelier-msg-beta`.
+- ✅ OP Courrier : jamais branché sur GitHub (aucune clé sur le serveur, `COURRIER_ACTIF` jamais à « oui ») — rien à déménager.
+- ⏳ Espace de test (`server/install-test.sh`, `deployer-test`) : lit GitHub (ls-remote + raw.githubusercontent) — à refaire (paquet git envoyé par l'atelier).
+- ⏳ Forge : la BRANCHE PAR DÉFAUT est `accessibilite/libelles-relies` (héritée) → la mettre sur `main` (Justin, réglages du dépôt sur la forge),
+  sinon la surveillance de chaque heure (`schedule`) ne se lance pas.
+- ⏳ Étape 5 (blog, Google, Meta), étape 6 (sauvegarde croisée), étape 7 (sessions sans GitHub, généraliser), export des discussions, rodage, puis 9-10.
