@@ -230,7 +230,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
     const budget = { total: 12, plafondTotal: 195, illisible: false }, imputations = [];
     const cerveau = { etatBudget: () => Object.assign({}, budget), imputer: (n, u) => { imputations.push([n, u]); return true; } };
     const mailReel = { signature: () => 'L’équipe TEAM OP', envoyerAgent: async () => { throw new Error('LA VRAIE POSTE A ÉTÉ APPELÉE'); }, boites: () => { throw new Error('LA VRAIE POSTE A ÉTÉ LUE'); } };
-    const ctx = Object.assign({ DATA_DIR: dir, monAdmin: garde, monPatronStrict: garde, agents, cerveau, cleApi: 'sk-ant-banc-2930', appeler: banc.appeler([]), tmp: banc_dir, maintenant: () => T.t, mail: mailReel, capacites: {} }, extra || {});
+    const ctx = Object.assign({ DATA_DIR: dir, monAdmin: garde, monPatronStrict: garde, agents, cerveau, retires: false, cleApi: 'sk-ant-banc-2930', appeler: banc.appeler([]), tmp: banc_dir, maintenant: () => T.t, mail: mailReel, capacites: {} }, extra || {});
     app.get('/api/monitor/agents', garde, (req, res) => res.json({ ok: true }));   // une AUTRE route de la Tour, gardée comme les vraies : la clé ne doit pas y passer
     const mod = EX(app, ctx);
     const srv = http.createServer(app); await new Promise(r => srv.listen(0, '127.0.0.1', r));
@@ -361,7 +361,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
     const A = require(path.join(RACINE, 'server', 'agents.js')), CV = require(path.join(RACINE, 'server', 'cerveau.js'));
     const dirB = fs.mkdtempSync(path.join(racine, 'bud-'));
     const ag = A({ get() {}, post() {} }, { DATA_DIR: dirB, monAdmin: (a, b, c) => c(), monPatronStrict: (a, b, c) => c() });
-    const cv = CV({ DATA_DIR: dirB, agents: ag, cleApi: 'k' });
+    const cv = CV({ DATA_DIR: dirB, agents: ag, retires: false, cleApi: 'k' });
     v('un nom d’AGENT est refusé (aucun plafond d’agent ne s’entame par cette voie), rien d’écrit', [cv.imputer('lea', 1), cv.imputer('victor', 1), fs.existsSync(path.join(dirB, 'agents-budget.json'))], [false, false, false]);
     v('un montant hors forme est refusé (zéro, négatif, texte, infini, plus de 50 $)', [0, -1, '2', Infinity, NaN, 51].map(x => cv.imputer('examen', x)), [false, false, false, false, false, false]);
     v('un nom qui n’a pas la forme d’un nom (majuscule, chiffre, trop long) est refusé', ['Examen', 'examen2', 'a'.repeat(21), ''].map(n => cv.imputer(n, 1)), [false, false, false, false]);

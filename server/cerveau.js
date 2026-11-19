@@ -6,7 +6,10 @@
  *    (`plafondUsd`) ; le total du mois ne dépasse jamais `TOTAL_USD` (195 $ : le crédit est de 200 $). Le coût est une ESTIMATION
  *    par les jetons rendus par l'API (tarif par million, constantes ci-dessous) : on se trompe vers le HAUT. Budget illisible ou
  *    non écrit → pas d'appel (« on ne sait pas » = on ne dépense pas). Le vrai plafond reste celui du workspace de la Console.
- * ⛔ La clé est `agents.cleApi` (jamais celle du Devis IA). Pas de clé → pas d'appel, et la raison se dit.
+ * ⛔⛔ AGENTS RETIRÉS (19 novembre 2026) : le 19/11, 300 $ de crédits ont été dépensés par un tiers avec une clé créée sans Justin. Les agents sont RETIRÉS : tant que `config.agents.retires !== false` — donc PAR DÉFAUT,
+ *    sur le VPS comme partout —, `penser` n'appelle JAMAIS Anthropic, quelle que soit la clé, la pause ou le budget, et ne touche pas au budget. Le verrou se lit DANS `penser`, première instruction : le seul
+ *    chemin des agents vers Anthropic passe ici (`appelerAnthropic` n'a pas d'autre appelant). `retires:false` n'existe que pour les bancs. Il n'y a plus de seconde clé : `index.js` ne passe plus `agents.cleApi`.
+ * ⛔ (avant) La clé était `agents.cleApi` (jamais celle du Devis IA). Pas de clé → pas d'appel, et la raison se dit.
  * ⛔ Rien d'une personne n'entre dans le prompt par ce module : l'appelant décide de ce qu'il envoie, et envoie des FORMES FERMÉES.
  * ⛔ LE BUDGET DU JOUR (28 octobre 2026, Justin : « la limite des messages, ça va pas être possible » — l'heure était un mauvais garde-fou, le DOLLAR est le bon). `agents-budget.json` porte aussi
  *    `jour: { j, parAgent, nonRacine, racine, alertes }` (même écriture atomique ; il repart à zéro à minuit, heure de Paris) :
@@ -112,6 +115,8 @@ function outilsValides(opts) {
 module.exports = function cerveau(ctx) {
   const { DATA_DIR, agents } = ctx;
   const cle = ctx.cleApi || '';
+  /* ⛔ LE VERROU : retiré sauf `retires === false` EXPLICITE (voir l'en-tête). Un cerveau monté sans le réglage est verrouillé. */
+  const retires = ctx.retires !== false;
   /* ⛔ LE PLAFOND DU MOIS SE BAISSE, JAMAIS SE RELÈVE (espace de test, 23 octobre 2026 : 10 $ pour tous les agents confondus). `ctx.plafondTotalUsd` n'est
      passé par `index.js` QUE si `config.espaceTest === true` ; absent, hors forme ou au-dessus de 195, c'est `TOTAL_USD` — la production ne change pas d'un chiffre. */
   /* LE BUDGET DU MOIS SE RÈGLE (`config.agents.budgetMois`, entre 1 et 2000 $, 195 par défaut — Justin décidera) ; le plafond de TEST, lui, reste borné à 195 comme avant. */
@@ -183,6 +188,7 @@ module.exports = function cerveau(ctx) {
      ⛔ On n'envoie JAMAIS `temperature`, `top_p` ni `top_k` : l'API les refuse en 400 depuis le 21 octobre 2026, et un agent qui les
         enverrait se tairait sur une erreur d'API. Le banc (test-2860) relit la requête et exige leur absence. */
   async function penser(id, system, messages, opts) {
+    if (retires) return { ok: false, erreur: 'agents_retires', raison: 'agents_retires' };
     if (illisible) return { ok: false, raison: 'budget_illisible' };
     if (!cle) return { ok: false, raison: 'pas_de_cle' };
     const p = agents.peutAgir(id);
@@ -273,7 +279,7 @@ module.exports = function cerveau(ctx) {
     if (!ecrire()) { agents.noter('systeme', 'imputer', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; return false; }
     return true;
   }
-  return { penser, etatBudget, imputer, MODEL, modeleDe, tarifDe };
+  return { penser, etatBudget, imputer, MODEL, modeleDe, tarifDe, retires };
 };
 
 async function appelerAnthropic(cle, requete, o) {

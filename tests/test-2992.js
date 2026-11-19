@@ -143,7 +143,7 @@ function fauxGoogle() {
     fs.writeFileSync(path.join(d, 'agents-budget.json'), JSON.stringify({ mois, parAgent: { examen: depense } }));
     let appels = 0;
     const appeler = async () => { appels++; await dormir(60); return { texte: 'ok', entree: 100, sortie: 100 }; };
-    const c = cerveau(Object.assign({ DATA_DIR: d, agents: faux, cleApi: 'k', appeler }, plafond === null ? {} : { plafondTotalUsd: plafond }));
+    const c = cerveau(Object.assign({ DATA_DIR: d, agents: faux, retires: false, cleApi: 'k', appeler }, plafond === null ? {} : { plafondTotalUsd: plafond }));
     return { c, appels: () => appels };
   };
   const seize = async (m) => { const rs = await Promise.all(Array.from({ length: 16 }, () => m.c.penser('lea', 'sys', [{ role: 'user', content: 'bonjour' }]))); return rs; };

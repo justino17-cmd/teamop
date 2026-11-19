@@ -459,7 +459,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
   console.log('\n12. ⛔ L’examen de l’équipe n’est JAMAIS bloqué par les heures — Justin le lance le soir');
   {
     const EX = require(S('examen.js'));
-    const E = EX.monterEquipe({ cle: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', maintenant: () => U(2026, 10, 25, 23, 30), allumes: ['camille', 'lea', 'hugo'],
+    const E = EX.monterEquipe({ retires: false, cle: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', maintenant: () => U(2026, 10, 25, 23, 30), allumes: ['camille', 'lea', 'hugo'],
       appeler: async () => ({ texte: 'CATEGORIE : ignorer', entree: 100, sortie: 10, stop_reason: 'end_turn' }) });
     v('dimanche 0 h 30 à Paris : l’équipe d’essai agit', [E.agents.peutAgir('camille').ok, E.agents.peutAgir('lea').ok, E.agents.ouverture('camille')], [true, true, null]);
     E.poste.recevoir(7, { de: 'spam@essai.test', objet: 'GAGNEZ', texte: 'Bonjour cher ami' });
@@ -565,7 +565,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
       fs.writeFileSync(path.join(D, 'espaces.json'), '{}'); fs.writeFileSync(path.join(D, 'clients.json'), '{}');
       const vap = webpush.generateVAPIDKeys();
       fs.writeFileSync(path.join(banc, 'serveur', 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_3021' },
-        agents: { cleApi: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
+        agents: { retires: false, cleApi: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
       let nreq = 0;
       async function serveur() {
         const PORT = await libre(); let journal = '';
