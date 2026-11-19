@@ -37,3 +37,5 @@ DNS, relever TOUTES ses lignes (capture complète), supprimer une ligne à la fo
 - ⏳ Espace de test (`server/install-test.sh`, `deployer-test`) : lit GitHub (ls-remote + raw.githubusercontent) — à refaire (paquet git envoyé par l'atelier).
 - ✅ Forge : branche par défaut mise sur `main` par Justin le 20/11 à 1 h (vérifié par l API) — la surveillance de chaque heure peut tourner.
 - ⏳ Étape 5 (blog, Google, Meta), étape 6 (sauvegarde croisée), étape 7 (sessions sans GitHub, généraliser), export des discussions, rodage, puis 9-10.
+- 🔧 20/11, 1 h : espace de test confié à la SŒUR 40 (session_01PfEEAFRZZaUJwbr6quoiEY, Sonnet), démarrée SANS dépôt et clonée depuis la forge
+  (preuve de l'étape 7). Clé de l'atelier créée : ~/.ssh/deploiement-test (« atelier-deploiement-test »). Attendre « SŒUR 40 : », relire, puis geste root de Justin.
