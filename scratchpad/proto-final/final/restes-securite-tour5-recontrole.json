@@ -1,0 +1,104 @@
+{
+ "tour": 5,
+ "role": "recontrôleur adverse neuf (sécurité, restes du tour 5)",
+ "date": "2026-11-19",
+ "page": "apercu/prototype-op-gestion.html (arbre /home/user/wt-soeur, branche claude/op-gestion-interface-yb6p32)",
+ "regles": {
+  "1_NFC_PDF_application": "TIENT : facture (nom, adresse) décomposés bruts → PDF lu au texte (pdftotext) « Café Chère été Leä » et « 8 rue de l’Été, Saint-Émilion à Çà », aucun « ? » ; pdfOctets : 10 accents décomposés (à è ï ç ñ Ö É Å ü ô) = mêmes octets que composés (sonde B, B1, 5 ✓). Mutations R1 (libelleSur sans NFC) et X4 (NFC→NFD dans pdfOctets) tombent.",
+  "2_graphemes": "TIENT pour la frappe réelle, le collage (drapeaux, ZWJ, peaux, keycap, écosse, é/à/ï/ç décomposés, œ) à 1 place libre = entier, à 0 place = rien, curseur au milieu (118 signes, frappe de « 123 » → « 12 » à la position 50, curseur 52), sélection remplacée, Backspace après coupe = un signe, Entrée à 199/200 = entre, collage CRLF = pas de \\r, saisie par méthode de saisie (CDP) Hangul/2 drapeaux = au plus 120 et aucun demi-drapeau, 3 frappes = 3 événements input (aucune boucle), coût d’un tour de garde 0,03 ms sur 100 signes, 100 frappes en ~130-180 ms. Champs de recherche (Clients, Factures, Stock) non atteints (150 drapeaux collés restent 150). Téléphone, e-mail frappés intacts. Mutations R2 et X2 (nbSignes en unités) tombent (55 ✗), X1 (curseur) et X3 (maxChamp trop large) tombent.",
+  "3_invisibles": "TIENT pour la liste annoncée (11 invisibles × 5 lignes, 4 vraies lignes + 2 invisibles toujours refusées). Mutation R4 tombe (12 ✗). Mais voir nouveaux N3 : la liste est fermée, des invisibles hors liste comptent encore.",
+  "4_controles": "TIENT : « Code\\u0007portail » → « Code portail », C1 (U+0085, U+009F) → espace, doublons réduits. Mutations R6 (M4a) et X5 (C1) tombent.",
+  "5_dix_champs": "TIENT (voir B) : refus avec phrase, rien d’enregistré, ancien contenu intact, plafond sans contradiction avec la démonstration (max réels : interventions 53/120, tâches 72/120, articles 41/80, devis 53/120, types 18/40, primes 32/60, équipe 7/60) ; un titre légitime de 120 signes (accents, œ, &, ’, —) se crée, se rouvre, se ré-enregistre sans refus ; 121 → refus « limité à 120 / 121 », titre gardé, formulaire resté ouvert. Mutation R5 (refus de n-titre retiré) tombe (3 ✗, une intervention de 121 signes créée).",
+  "6_compta": "TIENT (voir D) : population réelle (7 onglets, 117 boutons joués, 6 champs frappés, 4 validations dont 3 ont changé les données, 4 charges retrouvées) comptée AVANT les zéros ; contre-épreuve : retirer esc() de la valeur de la recherche des Factures de la Comptabilité (CX.q) fait tomber la sonde (3 ✗ : 66 exécutions, 2 balises/gestionnaires nés, 68 écritures HTML brutes)."
+ },
+ "pasRegles": [
+  "Cadre Documents (apercu/prototype-documents.html, fabriqué par atelier/fabriquer.sh depuis atelier/page.source) : le PDF de DEVIS n’est pas couvert par le correctif (1). Son pdfWinAnsi n’a pas de NFC : un « é » décomposé donne « e? » (octets 65 3f). Un objet de devis saisi/collé en NFD sort « Remplacement e?lectrovanne e?te? a? i? » dans le PDF lu au texte (sonde B, B2, 2 ✗). Le nom de client, lui, est protégé car cliNet normalise avant l’entrée dans le cadre ; tout autre texte libre du cadre (objet, désignations) ne l’est pas. Le tour 5 ne le dit pas ; l’énoncé de la mission demandait le PDF de devis."
+ ],
+ "casses": [
+  {
+   "id": "N1",
+   "gravite": "défaut (régression due au tour 5, sans phrase, perte de données visible)",
+   "constat": "L’écouteur global input recoupe toute valeur au-dessus du maxlength, y compris sur une SUPPRESSION. Une fiche client EXISTANTE plus longue que le plafond (nom 150, adresse 200) s’ouvre intacte et Enregistrer refuse avec phrase et ne détruit rien (bon), mais UN SEUL Backspace dans le champ fait tomber le texte d’un coup à 120 (adresse : 160) : 30 à 40 signes perdus sans phrase. Avant le tour 5 un Backspace retirait un signe. Sonde A1 : 2 ✗ nommés (Backspace nom 150 → 120 ; adresse 200 → 160).",
+   "correctif_propose": "dans l’écouteur input, sortir tout de suite si e.inputType commence par « delete » (ou, plus général, ne recouper que si la valeur a GRANDI depuis l’événement précédent). Appliqué sur la COPIE (mutation X6) : A1 passe (56 ✓, il ne reste que N2), aucun autre contrôle ne bouge. Texte exact : après `if (!e.isTrusted) return;` ajouter `if (/^delete/.test(e.inputType || '')) return;`."
+  },
+  {
+   "id": "N4",
+   "gravite": "hérité d’un autre lot, hors sécurité — à dire",
+   "constat": "Régression de l’affichage au téléphone 320 px : un client dont le nom fait 112 « Wm » sans espace occupe 11 lignes de 180 px dans la LISTE Clients (« texte du client non écrasé » ✗ dans restes-securite-tour4-recontrole-b, 167 ✓ · 1 ✗ au lieu de 168 ✓). Bissection sur la même sonde : vert à bbc2bc97, rouge à HEAD ; le seul commit de la page entre les deux est 7fa56356 (« Clients, restes tour 5 : la dictée coupe le nom… »). Ce n’est pas le lot sécurité (vert à fcce9f5a, tout ce qui est sécurité y est déjà).",
+   "correctif_propose": "à regarder par le lot Clients : .liste de la liste Clients au 320 px avec un nom sans espace (overflow-wrap:anywhere + line-clamp:2 sur le nom comme sur la fiche)."
+  }
+ ],
+ "nouveaux": [
+  {
+   "id": "N2",
+   "gravite": "mineur (frappe lettre par lettre d’un caractère combinant au plafond)",
+   "constat": "À 119 signes sur 120, taper « e » puis envoyer U+0301 (insertText séparé, comme un clavier à touche morte qui n’émet pas de signe précomposé) : le « e » entre, l’accent est refusé (place = 0 en signes) alors qu’il ne coûte aucun signe ; le champ reste sur « e » nu. Cause : la place restante se calcule par soustraction de graphèmes (m − nbSignes(av) − nbSignes(ap)), qui ignore qu’un signe combinant fusionne avec le graphème précédent. Les collages d’un « é » décomposé entier (2 unités, 1 signe) sont bons.",
+   "correctif_propose": "décider « tient » par `nbSignes(av + ins + ap) <= m` au lieu de la soustraction ; couper `ins` par essais décroissants (graphème par graphème) jusqu’à ce que la condition tienne."
+  },
+  {
+   "id": "N3",
+   "gravite": "mineur (liste d’invisibles fermée)",
+   "constat": "INVISIBLES est une liste de blocs écrite à la main. Une ligne d’accès faite seulement de U+2800 (braille blanc), des signes de balisage U+E0000-E007F, des sélecteurs de variante supplémentaires U+E0100-E01EF, U+1D173-1D17A, U+1BCA0-1BCA3, U+FFF9-FFFB compte encore comme ligne d’accès (9 caractères essayés, 9 comptés ; les 10 de la liste annoncée sont ignorés).",
+   "correctif_propose": "const INVISIBLES = /^[\\p{Default_Ignorable_Code_Point}\\u2800\\s]*$/u ; vérifié sous Node : vrai pour U+2800, E0020, E0100, 1D173, 1BCA0, 200B, 3164, 00AD, faux pour « a », « é », « 👨‍👩 »."
+  },
+  {
+   "id": "N5",
+   "gravite": "mineur (titres, objets : seuls les champs du client sont normalisés)",
+   "constat": "120 « é » décomposés (240 unités) collés dans le titre d’une intervention sont acceptés (120 signes, correct) mais RANGÉS tels quels (titre de 240 unités, NFD), contrairement aux champs du client (cliNet : NFC). Le PDF d’application les écrit bien (pdfOctets normalise), le PDF de devis du cadre non (voir pasRegles).",
+   "correctif_propose": "passer les libellés libres par libelleSur (NFC) à l’entrée, ou NFC dans les écouteurs d’enregistrement des dix champs."
+  }
+ ],
+ "sondes": {
+  "A_champs": {"fichier": "scratchpad/proto-final/sondes/restes-securite-tour5-recontrole-a.js", "resultat": "54 ✓ · 3 ✗ (N1 ×2, N2 ×1)", "contenu": "champ prérempli au-dessus du plafond (ouverture, Backspace, saisie, Enregistrer), curseur au milieu, sélection, Backspace après coupe, Ctrl+Z, textarea multiligne (Entrée, collage CRLF), IME (Hangul, drapeaux), 10 signes spéciaux en limite à 1 et 0 place, recherches de trois écrans, téléphone/e-mail, coût par frappe, boucle d’événements"},
+  "B_pdf_dix": {"fichier": "scratchpad/proto-final/sondes/restes-securite-tour5-recontrole-b.js", "resultat": "19 ✓ · 2 ✗ (PDF devis du cadre : la régression est dans le cadre, pas dans l’application)", "contenu": "NFC dans facture et devis (lus au texte ET rastérisés), plafonds contre la démonstration, titre de 120 signes légitime, 121, 120 « é » décomposés, titre d’invisibles"},
+  "E_captures": {"fichier": "scratchpad/proto-final/sondes/restes-securite-tour5-recontrole-captures.js", "resultat": "12 PNG (iPad et Android × jour et nuit × refus, fiche, liste), les 12 regardés"},
+  "mutations": {"fichier": "scratchpad/proto-final/mutations-restes-securite-tour5-recontrole.py", "resultat": "voir passesJouees.mutations"},
+  "rejeu_suites": {
+   "835": "844 ✓ · 0 ✗", "836": "307 ✓ · 0 ✗", "837": "122 ✓ · 0 ✗", "1008": "54 ✓ · 0 ✗", "2994": "15 ✓ · 0 ✗",
+   "verifier-syntaxe": "41 pages, 71 blocs, 0 en erreur", "compiler-pages": "code 0", "verif-secrets": "code 0",
+   "restes-garde": "33 ✓", "tour1_recontrole": "10 ✓", "tour2_captures": "15 ✓", "tour2_recontrole": "95 ✓", "tour3": "27 ✓", "tour3_recontrole": "160 ✓",
+   "tour4": "132 ✓", "tour4_recontrole_a": "39 ✓", "tour4_recontrole_b": "167 ✓ · 1 ✗ (N4, hérité, bissecté)", "tour4_recontrole_c": "24 ✓", "tour4_recontrole_d": "26 ✓", "tour4_recontrole_pdf": "17 ✓",
+   "tour4_recontrole_pdf2": "7 ✓ · 1 ✗ (artefact de pdftotext -layout, déjà là avant le tour 5, avoué par le correcteur)", "tour4_titre": "60 ✓",
+   "tour5_compta": "12 ✓ · 0 ✗", "tour5": "193 ✓ · 0 ✗"
+  }
+ },
+ "doutes": [
+  "Non jouable ici : iOS autocorrect / dictée (inputType insertReplacementText, insertFromYank), claviers Android à composition, Safari/Firefox (Intl.Segmenter, beforeinput.data). Lecture du code : le beforeinput prend `selectionStart/End` et non `getTargetRanges()` ; pour un insertReplacementText sur un champ presque plein, `setRangeText` pourrait viser une mauvaise plage et corrompre le texte. À restreindre à insertText, insertFromPaste, insertFromDrop.",
+  "Ctrl+Z après un collage coupé par notre écouteur (setRangeText) n’annule rien (champ identique avant/après, 120 → 120) : l’historique natif d’annulation est perdu à ce moment, alors qu’un collage natif s’annule. Sans gravité, noté.",
+  "Hangul décomposé collé : le champ montre 4 signes pour 10 unités (jamo non composés) jusqu’à l’enregistrement ; cliNet les compose en NFC, donc rien de perdu. Les glyphes hangul n’ont pas d’octet WinAnsi : un nom entièrement en hangul sort vide dans le PDF (hérité, existait avant).",
+  "Le refus d’un titre trop long ne marque pas le champ (pas de liseré rouge ni d’aria-invalid) : seule la bulle parle ; sur Android la bulle masque Jour/Début pendant son apparition. La bulle reste visible quelques secondes et se retrouve sur l’écran suivant quand on enchaîne vite (constaté sur les captures de fiche et de liste).",
+  "Les captures de la liste Clients au 820 et 360 px ne montrent pas le client de 112 signes (hors du premier écran) : l’affichage de ce client en liste est couvert par la sonde tour 4 B (13 écrans × 3 profils), pas par ces PNG.",
+  "Mutations du tour 5 non rejouées par moi : M1a, M2a, M2c, M2d, M2e (R3), M3b, M3c, M4b, M5b à M5i (la tranche « graph » dure ~7 minutes par mutation) ; rejouées : M1b (R1), M2b (R2), M3a (R4), M5a (R5), M4a (R6).",
+  "Plafond de la sonde compta : « charges retrouvées ≥ 3 » vaut exactement 3 sous la mutation (4 sans) : marge mince mais réelle."
+ ],
+ "passesJouees": {
+  "A": "sonde A neuve : 57 contrôles",
+  "A_13_ecrans": "restes-securite-tour4-recontrole-b.js rejoué sur HEAD : 4 profils (petit jour, iPhone nuit, iPad jour, petit nom sans espace) × 13 écrans, client de 112 signes : 167 ✓ · 1 ✗ (N4)",
+  "B": "sonde B neuve : 21 contrôles",
+  "C_mutations": {
+   "du_tour_5": [
+    "R1 (M1b, libelleSur sans NFC) : TOMBE, 5 ✓ · 1 ✗",
+    "R2 (M2b, coupe en unités) : TOMBE, 37 ✓ · 55 ✗",
+    "R4 (M3a, ligne d’invisibles compte) : TOMBE, 5 ✓ · 12 ✗",
+    "R5 (M5a, refus n-titre retiré) : TOMBE, 62 ✓ · 3 ✗",
+    "R6 (M4a, contrôle redevient rien) : TOMBE, 7 ✓ · 10 ✗"
+   ],
+   "de_mon_cru": [
+    "X1 (curseur : setRangeText « select ») : TOMBE, 51 ✓ · 6 ✗ (3 de base + 3)",
+    "X3 (maxChamp étendu aux champs sans maxlength) : TOMBE, 51 ✓ · 6 ✗ (3 de base + 3)",
+    "X4 (pdfOctets NFC → NFD) : TOMBE, 6 ✓ · 5 ✗",
+    "X5 (C1 U+0080-9F plus des espaces) : TOMBE, 15 ✓ · 2 ✗",
+    "X6 (correctif proposé à N1) : CORRIGE, A1 passe, 56 ✓ · 1 ✗ (N2)"
+   ],
+   "methode": "sur une COPIE (/tmp/claude-0/mutroot : tout le dépôt en liens sauf la page copiée) ; `git diff --stat apercu/` VIDE avant et après chaque passe ; ancre exactement une fois, texte muté présent, sonde réellement lancée"
+  },
+  "D_compta": {
+   "base": "12 ✓ · 0 ✗ ; 7 onglets, 117 boutons joués (plancher 40), 6 champs frappés (plancher 5), 4 validations dont 3 changent les données (plancher 1), 4 charges retrouvées (plancher 3), population comptée avant les zéros",
+   "contre_epreuve": "retirer esc() de value=\"${esc(CX.q)}\" (recherche des Factures de la Comptabilité) : 9 ✓ · 3 ✗ (66 exécutions, 2 balises/gestionnaires, 68 écritures HTML brutes). Première tentative sur prototype-comptabilite.html (champ vq) : ne tombe pas, car ce n’est pas un champ que la sonde frappe (elle frappe ceux de l’application) : à savoir, ce champ-là n’est pas couvert par cette sonde.",
+   "constat": "les planchers sont réels et la sonde sait tomber"
+  },
+  "tour5_complet": "193 ✓ · 0 ✗ (la sonde du correcteur, rejouée en entier sur HEAD)",
+  "E": "12 captures regardées une à une (iPad 820×1180 et Android 360×740, jour et nuit) : refus, fiche à nom de 112 signes, liste. Titre de fiche coupé en 2 lignes avec ellipse, phrase de refus lisible et complète dans les 4 appareils, nuit lisible, pas de débordement. Défauts vus : bulle qui reste affichée sur les écrans suivants, bulle qui recouvre Jour/Début sur Android, champ sans marque d’erreur.",
+  "F": "tests 835, 836, 837, 1008, 2994, verifier-syntaxe, compiler-pages, verif-secrets, restes-garde et les sondes des tours 1 à 4 : voir sondes.rejeu_suites"
+ }
+}

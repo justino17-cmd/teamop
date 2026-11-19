@@ -89,7 +89,17 @@ const ecoute = p => p.evaluate(() => { window.__fermes = []; addEventListener('m
   v('catalogue hostile : 400 au plus, « __proto__ » en référence, prix négatif / décimal / texte / NaN / > 1e9 / TVA > 100 % / doublon écartés, désignation bornée (200)', E.cat <= 400 && E.des <= 200 && !E.refs.some(r => /^(neg|flo|gros|str|nan|tva|__proto__)$/.test(r)) && E.refs.filter(r => r === 'R0').length === 1, [E.cat, E.des, E.refs.length]);
   v('numéros hostiles (préfixe à motif, dernier négatif ou énorme) : refusés, les bons numéros restent', E.nums.devis.prefixe === 'D-2026-' && E.nums.contrat.dernier < 1e7, E.nums);
   v('mode inconnu ignoré (le thème reste « light »)', E.theme === 'light', E.theme);
-  v('le cadre vit encore et sait composer un devis après ces messages (la fenêtre s\'ouvre)', await (async () => { await L.aller(p, 'devis'); const g = await A.ouvrirAtelier(c, 'devis', null); return !!g; })());
+  { await L.aller(p, 'devis');
+    // depuis les restes clients (5ce5efdd, tour 2-4) la fiche client DEMANDE avant d'être quittée avec « Infos » modifié sans être enregistré : l'adresse « hostile » ci-dessus est dans ce cas.
+    // On vérifie que la question est posée (la décision), puis on abandonne ces changements comme le ferait la personne — la sonde ne peut plus partir de la fiche sans le dire.
+    const abandon = '[data-action="clientInfosSuite"][data-v="abandon"]', demande = await p.locator(abandon).count();
+    v('quitter la fiche client avec « Infos » modifié demande d\'abord (« Abandonner mes changements »)', demande === 1, demande);
+    if (demande) { await L.toucher(c, abandon); await L.calme(p, 700); }
+    const g = await A.ouvrirAtelier(c, 'devis', null);
+    // une mesure qui échoue dit pourquoi : la route, le bouton (présent ? taille ?), l'atelier resté ouvert par-dessus, ce qui recouvre le bouton
+    const pq = g ? null : await p.evaluate(() => { const b = document.querySelector('[data-opd="devis"]'), r = b && b.getBoundingClientRect(), z = document.getElementById('opdz'), t = r && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { hash: location.hash, bouton: !!b, rect: r && [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], atelierOuvert: !!z && !z.hidden, dessus: t && (t.id || t.className || t.tagName), role: window.OPD_ROLE || null, creer: typeof peut === 'function' ? peut('ventes', 'c') : null }; });
+    v('le cadre vit encore et sait composer un devis après ces messages (la fenêtre s\'ouvre)', !!g, pq); }
   v('aucune erreur de page (ni dans le prototype, ni dans le cadre)', c.err.length === 0, c.err);
   await L.fin(c); await L.fermer(); process.exit(L.bilan() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

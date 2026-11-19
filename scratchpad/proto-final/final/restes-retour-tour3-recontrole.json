@@ -1,0 +1,63 @@
+{
+ "noms": [
+  "retour"
+ ],
+ "regles": [
+  "Boîte mail, un menu ouvert (Filtrer, Actions du message, clic droit sur un message, menu d'une boîte, confirmation « Supprimer la boîte… ») : UN Retour le ferme et reste dans la Boîte mail, le suivant la quitte ; la confirmation fermée par Retour ne supprime pas la boîte (3 → 3 lignes) — mac, iphone, ipad, android, windows, petit, jour et nuit",
+  "Téléphone : lecture + menu d'actions = deux niveaux (Retour ferme le menu, puis la lecture, puis quitte) ; menu choisi qui ouvre le composeur (Répondre) : une seule entrée de plus que la lecture (iphone, android, petit ; iPad compris, l'iPad en 820 px porte la mise en page téléphone)",
+  "Menu ouvert-fermé-rouvert dans la MÊME tâche, dix cycles à 50 ms, cycle à 40 ms laissé ouvert : aucune entrée ne reste, l'historique ne grossit pas de plus d'une entrée, UN Retour ferme le menu (la suppression de l'attente de recul au commit 92b35bb0 ne casse rien)",
+  "Deux Retours coup sur coup menu ouvert : on quitte la Boîte mail, aucun menu ; Retour puis Avancer (entrée orpheline sautée) : on revient dans la Boîte mail sans menu fantôme et sans Retour muet ensuite",
+  "Menu ouvert puis départ par aller() ou par ⌘K (palette) : UN Retour revient à la Boîte mail sans menu, le suivant va à Clients (pas deux fois la Boîte mail) ; composeur quitté par aller() ou par un lien du menu : idem (G2)",
+  "OP Security : aller() range le téléphone (aucune entrée {cal:1}, Retour jamais muet, même dans la tâche de l'ouverture) ; élargi à 1280 pendant que le téléphone est en plein écran : le volet permanent reste, l'entrée est rendue (un Retour va à l'écran d'avant, un Avancer ne rejoue aucun plein écran) ; trois élargissements-rétrécissements : pas de plein écran sorti de nulle part, pile vide, état d'historique null (iphone jour et nuit, android, petit, ipad ; capture du volet élargi de nuit regardée)",
+  "« ‹ OP GESTION » ferme le panneau ou le tiroir du cadre de la Comptabilité : on ne retrouve pas le panneau en revenant ; double clic dans la même tâche : une seule entrée, UN Retour va à l'écran d'avant (android, iphone, iphone nuit, ipad, mac, secrétariat julie)",
+  "Les six mutations du correcteur (M1 à M6) rejouées sur une COPIE du dépôt (RACINE=/tmp/opg-mut, aucune page touchée) mordent toutes, avec les mêmes comptes : M1 5 ✗, M2 2 ✗, M3 4 ✗, M4 1 ✗, M5 2 ✗, M6 2 ✗ ; le témoin de la copie passe (25 ✓ · 0 ✗)"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "Aperçu d'un PDF joint (Boîte mail) : une couche du module que le bouton Retour ne connaît pas",
+   "gravite": "moyenne (mesuré, hérité : pas causé par les corrections du tour 3, mais même règle « Retour ferme la couche du dessus » laissée de côté)",
+   "etapes": "iphone, ipad (même résultat) : Boîte mail → Nouveau message → Joindre un fichier (un PDF) → « Aperçu » → Retour (matériel) trois fois. Ordinateur (mac) : même début, un Retour.",
+   "constat": "Sur téléphone et iPad les trois Retour sont MUETS : l'aperçu (#pdfv, hors #overlay donc hors histCible) reste ouvert, le composeur dessous aussi, history.state reste {opcourrier:1} et n = 6 ne bouge pas (popstate → Annuler du composeur sur un fond inerte → la synchro repousse l'entrée). Seul « Fermer » de l'aperçu sort (capture rr3 pdf-iphone-1-retour regardée : l'aperçu est toujours à l'écran après le Retour). Sur ordinateur UN Retour ferme l'aperçu ET le composeur d'un coup (deux couches pour un geste). Vrai aussi de l'aperçu ouvert depuis la lecture d'un message (la lecture passe à la liste sous l'aperçu). Piste : compter #pdfv dans overlayDePage/histCible (ou lui donner son niveau) et le fermer en premier dans le popstate (fermerApercu). Sonde de constat : retour-restes3-apercu-pdf.js ; section F2 de retour-restes3-recontrole.js (la garde tombe : iphone, ipad, mac)."
+  },
+  {
+   "titre": "Le panneau du cadre de la Comptabilité n'est fermé que par « ‹ OP GESTION » : les autres sorties le laissent ouvert",
+   "gravite": "faible à moyenne (mesuré, hérité ; même défaut que celui que le tour 3 vient de corriger, sur les sorties sœurs)",
+   "etapes": "android, iphone (jour et nuit) : Comptabilité → Réglages ouvert dans le cadre → sortir par « Factures » (data-cpsys=quotidien), par aller('clients') (palette, lien, ⌘K), ou par « Menu » du cadre puis une rubrique → rouvrir la Comptabilité par le menu.",
+   "constat": "Les trois sorties laissent cpCalque = true (la pile de la page est vidée à la sortie, puis le cadre se ré-annonce : pile « cadre », pousse 1 au retour) ; le panneau Réglages est RETROUVÉ OUVERT (capture rr3-G-android-nuit-0 regardée : Réglages à l'écran à l'arrivée dans la Comptabilité). cpCouchePartir() n'est appelée que dans la branche 'retour' de la barre. La règle du tour 3 (« on ne la retrouve pas ouverte en revenant ») s'applique à toute sortie : appeler cpCouchePartir() aussi dans la branche 'quotidien' et quand la Comptabilité cesse d'être l'écran (cpSysMaj, cas !voulu avec cpCalque vrai). Section G de retour-restes3-recontrole.js (9 ✗ sur android, iphone)."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3.js (la sonde du correcteur, G1 à G4)",
+   "resultat": "mac 25 ✓, windows 25 ✓, iphone 32 ✓, android 32 ✓, petit 32 ✓, android nuit 32 ✓, ipad 32 ✓ après correction du SEUIL de la sonde (tel = w ≤ 760 : l'iPad en 820 px a la mise en page téléphone ; G1b tombait à tort, défaut de sonde corrigé) ; 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-compta.js (D1 à D8)",
+   "resultat": "android 47 ✓, android nuit via lot précédent, iphone nuit 47 ✓, ipad 38 ✓, mac 38 ✓, secrétariat julie android 47 ✓ ; 0 ✗. sm et kb : pas de Comptabilité (population à zéro, la sonde le constate, ce n'est pas un défaut)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-recontrole.js (NEUVE ; A menus au téléphone, B cycles rapides, C double Retour et Avancer, D autres menus, E départ par programme et ⌘K, F autres couches du module, G autres sorties du cadre, H OP Security élargi/rétréci)",
+   "resultat": "A à E et H : 0 ✗ partout (mac 28 ✓ avant F ; iphone, ipad, android jour/nuit ; H iphone nuit 10 ✓) ; F2 tombe (iphone 2 ✗, ipad 3 ✗ dont ⌘K sans objet sur iPad corrigé, mac 3 ✗ dont D2 corrigé depuis) = nouveau 1 ; G tombe (android 9 ✗, iphone 9 ✗, android nuit 9 ✗) = nouveau 2. Les assertions G ne portent plus que sur la règle, la dernière (UN Retour depuis la rouverte) est devenue une ligne d'information"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-apercu-pdf.js (NEUVE, constat pas à pas, captures)",
+   "resultat": "iphone : Retour ×3 sans effet, aperçu toujours ouvert ; mac : un Retour ferme aperçu et composeur"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/retour-courrier.js, retour-recontrole-d.js (non-régression)",
+   "resultat": "retour-courrier android 7 ✓, iphone nuit 7 ✓ ; retour-recontrole-d android 8 ✓ ; 0 ✗"
+  },
+  {
+   "fichier": "/tmp/claude-0/-home-user-teamop/43888b8a-bc24-5141-b2d5-216f00c55461/scratchpad/mut.sh (mutations M1 à M6 du correcteur, sur copie)",
+   "resultat": "toutes mordent (voir regles)"
+  }
+ ],
+ "doutes": [
+  "Non vérifié : le Retour matériel d'un vrai appareil (balayage iOS, Safari réel, bouton physique d'Android) ; les sondes appellent goBack. Idem pour le clavier physique d'un vrai Mac sur ⌘K",
+  "Le brouillon : sur ordinateur, UN Retour depuis le composeur appelle « Annuler » qui garde ou propose le brouillon ; non rejoué avec un texte saisi (le comportement du dialogue de brouillon sous Retour n'est pas dans ce lot)",
+  "Les sorties du cadre (nouveau 2) : on n'a pas décidé si un panneau laissé ouvert à dessein pourrait être voulu ; la règle posée au tour 3 dit que non, d'où le classement en défaut",
+  "Le secrétariat (julie) n'a pas la Boîte mail (module absent) : A, B, E y sont sans objet ; sm et kb n'ont pas la Comptabilité"
+ ]
+}

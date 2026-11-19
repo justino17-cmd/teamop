@@ -1,0 +1,35 @@
+{
+ "noms": ["retour"],
+ "regles": [
+  "L'aperçu d'un PDF joint (Boîte mail) est une couche d'historique : UN Retour le ferme SEUL (le composeur reste), sur iphone, android, petit, ipad, mac, windows, jour et nuit ; Fermer, Échap et Retour posent et retirent le même niveau : trois cycles ouvrir-Fermer, ouvrir-fermer dans la même tâche, double clic sur « Aperçu » (un seul aperçu) ne laissent aucune entrée de plus",
+  "Téléphone : la feuille « Supprimer / Enregistrer le brouillon » est une couche : Échap, clic sur le fond, bouton Annuler et Retour la ferment SEULE (composeur gardé, même état d'historique qu'avant), rouverte elle redonne le même état ; « Enregistrer le brouillon » et « Supprimer le brouillon » ferment le composeur sans entrée de trop, et le Retour suivant quitte la Boîte mail (jamais muet)",
+  "Un menu de la Boîte mail ne survit pas au départ par aller() / ⌘K ; le message en cours est gardé (décision du 19/11) ; la série de Retour après un départ avec aperçu ou fenêtre ouverts ne rencontre aucun Retour muet (P2, P4)",
+  "Panneau Réglages / tiroir du cadre de la Comptabilité : refermé par « Factures et paiements », aller() et le bouton Menu du cadre puis une rubrique (android, iphone, petit, ipad, mac, windows, jour et nuit, secrétariat julie) ; la fermeture forcée ne désynchronise pas le cadre : on rouvre Réglages, une couche est en pile, UN Retour ferme ce panneau et reste dans la Comptabilité, le suivant la quitte (P5 sur 6 profils)",
+  "Les quatre mutations du correcteur (M8 à M11) rejouées sur copie : toutes mordent (M8 5 ✗ mac, M9 5 ✗ iphone, M10 5 ✗ iphone, M11 19 ✗ android) ; le dépôt n'est pas touché (git diff --stat apercu/ vide)",
+  "« ne se reproduit pas » confirmé : aucun message de la démonstration n'offre l'aperçu d'un PDF en lecture (population à zéro) ; le Retour matériel d'un vrai appareil et le lecteur PDF intégré restent hors d'atteinte de l'outil"
+ ],
+ "pasRegles": [],
+ "casses": [],
+ "nouveaux": [
+  {
+   "titre": "L'aperçu d'un PDF et « Ajouter une boîte mail » sont retrouvés OUVERTS quand on quitte la Boîte mail puis qu'on y revient, alors qu'un menu est fermé au départ",
+   "gravite": "faible (hérité, pas causé par le tour 4 ; l'historique reste cohérent : aucun Retour muet, un Retour ferme la couche)",
+   "etapes": "tous profils (mesuré sur iphone, android, petit, ipad, mac, windows ; jour et nuit) : Boîte mail → Nouveau message → Joindre un PDF → Aperçu → aller('clients') (palette, lien, menu) → revenir à la Boîte mail. Même chose avec « Ajouter une boîte mail » (fenêtre ov-acct) ouverte au départ.",
+   "constat": "On retombe dans le lecteur de PDF plein écran (capture r4-P2-retour-android.png regardée : barre « Fermer / Télécharger » et le texte de repli), par-dessus le message gardé. La décision du 19/11 ne garde que le MESSAGE EN COURS ; un aperçu est une couche de consultation passagère comme un menu. Le correctif serait le même que pour le menu (fermer #pdfv au hashchange qui quitte la Boîte mail) — l'aperçu n'est fermé que par finis (destruction du module). À trancher par le chef : fermer l'aperçu et les fenêtres sans message (Ajouter une boîte) au départ, ou les garder comme le message."
+  }
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-recontrole.js", "resultat": "iphone 71 ✓, android 71 ✓, android nuit 71 ✓, iphone nuit 71 ✓, petit 71 ✓, ipad 65 ✓, mac 46 ✓, mac nuit 46 ✓, windows 46 ✓, julie android (sections G,H : la Boîte mail n'existe pas pour ce rôle) 28 ✓ ; 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3.js", "resultat": "iphone 33 ✓, mac 27 ✓ ; 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-compta.js", "resultat": "android 47 ✓, mac 38 ✓ ; 0 ✗" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes3-double.js", "resultat": "android : sorties rendues, aucun ✗ (la sonde n'a pas de ligne de bilan)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes2-recontrole.js, retour-restes1-attaque.js", "resultat": "android 39 ✓ et 42 ✓ ; 0 ✗" },
+  { "fichier": "scratchpad/proto-final/sondes/retour-courrier.js, retour-recontrole-d.js", "resultat": "courrier android 7 ✓ ; recontrole-d android 8 ✓, iphone 8 ✓ ; courrier sur mac : 1 ✓ 4 ✗ SANS OBJET (la sonde est écrite pour le téléphone, son en-tête le dit ; le module n'empile ses niveaux qu'au téléphone)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes4-recontrole.js (NOUVELLE, P1 à P5)", "resultat": "android 36 ✓, iphone 36 ✓, ipad 36 ✓, petit nuit 36 ✓, iphone nuit 36 ✓, mac 26 ✓, mac nuit 26 ✓, windows nuit 26 ✓ ; 0 ✗ (P3 est propre au téléphone). Première version : des ✗ sur history.length (6 → 7) = défaut de SONDE (une entrée « avant » reste après un Retour), signature corrigée ; le constat de l'aperçu retrouvé ouvert est une ligne informative, pas un contrôle" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes4-mutations.sh", "resultat": "M8 5 ✗, M9 5 ✗, M10 5 ✗, M11 19 ✗ : les quatre mordent" }
+ ],
+ "doutes": [
+  "Voir « nouveaux » : un aperçu de PDF ou « Ajouter une boîte mail » retrouvé ouvert au retour dans la Boîte mail — décision du chef (le même geste que pour un menu, ou garder comme le message en cours)",
+  "Non vérifiable ici : Retour matériel d'un vrai appareil (balayage iOS, bouton d'Android), lecteur PDF intégré du navigateur (le Chromium de la machine affiche le texte de repli), aperçu en lecture d'un message reçu (aucun message de la démonstration n'en offre un)"
+ ]
+}

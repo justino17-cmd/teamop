@@ -25,7 +25,13 @@ const CLIC = `window.clic = (a, val) => { const b = document.createElement('butt
       const cases = Object.assign({}, TOUT, sens === 'sans' ? (g.sans.cases || {}) : {}), sp = Object.assign({}, SP, sens === 'sans' ? (g.sans.sp || {}) : {});
       const c = await ouvrirComme({ k:'rp', prenom:'Rémi', nom:'Poulain', pd:'resp', terrain:false, cases, sp });
       await c.p.evaluate(CLIC + 'window.DR0 = DROITS_REFUS.length;'); await L.aller(c.p, g.route); if (g.prep) await c.p.evaluate(g.prep);
-      const r = await c.p.evaluate(async ([m, j]) => { const mesure = () => { try { return eval(m); } catch (e) { return 'ERR ' + e.message; } }; const avant = mesure(); try { eval(j); } catch (e) { return { err:String(e.message) }; } await new Promise(r => setTimeout(r, 250)); const ap = mesure(); const refus = DROITS_REFUS.length - window.DR0; const t = document.getElementById('toast'); return { avant, ap, refus, toast:t && t.classList.contains('on') ? t.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : '' }; }, [g.mesure, g.jouer]);
+      // restes entreprise, tour 6 : la page porte une politique de sécurité qui REFUSE eval() (script-src sans 'unsafe-eval') — ce qui est bien — et la sonde faisait `eval(m)` DANS la page : 9 ✗ qui étaient des
+      // erreurs de la sonde. Le défaut était donc dans la SONDE ; elle évalue maintenant ses expressions par le protocole du navigateur (une chaîne passée à evaluate), qui n'est pas soumise à la politique de la page.
+      const mesure = async () => { try { return await c.p.evaluate(g.mesure); } catch (e) { return 'ERR ' + e.message; } };
+      const avant = await mesure(); let r;
+      try { await c.p.evaluate(g.jouer); await new Promise(z => setTimeout(z, 250)); const ap = await mesure();
+        r = await c.p.evaluate(() => { const refus = DROITS_REFUS.length - window.DR0; const t = document.getElementById('toast'); return { refus, toast:t && t.classList.contains('on') ? t.textContent.replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim() : '' }; }); r.avant = avant; r.ap = ap;
+      } catch (e) { r = { err:String(e.message), avant }; }
       if (sens === 'avec') { nAvec++; v(`${g.n} : AVEC la case, le geste a lieu (${JSON.stringify(r.avant)} → ${JSON.stringify(r.ap)}), aucun refus`, !r.err && r.refus === 0 && JSON.stringify(r.avant) !== JSON.stringify(r.ap), r); }
       else { nSans++; v(`${g.n} : SANS la case seule, rien ne bouge, un refus compté, le message dit quoi et à qui demander`, !r.err && r.refus >= 1 && JSON.stringify(r.avant) === JSON.stringify(r.ap) && r.toast.includes('Ce geste n’est pas ouvert à ton compte : ' + g.mot) && /Demande à Marc\./.test(r.toast), r); }
       v(`${g.n} (${sens}) : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2)); await L.fin(c);
