@@ -15,6 +15,7 @@ M = [
  ('4 nomPersonneOk laisse passer un signe invisible (un BOM en bout est rogné par trim)', [("const nomPersonneOk = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return null; const x =", "const nomPersonneOk = t => { const x =")], 'I', 'iphone'),
  ('5 un compte désactivé reçoit de nouveau « Nouveau téléphone » et « Déconnecter partout »', [("${p.actif ? `<button type=\"button\" class=\"btn gris\" data-sec2=\"telephone|", "${true ? `<button type=\"button\" class=\"btn gris\" data-sec2=\"telephone|")], 'G', 'iphone'),
  ('6 un compte désactivé reçoit de nouveau « Nouveau téléphone » seul', [("${p.actif ? `<button type=\"button\" class=\"btn gris\" data-sec2=\"telephone|${esc(k)}\">Nouveau téléphone</button><button type=\"button\" class=\"btn gris\" data-sec2=\"deconnecter|", "<button type=\"button\" class=\"btn gris\" data-sec2=\"telephone|${esc(k)}\">Nouveau téléphone</button>${p.actif ? `<button type=\"button\" class=\"btn gris\" data-sec2=\"deconnecter|")], 'G', 'iphone'),
+( '7 le BOM en bout de nom est de nouveau rogné par trim() avant le contrôle (Inviter ET Modifier)', [("const eqxVal = id => blancsRogne((document.getElementById(id) || {}).value || '');", "const eqxVal = id => ((document.getElementById(id) || {}).value || '').trim();"), ("V[id] = el ? blancsRogne(el.value) : '';", "V[id] = el ? el.value.trim() : '';")], 'I', 'iphone'),
 ]
 sel = [int(a) for a in sys.argv[1:]]
 bilan = []
