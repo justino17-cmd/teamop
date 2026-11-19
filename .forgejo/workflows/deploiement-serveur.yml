@@ -1,0 +1,64 @@
+name: Déploiement du serveur (atelier)
+
+# LE SERVEUR DES CLIENTS SE DÉPLOIE DEPUIS NOS MACHINES (19 novembre 2026) — étape 2 du départ de GitHub (scratchpad/demenagement/PLAN.md).
+# À chaque envoi sur `main` de la forge : les bancs du serveur (même liste que la porte de GitHub, scripts/bancs-serveur.liste), PUIS
+# l'envoi du code au serveur des clients par la clé de déploiement de l'atelier (/home/atelier/.ssh/deploiement-serveur).
+# ⛔ Cette clé est BRIDÉE côté serveur (scripts/atelier/installer-cle-deploiement-vps.sh) : commande forcée /usr/local/sbin/teamop-deployer,
+#    depuis l'adresse de l'atelier seulement. Elle sait « etat » et « deployer <commit> », rien d'autre : pas de shell, pas d'histoire
+#    réécrite (avance rapide seulement). Le serveur ne redémarre que si server/ a changé.
+# ⛔ Aucun secret dans ce fichier ; l'empreinte du serveur, elle, est écrite en clair (une clé publique d'hôte n'est pas un secret, et la
+#    voir dans le diff permet de vérifier qu'elle n'a pas changé en douce).
+# ⛔ Le journal du service ne sort pas du serveur des clients (identifiants d'espaces).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement-serveur
+  cancel-in-progress: false
+
+jobs:
+  bancs:
+    runs-on: atelier
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+      - name: Les bancs d'essai du serveur
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
+
+  deployer:
+    needs: bancs
+    runs-on: atelier
+    timeout-minutes: 15
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Envoyer le code au serveur des clients
+        run: |
+          set -euo pipefail
+          K="$HOME/.ssh/deploiement-serveur"
+          [ -s "$K" ] || { echo "✗ la clé de déploiement de l'atelier manque ($K)"; exit 1; }
+          KH="$(mktemp)"; P="$(mktemp)"; trap 'rm -f "$KH" "$P"' EXIT
+          # Empreinte attendue : SHA256:roC/SIeqnxPTGhAe/88vEXbcn7oNWQWC0T26mBDv1vQ (la même que celle du déploiement de GitHub)
+          printf '%s\n' 'api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn' > "$KH"
+          S=(ssh -i "$K" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=yes root@api.teamop.fr)
+          NEUF="$(git rev-parse HEAD)"
+          EN_SERVICE="$("${S[@]}" etat)"
+          [[ "$EN_SERVICE" =~ ^[0-9a-f]{40}$ ]] || { echo "✗ le serveur n'a pas dit son commit"; exit 1; }
+          echo "en service : ${EN_SERVICE:0:8} · à déployer : ${NEUF:0:8}"
+          if [ "$EN_SERVICE" = "$NEUF" ]; then echo "déjà en service : rien à faire"; exit 0; fi
+          git cat-file -e "$EN_SERVICE^{commit}" 2>/dev/null || { echo "✗ le serveur est sur ${EN_SERVICE:0:8}, que la forge ne connaît pas : rien n'est envoyé"; exit 1; }
+          git merge-base --is-ancestor "$EN_SERVICE" "$NEUF" || { echo "✗ ${NEUF:0:8} ne descend pas de ${EN_SERVICE:0:8} : rien n'est envoyé"; exit 1; }
+          git update-ref refs/heads/main "$NEUF"
+          git bundle create "$P" "$EN_SERVICE..main"
+          "${S[@]}" "deployer $NEUF" < "$P"
+      - name: Vérifier que l'API répond de l'extérieur
+        run: |
+          SANTE=$(curl -sf --max-time 10 https://api.teamop.fr/health) || { echo "✗ api.teamop.fr ne répond pas après le déploiement"; exit 1; }
+          echo "$SANTE" | grep -q '"ok":true' || { echo "✗ api.teamop.fr répond, mais pas ok:true"; exit 1; }
+          echo "API en ligne et saine."
