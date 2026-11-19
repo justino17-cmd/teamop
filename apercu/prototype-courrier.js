@@ -2357,10 +2357,7 @@ var MARKUP = `
   function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0); }   // une fenêtre ouverte est un niveau sur TOUS les formats (sur ordinateur aussi, Retour la fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
-    HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return;
-      /* un recul demandé est ASYNCHRONE : pousser une entrée avant qu'il soit arrivé, c'est faire reculer la mauvaise (le menu qui se ferme puis la feuille qu'il ouvre dans la foulée) — on attend son popstate */
-      if(HIST.ignorer>0){ histSync(); return; }
-      var c=histCible();
+    HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
       try{
         while(HIST.niv<c){ history.pushState({opcourrier:HIST.niv+1},"",location.href); HIST.niv++; }
         if(HIST.niv>c){ var n=HIST.niv-c; HIST.niv=c; HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); history.go(-n); }

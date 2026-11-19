@@ -87,8 +87,8 @@ const doutes = [], dit = o => { doutes.push(o); console.log('  ?', JSON.stringif
   //        une seule entrée d'historique : on est à l'écran d'origine, UN Retour va à l'écran d'avant
   for (const sans of [false, true]) {
     const c = await ouvrirCtx(), p = c.p;
-    const O = await placer(p);
-    const f = await entrerCompta(c, 'accueil'); if (!sans) await reglages(f, p);
+    await L.aller(p, 'interventions'); await L.aller(p, 'clients'); const O = { orig: 'clients', avant: 'interventions' };   // l'origine n'est PAS l'accueil : c'est lui que le second clic (cpSysDe déjà vidé) prendrait à tort
+    const f = await entrerCompta(c, 'clients'); if (!sans) await reglages(f, p);
     const nb = await p.evaluate(() => { const b = document.querySelector('#cpsys [data-cpsys="retour"]'); if (!b) return 0; b.click(); b.click(); return 2; });
     v('D3b' + (sans ? ' TÉMOIN sans panneau' : '') + ' deux clics dans la même tâche (population : ' + nb + ')', nb === 2);
     await p.waitForTimeout(1800); await L.calme(p, 300);
