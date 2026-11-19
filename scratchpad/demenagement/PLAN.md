@@ -35,6 +35,5 @@ DNS, relever TOUTES ses lignes (capture complète), supprimer une ligne à la fo
 - ✅ Les 3 clés que tenait GitHub sont RETIRÉES du serveur des clients ; il ne reste que `atelier-deploiement-serveur` et `atelier-msg-beta`.
 - ✅ OP Courrier : jamais branché sur GitHub (aucune clé sur le serveur, `COURRIER_ACTIF` jamais à « oui ») — rien à déménager.
 - ⏳ Espace de test (`server/install-test.sh`, `deployer-test`) : lit GitHub (ls-remote + raw.githubusercontent) — à refaire (paquet git envoyé par l'atelier).
-- ⏳ Forge : la BRANCHE PAR DÉFAUT est `accessibilite/libelles-relies` (héritée) → la mettre sur `main` (Justin, réglages du dépôt sur la forge),
-  sinon la surveillance de chaque heure (`schedule`) ne se lance pas.
+- ✅ Forge : branche par défaut mise sur `main` par Justin le 20/11 à 1 h (vérifié par l API) — la surveillance de chaque heure peut tourner.
 - ⏳ Étape 5 (blog, Google, Meta), étape 6 (sauvegarde croisée), étape 7 (sessions sans GitHub, généraliser), export des discussions, rodage, puis 9-10.
