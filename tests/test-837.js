@@ -343,24 +343,47 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   console.log('4 bis. le prix se dit TTC partout');
   /* `apercu/prototype-op-gestion.html` (5 novembre 2026) : le PROTOTYPE de l'application, données fictives ; ses devis portent des prix HT
      comme ceux d'OP GESTION — ce sont les documents d'une entreprise cliente, pas un prix de TEAM OP. */
-  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta|prototype-op-gestion)\.html$/;
+  /* `apercu/prototype-comptabilite.html` (10 novembre 2026) : le prototype de la COMPTABILITÉ, données fictives ; une comptabilité compte
+     en hors taxe (« plus de 500 € HT », « 1 290,00 € HT ») — ce sont les montants d'une entreprise inventée, pas un prix de TEAM OP.
+     Le banc l'avait vu dès la première version de la page (le commit du prototype n'avait lancé que ses propres bancs). */
+  /* `apercu/prototype-documents.html` (16 novembre 2026) : l'atelier de devis et de contrats du prototype, données fictives ; « Prix unitaire HT » y est juste et
+     obligatoire (un devis d'une entreprise inventée), pas un prix de TEAM OP. */
+  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta|prototype-op-gestion|prototype-comptabilite|prototype-documents)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   /* Les articles du blog qui expliquent la facture D'UN ARTISAN (ses mentions obligatoires, ses totaux hors taxe, l'autoliquidation) :
      « HT » y est le sujet, pas un prix de TEAM OP. Nommés un par un, et chacun doit encore en avoir besoin (contrôle ci-dessous). */
   /* `blog/logiciel-plombier.html` (6 novembre 2026) : « des frais de déplacement à 45 € HT » est le tarif D'UN PLOMBIER, pris en exemple,
      pas un prix de TEAM OP. */
-  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html'];
+  /* `blog/logiciel-electricien.html` (10 novembre 2026) : « un taux horaire facturé de 55 € HT » est le taux D'UN ÉLECTRICIEN, posé « à titre
+     d'exemple » pour chiffrer le temps perdu ; `blog/mise-en-conformite-electrique-logement.html` (13 novembre 2026) : « 850 + 160 + 180 + 60 + 40
+     = 1 290,00 € HT », puis la TVA à 10 % et le total TTC, est le DEVIS d'un électricien, déroulé pour montrer ce que change le taux réduit —
+     le hors taxe y est le sujet. Ni l'un ni l'autre n'est un prix de TEAM OP. Ces deux articles sont arrivés sur `main` sans leur ligne ici :
+     la « Vérification des pages » y est restée rouge, et avec elle toutes les demandes de fusion (834 suites vertes sur 835). */
+  /* `blog/logiciel-entreprise-de-nettoyage.html` (16 novembre 2026) : « un passage de bureaux facturé 90 € hors taxes à votre client » est le
+     tarif D'UNE ENTREPRISE DE NETTOYAGE, posé « à titre d'exemple » ; ce n'est pas un prix de TEAM OP. Arrivé sur `main` sans sa ligne ici, comme
+     les deux précédents : le rouge de `main` se retrouvait sur chaque demande de fusion. */
+  const ARTICLES_FACTURE = ['blog/facture-d-intervention.html', 'blog/logiciel-plombier.html', 'blog/logiciel-electricien.html', 'blog/mise-en-conformite-electrique-logement.html', 'blog/logiciel-entreprise-de-nettoyage.html', 'blog/contrat-de-nettoyage-de-bureaux.html'];
+  /* `blog/contrat-de-nettoyage-de-bureaux.html` (18/11) : les prix d'un CONTRAT DE NETTOYAGE (« forfait de 2 400 € HT par mois », « à partir de
+     5 000 € HT » — le seuil de vigilance) ; publié sur `main` par le travail du blog, il n'est pas encore sur la branche de travail : là, son
+     contrôle « parle encore de hors taxe » ne peut pas exiger le fichier. */
+  const ARTICLES_SUR_MAIN_SEULEMENT = ['blog/contrat-de-nettoyage-de-bureaux.html'];
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f) && ARTICLES_FACTURE.indexOf(f) < 0);
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
+  /* Un EXTRAIT, pas un fichier, quand la phrase vit aussi dans `contenu/blog/articles.json` (le résumé de l'article) : exclure ce fichier entier
+     laisserait passer le prochain article. `blog/contrat-de-nettoyage-de-bureaux.html` (18 novembre 2026, publié sur `main` par le travail du
+     blog) : « que le contrat atteint 5 000 € HT au total » est le SEUIL de l'obligation de vigilance d'un donneur d'ordre, un montant de la loi,
+     pas un prix de TEAM OP. Arrivé sur `main` sans sa ligne ici : toutes les demandes de fusion repassaient au rouge. */
+  const EXTRAITS_PERMIS = ['que le contrat atteint 5 000 € HT au total'];
   const ht = [];
   for (const f of relus) {
     let t = ''; try { t = fs.readFileSync(path.join(RACINE, f), 'utf8'); } catch (e) { continue; }
     t = sansCommentaires(t).replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\u202f\u00a0]/g, ' ');
+    for (const x of EXTRAITS_PERMIS) t = t.split(x).join(' ');
     const m = DIT_HT.exec(t) || HORS_TAXES.exec(t);
     if (m) ht.push(f + ' : « ' + t.slice(Math.max(0, m.index - 30), m.index + m[0].length + 10).replace(/\s+/g, ' ') + ' »');
   }
   v('⛔ aucune page servie n\'écrit « HT » pour un prix', ht, []);
-  for (const f of ARTICLES_FACTURE) vrai('l\'article ' + f + ' parle encore de la facture d\'un artisan en hors taxe (sinon : le retirer de ARTICLES_FACTURE)', existe(f) && /€\s*HT\b|hors[ -]taxes?/i.test(lire(f)));
+  for (const f of ARTICLES_FACTURE) if (existe(f) || ARTICLES_SUR_MAIN_SEULEMENT.indexOf(f) < 0) vrai('l\'article ' + f + ' parle encore de la facture d\'un artisan en hors taxe (sinon : le retirer de ARTICLES_FACTURE)', existe(f) && /€\s*HT\b|hors[ -]taxes?/i.test(lire(f)));
   for (const f of ECART_APPLICATION) if (existe(f)) vrai('l\'écart déclaré pour ' + f + ' sert encore (sinon : le retirer d\'ici et de test-835)', PROMESSE.test(sansCommentaires(lire(f))));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

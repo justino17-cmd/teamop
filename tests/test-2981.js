@@ -27,7 +27,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); console.lo
   if (!fs.existsSync(path.join(RACINE, 'server', 'node_modules'))) { console.log('  … SAUTÉE : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(0); }
   const CLE_LEURRE = 'ab'.repeat(32);
   /* La configuration de PRODUCTION qui porte, par erreur, tous les réglages du serveur de test — sauf `espaceTest` lui-même. */
-  const reglagesDeTest = { mailPreuveExigee: false /* (le banc rouvre la preuve de clé : /api/sendmail ne s'ouvre pas autrement à un espace inventé) */, espaceTestCle: CLE_LEURRE, espaceTestOrigine: 'https://test.teamop.fr', courrielsCaptes: true, agents: { plafondMoisTotal: 10, cleApi: 'sk-ant-banc', reunionsAuto: false } };
+  const reglagesDeTest = { mailPreuveExigee: false /* (le banc rouvre la preuve de clé : /api/sendmail ne s'ouvre pas autrement à un espace inventé) */, espaceTestCle: CLE_LEURRE, espaceTestOrigine: 'https://test.teamop.fr', courrielsCaptes: true, agents: { retires: false, plafondMoisTotal: 10, cleApi: 'sk-ant-banc', reunionsAuto: false } };
   const faux = B2.fauxAnthropic(); await new Promise(r => faux.s.listen(0, '127.0.0.1', r));
   const prodSrv = await B2.lancer({ essai: false, config: reglagesDeTest, anthropic: faux });
   vivants.push(prodSrv);

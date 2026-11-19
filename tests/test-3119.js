@@ -120,7 +120,7 @@ console.log('\n── 3119 · le budget du jour : plafond sans racine, exemption
     const H = neuf();
     await pense(H, 'noah');
     const CER = require(S('cerveau.js'));
-    const c2 = CER({ DATA_DIR: H.D, agents: H.agents, cleApi: 'k', maintenant: () => H.horloge.t, appeler: async () => ({ texte: 'x', entree: 1, sortie: 1 }), plafondsJour: { agentMin: -3, filet: 'beaucoup', nonRacine: 0 } });
+    const c2 = CER({ DATA_DIR: H.D, agents: H.agents, retires: false, cleApi: 'k', maintenant: () => H.horloge.t, appeler: async () => ({ texte: 'x', entree: 1, sortie: 1 }), plafondsJour: { agentMin: -3, filet: 'beaucoup', nonRacine: 0 } });
     const e = c2.etatBudget();
     vrai('un second `cerveau` sur le même fichier retrouve la dépense du jour de Noah', Math.abs(e.jour.parAgent.noah - 1.7507) < 0.01, JSON.stringify(e.jour.parAgent));
     v('…et des plafonds hors forme (négatif, texte, zéro) gardent les valeurs par défaut', [e.jour.filet, e.jour.plafondNonRacine, e.jour.plafondsAgent.noah], [60, 25, 1.5]);
