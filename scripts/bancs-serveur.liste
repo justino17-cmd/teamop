@@ -489,3 +489,4 @@ tests/test-3296.js
 tests/test-3300.js
 # 18 novembre 2026 (S3) : `test-3299` — mots de passe de la Tour et des accès bêta en scrypt salé, ancien SHA-256 accepté une fois puis réécrit, compte créé en scrypt, aucun mot de passe ni empreinte au journal. Le vrai serveur.
 tests/test-3299.js
+tests/test-3320.js

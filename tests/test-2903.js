@@ -27,7 +27,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const vus = [];
     const mk = (reponse, extra) => {
       const D = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'bcerv-'));
-      const c = CERV(Object.assign({ DATA_DIR: D, agents: Z.agents, cleApi: 'sk-ant-banc-2903-xxxxxxxxxxxxxxxx', appeler: async (cle, requete) => { vus.push(JSON.parse(JSON.stringify(requete))); return reponse(requete); } }, extra || {}));
+      const c = CERV(Object.assign({ DATA_DIR: D, agents: Z.agents, retires: false, cleApi: 'sk-ant-banc-2903-xxxxxxxxxxxxxxxx', appeler: async (cle, requete) => { vus.push(JSON.parse(JSON.stringify(requete))); return reponse(requete); } }, extra || {}));
       return { c, D };
     };
     const { c, D } = mk(() => ({ texte: 'IDENTIFIEE : non', entree: 1000, sortie: 100, stop_reason: 'end_turn', recherches: 2 }));
@@ -56,7 +56,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     vrai('⛔ une réponse qui NE DIT PAS combien de recherches elle a faites : on compte le PLAFOND demandé (3), on se trompe vers le haut', r2.recherches === 3 && Math.abs(b2 - (0.0035 + 0.00175 + 3 * 0.012)) < 1e-9, b2);
     const plein = mk(() => ({ texte: 'ok', entree: 10, sortie: 10, stop_reason: 'end_turn', recherches: 3 }));
     require('fs').writeFileSync(require('path').join(plein.D, 'agents-budget.json'), JSON.stringify({ mois: new Date().toISOString().slice(0, 7), parAgent: { lea: 9.99 } }));
-    const p1 = CERV({ DATA_DIR: plein.D, agents: Z.agents, cleApi: 'sk-ant-banc-2903-xxxxxxxxxxxxxxxx', appeler: async () => ({ texte: 'ok', entree: 10, sortie: 10, stop_reason: 'end_turn', recherches: 3 }) });
+    const p1 = CERV({ DATA_DIR: plein.D, agents: Z.agents, retires: false, cleApi: 'sk-ant-banc-2903-xxxxxxxxxxxxxxxx', appeler: async () => ({ texte: 'ok', entree: 10, sortie: 10, stop_reason: 'end_turn', recherches: 3 }) });
     const a1 = await p1.penser('lea', 'S', [{ role: 'user', content: 'x' }], { recherche: { maxUses: 3 } }), a2 = await p1.penser('lea', 'S', [{ role: 'user', content: 'x' }], { recherche: { maxUses: 3 } });
     v('⛔ les recherches comptent dans le PLAFOND de l’agent : à 9,99 $ sur 10, un appel de plus passe, le suivant est refusé (plafond_agent)', [a1.ok, a2.ok, a2.raison], [true, false, 'plafond_agent']);
     for (const x of [sans.D, plein.D]) try { require('fs').rmSync(x, { recursive: true, force: true }); } catch (e) {}

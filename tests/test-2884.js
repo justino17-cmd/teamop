@@ -562,7 +562,7 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     for (const f of fs.readdirSync(dir).filter(f => /^(?:test-\d+|banc-[\w-]+)\.js$/.test(f) && f !== 'test-2884.js' && f !== 'test-2885.js')) {
       const s = fs.readFileSync(path.join(dir, f), 'utf8');
       const lance = /\bspawn\(/.test(s) && /['"]server['"],\s*['"]index\.js['"]|server\/index\.js/.test(s);
-      const cle = /conf\.agents\s*=|agents:\s*\{\s*cleApi/.test(s);
+      const cle = /conf\.agents\s*=|agents:\s*\{\s*(?:retires:\s*false,\s*)?cleApi/.test(s);
       if (lance && cle) { lus.push(f); if (!/reunionsAuto:\s*false/.test(s)) oublis.push(f); }
     }
     vrai('(population) des bancs démarrent le vrai serveur avec une clé d\'agents : ' + lus.length + ' (' + lus.join(', ') + ')', lus.length >= 8);

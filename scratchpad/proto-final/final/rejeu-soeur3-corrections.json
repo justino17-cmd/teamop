@@ -1,0 +1,23 @@
+{"corrections":[
+{"n":"R4 (temps de travail)","etat":"corrigé","changement":"TT.sys se décide par l'état d'historique ({nav:1} posé par lireHash, gardé par navEtatGarder), plus par la minuterie de 700 ms","preuve":"mutations : minuterie remise (4 ✗), marque non posée (5 ✗), tout passe pour un retour (1 ✗) ; temps-retour-systeme 78 ✓ 0 ✗ sur six profils"},
+{"n":"plage de semaines non validées","etat":"corrigé","changement":"eqxPlagesSem : une plage par suite de semaines contiguës","preuve":"2 mutations mordent (2 ✗, 3 ✗) ; equipe-semaines-nommees 42 ✓ 0 ✗"},
+{"n":"#pdfv et Ajouter une boîte mail à la sortie de la Boîte mail","etat":"corrigé","changement":"hashchange ferme l'aperçu PDF et la feuille .sheet.acct ; le message en cours est gardé","preuve":"3 mutations (dont sur-correction) mordent (6 ✗ chacune) ; boite-quitter-calques 126 ✓ 0 ✗"},
+{"n":"C1 client neuf particulier","etat":"corrigé","changement":"clientNvChampRefuse : marque le champ réellement le plus long","preuve":"mutation mord (2 ✗) ; securite-soeur3 156 ✓"},
+{"n":"C2 signes combinants","etat":"corrigé","changement":"plafond d'unités UTF-16 (x4) dans beforeinput, input, refusLong, clientPlafondRefus","preuve":"2 mutations mordent (2 ✗) ; 5000 U+0301 bornés à 120 unités"},
+{"n":"R1 Ctrl+Z / Ctrl+V sur fiche plus longue","etat":"corrigé","changement":"_tenait : on ne recoupe que si la valeur d'avant tenait","preuve":"mutation mord (Ctrl+Z 120 au lieu de 150)"},
+{"n":"R5 textareas","etat":"corrigé","changement":"maxlength 600/600/5000 + refusTexte aux validations Créer, Modifier, tâche, courriel","preuve":"5 mutations mordent (1 à 2 ✗)"},
+{"n":"N-b anneau rouge","etat":"corrigé","changement":"outline rouge sur [aria-invalid]:focus","preuve":"mutation mord (anneau bleu mesuré)"}
+],
+"sondes":[
+{"fichier":"temps-retour-systeme.js","resultat":"78 ✓ 0 ✗ (TOUS=1)"},
+{"fichier":"equipe-semaines-nommees.js","resultat":"42 ✓ 0 ✗ (TOUS=1)"},
+{"fichier":"boite-quitter-calques.js","resultat":"126 ✓ 0 ✗ (TOUS=1)"},
+{"fichier":"securite-soeur3.js","resultat":"156 ✓ 0 ✗ (TOUS=1)"},
+{"fichier":"mutations-soeur3.py","resultat":"18 mutations, 18 MORD ; git diff --stat apercu/ vide"},
+{"fichier":"securite-tout.sh","resultat":"8 gardes vertes : 49, 32, 19, 15, 9, 66, 24 ✓ (0 ✗)"},
+{"fichier":"retour-tout.sh","resultat":"20 exécutions code 0, 0 ✗"},
+{"fichier":"vehtemps-tout.sh","resultat":"toutes familles code 0, 0 ✗ (en deux passages : le premier tué à 30 min avant corr/rc, rejoués seuls : 40, 34, 34, 52, 37, 123 ✓)"},
+{"fichier":"fumee-routes.js","resultat":"396 ✓ 0 ✗"},
+{"fichier":"tests 835/836/837/1008/2994 + verifier-syntaxe","resultat":"844 / 307 / 122 / 54 / 15 ✓, 0 ✗ ; 41 pages 0 en erreur"}
+],
+"reste":["captures non relues à l'œil dans ce passage (mesures seules)","R2, R3, R4 (fichier), N-c, U+FFFC : non touchés"]}

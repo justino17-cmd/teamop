@@ -61,7 +61,7 @@ function fauxGoogle() {
   const envG = { TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:' + g.s.address().port, TEAMOP_IDTK_URL: 'http://127.0.0.1:' + g.s.address().port };
   const fauxA = B2.fauxAnthropic(); await new Promise(r => fauxA.s.listen(0, '127.0.0.1', r));
   const banc = fs.mkdtempSync(path.join(require('os').tmpdir(), 'b2992-'));
-  const S = await B2.lancer({ essai: true, banc, anthropic: fauxA, env: envG, sansFbAdmin: false, config: { mailPreuveExigee: false, agents: { cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } } }); vivants.push(S);
+  const S = await B2.lancer({ essai: true, banc, anthropic: fauxA, env: envG, sansFbAdmin: false, config: { mailPreuveExigee: false, agents: { retires: false, cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } } }); vivants.push(S);
   vrai('le serveur de test démarre (le faux Google est branché par les variables de banc)', S.vivant);
   vrai('le semis est fait', await attendre(() => fs.existsSync(path.join(S.D, 'essais-semis.json')), 200));
   const tPatron = lireFragment((await S.appel('/api/essais/connexion?compte=patron&cle=' + S.CLE)).h.get('location')).stockage.tour_token;
@@ -143,7 +143,7 @@ function fauxGoogle() {
     fs.writeFileSync(path.join(d, 'agents-budget.json'), JSON.stringify({ mois, parAgent: { examen: depense } }));
     let appels = 0;
     const appeler = async () => { appels++; await dormir(60); return { texte: 'ok', entree: 100, sortie: 100 }; };
-    const c = cerveau(Object.assign({ DATA_DIR: d, agents: faux, cleApi: 'k', appeler }, plafond === null ? {} : { plafondTotalUsd: plafond }));
+    const c = cerveau(Object.assign({ DATA_DIR: d, agents: faux, retires: false, cleApi: 'k', appeler }, plafond === null ? {} : { plafondTotalUsd: plafond }));
     return { c, appels: () => appels };
   };
   const seize = async (m) => { const rs = await Promise.all(Array.from({ length: 16 }, () => m.c.penser('lea', 'sys', [{ role: 'user', content: 'bonjour' }]))); return rs; };

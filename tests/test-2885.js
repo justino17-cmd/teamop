@@ -68,7 +68,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     if (neuf) {
       fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
       const vap = webpush.generateVAPIDKeys();
-      fs.writeFileSync(path.join(racine, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2885' }, agents: { cleApi: 'sk-ant-' + 'api03-banc-2885-xxxxxxxxxxxxxxxx' } }));
+      fs.writeFileSync(path.join(racine, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2885' }, agents: { retires: false, cleApi: 'sk-ant-' + 'api03-banc-2885-xxxxxxxxxxxxxxxx' } }));
       const modes = {}; for (const id of ['victor', 'ines', 'camille', 'hugo', 'margaux', 'lea', 'max', 'nina', 'theo', 'jules', 'chloe', 'emma', 'louis', 'sarah', 'lola', 'noah']) modes[id] = 'brouillon';
       fs.writeFileSync(path.join(D, 'agents-etat.json'), JSON.stringify({ pause: { actif: false, par: '', depuis: 0, motif: '' }, modes: o.modes || modes }));
       /* du travail dans le journal : une erreur de Margaux avec un détail et une adresse qui ne doivent JAMAIS partir chez Claude */

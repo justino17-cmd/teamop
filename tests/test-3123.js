@@ -48,7 +48,7 @@ console.log('\n── 3123 · les agents autonomes contre le vrai serveur ──
   fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
   const vap = webpush.generateVAPIDKeys();
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_3123' },
-    agents: { cleApi: 'sk-ant-' + 'api03-banc-3123-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
+    agents: { retires: false, cleApi: 'sk-ant-' + 'api03-banc-3123-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
   const demarrer = async () => {
     const PORT = await libre(); let journal = '';
     const e = spawn(process.execPath, ['--require', PRE, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z' }), stdio: ['ignore', 'pipe', 'pipe'] });
