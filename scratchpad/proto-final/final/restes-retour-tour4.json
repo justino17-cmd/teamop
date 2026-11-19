@@ -1,0 +1,44 @@
+[
+ {
+  "nom": "retour",
+  "defaut": "Aperçu d'un PDF joint (Boîte mail) : une couche que le bouton Retour ne connaissait pas. Téléphone et iPad : Retour muet (l'aperçu et le composeur restaient). Ordinateur : un Retour fermait l'aperçu ET le composeur",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : l'aperçu (#pdfv) est compté dans histCible ; le popstate le ferme EN PREMIER (puis la feuille « Fermer le message », puis le composeur, puis la lecture) ; fermerApercu et apercuPDF resynchronisent l'historique (Fermer, Échap et Retour posent et retirent le même niveau). Corollaire de la même règle, trouvé en rejouant : au téléphone, un composeur modifié (une pièce jointe suffit) répond à Retour par la feuille « Supprimer / Enregistrer le brouillon » (comportement voulu, comme Mail) mais cette feuille n'était pas une couche : un second Retour la redoublait ; elle est désormais un niveau, un Retour la ferme seule (composeur gardé), « Supprimer le brouillon » ferme sans entrée de trop",
+  "preuve": "retour-restes3-recontrole.js section F (F2 étendu au téléphone) : iphone 10 ✓, iphone nuit 10 ✓, ipad 10 ✓, android 10 ✓, petit 10 ✓, mac 4 ✓, windows 4 ✓, 0 ✗ ; captures pdf-iphone-nuit-0/1/2 regardées (aperçu, composeur gardé, feuille du brouillon) ; mutations sur COPIE (retour-restes4-mutations.sh) : M8 (aperçu fermé avec le composeur) 5 ✗ sur mac, M9 (feuille sans sa couche) 5 ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Panneau (Réglages) ou tiroir du cadre de la Comptabilité retrouvé ouvert au retour quand on sort par « Factures et paiements », aller() (palette, ⌘K, lien) ou le bouton « Menu » du cadre puis une rubrique",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html : cpSysMaj appelle cpCouchePartir() dès que la Comptabilité cesse d'être l'écran (cas !voulu), donc par TOUS les chemins et pas seulement « ‹ OP GESTION » ; la page se tait si rien n'est ouvert (cpCalque faux)",
+  "preuve": "retour-restes3-recontrole.js section G : android 18 ✓, iphone 17 ✓ (+ la ligne « Factures » corrigée, voir ci-dessous), iphone nuit G+H 28 ✓, 0 ✗ ; retour-restes3-compta.js android 47 ✓ ; captures rr3-G-android-0/1/2 regardées (Comptabilité rouverte sans panneau) ; mutation M11 (cpCouchePartir retirée) 19 ✗ sur android"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Sonde G « Factures et paiements » : exigeait de quitter #comptabilite alors que ce bouton reste sur la page Comptabilité native (sans le cadre plein écran)",
+  "etat": "corrigé",
+  "changement": "sonde seulement : l'assertion dit « cadre quitté, aucun calque en pile » (cpsys masqué) ; aucune page touchée",
+  "preuve": "retour-restes3-recontrole.js G android 18 ✓ · 0 ✗"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Régression trouvée en rejouant les gardes du tour 3 (hors consigne, mais même règle) : depuis le commit 33192f69 (la Boîte mail garde son message en cours quand on change de rubrique), un MENU ouvert (Filtrer, Actions…) restait ouvert au retour dans la Boîte mail — E (aller() et ⌘K) tombait sur mac et iphone",
+  "etat": "corrigé",
+  "changement": "prototype-courrier.js : à l'événement hashchange qui quitte la Boîte mail, un menu (ov-menu) se ferme avec l'écran ; le message en cours d'écriture, lui, reste gardé (décision du chef). Sondes retour-restes3.js G2 mises à jour : Retour 1 revient à la Boîte mail avec le message gardé, Retour 2 le ferme, Retour 3 va à l'écran d'avant",
+  "preuve": "retour-restes3-recontrole.js A à E : iphone 33 ✓ (E 5 ✓), mac 30 ✓, android 33 ✓, 0 ✗ ; retour-restes3.js iphone 33 ✓, mac 27 ✓ ; retour-courrier.js android 7 ✓ ; retour-recontrole-d.js android 8 ✓ ; mutation M10 (menu qui survit) 5 ✗ sur iphone"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Aperçu d'un PDF ouvert depuis la LECTURE d'un message reçu (même code, même fermeture)",
+  "etat": "ne se reproduit pas",
+  "changement": "rien de plus : la lecture partage apercuPDF/fermerApercu avec le composeur. Aucun message de la démonstration n'offre l'aperçu en lecture (réservé aux messages de signature, aucun n'en porte un en démonstration) : la population est à zéro, le cas n'a pas pu être joué de bout en bout",
+  "preuve": "limite de population mesurée (sonde F3 écrite puis retirée : « un message reçu avec une pièce PDF à aperçu existe » à zéro sur iphone et mac) ; M7 (aperçu sorti de histCible) est un mutant équivalent dans toute population jouable : le composeur porteur prête son niveau"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non vérifié : le Retour matériel d'un vrai appareil (balayage iOS, Safari réel, bouton physique d'Android) ; le lecteur de PDF intégré du navigateur (le Chromium de la machine n'affiche pas le PDF : on voit le texte de repli, les gestes d'historique sont les mêmes)",
+  "etat": "ne se reproduit pas",
+  "changement": "rien",
+  "preuve": "limite d'outil, pas un défaut mesuré (les sondes appellent goBack)"
+ }
+]
