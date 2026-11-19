@@ -151,3 +151,8 @@ Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2
 - 07 h 59 UTC : rejeu 4 (compta, contrats) fini : contrats 49/49, compta 90/103 vertes, les 13 rouges = décisions (A/B, nom de la clôture, Paiement en ligne, centime, bulletin) déjà dans la liste.
 - 08 h 18 UTC : rejeu 5 fini (202 sondes ; 5 défauts corrigés avec mutation ; client-gestes vert ; +33 pour Justin).
 - 10 h 30 UTC : Justin : « il n'y a pas d'alerte hebdomadaire, on est à 36 % ». La retenue sur les tours supplémentaires est levée : les vrais défauts repartent en tour comme avant.
+- 12 h 09 UTC : ARRÊT de toutes les fenêtres à la demande du chef (question de facturation de la console à éclaircir avec Justin). État laissé :
+  · 3 (rejeu véhicules/sécu/retour/double) : 110 sondes vertes ; correctifs (3 défauts + C1, C2, R1, R5, N-b) commités 861ccc2f mais NON recontrôlés — à reprendre (arret/soeur-3.md).
+  · 6 (rejeu coque/planning/restes/recontrôle/relire) : étape 0 seulement ; rejeu et tri des 30 constats NON faits — à reprendre avec "depuis":1 (arret/soeur-6.md).
+  · 21 (équipe tour 4) : correctifs poussés 4d2c98e8 (94 ✓, 12/12 mutations), recontrôle neuf NON fait ; a aussi touché prototype-courrier.js (Répondre sous la case « écrire ») ; « Confier » sans Planning à confirmer (arret/soeur-21.md).
+  · Rejeux finis : 1, 2, 4, 5, 13.
