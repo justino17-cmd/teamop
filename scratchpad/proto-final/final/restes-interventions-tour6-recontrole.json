@@ -1,0 +1,65 @@
+{
+ "noms": [
+  "interventions"
+ ],
+ "regles": [
+  "Terminer avec un relevé refusé (clic réel, fiche complète) : ne termine pas, aucune facture ni envoi, phrase visible ; ACTIONS.terminer appelée directement idem ; refus puis correction « 15 » puis Terminer : termine avec 15 ; la marque data-refuse s'efface dès la frappe suivante ; refus sur i1 puis Terminer sur i2 : i2 se termine, i1 n'a pas bougé ; rôle marc idem (7 profils x jour/nuit)",
+  "Vidage : un clic sur 5 à 6 boutons d'une fiche des 4 métiers ne crée aucun relevé (releves reste undefined) ; une saisie sur un champ n'écrit que ce champ ; effacer un champ rempli (numérique et libre) s'écrit vide ; retaper la même valeur laisse inchangé",
+  "Lecture : 1.200,5 → 1200,5 ; 1.234.567 → 1234567 ; -1.200,5 → -1200,5 ; 1.000.000,25 → 1000000,25 ; 1 200,5 → 1200,5 ; refusés : 1,2,3 / 1.2.3 / 1.200.5 / 1.2,3 / 12,5,5 ; 12.5, 1.5, 0.5 gardés tels quels (jamais lus comme des milliers)",
+  "Sondes de relevé rejouées par la frappe réelle : tour6-adverse 62 OK, tour5-adverse 55, tour5-frappe 40, tour5-toast 4, tour5-adverse-ecrit 3, interventions-recontrole 124 à 133 — 7 profils x jour/nuit, 14 passages chacune, 0 KO",
+  "Mutations : les 6 de mutations-restes-tour6.py tombent, page restaurée (git diff vide)"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Refus d'un relevé, puis clic sur un AUTRE bouton de la fiche, puis Terminer : la fiche part quand même",
+   "gravite": "mineure (le champ montre l'ancienne valeur 14 ; rien n'est faux dans les données, mais la fiche est envoyée au client après un refus que la personne n'a pas revu)",
+   "etapes": "fiche complète ; taper 10-12 dans Soufflage puis Tab (refusé, marque posée, champ rendu à 14) ; cliquer un autre bouton à data-action (ex. suppression de photo) ; cliquer Terminer",
+   "constat": "le gestionnaire de clic en capture appelle releveFlush() pour tout bouton à data-action ; releveRefuse() y consomme la marque (delete data-refuse) et ne stoppe que 'terminer'. Au Terminer suivant plus de marque : etat=bureau, envoye=true, 1 facture, releves.Soufflage=14. Reproduit sur les 14 passages. Piste (non appliquée, aucune page modifiée) : ne consommer la marque qu'au geste qui termine, ou ne la lire que si l'action est terminer."
+  }
+ ],
+ "nouveaux": [
+  "Petit téléphone (profil petit) : la phrase de refus (4 lignes) recouvre la moitié basse du bouton Terminer sur la capture (iphone/android : juste sous le bouton, propre ; mac/ipad : bulle au-dessus de la barre, propre)"
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour6-adverse.js",
+   "resultat": "14/14 passages, 62 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour5-adverse.js",
+   "resultat": "14/14, 55 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour5-frappe.js",
+   "resultat": "14/14, 40 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour5-toast.js",
+   "resultat": "14/14, 4 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour5-adverse-ecrit.js",
+   "resultat": "14/14, 3 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-recontrole.js",
+   "resultat": "14/14, 124 à 133 OK 0 KO"
+  },
+  {
+   "fichier": "campagne/sondes/interventions-restes-tour6-recontrole.js (nouvelle, recontrôle du tour 6)",
+   "resultat": "14/14 : 42 OK + 1 KO identique partout (la casse ci-dessus, assertion volontairement gardée)"
+  },
+  {
+   "fichier": "campagne/sondes/mutations-restes-tour6.py",
+   "resultat": "6 sur 6 tombent, page restaurée"
+  }
+ ],
+ "doutes": [
+  "« 1.200 » (et 1.050, 2.500) : enregistré tel quel (texte « 1.200 »), sans phrase ni réécriture ; mille deux cents ou 1,2 ? ambigu, non tranché ; à décider par Justin",
+  "« 12.5 », « 1.5 » : gardés avec le point (pas de virgule) ; valides, mais l'affichage mélange point et virgule",
+  "« 1,234.5 » (anglais) est lu 1234,5 avec la bulle « Lu … » : acceptable, à confirmer",
+  "Plafonds de plausibilité par relevé, casse 4 (20 chiffres), durée « 1 h 30 » : non touchés (décision à Justin)",
+  "Les portes visitefin et rgSaisieOk ne se jouent pas au clic : leur écran n'a aucun champ relevé (data-rl / autre dispatcher) ; seul l'appel direct avec un champ refusé est testable, et il est gardé. « Effectué ? », « terminée à la date prévue » et le menu de statut du planning (Marquer terminée, ligne 5159) n'existent pas sur l'écran des relevés : pas de porte à garder, non testées au clic"
+ ]
+}

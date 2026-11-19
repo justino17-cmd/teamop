@@ -3774,14 +3774,16 @@ function oplRecusSync(P){
     const c = contrepasser(e, AUJ); valider(c); n++;
     const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (k >= 0) { RELEVE.splice(k, 1); RELEVE.forEach((x, i) => { x.id = 'R' + (i + 1); }); }
     fil('OP GESTION', 'Argent reçu sur place repris · ' + e.piece + ' · ' + eur(r2(e.lignes[0].d)), 'La facture est partie depuis OP GESTION : elle reprend cet argent. L’écriture d’origine reste, avec son écriture inverse ; le paiement revient avec la facture.', [c.id], 'encaissement'); });
-  R.forEach(r => { const cle = oplRecuCle(r); if (E.some(e => e.recuSP === cle && !e.contrePar && e.etat !== 'supprimee')) return;
+  /* le fil dit le client sous son nom D'AUJOURD'HUI : un client renommé dans OP GESTION (même identifiant `cli`) ne reste pas « Mme Roux » dans « Ce qui s'est fait tout seul ». L'écriture, elle, garde le nom d'alors : une écriture validée ne se réécrit pas. */
+  const titreRecu = (piece, qui, ttc) => 'Argent reçu sur place · ' + piece + ' · ' + qui + ' · ' + eur(ttc);
+  R.forEach(r => { const cle = oplRecuCle(r); if (E.some(e => e.recuSP === cle && !e.contrePar && e.etat !== 'supprimee')) { FIL.filter(f => f.recuCle === cle).forEach(f => { const t = titreRecu(String(r.num || 'Reçu').slice(0, 40), String(r.nom || 'Client').slice(0, 80), r2(+r.ttc)); if (f.t !== t) { f.t = t; n++; } }); return; }   /* n++ : l'écran se redessine, il ne garde pas l'ancien nom */
     const mode = oplMode(r.mode), ttc = r2(+r.ttc), tva = r2(ttc - ttc / (1 + (+r.tva) / 100)), ht = r2(ttc - tva), d = r.d > AUJ ? AUJ : r.d, qui = String(r.nom || 'Client').slice(0, 80), piece = String(r.num || 'Reçu').slice(0, 40);
     const tres = { carte:'467100', chq:'511200', esp:'530000', vir:'512000' }[mode], j = { carte:'PS', chq:'BQ', esp:'CA', vir:'BQ' }[mode];
     const e = ecr({ j, date:d, piece, lib:({ carte:'Paiement par carte reçu sur place · ', chq:'Chèque reçu sur place · ', esp:'Espèces reçues sur place · ', vir:'Virement noté sur place · ' }[mode]) + qui, orig:mode === 'carte' ? 'carte' : mode === 'esp' ? 'caisse' : 'banque', etat:'brouillard', pj:null, par:'OP GESTION (encaissement sur place)',
       l:[[tres, null, ttc, 0], ['419100', null, 0, ht, 'Acompte reçu · ' + piece + ' · ' + qui], tva > 0 && ['445710', null, 0, tva, 'TVA collectée · ' + piece, { taux:+r.tva, base:ht }]] });
     if (valider(e)) { e.etat = 'supprimee'; return; } e.opl = true; e.recuSP = cle; n++;
     if (mode === 'vir') RELEVE.push({ id:'R' + (RELEVE.length + 1), date:d, lib:'VIR SEPA ' + qui.toUpperCase() + ' ' + piece, m:ttc, pointe:ref(e, 0) });
-    fil('OP GESTION', 'Argent reçu sur place · ' + piece + ' · ' + qui + ' · ' + eur(ttc), 'Un technicien a reçu cet argent sur place, avant la facture : il entre en comptabilité comme un acompte, et la TVA (' + eur(tva) + ') est due ce mois-ci, puisque le client a payé.', [e.id], 'encaissement'); });
+    fil('OP GESTION', titreRecu(piece, qui, ttc), 'Un technicien a reçu cet argent sur place, avant la facture : il entre en comptabilité comme un acompte, et la TVA (' + eur(tva) + ') est due ce mois-ci, puisque le client a payé.', [e.id], 'encaissement'); FIL[0].recuCle = cle; });
   return n;
 }
 
