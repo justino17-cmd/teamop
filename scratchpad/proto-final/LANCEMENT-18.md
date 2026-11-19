@@ -130,3 +130,11 @@ Retours : S1, S2, S3 finis (21 h 55-22 h 07) ; sœur 23 finie (11/13 réglés, 2
 - Véhicules : la tuile « dépensés en octobre » sans l'assurance répartie ; le mot « manque à bord ».
 - Matériel : l'unité « u ».
 - Regard gérant b (sœur 17) : 3 points à soumettre dans final/regard-gerant-b.json.
+
+## Vague 4 (rejeu final) — lancée le 19/11 à 01 h 38 UTC
+- Sans attente : 1 session_01PfEEAFDCAmUbjzi2SnWX26 · 6 session_01PfEEAGqhuTjjQDb9ExESEd · 13 session_01PfEEAEjWYVSZPxTggCwt3w.
+- 9 : tour 3 Retour relancé (points 2, 3 et doutes tranchés par la règle « Retour ferme la couche du dessus »).
+- À lancer dès que leurs fenêtres finissent : 2 (après 24), 3 (après 26, 38, 9), 4 (après 22), 5 (après 33, 29, 34).
+- Finies à 01 h 36 UTC : 25, 37, 15, 12, 18, 30, 19, 28, 10, 16, 11, 31, 32, 7, 14, 23, 8, 35, 36, 27, S1, S2, S3.
+- 02 h 06 UTC : finies aussi 29 (compta cohérence, recontrôle 0 casse) et 26 (vehtemps tour 3). 38 relancée en tour 5 (NFC des PDF, maxlength par graphèmes, lignes invisibles, signes de contrôle → espace, 10 champs libres, planchers du rôle compta).
+- À joindre au lancement du rejeu 3 : R4 (retour système < 700 ms après un clic d'ancre rouvre Aujourd'hui au lieu de Mois, TT.sys) et la plage « Du 28 sept. au 25 oct. » pour des semaines non contiguës (les nommer une à une). Au rejeu 4 : tableau du cadre compta à ~60 % sur iPad/iPhone.

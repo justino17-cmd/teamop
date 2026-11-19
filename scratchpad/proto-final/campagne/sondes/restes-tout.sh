@@ -39,5 +39,79 @@ for p in $(profils iphone android petit mac); do lance "technicien (tour 1) $p j
 [ -z "$RAPIDE" ] && { lance "technicien (tour 1) iphone nuit" node $S/restes-technicien-1.js iphone 1; lance "technicien (tour 1) petit nuit" node $S/restes-technicien-1.js petit 1; }
 lance "technicien : pied du menu au doigt, iPad jour" node $S/restes-technicien-2.js ipad 0
 [ -z "$RAPIDE" ] && lance "technicien : pied du menu au doigt, iPad nuit" node $S/restes-technicien-2.js ipad 1
+# ── Les restes qui n'étaient pas rejoués (ajoutés le 19/11/2026) : une exécution par sonde sur son profil d'origine (celui que la sonde prend sans
+#    argument), le profil voisin avec TOUT=1. Chaque famille de restes garde sa place : accueil, client, contrats, devis·atelier, équipe, planning, tâches, technicien.
+tout(){ [ -n "$TOUT" ] && [ -z "$RAPIDE" ] && lance "$@"; return 0; }
+lance "accueil tour 3 recontrôle (parties A à D) mac" node $S/restes-accueil-3-recontrole.js ABCD mac
+lance "accueil tour 3 recontrôle : la vue mac" node $S/restes-accueil-3-recontrole-vue.js
+lance "accueil tour 4 mac" node $S/restes-accueil-4.js mac
+lance "accueil tour 4 recontrôle mac" node $S/restes-accueil-4-recontrole.js mac
+lance "accueil tour 5 mac" node $S/restes-accueil-5.js mac
+tout "accueil tour 4 iphone" node $S/restes-accueil-4.js iphone
+tout "accueil tour 5 iphone" node $S/restes-accueil-5.js iphone
+
+lance "client tour 1 iphone" node $S/restes-client-1.js iphone
+lance "client tour 1 recontrôle iphone" node $S/restes-client-1-recontrole.js iphone
+lance "client tour 2 mac" node $S/restes-client-2.js mac
+lance "client tour 2 recontrôle mac" node $S/restes-client-2-recontrole.js mac
+lance "client tour 2 recontrôle : la barre iphone" node $S/restes-client-2-recontrole-barre.js iphone
+lance "client tour 2 recontrôle : le paiement mac" node $S/restes-client-2-recontrole-paiement.js mac
+lance "client tour 3 recontrôle iphone" node $S/restes-client-3-recontrole.js iphone
+lance "client tour 4 recontrôle iphone" node $S/restes-client-4-recontrole.js iphone
+lance "client tour 4 : relancer iphone" node $S/restes-client-4-relancer.js iphone
+tout "client tour 2 iphone" node $S/restes-client-2.js iphone
+
+lance "Comptabilité en plein écran (téléphone et ordinateur)" node $S/restes-compta-plein-ecran.js
+
+lance "contrats tour 1 recontrôle mac" node $S/restes-contrats-1-recontrole.js mac
+lance "contrats tour 1 recontrôle : les écrans petit" node $S/restes-contrats-1-recontrole-ecrans.js petit
+lance "contrats tour 2 recontrôle mac" node $S/restes-contrats-2-recontrole.js mac
+lance "contrats tour 2 recontrôle : facturation petit" node $S/restes-contrats-2-recontrole-facturation.js petit
+lance "contrats tour 2 recontrôle : visites petit" node $S/restes-contrats-2-recontrole-visites.js petit
+lance "contrats tour 3 recontrôle mac" node $S/restes-contrats-3-recontrole.js mac
+lance "contrats tour 3 recontrôle : la liste" node $S/restes-contrats-3-recontrole-liste.js
+lance "contrats tour 4 mac" node $S/restes-contrats-4.js mac
+lance "contrats tour 4 recontrôle mac" node $S/restes-contrats-4-recontrole.js mac
+lance "contrats tour 5 mac" node $S/restes-contrats-5.js mac
+lance "contrats tour 5 recontrôle mac" node $S/restes-contrats-5-recontrole.js mac
+lance "contrats tour 6 mac" node $S/restes-contrats-6.js mac
+lance "contrats tour 6 : balayage" node $S/restes-contrats-6-balayage.js
+tout "contrats tour 6 : captures mac" node $S/restes-contrats-6-captures.js mac
+tout "contrats tour 6 iphone" node $S/restes-contrats-6.js iphone
+
+lance "devis·atelier tour 1 mac" node $S/restes-devis-atelier-1.js mac
+lance "devis·atelier tour 1 : envoi et signature mac" node $S/restes-devis-atelier-2.js mac
+lance "devis·atelier tour 1 : ipad, iphone, android" node $S/restes-devis-atelier-3.js
+lance "devis·atelier : Créer avec l'IA mac" node $S/restes-devis-atelier-ia.js mac
+lance "devis·atelier recontrôle 1 mac" node $S/restes-devis-atelier-recontrole-1.js mac
+lance "devis·atelier recontrôle 2 : iphone, ipad, android" node $S/restes-devis-atelier-recontrole-2.js
+lance "devis·atelier tour 2 recontrôle 1 : cinq appareils" node $S/restes-devis-atelier-tour2-recontrole-1.js
+lance "devis·atelier tour 2 recontrôle 2 mac" node $S/restes-devis-atelier-tour2-recontrole-2.js
+
+lance "équipe tour 1 mac" node $S/restes-equipe-1.js mac
+lance "équipe tour 1 recontrôle iphone" node $S/restes-equipe-1-recontrole.js iphone
+lance "équipe tour 1 recontrôle b iphone" node $S/restes-equipe-1-recontrole-b.js iphone
+lance "équipe tour 2 recontrôle iphone" node $S/restes-equipe-2-recontrole.js iphone
+for s in H S I G; do lance "équipe tour 3 (restes mineurs, section $s) iphone" node $S/restes-equipe-3-mineurs.js iphone $s; done
+
+lance "planning tour 3 mac" node $S/restes-planning-3.js mac
+lance "planning tour 3 recontrôle mac" node $S/restes-planning-3-recontrole.js mac
+lance "planning tour 4 mac" node $S/restes-planning-4.js mac
+lance "planning tour 4 recontrôle mac" node $S/restes-planning-4-recontrole.js mac
+lance "planning tour 4 recontrôle : le fond mac" node $S/restes-planning-4-recontrole-fond.js mac
+lance "planning tour 2 recontrôle mac" node $S/restes-planning-2-recontrole.js mac
+
+lance "tâches · absences tour 3 recontrôle" node $S/restes-taches-absences-3-recontrole.js
+lance "tâches · absences tour 3 recontrôle (captures contrôlées)" node $S/restes-taches-absences-3-recontrole-captures.js
+
+lance "technicien tour 3 iphone" node $S/restes-technicien-3.js iphone 0
+lance "technicien recontrôle iphone" node $S/restes-technicien-recontrole.js iphone 0
+lance "technicien recontrôle 2 iphone" node $S/restes-technicien-recontrole-2.js iphone 0
+lance "technicien recontrôle 3 iphone" node $S/restes-technicien-recontrole-3.js iphone 0
+lance "technicien recontrôle : alignement iphone" node $S/restes-technicien-recontrole-alignement.js iphone 0
+lance "technicien recontrôle : avis iphone" node $S/restes-technicien-recontrole-avis.js iphone 0
+lance "technicien recontrôle : menu petit" node $S/restes-technicien-recontrole-menu.js petit 0
+lance "technicien recontrôle : le mot long ipad" node $S/restes-technicien-recontrole-mot.js ipad
+lance "technicien recontrôle : la puce iphone" node $S/restes-technicien-recontrole-puce.js iphone 0
 echo FINI | tee -a "$J"
 exit $ko

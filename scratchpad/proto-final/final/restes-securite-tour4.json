@@ -1,0 +1,28 @@
+{
+ "noms": ["restes-securite-tour4 (consignes d'accès multilignes, plafond qui refuse avec une phrase, champs sans maxlength, titre de fiche sur 2 lignes, coupe par graphèmes ; 19 novembre 2026)"],
+ "corriges": [
+  { "point": 1, "titre": "Consignes d'accès : sauts de ligne gardés, 3 lignes au plus, blancs réduits par ligne, signes de contrôle retirés", "mesure": "sonde restes-securite-tour4.js (frappe réelle, Entrée au clavier) : « Code portail 4821 / Sonner chez la gardienne / Local à gauche » reste sur 3 lignes ; 4 lignes refusées avec phrase et rien d'enregistré ; plus de « 4821Sonner ». Mutations M1 à M4 tombent." },
+  { "point": 2, "titre": "Plafond d'un client : REFUS avec phrase (champ, limite, nombre écrit, « rien n'a été enregistré »), rien d'enregistré, une seule fonction clientPlafondRefus appelée par les cinq formulaires (fiche, devis, création d'intervention, Nouveau client, devis xylophage) ; plafond compté en graphèmes, un saut de ligne vaut 1", "mesure": "sonde : 120/121 signes (nom, contact, e-mail), 160/161 (adresse), 200/201 (accès) dans les cinq formulaires : la limite est enregistrée entière, la limite + 1 est refusée avec phrase et clients, fiches, interventions et devis restent inchangés ; adresse de 160 drapeaux (636 unités UTF-16) acceptée. Mutations M5 à M12 tombent." },
+  { "point": 3, "titre": "Champs sans maxlength : titre d'intervention, titre de créneau bloqué, nom de fournisseur local, rôle d'équipe (eq-r, eqx-mr), nom de plateforme, motif, titre de la fenêtre de création (8 champs relevés par la sonde)", "mesure": "sonde : chaque champ porte un maxlength égal au plafond de sa fonction, la frappe de plus de signes s'arrête au plafond, la limite est enregistrée, la limite + 1 (posée par valeur) est refusée avec phrase et rien n'est enregistré." },
+  { "point": 4, "titre": "Titre de la fiche client à 320 px avec un nom de 112 signes : 2 lignes au plus, ellipse (line-clamp), nom entier lisible dans Infos (champ Nom et libellé « Nom complet »), Appeler / E-mail au-dessus de la barre d'onglets", "mesure": "sonde restes-securite-tour4-titre.js, 6 profils (320 jour, 320 nuit, iPhone nuit, Android nuit, iPad jour, Mac jour) : 60 ✓ 0 ✗ ; titre sur 2 lignes partout, Appeler et E-mail entre 378 et 452 px, barre d'onglets à 490 (320), 730 (iPhone), 644 (Android) : aucun défilement ; contre-épreuve nom court inchangé. Captures lues à l'œil : coupe par ellipse sur 320 jour/nuit, iPhone, Android et iPad ; Mac : le nom de 112 signes tient sur 2 lignes. Le sous-titre (contact 120, adresse 160) est borné à 5 lignes sur téléphone, 3 sur tablette et Mac." },
+  { "point": 5, "titre": "coupeSure par graphèmes (Intl.Segmenter) : drapeau, famille ZWJ, teinte de peau jamais coupés en deux ni en lettre seule", "mesure": "sonde : 9 contrôles (drapeau, famille, peau, « é » décomposé, six plafonds de 40 à 200 sur émojis mêlés, libelleSur, nbSignes) tous ✓." }
+ ],
+ "neSeReproduitPas": [],
+ "aSoumettreAJustin": [
+  "Les guillemets droits d'un nom (« Café \"Chez Léa\" ») sont toujours retirés sans le dire (décision du 17/11, inchangée) ; alternative : les remplacer par des « ».",
+  "Limites de navigation, en-têtes (frame-ancestors, CSP, SPF/DKIM/DMARC) et corpsLu du courrier : hors de portée du prototype, à traiter pour la vraie application.",
+  "Prénom + nom d'un particulier dont la somme dépasse 120 signes : les deux se rangent joints puis le plafond s'applique ; pas une identité réaliste.",
+  "Un client reçu du cadre Documents (opdClientRecu) peut dépasser 160 signes d'adresse (120 + code postal + ville) : à vérifier dans le cadre, qui n'est pas dans ce lot."
+ ],
+ "sondes": [
+  { "fichier": "sondes/restes-securite-tour4.js", "resultat": "132 ✓ · 0 ✗ (sortie 0)" },
+  { "fichier": "sondes/restes-securite-tour4-titre.js", "resultat": "60 ✓ · 0 ✗ (sortie 0)" },
+  { "fichier": "mutations-restes-securite-tour4.py (M1 à M12 : ancre unique, page vraiment changée, texte muté présent, git diff vide après restauration)", "resultat": "12 mutations jouées sur 12, 12 font tomber la sonde ; git diff final VIDE" },
+  { "fichier": "rejouées", "resultat": "restes-garde 33 ✓ · securite-tour2 10 ✓ · securite-tour2-recontrole 95 ✓ · securite-tour3 27 ✓ · securite-tour3-recontrole 160 ✓ (sa sonde alignée : le titre s'affiche entier) · recontrole-nomclient 11 ✓ · recontrole-clientsaisi 8 ✓ · recontrole-sortie 12 ✓ ; tests 835 (844 ✓) 836 (307 ✓) 837 (122 ✓) 1008 (54 ✓) 2994 (15 ✓) ; verifier-syntaxe : 41 pages, 71 blocs, 0 erreur ; compiler-pages : sortie 0 ; verif-secrets : sortie 0 — tous à 0 ✗" }
+ ],
+ "doutes": [
+  "Plafond d'une consigne d'accès : un navigateur peut compter un saut de ligne pour 2 (CRLF) ; non mesuré hors Chromium.",
+  "Rôle compta et Android jour non rejoués en capture ; le correctif est un attribut de champ et une fonction commune, risque faible mais non mesuré.",
+  "Les PDF de devis et de facture avec une adresse de 160 signes n'ont pas été regardés."
+ ]
+}

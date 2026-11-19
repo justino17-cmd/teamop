@@ -1,0 +1,10 @@
+{
+  "noms": ["entreprise"],
+  "tour": 6,
+  "de": "session chef, 19 novembre 2026",
+  "a_corriger": [
+    { "id": "a", "texte": "Confirmer un créneau transforme CETTE option en intervention : l'option de ce créneau disparaît TOUJOURS à la création de l'intervention, quelle que soit la case Planning de la personne (ce n'est pas un droit sur le Planning, c'est la même chose qui change de forme). Les AUTRES options (les deux autres créneaux) restent régies par la règle du tour 5 : seule une personne ayant la case Planning les retire. Joué à deux personnes, contre-épreuve, mutation. Corrige aussi le toast pour qu'il reste vrai (tour 5)." },
+    { "id": "b", "texte": "Les 6 sondes de droits rouges (identiques avant le tour 5, voie droits) : droits-fiche (2 ✗), droits-restauration (1), droits-fabrication-css (1), droits-gestes-reels (9, erreur de sécurité du navigateur dans la sonde elle-même), droits-bureau-toutes-cases (2), droits-terrain (1, périmée sur mat|retire). Pour CHACUNE : dire si le défaut est dans la PAGE ou dans la SONDE, le nommer, et le régler (page corrigée à la source, ou sonde réparée). gestes-reels : réparer la sonde. terrain : mettre la sonde à jour, le geste libre mat|retire étant voulu. Chaque sonde finit à 0 ✗, ou son échec restant est expliqué par une décision écrite." }
+  ],
+  "ensuite": "recontrôle adverse par un agent neuf, avec mutations et contre-épreuves ; rendre compte"
+}
