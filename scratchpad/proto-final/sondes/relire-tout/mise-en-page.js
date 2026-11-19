@@ -33,8 +33,11 @@ const mesure=f=>f.evaluate(()=>{
     } else {
       await X.clic(c,f,'[data-vv="grand"]'); await L.calme(p,600); const g=await mesure(f);
       console.log(`  · ${type} aperçu plein écran : page ${g.feuille&&g.feuille.w} px sur ${g.W}, texte rendu ${g.fsRendu&&g.fsRendu.toFixed(1)} px, échelle ${g.ech&&g.ech.toFixed(2)}`);
-      v(`${tag} ${type} · aperçu plein écran : la page tient dans l'écran (${g.feuille&&g.feuille.w} ≤ ${g.W})`,g.feuille&&g.feuille.w<=g.W);
-      v(`${tag} ${type} · aperçu : le texte de la page est LISIBLE sans zoom (≥ 7 px rendus ; rendu ${g.fsRendu&&g.fsRendu.toFixed(1)})`,g.fsRendu>=7,g.fsRendu);
+      // DÉCISION tout-01 (refonte/compositeur-corrections.json) : au téléphone l'aperçu s'ouvre sur 100 % — le texte se LIT (≥ 11 px, 12,2 mesurés) et la page défile de côté —,
+      // et « Ajuster » (un toucher) montre la page ENTIÈRE dans l'écran. La sonde de l'ancien état exigeait la page entière dès l'ouverture (texte à 5,5 px) : la promesse (lisible ET entière) est gardée, en deux gestes.
+      v(`${tag} ${type} · aperçu plein écran : à l'ouverture le texte de la page se LIT sans zoom (≥ 11 px rendus ; rendu ${g.fsRendu&&g.fsRendu.toFixed(1)})`,g.fsRendu>=11,g.fsRendu);
+      await X.clic(c,f,'[data-vv="zoom"][data-v="ajuster"]:visible'); await L.calme(p,500); const ga=await mesure(f);
+      v(`${tag} ${type} · « Ajuster » montre la page ENTIÈRE dans l'écran (${ga.feuille&&ga.feuille.w} ≤ ${ga.W})`,ga.feuille&&ga.feuille.w<=ga.W);
       await L.capture(c,CAP+`${tag}-${type}-apercu.png`);
       // 100 % : la page se lit-elle en défilant de côté ?
       await X.clic(c,f,'[data-vv="zoom"][data-v="1"]:visible'); await L.calme(p,500); const g1=await mesure(f);

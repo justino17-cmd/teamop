@@ -76,6 +76,31 @@ const desactiver = async (c, k) => { const p = c.p; await E.fiche(c, k); await L
     await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.calme(p, 250); await p.fill('#eq-p', 'Paul​'); await L.toucher(c, '[data-eq="inviterok"]'); await L.calme(p, 400); await L.capture(c, E.CAP + `rt3-invisible-${SUF}.png`); await ferme();
   });
 
+  if (vaut('J')) await jouer('J signes invisibles voisins (recontrôle C1)', async () => {
+    const CH = [0x034F, 0x115F, 0x1160, 0x17B4, 0x17B5, 0x180B, 0x180C, 0x180D, 0x3164, 0xFE00, 0xFE08, 0xFE0F, 0xFFA0].map(n => ['U+' + n.toString(16).toUpperCase().padStart(4, '0'), String.fromCharCode(n)]);
+    const r = await p.evaluate(inv => { const faux = [], net = [];
+      for (const [nom, ch] of inv) { for (const t of ['Marie' + ch, ch + 'Marie', 'Ma' + ch + 'rie', ch, ch + ch, ' ' + ch + ' ', 'A' + ch + ' B' + ch]) { const ok = nomPersonneOk(t) !== null, ph = nomRefus(t); if (ok || !/invisible/.test(ph)) faux.push({ nom, t: JSON.stringify(t), ok, ph }); }
+        const n = nomPersonneNet('Ma' + ch + 'rie' + ch); if (n !== 'Marie') net.push({ nom, n: JSON.stringify(n) }); if (nomPersonneNet(ch) !== '') net.push({ nom, seul: JSON.stringify(nomPersonneNet(ch)) }); }
+      const comb = String.fromCharCode(0x301);
+      return { faux, net, bons: [nomPersonneOk("O'Neil"), nomPersonneOk('Marie-Ève'), nomPersonneOk('E' + comb + 'ric'), nomPersonneOk('Zoé 3'), nomPersonneOk('7')],
+        marques: [comb, comb + comb, '.', '-', ' . ', String.fromCharCode(0x300, 0x36F)].map(t => ({ ok: nomPersonneOk(t), ph: nomRefus(t), net: nomPersonneNet(t) })) }; }, CH);
+    v('J (population) 13 signes × 7 positions (collage, milieu, début, fin, seul, doublé, entouré d\'espaces) : tous refusés avec la phrase « invisible »', r.faux.length === 0, r.faux.slice(0, 5));
+    v('J nomPersonneNet retire chacun de ces signes d\'un nom déjà rangé (et un nom fait d\'eux seuls devient vide)', r.net.length === 0, r.net.slice(0, 5));
+    v('J « O\'Neil », « Marie-Ève », « É » combinant, « Zoé 3 » et « 7 » restent acceptés', r.bons[0] === 'O’Neil' && r.bons[1] === 'Marie-Ève' && r.bons[2] === 'E' + String.fromCharCode(0x301) + 'ric' && r.bons[3] === 'Zoé 3' && r.bons[4] === '7', r.bons);
+    v('J un nom sans AUCUN signe visible (marques seules, point, tiret) est refusé avec une raison, et nettoyé en vide', r.marques.every(x => x.ok === null && x.ph && x.net === ''), r.marques);
+    const res = [];
+    for (const [nom, ch] of CH.filter(x => /3164|115F|FFA0|034F|17B4|FE0F/.test(x[0]))) {
+      for (const champ of ['eq-p', 'eq-n']) { await L.aller(p, 'equipe'); await L.toucher(c, '[data-eq="inviter"]'); await L.calme(p, 250);
+        await p.fill('#eq-p', champ === 'eq-p' ? 'Paul' + ch : 'Paul'); await p.fill('#eq-n', champ === 'eq-n' ? ch : 'Dupont'); await p.fill('#eq-m', 'essai.voisin' + nom.slice(2).toLowerCase() + champ.slice(3) + '@climservices17.fr');
+        await L.toucher(c, '[data-eq="inviterok"]'); await L.calme(p, 400); const ph = await p.evaluate(id => { const e = document.getElementById(id + '-err'); return e && !e.hidden ? e.textContent.trim() : ''; }, champ), cree = await p.evaluate(() => EQUIPE.some(x => /essai\.voisin/.test(x.mail || '')));
+        res.push({ site: 'inviter-' + champ, nom, ph: ph.slice(0, 50), cree }); await ferme(); }
+      for (const champ of ['eqx-mp', 'eqx-mn']) { await E.fiche(c, 'kb'); await L.toucher(c, '[data-eqx="modifier|kb"]'); await L.calme(p, 300); await p.fill('#' + champ, champ === 'eqx-mp' ? ch : 'Benali' + ch); await L.toucher(c, '[data-eqx="modifok|kb"]'); await L.calme(p, 400);
+        const t = await E.toast(p), nom2 = await p.evaluate(() => eqDe('kb').prenom + '|' + eqDe('kb').nom); res.push({ site: 'modifier-' + champ, nom, t: t.slice(0, 60), nom2 }); await ferme(); } }
+    v('J (population) 6 signes × 4 sites = 24 essais par l\'interface', res.length === 24, res.length);
+    v('J INVITER : refusé avec la raison « invisible », personne créée', res.filter(x => x.site.startsWith('inviter')).every(x => /invisible/.test(x.ph) && !x.cree), res.filter(x => x.site.startsWith('inviter') && !(/invisible/.test(x.ph) && !x.cree)).slice(0, 4));
+    v('J MODIFIER : refusé avec la raison « invisible », la fiche ne bouge pas', res.filter(x => x.site.startsWith('modifier')).every(x => /invisible/.test(x.t) && x.nom2 === 'Karim|Benali'), res.filter(x => x.site.startsWith('modifier') && !(/invisible/.test(x.t) && x.nom2 === 'Karim|Benali')).slice(0, 4));
+  });
+
   if (vaut('G')) await jouer('G gestes de compte désactivé', async () => {
     const k = await inviter('Inès', 'Garnier', 'ines.garnier2@climservices17.fr'); if (!k) { v('G (population) Inès invitée', false, k); return; }
     const gs = ['Nouveau téléphone', 'Déconnecter partout'];

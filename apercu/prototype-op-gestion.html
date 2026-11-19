@@ -10822,16 +10822,20 @@ const eqDe = k => EQUIPE.find(p => p.k === k);
 /* un NOM de personne s'écrit dans cent endroits (planning, absences, documents, messages) : on garde une LISTE de ce qui est permis (lettres, chiffres, espace, point, tiret, apostrophe typographique), jamais une liste de ce qui est interdit.
    nomPersonneOk() juge ce qu'on tape (refus avec un message qui dit pourquoi) ; nomPersonneNet() nettoie ce qui est DÉJÀ rangé : même une fiche d'avant, ou venue d'ailleurs, ne peut plus porter de balise */
 /* tour 3 : un signe invisible (espace de largeur nulle, soft hyphen, BOM, marques de sens d'écriture) collé dans un nom ne se voit pas, ne se cherche pas, et un BOM en bout passait même le « trim » : on le refuse sur le texte BRUT, avant tout nettoyage */
-const NOM_INVISIBLE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/;
+/* tour 3, recontrôle : ces signes-ci passent pour des LETTRES ou des MARQUES (\p{L}\p{M}) et ne se voient pas non plus : fillers hangul (U+115F, 1160, 3164, FFA0), liant de graphèmes (034F), voyelles khmères inhérentes (17B4-17B5), sélecteurs mongols et de variation (180B-180D, FE00-FE0F). Les accents combinants légitimes (U+0300-036F, sauf 034F) restent permis */
+const NOM_INVISIBLE = /[\u00AD\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180D\u200B-\u200F\u202A-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0]/;
+const NOM_INVISIBLE_G = new RegExp(NOM_INVISIBLE.source, 'g');
+/* un nom porte au moins un signe VISIBLE (lettre ou chiffre) : des marques seules ne font pas un nom */
+const NOM_VISIBLE = /[\p{L}\p{N}]/u;
 const NOM_PERS_OK = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .’-]{0,59}$/u;
-const nomPersonneOk = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return null; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) ? x : null; };
-const nomPersonneNet = t => String(t == null ? '' : t).replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60);
+const nomPersonneOk = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return null; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim(); return NOM_PERS_OK.test(x) && NOM_VISIBLE.test(x) ? x : null; };
+const nomPersonneNet = t => String(t == null ? '' : t).replace(NOM_INVISIBLE_G, '').replace(/'/g, '’').replace(/[^\p{L}\p{M}\p{N} .’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 60).replace(/^.*$/u, m => NOM_VISIBLE.test(m) ? m : '');
 /* restes équipe : une phrase courte (la liste complète des signes permis tenait sur sept lignes dans une demi-colonne de téléphone) ; elle dit ce qu'on GARDE, un débutant n'a pas besoin de la liste de ce qu'on refuse */
 /* tour 2 : la phrase DIT LA VRAIE RAISON (le premier signe, la longueur, ou un signe interdit) au lieu de redire toute la règle : une seule phrase de 67 signes passait à quatre lignes dans une demi-colonne d'Android (360 px), et « -Marie » était refusé avec une phrase qui ne parlait pas du premier signe */
 const NOM_PERS_REFUS = 'Lettres, chiffres, espaces et tirets seulement.';
 const nomRefus = t => { if (NOM_INVISIBLE.test(String(t == null ? '' : t))) return 'Un signe invisible s’est glissé : retape le nom à la main.'; const x = String(t == null ? '' : t).replace(/'/g, '’').replace(/\s+/g, ' ').trim();
   if (/[^\p{L}\p{M}\p{N} .’-]/u.test(x)) return NOM_PERS_REFUS;
-  if (!/^[\p{L}\p{M}\p{N}]/u.test(x)) return 'Commence par une lettre ou un chiffre.';
+  if (!/^[\p{L}\p{M}\p{N}]/u.test(x) || !NOM_VISIBLE.test(x)) return 'Commence par une lettre ou un chiffre.';
   if (x.length > 60) return '60 signes au plus.';
   return NOM_PERS_REFUS; };
 /* coupeSure : couper à n signes sans scinder un émoji — une coupe qui tombe entre les deux moitiés d'un signe double laissait un « � » dans un nom, un contact ou un expéditeur (texte collé, e-mail reçu) ; on retire la moitié orpheline */
