@@ -8,7 +8,8 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
   await X.compta(c, 'ndf'); const s0 = await S(); v('C0 trois notes attendent, une est déjà validée', s0.att === 3 && s0.val === 1, s0);
   await L.capture(c, X.CAP + `${profil}-parcours-c-ndf.png`);
   // n1 : avec ticket → Valider
-  await L.toucher(c, '[data-cx="doc|ndf|n1"]'); const f1 = await X.panneau(p); v('C1 la fiche de Tom dit le montant (16,50 €), la TVA (10 %) et le ticket', /16,50/.test(f1) && /10 %/.test(f1) && /ticket/i.test(f1), f1.slice(0, 200));
+  await L.toucher(c, '[data-cx="doc|ndf|n1"]'); await p.waitForFunction(() => { const e = document.querySelector('#calque .panneau'); return !!e && e.innerText.length > 60; }, null, { timeout: 4000 }).catch(() => {});   /* la fenêtre s'ouvre avec son seul « ✕ » puis se remplit (fenêtre animée) : on attend son texte plutôt que de lire à l'instant du toucher */
+  const f1 = await X.panneau(p); v('C1 la fiche de Tom dit le montant (16,50 €), la TVA (10 %) et le ticket', /16,50/.test(f1) && /10[\s\u00a0\u202f]%/.test(f1) && /ticket/i.test(f1), f1.slice(0, 200));
   await L.capture(c, X.CAP + `${profil}-parcours-c-fiche.png`);
   await L.toucher(c, '#calque [data-ac="ndfok|n1"]'); const s1 = await S(); const t1 = await X.toasts(p);
   v('C1 « Valider » : une note de moins en attente, une validée de plus', s1.att === 2 && s1.val === 2, s1); v('C1 elle devient une dépense (une pièce de plus aux achats)', s1.ach === s0.ach + 1, { avant: s0.ach, apres: s1.ach });

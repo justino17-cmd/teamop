@@ -10,7 +10,8 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await X.fiche(c, 'fx-val');
   const pop = await p.evaluate(() => document.querySelectorAll('[data-fqte]').length);
   L.v('population : deux champs « Qté » sur la facture à valider', pop === 2, pop);
-  const tape = async v => { const l = p.locator('[data-fqte="0"]').first(); await l.fill(v); await l.press('Tab'); await L.calme(p, 350); };
+  // le champ « Qté » a un maxlength (14) : un texte plus long, posé d'un coup par fill(), est tronqué SANS que le navigateur lève « change » (le geste n'existe pas pour une personne) ; on le TAPE touche par touche, comme elle, et la page tronque, lit, refuse et redit la quantité d'avant
+  const tape = async v => { const l = p.locator('[data-fqte="0"]').first(); if (v.length > 14) { await l.click(); await p.keyboard.press('Control+A'); await p.keyboard.type(v); } else await l.fill(v); await l.press('Tab'); await L.calme(p, 350); };
   const etat = () => p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-val'); return { q: f.lignes[0].q, qn: f.lignes[0].qn, tot: Math.round(totLigne(f.lignes[0]) * 100), ht: Math.round(htDe(f) * 100), champ: document.querySelector('[data-fqte="0"]').value }; });
   await tape('2 h'); let e = await etat(); L.v('« 2 h » : la ligne totalise 2 × 100 € = 200,00 € (le nombre multiplie, l’unité reste écrite)', e.tot === 20000 && e.q === '2 h', e);
   await tape('1 000'); e = await etat(); L.v('« 1 000 » : mille, pas un (100 000,00 €)', e.tot === 10000000 && e.qn === 1000, e);

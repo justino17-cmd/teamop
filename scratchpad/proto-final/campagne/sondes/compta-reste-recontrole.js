@@ -51,9 +51,9 @@ const X = require('./compta-reste-outils.js'), L = X.L, v = L.v;
     // ── la note de frais (nouvelle et modifiée), même lecture ──
     const ndfCas = [['1.234,56', 'ok', 1234.56], ['62,40', 'ok', 62.4], ['1.234', 'refus'], ['200000', 'refus'], ['1e3', 'refus'], ['-3', 'refus']];
     for (const [saisie, attendu, m] of ndfCas) {
-      await X.compta(c, 'ndf', { cat: 'ndf' }); await p.evaluate(() => { try { rlNdfForm(); } catch (e) {} }); await p.waitForTimeout(250);
+      await X.compta(c, 'ndf', { cat: 'ndf' }); await p.evaluate(() => { try { axNdfForm(); } catch (e) {} }); await p.waitForTimeout(250);   /* le geste réel est axNdfForm (le « Note de frais » de la barre, data-rl=ndf, l'intercepte) : rlNdfForm est l'ancien formulaire, sans les champs de kilomètres que axNdfNature relit */
       if (!(await p.evaluate(() => !!document.getElementById('rn-m')))) { v(`R03n · formulaire de note de frais ouvert (« ${saisie} »)`, false, 'rn-m absent'); continue; }
-      await p.selectOption('#rn-o', { index: 0 }); await p.fill('#rn-m', saisie); const av = await etat(); await p.evaluate(() => { const b = document.querySelector('#calque [data-rl="ndfok"]'); if (b) b.click(); }); await p.waitForTimeout(300); const t = await X.toasts(p); const ap = await etat();
+      await p.selectOption('#rn-o', { index: 1 });   /* l'index 0 est « Choisis dans la liste… » (rien n'est choisi d'avance) */ await p.fill('#rn-m', saisie); const av = await etat(); await p.evaluate(() => { const b = document.querySelector('#calque [data-rl="ndfok"]'); if (b) b.click(); }); await p.waitForTimeout(300); const t = await X.toasts(p); const ap = await etat();
       if (attendu === 'ok') v(`R03n · note de frais « ${saisie} » = ${m} € TTC`, ap.ndf === av.ndf + 1 && await p.evaluate(x => Math.abs(NDF[0].ttc - x) < .005, m), { t, avant: av.ndf, apres: ap.ndf });
       else v(`R03n · note de frais « ${saisie} » refusée avec une phrase`, ap.ndf === av.ndf && t.length > 12, t);
       await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} });
