@@ -138,6 +138,7 @@ async function phaseStale(h) {
   v('STALE [NOUVEAU?] Créer retiré PENDANT que la fenêtre est ouverte : l\'envoi est refusé (la fonction hôte.envoyer relit la case)', om2 === om, { om, om2 });
   const refusR1 = await p.evaluate(() => DROITS_REFUS.filter(r => r.fam === 'ml' && r.verbe === 'ecrire').length); v('STALE R1 le refus est tracé (phrase habituelle)', refusR1 >= 1, { refusR1 });
   await p.evaluate(k => { eqDe(k).droits.cats.com.c = 1; }, k);   /* contre-épreuve : la case rendue, le même envoi part */
+  await L.aller(p, 'boiteMail'); await attendreMail(p); await p.evaluate(id => courrierRepondre(mlDe(id), 'repondre'), ids.cli); await L.calme(p, 600);
   await p.evaluate(() => { const r = document.querySelector('[data-opcourrier]').shadowRoot; const t = r.querySelector('#cTo'); if (t) { t.value = 'client@exemple.fr'; r.querySelector('#cSend').click(); } }); await L.calme(p, 8000);
   const om3 = await p.evaluate(() => MAILS.length); v('STALE R1 contre-épreuve : avec la case rendue, l\'envoi part (un message de plus)', om3 === om + 1, { om, om3 });
 }
