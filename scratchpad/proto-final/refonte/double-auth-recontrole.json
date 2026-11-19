@@ -1,6 +1,6 @@
 {
  "lot": "double-auth",
- "etape": "6 sur 6 (recontrôle adverse)",
+ "etape": "6 sur 6 (recontrôle adverse) — tour 3 : correction et recontrôle des 2 constats neufs",
  "date": "2026-11-18",
  "arbre": "/home/user/wt-soeur, tête fusionnée avec origin/claude/op-gestion-interface-yb6p32 à 3f509eab (corrections a3edfc76, 2fff28b6, f368ccee comprises)",
  "regles": [
@@ -17,24 +17,7 @@
   "tout-11"
  ],
  "pasRegles": [],
- "casses": [
-  {
-   "titre": "La Vue d'ensemble et la Clôture du mois de la Comptabilité écrivent encore trois lignes du relevé bancaire, fenêtre de 5 minutes fermée (reste du chemin tout-11)",
-   "gravite": "gênant",
-   "etapes": "Marc (gérant, connecté par le nombre) → attendre plus de 5 minutes (ou « Faire avancer l'horloge ») → Comptabilité → Pilotage › Vue d'ensemble, puis Pilotage › Clôture du mois. Aucune confirmation n'est demandée.",
-   "constat": "Vue d'ensemble : « 3 lignes de la banque à expliquer — VIR SEPA M DURAND JEAN · COMMISSIONS CB OCTOBRE · FRAIS TENUE DE COMPTE » (+ bouton Expliquer). Clôture : « 3 lignes à expliquer : VIR SEPA M DURAND JEAN (300,00 €), COMMISSIONS CB OCTOBRE (−5,94 €), FRAIS TENUE DE COMPTE (−8,40 €) ». Ce sont des lignes du relevé que la porte S5 (compta-banque) cache dans l'onglet Banque : le même contenu passe par un autre chemin. Le recensement par DONNÉES (double-auth-recontrole-recensement.js : 21 rubriques du menu, 25 onglets de la Comptabilité par le clic ET par pose directe de l'onglet) ne trouve que ces deux onglets ; les 3 autres vues sensibles (Fiches de paie, Salariés, Charges) et la Banque sont bien vides de montants, les envois (Envoyer ›, FEC) gardés. Pas une régression des corrections : ces deux textes n'ont jamais été gardés, mais la relecture avait posé la règle « une garde à la porte qui MONTRE » et la correction tout-11 ne les a pas recensés. Pistes (pas appliquées, je ne modifie aucune page) : n'écrire que « 3 lignes de la banque à expliquer » sans libellé ni montant tant que la fenêtre est fermée, ou garder aussi ces deux onglets ; ou le déclarer comme décision de Justin (voir doutes).",
-   "ou": "apercu/prototype-op-gestion.html : carte « lignes de la banque à expliquer » de cxVueTableau et ligne « Chaque ligne de la banque est expliquée » de cxVueCloture (la source : K.rap.aExpliquer)",
-   "sonde": "scratchpad/proto-final/sondes/double-auth-recontrole-recensement.js : 9 ✓ · 2 ✗ (les 2 ✗ sont ce constat ; le reste prouve que la population n'était pas vide : confirmée, salaires et relevé se lisent)"
-  },
-  {
-   "titre": "À 320 px (profil « petit »), le bouton « Confirmer sur mon téléphone » de la carte de verrou déborde de 11 px de son rembourrage",
-   "gravite": "détail",
-   "etapes": "Marc sur un écran de 320 px de large → fenêtre de 5 minutes fermée → Comptabilité → Paie › Fiches de paie (ou Trésorerie › Banque) → annuler la fenêtre de confirmation qui s'ouvre d'elle-même pour voir la carte « Une confirmation est nécessaire ».",
-   "constat": "Carte de 288 px (16 → 304), rembourrage de 16 px ; le bouton fait 265 px de large (33 → 298) pour un contenu de 255 px : il sort de 11 px sur la droite et touche presque le bord de la carte (6 px). Rien ne déborde de la page et rien n'est coupé ; 360 px, 390 px et iPad : bien. Capture lue : cap/double-auth-recontrole/q-verrou-petit-jour.png (le bouton noir va presque au trait de la carte, le rembourrage de gauche fait 16 px, celui de droite 6). Cette carte est neuve (tout-10/tout-11) : le défaut vient des corrections.",
-   "ou": "apercu/prototype-op-gestion.html : carte .sec-verrou de secuVueVerrou (largeur du bouton .btn dans .actions ; lui donner max-width:100% / width:100% sous 340 px)",
-   "sonde": "double-auth-recontrole-parcours.js, P4 : petit ✗ ×2 (fiches, banque), android ✓ ×2"
-  }
- ],
+ "casses": [],
  "sondes": [
   {
    "fichier": "scratchpad/proto-final/sondes/double-tout.sh (dix sondes du lot, une à la fois)",
@@ -43,10 +26,6 @@
   {
    "fichier": "scratchpad/proto-final/sondes/fumee-routes.js",
    "resultat": "396 ✓ · 0 ✗"
-  },
-  {
-   "fichier": "scratchpad/proto-final/sondes/double-auth-mutations.py 200 203 207 (échantillon des mutations du correcteur)",
-   "resultat": "3 mutations jouées · 3 tombent (M200 : tout-10 ; M203 : Banque ouverte d'office ; M207 : nombre plus amené dans l'écran, 687–783 sur 740) ; le lot complet de mutations n'a pas été rejoué"
   },
   {
    "fichier": "scratchpad/proto-final/refonte/double-auth-relecture-tout-sondes/ (sondes de la relecture : t11-nombre, t16-ligne, t20-comme-guide, t25-efface, t29-histo2, t28-histo, t13-journal, t12-compte, t17-pirate, t31/t32-paie, t35-banque, t37-envoi, t36-cadre)",
@@ -63,13 +42,53 @@
   {
    "fichier": "scratchpad/proto-final/sondes/double-auth-recontrole-parcours.js (NEUVE : P1 Karim Android nuit, P2 Marc iPhone nuit, P3 Marc voit comme Sophie sur Mac, P4 carte de verrou à 320 et 360 px)",
    "resultat": "P1 12 ✓ · P2 9 ✓ · P3 5 ✓ · P4 8 ✓ · 2 ✗ (le bouton à 320 px)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/double-tout.sh (les dix sondes du lot + 4 de la banque et de la carte de verrou, une à la fois)",
+   "resultat": "appareils 348, compte 64, equipe 48, fenetre 16, mots 135, pirate 49, securite 45, sensibles 111, vues 57, corrections 40 = 913 ✓ · 0 ✗ ; recensement-banque 19 ✓ · 0 ✗ (avant la correction : 17 ✓ · 2 ✗ avec des fuites sur ensemble, clôture, achats) ; recontrole-recensement 11 ✓ · 0 ✗ (avant 9 ✓ · 2 ✗) ; carte de verrou P4 jour 20 ✓ · 0 ✗ et nuit 20 ✓ · 0 ✗ (petit 320, android 360, iphone 390, ipad) ; toutes code 0"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/fumee-routes.js",
+   "resultat": "396 ✓ · 0 ✗ (rejoué après les corrections du tour 3)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/double-auth-mutations.py 200 à 217 (lot complet du correcteur : 200–207 de l'étape 5, 208–217 neuves)",
+   "resultat": "18 mutations jouées · 18 tombent. Le lanceur imprime pour chacune la ligne touchée (avant/après) : chacune frappe son motif exactement une fois. 208 clôture (lignes), 209 Vue d'ensemble (solde), 210 À faire (libellés), 211 panneau Expliquer non gardé, 212 objet des frais des Achats, 213 panneau non fermé à l'expiration, 214 règle commune « jamais voilée », 215 plus de re-masquage de l'ensemble/clôture, 216 et 217 bouton de la carte de verrou. Une première version de 216/217 restait verte : la sonde P4 ne mesurait pas le texte hors de son rembourrage, et le correctif dédié était redondant avec une règle commune posée par une autre voie : sonde durcie, mutations réécrites sur la règle commune."
   }
  ],
  "doutes": [
-  "Les trois lignes du relevé (VIR SEPA M DURAND JEAN, COMMISSIONS CB, FRAIS TENUE DE COMPTE) sont lisibles sur la Vue d'ensemble et la Clôture du mois sans confirmation, alors que l'onglet Banque est gardé. Est-ce voulu (un simple rappel « à expliquer ») ou veux-tu qu'elles se cachent aussi tant que le téléphone n'a pas confirmé ? Je ne l'ai pas tranché.",
   "Les totaux de la paie (salaires bruts, charges) restent visibles sans confirmation dans la balance, le résultat et le journal (comptes 641, 645, 421) : seuls le détail par personne (Fiches de paie, Salariés) et les charges par organisme sont gardés. À confirmer que c'est bien le périmètre S7 voulu.",
   "Sur Android (360 × 740) et petit (320 × 568), le bouton « Annuler » de l'écran « Confirme sur ton téléphone » est sous le bas de la fenêtre, atteint en faisant défiler ; avec la boîte rouge, aussi sur Mac 1280 × 720 et Windows 1366 × 768. Le nombre, lui, est en vue partout. À accepter ou à remonter.",
   "Rien ici n'est de la sécurité : le téléphone, le nombre, le verrou et la fenêtre de 5 minutes sont simulés dans la page, la console les contourne ; c'est une démonstration de l'expérience, comme la spécification le dit.",
-  "Non vérifié : clavier d'iPhone ouvert devant le champ du nombre, iPad en paysage (1180 × 820), le lot complet des mutations (3 rejouées : 200, 203, 207), les autres lots (sondes non rejouées volontairement : « final-rejeu »), la comparaison avec le prototype de référence du kit (dossier absent de la machine)."
- ]
+  "Les LIVRES de l'entreprise ne sont pas masqués : le journal, le grand livre et la balance montrent le compte 512 (banque) avec son solde d'ouverture (8 412,36 €) et, une fois une ligne de frais expliquée, son écriture (« Commissions cb octobre »). Ce sont des écritures que l'application a posées, pas le relevé brut ; les masquer rendrait la comptabilité illisible sans confirmation. À confirmer que c'est bien le périmètre voulu de S5.",
+  "Les NOMBRES de lignes (« 3 lignes à expliquer », « Banque · 3 ») restent visibles sans confirmation : un compte n'est ni une ligne ni un montant. À confirmer.",
+  "Non vérifié : clavier d'iPhone ouvert devant le champ du nombre, iPad en paysage (1180 × 820), les autres lots (volontairement non rejoués : « final-rejeu »), la comparaison avec le prototype de référence du kit (dossier absent). Le cadre de la Comptabilité a été recensé écran par écran, mais seulement dans l'état de départ (pas après des actions du cadre qui rangent de nouvelles lignes)."
+ ],
+ "tour3": {
+  "constatsPrecedents": [
+   {
+    "titre": "La Vue d'ensemble et la Clôture du mois de la Comptabilité écrivent encore trois lignes du relevé bancaire, fenêtre de 5 minutes fermée (reste du chemin tout-11)",
+    "gravite": "gênant",
+    "etapes": "Marc (gérant, connecté par le nombre) → attendre plus de 5 minutes (ou « Faire avancer l'horloge ») → Comptabilité → Pilotage › Vue d'ensemble, puis Pilotage › Clôture du mois. Aucune confirmation n'est demandée.",
+    "constat": "Vue d'ensemble : « 3 lignes de la banque à expliquer — VIR SEPA M DURAND JEAN · COMMISSIONS CB OCTOBRE · FRAIS TENUE DE COMPTE » (+ bouton Expliquer). Clôture : « 3 lignes à expliquer : VIR SEPA M DURAND JEAN (300,00 €), COMMISSIONS CB OCTOBRE (−5,94 €), FRAIS TENUE DE COMPTE (−8,40 €) ». Ce sont des lignes du relevé que la porte S5 (compta-banque) cache dans l'onglet Banque : le même contenu passe par un autre chemin. Le recensement par DONNÉES (double-auth-recontrole-recensement.js : 21 rubriques du menu, 25 onglets de la Comptabilité par le clic ET par pose directe de l'onglet) ne trouve que ces deux onglets ; les 3 autres vues sensibles (Fiches de paie, Salariés, Charges) et la Banque sont bien vides de montants, les envois (Envoyer ›, FEC) gardés. Pas une régression des corrections : ces deux textes n'ont jamais été gardés, mais la relecture avait posé la règle « une garde à la porte qui MONTRE » et la correction tout-11 ne les a pas recensés. Pistes (pas appliquées, je ne modifie aucune page) : n'écrire que « 3 lignes de la banque à expliquer » sans libellé ni montant tant que la fenêtre est fermée, ou garder aussi ces deux onglets ; ou le déclarer comme décision de Justin (voir doutes).",
+    "ou": "apercu/prototype-op-gestion.html : carte « lignes de la banque à expliquer » de cxVueTableau et ligne « Chaque ligne de la banque est expliquée » de cxVueCloture (la source : K.rap.aExpliquer)",
+    "sonde": "scratchpad/proto-final/sondes/double-auth-recontrole-recensement.js : 9 ✓ · 2 ✗ (les 2 ✗ sont ce constat ; le reste prouve que la population n'était pas vide : confirmée, salaires et relevé se lisent)"
+   },
+   {
+    "titre": "À 320 px (profil « petit »), le bouton « Confirmer sur mon téléphone » de la carte de verrou déborde de 11 px de son rembourrage",
+    "gravite": "détail",
+    "etapes": "Marc sur un écran de 320 px de large → fenêtre de 5 minutes fermée → Comptabilité → Paie › Fiches de paie (ou Trésorerie › Banque) → annuler la fenêtre de confirmation qui s'ouvre d'elle-même pour voir la carte « Une confirmation est nécessaire ».",
+    "constat": "Carte de 288 px (16 → 304), rembourrage de 16 px ; le bouton fait 265 px de large (33 → 298) pour un contenu de 255 px : il sort de 11 px sur la droite et touche presque le bord de la carte (6 px). Rien ne déborde de la page et rien n'est coupé ; 360 px, 390 px et iPad : bien. Capture lue : cap/double-auth-recontrole/q-verrou-petit-jour.png (le bouton noir va presque au trait de la carte, le rembourrage de gauche fait 16 px, celui de droite 6). Cette carte est neuve (tout-10/tout-11) : le défaut vient des corrections.",
+    "ou": "apercu/prototype-op-gestion.html : carte .sec-verrou de secuVueVerrou (largeur du bouton .btn dans .actions ; lui donner max-width:100% / width:100% sous 340 px)",
+    "sonde": "double-auth-recontrole-parcours.js, P4 : petit ✗ ×2 (fiches, banque), android ✓ ×2"
+   }
+  ],
+  "regles": [
+   "recontrole-1",
+   "recontrole-2"
+  ],
+  "pasRegles": [],
+  "casses": [],
+  "resume": "Constat 1 : 5 endroits de la page principale écrivaient la banque (étape « banque » de la Clôture, deux cartes de trésorerie, liste « À faire », objet des lignes de frais des Achats) + le panneau « Expliquer » ; tous derrière secuBanqueVoilee(), la règle de l'onglet Banque ; ensemble/clôture/achats se re-masquent à l'expiration, le panneau se ferme. Cadre de la Comptabilité (iframe) recensé : aucune fuite hors de son onglet Banque (gardé). Constat 2 : réglé par la règle commune .actions .btn posée entre-temps par une autre voie (le correctif dédié a été retiré) ; la sonde le garde désormais."
+ }
 }

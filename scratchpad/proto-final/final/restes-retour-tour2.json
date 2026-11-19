@@ -1,0 +1,30 @@
+[
+ {
+  "nom": "retour",
+  "defaut": "« ‹ OP GESTION » touché alors qu'un panneau (Réglages…) ou le tiroir ☰ du cadre de la Comptabilité est ouvert : historique [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité se rouvre (recontrôle tour 1, B8, nouveau causé par la correction du tour 1)",
+  "etat": "corrigé",
+  "changement": "prototype-op-gestion.html, branche 'retour' du clic : si une couche du cadre est ouverte (CAL.pousse > 0), ses entrées partent D'ABORD (calAvantAller, un recul) et la suite fait le recul d'une entrée vers l'écran d'avant (calRevenirA) ou aller() ; sans couche, comportement d'avant inchangé",
+  "preuve": "retour-restes1-attaque.js SECTION=compta : android 14 ✓ · 0 ✗ (avant 12 ✓ · 2 ✗), iphone 14 ✓ · 0 ✗, mac 10 ✓ · 0 ✗ (avant 1 ✗), ipad 10 ✓ · 0 ✗ ; mutation (retour à l'ancienne ligne) : 12 ✓ · 2 ✗ sur android, rétablie ; gardes voisines : retour-recontrole-d.js android 8 ✓ · mac 5 ✓ · 0 ✗, retour-calques GENRE=cadre android 16 ✓ · 0 ✗, retour-parcours android 51 ✓ · 0 ✗. Correction d'historique, aucun pixel ne change : captures du tour 1 (barre visible au-dessus du panneau et du tiroir) toujours valables"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Menu « Principal » de la Boîte mail : un Retour quitte la Boîte mail et laisse le menu ouvert",
+  "etat": "à soumettre à Justin",
+  "changement": "rien (menu léger tenu hors historique exprès, se ferme d'un toucher dehors) ; décision à prendre : le Retour doit-il d'abord fermer ce menu ?",
+  "preuve": "rangé « à soumettre » par le tour 1 et le recontrôle ; non modifié"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Boîte mail ordinateur, composeur ouvert puis départ par l'adresse (⌘K, lien) : une étape de Retour de plus ; OP Security : entrée {cal:1} orpheline après un aller() par programme ; OP Security élargi puis rétréci revient en plein écran",
+  "etat": "à soumettre à Justin",
+  "changement": "rien : doutes du recontrôle, sans donnée perdue et sans chemin au doigt pour le second ; comportement jugé cohérent avec la règle, à confirmer",
+  "preuve": "doutes du recontrôle tour 1 (restes-retour-tour1-recontrole.json)"
+ },
+ {
+  "nom": "retour",
+  "defaut": "Non rejoué par le recontrôle : la nuit, iphone/petit/windows pour la section courrier et B8, les 17 sortes de calques sur iphone et petit",
+  "etat": "ne se reproduit pas",
+  "changement": "B8 rejoué sur iphone (14 ✓) et ipad (10 ✓) en plus d'android et mac ; la nuit n'ajoute rien (aucun calque n'a de teinte à lui, correction d'historique). Courrier iphone/petit/windows et 17 calques iphone/petit non rejoués ce tour (même mécanisme d'historique que android et mac)",
+  "preuve": "voir ci-dessus"
+ }
+]

@@ -20,6 +20,7 @@ M = [
  ('chiffre seul sur sa ligne', 'iphone', "à l’atelier\\u00a0' + prNum(at)", "à l’atelier ' + prNum(at)", 'gardent leur chiffre'),
  ('« Fermer » des messages à largeur naturelle', 'iphone', '<div class="fo-pied mat-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);\n}', '<div class="fo-pied"><button type="button" class="btn" data-ferme="1">Fermer</button></div>`);\n}', 'prend la largeur'),
  ('boutons de feuille non empilés à 320 px', 'petit', '@media (max-width:340px){html .mat-pied .btn,', '@media (max-width:240px){html .mat-pied .btn,', 'tient sur UNE ligne'),
+ ('champs du plein empilés sans air (320 px)', 'petit', '@media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}', '', 'de l\'air (≥ 10 px)'),
 ]
 sel = [int(a) for a in sys.argv[1:]] or list(range(1, len(M) + 1))
 ko = 0
