@@ -87,6 +87,22 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
     v('population : ' + CH.length + ' champs joués, ' + champsVus + ' retrouvés à l’écran avec un maxlength', champsVus === CH.length, champsVus);
     v('population : ' + collages + ' collages réels (clavier, événements de confiance) joués', collages >= CH.length * 4, collages);
   }
+
+  // ─────────── 4. un signe de contrôle non blanc entre deux mots est une espace ───────────
+  if (SECTIONS.includes('ctrl')) {
+    const cas = [['Code\u0007portail', 'Code portail'], ['Code\u0007\u0001\u0002portail', 'Code portail'], ['Code \u0007 portail', 'Code portail'], ['\u0007Marie Dupont\u0007', 'Marie Dupont'], ['Marie\u007fDupont', 'Marie Dupont'], ['Marie\u0085Dupont', 'Marie Dupont'], ['Marie\u009fDupont', 'Marie Dupont'], ['A\u0000B', 'A B'], ['a\u001bb', 'a b'], ['Rue\u0008du\u000cPort', 'Rue du Port'], ['  deux   espaces  ', 'deux espaces'], ['\u0007\u0007', ''], ['Marie\tDupont\r\nMartin', 'Marie Dupont Martin']];
+    const r = await p.evaluate(cas => cas.map(([e]) => ({ e, libelle: libelleSur(e, 80), nom: cliNet({ nom: e }).nom, contact: cliNet({ contact: e }).contact, adr: cliNet({ adr: e }).adr })), cas);
+    v('population : ' + cas.length + ' chaînes à signes de contrôle × 4 chemins (libelleSur, nom, contact, adresse) = ' + cas.length * 4 + ' résultats', r.length === cas.length && r.every(x => typeof x.libelle === 'string'), r.length);
+    r.forEach((x, i) => { const att = cas[i][1]; v('« ' + JSON.stringify(x.e).slice(1, -1) + ' » → « ' + att + ' » (libellé, nom, contact, adresse)', x.libelle === att && x.nom === (att || 'Nouveau client') && x.contact === att && x.adr === att, [x.libelle, x.nom, x.contact, x.adr]); });
+    // les lignes d'accès : le contrôle entre deux mots dans UNE ligne, le saut de ligne reste un saut
+    const a = await p.evaluate(() => accesNet('Code\u0007portail 4821\nSonner\u0001chez\u0002la gardienne', 200));
+    v('consignes d’accès : « Code\\u0007portail 4821 » et « Sonner\\u0001chez\\u0002la gardienne » → deux lignes, espaces simples', a === 'Code portail 4821\nSonner chez la gardienne', JSON.stringify(a));
+    // jusqu'au bout : la fiche réelle (champ rempli, bouton Enregistrer)
+    await p.evaluate(async () => { window.__k0 = Object.keys(CLIENTS).find(k => k !== '__nv' && CLIENTS[k].tel); aller('client-x-' + window.__k0); await new Promise(r => setTimeout(r, 500)); ongletClient = 'infos'; rendre(); await new Promise(r => setTimeout(r, 600)); });
+    await p.evaluate(() => { window.__set('[data-ci="contact"]', '\u0007Marie\u0007Dupont\u0001'); window.__set('[data-ci="acces"]', 'Code\u0007portail\nLocal\u0001à gauche'); document.querySelector('[data-action="clientEnreg"]').click(); });
+    await pause(500); const f = await p.evaluate(() => ({ contact: CLIENTS[window.__k0].contact, acces: CLIENTS[window.__k0].acces }));
+    v('fiche client enregistrée : contact « Marie Dupont » (contrôles aux bords retirés, un au milieu = espace), accès « Code portail / Local à gauche »', f.contact === 'Marie Dupont' && f.acces === 'Code portail\nLocal à gauche', f);
+  }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);

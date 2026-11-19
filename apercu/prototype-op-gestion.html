@@ -10791,7 +10791,8 @@ const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Arra
 const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
-const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+/* un signe de CONTRÔLE (C0, DEL, C1) entre deux mots est une ESPACE, jamais rien : « Code\u0007portail » restait « Codeportail » ; en tête ou en fin, rogné il disparaît */
+const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[<>"`\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 /* LE MAXLENGTH DU NAVIGATEUR COMPTE DES UNITÉS UTF-16, L'UTILISATEUR DES SIGNES (tour 5) : collé, un drapeau (4 unités) était coupé en lettre régionale seule, et l'on enregistrait une moitié de drapeau.
    Sur tout champ à maxlength, la coupe FINE se fait ici, à la frappe et au collage (événements de l'UTILISATEUR seulement : e.isTrusted) :
    - beforeinput : le texte inséré est posé par nous, coupé par GRAPHÈMES à la place restante — le navigateur ne coupe plus au milieu d'un signe ;
