@@ -5561,6 +5561,8 @@ let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, p
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let annonceurFaits = null;    // les annonces « Je viens de… » dans Équipe (`agent-faits.js`) : `null` = pas montées, les agents ne les écrivent pas — le travail, lui, se fait quand même
+/* ⛔ AGENTS RETIRÉS (19/11/2026) : verrouillé sauf `config.agents.retires === false` (cerveau.js) */
+const AGENTS_RETIRES = !(config.agents && config.agents.retires === false);
 let alertesBudgetJour = null; // ce que Justin voit quand un budget du jour se remplit (`agent-budget-jour.js`) : `null` = pas monté, le budget se tient quand même (`cerveau.js`)
 let paulineMod = null;       // le pont de Pauline (`pauline.js`) : sa fonction `decider` sert aussi aux réponses « NON <n> » d'OP MESSAGES (`pont-messages.js`)
 let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
@@ -11645,7 +11647,7 @@ try {
        agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
        `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),
-      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi),
+      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(!AGENTS_RETIRES && config.agents && config.agents.cleApi),
       /* L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : liaison TARDIVE — `agent-faits.js` se monte juste après les conversations. Une tâche terminée, une demande préparée, une validation exécutée, une tâche
          qui expire : « Je viens de… » dans Équipe, hors plafonds, sans réveiller personne. */
       surFait: f => { if (annonceurFaits) annonceurFaits.annoncer(f); },
@@ -11703,7 +11705,7 @@ try {
     /* CE QUE JUSTIN VOIT QUAND UN BUDGET DU JOUR SE REMPLIT : 80 % -> notification, 100 % -> une ligne dans le fil privé de l'agent, le filet -> une ligne dans Équipe et une notification urgente. */
     alertesBudgetJour = require('./agent-budget-jour')({ agents: agentsMod, conversations: conversationsMod, pousseNotif });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
-    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '',
+    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: AGENTS_RETIRES ? '' : ((config.agents && config.agents.cleApi) || '') /* retirés : la clé n'est même pas lue (19/11/2026) ; lue seulement pour les bancs, `retires:false` */, retires: AGENTS_RETIRES,
       /* LE BUDGET DU JOUR (28 octobre 2026) : les seuils de `cerveau.js` se règlent ICI, sur le VPS (`config.agents.budgetJour = { agentMin, agentPct, nonRacine, filet, alerte }`), jamais dans le dépôt —
          c'est le « relever aujourd'hui » de Justin : une valeur hors forme garde le défaut. */
       plafondsJour: config.agents && typeof config.agents.budgetJour === 'object' ? config.agents.budgetJour : undefined, surBudget: x => alertesBudgetJour(x),
@@ -11721,7 +11723,7 @@ try {
     const outilsLectureMod = require('./agents-outils-lecture')({ get brouillons() { return brouillonsMod; }, get louis() { return louisMod; }, agents: agentsMod, get faits() { return faitsAgents; },
       margaux: () => agentMargaux });
     console.log('agents : mode travail ' + (travailMod.interrupteur().length ? 'ALLUMÉ pour ' + travailMod.interrupteur().join(', ') : 'coupé (agents.travail)'));
-    console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
+    console.log('cerveau : ' + (AGENTS_RETIRES ? 'AGENTS RETIRÉS (19 novembre 2026) : aucun appel à Anthropic' : (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas') + ' (agents.retires:false)'));
     /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
        et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
     const faitsDossier = async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
@@ -11876,7 +11878,8 @@ try {
       /* ⛔ `agents.reunionsAuto: false` coupe la MINUTERIE, pas les réunions (les routes restent). C'est le réglage des BANCS qui démarrent le vrai serveur : sans
          lui, un banc lancé le vendredi entre 18 h et 23 h (heure de Paris) ou le lundi matin voyait la réunion due partir pendant qu'il comptait les appels à Claude
          et les messages des agents — trois suites tombaient chaque vendredi soir, déploiement compris (23 octobre 2026). Sans réglage, la minuterie tourne. */
-      if (config.agents && config.agents.reunionsAuto === false) console.log('agents : réunions montées SANS minuterie (agents.reunionsAuto: false)');
+      if (AGENTS_RETIRES) console.log('agents : réunions montées SANS minuterie (agents retirés, 19/11/2026)');
+      else if (config.agents && config.agents.reunionsAuto === false) console.log('agents : réunions montées SANS minuterie (agents.reunionsAuto: false)');
       else {
         setTimeout(ticReunions, 5000).unref();
         setInterval(ticReunions, 60000).unref();
@@ -11890,7 +11893,8 @@ try {
       revueMod = require('./agents-revue')(app, { DATA_DIR, monPatronStrict, agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, pousseNotif,
         equipe: () => agentEquipe, reunions: () => reunionsMod });
       const ticRevue = () => { try { revueMod.tic(); } catch (e) { console.error('revue du week-end :', e.message); } };
-      if (config.agents && config.agents.reunionsAuto === false) console.log('agents : revue du week-end montée SANS minuterie (agents.reunionsAuto: false)');
+      if (AGENTS_RETIRES) console.log('agents : revue du week-end montée SANS minuterie (agents retirés, 19/11/2026)');
+      else if (config.agents && config.agents.reunionsAuto === false) console.log('agents : revue du week-end montée SANS minuterie (agents.reunionsAuto: false)');
       else {
         setTimeout(ticRevue, 7000).unref();
         setInterval(ticRevue, 60000).unref();
@@ -12030,7 +12034,7 @@ try {
         courriels: (depuis) => (brouillonsMod && typeof brouillonsMod.envoyes === 'function' ? brouillonsMod.envoyes(depuis) : null),
         courrier: faitsAgents.courrier, reprise: faitsAgents.reprise, clients: faitsAgents.clients });
       Object.assign(faitsAgents, plateformeMod.faits);          // plateforme, incidents, sauvegardes, conservation, securite, contrats, qualite (lus par la messagerie, rôle par rôle)
-      plateformeMod.demarrer();
+      if (!AGENTS_RETIRES) plateformeMod.demarrer(); // agents retirés : aucune minuterie qui se réveille pour rien
       console.log('agents : plateforme montée (Max, Jules, Théo, Nina, Inès, Victor)');
     } catch (e) { plateformeMod = null; console.error('agents de la plateforme indisponibles :', e.message); }
     /* L'EXAMEN DE L'ÉQUIPE (`examen.js`, cahier §13) : les neuf scénarios joués avec le VRAI modèle sur une équipe d'ESSAI (modules réels, dossier temporaire, faits et
@@ -12041,7 +12045,7 @@ try {
     try {
       const capaciteCamille = nom => { try { return (require('./agent-camille').CAPACITES || []).includes(nom); } catch (e) { return false; } };
       examenMod = require('./examen')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, pousseNotif, mail: { signature: messagerieTour.signature },
-        cleApi: (config.agents && config.agents.cleApi) || '',
+        cleApi: AGENTS_RETIRES ? '' : ((config.agents && config.agents.cleApi) || ''), retires: AGENTS_RETIRES,
         capacites: { signatureAgent: !!(signaturesMod && typeof signaturesMod.composer === 'function'), controleQualite: typeof require('./agents-controle').fautesDuCode === 'function',
           remboursement: capaciteCamille('remboursement'), resiliation: capaciteCamille('resiliation') } });
       console.log('agents : examen de l’équipe monté');

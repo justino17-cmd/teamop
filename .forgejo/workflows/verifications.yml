@@ -1,0 +1,40 @@
+name: Vérifications (atelier)
+
+# LES VÉRIFICATIONS SUR NOS MACHINES (19 novembre 2026) — étape 1 du départ de GitHub (scratchpad/demenagement/PLAN.md).
+# Même travail que .github/workflows/ci.yml, joué par la forge de l'atelier et son exécuteur « atelier:host » (le compte
+# atelier, sans droit d'administration). Tant que GitHub n'est pas gelé, les deux tournent EN PARALLÈLE et on compare.
+# ⛔ Aucun secret ici : ce travail ne déploie rien, il lit le code et lance les bancs.
+
+on:
+  push:
+    branches: ['**']
+
+concurrency:
+  group: verifications-${{ forge.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    runs-on: atelier
+    timeout-minutes: 45
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+
+      - name: Recherche de secrets
+        run: bash scripts/verif-secrets.sh --suivis
+
+      - name: Failles connues (dépendances du serveur)
+        run: npm audit --omit=dev --audit-level=high --prefix server
+
+      - name: Dépendances des serveurs
+        run: |
+          npm ci --omit=dev --no-audit --no-fund --prefix server
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+
+      - name: Syntaxe
+        run: |
+          node scripts/verifier-syntaxe.js
+          for f in server/*.js; do node --check "$f" || exit 1; done
+
+      - name: Tous les bancs, en parallèle
+        run: bash scripts/atelier/bancs-paralleles.sh 8

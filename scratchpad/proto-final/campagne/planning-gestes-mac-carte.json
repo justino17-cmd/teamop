@@ -11,7 +11,6 @@
    "touche": true,
    "change": [
     "panneau",
-    "contenu",
     "calque"
    ],
    "hash": "#planning",
@@ -28,6 +27,7 @@
    "h": 46,
    "touche": true,
    "change": [
+    "contenu",
     "fenetre",
     "fenTitre"
    ],
@@ -457,7 +457,6 @@
    "touche": true,
    "change": [
     "panneau",
-    "contenu",
     "calque"
    ],
    "hash": "#planning",
@@ -508,7 +507,6 @@
    "touche": true,
    "change": [
     "panneau",
-    "contenu",
     "calque"
    ],
    "hash": "#planning",

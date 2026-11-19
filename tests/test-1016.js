@@ -156,7 +156,10 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   const conf = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'b1016c-')), 'config.json');
   fs.writeFileSync(conf, JSON.stringify({ vapidPublicKey: 'pub', autre: { garde: 1 } }));
   const S2 = crypto.randomBytes(32).toString('hex');
-  const outil = (args, entree) => spawnSync(process.execPath, [OUTIL].concat(args), { input: entree, encoding: 'utf8', env: Object.assign({}, process.env, { TEAMOP_CONFIG: conf, TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:1' }) });
+  /* Un port LIBRE, pas « :1 » : l'outil n'admet qu'un port de 2 à 5 chiffres (urlBanc) et retombait sur 8091 — muet ici par chance,
+     mais sur l'atelier une bêta d'OP MESSAGES y écoute (404), et le banc tombait (forge, 19/11). */
+  const PORT_MUET = await libre();
+  const outil = (args, entree) => spawnSync(process.execPath, [OUTIL].concat(args), { input: entree, encoding: 'utf8', env: Object.assign({}, process.env, { TEAMOP_CONFIG: conf, TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:' + PORT_MUET }) });
   let x = outil(['beta'], S2 + '\n');
   const lu = JSON.parse(fs.readFileSync(conf, 'utf8'));
   v('l\'outil pose le secret de l\'instance demandée, et rien d\'autre ne bouge', [x.status, lu.messagesAdmin && lu.messagesAdmin.beta === S2, lu.autre, lu.vapidPublicKey], [0, true, { garde: 1 }, 'pub']);

@@ -1,0 +1,75 @@
+{
+ "regles": [
+  "(a) retour système du Temps de travail : l'état d'historique tient. Retour 100 ms après un vrai clic d'ancre → Paie (puis avance → Paie) ; rechargement sur la Paie puis retour → vue valide ; pointage → retour → clients → avance, sans erreur ; adresse tapée au milieu de l'historique = entrée neuve (Aujourd'hui) ; deux changements d'adresse dans le même tick puis retour → écran valide. mac, android (28 ✓), iphone (36 ✓ avant correction de mes attentes) — 0 erreur de page",
+  "(b) semaines non validées : 1,3,4,7 → trois plages exactes (7) · (4-3) · (1) ; passage d'année (21/12→4/01 contiguës, 18/01 isolée) ; changement d'heure du 25/10 sans effet (une plage 19/10→8/11) ; liste vide → chaîne vide ; désordre trié ; sur l'écran Équipe, carte dans la largeur, retour à la ligne propre (captures mac, iphone jour, iphone nuit relues à l'œil)",
+  "(c) Boîte mail : PDF ouvert sur un brouillon tapé puis adresse tapée → PDF fermé, page Clients non inerte, brouillon gardé ; Retour système depuis Clients → Boîte mail sans PDF, brouillon intact ; un seul Retour avec PDF ouvert → seul le PDF part ; feuille « Ajouter une boîte mail » fermée par Retour, par l'adresse, et se rouvre ensuite ; menu (ov-menu) toujours fermé au départ (non-régression). mac, iphone, android — pas d'entrée fantôme du PDF",
+  "(d) C1 : particulier Nom 110 + Prénom 20 → marque sur Nom ; Nom 20 + Prénom 110 → marque sur Prénom ; pro Raison sociale 121 → marque sur la raison ; pro Raison 110 + contact court passe ; « Jean-Éric O’Brien & Fils » créé avec apostrophe et & intacts. mac, iphone, android",
+  "(e) C2 : 5 000 U+0301 collés dans tel, mail, adresse, contact après « aaaaa » → rien d'ajouté (5 unités) ; « é » décomposés ×3 000 → 120 signes / 240 unités ; 120 drapeaux collés tous gardés (480 unités) ; saisie normale « L’Hôtel du Port & Fils — Éric O’Neill (SARL) 17000 » intacte ; le 120e signe passe (119 x + « éa »)",
+  "(g) R5 : motif Modifier borné à 600 au collage, 30 lignes avec sauts de ligne enregistrées sans refus, ancien motif de 700 signes → phrase « limité à 600 signes » + focus sur le champ puis enregistrement possible après raccourcissement ; note de tâche normale créée ; données de démonstration toutes ≤ 600",
+  "(h) N-b : anneau 3 px plein rouge sur [aria-invalid=true]:focus (rgb(176,38,60) jour, rgb(255,125,142) nuit), absent avec aria-invalid=false ou sans la marque, absent quand le champ perd le focus ; mac, iphone, android, jour ET nuit ; captures jour (mac, iphone) et nuit (android) relues : anneau rouge net, message lisible",
+  "fumée : fumee-routes.js 396 ✓ 0 ✗ ; aucun contrôle retiré des sondes dans 861ccc2f sauf une assertion assouplie (voir doutes)"
+ ],
+ "pasRegles": [
+  {
+   "n": "(f) R1 Ctrl+Z — variante effacer/réduire puis annuler",
+   "constat": "Fiche de 150 pour un plafond de 120 : tout sélectionner + Suppr puis Ctrl+Z revient à 120 (pas 150) ; 40 Retour-arrière (110) puis Ctrl+Z revient à 120 (pas 150). Cause : _tenait est lu sur la valeur d'AVANT le geste, qui tient alors dans le plafond, donc l'annulation est recoupée. Identique avant 861ccc2f (mesuré sur l'archive de 861ccc2f~1) : le correctif ne couvre que Backspace d'un caractère puis Ctrl+Z. mac, iphone, android, jour et nuit. Perte réelle : 30 signes d'une fiche ancienne trop longue."
+  },
+  {
+   "n": "(f) Ctrl+Z après un collage coupé",
+   "constat": "Coller 200 signes dans « abc » (coupé à 120) puis Ctrl+Z ne rend pas « abc » : le texte coupé reste (120 signes). setRangeText hors pile d'annulation. Identique avant 861ccc2f ; hors périmètre déclaré mais l'utilisateur perd son Ctrl+Z."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Un corps de courriel préparé par l'application de plus de 5 000 signes est refusé à l'envoi sans que le champ ait pu le recevoir tronqué",
+   "gravite": "mineure (limite théorique)",
+   "etapes": "panneauEnvoi({corps: relance de 120 lignes, 6 000 signes}) → renseigner le destinataire → Envoyer",
+   "constat": "Refus « limité à 5000 signes, ce texte en fait 5999 » ; l'utilisateur doit raccourcir à la main. Non joué avec un vrai texte généré : aucune préparation existante trouvée au-dessus de 5 000, à confirmer par un relevé des 13 appels de panneauEnvoi."
+  },
+  {
+   "titre": "Assertion de sonde assouplie",
+   "gravite": "information",
+   "etapes": "git show 861ccc2f -- scratchpad/proto-final/sondes/restes-securite-tour5bis-recontrole-a.js",
+   "constat": "« recoller ces 10 signes : 150 » est devenu « ≥ 140 ». Mesuré : après le correctif couper 10 puis coller donne 140 exactement (l'ancien code recoupait à 120), donc l'assouplissement est justifié mais l'assertion accepte maintenant 140 à 150 ; la valeur exacte 140 serait plus tranchante."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-soeur3-a.js",
+   "resultat": "mac, android : 28 ✓ 0 ✗ (après correction de mes deux attentes fausses : le drapeau « Voir la paie » tombe en passant par Accueil, et la route 'agenda' n'existe pas) ; première passe mac, iphone, android : 36 ✓ 6 ✗ dus à mes attentes, non au code"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-soeur3-b.js",
+   "resultat": "mac, iphone, android jour : 26 ✓ 1 ✗ (mesure prise pendant l'entrée du panneau, 1458 > 1440 ; la capture montre le panneau en place) ; iphone nuit 9 ✓ 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-soeur3-c.js",
+   "resultat": "mac, iphone, android jour : 42 ✓ + 3 ✗ de ma première attente (second Retour) ; rejoué avec suite de Retours : mac sort en 2 crans ; iphone/android : la feuille « garder le brouillon » boucle (voir doutes)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/recontrole-soeur3-d.js",
+   "resultat": "jour mac, iphone, android : 96 ✓ 9 ✗ (F1, F2, F3 ×3 profils, les pasRegles ci-dessus) ; nuit : 96 ✓ 9 ✗ identiques ; tous les contrôles C1, C2, R5, N-b verts"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/fumee-routes.js",
+   "resultat": "396 ✓ 0 ✗"
+  }
+ ],
+ "capturesVues": [
+  "semaines-mac.png",
+  "semaines-iphone.png",
+  "semaines-iphone-nuit.png",
+  "c1-iphone.png (brouillon + pièce jointe)",
+  "d-refus-mac.png",
+  "d-refus-iphone.png",
+  "d-refus-android-nuit.png",
+  "recap-nom-long-mac.png"
+ ],
+ "doutes": [
+  "Retour système sur iPhone/Android avec un brouillon non vide : la feuille « Garder le brouillon ? » apparaît, un Retour la ferme, le suivant la rouvre — en boucle (4 Retours mesurés), le message reste ouvert ; sur mac le premier Retour referme le message. Code de popstate non touché par 861ccc2f : probablement antérieur, non rapproché de l'ancienne version.",
+  "Récapitulatif de la fenêtre de création : un nom de 131 lettres sans espace chevauche l'étiquette « Client » (capture d-refus-mac). Texte irréaliste, non rapproché de l'ancienne version ; avec un nom réaliste à espaces, la carte n'affichait pas encore le nom (créneau non placé).",
+  "_tenait peut rester périmé si un beforeinput est annulé sans input suivant ; sans effet constaté.",
+  "maxlength natif des textareas compte des unités UTF-16 : 300 émojis seulement dans 600 — non mesuré à l'écran.",
+  "Non joué : retour système depuis d'autres écrans que pointage/Paie en navigation réelle sur Windows/iPad ; PDF ouvert depuis la lecture d'un message reçu (seule la composition l'a été)."
+ ]
+}

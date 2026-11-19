@@ -33,7 +33,7 @@ const empreinteDe = (dossier) => { const out = {}; const parcours = (d, pref) =>
   fs.writeFileSync(path.join(voisin, 'precieux.json'), '{"a":"ne pas toucher"}'); fs.writeFileSync(path.join(voisin, 'profond', 'autre.txt'), 'autre');
   fs.writeFileSync(path.join(banc, 'temoin.txt'), 'je suis à côté de TEAMOP_DATA');
   const fauxA = B2.fauxAnthropic(); await new Promise(r => fauxA.s.listen(0, '127.0.0.1', r));
-  const S = await B2.lancer({ essai: true, banc, anthropic: fauxA, config: { mailPreuveExigee: false, agents: { cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } } }); vivants.push(S);
+  const S = await B2.lancer({ essai: true, banc, anthropic: fauxA, config: { mailPreuveExigee: false, agents: { retires: false, cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } } }); vivants.push(S);
   vrai('le serveur de test démarre', S.vivant);
   vrai('le semis est fait', await attendre(() => fs.existsSync(path.join(S.D, 'essais-semis.json')), 200));
   const cle = S.CLE, avecCle = (r, c) => r + '?cle=' + (c === undefined ? cle : c);

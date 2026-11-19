@@ -437,7 +437,7 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     const CR = require(path.join(RACINE, 'server', 'cerveau.js'));
     const reqs = []; let reponse = { texte: 'Bonjour', entree: 10, sortie: 10, stop_reason: 'end_turn', actions: [] };
     const D = path.join(banc, 'cerveau'); fs.mkdirSync(D, { recursive: true });
-    const C = CR({ DATA_DIR: D, agents: { AGENTS: [{ id: 'max', plafondUsd: 15 }], peutAgir: () => ({ ok: true }), noter() {} }, cleApi: 'sk-ant-banc', appeler: async (cle, req) => { reqs.push(req); return reponse; } });
+    const C = CR({ DATA_DIR: D, agents: { AGENTS: [{ id: 'max', plafondUsd: 15 }], peutAgir: () => ({ ok: true }), noter() {} }, retires: false, cleApi: 'sk-ant-banc', appeler: async (cle, req) => { reqs.push(req); return reponse; } });
     const OUTILS = EQ.outilsDe('max', { fils: ['max'], collegues: ['lea'] });
     const msg = [{ role: 'user', content: 'Salut' }];
     let r = await C.penser('max', 's', msg, { outils: OUTILS, reflechir: true });
