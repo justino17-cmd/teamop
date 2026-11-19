@@ -176,5 +176,5 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
   }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
-  const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
+  const ko = L.bilan(); await L.fermer(); process.exit(ko);
 })().catch(async e => { console.error('SONDE EN PANNE', e); try { await L.fermer(); } catch (x) {} process.exit(2); });
