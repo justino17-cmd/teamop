@@ -3759,6 +3759,7 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+@media (max-width:420px){.deux-champs.ctr-fact{grid-template-columns:minmax(0,1fr)}}   /* Composer un contrat, au téléphone : à 360 px « à chaque visite » était coupé (« à chaque vis ») et la date passait sur trois lignes dans une demi-colonne ; les deux champs se lisent chacun sur leur ligne (restes contrats, tour 6, capture Android) */
 /* regard technicien b (320 px) : les deux champs du plein sont empilés, et la ligne « toutes taxes comprises » collait au libellé du champ suivant (on la lisait comme son titre) : de l'air entre les deux champs */
 @media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}
 
@@ -6004,7 +6005,7 @@ function vueContratNouveau(){
     <label class="champ">Client<select data-b="cli">${Object.entries(CLIENTS).filter(([k, c]) => !c.archive || B.cli === k).map(([k,c])=>`<option value="${k}" ${B.cli===k?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <label class="champ">Ce qui est couvert (appareils, lieux)<input data-b="lieu" value="${esc(B.lieu)}" placeholder="ex. la chaudière du sous-sol"></label>
     <div class="deux-champs"><label class="champ">Visites par an<select data-b="freq">${[1,2,4,6,12].map(x=>`<option value="${x}" ${+B.freq===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="champ">Prix par an (HT)<input inputmode="decimal" data-b="prix" value="${esc(typeof B.prix === 'number' ? String(B.prix).replace('.', ',') : String(B.prix == null ? '' : B.prix))}"><span class="faible mini">${esc(ctrPrixRefus(B.prix)) || 'soit ' + eur(ctrTTC(ctrPrixApercu(B.prix), B)) + ' TTC (TVA ' + ctrTva(B) + ' %)'}</span></label></div>
-    <div class="deux-champs"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
+    <div class="deux-champs ctr-fact"><label class="champ">Facturation<select data-b="fact">${Object.entries(FACT_LIB).map(([k,l])=>`<option value="${k}" ${B.fact===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="champ">Début<input type="date" data-b="debut" value="${B.debut}"></label></div>
     <div><div class="groupe">Clauses</div>
       <label class="case"><input type="checkbox" data-bc="revision" ${B.revision?'checked':''}>Prix révisé une fois par an (indice des prix)</label>
       <label class="case"><input type="checkbox" data-bc="delai" ${B.delai?'checked':''}>${esc(metiersCtr(B.modele).delaiLib)}</label>
