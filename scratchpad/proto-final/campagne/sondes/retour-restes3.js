@@ -34,6 +34,19 @@ const ouvrirMail = async () => { const c = await M.entrer({ profil: PROFIL, nuit
     const e7 = await H(p); v('G1 quatre ouvertures-fermetures : l\'historique n\'a pas grossi (' + n0 + ' → ' + e7.n + ') et aucune entrée du module n\'est restée', e7.n <= n0 + 1 && e7.st === null, e7);
     v('G1 aucune erreur de page', c.err.length === 0, c.err.slice(0, 3)); await M.fin(c);
   }
+  // G1b : un choix dans un menu qui OUVRE une feuille (Répondre) : le menu part, le composeur arrive, UN Retour ferme le composeur (la lecture reste au téléphone), jamais plus d'une entrée à la fois
+  {
+    const c = await ouvrirMail(), p = c.p; const tel = L.PROFILS[PROFIL].w <= 760;
+    await p.evaluate(() => { const m = window.R().querySelector('#rows .msg'); if (m) m.click(); }); await p.waitForTimeout(800);
+    const ok = await p.evaluate(() => { const b = window.R().querySelector('[data-act="replyMenu"]'); if (!b) return false; b.click(); return !!window.R().querySelector('#overlay.ov-menu'); });
+    v('G1b le menu « Répondre » s\'ouvre (population)', ok, await H(p));
+    const pick = await p.evaluate(() => { const b = window.R().querySelector('#overlay [data-pick]'); if (!b) return null; const id = b.getAttribute('data-pick'); b.click(); return id; });
+    await p.waitForTimeout(900); const e0 = await H(p);
+    v('G1b le choix (' + pick + ') ouvre le composeur, le menu est parti, UNE seule entrée du module de plus que la lecture', e0.ov === 'overlay ov-compose' && e0.st && e0.st.opcourrier === (tel ? 2 : 1), e0);
+    await C.retour(p); const e1 = await H(p);
+    v('G1b UN Retour ferme le composeur et reste dans la Boîte mail', e1.ov === null && e1.h === '#boiteMail', e1);
+    v('G1b aucune erreur de page', c.err.length === 0, c.err.slice(0, 3)); await M.fin(c);
+  }
   // G2
   for (const voie of ['aller', 'lien']) {
     if (voie === 'lien' && C.tel(await { largeur: L.PROFILS[PROFIL].w })) continue;   // le lien du menu latéral n'existe qu'à l'ordinateur

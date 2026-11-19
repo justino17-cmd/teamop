@@ -83,6 +83,23 @@ const doutes = [], dit = o => { doutes.push(o); console.log('  ?', JSON.stringif
     await L.fin(c);
   }
 
+  // ── D3b (tour 3) : DEUX clics RÉELLEMENT dans la même tâche JavaScript sur le MÊME bouton (le second ne vérifie pas que la barre est encore là : D3 le vérifie, et la barre est déjà partie à 0 ms) —
+  //        une seule entrée d'historique : on est à l'écran d'origine, UN Retour va à l'écran d'avant
+  for (const sans of [false, true]) {
+    const c = await ouvrirCtx(), p = c.p;
+    const O = await placer(p);
+    const f = await entrerCompta(c, 'accueil'); if (!sans) await reglages(f, p);
+    const nb = await p.evaluate(() => { const b = document.querySelector('#cpsys [data-cpsys="retour"]'); if (!b) return 0; b.click(); b.click(); return 2; });
+    v('D3b' + (sans ? ' TÉMOIN sans panneau' : '') + ' deux clics dans la même tâche (population : ' + nb + ')', nb === 2);
+    await p.waitForTimeout(1800); await L.calme(p, 300);
+    const e = await etat(p);
+    v('D3b' + (sans ? ' TÉMOIN' : '') + ' : on est à l\'écran d\'origine, la Comptabilité est fermée, historique sain, UNE entrée posée', e.h === '#' + O.orig && !e.cpsys && !e.off && e.ignore === 0 && e.pousse === 0, e);
+    await C.retour(p); const h = await hash(p);
+    v('D3b' + (sans ? ' TÉMOIN' : '') + ' puis UN Retour : ' + O.avant + ' (l\'écran d\'avant), ni muet ni la Comptabilité — ' + h, h === '#' + O.avant, h);
+    v('D3b aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
+    await L.fin(c);
+  }
+
   // ── D4 : Échap côté hôte (focus sur « ‹ OP GESTION ») panneau ouvert : même chemin que le bouton
   {
     const c = await ouvrirCtx(), p = c.p;
