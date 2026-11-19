@@ -103,6 +103,24 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
     await pause(500); const f = await p.evaluate(() => ({ contact: CLIENTS[window.__k0].contact, acces: CLIENTS[window.__k0].acces }));
     v('fiche client enregistrée : contact « Marie Dupont » (contrôles aux bords retirés, un au milieu = espace), accès « Code portail / Local à gauche »', f.contact === 'Marie Dupont' && f.acces === 'Code portail\nLocal à gauche', f);
   }
+
+  // ─────────── 3. une ligne faite seulement d'invisibles ne compte pas ───────────
+  if (SECTIONS.includes('invis')) {
+    const INV = { 'U+200B espace de largeur nulle': '​', 'U+200C': '‌', 'U+200D': '‍', 'U+2060 joint-mot': '⁠', 'U+FEFF': '﻿', 'NEL U+0085': '\u0085', 'U+00AD trait d’union conditionnel': '­', 'U+200E marque gauche-droite': '‎', 'U+180E': '᠎', 'U+3164 remplisseur hangul': 'ㅤ', 'mélange de six': '​‌⁠﻿­‍' };
+    v('population : ' + Object.keys(INV).length + ' invisibles à essayer', Object.keys(INV).length === 11, Object.keys(INV).length);
+    for (const [nom, ch] of Object.entries(INV)) {
+      const r = await p.evaluate(([ch]) => { const t = ['L1', ch, 'L2', ch + ch, 'L3'].join('\n'); return { n: accesLignes(t).length, brut: t.split('\n').length, net: accesNet(t, 200), refus: clientPlafondRefus({ nom: 'Essai', acces: t }) }; }, [ch]);
+      v('(3) ' + nom + ' : 5 lignes brutes dont 2 invisibles = 3 lignes, acceptées sans refus', r.brut === 5 && r.n === 3 && r.net === 'L1\nL2\nL3' && r.refus === null, r);
+    }
+    const q = await p.evaluate(() => ({ quatre: clientPlafondRefus({ nom: 'E', acces: 'a\n​\nb\nc\n⁠\nd' }), vides: accesNet('​\n﻿\n\u0085', 200), milieu: accesNet('a​b', 200), emoji: accesNet('👨‍👩', 200) }));
+    v('(3) 4 lignes VRAIES + 2 invisibles : toujours refusé (« 3 lignes au plus (4 écrites) »)', !!q.quatre && /3 lignes au plus \(4 écrites\)/.test(q.quatre.m), q.quatre && q.quatre.m);
+    v('(3) un champ fait seulement d’invisibles se range VIDE', q.vides === '', JSON.stringify(q.vides));
+    v('(3) un invisible AU MILIEU d’une ligne reste (le ZWJ d’un émoji), seule la ligne vide d’encre disparaît', q.milieu === 'a​b' && q.emoji === '👨‍👩', [JSON.stringify(q.milieu), JSON.stringify(q.emoji)]);
+    // jusqu'au bout : la fiche réelle (3 vraies lignes + 2 invisibles collées dans le champ, Enregistrer)
+    await FICHE(); await p.evaluate(() => { window.__t = []; window.__set('[data-ci="acces"]', 'Code portail 4821\n​\nSonner chez la gardienne\n⁠﻿\nLocal à gauche'); document.querySelector('[data-action="clientEnreg"]').click(); });
+    await pause(500); const m = await p.evaluate(() => ({ t: window.__t.join(' | '), a: CLIENTS[window.__k0].acces }));
+    v('fiche client réelle : 5 lignes collées dont 2 invisibles → enregistrées sur 3 lignes, sans refus', m.a === 'Code portail 4821\nSonner chez la gardienne\nLocal à gauche' && !/lignes au plus/.test(m.t), m);
+  }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
   const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
