@@ -26,7 +26,7 @@ const SORTIE = process.argv[3] || '';
   const k = await c.p.evaluate(() => EQUIPE.find(p => p.prenom === 'Rémi').k);
   // 2. on lui applique le profil Responsable puis on coche TOUT ce qui reste, case par case, par la fiche
   await E.fiche(c, k);
-  await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; });
+  await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); });
   const nCases = await c.p.evaluate(() => document.querySelectorAll('#calque .eq-droits input[data-eqd]').length);
   v('la grille détaillée montre des cases (population)', nCases >= 30, nCases);
   await c.p.evaluate(({ k }) => { for (const cat of ['planif', 'inter', 'crm', 'ventes', 'compta', 'stock', 'temps', 'com', 'achats', 'admin']) eqDe(k).droits.cats[cat] = { v:1, c:1, m:1, s:1 }; ['tout', 'prix', 'atelier', 'valstock', 'commander', 'corrpt', 'comptes', 'securite'].forEach(s => { eqDe(k).droits.sp[s] = 1; }); eqDe(k).droits.profil = 'resp*'; }, { k });
@@ -40,12 +40,12 @@ const SORTIE = process.argv[3] || '';
   v('personne complète : elle voit les routes de toutes les catégories (population)', Object.values(base).filter(o => o && o.ouvert).length >= 14 && nBase >= 80, { ouvertes:Object.values(base).filter(o => o && o.ouvert).length, boutons:nBase });
   for (const cat of CATS) for (const x of ['v', 'c', 'm', 's']) {
     // on décoche par la VRAIE case de la fiche quand elle existe (sinon la case n'est pas affichée : règle « ce qu'on ne peut pas prouver ne s'affiche pas »)
-    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; });
-    const sel = `#calque .eq-droits input[data-eqd="${k}|${cat}|${x}"]`;
-    const presente = await c.p.evaluate(s => { const e = document.querySelector(s); return !!e && e.offsetParent !== null; }, sel);
+    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); });
+    const sel = `#calque input[data-eqd="${k}|${cat}|${x}"]`;
+    const presente = await c.p.evaluate(s => [...document.querySelectorAll(s)].some(e => e.offsetParent !== null), sel);   // au téléphone la grille à quatre colonnes est cachée : la même case existe DEUX fois (grille cachée, ligne dépliée) — on veut celle qu'un doigt atteint
     if (!presente) { bilan.disparus[cat + '.' + x] = 'case non affichée'; continue; }
     const avant = await c.p.evaluate(({ k, cat, x }) => !!eqDe(k).droits.cats[cat][x], { k, cat, x });
-    await L.toucher(c, sel); const apres = await c.p.evaluate(({ k, cat, x }) => !!eqDe(k).droits.cats[cat][x], { k, cat, x });
+    await L.toucher(c, sel + ':visible'); const apres = await c.p.evaluate(({ k, cat, x }) => !!eqDe(k).droits.cats[cat][x], { k, cat, x });
     bilan.cases++; v(`case ${cat}.${x} : un toucher décoche (la donnée change) — ${avant} → ${apres}`, avant === true && apres === false, { avant, apres });
     await E.ranger(c);
     await comme(k); const sans = await relever(); await revenir();
@@ -56,7 +56,7 @@ const SORTIE = process.argv[3] || '';
     else { const PAR_CONCEPTION = {};   // equipe-11 (décision du chef, 17/11) : « Voir » décide SEUL — « Dépôts et camions » et les heures de toute l'équipe ne demandent plus « Supprimer » (avant : { 'stock.s':['boxes'], 'temps.s':['pointage'] }, spec § 2.6)
       const att = PAR_CONCEPTION[cat + '.' + x] || []; v(`case ${cat}.${x} décochée : ne ferme que ce que la conception lui donne (${att.join(', ') || 'rien : seul « Voir » ferme'})`, JSON.stringify(ferme.slice().sort()) === JSON.stringify(att.slice().sort()), { ferme, att }); }
     // on la recoche à la souris
-    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; }); await L.toucher(c, sel);
+    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); }); await L.toucher(c, sel);
     const re = await c.p.evaluate(({ k, cat, x }) => !!eqDe(k).droits.cats[cat][x], { k, cat, x }); v(`case ${cat}.${x} : recochée, la donnée revient`, re === true, re);
     // « Voir » décoché retire aussi Créer/Modifier/Supprimer d'effet : le recocher ne rend pas ceux qu'on avait coupés avant — on rétablit la ligne entière
     await c.p.evaluate(({ k, cat }) => { eqDe(k).droits.cats[cat] = { v:1, c:1, m:1, s:1 }; }, { k, cat });
