@@ -1,0 +1,70 @@
+{
+ "tour": "recontrôle ADVERSE du tour 4 « restes équipe » (19 novembre 2026), agent neuf, tout rejoué au navigateur (Playwright, 127.0.0.1)",
+ "pages_lues_pas_modifiees": "apercu/prototype-op-gestion.html, apercu/prototype-courrier.js (git diff --stat apercu/ : vide)",
+ "sonde": "campagne/sondes/restes-equipe-4-recontrole.js (phases A, B, T, U, V ; profils mac, iphone, android)",
+ "point_1_N3": {
+  "tenu": [
+   "SANS Créer (mac, iphone, android) : agir() de mbx:relancer, prevenir, repondre, confier (panneau), confok, ml:creneau, tache, confok = refusés, rien d'écrit, pas de fenêtre ; mbxPanConfier et mlRepondre(m,'confirm') appelés en direct refusés (refus dit) ; clics JS sur Répondre, Répondre à tous, Transférer, réponse rapide, Nouveau message : aucune fenêtre, rien d'écrit ; touches c, r, Maj+R : rien ; multi-sélection › Transférer forcé : rien ; API du module repondre() : rien ; à l'œil (barre, menu Répondre ▾, clic droit, réponses rapides) : rien de proposé",
+   "SANS Planning seul : tout passe sauf ml:creneau (refusé) ; mbxOptions n'écrit rien dans BUREAU ; envoi de bout en bout d'une réponse « créneau » : le message part (22→23), BUREAU 2→2, 0 option ; « Confier » crée la tâche (TACHES), BUREAU intact : Planning non requis, conforme au chef",
+   "AVEC toutes les cases (régression) : rien perdu — tous les gestes passent, réponse « créneau » pose 3 options (BUREAU 3→5), Répondre proposé partout, API du module ouvre la fenêtre"
+  ],
+  "casse": "aucun",
+  "nouveau": [
+   {
+    "id": "R1 (mineur, portes directes seulement)",
+    "quoi": "courrierSource().envoyer(), la fonction d'hôte qui écrit réellement dans MAILS (dossier envoyé), ne relit PAS com.c. Appelée directement sans Créer : un message s'écrit (ecrit=true, refus=0). Aucune route d'écran n'y mène sans passer par courrierRepondre / composeur (gardés) : seul un appel console l'atteint.",
+    "preuve": "sonde A SANS Créer, 3 navigateurs ; apercu/prototype-op-gestion.html ligne ~20148 (envoyer:mail => … MAILS.push) : aucune garde peut('com','c')",
+    "cas_stale": "même défaut en usage réel : une personne qui a la fenêtre de réponse OUVERTE quand un administrateur lui retire Créer (même page) envoie encore le message (MAILS 21→22) ; la case n'est relue qu'à l'ouverture, pas à l'envoi (STALE, 3 navigateurs)",
+    "correctif_propose": "peut('com','c') en tête de envoyer (avec droitsRefus), comme les autres fonctions qui écrivent"
+   },
+   {
+    "id": "R2 (mineur, appel direct)",
+    "quoi": "mbxOptions(m, prop) appelée en direct par une personne qui a Planning › Modifier mais PAS Créer écrit une option dans BUREAU : la fonction ne lit que planif.m (mbxPeutTenir), pas com.c (« Proposer une visite » exige les deux). Sans Planning : rien, correct.",
+    "preuve": "sonde A SANS Créer, 3 navigateurs : changed=[BUREAU], refus=0",
+    "correctif_propose": "à décider : un créneau d'option relève du planning (le droit Planning suffit peut-être) ; sinon ajouter com.c à mbxOptions"
+   }
+  ]
+ },
+ "point_2_eqFiche": {
+  "tenu": "une seule déclaration : 0 `function eqFiche`, 1 `eqFiche = function (k)` (ligne 21713), plus l'enveloppe `{ const f0 = eqFiche; eqFiche = function…` de secuFicheConnexion (ligne 26767) ; les fiches kb, sm, lr et admin s'ouvrent (sonde D, 3 navigateurs, mutations 7, 8, 9 tombent). Aucune autre fonction déclarée deux fois dans la page (`^\\s*function X` en double : aucune).",
+  "casse": "aucun", "nouveau": "aucun"
+ },
+ "point_3_desactive": {
+  "tenu": "secuPanTelephone, secuPanDeconnecter, secuNouveauTelephone, secuDeconnecter refusent avec « …désactivé : réactive-le d'abord » ; boutons data-sec2 telephone|k, deconnecter|k, tel-ok|k, deco-ok|k : rien ne s'ouvre ni ne s'écrit ; compte actif inchangé (restes-equipe-4 T, 3 navigateurs ; mineurs G 8/0 ; captures de la fiche désactivée vues : pas de bouton Téléphone ni Déconnecter, mac/iphone/android/ipad, jour/nuit)",
+  "casse": "aucun",
+  "nouveau": [
+   {
+    "id": "R3 (même famille, non traité)",
+    "quoi": "sur un compte DÉSACTIVÉ, secuReposer(kb) / bouton data-cnx=\"repose|kb\" écrit (nouveau mot de passe provisoire, connexions fermées, panneau « Mot de passe provisoire pour Karim » et toast de succès). Le bouton n'est pas dans la fiche d'une désactivée, mais la fonction ne refuse pas.",
+    "preuve": "sonde T, 3 navigateurs : ecrit=true"
+   },
+   {
+    "id": "R4 (même famille)",
+    "quoi": "secuDeverrouiller(kb) / data-sec2 dev-ok|kb sur un compte désactivé ET verrouillé, case « j'ai vérifié » cochée : le mot de passe est remplacé (SECU.comptes écrit). Ici le bouton « Déverrouiller » EST proposé dans la fiche d'une désactivée (sonde U : dev=true), donc c'est peut-être voulu : à trancher par Justin.",
+    "preuve": "sonde U, 3 navigateurs : panneau ouvert, ecrit=true. Sans la case cochée (sonde T), rien ne s'écrit."
+   }
+  ],
+  "autres_portes_saines": "data-sec2 dev-ok sans case, secuDeverrouiller sans case, data-cnx nouveau-code, data-eq relancer, data-eqx renouv et modifok sur un désactivé : n'écrivent pas"
+ },
+ "point_4_rejeux": {
+  "restes-equipe-4 (N3 D T)": "mac 95/0, iphone 95/0, android 95/0 (le rapport annonçait 94 : un contrôle de plus compté, 0 ✗)",
+  "equipe-droits-joues": "mac 89/0, iphone 89/0, android 89/0 (5 min 45 chacune)",
+  "equipe-droits-effets": "mac 138/0, iphone 138/0 (plus de 10 min : lancée détachée et attendue en avant-plan par boucle, l'outil bloque à 10 min)",
+  "equipe-droits-profonds": "mac 16/0, iphone 16/0",
+  "droits-gestes-reels (SANS_CSP=1)": "35/0",
+  "restes-equipe-3-mineurs": "30 sections (iphone, android, petit, mac, ipad × H S I G, nuit H G) toutes à 0 ✗ (H 9, S 5, I 10, G 8 vérifications)",
+  "secu-secrets": "56/0",
+  "double-auth-equipe": "48/0",
+  "verifier-syntaxe": "41 pages, 71 blocs, 0 en erreur",
+  "tests": "835 844/0 · 836 307/0 · 837 122/0 · 1008 54/0 · 2994 15/0",
+  "mutations-restes-equipe-4.py": "12/12 tombent (1 à 12, une par une, sur copie /tmp/rc4/mut, aucune ne passe)",
+  "recontrole (sonde neuve)": "A+B+T+U : mac 58 ✓ + 2 ✗ (A), 2 ✓ + 1 ✗ (B), 8 ✓ + 3 ✗ (T U) ; iphone et android identiques : 68 ✓ · 6 ✗ (R1, R2, STALE, R3 x2, R4) ; V (API du module + œil) mac et iphone : 4 ✓ · 0 ✗",
+  "git diff --stat apercu/": "vide"
+ },
+ "doutes_pour_justin": [
+  "R1 : l'envoi d'une réponse ouverte avant le retrait de Créer part encore (case relue à l'ouverture, pas à l'envoi). Réaliste dès qu'il y aura plusieurs sessions ; correctif d'une ligne dans envoyer.",
+  "R2 : un créneau d'option relève-t-il de Planning seul, ou de Créer + Planning comme « Proposer une visite » ?",
+  "R3/R4 : un compte désactivé peut-il recevoir un mot de passe provisoire / être déverrouillé ? Si non, deux refus de plus dans secuReposer et secuDeverrouiller (+ secuPanDeverrouiller) ; si oui, ce n'est pas un défaut.",
+  "« Confier » sans Planning : conforme à la décision du chef (aucun créneau posé), vérifié : tâche créée, BUREAU intact."
+ ]
+}
