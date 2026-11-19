@@ -52,6 +52,16 @@ async function parMenu(c, dest) {
         v(nom + 'menu · population : le menu a été touché (' + ok + ') et on est sur Temps de travail', ok && a.route === 'pointage', a);
         v(nom + 'menu · « Temps de travail » pris DANS le menu depuis la Paie rouvre « Aujourd’hui », comme depuis tout autre écran : ' + JSON.stringify(a), a.route === 'pointage' && /^Aujourd/.test(a.onglet), a);
         await L.capture(c, CAP + 'menu-' + tag + '.png'); v(nom + 'menu · aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c); }
+      // 3 bis. on revient par la BARRE « ‹ Retour · Temps de travail » (un clic, pas un retour du système) : l'onglet Mois est gardé, et un menu pris ensuite rouvre « Aujourd'hui »
+      { const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); const dedans = await versPaie(c, 'mois');
+        v(nom + 'barre · population : on est dans la Paie', dedans, await actif(c));
+        const ok = await L.toucher(c, '#contenu [data-retourva]'); await L.calme(c.p, 900); const a = await actif(c);
+        v(nom + 'barre · population : la barre « Revenir » a été touchée (' + ok + ')', ok === true, a);
+        v(nom + 'barre · « ‹ Revenir » ouvre Mois (' + JSON.stringify(a.onglet) + ')', a.route === 'pointage' && /^Mois/.test(a.onglet), a);
+        const drap = await ev(c, () => !!TT.viaPaie); v(nom + 'barre · le drapeau ne reste pas posé après la barre (' + drap + ')', drap === false, drap);
+        await ev(c, () => { aller('accueil'); }); await L.calme(c.p, 500); const ok2 = await parMenu(c, 'pointage'); const b = await actif(c);
+        v(nom + 'barre · puis « Temps de travail » pris par le menu rouvre « Aujourd’hui » (' + ok2 + ')', ok2 && b.route === 'pointage' && /^Aujourd/.test(b.onglet), b);
+        v(nom + 'barre · aucune erreur de page', sansErr(c).length === 0, c.err.slice(0, 3)); await L.fin(c); }
       // 4. depuis le Planning ou « Mes heures » : le drapeau ne doit PAS être posé, et un « Temps de travail » pris ensuite rouvre « Aujourd'hui »
       for (const dep of ['planning', 'accueil']) {
         const c = await L.ouvrir({ profil, nuit, qui:'marc', calme:true }); await L.aller(c.p, dep);
