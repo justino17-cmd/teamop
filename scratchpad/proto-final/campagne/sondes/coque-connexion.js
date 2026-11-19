@@ -80,7 +80,8 @@ const sur = (p, s) => p.evaluate(s => { const e = document.querySelector(s); ret
   v('après la connexion : plus aucun écran de connexion ni guide devant sans que ce soit voulu', !(await sur(p, '#cnx')));
   const guide = await att(p, () => !!document.getElementById('nv'), 6000);
   v('le guide des nouveautés s’ouvre seul à la PREMIÈRE connexion de la personne', guide);
-  if (guide) { v('le guide a un titre et un bouton pour le fermer (« Passer »)', /Bienvenue/.test(await txt(p, '#nv h2') || '') && await sur(p, '#nv [data-nv="fermer"]'), await txt(p, '#nv h2')); await p.screenshot({ path: CAP + `connexion-guide-${PROFIL}${NUIT ? '-nuit' : ''}.png` }); await p.keyboard.press('Escape'); await p.waitForTimeout(500); v('Échap ferme le guide', !(await sur(p, '#nv'))); }
+  // depuis le guide refait du 17 novembre (f0d8be67) : plus de « Bienvenue » ni de « Passer » — le titre est celui de la première carte, et on ferme par ✕ ou « Plus tard »
+  if (guide) { v('le guide a un titre (la première carte : « Où sont passées mes rubriques ? ») et un bouton pour le fermer', /Où sont passées mes rubriques/.test(await txt(p, '#nv h2') || '') && await sur(p, '#nv [data-nv="fermer"]'), await txt(p, '#nv h2')); await p.screenshot({ path: CAP + `connexion-guide-${PROFIL}${NUIT ? '-nuit' : ''}.png` }); await p.keyboard.press('Escape'); await p.waitForTimeout(500); v('Échap ferme le guide', !(await sur(p, '#nv'))); }
   // 5. plus de « Rester connecté » : un rechargement ferme la session (décision 6 de la double authentification), la reconnexion se fait par le nombre
   v('la case « Rester connecté » n’existe plus', !(await p.evaluate(() => !!document.getElementById('cn-reste'))));
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(6500);

@@ -50,6 +50,7 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
   un rendez-vous, un contrôle et met au garage ; seul le gérant crée, modifie, change de conducteur, note une amende. C'est la SEULE exception à la règle 2
   (un groupe d'une seule ligne) : À SOUMETTRE À JUSTIN. La case « Temps de travail et véhicules » de l'Équipe la ferme. « Temps de travail » reste fermé au bureau
   (donnée de salaire). Les sondes du menu attendent ce groupe chez le bureau.
+- ⚠️ **17 novembre 2026, decision equipe-11 (578847ec) : « Voir » décide SEULE** — le profil Secrétariat (stock 1110, temps 1110) voit donc AUSSI « Dépôts et camions » et « Temps de travail » : le menu de Julie compte DOUZE lignes (les sept validées, Stock, Fournisseurs, Dépôts et camions, Temps de travail, Véhicules), et les deux paragraphes ci-dessus (« PAS Dépôts et camions », « Temps de travail reste fermé au bureau ») sont dépassés. Les heures de toute l'équipe sont une donnée de salaire : un droit à part « Voir les heures de toute l'équipe » est À SOUMETTRE À JUSTIN (final/restes-equipe-tour1.json). Les sondes menu-* attendent les douze lignes (19 novembre, rejeu).
 - Pied : Jour / Nuit / Auto · Nouveautés · Se déconnecter
 - Barre : Comptabilité · Devis · Clients · Tâches · Achats (5 onglets, pas 6 ; pas d'émoji dans un libellé)
 - ⛔ **17 novembre 2026, étape 5 de la voie entreprise : ce menu SE DÉDUIT des cases d'Équipe** (`droitVoit`, `ROUTE_DROIT`) — le Secrétariat a donc DIX lignes (les sept validées, Stock et Fournisseurs, Véhicules), le Responsable les vingt du gérant en lecture. Voir `refonte/MON-ENTREPRISE-ET-DROITS.md` § 8.
@@ -68,7 +69,7 @@ Le gérant garde « Personnaliser la barre du bas » (appui long ou pied de la f
 
 ## Client (espace client)
 - (sans titre) : Accueil · Mes factures · Mes interventions · Mes devis · Mon contrat
-- Barre du bas au téléphone : Accueil · Factures · Devis · Interventions · Contrat
+- Barre du bas au téléphone : Accueil · Factures · Interventions · Devis · Contrat (ordre posé par « Restes client » tour 1, client-14 : le même partout ; l'ordre d'avant était Devis puis Interventions)
 
 ## Comptable (ouvert depuis sa fiche Équipe) : inchangé.
 

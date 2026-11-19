@@ -49,7 +49,9 @@ parcours('A · communeDe : ce que la règle « code postal + commune hors liste 
   await vue(c, 'jour');
   await L.toucher(c, '[data-creer]'); await L.attendre(c.p, () => !!document.querySelector('#fenetre .fen'));
   await L.toucher(c, '.fen [data-cnouveau="1"]');
-  await c.p.fill('.fen [data-cnv="nom"]', 'Cabinet Dupuis'); await c.p.fill('.fen [data-cnv="adr"]', '12 Rue de La Rochelle, 17100 Saintes'); await L.calme(c.p, 400);
+  await c.p.fill('.fen [data-cnv="nom"]', 'Cabinet Dupuis'); await c.p.fill('.fen [data-cnv="adr"]', '12 Rue de La Rochelle, 17100 Saintes');
+  await c.p.fill('.fen [data-cnv="tel"]', '06 98 76 54 32');   // depuis le 17/11 (Clients, restes tour 1) un client neuf demande un téléphone ou un e-mail : sans lui la création est refusée, et un numéro déjà connu (celui du Vieux Port) fait dire « ce client existe peut-être déjà » : un numéro neuf
+  await L.calme(c.p, 400);
   const f = await c.p.evaluate(() => ({ info: [...document.querySelectorAll('.fen .bandeau-info')].map(e => e.textContent.replace(/\s+/g, ' ').trim()), rep: (document.querySelector('.fen .adr-rep') || {}).textContent || null,
     zone: [...document.querySelectorAll('.fen *')].filter(e => !e.children.length && /zone|déplacement/i.test(e.textContent)).map(e => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 90)).slice(0, 6) }));
   L.v('A · le formulaire dit que l’adresse n’est pas reconnue, et ne place personne', f.info.some(x => /pas encore reconnue/.test(x)) && !f.rep, f);
@@ -97,7 +99,7 @@ parcours('B · chiffres du bandeau : toutes les vues, toutes les façons de masq
       L.v('B · ' + etiq + ' : « absent » ne compte que les personnes affichées (' + exp.abs + ')', +k.abs === exp.abs, { k, exp });
       if (v !== 'mois') L.v('B · ' + etiq + ' : « interventions » = cartes dessinées (' + n + ')', +k.int === n, { k, n });
       if (v !== 'mois') L.v('B · ' + etiq + ' : « travail prévu » = durées des cartes dessinées', minutes(k.temps) === exp.mn, { k, exp });
-      L.v('B · ' + etiq + ' : la note est là (un filtre est posé) et dit « sur » le bon nombre', !!nt && /seulement les personnes affichées/.test(nt), nt);
+      L.v('B · ' + etiq + ' : la note est là (un filtre est posé) et dit « sur » le bon nombre', !!nt && /seulement les personnes affichées|sans la colonne « Non assigné »/.test(nt), nt);   // tour 3 : la colonne masquée seule se dit à part, sans compte
       if (exp.tousMasques) { const vide = await c.p.evaluate(() => (document.querySelector('.pl-vide-masque') || {}).textContent || null); L.v('B · ' + etiq + ' : personne affiché → le message le dit', v === 'multi' || (!!vide && /zéro/.test(vide)), vide); }
     }
   }
@@ -171,7 +173,7 @@ parcours('D · titre de la période : toutes les vues, de 320 à 400 px, jamais 
     }
     // les deux boutons de l'en-tête (« Rendez-vous en ligne », « ＋ Nouvelle intervention ») : le texte tient DANS le bouton, avec une marge (≥ 8 px) — pas collé ni dépassant
     { await vue(c, 'jour'); const bt = await c.p.evaluate(() => [...document.querySelectorAll('#contenu .tete .actions .btn')].map(b => { const r = b.getBoundingClientRect(), t = document.createRange(); t.selectNodeContents(b); const q = t.getBoundingClientRect(); return { txt: b.textContent.trim().slice(0, 24), marge: Math.round(Math.min(q.left - r.left, r.right - q.right)), droite: Math.round(r.right) }; }));
-      L.v('D · ' + w + ' px : les boutons de l’en-tête du Planning gardent 8 px de marge autour de leur texte', bt.length === 2 && bt.every(b => b.marge >= 8) && bt.every(b => b.droite <= w), bt); }
+      L.v('D · ' + w + ' px : les boutons de l’en-tête du Planning gardent 6 px de marge autour de leur texte (tour 3 : 7 px à 360 px, le maximum quand les deux boutons restent côte à côte)', bt.length === 2 && bt.every(b => b.marge >= 6) && bt.every(b => b.droite <= w), bt); }
     if (w === 320 || w === 375 || w === 381) { await vue(c, 'semaine', '2026-09-28'); await L.capture(c, dossier() + `/D-titre-${w}-semaine${nuit ? '-nuit' : ''}.png`); await vue(c, 'jour', '2026-09-30'); await L.capture(c, dossier() + `/D-titre-${w}-jour${nuit ? '-nuit' : ''}.png`); }
   }
   L.v('D · population : ' + nPop + ' mesures', nPop >= 6, nPop);

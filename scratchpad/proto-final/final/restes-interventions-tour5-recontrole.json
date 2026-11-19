@@ -1,0 +1,37 @@
+{
+  "noms": ["interventions"],
+  "regles": [
+    "Un relevé numérique (kg, °C, bar, postes…) tapé touche par touche : rien n'est retiré ni enregistré pendant la frappe ; la règle se joue à la sortie du champ (change) et dans ACTIONS.terminer (releveFlush) ; les champs libres (Infestation, Arrivée, Départ, État constaté) gardent ce qu'on tape.",
+    "La bulle « Lu… » sur ordinateur se pose au-dessus de la barre #collant (--toast-bas) ; sur téléphone la règle d'avant (barre non fixe) ne change pas."
+  ],
+  "pasRegles": [],
+  "casses": [
+    {
+      "titre": "Terminer avec un relevé refusé en cours de saisie : la fiche part quand même, avec l'ANCIENNE valeur, et la phrase de refus est recouverte",
+      "gravite": "moyenne",
+      "etapes": "Fiche complète (contrôles cochés, signature, compte rendu) ; taper « 10-12 » dans Soufflage sans quitter le champ ; cliquer Terminer (vrai clic souris).",
+      "constat": "mem reste « 14 » (jamais 1012 : le défaut du tour 4 est bien réglé), MAIS la fiche passe à l'état « bureau » et la bulle finale dit « Terminée : le compte rendu part au client, la facture est préparée. » : la phrase « Un seul nombre ici… Ta saisie n'est pas enregistrée » est remplacée, la technicienne ne sait pas que sa mesure n'est pas dans le compte rendu. Fiche incomplète : la bulle de refus reste visible au-dessus du panneau « Il manque encore des choses » (correct). Piste : releveFlush() renvoie faux si un champ est refusé et Terminer s'arrête (le champ garde le focus) ; sondes : interventions-restes-tour5-adverse.js, ligne « info fiche complète + Terminer »."
+    },
+    {
+      "titre": "Un clic sur un bouton sans aucune saisie écrit des relevés vides dans la fiche",
+      "gravite": "basse",
+      "etapes": "Ouvrir une intervention clim jamais saisie (i2), cliquer « Ajouter » (pièce) ou tout bouton data-action sans toucher aux relevés.",
+      "constat": "fiche('i2').releves passe de undefined à {Charge de fluide:'', Soufflage:'', Reprise:''} : releveFlush valide TOUS les champs affichés, y compris ceux qu'on n'a pas touchés (releveValider crée G.releves même sans changement). Sans effet visible aujourd'hui (cfReleve rend '' dans les deux cas) mais c'est une écriture sans geste ; le champ « Charge de fluide » (valeur calculée par fixFluideCharge) serait aussi figé s'il était affiché non vide. Piste : ne valider que si t.value diffère de la valeur affichée au rendu (ou ne rien écrire quand la valeur lue est vide et R absent). Sonde : interventions-restes-tour5-adverse-ecrit.js (1 ✗ attendu tant que non corrigé)."
+    }
+  ],
+  "nouveaux": [],
+  "sondes": [
+    { "fichier": "interventions-restes-tour5-adverse.js (frappe réelle, sans les valeurs saisies par script : tous champs numériques de clim + libres nuis/nett, 11 refus, 6 valeurs justes, collage insertText, Entrée, Terminer fiche incomplète ET complète, navigation et re-rendu en cours de saisie, rôles marc/julie)", "resultat": "55 ✓ · 0 ✗ sur mac, mac720, windows, ipad, iphone, android, petit, jour ET nuit (14 passages) ; mode PLEIN=1 (tous les métiers, 1239 ✓ · 0 ✗ sur mac jour avant coupure)" },
+    { "fichier": "interventions-restes-tour5-frappe.js", "resultat": "40 ✓ · 0 ✗ sur les 14 passages" },
+    { "fichier": "interventions-restes-tour5-toast.js", "resultat": "4 ✓ · 0 ✗ sur les 14 passages ; captures relues : mac, mac720, windows, ipad, android, petit (jour et nuit pour windows, android, ipad) : bulle au-dessus de la barre sur ordinateur et tablette, dans la fenêtre sur téléphone. Détail vu : sur ipad la bulle passe sur le haut du bouton « Il me manque une pièce » (transitoire, 6 s)" },
+    { "fichier": "interventions-recontrole.js", "resultat": "133 ✓ · 0 ✗ petit jour, petit nuit, iphone nuit (R17, R19, R20 verts : la page de 340 px à 320 px est bien réglée)" },
+    { "fichier": "interventions-restes-tour4-recontrole.js", "resultat": "60 ✓ · 0 ✗ petit nuit" },
+    { "fichier": "mutations-restes-tour5.py (les 7 du correcteur, page commitée, git diff vide après chacune)", "resultat": "7 sur 7 tombent" },
+    { "fichier": "interventions-restes-tour5-adverse-ecrit.js", "resultat": "2 ✓ · 1 ✗ sur mac : la casse « relevés vides écrits sur un clic » (voir casses)" }
+  ],
+  "doutes": [
+    "Casse 4 (20 chiffres) et durée « 1 h 30 » : doutes de Justin, jamais touchés.",
+    "« 1200 » est accepté comme Soufflage en °C (aucun plafond de plausibilité) ; « 1,2,3 » et « 1.200,5 » sont refusés avec la phrase « Un seul nombre » alors que « 1.200,5 » est un nombre à la française : à décider avec Justin.",
+    "Saisie par un vrai clavier d'iPhone/Android (correcteur automatique réel, dictée) non jouée : seul le collage (insertText) l'est ; le correcteur ne produit que des événements « input », que le code ne lit plus."
+  ]
+}

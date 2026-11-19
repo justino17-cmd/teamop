@@ -1,0 +1,207 @@
+{
+ "noms": [
+  "Phrases du tarif au kilomètre (« 00,603 », « 1.500 », « 1 500 »)",
+  "Montant d'une note kilométrique (phrase = note = toast)",
+  "Tuile « dont N notes de frais » et définition « sans facture »",
+  "« ni ticket ni TVA » sur une note kilométrique",
+  "Puce de filtre active centrée dans sa rangée"
+ ],
+ "regle": [
+  "Phrases du tarif : « 00,603 » reçoit « le zéro de tête est en trop », « 1.500 » « un tarif au kilomètre se tape comme 0,603 », « 1 500 » (espace ordinaire) la phrase du millier ; le tarif ne bouge jamais sur un refus (achats-restes4 mac 2 ✓ · 0 ✗, achats-restes3-adverse-tarif mac 2 ✓ · 0 ✗).",
+  "Notes kilométriques, tuile « dont N », « ni ticket ni TVA », puces des tours précédents : tous les contrôles des tours 1 à 3 repassent (base : coherence 9, tuile 2, restes3 16 et 20, km 11 et 18, parcours-notes 37, restes2-adverse 49, puces 10 et 3 ; 0 ✗ partout)."
+ ],
+ "casse": [
+  {
+   "titre": "B3 : « 1 500 » écrit avec l'espace fine insécable (U+202F, celle de toLocaleString('fr-FR')) reçoit la phrase du millier, pas « ce chiffre est très élevé »",
+   "gravite": "faible",
+   "constat": "Défaut ouvert connu : achats-tour4-recontrole rend 14 ✓ · 1 ✗ sur mac et 16 ✓ · 1 ✗ sur iphone nuit sur la page NON mutée, c'est le seul ✗ (B3). Non corrigé ici, hors consigne (aucune page modifiée)."
+  }
+ ],
+ "nouveaux": [
+  "c1 est équivalente sur la page expédiée : les trois rangées qui défilent (Ventes, Achats, Paiements) sont collées au bord de #contenu, offsetLeft et la mesure contre la rangée y donnent le même nombre (écart 0 relevé sur iphone ; sur petit les statuts reviennent à la ligne et ne défilent pas). Le seul écart relevé (16 px) est le segmenté du journal des écritures, dans une carte : il défile mais n'est pas sélectionné par `.cx-cats, .cx-outils .seg`, donc jamais recentré. Les sondes « puce visible » ne pouvaient donc pas la voir, et aucune configuration d'état, de catégorie ou de statut ne la rend visible.",
+  "Sonde neuve achats-tour4-puce-rangee.js : P1 à P4 sur la page telle quelle (population, puce entière dans sa rangée, au moins une puce hors butée, centre de la puce à ±3 px du centre de sa rangée hors butée) ; P5 à P7 injectent une feuille `.cx-cats{margin-left:24px}` (rangée représentative décalée) et exigent la même chose : sous c1 la puce s'arrête 24 px trop à gauche, P7 tombe. Elle ne prouve pas un défaut de la page expédiée, elle garde le calcul pour le jour où une rangée sera décalée."
+ ],
+ "mutations": [
+  {
+   "id": "a1",
+   "desc": "filtre « sans facture » = sans justificatif",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac"
+   ]
+  },
+  {
+   "id": "a2",
+   "desc": "tuile Fournisseurs compte les sans justificatif",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac",
+    "achats-restes3 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "a3",
+   "desc": "sf : toute pièce rend la TVA récupérable",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac",
+    "achats-restes3 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "a4",
+   "desc": "cpDed : tout justificatif déduit",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "b1",
+   "desc": "phrase du km en flottant",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes2-adverse-km mac",
+    "achats-restes3-adverse-km mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "b2",
+   "desc": "montant enregistré du km en flottant",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes2-adverse-km mac",
+    "achats-restes3-adverse-km mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "b3",
+   "desc": "toast d'envoi du km : axR2 sur km×tarif",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes3-adverse-km mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "c1",
+   "desc": "puce : ancien offsetLeft au lieu de la mesure contre la rangée",
+   "verdict": "TOMBE (après la sonde neuve ; SURVIVAIT avant)",
+   "sondes_qui_tombent": [
+    "achats-tour4-puce-rangee iphone nuit (6 ✓ · 1 ✗, P7)",
+    "achats-tour4-puce-rangee petit nuit (5 ✓ · 2 ✗, P7)"
+   ]
+  },
+  {
+   "id": "c2",
+   "desc": "puce : garde « déjà visible » inversée",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes3-adverse-puces iphone nuit",
+    "achats-tour4-recontrole iphone nuit"
+   ]
+  },
+  {
+   "id": "d1",
+   "desc": "phrase « 00,603 » mauvaise",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes4 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "d2",
+   "desc": "phrase « 1.500 » ancienne",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes4 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "d3",
+   "desc": "« 1 500 » (espace) sans sa phrase",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes4 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "e1",
+   "desc": "« dont N notes » compte l'inverse",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes3 mac",
+    "achats-tour4-recontrole mac"
+   ]
+  },
+  {
+   "id": "e2",
+   "desc": "« dont » pluriel dès 1",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes3-adverse-tuile mac (1 ✓ · 1 ✗)",
+    "achats-tour4-recontrole mac (12 ✓ · 3 ✗)"
+   ]
+  },
+  {
+   "id": "e3",
+   "desc": "« dont N » compte aussi les notes non « sans facture »",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes3 mac (15 ✓ · 1 ✗)",
+    "achats-tour4-recontrole mac (13 ✓ · 2 ✗)"
+   ]
+  },
+  {
+   "id": "f1",
+   "desc": "note km : « TVA non récupérable : pas de ticket »",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-parcours-notes mac (36 ✓ · 1 ✗)",
+    "achats-tour4-recontrole mac (13 ✓ · 2 ✗)"
+   ]
+  },
+  {
+   "id": "f2",
+   "desc": "Comptabilité : une dépense sans TVA compte dans « sans facture »",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac (5 ✓ · 4 ✗)",
+    "achats-tour4-recontrole mac (10 ✓ · 5 ✗)"
+   ]
+  },
+  {
+   "id": "f3",
+   "desc": "sf posé aussi pour une dépense sans TVA",
+   "verdict": "TOMBE",
+   "sondes_qui_tombent": [
+    "achats-restes1-coherence mac (5 ✓ · 4 ✗)",
+    "achats-restes3 mac (15 ✓ · 1 ✗)",
+    "achats-tour4-recontrole mac (10 ✓ · 5 ✗)"
+   ]
+  }
+ ],
+ "mutations_notes": [
+  "Les 13 premières viennent du journal partiel restes-achats-tour4-mutations-partiel.log (jouées avant le redémarrage du conteneur) ; c1 y survivait, elle est rejouée avec la sonde neuve ; e2, e3, f1, f2, f3 jouées ici.",
+  "Le verdict « tombe » compte une sonde si ses ✗ dépassent ceux de la base : achats-tour4-recontrole garde son 1 ✗ de base (B3), il ne compte que pour l'excédent. Dans le lot de c1 seul, achats-tour4-recontrole iphone nuit est sorti « tombe » faute de base jouée : c'était B3, pas c1 — les sondes qui tuent c1 sont les deux de la puce."
+ ],
+ "chiffres": {
+  "mutations": "17 mutations du script, 17 sur 17 tombent, aucune survivante après la sonde neuve (c1 survivait avant)",
+  "sonde_puce_rangee": "7 ✓ · 0 ✗ sur iphone nuit et sur petit nuit (page non mutée) ; 6 ✓ · 1 ✗ et 5 ✓ · 2 ✗ sous c1",
+  "base": "13 sondes sur 15 à 0 ✗ ; achats-tour4-recontrole 1 ✗ (B3, défaut ouvert) ; achats-restes3-adverse-km MORTE sur la base (exception à la ligne 11, avant la mutation) mais ses mutations b1 b2 b3 tombent aussi sous restes2-adverse-km et tour4-recontrole"
+ },
+ "limites": [
+  "achats-restes3-adverse-km est morte sur la base dans ce conteneur (même constat dans le journal partiel) : b1, b2, b3 tombent grâce aux autres sondes ; la cause n'a pas été cherchée.",
+  "Les 17 mutations ne sont jouées que sur mac pour les parties montant/tuile et sur iphone nuit et petit nuit pour la puce : ni android, ni ipad, ni jour sur la puce.",
+  "La sonde de puce n'a été jouée que sur iphone nuit et petit nuit ; l'injection de 24 px est une rangée imaginée, pas une page expédiée.",
+  "B3 n'est pas corrigé. Aucune page modifiée ; navigateur sur 127.0.0.1 seulement."
+ ]
+}

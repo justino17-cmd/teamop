@@ -54,10 +54,26 @@ exports.GENRES = [
   { k: 'atelier', nom: 'atelier de devis', ecran: 'devis',
     ouvrir: async c => { const f = await A.ouvrirAtelier(c, 'devis', null); return !!f; },
     croix: async c => { const f = L.cadre(c.p, /prototype-documents/); if (!f) return false; await f.locator('[data-fen-x]').first().click().catch(() => {}); await c.p.waitForTimeout(900); return true; } },
+  // les quatre calques « oubliés » du recontrôle du 18/11, réglés au tour 1 des restes : OP Security (téléphone simulé en plein écran), sa confirmation, la feuille d'une tournée sur la carte, le panneau d'un cadre
+  { k: 'securite', nom: 'OP Security : le téléphone simulé en plein écran', ecran: 'clients', profils: 'sansvolet',
+    ouvrir: async c => { await c.p.evaluate(() => { opsMonter(); opsOuvrir(); }); await L.calme(c.p, 300); return await c.p.evaluate(() => document.getElementById('opsec').hasAttribute('data-ouvert')); },
+    croix: async c => { await c.p.evaluate(() => opsFermer()); await L.calme(c.p, 300); return true; } },
+  { k: 'confirmation', nom: 'confirmation OP Security (« Confirme sur ton téléphone »)', ecran: 'taches',
+    ouvrir: async c => { await c.p.evaluate(() => { SECU.auto = false; secuGarde('banque-ouvrir', () => {}); }); await L.calme(c.p, 300); return await c.p.evaluate(() => !!document.getElementById('sec-conf')); },
+    croix: c => L.toucher(c, '#sec-conf [data-sec3="annuler"]') },
+  { k: 'feuille', nom: 'feuille d\'une tournée sur la carte du planning', ecran: 'planning', profils: 'etroit', rend: true,
+    prepare: async c => { await L.toucher(c, '[data-plvue="carte"]'); await L.calme(c.p, 600); },
+    ouvrir: async c => { await L.toucher(c, '[data-crsel]'); await L.calme(c.p, 600); return await c.p.evaluate(() => !!document.getElementById('cr-ftel')); },
+    croix: c => L.toucher(c, '#cr-ftel [data-crsel]') },
+  { k: 'cadre', nom: 'panneau de la Comptabilité plein cadre (Réglages)', ecran: 'comptabilite', rend: true,
+    prepare: async c => { await c.p.evaluate(() => { cpSysteme = true; rendre(); }); await c.p.waitForTimeout(1700); await L.calme(c.p, 300); },   // le plein cadre : la porte du menu pose cpSysteme, aller() par programme garde l'ancienne page
+    ouvrir: async c => { await c.p.waitForTimeout(300); const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) return false; await f.evaluate(() => { const b = document.querySelector('[data-a="reglages"]'); if (b) b.click(); }); await c.p.waitForTimeout(500); return await f.evaluate(() => !!document.querySelector('#calque').innerHTML); },
+    reste: async c => { const f = L.cadre(c.p, /prototype-comptabilite\.html/); return f ? await f.evaluate(() => !!document.querySelector('#calque').innerHTML || document.body.classList.contains('menu-ouvert')) : 'cadre absent'; },
+    croix: async c => { const f = L.cadre(c.p, /prototype-comptabilite\.html/); if (!f) return false; await f.evaluate(() => fermer()); await c.p.waitForTimeout(500); return true; } },
   { k: 'nouveautes', nom: 'guide des nouveautés', ecran: 'accueil',
     ouvrir: async c => { if (etroit(c)) { if (!await L.toucher(c, '.tt-menu[data-menu="ouvrir"]')) return false; return L.toucher(c, '#calque .nv-menu[data-nv="ouvrir"]'); } return L.toucher(c, '#menu .nv-menu[data-nv="ouvrir"]'); },
     croix: c => L.toucher(c, '#nv [data-nv="fermer"]') },
 ];
 exports.AILLEURS = ['visite'];
-exports.applicable = (g, c) => !g.profils || (g.profils === 'etroit' ? etroit(c) : !tel(c));
+exports.applicable = (g, c) => !g.profils || (g.profils === 'sansvolet' ? c.largeur < 1100 : g.profils === 'etroit' ? etroit(c) : !tel(c));   // 'sansvolet' : OP Security n'est un calque qu'en dessous de 1100 px (au-delà c'est un volet permanent)
 exports.dessus = dessus; exports.tel = tel; exports.etroit = etroit;

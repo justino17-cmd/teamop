@@ -148,9 +148,12 @@ parcours('P6 · poser une intervention chez une personne absente : refus clair, 
   L.v('P6 · la colonne de l’absent le dit (« Absent · Congé »)', /Absent/.test(colTxt || '') && /Congé/.test(colTxt || ''), colTxt);
   const A = await centre(c.p, '.pc[data-int="' + it.id + '"] .t'); await c.p.evaluate(t => document.querySelector('.pl-col[data-tech="' + t + '"]').scrollIntoView({ block: 'center', inline: 'center' }), abs.t);
   const A2 = await centre(c.p, '.pc[data-int="' + it.id + '"] .t'); const B = await c.p.evaluate(t => { const r = document.querySelector('.pl-col[data-tech="' + t + '"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: Math.min(innerHeight - 140, Math.max(140, r.top + r.height / 2)) }; }, abs.t);
-  await glisser(c, A2 || A, B); const ap = await c.p.evaluate(id => INTS.find(x => x.id === id).tech, it.id); const t = await toast(c.p);
+  // Au doigt (téléphone) la carte et la colonne de l'absent ne tiennent pas dans le même écran : amener l'une hors de l'autre fait glisser dans le vide (« la carte reste » vrai sans rien avoir joué, message lu vide). Ce cas est joué POUR DE VRAI, appui long + défilement au bord, par planning-recontrole-absent-doigt.js (6 ✓) ; ici on DIT pourquoi on ne le rejoue pas au lieu de compter un glissement qui n'a pas eu lieu.
+  const cote = c.doigt && !(A2 && B && B.x > 0 && B.x < (await c.p.evaluate(() => innerWidth)));
+  if (cote) L.v('P6 · (téléphone) carte et colonne de l\'absent ne tiennent pas dans le même écran : le refus au doigt est joué par planning-recontrole-absent-doigt.js', true, { A2, B });
+  else { await glisser(c, A2 || A, B); const ap = await c.p.evaluate(id => INTS.find(x => x.id === id).tech, it.id); const t = await toast(c.p);
   L.v('P6 · la carte reste chez son technicien', ap === it.tech, { avant: it.tech, apres: ap });
-  L.v('P6 · le message explique pourquoi (« est absente ce jour-là (Congé) »)', /absent/.test(t) && /Congé/.test(t), t);
+  L.v('P6 · le message explique pourquoi (« est absente ce jour-là (Congé) »)', /absent/.test(t) && /Congé/.test(t), t); }
   await L.capture(c, CAP + `P6-refus-${profil}.png`);
   // le chiffre « absent » mène au planning de la personne
   await L.toucher(c, '[data-kpi="abs"]'); const pa = await c.p.evaluate(() => document.querySelector('#calque .panneau') ? document.querySelector('#calque .panneau').textContent.replace(/\s+/g, ' ').slice(0, 200) : ''); L.v('P6 · « absent » ouvre la liste des absences avec « Voir son planning »', /Voir son planning/.test(pa) && /Congé/.test(pa), pa);

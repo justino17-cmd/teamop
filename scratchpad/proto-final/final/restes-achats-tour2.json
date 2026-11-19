@@ -1,0 +1,51 @@
+[
+  {
+    "nom": "Après la validation d'une note de frais avec ticket, la Comptabilité annonce un « sans facture » de plus que la liste où le lien mène (recontrôle tour 1, casse moyenne)",
+    "defaut": "Trois définitions pour un même mot : cpTva().sans (Comptabilité : À faire, Conformité) compte tout achat avec TVA sans FACTURE, notes validées avec ticket comprises ; le filtre « Sans facture » (cxDocs.sf) excluait exprès ces notes ; la tuile de Comptes fournisseurs ne comptait pas les notes du tout. Reproduit : 4 annoncés, 3 lignes après la note de Tom ; 5 annoncés, 4 lignes après celle de Sophie ; tuile Fournisseurs figée à 3.",
+    "etat": "corrigé",
+    "changement": "Une seule règle : « sans facture » = la TVA ne se récupère pas (tva et pas de facture), notes de frais validées comprises — celle de la Comptabilité. cxDocs.sf la lit sans l'exception des notes ; la tuile « achats sans facture » de Comptes fournisseurs compte les lignes de la liste où elle mène (cxDocs) et plus la somme des fournisseurs, qui ignorait les notes. Une note validée avec son ticket reste PAS « sans justificatif » (c'est `piece`) et porte « ticket reçu · facture manquante ».",
+    "preuve": "campagne/sondes/achats-restes1-coherence.js : 6 ✓ · 3 ✗ avant, 9 ✓ · 0 ✗ après (K3, K6, K8 : Comptabilité = liste = tuile Fournisseurs après la note de Tom et celle de Sophie, 5 annoncés / 5 lignes). La sonde lit désormais la tuile dans ce que cxVueFournisseurs() rend. Regardé : captures restes2-sansfacture-{mac jour, iphone nuit, petit jour, android nuit} et restes2-fournisseurs-mac-jour (la liste montre la note de Tom « ticket reçu · facture manquante », la tuile Fournisseurs dit 4 = les lignes), sonde campagne/sondes/achats-restes2-regard.js 4 ✓ · 0 ✗."
+  },
+  {
+    "nom": "Le tarif au kilomètre refuse « 0,603 » (barème fiscal à trois décimales) (recontrôle tour 1, casse faible)",
+    "defaut": "cxMontantRefus (« au plus deux décimales ») s'appliquait à un tarif au kilomètre, dont le barème officiel s'écrit à trois décimales ; et eur() aurait arrondi l'affichage à « 0,60 € ».",
+    "etat": "corrigé",
+    "changement": "« 0,603 » / « 0.603 » / « 0,631 » sont acceptés (un zéro devant ne se lit jamais comme un millier ; « 1.500 » reste refusé) ; axTarif() écrit deux décimales au moins et la troisième si elle existe, dans les cinq endroits où le tarif se lit (règle des notes, calcul du kilométrage, ligne de la note, réglage, toast). L'unité écrite par un débutant (« 0,6 € », « 0,60 € », « 0,60 €/km ») se lit au lieu de renvoyer (doute du recontrôle). Garde-fou ajouté : un tarif sous 0,05 € ou au-dessus de 10 € est refusé avec une phrase (« 0,006 » et « 12 » passaient).",
+    "preuve": "campagne/sondes/achats-restes1-km.js : 4 ✓ · 2 ✗ avant, 11 ✓ · 0 ✗ après (toast et ligne « Kilomètres : 0,603 € le km », « 0,60 » reste « 0,60 € », « 101 », « 12 », « 0,006 », « 1.500 » refusés, tarif inchangé)."
+  },
+  {
+    "nom": "Téléphone et iPad portrait : la puce de filtre choisie par un lien est HORS de l'écran (recontrôle tour 1, nouveau)",
+    "defaut": "Arrivé par « sans justificatif » ou « sans facture », la rangée de puces défile à zéro : la puce choisie (gauche 268 à 385 px) est plus loin que le bord, on lit une liste réduite sans voir le filtre. 7 ✗ sur 40 (petit, android, iphone, ipad).",
+    "etat": "corrigé",
+    "changement": "Après chaque rendu, les rangées .cx-cats et .cx-outils .seg qui défilent amènent leur puce active au milieu d'elles-mêmes (scrollLeft de la rangée seulement, jamais celui de la page) ; sans effet quand la puce se voit déjà ou que la rangée ne défile pas. Vaut aussi quand on touche une puce (le rendu reconstruit la rangée à zéro).",
+    "preuve": "campagne/sondes/achats-restes1-puce.js : 33 ✓ · 7 ✗ avant, 20 ✓ (petit, android) puis 30 ✓ (iphone, ipad, mac) · 0 ✗ après. Captures regardées plus bas. Regardé : restes2-puce-vue-petit-jour et -iphone-nuit (« Sans facture » entier dans la rangée)."
+  },
+  {
+    "nom": "Pas-à-pas « Factures & dépenses » et tâche « Retrouver le ticket » : « sans justificatif, la TVA ne se récupère pas » (recontrôle tour 1, nouveau)",
+    "defaut": "Depuis achats-10 c'est « sans facture » qui prive de la TVA ; « sans justificatif » veut dire ni facture ni ticket. Les deux phrases laissaient croire l'inverse.",
+    "etat": "corrigé",
+    "changement": "Tâche : « … · ni facture ni ticket : la TVA ne se récupère pas ». Pas-à-pas : « Les achats payés dont on n'a ni la facture ni le ticket. Sans la facture, la TVA de l'achat ne se récupère pas. »",
+    "preuve": "Lu dans le code ; aucune sonde ne cite ces phrases. Lot complet des sondes d'Achats rejoué sur la page corrigée : 28 sondes, 0 ✗ (recontrole-parcours 20+20, comptes 5, telephone 21/14, annuler 10, gestes 32, champs 12, corrections 29/31, mise-en-page 120/79, roles 9, gestes 32, liaisons 26, details 14, saisies 17, doublon 3, toast-fenetre 6, champs-virgule 14, virgule 3, parcours-demandes 46, parcours-notes 37, restes1-filtres 12, restes1-aide 11/11, entreprise-achats-lisible 142, materiel-table 66) ; contrôles : compiler-pages, verifier-syntaxe, tests 835/836/837/1008/2994, verif-secrets à zéro ✗."
+  },
+  {
+    "nom": "Doute : deux mots pour deux choses vraies (« sans justificatif » / « sans facture »)",
+    "defaut": "Un débutant peut les lire comme des synonymes, la tuile d'Achats dit « sans justificatif » pendant que la Comptabilité dit « sans facture » pour des listes qui se recoupent.",
+    "etat": "à soumettre à Justin",
+    "changement": "Aucun. Les deux mots sont définis et cohérents (la ligne « ticket reçu · facture manquante » aide, les nombres sont maintenant les mêmes partout) ; les fondre en un seul mot change le sens d'une décision déjà prise (achats-10).",
+    "preuve": "Décision du chef de chantier du 17/11, 12 h (achats-10) ; à regarder avec Justin sur la vraie application."
+  },
+  {
+    "nom": "Doute : pastilles de personnes dans Achats et frais (iPhone : passent à la ligne ; Android et 320 px : défilent, « Karim » coupé au bord)",
+    "defaut": "Même composant, deux comportements selon la largeur.",
+    "etat": "à soumettre à Justin",
+    "changement": "Aucun : confirmé sur capture par le correcteur et le regard, pas de défaut de débordement ; le choix entre « à la ligne » et « défile avec repère » est un choix de dessin.",
+    "preuve": "final/regard-gerant-b-recontrole.json (doutes), restes-achats-tour1-recontrole.json (doutes)."
+  },
+  {
+    "nom": "Décisions déjà prises par le chef de chantier (rappel)",
+    "defaut": "(a) retour qui ferme la fenêtre ET quitte l'écran : voie à part ; (b) cases des absences et barres des soldes sous 44 px ; (c) Boîte mail à deux boîtes connectées ; achats-05 (la première demande à décider sans défiler au téléphone) et la Boîte mail de la secrétaire : décisions de Justin, non touchées.",
+    "etat": "déjà décidé",
+    "changement": "Aucun.",
+    "preuve": "REPRISE.md, « Décisions prises par le chef de chantier » ; vus-par-le-chef.md (ligne achats cochée)."
+  }
+]

@@ -132,7 +132,7 @@ const L = require('../lib.js');
   await L.aller(p2, 'stock'); await L.calme(p2, 300);
   const ju = await p2.evaluate(() => ({ h1:(document.querySelector('#contenu h1') || {}).textContent, bandeau:!!document.querySelector('.ms-bandeau'), lignes:document.querySelectorAll('.ms-l').length, menu:[...document.querySelectorAll('#menu a, #menu button')].map(e => e.textContent.trim()).filter(Boolean).join('|') }));
   v('bureau (Julie) : la route Stock s\'ouvre, avec ses articles (' + ju.lignes + ')', ju.h1 === 'Stock' && ju.lignes >= 20, ju);
-  v('bureau : le menu porte « Stock » et « Fournisseurs, matériel & produits », pas « Dépôts et camions »', /Stock/.test(ju.menu) && /Fournisseurs, matériel & produits/.test(ju.menu) && !/Dépôts et camions/.test(ju.menu), ju.menu);
+  v('bureau : le menu porte « Stock », « Fournisseurs, matériel & produits » et « Dépôts et camions » (équipe-11, MENU-FINAL.md : « Voir » décide SEULE, le Secrétariat (stock 1110) voit donc Dépôts et camions)', /Stock/.test(ju.menu) && /Fournisseurs, matériel & produits/.test(ju.menu) && /Dépôts et camions/.test(ju.menu), ju.menu);
   v('bureau : aucun bandeau « à accepter »', !ju.bandeau);
   await p2.evaluate(() => { document.querySelector('[data-ms="plus"]').click(); });
   const mj = await p2.evaluate(() => [...document.querySelectorAll('.ctx button')].map(e => e.textContent.trim()));

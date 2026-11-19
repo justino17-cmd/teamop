@@ -1,0 +1,13 @@
+{
+ "etape": "final-rejeu 1/2 (scripts-de-rejeu)",
+ "date": "2026-11-19",
+ "familles": {
+  "droits": {
+   "script": "scratchpad/proto-final/sondes/droits-tout.sh",
+   "duree": "~10 min",
+   "executions": 19,
+   "rouges": 0
+  }
+ },
+ "aNoter": []
+}

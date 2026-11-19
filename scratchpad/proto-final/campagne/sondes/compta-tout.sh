@@ -2,23 +2,24 @@
 # Rejoue TOUTES les sondes de la famille « compta » (Comptabilité : compta-reste = achats, paie, banque, fiscal, conformité ; compta-ventes = ventes,
 # clients, paiements, caisse), UNE à la fois (un seul navigateur), et dit pour chacune « N ✓ · M ✗ » et son code de sortie. FINI à la fin ; sort en 1 si une
 # exécution tombe.
-#   bash scratchpad/proto-final/campagne/sondes/compta-tout.sh               # le passage ESSENTIEL (ordinateur « mac » + téléphone « iphone »)
-#   COMPLET=1 bash …/compta-tout.sh                                           # + les autres profils des sondes de mise en page (ipad, android, windows, petit, mac720)
+#   bash scratchpad/proto-final/campagne/sondes/compta-tout.sh               # le passage par défaut (voir plus bas ce qui est laissé de côté)
+#   COMPLET=1 bash …/compta-tout.sh                                           # + tout ce qui est laissé de côté (téléphones, rejeux longs, autres profils)
 #   AVEC_BALAYAGE=1 bash …/compta-tout.sh                                     # + les balayages (recensements de gestes, longs : un quart d'heure et plus)
 # Journal complet : $CAP/compta-tout.log (hors dépôt). Durée : voir la ligne « DURÉE » que le script imprime en fin de passage.
 #
-# CE QUI EST JOUÉ (le passage essentiel) : TOUTES les sondes sur UN ordinateur (mac, jour) ; et sur UN téléphone (iphone, la NUIT quand la sonde sait la
-# jouer) celles qui regardent le RENDU ou qui sont courtes : mise en page, corrections de mise en page, restes, cadre, tableaux, en ligne, détails, écrans de
-# droits par rôle (marc au bureau, julie au téléphone quand le rôle change ce que la sonde voit).
-# CE QUI EST LAISSÉ DE CÔTÉ (pour tenir dans la durée, et DIT ici) — sous COMPLET=1 :
-#   · le TÉLÉPHONE des parcours fonctionnels et des recontrôles longs (reste parcours-a à g, cadre-parcours, recontrole-ndf, recontrole-parcours, parties montants+ndf et
-#     chiffres du recontrôle ; ventes parcours-a à j, recontrole-r2b/r4/r5) : même fonction que sur ordinateur, seul le rendu change et il est déjà gardé par les sondes de mise en page ;
-#   · mac NUIT et iphone JOUR des sondes qui prennent « nuit » ;
-#   · les profils ipad, android, windows, petit, mac720 des sondes de mise en page.
-# CE QUI N'EST JOUÉ QUE SOUS AVEC_BALAYAGE=1 : les BALAYAGES (compta-reste-balayage, compta-reste-recontrole-balayage, compta-ventes-balayage), des RECENSEMENTS (page neuve,
-#   un geste, ce qu'il a fait ; une heure à eux seuls) sans verdict propre — le verdict s'y fabrique : « ✓ » = geste touché, « ✗ » = geste non touché ou erreur de console —,
-#   et la partie « mots » du recontrôle (chaque geste de quinze onglets, plus de sept minutes par navigateur : par groupes d'onglets).
-# CE QUI N'EST JAMAIS JOUÉ : les EXPLORATIONS (compta-*-explore, compta-reste-cadre-explore, compta-reste-paie-explore, compta-ventes-cadre-explore), compta-ventes-balayage-rapide
+# DURÉE MESURÉE du passage par défaut : voir la ligne « DURÉE » de fin (dernier relevé dans le rapport de l'étape, final/rejeu-compta.json).
+# CE QUI EST JOUÉ (le passage par défaut, visé à 25 minutes : le premier passage de tout l'essentiel a mesuré 66 min, le deuxième 32, le troisième 27 — d'où les coupes ci-dessous) : TOUTES les sondes sur UN ordinateur
+# (mac, jour) ; et sur UN téléphone (iphone, la NUIT quand la sonde sait la jouer) celles qui regardent le RENDU ou qui sont courtes (≤ 20 s) : mise en page, corrections de mise en page, cadre,
+# tableaux, en ligne, détails, bilan, paiement-mots, bulletin, cadre-mots, restes des ventes courts ; écrans de droits par rôle (marc au bureau, julie au téléphone quand le rôle change ce que la sonde voit).
+# CE QUI EST LAISSÉ DE CÔTÉ dans le passage par défaut (COMPLET=1 le rejoue) :
+#   · le TÉLÉPHONE des parcours fonctionnels et des recontrôles longs (reste cadre-parcours, parcours-a à g, recontrole-ndf, recontrole-parcours, parties montants+ndf et chiffres du recontrôle ; ventes parcours-a à j,
+#     recontrole-r2b/r4/r5, restes2-rc-pdf/qte/remb, restes5-rc2) : même fonction que sur ordinateur, seul le rendu change et il est déjà gardé par les sondes de mise en page ;
+#   · SUR LES DEUX PROFILS : les rejeux les plus longs — reste coherence-2 (téléphone) et coherence-2 recontrole, coherence-3 recontrole (une minute chacun), recontrole partie mise (téléphone), reste mots julie,
+#     ventes parcours-d julie au téléphone, recontrole-r1 et r3 au téléphone, et les trois sondes du lot 6 des ventes — restes6 (3 min par profil), restes6-rc (4 min), restes6-rc2 (50 s) ;
+#   · mac NUIT et iphone JOUR des sondes qui prennent « nuit » ; les profils ipad, android, windows, petit, mac720 des sondes de mise en page ;
+#   · le TÉLÉPHONE de coherence-3, corrections-mep, recontrole-r1/r2/r3, restes1-rc1, restes4, restes5-rc, restes3-rc-fait/-rc-remb/-remb (courts, mais le rendu est déjà gardé par les sondes de mise en page) ;
+#   · la partie « mots » du recontrôle (chaque geste de quinze onglets, plus de sept minutes par navigateur : sous AVEC_BALAYAGE=1, par groupes d'onglets).
+# CE QUI N'EST JAMAIS JOUÉ : compta-reste-recontrole-coh (un relevé de chiffres imprimés, sans aucun contrôle ni verdict) ; les EXPLORATIONS (compta-*-explore, compta-reste-cadre-explore, compta-reste-paie-explore, compta-ventes-cadre-explore), compta-ventes-balayage-rapide
 #   (variante du balayage) et les OUTILS : ce ne sont pas des contrôles (elles écrivent des captures et des relevés) ; les mutations (*.py) ont leur lanceur.
 # Les sondes réécrivent des relevés JSON suivis dans campagne/ (mise-en-page-*.json, mots-compta-reste.json, balayage-*.json…) : à la fin le script LISTE ceux
 # qui ont bougé ; les remettre (git checkout -- <fichier>) avant de commiter, sauf si l'on veut vraiment les renouveler.
@@ -36,6 +37,9 @@ synth_mep(){ # « jour iphone tva glisse=0 petits=0 champs=0 écrasés=0 … » 
        /^erreurs \[\]/{ ok++ } /^erreurs \[[^]]/{ ko++ } END{ printf "%d ✓ · %d ✗", ok, ko }' <<< "$1"; }
 synth_bal(){ # lignes « 12 T libellé … » (touché) ou « 12 ✗ libellé … » (non touché) ; « err N [...] » : N > 0 = erreur de console
   awk '/^ *[0-9]+ T /{ ok++ } /^ *[0-9]+ ✗ /{ ko++ } /^err [1-9]/{ ko++ } END{ printf "%d ✓ · %d ✗", ok, ko }' <<< "$1"; }
+
+synth_v(){ # sondes qui n'impriment que des lignes « ✓ … » / « ✗ … » (L.v) sans appeler L.bilan : leur code de sortie vaut 0 même quand un contrôle tombe
+  awk '/^ *✓ /{ ok++ } /^ *✗ /{ ko++ } END{ printf "%d ✓ · %d ✗", ok, ko }' <<< "$1"; }
 
 # lance <nom> <commande…> : SYN=mep|bal en préfixe si la sonde n'imprime pas de total
 lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout "$DELAI" env "$@" 2>&1); local code=$?
@@ -65,7 +69,7 @@ SYN=mep sonde C "reste mise-en-page mac nuit" node $S/compta-reste-mise-en-page.
 SYN=mep sonde C "reste mise-en-page iphone jour" node $S/compta-reste-mise-en-page.js iphone jour
 for p in ipad android windows petit mac720; do SYN=mep sonde C "reste mise-en-page $p jour+nuit" node $S/compta-reste-mise-en-page.js $p les-deux; done
 sonde E "reste mots marc" node $S/compta-reste-mots.js marc
-sonde E "reste mots julie" node $S/compta-reste-mots.js julie
+sonde C "reste mots julie" node $S/compta-reste-mots.js julie
 for x in a b c d f g; do duo C "reste parcours-$x" node $S/compta-reste-parcours-$x.js; done
 duon E "reste recontrole-bilan" node $S/compta-reste-recontrole-bilan.js
 duon C "reste recontrole-ndf" node $S/compta-reste-recontrole-ndf.js
@@ -75,17 +79,29 @@ duon C "reste recontrole-parcours" node $S/compta-reste-recontrole-parcours.js
 # l'état que « montants » laisse : seule, 0 ✓ · 7 ✗) : « montants ndf » ensemble. La partie « mots » touche chaque geste de quinze onglets (balayage déguisé) : voir plus bas.
 sonde E "reste recontrole mac jour parties montants+ndf" node $S/compta-reste-recontrole.js mac jour "montants ndf"
 sonde E "reste recontrole mac jour partie chiffres" node $S/compta-reste-recontrole.js mac jour chiffres
-sonde E "reste recontrole mac jour partie mise" node $S/compta-reste-recontrole.js mac jour mise
-sonde E "reste recontrole iphone nuit partie mise" node $S/compta-reste-recontrole.js iphone nuit mise
+sonde C "reste recontrole mac jour partie mise" node $S/compta-reste-recontrole.js mac jour mise
+sonde C "reste recontrole iphone nuit partie mise" node $S/compta-reste-recontrole.js iphone nuit mise
 sonde C "reste recontrole iphone nuit parties montants+ndf" node $S/compta-reste-recontrole.js iphone nuit "montants ndf"
 sonde C "reste recontrole iphone nuit partie chiffres" node $S/compta-reste-recontrole.js iphone nuit chiffres
 sonde E "reste roles (marc, julie, sm, kb)" node $S/compta-reste-roles.js
 duo E "reste tableaux" node $S/compta-reste-tableaux.js
 
+# Restes de cohérence (cadre OP COMPTABLE / OP GESTION, tours 2 et 3) et pièces du recontrôle qui n'avaient pas leur ligne : « profil [qui] » pour les deux premières, « profil [nuit] » pour les autres.
+duo C "reste coherence-2" node $S/compta-restes-coherence-2.js
+sonde C "reste coherence-2 recontrole mac" node $S/compta-restes-coherence-2-recontrole.js mac
+sonde C "reste coherence-2 recontrole iphone" node $S/compta-restes-coherence-2-recontrole.js iphone
+duon C "reste coherence-3" node $S/compta-restes-coherence-3.js
+sonde C "reste coherence-3 recontrole mac jour" node $S/compta-restes-coherence-3-recontrole.js mac
+sonde C "reste coherence-3 recontrole iphone nuit" node $S/compta-restes-coherence-3-recontrole.js iphone nuit
+sonde C "reste coherence-3 recontrole mac nuit" node $S/compta-restes-coherence-3-recontrole.js mac nuit
+sonde C "reste coherence-3 recontrole iphone jour" node $S/compta-restes-coherence-3-recontrole.js iphone
+duon E "reste recontrole-bulletin" node $S/compta-reste-recontrole-bulletin.js
+duon E "reste recontrole-cadre-mots" node $S/compta-reste-recontrole-cadre-mots.js
+
 # ───────────── compta-ventes : ventes, clients, paiements, caisse ─────────────
 duo E "ventes annulee-cadre" node $S/compta-ventes-annulee-cadre.js
 sonde E "ventes corrections-mep mac jour" node $S/compta-ventes-corrections-mep.js mac jour
-sonde E "ventes corrections-mep iphone nuit" node $S/compta-ventes-corrections-mep.js iphone nuit
+sonde C "ventes corrections-mep iphone nuit" node $S/compta-ventes-corrections-mep.js iphone nuit
 sonde C "ventes corrections-mep mac nuit" node $S/compta-ventes-corrections-mep.js mac nuit
 sonde C "ventes corrections-mep iphone jour" node $S/compta-ventes-corrections-mep.js iphone jour
 duo E "ventes enligne" node $S/compta-ventes-enligne.js
@@ -94,15 +110,36 @@ sonde E "ventes mise-en-page iphone marc nuit" node $S/compta-ventes-mise-en-pag
 sonde C "ventes mise-en-page mac marc nuit" node $S/compta-ventes-mise-en-page.js mac marc nuit
 sonde C "ventes mise-en-page iphone marc jour" node $S/compta-ventes-mise-en-page.js iphone marc jour
 for p in ipad android windows petit mac720; do sonde C "ventes mise-en-page $p marc jour+nuit" node $S/compta-ventes-mise-en-page.js $p marc les-deux; done
-for x in a b c e f g h i j; do duo C "ventes parcours-$x" node $S/compta-ventes-parcours-$x.js; done
+for x in a b c e f g h i; do duo C "ventes parcours-$x" node $S/compta-ventes-parcours-$x.js; done
+duo C "ventes parcours-j" node $S/compta-ventes-parcours-j.js
 sonde E "ventes parcours-d mac marc" node $S/compta-ventes-parcours-d.js mac marc
-sonde E "ventes parcours-d iphone julie" node $S/compta-ventes-parcours-d.js iphone julie
+sonde C "ventes parcours-d iphone julie" node $S/compta-ventes-parcours-d.js iphone julie
 for r in r1 r2 r3; do
   sonde E "ventes recontrole-$r mac marc jour" node $S/compta-ventes-recontrole-$r.js mac marc jour
-  sonde E "ventes recontrole-$r iphone julie nuit" node $S/compta-ventes-recontrole-$r.js iphone julie nuit
+  # r1 sur le téléphone : 52 s à elle seule, laissée au passage COMPLET
+  niv=C
+  sonde $niv "ventes recontrole-$r iphone julie nuit" node $S/compta-ventes-recontrole-$r.js iphone julie nuit
 done
 for r in r2b r4 r5; do duo C "ventes recontrole-$r" node $S/compta-ventes-recontrole-$r.js; done
 for x in 1 2 3; do duon E "ventes restes-$x" node $S/compta-ventes-restes-$x.js; done
+
+# Restes des ventes (lots 1 à 7) et leurs recontrôles (rc) : tous prennent « profil [nuit] » sauf mention.
+for x in restes1-rc2 restes2-1 restes2-2 restes3-lignes restes3-rc restes4-rc-a restes4-rc-b restes5-qte restes6-commande; do duon E "ventes $x" node $S/compta-ventes-$x.js; done
+# ceux dont le téléphone coûte plus de 20 s : l'ordinateur dans le passage par défaut, le téléphone sous COMPLET=1
+for x in restes1-rc1 restes4 restes5-rc restes2-rc-pdf restes2-rc-qte restes2-rc-remb restes5-rc2; do duon C "ventes $x" node $S/compta-ventes-$x.js; done
+# les deux rejeux longs du lot 6 (restes6 : 3 min, restes6-rc : 4 min, par profil) : seulement sous COMPLET=1
+for x in restes6 restes6-rc restes6-rc2; do sonde C "ventes $x mac jour" node $S/compta-ventes-$x.js mac; sonde C "ventes $x iphone nuit" node $S/compta-ventes-$x.js iphone nuit; done
+duo E "ventes restes2-rc-dvt" node $S/compta-ventes-restes2-rc-dvt.js
+sonde E "ventes restes2-rc-julie mac" node $S/compta-ventes-restes2-rc-julie.js mac julie
+sonde E "ventes restes2-rc-julie iphone" node $S/compta-ventes-restes2-rc-julie.js iphone julie
+SYN=v duo E "ventes restes3-rc-duree" node $S/compta-ventes-restes3-rc-duree.js
+SYN=v duon C "ventes restes3-rc-fait (julie)" node $S/compta-ventes-restes3-rc-fait.js
+SYN=v duon C "ventes restes3-rc-remb (julie)" node $S/compta-ventes-restes3-rc-remb.js
+duon C "ventes restes3-remb (julie)" node $S/compta-ventes-restes3-remb.js
+SYN=v sonde E "ventes restes3-rc-largeurs mac jour" node $S/compta-ventes-restes3-rc-largeurs.js
+SYN=v sonde E "ventes restes3-rc-largeurs mac nuit" node $S/compta-ventes-restes3-rc-largeurs.js nuit
+sonde E "ventes restes7-boite mac jour" PROFIL=mac node $S/compta-ventes-restes7-boite.js
+sonde E "ventes restes7-boite iphone nuit" PROFIL=iphone NUIT=1 node $S/compta-ventes-restes7-boite.js
 
 # ───────────── balayages (opt-in) ─────────────
 if [ -n "$AVEC_BALAYAGE" ]; then

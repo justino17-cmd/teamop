@@ -1,0 +1,74 @@
+{
+ "noms": [
+  "« Bonjour Syndic Foncia » (bouton « Prévenir » d'une tâche, tMailClient)",
+  "Réponses types du Courrier : « Bonjour Syndic des Mimosas », « Bonjour Frigo Distribution 17 », « Bonjour La Poste »",
+  "prototype-paiement.html : « Bonjour Le syndic, » dans les courriels de facture générés",
+  "Doute : menu de l'espace client « Marc Leblanc · Mon compte » (à soumettre à Justin)",
+  "Doute : la carte « Votre demande est envoyée » disparaît quand « Proposer un contrat » est fait sans contrat (à soumettre à Justin)",
+  "Doute : noms de signature d'un client organisme (déjà décidé)",
+  "Doute : phrase du patron en toast sur les captures (ne se reproduit pas)"
+ ],
+ "regles": [
+  "« Bonjour Syndic Foncia » (bouton « Prévenir » et son courriel) : rejoué par le vrai geste sur les 8 clients, 3 profils et 2 thèmes. La copropriété donne « 💬 Prévenir Copropriété Les Mimosas » et « Bonjour, » ; Marc Durand, Mme Bernard, M. Durand, Dr Martin, M. Pineau, Mme Roux, M. Gaillard gardent leur nom. tMailClient (« Prévenir » / « Écrire au client ») : « Bonjour, » pour la copropriété, plus de « () » vides. Aucune erreur JavaScript.",
+  "saluer() élargi : 18 noms sans équivoque rejoués (Marc Le Goff, M. Le Goff, Mme La Fontaine, Laurent, Lara Martin, Léa, Lou, Prosper Martin, Hélène Sciarra, Jean-Luc Garnier, Marie-Laure Roux, Marc Durand gérant gardent leur nom ; Restaurant Le Vieux Port, Hôtel de la Plage, Cabinet dentaire Martin, Service commandes, SCI Les Pins, Le Fournil donnent « Bonjour »). Aucun prénom n'est pris pour un organisme.",
+  "Réponses types du Courrier : 26 expéditeurs lus, chacun reçoit UNE seule salutation sur tous ses modèles (Mme Bernard, Claire Fontaine, M. Durand, M. Garnier, Sophie Marchand, Dr Martin gardent leur nom ; Frigo Distribution 17, Syndic des Mimosas, Chauffage Distribution Atlantique, Daikin Pro Ouest, La Poste, Outillage Pro, Qonto, URSSAF, SNCF Connect, EDF Entreprises, Clim Pièces Atlantique : « Bonjour, »). courrierModeleDe retrouve chacun des 31 couples (message, modèle) envoyés malgré la salutation raccourcie : la fenêtre de 60 signes ne confond rien.",
+  "Paiement : courriels « facture », « relance », « rejet » et « remboursement » : « Bonjour, » pour « Le syndic », nom gardé pour M. Lemoine, Mme Roux, M. Petit, Dr Martin (les 5 modèles de client rejoués par les vraies fonctions de la page).",
+  "Suite d'une 3ᵉ relance : « Appeler Copropriété Les Mimosas : facture … » (copropriété), « Appeler Marc Durand / Mme Bernard / M. Durand / Dr Martin : … » (personnes), jamais « Syndic Foncia » ni « undefined »."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Paiement : le courriel de REÇU dit « Merci Le syndic. »",
+   "defaut": "Le correcteur a corrigé quatre gabarits sur cinq : « recu » écrit encore « Merci ${esc(g.contact)}. » (prototype-paiement.html ~682).",
+   "constat": "Rejoué dans le cadre Paiement par ecranTel() sur les 5 modèles de client (restes-client-2-recontrole-paiement.js) : pour la Copropriété Les Mimosas (contact « Le syndic »), la 3ᵉ facture générée, le client ouvre « Merci Le syndic. Nous avons bien reçu 90 … ». Les quatre autres gabarits disent « Bonjour, ». Piste : « Merci, » quand le contact commence par un article (réutiliser salut()), « Merci M. Lemoine. » sinon."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "La barre du bas de la fiche « Prévenir » pousse « ✓ Fait » hors de l'écran pour la copropriété",
+   "gravite": "moyen (le geste qui clôt la tâche n'est plus visible ni atteignable sans défiler de côté, sur téléphone, pour le seul client corrigé)",
+   "etapes": "Application, téléphone, une tâche « Prévenir … » liée à Copropriété Les Mimosas (mi) : ouvrir la fiche, regarder la barre du bas.",
+   "constat": "Le correcteur a rallongé le libellé (« 💬 Prévenir Syndic Foncia » → « 💬 Prévenir Copropriété Les Mimosas »). Sur iPhone 390 px, bouton « Prévenir » de 16 à 344 et « ✓ Fait » de 352 à 437 : 47 px hors écran, la barre fait 437 de large (scrollWidth 437 pour 390) ; même mesure à 360 et 320 (bouton de 16 à 344 pour 320 : 24 px dehors) ; seul mi tombe (les 7 autres clients : 390 pour 390) ; identique pour gérant, secrétariat, technicienne et chef d'équipe. Capture : cap/restes-client-2-recontrole/B-previenir-iphone-nuit.png (le « ✓ Fait » est coupé à droite, sous l'icône du bouton). Même cause pour tout nom de client très long : la barre n'a ni retour à la ligne ni ellipse. Piste : `min-width:0;flex:1 1 auto` + ellipse sur le bouton « Prévenir » de .tkx-barre (ou `flex-wrap:wrap`), et/ou libellé court « 💬 Prévenir la copropriété » ; sonde restes-client-2-recontrole-barre.js (4 rôles)."
+  }
+ ],
+ "nouveaux": [
+  "Paiement : « Merci Le syndic. » (voir pasRegles) : défaut de la même famille que les trois corrigés, resté au 5ᵉ gabarit.",
+  "Cohérence mineure : sur la même fiche de tâche d'une copropriété, le bouton du haut dit « 📞 Appeler Syndic Foncia » (personne à appeler, voulu : on appelle la personne) pendant que « Prévenir » dit « Copropriété Les Mimosas » et que la tâche née d'une 3ᵉ relance s'intitule « Appeler Copropriété Les Mimosas : … » ; rien de faux, mais un client lit trois façons de nommer le même appel."
+ ],
+ "sondes": [
+  {
+   "fichier": "campagne/sondes/restes-client-2.js",
+   "resultat": "mac, iphone nuit, petit nuit, ipad : 16 ✓ · 0 ✗ chacun"
+  },
+  {
+   "fichier": "campagne/sondes/restes-client-1.js",
+   "resultat": "mac nuit : 39 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/restes-client-1-recontrole.js",
+   "resultat": "iphone : 41 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/client-recontrole.js",
+   "resultat": "mac : 113 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "campagne/sondes/restes-client-2-recontrole.js (NEUVE : saluer sur 18 noms, fiche « Prévenir », 3ᵉ relance, Courrier 26 expéditeurs × tous modèles, courrierModeleDe, gabarits du cadre Paiement)",
+   "resultat": "mac 19 ✓ · 1 ✗ ; iphone, petit, android nuit : 2 à 3 ✗ chacun, tous les mêmes deux défauts (barre « Prévenir » sur téléphone, « Merci Le syndic »)"
+  },
+  {
+   "fichier": "campagne/sondes/restes-client-2-recontrole-barre.js (NEUVE : les deux boutons de la barre, pour chaque client, 4 rôles)",
+   "resultat": "iphone nuit, rôles marc / julie / sm / kb : 2 ✓ · 2 ✗ chacun, seul mi tombe"
+  },
+  {
+   "fichier": "campagne/sondes/restes-client-2-recontrole-paiement.js (NEUVE : cadre Paiement, courriels facture et reçu, 5 modèles)",
+   "resultat": "mac : 3 ✓ · 1 ✗ (« Merci Le syndic. »)"
+  }
+ ],
+ "doutes": [
+  "Courrier : un expéditeur INCONNU est reconnu pour une société quand son premier mot est dans son adresse (Qonto, URSSAF, SNCF Connect, EDF Entreprises) ; un organisme dont l'adresse ne porte pas son nom (« Pôle Emploi » écrivant de francetravail.fr, « Crédit Agricole » de ca-atlantique.fr) recevrait encore « Bonjour Pôle Emploi ». Aucun cas dans les 26 expéditeurs du prototype ; à garder en tête si l'on ajoute des expéditeurs de démonstration.",
+  "saluer() : « Le Goff » seul, « Mme Pro », « Sophie Distribution » donnent « Bonjour » (le mot Pro / Distribution / l'article fait passer pour une société) ; inoffensif (on perd le nom, on n'écrit rien de faux).",
+  "Le cadre Documents écrit « Bonjour M. Pierre Delmas, » (contact en toutes lettres, prototype-documents.html salutation()) : correct mais plus lourd que « Bonjour M. Delmas » ; ses six contacts sont tous des personnes, donc rien d'un organisme salué. Fabriqué depuis atelier/page.source : à décider avec Justin si cela vaut un changement.",
+  "Reste à soumettre à Justin (décisions de produit, non changées) : menu de l'espace client « Marc Leblanc · Mon compte · Se déconnecter » ; carte « Votre demande est envoyée » qui disparaît quand « Proposer un contrat » est fait sans créer de contrat.",
+  "Non vérifié : un vrai iPhone ou un Safari (Chromium seul) ; la correction de la barre « Prévenir » reste à faire puis à rejouer avec les deux sondes neuves."
+ ]
+}

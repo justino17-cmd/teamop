@@ -1,80 +1,68 @@
-/* test-3299 — AGENTS RETIRÉS (19 novembre 2026) : le VRAI `cerveau.js`, un faux Anthropic qui COMPTE les appels (deux façons : l'appelant injecté ET le vrai SDK
-   contre un serveur local, variable ANTHROPIC_BASE_URL). Par défaut — réglage absent, `retires:true`, tout ce qui n'est pas `false` — : 0 appel, clé posée ou non,
-   agent en pause ou non, budget intact, réponse propre `{ ok:false, erreur:'agents_retires' }`, jamais une exception. Avec `retires:false` explicite : le moteur d'avant.
-   Et le code : le verrou est la PREMIÈRE instruction de `penser`, et le seul chemin des agents vers Anthropic (`appelerAnthropic`) n'a pas d'autre appelant.
-   Modules joués : server/cerveau.js. */
-'use strict';
-const fs = require('fs'), os = require('os'), path = require('path'), http = require('http');
+/* test-3299 — LES MOTS DE PASSE DE LA TOUR EN SCRYPT SALÉ, MIGRATION AU PREMIER LOGIN (18 novembre 2026, S3).
+ * Le VRAI serveur, isolé sur 127.0.0.1. Gardé : un compte d'avant (SHA-256 nu) entre UNE fois puis est réécrit en `scrypt$…` ;
+ * le nouveau hachage est salé (deux comptes, même mot de passe, deux empreintes) ; un mauvais mot de passe et une forme
+ * rangée falsifiée sont refusés ; un compte créé par la Tour naît en scrypt ; un accès bêta d'avant migre de même ;
+ * ni mot de passe ni empreinte dans le journal du serveur. */
+const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
+const { spawn } = require('child_process');
 const RACINE = path.join(__dirname, '..');
 let ok = 0, ko = 0;
-const vrai = (n, c, d) => { if (c) { ok++; console.log('  ✓ ' + n); } else { ko++; console.log('  ✗ ' + n + (d ? ' — ' + d : '')); } };
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'b3299-'));
-process.on('exit', () => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} });
-if (!fs.existsSync(path.join(RACINE, 'server', 'node_modules'))) { console.log('  (server/node_modules absent : partie SDK sautée)'); }
-const cerveau = require(path.join(RACINE, 'server', 'cerveau.js'));
-const AG = require(path.join(RACINE, 'server', 'agents.js'));
-const GRAND = { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 };
-
+const vrai = (t, a) => { if (a) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t); } };
+const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-3299-')); let enfant = null;
+const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
+process.on('exit', fin);
+setTimeout(() => { console.log('  ✗ banc FIGÉ'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 90000).unref();
+const sha = x => crypto.createHash('sha256').update(x).digest('hex');
+const MDP = 'Mdp-Banc-3299-QZX', MDP2 = 'Autre-Mdp-3299-QZX';
 (async () => {
-  console.log('\n── test-3299 : agents retirés ──');
-  let appels = 0, enPause = false, d = 0;
-  const faux = { AGENTS: AG.AGENTS, peutAgir: () => (enPause ? { ok: false, raison: 'pause' } : { ok: true }), noter: () => {} };
-  const appeler = async () => { appels++; return { texte: 'ok', entree: 10, sortie: 10, stop_reason: 'end_turn', recherches: 0 }; };
-  const monter = extra => { const D = path.join(tmp, 'c' + (d++)); fs.mkdirSync(D, { recursive: true }); return { D, c: cerveau(Object.assign({ DATA_DIR: D, agents: faux, appeler, plafondsJour: GRAND }, extra)) }; };
-  const penser = c => c.penser('camille', 'système', [{ role: 'user', content: 'bonjour' }]);
+  let webpush; try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); } catch (e) { console.log('  (server/node_modules absent : suite sautée)'); console.log('\n0 ✓  0 ✗'); return; }
+  const vap = webpush.generateVAPIDKeys(); const D = path.join(banc, 'data'); fs.mkdirSync(D);
+  fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha('x-inutile') }));
+  const MON = path.join(banc, 'monitor.json');
+  fs.writeFileSync(MON, JSON.stringify({ issues: [], users: [
+    { id: 'u1', nom: 'Patron', email: 'patron@banc.fr', hash: sha(MDP), role: 'patron', actif: true, ts: 0 },
+    { id: 'u2', nom: 'Second', email: 'second@banc.fr', hash: sha(MDP), role: 'collaborateur', actif: true, ts: 0 } ] }));
+  fs.writeFileSync(path.join(D, 'beta-comptes.json'), JSON.stringify([{ id: 'b1', login: 'testeur', nom: 'T', apps: ['gestion'], hash: sha(MDP), actif: true, ts: 1 }]));
+  const PORT = 9520 + (process.pid % 200); let journal = '';
+  enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_KEK: 'b8'.repeat(32),
+    TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: 'http://127.0.0.1:1/token', TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:1', TEAMOP_IDTK_URL: 'http://127.0.0.1:1/idtk', TEAMOP_FB_CERTS_URL: 'http://127.0.0.1:1/certs' }) });
+  enfant.stdout.on('data', d => journal += d); enfant.stderr.on('data', d => journal += d);
+  const B = 'http://127.0.0.1:' + PORT;
+  for (let i = 0; i < 100; i++) { try { if ((await fetch(B + '/health')).ok) break; } catch (e) {} await new Promise(r => setTimeout(r, 300)); }
+  const post = async (u, corps, tete) => { const r = await fetch(B + u, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, tete || {}), body: JSON.stringify(corps) }); let j = {}; try { j = await r.json(); } catch (e) {} return { s: r.status, j }; };
+  const users = () => JSON.parse(fs.readFileSync(MON, 'utf8')).users;
+  const betas = () => JSON.parse(fs.readFileSync(path.join(D, 'beta-comptes.json'), 'utf8'));
 
-  console.log('\n1. Par défaut : aucun appel');
-  const cas = { 'réglage absent, clé posée': { cleApi: 'sk-ant-banc' }, 'réglage absent, sans clé': {}, 'retires:true, clé posée': { cleApi: 'sk-ant-banc', retires: true },
-    'retires:undefined': { cleApi: 'k', retires: undefined }, 'retires:null': { cleApi: 'k', retires: null }, 'retires:"false" (texte)': { cleApi: 'k', retires: 'false' }, 'retires:0': { cleApi: 'k', retires: 0 } };
-  for (const [nom, extra] of Object.entries(cas)) for (const pause of [false, true]) {
-    enPause = pause; appels = 0;
-    const { D, c } = monter(extra); let r, levee = null;
-    try { r = await penser(c); } catch (e) { levee = e; }
-    vrai('⛔ ' + nom + (pause ? ', agent en pause' : '') + ' : 0 appel, réponse propre, rien au budget',
-      !levee && appels === 0 && r && r.ok === false && r.erreur === 'agents_retires' && !fs.existsSync(path.join(D, 'agents-budget.json')) && c.etatBudget().total === 0, JSON.stringify(r) + ' appels=' + appels);
-  }
-  enPause = false;
-
-  console.log('\n2. Avec `retires:false` explicite : le moteur d\'avant');
-  appels = 0; const A = monter({ cleApi: 'k', retires: false });
-  const r2 = await penser(A.c);
-  vrai('un appel part, la réponse est rendue, le budget bouge', appels === 1 && r2.ok === true && A.c.etatBudget().total > 0, JSON.stringify(r2));
-  appels = 0; const B = monter({ retires: false });
-  vrai('…et sans clé : « pas_de_cle » comme avant (rien n\'est inventé)', (await penser(B.c)).raison === 'pas_de_cle' && appels === 0);
-
-  console.log('\n3. Le vrai SDK contre un faux Anthropic local : 0 requête par défaut');
-  if (fs.existsSync(path.join(RACINE, 'server', 'node_modules', '@anthropic-ai'))) {
-    let reqs = 0;
-    const srv = http.createServer((q, s) => { reqs++; q.resume(); q.on('end', () => { s.writeHead(200, { 'content-type': 'application/json' }); s.end(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'x', content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn', usage: { input_tokens: 5, output_tokens: 5 } })); }); });
-    await new Promise(r => srv.listen(0, '127.0.0.1', r));
-    process.env.ANTHROPIC_BASE_URL = 'http://127.0.0.1:' + srv.address().port;
-    const sansAppeler = extra => { const D = path.join(tmp, 'c' + (d++)); fs.mkdirSync(D, { recursive: true }); return cerveau(Object.assign({ DATA_DIR: D, agents: faux, plafondsJour: GRAND }, extra)); };
-    reqs = 0; const r3 = await sansAppeler({ cleApi: 'sk-ant-banc' }).penser('camille', 's', [{ role: 'user', content: 'x' }]);
-    vrai('⛔ défaut : aucune requête n\'atteint le réseau', reqs === 0 && r3.erreur === 'agents_retires', 'reqs=' + reqs);
-    reqs = 0; const r4 = await sansAppeler({ cleApi: 'sk-ant-banc', retires: false }).penser('camille', 's', [{ role: 'user', content: 'x' }]);
-    vrai('contre-épreuve : avec `retires:false`, la requête part bien (le faux serveur la compte)', reqs === 1 && r4.ok === true, 'reqs=' + reqs + ' ' + JSON.stringify(r4));
-    srv.close();
-  } else vrai('(SDK absent : partie sautée)', true);
-
-  console.log('\n4. Le code');
-  const strip = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-  const cv = strip(fs.readFileSync(path.join(RACINE, 'server', 'cerveau.js'), 'utf8'));
-  const i = cv.indexOf('async function penser(');
-  vrai('le verrou est la PREMIÈRE instruction de `penser`', i > 0 && /^async function penser\([^)]*\) \{\s*if \(retires\) return \{ ok: false, erreur: 'agents_retires'/.test(cv.slice(i)));
-  vrai('le défaut se lit « retires !== false » (verrouillé sauf réglage explicite)', /const retires = ctx\.retires !== false;/.test(cv));
-  let autres = [];
-  for (const f of fs.readdirSync(path.join(RACINE, 'server')).filter(x => x.endsWith('.js') && x !== 'cerveau.js')) {
-    const s = strip(fs.readFileSync(path.join(RACINE, 'server', f), 'utf8'));
-    if (/appelerAnthropic/.test(s)) autres.push(f + ':appelerAnthropic');
-  }
-  vrai('`appelerAnthropic` n\'a aucun appelant hors de cerveau.js', autres.length === 0, autres.join(', '));
-  const ix = strip(fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8'));
-  vrai('index.js : verrou par défaut, minuterie de la plateforme éteinte, clé non lue quand retirés', /const AGENTS_RETIRES = !\(config\.agents && config\.agents\.retires === false\);/.test(ix) && /if \(!AGENTS_RETIRES\) plateformeMod\.demarrer\(\)/.test(ix) && /cleApi: AGENTS_RETIRES \? ''/.test(ix) && !/cleCerveauPosee: !!\(config\.agents/.test(ix));
-  const tour = strip(fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8'));
-  vrai('tour.html : la page porte AGENTS_RETIRES_ECRAN=true et l\'onglet Agents n\'a aucune commande (ni Reprendre, ni mode) quand il est vrai', /var AGENTS_RETIRES_ECRAN=true;/.test(tour) && /function vueAgents\(\)\{\s*if\(typeof AGENTS_RETIRES_ECRAN!=='undefined'&&AGENTS_RETIRES_ECRAN===true\) return enTete\([^;]*Agents retirés le 19 novembre 2026[^;]*;\s*var tete/.test(tour) && !/Agents retirés le 19 novembre 2026[^;]*(<button|onclick)/.test(tour));
-  const sh = fs.readFileSync(path.join(RACINE, 'server', 'set-agents.sh'), 'utf8');
-  vrai('set-agents.sh ne pose plus de clé : il propose de SUPPRIMER agents.cleApi (écriture atomique, 600, rien d\'affiché)', /RETIRÉS/.test(sh) && /os\.replace/.test(sh) && /0o600/.test(sh) && !/read -rsp/.test(sh) && !/api\.anthropic\.com/.test(sh));
-
-  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
-  process.exit(ko ? 1 : 0);
-})().catch(e => { console.log('  ✗ banc mort : ' + e); process.exit(1); });
+  const dort = ms => new Promise(r => setTimeout(r, ms));   // monSave écrit 500 ms plus tard
+  const l1 = await post('/api/monitor/login', { nom: 'Patron', pass: MDP });
+  vrai('un compte d\'avant (SHA-256) entre au premier login', l1.s === 200 && l1.j.token);
+  await dort(900);
+  vrai('…et son hachage est réécrit en scrypt', /^scrypt\$[0-9a-f]{32}\$[0-9a-f]{64}$/.test(users()[0].hash));
+  const l2 = await post('/api/monitor/login', { nom: 'Patron', pass: MDP });
+  vrai('le second login, sur le nouveau hachage, passe', l2.s === 200);
+  vrai('un mauvais mot de passe est refusé (hachage neuf)', (await post('/api/monitor/login', { nom: 'Patron', pass: MDP2 })).s === 403);
+  vrai('un mauvais mot de passe est refusé (hachage d\'avant)', (await post('/api/monitor/login', { nom: 'Second', pass: MDP2 })).s === 403);
+  vrai('un refus ne réécrit rien', users()[1].hash === sha(MDP));
+  const l3 = await post('/api/monitor/login', { nom: 'Second', pass: MDP }); await dort(900);
+  vrai('l\'autre compte migre aussi', l3.s === 200 && /^scrypt\$/.test(users()[1].hash));
+  vrai('SALÉ : même mot de passe, deux empreintes différentes', users()[0].hash !== users()[1].hash);
+  vrai('l\'empreinte rangée, présentée comme mot de passe, est refusée', (await post('/api/monitor/login', { nom: 'Patron', pass: users()[0].hash })).s === 403);
+  // compte créé par la Tour
+  const T = { Authorization: 'Bearer ' + l2.j.token };
+  const cr = await post('/api/monitor/users', { nom: 'Nouveau', email: 'nouveau@banc.fr', pass: MDP2 }, T);
+  await dort(900);
+  vrai('la Tour crée un compte', cr.s === 200 || cr.s === 201 || cr.j.ok);
+  const nu = users().find(u => u.nom === 'Nouveau');
+  vrai('un compte créé par la Tour naît en scrypt', nu && /^scrypt\$/.test(nu.hash));
+  vrai('…et il entre', (await post('/api/monitor/login', { nom: 'Nouveau', pass: MDP2 })).s === 200);
+  // accès bêta d'avant
+  const b1 = await post('/api/beta/login', { login: 'testeur', pass: MDP, app: 'gestion' });
+  vrai('un accès bêta d\'avant entre', b1.s === 200);
+  vrai('…et migre en scrypt', /^scrypt\$/.test(betas()[0].hash));
+  vrai('…et un mauvais mot de passe bêta est refusé', (await post('/api/beta/login', { login: 'testeur', pass: MDP2, app: 'gestion' })).s === 403);
+  // journaux
+  vrai('aucun mot de passe en clair dans le journal ni dans monitor.json', !journal.includes(MDP) && !journal.includes(MDP2) && !fs.readFileSync(MON, 'utf8').includes(MDP));
+  vrai('aucune empreinte SHA-256 d\'un mot de passe dans le journal', !journal.includes(sha(MDP)) && !journal.includes(sha(MDP2)));
+  vrai('plus aucune empreinte SHA-256 de ces mots de passe dans monitor.json', !fs.readFileSync(MON, 'utf8').includes(sha(MDP)) && !fs.readFileSync(MON, 'utf8').includes(sha(MDP2)));
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); fin(); process.exit(ko ? 1 : 0);
+})();

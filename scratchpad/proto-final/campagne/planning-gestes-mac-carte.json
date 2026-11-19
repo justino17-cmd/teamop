@@ -342,7 +342,9 @@
    "l": 40,
    "h": 40,
    "touche": true,
-   "change": [],
+   "change": [
+    "contenu"
+   ],
    "hash": "#planning",
    "h1": "Planning",
    "panneau": "",

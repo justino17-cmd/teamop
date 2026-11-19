@@ -1,0 +1,204 @@
+{
+ "date": "2026-11-18",
+ "etape": "final-parcours 2/2 (recontrôle adverse)",
+ "sondes": [
+  {
+   "fichier": "sondes/parcours-1.js",
+   "resultat": "54 ✓ mac · 54 ✓ iPhone · 0 ✗ (rejeu du 18/11) ; 270 ✓ au parcours 12",
+   "verifieVraiment": true,
+   "pourquoi": "Population comptée (24 interventions, 8 factures, 2 filtres au camion), chaque étape lit la DONNÉE (INTS, MVTS_ATT, FACTURES, ENCAISSEMENTS, stock) ET l'ÉCRAN, les montants sont recalculés à la main (65+45+2×24 = 158,00 ; TVA 31,60 ; TTC 189,60) et comparés à Accueil/Comptabilité au centime. Limite : valeurs rondes, quantité entière, paiement unique. La mutation B (« 2,5 » lu « 2 ») et la A (le client doit le total d'une facture déjà payée en partie) la laissent verte : trous comblés par recontrole-parcours R=1 et R=5."
+  },
+  {
+   "fichier": "sondes/parcours-2.js",
+   "resultat": "39 ✓ mac · 34 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Devis composé (atelier), devis rapide, signature en ligne, acompte, solde : HT, TVA à deux taux, acompte 30 % recalculés à la main ; vérifie la donnée (dvInit, FACTURES, INTS) et l'écran client. C'est la seule qui attrape l'arrondi du TTC (mutation C : 7 ✗). Ne joue ni refus ni nouvelle version du devis : couvert par R=6. Deux contrôles « constat » (A5) documentent un défaut à soumettre."
+  },
+  {
+   "fichier": "sondes/parcours-3.js",
+   "resultat": "30 ✓ mac · 27 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Contrat composé et signé, six visites nées, première visite facturée 166,67 € HT (1 000 ÷ 6, la dernière visite porte le reste) : arithmétique recalculée, donnée + écran (client, Contrats, Planning, Ma journée, Comptabilité). Une seule ligne « population » mais les compteurs avant/après (+1, +1 000,00, +6) la tiennent."
+  },
+  {
+   "fichier": "sondes/parcours-4.js",
+   "resultat": "26 ✓ mac · 26 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Demande d'achat → commande (16,80 € HT recalculé) → réception : le stock du condensateur est lu à 0 avant (population), reste à 0 tant que la livraison n'est pas arrivée, puis monte ; donnée (DEM_ACHAT, COMMANDES, stock par lieu) et écran. Prix à virgule (8,40) déjà joué."
+  },
+  {
+   "fichier": "sondes/parcours-5.js",
+   "resultat": "18 ✓ mac · 18 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Note de frais 58,40 € : TVA recalculée (9,73), « Valider les 3 notes avec ticket » 83,10 recalculé, dépenses de la Comptabilité +58,40, notification du gérant et de Sophie lues en donnée. Seule faiblesse : C2 (la paie dit le remboursement) ne lit que « 58,40 € » et « rembours|frais » dans la page entière. Rejoué avec d'autres valeurs : recontrole R=2 (15 ✓)."
+  },
+  {
+   "fichier": "sondes/parcours-6.js",
+   "resultat": "18 ✓ mac · 18 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Congé du 9 au 10 novembre (le 11, férié, ne compte pas) : solde 3 → 1, absence posée, demande sortie de la file, avis à Sophie, Planning (2 cases), Soldes ; donnée + écran. Ne joue ni refus, ni dépassement du solde, ni conflit d'interventions : couvert par R=3 (9 ✓)."
+  },
+  {
+   "fichier": "sondes/parcours-7.js",
+   "resultat": "26 ✓ mac · 26 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Journée oubliée de Tom : les heures se recalculent (154h55 → 163h20 → 164h18 → 164h28) et se comparent entre l'écran du gérant et celui de Tom ; traces, motif obligatoire, confirmation retirée puis redemandée ; donnée (pointages, trace) + écran des deux côtés. Population en tête (journée ouverte 07:55, mercredi 16:42)."
+  },
+  {
+   "fichier": "sondes/parcours-8.js",
+   "resultat": "30 ✓ mac · 30 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Camion de Sophie : plein 84,60 € TTC = 70,50 HT (recalculé), kilométrage +190/+130, dépenses de la Comptabilité avant/après chaque geste (+84,60, +391,00, −14,10), contrôle technique à 12 jours, garage, retour avec facture ; donnée + écran. Le contrôle D1 lit « intervention ET Sophie ET Planning » : un peu lâche mais D2 lit le véhicule en donnée."
+  },
+  {
+   "fichier": "sondes/parcours-9.js",
+   "resultat": "25 ✓ mac · 24 ✓ + 1 ✗ iPhone au rejeu (A3) → corrigé : 25 ✓ iPhone",
+   "verifieVraiment": true,
+   "pourquoi": "Invitation, droits, « ouvrir comme Nadia » : menu, recherche, adresses #devis et #factures refusées, journal ; donnée (EQUIPE, droits) + écran. A3 attendait une bulle sur téléphone alors que la page (restes équipe, tour 2) écrit désormais le refus SOUS le champ : sonde périmée, pas la page — corrigée pour lire les deux endroits. Réserve : sur téléphone C4-5 est un « v(…, true) » sans contrôle (la recherche n'existe qu'au bureau) : un ✓ qui ne vérifie rien, déjà compté dans les 25."
+  },
+  {
+   "fichier": "sondes/parcours-10.js",
+   "resultat": "24 ✓ mac · 24 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "SIRET retiré puis remis : le refus se lit sous le champ, la facture ne part pas (même par un envoi forcé : C5 lit la fonction), 93,67 HT → 112,40 TTC recalculé, Comptabilité 7 → 8 factures, rôle de la secrétaire ; donnée + écran, population en tête."
+  },
+  {
+   "fichier": "sondes/parcours-11.js",
+   "resultat": "20 ✓ mac · 20 ✓ iPhone · 0 ✗",
+   "verifieVraiment": true,
+   "pourquoi": "Relance (compteur 2 → 3), virement 1 240,00, avoir 114,00 TTC : Accueil +1 240,00 et −1 354,00 vérifiés au centime, Comptabilité « 7 factures · 1 avoir », absence de bouton « supprimer ». Les deux chiffres d'Accueil/Comptabilité sont lus à l'écran avant ET après (pas de ✓ sur écran vide)."
+  },
+  {
+   "fichier": "sondes/parcours-12.js",
+   "resultat": "270 ✓ · 0 ✗ (5 × 54)",
+   "verifieVraiment": true,
+   "pourquoi": "Relance parcours-1 sur iPhone jour, iPhone nuit, Android 360, 320 px, iPad : mêmes 54 contrôles à chaque fois, donc vraie preuve par appareil mais AUCUN cas de plus (mêmes valeurs rondes). Elle n'additionne que si chaque sortie porte « == N ✓ · M ✗ »."
+  },
+  {
+   "fichier": "sondes/parcours-tout.sh",
+   "resultat": "rejeu complet du 18/11 : 12 sondes, 24 exécutions + parcours 12, tout vert sauf parcours-9@iphone (A3, sonde périmée, corrigée)",
+   "verifieVraiment": true,
+   "pourquoi": "Sort en 1 si une exécution tombe ; recopie le bilan ; limite : il ne rejoue pas la nuit (NUIT=1) ni android/ipad pour les parcours 2 à 11 (seul le 1 l'est, par le 12)."
+  }
+ ],
+ "rejoues": [
+  {
+   "sonde": "recontrole-parcours.js R=1 (parcours 1)",
+   "valeurs": "nom du client « Établissements d’Aubigné & Fils — Résidence « Les Mouettes » <i>SARL</i> (Saint-Jean-d’Angély) » (90 signes), pièce « 2,5 » avec 2 à bord, pièce « 0,5 L » sans prix, prix tapé 12,49",
+   "resultat": "13 ✓ mac, 13 ✓ iPhone nuit · 0 ✗ (dont 3 contrôles « constat DOUTE »)",
+   "constats": [
+    "le nom long, l'apostrophe typographique, « & » et les guillemets passent partout en TEXTE : fenêtre de création, feuille « Noter les pièces », envois du Stock, facture, aperçu du client (capture rc1-apercu-iphone) ; les « < » « > » sont retirés à l'enregistrement (« <i>SARL</i> » devient « iSARL/i ») sans que le toast le dise",
+    "2,5 × 24,00 = 60,00 € juste ; HT 182,49 · TVA 36,50 · TTC 218,99 : la somme tient au centime à l'écran et en donnée ; une ligne sans prix grise « Aperçu et envoi » et la page dit « 1 ligne sans prix »",
+    "DOUTE 1 : Sophie tape 2,5 filtres, le camion n'en porte que 2 : la feuille se règle sans un mot sur 2 (« à bord 2 »), la sortie de stock est de 2, la fiche garde « 2,5 » et la facture facture 2,5 : trois chiffres pour une pièce",
+    "DOUTE 2 : « Liquide de nettoyage » 0,5 L à 12,49 € : la ligne vaut 12,49 € ; le client lira dans l'aperçu « 12,49 € · 0,5 L · 12,49 € » (prix × quantité ≠ total). Voulu par lignePiece (une quantité avec unité vaut 1 × le prix) mais illisible pour un client"
+   ]
+  },
+  {
+   "sonde": "recontrole-parcours.js R=2 (parcours 5)",
+   "valeurs": "quatre notes : Carburant 17,35 (TVA 20), Repas sur un chantier « 1 234,56 » (TVA 10), Péage « 9.40 » (point), Carburant « 12,5 € » (TVA 5,5) ; un doublon ; cinq montants illisibles",
+   "resultat": "15 ✓ mac, 15 ✓ iPhone nuit · 0 ✗",
+   "constats": [
+    "TVA lues à l'écran = TVA calculées à la main : 2,89 · 112,23 · 1,57 · 0,65 ; « Valider les 6 notes avec ticket » 1 298,51 € = somme exacte ; les dépenses d'octobre montent de 1 273,81 € au centime après les quatre validations ; « 1 234,56 € » s'écrit avec l'espace insécable",
+    "« abc », « 0 », « -5 », « 1e3 », « 12,3,4 » : refusés avec une phrase, aucune note créée ; le même ticket (même jour, même montant) demande « c'est la même ? » au lieu de créer un doublon"
+   ]
+  },
+  {
+   "sonde": "recontrole-parcours.js R=3 (parcours 6)",
+   "valeurs": "congé de 5 jours ouvrés (23 au 27 novembre) pour 3 de solde, motif et raison de refus à apostrophe/guillemets/« & », puis 2 et 3 novembre (deux interventions de Sophie)",
+   "resultat": "9 ✓ iPhone · 0 ✗",
+   "constats": [
+    "le formulaire dit « Ça dépasse ton solde de 2 jours » (« → -2 jours » écrit avec un trait d'union, pas le vrai moins) ; la demande part quand même, le gérant lit « dépasse son solde » ; le refus n'écrit aucune absence et ne touche pas au solde (3 / 25) ; Sophie lit le refus et sa raison en entier",
+    "2 et 3 novembre : la carte annonce « À régler avant de valider · 2 interventions » avec des collègues proposés ; valider les reprend toutes les deux (Tom, Karim, même jour, même heure) et le toast nomme les personnes prévenues"
+   ]
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "Une intervention annulée après le départ des pièces",
+   "etapes": [
+    "le gérant crée l'intervention depuis le courriel (Sophie, aujourd'hui 11:00)",
+    "Sophie note 1 filtre à charbon (feuille « Noter les pièces », « C'est bon » : une sortie attend l'accord du bureau)",
+    "le gérant annule l'intervention (Planning, « Annuler l'intervention… », confirmation)",
+    "on relit : Stock › Envois à accepter, notifications de Sophie, Historique, fiche de Sophie, espace du client",
+    "Sophie ouvre la fiche annulée et touche « Terminer »"
+   ],
+   "constat": "Annulée : st « annulee » (juste), Ma journée de Sophie et l'espace du client ne la montrent plus. MAIS : (1) la fiche annulée garde son bouton « Terminer » : touché, l'intervention repasse « fait », « le compte rendu part au client, la facture est préparée » et une facture « à valider » de 3 lignes naît (R4-7b) ; (2) la sortie de stock en attente RESTE dans « Envois à accepter » (« Sophie a utilisé 1 Filtre à charbon chez Hôtel de la Plage », R4-2 et R4-5) : l'accepter fait baisser le stock pour un travail qui n'a pas eu lieu (mesuré : filtres 14 → 13, R4-5b) ; (3) rien n'est dit : aucune notification à Sophie (NOTIFS 7 → 7), aucune ligne d'Historique (JOURNAL 55 → 55), aucune trace du courriel promis « Le client est prévenu par e-mail ». Même famille que le défaut 3 du 17/11 (« reçoit une notification » sans qu'elle existe), corrigé pour le changement de date mais pas pour l'annulation. Vérifié : le gérant peut aussi « Rétablir » depuis le toast (non rejoué). Sonde : recontrole-parcours R=4 (ROUGE, 7 ✗ sur mac comme sur iPhone).",
+   "gravite": "haute (Terminer) ; moyenne (stock, silence)",
+   "etat": "à corriger dans la page (non fait : cette étape ne modifie aucune page)"
+  },
+  {
+   "titre": "Un paiement en deux fois : chèque au bureau puis carte du client",
+   "etapes": [
+    "facture FAC-2026-0144 (121,00 € TTC) envoyée",
+    "le gérant encaisse 64,13 € par chèque (« Paiement en partie »)",
+    "un centime de plus que le reste : refusé",
+    "le client ouvre son espace : « Payer 56,87 € », fenêtre « Montant 56,87 € », carte",
+    "Accueil, Comptabilité, facture"
+   ],
+   "constat": "Rien ne tombe : « Payée en partie », reste 56,87 ; Accueil « à recevoir » −64,13 puis revient à son niveau d'avant, « reçu » +121,00 au total, une seule fois ; DEUX encaissements (chèque 64,13, carte 56,87) dont la somme est le total ; trésorerie +121,00 au centime ; plus aucun bouton d'encaissement (11 ✓). Prolongement R=7 : après le chèque de 64,13, un avoir annule la facture en entier : feuille « 64,13 € déjà reçus : à rembourser », « À rembourser au client 64,13 € », tâche créée, Accueil −121,00 au total sans double compte (6 ✓). Mutation A (la fenêtre de paiement demande le TOTAL) : les parcours 1 et 2 restent verts, R5-6 tombe : ce trou existait.",
+   "gravite": "aucune (trou de couverture comblé)",
+   "etat": "vérifié, sonde R=5 et R=7"
+  },
+  {
+   "titre": "Un devis refusé par le client, refait moins cher, puis signé",
+   "etapes": [
+    "devis rapide chez M. et Mme Durand (ligne « Main-d’œuvre d’O’Brien — 2,5 h » à 87,35, acompte 30 %)",
+    "envoyé : numéro D-2026-042",
+    "le client le refuse (deux touchers : confirmation)",
+    "le gérant lit « Refusé en ligne par le client » et touche « Refaire ce devis »",
+    "prix baissé à 79,90, envoyé : D-2026-043",
+    "le client signe la 2e version"
+   ],
+   "constat": "Tout tient (14 ✓) : HT 305,52 (87,35 + 29,17 + 189), TVA 10 % 30,55, TTC 336,07 ; « en attente » monte puis retombe à son niveau d'avant au refus ; le refusé n'a plus de bouton « Lire et signer » et garde sa place (pas « remplacé ») ; aucune intervention ni facture d'acompte ne naît du refusé ; le refait reçoit un NOUVEAU numéro ; l'espace du client montre les deux (Refusé / À signer) ; à la signature UNE intervention et UNE facture d'acompte naissent, toutes deux du 2e devis ; « acceptés » monte du TTC (327,88) de la 2e version seulement.",
+   "gravite": "aucune",
+   "etat": "vérifié, sonde R=6"
+  }
+ ],
+ "doutes": [
+  "Pièce tapée 2,5 avec 2 à bord : la feuille « Noter les pièces utilisées ? » se règle sur 2 sans le dire ; stock 2, fiche 2,5, facture 2,5 (R1-2/R1-3, DOUTE 1). À soumettre : afficher « tu as noté 2,5, ton camion n'en porte que 2 : les 0,5 autres ne sortent d'aucun stock ».",
+  "Quantité avec unité (« 0,5 L ») : la ligne de facture vaut 1 × le prix tapé ; le client lit « 12,49 € · 0,5 L · 12,49 € » (R1-10, DOUTE 2). Décision d'un agent précédent (lignePiece qn:1) : à confirmer avec Justin, un document envoyé à un client doit se relire à la calculette.",
+  "Un nom de client saisi avec « < » « > » est abîmé en silence (« iSARL/i ») au lieu d'être refusé ou signalé (R1-0). Basse.",
+  "Formulaire de congé : « → -2 jours » s'écrit avec un trait d'union, le reste de l'application écrit le vrai moins « − ». Basse.",
+  "iPhone nuit, feuille « Noter les pièces utilisées ? » : la bulle « à bord de ton camion, 2 u. » recouvre pendant ~2,5 s la phrase de récapitulatif et le haut de « C'est bon » (capture rc1-feuille-iphone) alors que « à bord 2 » est déjà écrit dans la feuille. Basse.",
+  "Les douze parcours ne jouent que des valeurs rondes : aucune quantité décimale, aucun paiement partiel, aucun refus de devis, aucune annulation. Trois mutations le montrent (A et B survivent aux parcours 1, 2, 10 ; seule C est vue, par le 2) : recontrole-parcours.js R=1 à 7 les comble. Ne pas les tenir pour « tout joué ».",
+  "parcours-9 sur téléphone : C4-5 est un ✓ sans contrôle (la recherche « Aller à » n'existe qu'au bureau) : les « 25 ✓ » du téléphone en comptent un de moins en vrai. À remplacer par un contrôle du menu (déjà fait par C2).",
+  "parcours-tout.sh ne joue la nuit (NUIT=1) ni Android/iPad que pour le parcours 1 (via le 12) : les parcours 2 à 11 n'ont été regardés qu'en mac/iPhone de jour.",
+  "Reste ouvert de l'étape précédente (parcours.json, défauts 10 à 14) : Nadia sans « Ventes › Voir » voit l'onglet Ventes de la Comptabilité ; le Secrétariat sans « Accueil » s'ouvre sur la Comptabilité ; ticket de carte sans facture ; deux onglets d'Achats morts ; 3 ✗ d'entreprise-corrections : à soumettre à Justin, non revus ici.",
+  "Courriels du prototype : aucun mécanisme ne dit « ce courriel est parti » hors de la Boîte mail (module à part, ombre fermée) : une promesse de toast « le client est prévenu par e-mail » ne peut pas être vérifiée de ce côté (R4-3 lit l'Historique, pas la Boîte mail)."
+ ],
+ "contreEpreuve": {
+  "fichier": "sondes/mutations-recontrole-parcours.sh",
+  "resultats": [
+   {
+    "mutation": "A : la fenêtre de paiement du client demande le TOTAL au lieu du reste dû",
+    "parcours_1": "54 ✓ 0 ✗ (survit)",
+    "parcours_2": "39 ✓ 0 ✗ (survit)",
+    "parcours_10": "24 ✓ 0 ✗ (survit)",
+    "recontrole": "R=1,5 : 23 ✓ 1 ✗ (R5-6 tombe)"
+   },
+   {
+    "mutation": "B : « 2,5 » se lit « 2 » (parseInt)",
+    "parcours_1": "54 ✓ (survit)",
+    "parcours_2": "39 ✓ (survit)",
+    "parcours_10": "24 ✓ (survit)",
+    "recontrole": "R=1,5 : 23 ✓ 1 ✗ (R1-8 tombe)"
+   },
+   {
+    "mutation": "C : le TTC arrondi vers le bas",
+    "parcours_1": "54 ✓ (survit)",
+    "parcours_2": "32 ✓ 7 ✗ (tombe)",
+    "parcours_10": "24 ✓ (survit)",
+    "recontrole": "R=1,5 : 23 ✓ 1 ✗ (R1-11 tombe)"
+   }
+  ]
+ },
+ "corrections_de_sonde": [
+  "parcours-9.js A3 : lit le refus sous le champ (#eq-p-err) OU en bulle ; avant, ✗ reproductible sur iPhone (24 ✓ 1 ✗), 25 ✓ après"
+ ],
+ "pages_modifiees": [],
+ "recapitulatif": {
+  "sondes_rejouees": "12 sondes, 24 exécutions mac/iPhone + parcours 12 (5 appareils) : 0 ✗ sauf parcours-9@iphone A3 (sonde périmée, corrigée)",
+  "recontrole_parcours": "R=1 13 ✓ · R=2 15 ✓ · R=3 9 ✓ · R=5 11 ✓ · R=6 14 ✓ · R=7 6 ✓ · R=4 4 ✓ 7 ✗ (défauts réels) ; rejoués sur iPhone (R=1,2 nuit ; R=3 ; R=5,6 ; R=7,4) : mêmes résultats",
+  "mutations": "3 mutations : 2 survivent aux parcours 1, 2 et 10 (A, B), une tombe (C) ; recontrole-parcours attrape les trois"
+ }
+}

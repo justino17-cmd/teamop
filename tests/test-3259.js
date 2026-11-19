@@ -101,7 +101,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 5 min'); fini(1); }
     const page = await ctx.newPage(); const erreurs = [];
     page.on('pageerror', e => erreurs.push(e.message));
     page.on('dialog', d => d.dismiss().catch(() => {}));
-    await ctx.route('**/*', async r => {
+    await ctx.route('**/*', r => (async r => {  /* toute promesse de fulfill/abort rejetée (page refermée en route) est rattrapée en bas : un banc ne plante pas sur une course */
       const u = new URL(r.request().url());
       if (u.protocol === 'mailto:') return r.abort();
       if (u.host === 'teamop.fr') {
@@ -112,7 +112,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 5 min'); fini(1); }
         const cors = { 'access-control-allow-origin': 'https://teamop.fr' };
         if (o.sans && u.pathname === '/health') { const j = await (await fetch(B + '/health')).json(); o.sans.forEach(k => { j.oauth[k] = false; }); return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j), headers: cors }); }
         if (o.start503 && u.pathname === '/api/mailbox/oauth/start') return r.fulfill({ status: 503, contentType: 'application/json', headers: cors, body: JSON.stringify({ error: 'La connexion Google n\'est pas encore disponible.', code: 'oauth_non_configure' }) });
-        try { const resp = await r.fetch({ url: B + u.pathname + u.search, maxRedirects: 0 }); return r.fulfill({ response: resp }); } catch (e) { return r.abort(); }
+        /* `return await` : sans lui, un fulfill qui échoue (page refermée pendant l'aller-retour, « Fetch response has been disposed », vu en CI le 19/11) échappe au catch et fait planter le banc. */
+        try { const resp = await r.fetch({ url: B + u.pathname + u.search, maxRedirects: 0 }); return await r.fulfill({ response: resp }); } catch (e) { return r.abort().catch(() => {}); }
       }
       /* les points d'autorisation : l'utilisateur accepte (ou referme la fenêtre), on revient sur la VRAIE route de retour */
       const F = u.host === '127.0.0.1:' + portG ? G : u.host === '127.0.0.1:' + portM ? M : null;
@@ -126,7 +127,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 5 min'); fini(1); }
         return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><script>location.replace(' + JSON.stringify(cible) + ')</script>' });
       }
       horsBanc.push(u.host); return r.abort();
-    });
+    })(r).catch(() => r.abort().catch(() => {})));
     await page.goto('https://teamop.fr/app.html', { timeout: 60000 });
     await page.waitForFunction(() => typeof db !== 'undefined' && document.getElementById('login'), null, { timeout: 30000 });
     await page.waitForTimeout(600);

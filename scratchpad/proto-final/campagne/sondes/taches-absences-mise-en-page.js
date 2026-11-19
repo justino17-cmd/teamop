@@ -39,12 +39,13 @@ const ECRANS = {
       const panneau = await p.evaluate(() => !!document.querySelector('#calque .panneau'));
       // la capture AVANT les mesures qui font défiler (doigtsReel amène chaque cible au milieu)
       if (capt) await L.capture(c, `${O.CAP}mep/${profil}-${nuit ? 'nuit' : 'jour'}-${qui}-${nom}.png`);
-      const dep = await L.deborde(c); const zone = panneau ? '#calque .panneau' : '#contenu'; const d = c.doigt ? await L.doigts(p, zone) : { petits: [], champs: [], ecrases: await L.doigts(p, zone).then(x => x.ecrases) }; if (c.doigt) { d.petitsRect = d.petits; d.petits = await O.doigtsReel(p, zone); }   // la zone qui répond, pas le rectangle
+      const dep = await L.deborde(c); const zone = panneau ? '#calque .panneau' : '#contenu'; const d = c.doigt ? await L.doigts(p, zone) : { petits: [], champs: [], ecrases: await L.doigts(p, zone).then(x => x.ecrases) }; if (c.doigt) { d.petitsRect = d.petits; await p.evaluate(() => { window.__doigtsGrille = 0; }); d.petits = await O.doigtsReel(p, zone); d.grille = await p.evaluate(() => window.__doigtsGrille || 0); }   // la zone qui répond, pas le rectangle
       const pop = await p.evaluate(zone => document.querySelectorAll(zone + ' *').length, zone);
       v(`${tag} · ${nom} : population non vide (${pop} éléments)`, pop > 8)   // la fenêtre « Refuser » est petite exprès : 10 éléments;
       v(`${tag} · ${nom} : aucun glissement latéral (${dep.largeur} px)`, dep.bouge === 0, dep);
       if (c.doigt) { v(`${tag} · ${nom} : cibles au doigt ≥ 44 px (tâches-absences-04, -05, -06, -07, -10)`, d.petits.length === 0, d.petits.slice(0, 8)); v(`${tag} · ${nom} : champs ≥ 16 px (tâches-absences-08)`, d.champs.length === 0, d.champs.slice(0, 5)); }
       // un tableau plus large que sa boîte, sans glissement latéral permis : sa dernière colonne est coupée sans que rien le dise
+      if (c.doigt && nom === 'absences-calendrier') v(`${tag} · ${nom} : les jours d'une grille écartés de la mesure (${d.grille}) ne le sont que parce que leur HAUTEUR répond (technicien-09)`, d.grille >= 1, d.grille);   // population : un zéro ici dirait que l'exception ne sert plus à rien, ou que la sonde ne regarde pas
       const coupes = await p.evaluate(z => [...document.querySelectorAll(z + ' table')].filter(t => { const b = t.parentElement; return t.offsetParent && b && t.scrollWidth > b.clientWidth + 2 && t.getBoundingClientRect().right > b.getBoundingClientRect().right + 2; }).map(t => (t.closest('[class]') || t).className.slice(0, 30) + ' ' + t.scrollWidth + ' > ' + t.parentElement.clientWidth), zone);
       v(`${tag} · ${nom} : aucun tableau coupé sur le côté (tâches-absences-03 et -09)`, coupes.length === 0, coupes);
       v(`${tag} · ${nom} : aucun texte écrasé (tâches-absences-03)`, d.ecrases.length === 0, d.ecrases.slice(0, 3));

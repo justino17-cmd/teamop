@@ -11,9 +11,7 @@
    "petits": [],
    "champs": [],
    "ecrases": [],
-   "petitsRect": [
-    "Voir dans Tâches › 344×41"
-   ]
+   "petitsRect": []
   },
   "verif": {
    "coupes": [],
@@ -21,13 +19,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }
@@ -47,9 +45,7 @@
    "petits": [],
    "champs": [],
    "ecrases": [],
-   "petitsRect": [
-    "Voir dans Tâches › 344×41"
-   ]
+   "petitsRect": []
   },
   "verif": {
    "coupes": [],
@@ -57,13 +53,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }
@@ -83,9 +79,7 @@
    "petits": [],
    "champs": [],
    "ecrases": [],
-   "petitsRect": [
-    "Voir dans Tâches › 344×41"
-   ]
+   "petitsRect": []
   },
   "verif": {
    "coupes": [],
@@ -93,13 +87,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }
@@ -119,9 +113,7 @@
    "petits": [],
    "champs": [],
    "ecrases": [],
-   "petitsRect": [
-    "Voir dans Tâches › 344×41"
-   ]
+   "petitsRect": []
   },
   "verif": {
    "coupes": [],
@@ -129,13 +121,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }
@@ -155,9 +147,7 @@
    "petits": [],
    "champs": [],
    "ecrases": [],
-   "petitsRect": [
-    "Voir dans Tâches › 344×41"
-   ]
+   "petitsRect": []
   },
   "verif": {
    "coupes": [],
@@ -165,13 +155,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }
@@ -207,13 +197,13 @@
    "boutonsTete": [
     {
      "t": "Rendez-vous en ligne",
-     "l": 175,
+     "l": 176,
      "h": 46,
-     "droite": 191
+     "droite": 192
     },
     {
      "t": "＋ Nouvelle intervention",
-     "l": 175,
+     "l": 174,
      "h": 46,
      "droite": 374
     }

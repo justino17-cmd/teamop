@@ -5,11 +5,13 @@
 //   le client (Mme Bernard, Hôtel de la Plage) : son espace → paie par carte
 //   marc : Comptabilité, Accueil, fiche client, facture : tous disent « payée », au centime.
 // Les données du prototype vivent dans la page : on PASSE LA MAIN (déconnexion / ouverture de l'autre rôle), on ne recharge JAMAIS.
-// Chaque montant est recalculé ICI, à la main (65 + 45 + 2 × 24 = 158,00 € HT, TVA 20 % = 31,60 €, TTC 189,60 €), puis comparé à ce que la page DIT.
+// Chaque montant est recalculé ICI, à la main (65 + 45 + 2 × 24 = 158,00 € HT, + 2,5 × 12,49 = 31,23 → 189,23 € HT ; TVA 20 % = 37,85 € ; TTC 227,08 €), puis comparé à ce que la page DIT.
 // PROFIL=mac|iphone|android… NUIT=1. Rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe. ⛔ 127.0.0.1 seulement.
 const P = require('./parcours-commun.js'), { L, v, S, txt, net, clic, cap } = P, fs = require('fs');
 const NOM = 'parcours 1 · ' + P.PROFIL + (P.NUIT ? ' nuit' : '');
-const HT = 15800, TVA = 3160, TTC = 18960;   // centimes : 65 h-d’œuvre + 45 zone 2 + 2 filtres à 24 €
+const HT = 18923, TVA = 3785, TTC = 22708;   // centimes : 65 h-d’œuvre + 45 zone 2 + 2 filtres à 24 € (= 158,00) + « Liquide de nettoyage » 2,5 × 12,49 € = 31,23 (la moitié de centime monte : 31,225 → 31,23) ; TVA 20 % de 189,23 = 37,846 → 37,85 ; TTC 227,08
+// ⛔ valeurs INGRATES exprès (18 novembre 2026) : une quantité décimale « 2,5 » et un prix à virgule 12,49. Avec des valeurs rondes, la mutation « « 2,5 » lu « 2 » » (parseInt) et celle de la fenêtre de paiement du client (le TOTAL au lieu du RESTE) laissaient ce parcours vert.
+const HT0 = 15800;   // le total des trois premières lignes (avant que le bureau chiffre la ligne sans prix)
 // les deux chiffres d'argent de l'Accueil du gérant, en centimes (lus sur l'écran, pas dans les tableaux)
 const kpis = async c => { await L.aller(c.p, 'accueil'); await c.p.waitForTimeout(600); const t = net(await txt(c, '#contenu'));
   const n = re => { const m = re.exec(t); return m ? L.cents(m[1]) : null; };
@@ -76,6 +78,11 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     await S(c, () => { const b = [...document.querySelectorAll('#calque button')].find(b => /C.est bon/.test(b.textContent)); if (b) b.click(); }); await p.waitForTimeout(700);
     const att = await S(c, i => MVTS_ATT.filter(m => m.inter === i), id);
     v('D6 (donnée) « C’est bon » : UNE sortie attend l’accord du bureau (2 filtres, du camion v1) ; le stock n’a PAS bougé', att.length === 1 && att[0].pid === 'p1' && att[0].q === 2 && att[0].de === 'v1' && await S(c, () => PRODUITS.find(x => x.id === 'p1').loc.v1) === 2, att);
+    /* une seconde pièce, hors catalogue : « 2,5 » (décimale) — le bureau la chiffrera à 12,49 € avant l'envoi */
+    await p.fill('#p-nom', 'Liquide de nettoyage'); await p.fill('#p-q', '2,5'); await clic(c, '[data-action="pieceAjout"]'); await p.waitForTimeout(500); await FERMER_FEUILLE(c);
+    const piq = await S(c, i => fiche(i).pieces.map(x => [x.nom, x.q]), id);
+    v('D6b (donnée) la fiche porte deux pièces : 2 filtres et « 2,5 » de liquide de nettoyage (texte tel que tapé)', piq.length === 2 && piq[1][0] === 'Liquide de nettoyage' && piq[1][1] === '2,5', piq);
+    v('D6c (donnée) la pièce hors catalogue n’ajoute AUCUNE sortie de stock : toujours une seule file pour cette intervention', (await S(c, i => MVTS_ATT.filter(m => m.inter === i).length, id)) === 1);
     /* photo, contrôles, compte rendu, signature */
     await p.setInputFiles('.ph.ajout input[type=file]', P.PNG); await p.waitForTimeout(800);
     const nph = await S(c, i => fiche(i).photos.length, id);
@@ -94,7 +101,7 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     await cap(c, '1-D11-fiche-' + P.PROFIL);
     await clic(c, '[data-action="terminer"]'); await p.waitForTimeout(900);
     const fin = await S(c, i => ({ st:INTS.find(o => o.id === i).st, etat:fiche(i).etat, facs:FACTURES.filter(f => f.int === i).map(f => ({ id:f.id, st:f.st, lignes:f.lignes.length })), toast:(document.getElementById('toast') || {}).innerText }), id);
-    v('D12 (donnée) « Terminer » : l’intervention est faite, UNE facture est préparée « à valider »', fin.st === 'fait' && fin.etat === 'bureau' && fin.facs.length === 1 && fin.facs[0].st === 'avalider' && fin.facs[0].lignes === 3, fin);
+    v('D12 (donnée) « Terminer » : l’intervention est faite, UNE facture est préparée « à valider » (4 lignes)', fin.st === 'fait' && fin.etat === 'bureau' && fin.facs.length === 1 && fin.facs[0].st === 'avalider' && fin.facs[0].lignes === 4, fin);
     const ecr = net(await txt(c, '#contenu'));
     v('D13 (écran) la fiche dit « Intervention terminée » et le compte rendu part au client', /Intervention terminée/.test(ecr) && /Envoyé/.test(ecr), ecr.slice(0, 200));
     v('D14 (donnée) la sortie du stock est TOUJOURS une seule : terminer ne redemande pas la pièce déjà notée', (await S(c, i => MVTS_ATT.filter(m => m.inter === i).length, id)) === 1);
@@ -121,8 +128,13 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     /* ── F. la facture : les mentions légales, l'aperçu, l'envoi ── */
     await L.aller(p, 'facture-x-f-' + id);
     const f0 = net(await txt(c, '#contenu'));
-    v('F1 (écran) la facture « À valider » reprend les 3 lignes et le total : 158,00 € HT, 31,60 € de TVA, 189,60 € TTC', /À valider/.test(f0) && /Total HT 158,00 €/.test(f0) && /31,60 €/.test(f0) && /Total TTC 189,60 €/.test(f0), f0.slice(0, 500));
-    v('F2 (écran) la facture dit ce qu’il manque (« forme juridique, immatriculation, assurance ») tant que la fiche de l’entreprise n’est pas complète', /Il manque (sur cette facture : la forme juridique, l’immatriculation[^.]*l’assurance professionnelle|3 mentions légales)/.test(f0), f0.slice(0, 300));
+    v('F1 (écran) la facture « À valider » reprend les 4 lignes : total HT PARTIEL 158,00 € (la ligne « 2,5 » n’a pas de prix) et la page dit « 1 ligne sans prix »', /À valider/.test(f0) && /Total HT \(partiel\) 158,00 €/.test(f0) && /1 ligne sans prix/.test(f0), f0.slice(0, 500));
+    v('F1b l’envoi est bloqué tant qu’une ligne n’a pas de prix (bouton « Aperçu et envoi » grisé)', await S(c, () => { const b = document.querySelector('[data-action="apercuEnvoi"]'); return !!b && b.disabled; }));
+    await p.fill('input[data-prix="3"]', '12,49'); await p.locator('input[data-prix="3"]').dispatchEvent('change'); await p.waitForTimeout(500);
+    const f0b = net(await txt(c, '#contenu'));
+    v('F1c (écran) chiffrée à 12,49 € : 2,5 × 12,49 = 31,23 € (31,225 monte au centime), HT 189,23 €, TVA 37,85 €, TTC 227,08 € — recalculés à la main', /Total HT 189,23 €/.test(f0b) && /37,85 €/.test(f0b) && /Total TTC 227,08 €/.test(f0b), f0b.slice(0, 600));
+    v('F1d (donnée) la ligne vaut 31,23 € et le HT des quatre lignes 189,23 € (2,5 n’est pas lu « 2 » : 2 × 12,49 = 24,98)', await S(c, i => { const f = FACTURES.find(o => o.int === i); return Math.round(totLigne(lignesDe(f)[3]) * 100) === 3123 && Math.round(htDe(f) * 100) === 18923; }, id), await S(c, i => lignesDe(FACTURES.find(o => o.int === i)).map(l => [l.d, l.q, l.pu]), id));
+    v('F2 (écran) la facture dit ce qu’il manque (« forme juridique, immatriculation, assurance ») tant que la fiche de l’entreprise n’est pas complète', /Il manque (sur cette facture : la forme juridique, l’immatriculation[^.]*l’assurance professionnelle|3 mentions( légales)?)/.test(f0), f0.slice(0, 300));
     v('F3 les heures de la facture sont celles du rendez-vous (11:00 – 12:00), pas 07:00 – 08:00', /sur place 11:00 – 12:00/.test(f0) && !/07:00/.test(f0), f0.slice(0, 600));
     await clic(c, '[data-cx="fiche"]'); await p.waitForTimeout(600);
     await S(c, () => { const f = (i, x) => { const e = document.getElementById(i); if (e && !e.value) { e.value = x; e.dispatchEvent(new Event('input', { bubbles:true })); e.dispatchEvent(new Event('change', { bubbles:true })); } };
@@ -132,32 +144,32 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     v('F4 (écran) les mentions légales complétées : la facture n’est plus bloquée', !/Il manque \d+ mention/.test(f1), f1.slice(0, 160));
     await clic(c, '[data-action="apercuEnvoi"]'); await p.waitForTimeout(600);
     const ap = net(await txt(c, '#calque'));
-    v('F5 (écran) l’aperçu : FAC-2026-0146, Hôtel de la Plage, HT 158,00, TVA 31,60, TTC 189,60, envoyée à direction@hotelplage.fr', /Facture FAC-2026-0146/.test(ap) && /Hôtel de la Plage/.test(ap) && /Total HT 158,00 €/.test(ap) && /TVA 20 % 31,60 €/.test(ap) && /Total TTC 189,60 €/.test(ap) && /direction@hotelplage\.fr/.test(ap), ap.slice(0, 700));
+    v('F5 (écran) l’aperçu : FAC-2026-0146, Hôtel de la Plage, HT 189,23, TVA 37,85, TTC 227,08, envoyée à direction@hotelplage.fr', /Facture FAC-2026-0146/.test(ap) && /Hôtel de la Plage/.test(ap) && /Total HT 189,23 €/.test(ap) && /TVA 20 % 37,85 €/.test(ap) && /Total TTC 227,08 €/.test(ap) && /direction@hotelplage\.fr/.test(ap), ap.slice(0, 700));
     v('F6 l’aperçu dit « sur place 11:00 – 12:00 » (même heure que la fiche)', /le samedi 31 octobre, 11:00 – 12:00/.test(ap), ap.slice(150, 400));
     await clic(c, '#calque [data-action="envoyer"]'); await p.waitForTimeout(900);
     const fe = await S(c, i => { const f = FACTURES.find(o => o.int === i); return { num:f.num, st:f.st, ht:f.ht, tva:f.tva, emise:f.emise, ech:f.ech, ttc:ttcDe(f), restant:restant(f) }; }, id);
-    v('F7 (donnée) envoyée : FAC-2026-0146, « envoyee », HT 158, TTC 189,60 (recalculé : ' + TTC / 100 + '), reste à payer 189,60', fe.num === 'FAC-2026-0146' && fe.st === 'envoyee' && Math.round(fe.ht * 100) === HT && Math.round(fe.ttc * 100) === TTC && Math.round(fe.restant * 100) === TTC, fe);
+    v('F7 (donnée) envoyée : FAC-2026-0146, « envoyee », HT 189, TTC 227,08 (recalculé : ' + TTC / 100 + '), reste à payer 227,08', fe.num === 'FAC-2026-0146' && fe.st === 'envoyee' && Math.round(fe.ht * 100) === HT && Math.round(fe.ttc * 100) === TTC && Math.round(fe.restant * 100) === TTC, fe);
     const k1 = await kpis(c);
-    v('F7b (écran) l’Accueil : « à recevoir » monte d’exactement 189,60 € à l’envoi de la facture, « reçu » ne bouge pas', k1.arecevoir - k0.arecevoir === TTC && k1.recu === k0.recu, { k0, k1 });
+    v('F7b (écran) l’Accueil : « à recevoir » monte d’exactement 227,08 € à l’envoi de la facture, « reçu » ne bouge pas', k1.arecevoir - k0.arecevoir === TTC && k1.recu === k0.recu, { k0, k1 });
     const avantCompta = net(await (async () => { await L.aller(p, 'comptabilite'); await p.waitForTimeout(700); return txt(c, '#contenu'); })());
     const tresoAvant = (/([\d  ]+,\d\d) € trésorerie/.exec(avantCompta) || [])[1], routeAvant = (/\+ en route ([\d  ]+,\d\d) €/.exec(avantCompta) || [])[1];
-    v('F8 population : Comptabilité (avant paiement) donne sa trésorerie (et pas encore d’« en route »)', !!tresoAvant && !routeAvant, avantCompta.slice(0, 300));
+    v('F8 population : Comptabilité (avant paiement) donne sa trésorerie (et pas encore d’« en route »)', !!tresoAvant && !routeAvant, avantCompta.slice(200, 900));
 
     /* ── G. le client paie ── */
     await S(c, () => { rlChanger('client', { cli:'hp', muet:true, ec:'factures' }); }); await L.calme(p, 800);
     const ec = net(await txt(c, '#contenu'));
-    v('G1 (écran) l’espace client : FAC-2026-0146, 189,60 €, « À régler avant le 30/11 », bouton « Payer 189,60 € »', /FAC-2026-0146/.test(ec) && /189,60 €/.test(ec) && /À régler avant le 30\/11/.test(ec) && /Payer 189,60 €/.test(ec), ec.slice(0, 400));
+    v('G1 (écran) l’espace client : FAC-2026-0146, 227,08 €, « À régler avant le 30/11 », bouton « Payer 227,08 € »', /FAC-2026-0146/.test(ec) && /227,08 €/.test(ec) && /À régler avant le 30\/11/.test(ec) && /Payer 227,08 €/.test(ec), ec.slice(0, 400));
     v('G2 (écran) le client lit les heures du rendez-vous : « 11:00 – 12:00 »', /11:00 – 12:00/.test(ec) && !/07:00/.test(ec), ec.slice(0, 300));
     await cap(c, '1-G1-client-' + P.PROFIL);
     await clic(c, '[data-ec^="payer|f-"]'); await p.waitForTimeout(900);
     const pay = net(await txt(c, '#calque'));
-    v('G3 (écran) la fenêtre de paiement : « Payer la facture FAC-2026-0146 », « Montant 189,60 € »', /Payer la facture FAC-2026-0146/.test(pay) && /Montant 189,60 €/.test(pay), pay.slice(0, 200));
+    v('G3 (écran) la fenêtre de paiement : « Payer la facture FAC-2026-0146 », « Montant 227,08 € »', /Payer la facture FAC-2026-0146/.test(pay) && /Montant 227,08 €/.test(pay), pay.slice(0, 200));
     await p.fill('#ec-cb', '4242 4242 4242 4242'); await p.fill('#ec-ex', '12/30'); await p.fill('#ec-cvc', '123');
     await clic(c, '[data-ec^="payok|"]'); await p.waitForTimeout(1500);
     const pf = await S(c, i => { const f = FACTURES.find(o => o.int === i); return { st:f.st, recu:f.recu, paye:f.paye, mode:f.mode, enc:ENCAISSEMENTS.filter(e => e.fac === f.num).map(e => [e.ttc, e.mode, e.tva]) }; }, id);
-    v('G4 (donnée) payée : « payee », 189,60 € reçus par carte, UN encaissement de 189,60 € à 20 % de TVA', pf.st === 'payee' && Math.round(pf.recu * 100) === TTC && pf.mode === 'Carte' && JSON.stringify(pf.enc) === '[[189.6,"Carte",20]]', pf);
+    v('G4 (donnée) payée : « payee », 227,08 € reçus par carte, UN encaissement de 227,08 € à 20 % de TVA', pf.st === 'payee' && Math.round(pf.recu * 100) === TTC && pf.mode === 'Carte' && JSON.stringify(pf.enc) === '[[227.08,"Carte",20]]', pf);
     const ec2 = net(await txt(c, '#contenu'));
-    v('G5 (écran) le client lit « Payée le 31/10 » sur sa facture et plus de bouton Payer pour elle', /FAC-2026-0146[^€]*189,60 € Payée le 31\/10/.test(ec2) && !/Payer 189,60/.test(ec2), ec2.slice(0, 300));
+    v('G5 (écran) le client lit « Payée le 31/10 » sur sa facture et plus de bouton Payer pour elle', /FAC-2026-0146[^€]*227,08 € Payée le 31\/10/.test(ec2) && !/Payer 227,08/.test(ec2), ec2.slice(0, 300));
     await cap(c, '1-G5-client-paye-' + P.PROFIL);
 
     /* ── H. le gérant relit : Comptabilité, Accueil, fiche du client, facture ── */
@@ -166,10 +178,10 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     const ca = net(await txt(c, '#contenu'));
     const tresoApres = (/([\d  ]+,\d\d) € trésorerie/.exec(ca) || [])[1], routeApres = (/\+ en route ([\d  ]+,\d\d) €/.exec(ca) || [])[1];
     const cts = x => L.cents(String(x || '0').replace(/[  ]/g, ''));
-    v('H1 (écran) Comptabilité : la trésorerie monte d’EXACTEMENT 189,60 € (' + tresoAvant + ' → ' + tresoApres + '), dont « en route » (' + routeAvant + ' → ' + routeApres + ')', cts(tresoApres) - cts(tresoAvant) === TTC && cts(routeApres) - cts(routeAvant || '0') === TTC, { tresoAvant, tresoApres, routeAvant, routeApres });
+    v('H1 (écran) Comptabilité : la trésorerie monte d’EXACTEMENT 227,08 € (' + tresoAvant + ' → ' + tresoApres + '), dont « en route » (' + routeAvant + ' → ' + routeApres + ')', cts(tresoApres) - cts(tresoAvant) === TTC && cts(routeApres) - cts(routeAvant || '0') === TTC, { tresoAvant, tresoApres, routeAvant, routeApres });
     await cap(c, '1-H1-compta-' + P.PROFIL);
     const k2 = await kpis(c);
-    v('H1b (écran) l’Accueil après paiement : « à recevoir » revient à son niveau d’avant, « reçu en octobre » monte d’exactement 189,60 €', k2.arecevoir === k0.arecevoir && k2.recu - k0.recu === TTC, { k0, k2 });
+    v('H1b (écran) l’Accueil après paiement : « à recevoir » revient à son niveau d’avant, « reçu en octobre » monte d’exactement 227,08 €', k2.arecevoir === k0.arecevoir && k2.recu - k0.recu === TTC, { k0, k2 });
     const lig = await S(c, () => { const L1 = [...document.querySelectorAll('#contenu button, #contenu .ligne-clic, #contenu a')].find(e => /chambre 214/.test(e.innerText)); return L1 ? L1.innerText.replace(/\s+/g, ' ') : ''; });
     v('H2 population : l’Accueil montre la ligne de l’intervention terminée', /chambre 214/.test(lig), lig);
     v('H3 (écran) l’Accueil ne dit PLUS « à payer » : la facture est réglée (ligne : « ' + lig + ' »)', !/à payer/i.test(lig), lig);
@@ -179,7 +191,7 @@ const FERMER_FEUILLE = c => S(c, () => { const b = document.querySelector('#calq
     v('H4 (écran) la fiche du client place l’intervention « Payée » (extrait : « ' + ligc + ' »)', /Payée/.test(ligc) && !/à payer/i.test(ligc), ligc);
     await L.aller(p, 'facture-x-f-' + id); await p.waitForTimeout(600);
     const ff = net(await txt(c, '#contenu'));
-    v('H5 (écran) la facture : « Payée », « Déjà reçu − 189,60 € », « Reste à payer 0,00 € »', /Payée/.test(ff) && /Déjà reçu − 189,60 €/.test(ff) && /Reste à payer 0,00 €/.test(ff), ff.slice(0, 400));
+    v('H5 (écran) la facture : « Payée », « Déjà reçu − 227,08 € », « Reste à payer 0,00 € »', /Payée/.test(ff) && /Déjà reçu − 227,08 €/.test(ff) && /Reste à payer 0,00 €/.test(ff), ff.slice(0, 400));
     const hist = await S(c, i => JOURNAL.filter(j => JSON.stringify(j).includes(i)).length, id);
     v('H6 (donnée) l’Historique a gardé la trace du parcours (création, fin, facture…) : au moins 3 lignes', hist >= 3, hist);
     v('H7 aucune erreur JavaScript pendant tout le parcours (' + c.err.length + ')', c.err.length === 0, c.err.slice(0, 3));

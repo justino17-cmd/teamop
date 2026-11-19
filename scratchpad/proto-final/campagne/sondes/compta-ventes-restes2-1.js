@@ -10,14 +10,16 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   await X.fiche(c, 'fx-val');
   const pop = await p.evaluate(() => document.querySelectorAll('[data-fqte]').length);
   L.v('population : deux champs « Qté » sur la facture à valider', pop === 2, pop);
-  const tape = async v => { const l = p.locator('[data-fqte="0"]').first(); await l.fill(v); await l.press('Tab'); await L.calme(p, 350); };
+  // le champ « Qté » a un maxlength (14) : un texte plus long, posé d'un coup par fill(), est tronqué SANS que le navigateur lève « change » (le geste n'existe pas pour une personne) ; on le TAPE touche par touche, comme elle, et la page tronque, lit, refuse et redit la quantité d'avant
+  const tape = async v => { const l = p.locator('[data-fqte="0"]').first(); if (v.length > 14) { await l.click(); await p.keyboard.press('Control+A'); await p.keyboard.type(v); } else await l.fill(v); await l.press('Tab'); await L.calme(p, 350); };
   const etat = () => p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-val'); return { q: f.lignes[0].q, qn: f.lignes[0].qn, tot: Math.round(totLigne(f.lignes[0]) * 100), ht: Math.round(htDe(f) * 100), champ: document.querySelector('[data-fqte="0"]').value }; });
   await tape('2 h'); let e = await etat(); L.v('« 2 h » : la ligne totalise 2 × 100 € = 200,00 € (le nombre multiplie, l’unité reste écrite)', e.tot === 20000 && e.q === '2 h', e);
   await tape('1 000'); e = await etat(); L.v('« 1 000 » : mille, pas un (100 000,00 €)', e.tot === 10000000 && e.qn === 1000, e);
-  await tape('0,5 L'); e = await etat(); L.v('« 0,5 L » : 50,00 €', e.tot === 5000, e);
+  // tour 6 (décision du chef du 18/11) : une unité que la ligne ne sait pas convertir (« L ») est REFUSÉE, la quantité d'avant (1 000) reste — avant, elle multipliait le prix en silence
+  await tape('0,5 L'); e = await etat(); L.v('« 0,5 L » sur une ligne sans unité de volume : refusé, « 1 000 » est gardé', e.tot === 10000000 && e.champ === '1 000', e);
   await tape('3'); e = await etat(); L.v('« 3 » : 300,00 € et le total HT de la facture suit (300 + la main-d’œuvre préparée, 81 €)', e.tot === 30000 && e.ht === 30000 + 8100, e);
   for (const v of ['0', '-2', 'abc', '', '12 abc 5 7777777777', '99999999']) { await tape(v); e = await etat(); L.v('« ' + v + ' » est refusé : la quantité d’avant (3) est gardée', e.tot === 30000 && e.champ === '3', e); }
-  await tape('1e9'); e = await etat(); L.v('« 1e9 » se lit « 1 » suivi de l’unité « e9 » (jamais un milliard) : 100,00 €', e.tot === 10000 && e.qn === 1, e);
+  await tape('1e9'); e = await etat(); L.v('« 1e9 » n’est jamais lu comme un milliard : refusé (une unité qui porte un chiffre est une faute de frappe), la quantité d’avant est gardée — tour 3', e.tot === 30000 && e.qn === 3 && e.q === '3', e);
   const t = await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-val'); return Math.round(totLigne(f.lignes[1]) * 100); });
   L.v('la ligne « 1h30 » préparée par OP GESTION garde sa règle (le prix est déjà celui de la durée) : 81,00 €', t === 8100, t);
   await tape('2 h'); await p.evaluate(() => { const e = document.querySelector('.tableau'); e && e.scrollIntoView({ block: 'center' }); }); await L.calme(p, 400);

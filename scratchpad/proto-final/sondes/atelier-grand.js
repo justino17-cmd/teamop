@@ -78,11 +78,18 @@ const attendCadre = async (f, fn, arg, ms) => { const t0 = Date.now(); while (Da
     const taille = async () => (await geo(f)).feuille;
     const zbtn = z => `[data-vv="zoom"][data-v="${z}"]`;
     // à l'ordinateur « Ajuster » est choisi d'office ; au téléphone l'aperçu s'ouvre sur 100 % (texte lisible, tout-01 du lot compositeur) et « Ajuster » est à un toucher
-    let f0 = await taille(); v(`${tag} · le réglage de taille existe (4 choix) et ${deux ? '« Ajuster »' : '« 100 % »'} est choisi d'office`, (await f.locator('[data-vv="zoom"]:visible').count()) === 4 && (await f.locator(zbtn(deux ? 'ajuster' : 1) + ':visible').getAttribute('aria-pressed')) === 'true', f0);
-    if (!deux) { v(`${tag} · à l'ouverture la page fait 794 px (100 %)`, Math.abs(f0.w - 794) <= 2, f0); await clic(zbtn('ajuster') + ':visible'); await L.calme(p, 400); f0 = await taille(); }
+    // Ce que l'aperçu plein écran choisit d'office (page.source, vvGrand : « si Ajuster et fit < 0,7 alors 100 % ») : 100 % quand la page ajustée serait trop petite pour se lire (téléphone), « Ajuster » sinon —
+    // donc sur iPad (colonne utile 788 px, fit 0,99) c'est « Ajuster » et la page prend toute la colonne. La sonde attendait « 100 % » partout (écrite avant cette règle, ou avant la marge de 16 px).
+    const utile = deux ? 0 : await f.evaluate(() => { const c = document.querySelector('.vv-grand-c'); const cs = getComputedStyle(c); return c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) });
+    const attendu = deux || utile / 794 >= 0.7 ? 'ajuster' : 1;
+    let f0 = await taille(); v(`${tag} · le réglage de taille existe (4 choix) et ${attendu === 'ajuster' ? '« Ajuster »' : '« 100 % »'} est choisi d'office (colonne utile ${Math.round(utile)} px)`, (await f.locator('[data-vv="zoom"]:visible').count()) === 4 && (await f.locator(zbtn(attendu) + ':visible').getAttribute('aria-pressed')) === 'true', f0);
+    if (!deux) {
+      const voulu = attendu === 1 ? 794 : Math.min(1.25 * 794, utile);
+      v(`${tag} · à l'ouverture la page fait ${attendu === 1 ? '794 px (100 %)' : 'toute la largeur utile de la colonne (' + Math.round(utile) + ' px)'}`, Math.abs(f0.w - voulu) <= 2, { f0, utile });
+      await clic(zbtn('ajuster') + ':visible'); await L.calme(p, 400); f0 = await taille(); }
     if (deux) v(`${tag} · « Ajuster » : la page prend la largeur de sa colonne (${f0.w} px dans ${g.colPage.w - 64})`, Math.abs(f0.w - Math.min(1.25 * 794, g.colPage.w - 64)) <= 3, [f0.w, g.colPage.w]);
     else { const zone = await f.evaluate(() => { const c = document.querySelector('.vv-grand-c'); const s = getComputedStyle(c); return c.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight); }); v(`${tag} · « Ajuster » : la page entière tient dans la largeur de l'écran (${f0.w} px dans ${zone})`, Math.abs(f0.w - Math.min(1.25 * 794, zone)) <= 3, [f0.w, zone]); }
-    const lib = await f.locator(zbtn('ajuster') + ':visible').textContent(); v(`${tag} · le bouton dit le pourcentage obtenu : « ${lib.trim()} »`, /^Ajuster · \d+ %$/.test(lib.trim()), lib);
+    const lib = await f.locator(zbtn('ajuster') + ':visible').textContent(); v(`${tag} · le bouton dit le pourcentage obtenu : « ${lib.trim()} »`, /^Ajuster · \d+\u00a0%$/.test(lib.trim()), lib);
     for (const [z, k] of [[1, '100 %'], [1.5, '150 %'], [.75, '75 %']]) { await clic(zbtn(z) + ':visible'); await L.calme(p, 300); const t = await taille(); v(`${tag} · « ${k} » : la page fait ${Math.round(794 * z)} px (${t && t.w})`, t && Math.abs(t.w - 794 * z) <= 2, t); }
     await clic(zbtn(1) + ':visible'); await L.calme(p, 300);
     const gz = await geo(f); v(`${tag} · à 100 %, le texte du document est rendu à ${gz.fsRendu && gz.fsRendu.toFixed(1)} px (≥ 11,5)`, gz.fsRendu >= 11.5, [gz.fsDoc, gz.ech]);

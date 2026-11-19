@@ -26,7 +26,8 @@ async function appuiLong(c, k, ms) { const r = await c.p.evaluate(k => { const t
     v(`${tag} : « Personnaliser la barre du bas » ouvre le panneau`, await ouvrirMaBarre(c));
     let P = await panneau(c.p); if (!v(`${tag} : le panneau est là`, !!P)) { await L.fin(c); continue; }
     await L.capture(c, `${CAP}/mabarre-${tag}.png`);
-    v(`${tag} : 19 lignes proposées, 5 choisies, numérotées 1 à 5`, P.lignes.length === 19 && P.lignes.filter(l => l.on).map(l => l.n).join('') === '12345', { n:P.lignes.length, on:P.lignes.filter(l => l.on).map(l => l.k + l.n) });
+    // 21 lignes depuis le menu final : les 21 rubriques du gérant (MENU-FINAL.md, balise lignes-gerant) ; la sonde en attendait 19 avant que « Dépôts et camions » et « Temps de travail » rejoignent le menu
+    v(`${tag} : 21 lignes proposées, 5 choisies, numérotées 1 à 5`, P.lignes.length === 21 && P.lignes.filter(l => l.on).map(l => l.n).join('') === '12345', { n:P.lignes.length, on:P.lignes.filter(l => l.on).map(l => l.k + l.n) });
     v(`${tag} : le panneau dit « 5 sur 5 choisis »`, /5 sur 5/.test(P.dit), P.dit);
     v(`${tag} : les lignes font ≥ 44 px et le panneau ne glisse pas`, P.lignes.every(l => l.h >= 44) && P.larg <= 1, { min:Math.min(...P.lignes.map(l => l.h)), larg:P.larg });
     // 2. une 6e est refusée, avec le mot

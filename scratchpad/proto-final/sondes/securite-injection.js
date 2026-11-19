@@ -39,7 +39,8 @@ const MES = id => `(() => ({ balise: document.querySelectorAll('img[data-ch="${i
     L.v('A1 témoin : « Jean-Pierre N\'Diaye » est créé, apostrophe rendue typographique (N’Diaye)', !!tem && tem.nom === 'N’Diaye', tem);
   } else console.log('  · A1 témoin non joué : toutes les places de l\'abonnement sont prises (à DIRE)');
 
-  // A2 · S07 : unité d'un article (formulaire)
+  // A2 · S07 : unité d'un article (formulaire). La longueur permise est de 20 signes (« paquet de 100… », texte du refus de prFormulaire) : l'ancien « 13 signes refusés »
+  // datait de la limite de 12 ; on garde la même promesse (un texte trop long est refusé) sur la limite d'aujourd'hui, et on joue le bord (20 passe, 21 est refusé).
   await aller('produits'); await p.evaluate(() => { try { fermerPanneau(); } catch (e) {} prFormulaire(null, PACKS_ENT[0], PACKS[PACKS_ENT[0]].cats[0].n); }); await att(500);
   const okU = await poser('#pr-nom', 'Article de garde') && await poser('#pr-u', CH('u1'));
   L.v('A2 (population) le champ « Unité » a pris la charge', okU && await p.evaluate(() => /ZQu1/.test(document.getElementById('pr-u').value)));
@@ -48,7 +49,7 @@ const MES = id => `(() => ({ balise: document.querySelectorAll('img[data-ch="${i
   const a2 = await p.evaluate(() => ({ n: PRODUITS.length, piege: PRODUITS.some(x => /ZQ/.test(x.u || '')) }));
   L.v('A2 S07 un article à l\'unité piégée n\'est pas enregistré', !a2.piege && a2.n === np0, a2);
   L.v('A2 le refus dit pourquoi (une unité s\'écrit en quelques lettres)', /unité/i.test(await toast()), (await toast()).slice(0, 100));
-  const unites = await p.evaluate(() => { const bons = ['u', 'kg', 'm²', 'L', 'lot', 'boîte', 'aérosol', 'm', 'paire', 'flacon', 'g/L'].every(u => uniteSure(u) === u), mauvais = ['<b>', 'x"y', 'a'.repeat(13), '', 'u<img>'].every(u => uniteSure(u) === ''); const usage = [...new Set(PRODUITS.map(x => x.u || 'u'))]; return { bons, mauvais, usage, refusees: usage.filter(u => !uniteSure(u)) }; });
+  const unites = await p.evaluate(() => { const bons = ['u', 'kg', 'm²', 'L', 'lot', 'boîte', 'aérosol', 'm', 'paire', 'flacon', 'g/L', 'paquet de 100', 'a'.repeat(20)].every(u => uniteSure(u) === u), mauvais = ['<b>', 'x"y', 'a'.repeat(21), '', 'u<img>'].every(u => uniteSure(u) === ''); const usage = [...new Set(PRODUITS.map(x => x.u || 'u'))]; return { bons, mauvais, usage, refusees: usage.filter(u => !uniteSure(u)) }; });
   L.v('A2 témoin : les unités ordinaires passent et les piégées sont refusées', unites.bons && unites.mauvais, unites);
   L.v('A2 aucune unité des ' + unites.usage.length + ' qu\'utilisent les articles de la démonstration n\'est refusée (population : ' + unites.usage.length + ')', unites.usage.length >= 4 && unites.refusees.length === 0, unites.refusees);
 

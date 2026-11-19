@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "recontrole-01 · « Le stock du camion de Sophie… » reste figé quand on change d'applicateur",
+  "defaut": "gênant",
+  "etat": "corrigé",
+  "changement": "Le prénom est dans un <span id=\"rg-camion\"> que le changement d'applicateur (rgf = appl) remet à jour, avec le certificat et la liste des produits.",
+  "preuve": "metier-3d-recontrole-f.js : 4 ✓ · 6 ✗ avant, 10 ✓ · 0 ✗ après (Mac et iPhone) ; mutation M1 (mise à jour retirée) : 4 ✓ · 6 ✗"
+ },
+ {
+  "nom": "recontrole-02 · en-tête « Recommandations » de « Tous les sites » qui sort de la carte (760 à 925 px de liste)",
+  "defaut": "gênant",
+  "etat": "corrigé",
+  "changement": "Seuil de la requête de conteneur rgtab relevé de 760 à 930 px : le tableau à six colonnes ne s'affiche que quand toutes ses colonnes tiennent, la liste de cartes sert avant.",
+  "preuve": "metier-3d-recontrole-b.js : de 1000 à 1340 px, plus aucun en-tête ni cellule coupés ; recontrole-a R3 68 ✓ · 0 ✗ (seuil 930 mis à jour dans la sonde) ; metier-3d-restes-1.js partie B (Mac 1100/1180/1280/1300 jour et nuit, iPad 820) ; captures relues (cartes propres, nuit comprise) ; mutation M2 (760) : 28 ✓ · 2 ✗"
+ },
+ {
+  "nom": "recontrole-03 · deuxième exemple de la demande d'achat (« la mienne ne tient plus la charge ») identique pour tous les métiers",
+  "defaut": "détail",
+  "etat": "corrigé",
+  "changement": "Table des exemples de métier : « ex. il n'en reste presque plus » pour tous les métiers sauf la climatisation seule et la démonstration clim + chauffage + plomberie, qui gardent leur exemple.",
+  "preuve": "metier-3d-restes-1.js partie A, 8 métiers : le « Pourquoi ? » est neutre partout sauf clim (contre-épreuve : clim garde « la mienne ne tient plus la charge ») ; mutation M4 : 45 ✓ · 7 ✗"
+ },
+ {
+  "nom": "recontrole-04 · « Nouvelle intervention » : « ex. condensateur, siphon, fluide… » chez tous les métiers (régression de « Chercher un autre article »)",
+  "defaut": "gênant",
+  "etat": "corrigé",
+  "changement": "Les tables d'exemples sont à correspondance exacte et la fenêtre écrit « ex. » en minuscules : chaque entrée « Ex. … » reçoit sa jumelle « ex. … » au chargement (MET_EXEMPLES et chaque famille), ce qui couvre aussi la prochaine fenêtre qui écrirait l'indication dans l'autre casse.",
+  "preuve": "metier-3d-recontrole-e.js : 24 ✓ · 7 ✗ avant, 31 ✓ · 0 ✗ après ; metier-3d-restes-1.js partie A (82 ✓ · 0 ✗, 8 métiers, achats et Nouvelle intervention) ; plomberie lit « siphon, flexible, joint… », nettoyage « éponges, sacs… », 3D « poste d'appâtage… », chauffage « circulateur… » ; mutation M3 : 41 ✓ · 11 ✗"
+ },
+ {
+  "nom": "metier-3d-06 · Devis xylophage prérempli (« Charpente 42 m² », 970,72 € TTC)",
+  "defaut": "à soumettre",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun.",
+  "preuve": "annoncé « à soumettre » (recommandation : l'ouvrir sans zone)"
+ },
+ {
+  "nom": "metier-3d-08 · pas de moyen de demander un autre métier en mode application",
+  "defaut": "à soumettre",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun.",
+  "preuve": "décision de produit : qui règle le métier, par quel message"
+ },
+ {
+  "nom": "metier-3d-09 · « RAS » et « N° d'AMM » sans explication",
+  "defaut": "à soumettre",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun.",
+  "preuve": "vocabulaire réglementaire, à valider"
+ },
+ {
+  "nom": "metier-3d-10 · types d'intervention aux noms de la climatisation pour tous les métiers",
+  "defaut": "à soumettre",
+  "etat": "à soumettre à Justin",
+  "changement": "Aucun.",
+  "preuve": "la valeur sert aux statistiques et à la facturation"
+ }
+]

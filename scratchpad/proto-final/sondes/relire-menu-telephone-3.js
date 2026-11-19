@@ -68,7 +68,8 @@ async function client(c, tag, app) {
   await c.p.evaluate(() => rlChanger('client', { muet:true })); await L.calme(c.p, 700);
   const b = await c.p.evaluate(() => { const nav = document.querySelector('#barre-bas .opg-barre'); if (!nav) return null; return [...nav.querySelectorAll('.opg-tab')].map(t => { const s = t.querySelector('.t-n'), r = t.getBoundingClientRect(); return { mot:s.textContent.trim(), aria:t.getAttribute('aria-label'), coupe:s.scrollWidth > s.clientWidth + 0.5, l:Math.round(r.width), h:Math.round(r.height), on:t.classList.contains('on'), k:t.dataset.ec }; }); });
   if (!v(`${tag} : la barre du client existe`, !!b)) return;
-  v(`${tag} : Accueil · Factures · Devis · Interventions · Contrat, entiers, non coupés, ≥ 44 px`, b.map(x => x.mot).join('|') === 'Accueil|Factures|Devis|Interventions|Contrat' && b.every(x => !x.coupe && x.l >= 44 && x.h >= 44), b);
+  // l'ordre est celui de « Restes client » tour 1, client-14 (final/restes-client-tour1.json) : « Mêmes mots et même ordre partout : Accueil, Factures, Interventions, Devis, Contrat » ; la sonde attendait l'ordre du premier jet de MENU-FINAL.md
+  v(`${tag} : Accueil · Factures · Interventions · Devis · Contrat, entiers, non coupés, ≥ 44 px`, b.map(x => x.mot).join('|') === 'Accueil|Factures|Interventions|Devis|Contrat' && b.every(x => !x.coupe && x.l >= 44 && x.h >= 44), b);
   const m = await c.p.evaluate(() => { const x = document.querySelector('#contenu .tete-tel .tt-menu'); return x ? { mot:(x.querySelector('.tt-mot') || {}).textContent, l:Math.round(x.getBoundingClientRect().width) } : null; });
   v(`${tag} : le bouton « Menu » existe aussi chez le client`, !!m && m.mot === 'Menu', m);
   await L.capture(c, `${CAP}/client-${tag.replace(/\W/g, '_')}.png`);

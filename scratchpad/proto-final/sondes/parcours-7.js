@@ -47,7 +47,7 @@ const moisTom = async c => { await L.aller(c.p, 'mesheures'); await c.p.waitForT
     await cap(c, '7-B5-mois-' + P.PROFIL);
     await clic(c, '[data-tt="onglet|semaine"]'); await p.waitForTimeout(400);
     const sem = net(await txt(c, '#contenu'));
-    v('B6 (écran) la Semaine du 26 oct. : « Tom Leroy Technicien 8h00 07:40–16:40 … 8h25 07:55–17:20 … 40h25 dont 5h25 en plus »', /Tom Leroy Technicien 8h00 07:40–16:40 8h00 07:41–16:41 8h00 07:42–16:42 8h00 07:43–16:43 8h25 07:55–17:20/.test(sem) && /40h25 dont 5h25 en plus/.test(sem), (/Tom Leroy Technicien[^]{0,160}/.exec(sem) || [''])[0]);
+    v('B6 (écran) la Semaine du 26 oct. : « Tom Leroy Technicien 8h00 07:40–16:40 … 8h25 07:55–17:20 … 40h25 dont 5h25 en plus » (au téléphone, une ligne par personne : « Tom Leroy Technicien 40h25 dont 5h25 en plus »)', (c.largeur >= 700 ? /Tom Leroy Technicien 8h00 07:40–16:40 8h00 07:41–16:41 8h00 07:42–16:42 8h00 07:43–16:43 8h25 07:55–17:20/.test(sem) && /40h25 dont 5h25 en plus/.test(sem) : /Tom Leroy Technicien 40h25 dont 5h25 en plus/.test(sem)), (/Tom Leroy Technicien[^]{0,160}/.exec(sem) || [''])[0]);
 
     /* ── C. Tom lit sa journée corrigée (le gérant a choisi l'heure) ── */
     await P.passer(c, 'tl', 'mesheures');
@@ -79,7 +79,7 @@ const moisTom = async c => { await L.aller(c.p, 'mesheures'); await c.p.waitForT
     v('E2 (écran) le gérant lit « Confirmé le 31/10 » sur la ligne de Tom (au lieu d’« Erreur signalée »)', /Confirmé le 31\/10/.test(m3g.etat), m3g);
 
     /* ── F. une correction AVEC MOTIF : Tom doit reconfirmer ── */
-    await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '[data-tt="sem|tl|2026-10-26"]'); await p.waitForTimeout(400);
+    await clic(c, '[data-tt="onglet|semaine"]'); await clic(c, '[data-tt="sem|tl|2026-10-26"]:visible'); await p.waitForTimeout(400);
     await clic(c, '#calque [data-tt="jour|tl|2026-10-30"]'); await p.waitForTimeout(500);
     await heure(c, '#calque [data-ptc="ptl2026-10-30|fin"] + .dt-btn', 17, 30);
     const fm = await S(c, () => ({ motif:!!document.getElementById('pt-motif'), btn:(document.getElementById('tt-enr') || {}).disabled }));

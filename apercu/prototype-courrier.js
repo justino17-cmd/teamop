@@ -851,11 +851,13 @@ var CSS = `
   .opc .toast > span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}   /* un objet de 200 signes couvrait 73 % de l'écran à 320 px */
   /* LES DROITS DE LA PERSONNE (17 novembre 2026, « tout-08 ») : l'hôte dit ce qu'elle peut faire (capacites().droits) et le module pose data-ecrire / data-ranger / data-supprimer="0"
      sur son cadre. Un geste refusé n'est PAS proposé (la garde de doAct, multiAct et des raccourcis refuse aussi, pour qui passerait par le clavier ou l'hôte). */
-  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
-  .opc[data-ranger="0"] :is([data-act="reply"],[data-act="replyAll"],[data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-quick],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
+  .opc[data-ecrire="0"] :is(#btnCompose,[data-act="reply"],[data-act="replyAll"],[data-quick],.rquick,[data-act="forward"],[data-act="editDraft"],[data-act="sendNow"],[data-act="reschedule"],[data-act="unschedule"],[data-multi="forward"],[data-signnew],[data-addaccount]),
+  .opc[data-ranger="0"] :is([data-act="flag"],[data-act="unread"],[data-act="archive"],[data-act="toInbox"],[data-act="junk"],[data-act="notJunk"],[data-act="moveCat"],[data-q="flag"],[data-q="archive"],[data-q="toInbox"],[data-multi="read"],[data-multi="archive"],[data-multi="toInbox"]),
   .opc[data-ecrire="0"][data-ranger="0"] [data-act="replyMenu"],
   .opc[data-supprimer="0"] :is([data-act="trash"],[data-q="trash"],[data-multi="trash"]),
   .opc[data-ecrire="0"][data-ranger="0"][data-supprimer="0"] #btnSelect{display:none !important}
+  /* la rangée « Réponse rapide » n'a plus un bouton à offrir : on la retire ENTIÈRE (sinon son libellé de bureau reste seul, et au téléphone sa marge de 26 px et ses deux écarts de flex laissent un blanc entre le suivi et la rangée Catégorie) */
+  .opc[data-ecrire="0"] .rquick{display:none !important}
   .opc .toast.two{flex-wrap:wrap;row-gap:8px}   /* « Annuler » + « Annuler l'envoi » : le texte sur sa ligne, les deux boutons dessous, à droite */
   .opc .toast.two > span:not(.ok){flex:1 1 calc(100% - 40px)}
   .opc .toast.two #tAct{margin-left:auto}   /* une longue adresse passe à la ligne au lieu de sortir du HUD */
@@ -1479,6 +1481,8 @@ var CSS = `
   .opc .hband .hd{font-size:14px;line-height:1.4;color:var(--label-2);white-space:pre-line}
   .opc .hband .hliens{display:flex;flex-wrap:wrap;gap:4px 14px}
   .opc .hband .hliens .lnk{color:var(--tint);font-size:14px;font-weight:600;min-height:32px;display:inline-flex;align-items:center}
+  /* un nom long (« Chauffage Distribution Atlantique ») passe à la ligne au lieu de sortir de la carte et de couper le chevron : le lien général est en nowrap, ici il y a la place de s'étaler (restes entreprise, tour 3) */
+  .opc .hband .hliens .lnk{white-space:normal;max-width:100%;min-width:0;text-align:left}
   .opc .hband .hliens .chv{display:inline-flex;width:12px;height:12px;margin-left:2px}
   .opc .hband .hliens .chv svg{width:12px;height:12px}
   .opc .hband .hacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
@@ -1603,6 +1607,9 @@ var CSS = `
     .opc:where([data-fmt="pad"]) .list #btnNav .nb-lbl{display:none}
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .lb-title{font-size:14px}   /* à 17 px, « Boîte de réception » se coupait entre la flèche et « Sélectionner » dans la colonne de 315 px */
     .opc:where([data-fmt="phone"],[data-fmt="pad"]) .list .search-row{margin-top:4px;margin-bottom:6px}
+    /* l'aperçu (2 lignes) fait d'une ligne de 108 px une ligne de ~62 px : iPhone 8 / SE en travers (667×375) n'avait la place d'AUCUNE ligne entière entre les barres, avec l'aperçu on n'en voyait qu'une demie ; le nom, l'objet et l'étiquette restent */
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg .m-prev{display:none}
+    .opc:where([data-fmt="phone"],[data-fmt="pad"]) .msg{padding-block:6px}   /* 67 px → ~59 px : une ligne entière dans la zone de 64 px que laissent les barres à 740×360 */
   }
 `;
 var FEUILLE = null;
@@ -1949,7 +1956,7 @@ var MARKUP = `
   function droit(x){ if(!CAP.droits||CAP.droits[x]!==false) return true;
     var ph=""; try{ ph=CAP.refus?String(CAP.refus(x)||""):""; }catch(e){}
     toast(ph||"Ce geste n’est pas ouvert à ton compte."); return false; }
-  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ranger",replyAll:"ranger",
+  var ACT_DROIT={flag:"ranger",unread:"ranger",markRead:"ranger",archive:"ranger",toInbox:"ranger",junk:"ranger",notJunk:"ranger",moveCat:"ranger",reply:"ecrire",replyAll:"ecrire",
     forward:"ecrire",editDraft:"ecrire",sendNow:"ecrire",unschedule:"ecrire",reschedule:"ecrire",trash:"supprimer"};
   // les entrées d'un menu : un geste refusé n'y figure pas
   function permis(items){ return items.filter(function(i){ return !ACT_DROIT[i.id]||!CAP.droits||CAP.droits[ACT_DROIT[i.id]]!==false; }); }
@@ -2346,13 +2353,17 @@ var MARKUP = `
      d'historique à la même adresse ; le retour du navigateur recule d'un niveau, et ce n'est qu'au niveau de la liste qu'il laisse l'hôte quitter la rubrique.
      La profondeur voulue se déduit de l'écran (histCible) et l'historique la rejoint (histSync) : un geste de l'application qui recule retire son entrée, il n'en laisse pas d'orpheline.
      Si l'historique du navigateur ne répond pas (fenêtre sans historique, cadre), la fonction s'éteint toute seule : rien n'est promis qu'on ne tient pas. */
-  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null};
-  function overlayDePage(){ var o=$("#overlay"); return !!o&&!o.classList.contains("ov-menu"); }
-  function histCible(){ return isPhone()?((app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)):0; }
+  var HIST={niv:0,ignorer:0,off:false,t:null,ti:null,hash:null};   // hash : l'adresse de la Boîte mail au moment où un niveau est posé — ce qui dit qu'on est TOUJOURS dans la Boîte mail quand l'historique bouge
+  /* TOUTE fenêtre posée par-dessus (message en cours d'écriture, « Ajouter une boîte », et aussi un menu : Filtrer, Actions, Boîte…) est un niveau. Le menu était tenu hors historique « parce qu'il se ferme d'un toucher dehors » :
+     mais un Retour qui le laissait ouvert en QUITTANT la Boîte mail faisait perdre sa place à qui voulait seulement refermer un menu (recontrôle du 18 novembre, décision du 19 : Retour ferme la couche du dessus, rien d'autre). */
+  function overlayDePage(){ return !!$("#overlay"); }
+  function histCible(){ return (isPhone()&&app.getAttribute("data-view")!=="list"?1:0)+(overlayDePage()?1:0)+(pdfv?1:0)+($("#cDiscard")?1:0); }   // l'aperçu d'un PDF est la couche du DESSUS (recontrôle tour 3 : un Retour restait muet au téléphone, ou fermait aperçu ET message sur ordinateur) ; une fenêtre ouverte est un niveau sur TOUS les formats (sur ordinateur aussi, Retour la fermait en quittant la Boîte mail) ; la lecture, elle, n'est un niveau qu'au téléphone
   function histSync(){
     if(HIST.off||!vivant) return; clearTimeout(HIST.t);
     HIST.t=setTimeout(function(){ if(!vivant||HIST.off) return; var c=histCible();
+      if(HIST.hash!==null&&location.hash!==HIST.hash&&HIST.niv===0) return;   // la personne est sur une autre rubrique : le niveau se repose au retour (hashchange), jamais à l'adresse d'une autre page
       try{
+        if(HIST.niv===0) HIST.hash=location.hash;
         while(HIST.niv<c){ history.pushState({opcourrier:HIST.niv+1},"",location.href); HIST.niv++; }
         if(HIST.niv>c){ var n=HIST.niv-c; HIST.niv=c; HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); history.go(-n); }
       }catch(e){ HIST.off=true; } },0); }
@@ -2360,6 +2371,7 @@ var MARKUP = `
     if(!isPhone()) return;
     var prev=app.getAttribute("data-view"); if(prev===view) return;
     app.setAttribute("data-view",view); histSync();
+    if(view==="list") listeCourtePlier();   // changer de dossier ou de boîte remonte la liste AVANT d'arriver sur elle (listeEnHaut) : en paysage court, listeCourtePlier voyait alors « la liste n'est pas à l'écran » et attendait pour toujours — la liste revenait dépliée, sans une ligne de message sous les yeux
     if(pendingUndo&&$("#tUndo")){ if(toastKind==="undo") $("#toast").classList.toggle("quiet",view!=="reading"); else { $("#tUndo").hidden=view!=="reading"; $("#toast").classList.toggle("two",view==="reading"&&!!$("#tAct")); } }
     var target=view==="mailboxes"?$("#sidebar"):view==="list"?$("#list"):$("#reading");
     try{ target.focus({preventScroll:true}); }catch(e){}
@@ -2785,6 +2797,9 @@ var MARKUP = `
   function suiviHtml(m){
     if(!CAP.suivi||typeof SRC.suivi!=="function"||!m.src||m.folder!=="inbox"||!m.suivi) return "";
     var s=m.suivi;
+    // « Voir seul » : le suivi se LIT (où en est la demande, qui s'en charge) mais ne s'écrit pas — changer un état ou une assignation, c'est ranger (18 novembre 2026, restes entreprise tour 2)
+    if(CAP.droits&&CAP.droits.ranger===false) return '<div class="rcat rsuivi rs-lecture" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span><span class="rs-lu">'+suiviChip(m)+'</span>'+
+      (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>';
     return '<div class="rcat rsuivi" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span>'+
       '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
       '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="'+(CAP.equipe&&CAP.equipe.length?"Choisir quelqu’un":"Personne")+'" value="'+H(s.assigne)+'"'+(CAP.equipe&&CAP.equipe.length?' list="suiviEquipe"':'')+'>'+
@@ -2797,6 +2812,7 @@ var MARKUP = `
       try{ renderSidebar(); }catch(e){} compter(); }
     if(!m||!m.suivi||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
     var s=m.suivi;
+    var lu=$(".rs-lu",el); if(lu) lu.innerHTML=suiviChip(m);   // lecture seule : la puce se repeint, rien d'autre n'existe
     $$("[data-suivi]",el).forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-suivi")===s.statut)); });
     var inp=$("#suiviAssigne",el); if(inp&&actif()!==inp) inp.value=s.assigne;
     var par=$(".rs-par",el);
@@ -2804,6 +2820,7 @@ var MARKUP = `
     if(focus){ var b=$('[data-suivi="'+focus+'"]',el); if(b) b.focus({preventScroll:true}); } }
   function changerSuivi(m,patch){
     if(!m||!m.src||!m.suivi||!CAP.suivi||typeof SRC.suivi!=="function") return;
+    if(!droit("ranger")) return;   // la garde est aussi là pour qui passerait par l'hôte ou le clavier
     var avant=m.suivi, neuf={statut:patch.statut||avant.statut,assigne:patch.assigne!==undefined?patch.assigne:avant.assigne,par:avant.par};
     if(neuf.statut===avant.statut&&neuf.assigne===avant.assigne) return;
     m.suivi=neuf; repeindreSuivi(m,patch.statut||"");   // l'état s'applique d'abord ; le serveur le confirme (ou le refuse, et l'état d'avant revient)
@@ -2874,7 +2891,8 @@ var MARKUP = `
     if(!pdfv) return; var v=pdfv; pdfv=null;
     try{ URL.revokeObjectURL(v.url); }catch(e){}
     v.el.remove(); if(!$("#overlay")) app.inert=false;
-    if(v.retour&&sr.contains(v.retour)&&v.retour!==document.body){ try{ v.retour.focus({preventScroll:true}); }catch(e){} } }
+    if(v.retour&&sr.contains(v.retour)&&v.retour!==document.body){ try{ v.retour.focus({preventScroll:true}); }catch(e){} }
+    histSync(); }   // son niveau d'historique part avec lui (Fermer, Échap ou Retour) : sans quoi une entrée resterait derrière
   finis.push(fermerApercu);
   function apercuPDF(blob,nom){
     fermerApercu();
@@ -2887,6 +2905,7 @@ var MARKUP = `
       var f=document.createElement("iframe"); f.setAttribute("title","Aperçu : "+nom); f.setAttribute("referrerpolicy","no-referrer"); f.src=url;
       $(".pdfv-body",el).appendChild(f); }
     app.inert=true; $("#overlays").appendChild(el); pdfv={el:el,url:url,retour:retour,nom:nom};
+    histSync();   // l'aperçu pose son niveau : un Retour le ferme, lui seul
     el.addEventListener("click",function(e){ var b=e.target.closest("[data-pv]"); if(!b) return;
       if(b.getAttribute("data-pv")==="close"){ fermerApercu(); return; }
       enregistrerFichier(new Blob([blob],{type:"application/pdf"}),nomFichierSur(nom),el); });
@@ -2941,12 +2960,16 @@ var MARKUP = `
      sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
   // Paysage COURT (≤ 380 px de haut) : il ne reste que ~120 px de liste au-dessus de la barre d'onglets, et la recherche et les catégories les remplissaient — la première chose vue était « aucun e-mail ».
   // La liste s'ouvre donc PLIÉE sur ses messages (comme Mail sur iPhone : la recherche est au-dessus, un geste vers le bas la ramène). Une fois par ouverture : si la personne a déjà fait défiler, on n'y touche pas.
-  var COURT=false;
+  // COURT_VU : la liste a déjà été VUE en paysage court. Tant qu'elle ne l'a pas été, son défilement ne dit rien de la personne (c'est celui du portrait d'avant la rotation : 296 px, zéro ligne entière) et on la replie ;
+  // une fois vue, un défilement est un geste de la personne et on n'y touche plus (« une fois par ouverture »).
+  var COURT=false, COURT_VU=false;
   function listeCourtePlier(){
     try{ var court=window.matchMedia("(max-height:380px)").matches&&(isPhone()||layout()==="pad");
-      if(!court){ COURT=false; return; }
-      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1||ls.scrollTop>2) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
+      if(!court){ COURT=false; COURT_VU=false; return; }
+      var ls=$("#listScroll"), r=$("#rows"), m1=r&&r.querySelector(".msg"); if(COURT||!ls||!m1) return;   // on se cale sur la PREMIÈRE ligne : l'encart « rangés ailleurs » qui la précède se replie avec le reste
       if(isPhone()&&app.getAttribute("data-view")!=="list") return;   // la liste n'est pas à l'écran : sa boîte vaut zéro, on attend
+      if(ls.scrollTop>2&&COURT_VU) return;
+      COURT_VU=true;
       var bar=$(".list .list-bar"), haut=Math.max(ls.getBoundingClientRect().top, bar?bar.getBoundingClientRect().bottom:0);   // sur téléphone la barre du haut est posée PAR-DESSUS la liste : la première ligne se cale sous elle, pas dessous
       COURT=true; ls.scrollTop=Math.round(m1.getBoundingClientRect().top-haut+ls.scrollTop); }catch(e){}
   }
@@ -3841,8 +3864,8 @@ var MARKUP = `
         '<button type="button" class="mitem dng" role="menuitem" data-dpick="discard"><span class="mlbl">'+(editSched?"Ignorer les modifications":"Supprimer le brouillon")+'</span></button>'+
         '<button type="button" class="mitem" role="menuitem" data-dpick="save"><span class="mlbl">Enregistrer le brouillon</span></button></div>'+
         '<div class="ag"><button type="button" class="mitem cancel" role="menuitem" data-dpick="cancel">Annuler</button></div></div>';
-      ov.appendChild(ns); sheet.inert=true;
-      var back=function(){ ns.remove(); sheet.inert=false; $("#cCancel").focus({preventScroll:true}); };
+      ov.appendChild(ns); sheet.inert=true; histSync();   // la feuille est la couche du dessus : son niveau d'historique, comme l'aperçu d'un PDF
+      var back=function(){ ns.remove(); sheet.inert=false; $("#cCancel").focus({preventScroll:true}); histSync(); };
       ns.addEventListener("click",function(e){
         var b=e.target.closest("[data-dpick]"); if(!b){ if(e.target===ns) back(); return; }
         var k=b.getAttribute("data-dpick");
@@ -4363,7 +4386,10 @@ var MARKUP = `
       var haut=(parseFloat(getComputedStyle(h).bottom)||0)+h.offsetHeight+10, b0=parseFloat(getComputedStyle(t).bottom)||0;
       if(b0<haut) t.style.setProperty("--opc-sur",Math.round(haut-b0)+"px"); }catch(e){}
   }
-  function toast(msg,action){ toastCorps(msg,action); surHote(); }
+  // --opc-sur ne se calculait qu'À L'APPARITION : l'hôte se tait avant nous (6 s contre 2,6 s) et la bulle restait montée de 52 px au-dessus d'un vide. Tant que notre bulle est à l'écran on la remesure (le coût : une lecture toutes les 300 ms).
+  var surTimer=null;
+  function suivreHote(){ clearInterval(surTimer); surTimer=setInterval(function(){ var t=$("#toast"); if(!t||!t.classList.contains("show")){ clearInterval(surTimer); surTimer=null; return; } surHote(); },300); }
+  function toast(msg,action){ toastCorps(msg,action); surHote(); suivreHote(); }
   function toastCorps(msg,action){
     clearTimeout(toastTimer);
     var t=$("#toast"); t.classList.remove("quiet");
@@ -4413,13 +4439,24 @@ var MARKUP = `
   sur(window,"popstate",function(){
     if(!vivant||HIST.off) return;
     if(HIST.ignorer>0){ HIST.ignorer=0; return; }
-    if(HIST.niv<=0||!isPhone()) return;
+    // la personne a touché une autre rubrique (l'adresse a changé) : ce n'est pas un recul d'un de nos niveaux. Le message en cours d'écriture reste ouvert, masqué avec l'hôte (comme avant l'historique sur ordinateur) ; ses niveaux appartiennent aux entrées laissées derrière
+    if(HIST.hash!==null&&location.hash!==HIST.hash){ HIST.niv=0; return; }
     // l'entrée atteinte n'est pas AU-DESSOUS de la nôtre : c'est l'hôte qui vient de fermer une fenêtre posée par-dessus la Boîte mail (ses entrées {cal}), pas un recul d'un de nos niveaux
-    if(((history.state&&history.state.opcourrier)||0)>=HIST.niv) return;
+    var st=(history.state&&history.state.opcourrier)||0;
+    if(st>HIST.niv){ HIST.ignorer++; clearTimeout(HIST.ti); HIST.ti=setTimeout(function(){ HIST.ignorer=0; },900); try{ history.go(HIST.niv-st); }catch(e){ HIST.ignorer=0; HIST.off=true; } return; }   // l'entrée atteinte est une entrée ORPHELINE du module (la fenêtre a été fermée par un changement d'écran — lien, ⌘K — qui a laissé son entrée derrière lui) : on la saute, un seul Retour suffit pour revenir à la Boîte mail
+    if(st>=HIST.niv||HIST.niv<=0) return;
     HIST.niv--;
-    if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
+    if(pdfv) fermerApercu();   // la couche du dessus d'abord : l'aperçu seul, puis la feuille « Fermer le message », le message en cours ou la lecture restent dessous
+    else if($("#cDiscard")){ var dc=$('#cDiscard [data-dpick="cancel"]'); if(dc) dc.click(); }   // « Annuler » de la feuille : le message reste ouvert, il ne se ferme pas par un second Retour
+    else if(overlayDePage()){ var cc=$("#cCancel"); if(cc) cc.click(); else closeOverlay(); }   // « Annuler » du message en cours : il garde ou propose son brouillon, il ne disparaît pas
     else if(app.getAttribute("data-view")!=="list") go("list");
     histSync(); });
+  // retour sur la Boîte mail (menu, raccourci, Retour) avec un message encore ouvert : son niveau d'historique se repose, pour que « Retour » le ferme au lieu de quitter la rubrique
+  sur(window,"hashchange",function(){ if(!vivant||HIST.off||HIST.hash===null) return;
+    // une couche passagère ne survit pas au départ de la Boîte mail — un MENU, l'APERÇU d'un PDF, la feuille « Ajouter une boîte mail » (règle « Retour ou départ ferme la couche du dessus ») ; sans cela on la retrouvait ouverte au retour.
+    // Le message en cours d'écriture, lui, est gardé (décision du 19/11) : seul son aperçu part, jamais la feuille du message.
+    if(location.hash!==HIST.hash){ if(pdfv) fermerApercu(); var o=$("#overlay"); if(o&&(o.classList.contains("ov-menu")||o.querySelector(".sheet.acct"))) closeOverlay(); return; }
+    if(HIST.niv<histCible()) histSync(); });
   sur(window,"pagehide",function(){ if(pendingUndo) pendingUndo.finish(true,true); retraits.forEach(function(r){ if(!r.annule) retirerCoteSource(r); }); });
 
   // ---------- Colonne Boîtes (iPad) ----------
@@ -4532,7 +4569,7 @@ var MARKUP = `
     var op=e.target.closest("[data-open]"); if(op){ var x=msgById(op.getAttribute("data-open")); if(x){ state.folder=x.folder; renderAll(); selectMessage(x.id); } return; }
     var hb=e.target.closest("[data-hote]"); if(hb&&HOTE&&typeof HOTE.agir==="function"){ var hm0=msgById(state.selected); closeOverlay();
       try{ HOTE.agir(hb.getAttribute("data-hote"),hm0?horsModule(hm0):null); }catch(x){ toast("Ce geste n’a pas pu s’ouvrir : "+((x&&x.message)||"erreur"),{refus:true}); } return; }
-    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ranger")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
+    var qk=e.target.closest("[data-quick]"); if(qk){ if(!droit("ecrire")) return; var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",intro:qk.getAttribute("data-quick"),body:rm?rm.body:"",title:"Répondre",acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
   });
 
   $("#btnCompose").onclick=function(){ if(!droit("ecrire")) return; if(state.folder==="sign") openSignRequest(); else openCompose(); };
@@ -4616,7 +4653,7 @@ var MARKUP = `
       return ouvrir(); },
     // H7 — liens d'une tâche, de l'Accueil, d'une fiche client : le module peut ne pas être encore chargé (la demande attend son premier relevé)
     ouvrir:function(id){ apresChargement(function(){ if(vivant) ouvrirMessage(id); }); return true; },
-    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ranger")) repondreA(id,intro); }); return true; },
+    repondre:function(id,intro){ apresChargement(function(){ if(vivant&&droit("ecrire")) repondreA(id,intro); }); return true; },
     ecrire:function(m){ apresChargement(function(){ if(vivant&&droit("ecrire")) openCompose(m||null); }); return true; },   // un nouveau message, depuis un bouton de l'hôte (« ＋ Écrire » de l'en-tête de la rubrique)
     rechercher:function(t,o){ apresChargement(function(){ if(vivant) rechercher(t,o); }); return true; },
     // ferme la fenêtre ouverte (composeur, menu) sans rien enregistrer d'inventé : sert la visite guidée de l'hôte

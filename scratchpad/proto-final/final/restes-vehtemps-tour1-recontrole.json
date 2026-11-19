@@ -1,0 +1,142 @@
+{
+ "noms": [
+  "vehtemps"
+ ],
+ "regles": [
+  {
+   "nom": "recontrôle · casse « comptés 4 moiss » sur la ligne d'assurance de chaque fiche véhicule",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · casse « Les dépenses · 6 » au-dessus de sept lignes",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · casse « Au garage jusqu'au lundi 2 novembre » écrit sur toutes les échéances d'entretien",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · casse « Le Expert et le Kangoo sont au garage » (préexistant, écran du lot)",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · casse « elle sera régularisée » pour un homme (mois fermé)",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · casse visionneur de fiche de paie : titre sous le bouton ✕ à 390 px (préexistant, partagé, rangé « hors lot » par le recontrôleur)",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · pas réglé gerant-19 : la feuille d'une personne écrit « Congé payé » le samedi et le dimanche",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · pas réglé gerant-20 : « dim. 1 · pas encore »",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · pas réglé gerant-15 : toast du rapport de contrôle technique (« Le procès-verbal de contrôle ajoutée »)",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · doute « 1 566 € dépensés en octobre » n'inclut pas l'assurance répartie alors que « Ce mois-ci » d'une fiche l'inclut",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "recontrôle · doute « la semaine en cours est validable »",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "décision du chef 17/11 12 h 25 · pas pointé alors qu'une intervention tourne",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "décision du chef 17/11 12 h 25 · Mois : « dont X en octobre »",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "décision du chef 17/11 12 h 25 · deux mots pour un fait (« en plus », « payée avec novembre »)",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "vu par le chef 17/11 12 h 15 · la bande d'onglets de Véhicules et de Temps de travail est étirée à l'ordinateur",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  },
+  {
+   "nom": "vu par le chef 17/11 12 h 15 · la phrase sous le titre de Temps de travail oublie les « pas encore commencé »",
+   "rejoue": "au navigateur (sondes restes-vehtemps-1.js, restes-vehtemps-tour1-recontrole.js ; mac, windows, ipad, iphone, android, petit ; jour et nuit)"
+  }
+ ],
+ "pasRegles": [
+  {
+   "nom": "recontrôle · pas réglé gerant-16 : Mois › Voir la paie › retour rouvre « Aujourd'hui » — réglé par la barre « ‹ Retour · Temps de travail », PAS par le retour du système",
+   "defaut": "Le correcteur a posé une « garde » sur RETOUR (allerAvecRetour) : le bouton « ‹ Retour · Temps de travail » de la Paie ramène bien sur l'onglet Mois. Mais le geste de retour du système (balayage de l'iPhone, bouton retour d'Android, history.back()) depuis la Paie passe par l'historique, pas par RETOUR : TT.garder n'est pas posé.",
+   "constat": "Rejoué (mac, android) : ttViaPaie('verrouok'), Temps de travail › Mois › « Voir la paie », puis history.back() → route « pointage », onglet « Aujourd'hui 1 » (et non « Mois »). Par la barre : « Mois » (juste). Sonde : restes-vehtemps-tour1-recontrole.js, partie « retour », voie « systeme » (1 ✗). Défaut d'avant le lot, resté sur la seconde voie de retour ; gravité faible à moyenne (le geste est naturel au téléphone, l'écran reste utilisable : on retouche « Mois »). Piste : poser TT.garder à l'arrivée dans la Paie depuis pointage (au moment de allerAvecRetour, pas au clic sur la barre), ou le lire dans le gestionnaire de popstate."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Une Yaris devient « l'Yaris » (l'élision de vhCourt traite « y » comme une voyelle)",
+   "gravite": "faible",
+   "etapes": "Véhicules, une fiche dont le modèle commence par « Yaris » ou « Yeti » (Toyota Yaris : courant dans une flotte de terrain) ; ou vhCourt({modele:'Yaris'}).",
+   "constat": "Avant la correction « l'Expert » la phrase disait « le Yaris » (juste par hasard) ; après : « Le Trafic, l'Yaris et le Kangoo sont au garage » (phrase du haut, ligne de tâche, fiche). Le « y » est une voyelle seulement quand il se prononce « i » (Ypsilon), une consonne dans Yaris, Yeti, Yamaha. Aucun des quatre véhicules de la démonstration n'en porte, donc ni la sonde du correcteur ni le recensement ne le voient ; l'entreprise réelle d'un client les verra. La mutation 6 (retrait de « é » de la liste) prouve que la sonde mord sur l'élision elle-même. Piste : retirer « y » de la liste des voyelles (ou lister Ypsilon à part). Sonde : restes-vehtemps-tour1-recontrole.js partie « veh » (1 ✗)."
+  },
+  {
+   "titre": "Départ guidé d'une personne : « Pointage de la semaine pas encore validé » est devenu une alerte permanente et sans geste possible",
+   "gravite": "faible",
+   "etapes": "Équipe › une personne › Désactiver (« Avant de désactiver Léa Roux »), un jour de la semaine en cours.",
+   "constat": "eqxRestes(k).pt vaut !PT_VALIDE[k + lundi(AUJ)] : vrai pour tout le monde tant que la semaine en cours dure (6 jours sur 7 en pratique). Depuis la règle « une semaine se valide une fois finie », le lien « Ouvrir ses heures › » mène à une feuille qui dit « Semaine en cours : elle se valide une fois finie » : on annonce à l'administrateur un travail qu'il ne peut pas faire, dans la fenêtre où il fait un geste lourd. Ne bloque pas (« Désactiver et reporter » reste actif). Vu sur capture (equipe-depart-mac-.png) : encadré ambre « Pointage de la semaine pas encore validé ». Piste : ne le dire que pour une semaine FINIE non validée, ou dire « La semaine en cours se validera lundi ». Sonde : partie « voisins » (1 ✗ par profil)."
+  }
+ ],
+ "nouveaux": [
+  "D'avant le lot, rien de neuf à noter côté Mon camion : à 320 × 568 de nuit, « Noter un plein » commence à 694 px (écran de 568) — identique sur la version d'AVANT le lot (rejouée via RACINE=/tmp/avant) ; c'est le doute salarie-03/06/07 déjà « à soumettre ».",
+  "Hors voie (Compta) : compta-reste-parcours-f F5 tombe (« la fiche de paie parle de Prototype et de données fictives à qui la reçoit ») — identique avant le lot ; la voie compta-reste le porte, pas le correcteur de vehtemps.",
+  "Aucune erreur de page, aucun débordement, aucun texte « undefined/NaN » relevé sur les six profils (jour et nuit pour mac et android, jour pour les quatre autres sur ma sonde ; jour et nuit pour la sonde du correcteur) : les 17 corrections n'ont rien cassé de visible ailleurs."
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/sondes/restes-vehtemps-1.js (celle du correcteur)",
+   "resultat": "mac 96 ✓ · 0 ✗ ; iphone+android jour+nuit 384 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-tout.sh (17 sondes de la voie : camion, voisins, visites, liste, fiche, gestes, feuilles, table, t1, t5, t6, corr), mac + iphone jour",
+   "resultat": "toutes à code 0, 0 ✗ (de 12 à 480 ✓ chacune)"
+  },
+  {
+   "fichier": "idem, ipad + windows + android + petit, nuit (camion, liste, fiche, t1, t5, t6)",
+   "resultat": "tout vert sauf Mon camion à 320 px de nuit (3 ✗, identiques AVANT le lot : doute salarie-03 déjà à soumettre)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/vehtemps-rc-parcours.js",
+   "resultat": "37 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/compta-reste-parcours-f.js mac",
+   "resultat": "17 ✓ · 1 ✗ (F5 « Prototype », identique avant le lot ; F2 passe grâce au correcteur : tombait sur la version d'avant)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/restes-vehtemps-tour1-recontrole.js (NEUVE : élision, garage par motif, tuile « payés en… dont l'assurance », semaine en cours dans tous ses recoins, retour de la Paie par la barre ET par le système, visionneur à titre long sur trois titres, onglets à leur largeur, départ guidé, Mes heures, Mon camion)",
+   "resultat": "mac complet 72 ✓ · 3 ✗ (les 3 défauts ci-dessus) ; iphone+petit 84 ✓ · 0 ✗ (tt, visionneur, onglets) ; mac+android nuit 46 ✓ tt ; ipad+windows 129 ✓ · 5 ✗ (mêmes défauts, + 1 faux positif de la sonde corrigé : titre coupé par une ellipse)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/sondes/mutations-restes-vehtemps-recontrole.js (NEUVE)",
+   "resultat": "8 mutations sur 8 attrapées (garde de semaine, week-end, titre du visionneur au téléphone, bande d'onglets, « dont l'assurance » d'un autre mois, élision, garde du retour, compte du Mois)"
+  }
+ ],
+ "doutes": [
+  "« (hors taxes) » tient seul sur une ligne, entre « payés en octobre » et « dont l'assurance de l'année : 4 200 € » (téléphone et ordinateur) : lisible, un peu éclaté ; à garder tel quel ou à ramener sur la ligne du dessus.",
+  "Fiche d'un véhicule au garage : le fait est dit deux fois, l'encadré « Au garage · Entretien · Renault Pro · retour prévu lundi 2 novembre … Le remettre en service » PUIS « Ce véhicule est au garage depuis le 29 octobre. » en orange juste dessous. D'avant le lot ; redondant plutôt que faux.",
+  "Un véhicule sans modèle ne se dit que par sa marque : « le Ford » (genre au hasard) ; vhCourt rend « le  » si marque ET modèle sont vides (le formulaire de création dira-t-il toujours l'un des deux ?).",
+  "À 820 px (iPad) et plus, le titre d'un document long dans le visionneur est coupé par « … » (« Devis DV-2026-0142 - Copropriété Les Hortensias - Ré… ») : voulu (une ligne), mais le nom entier ne se lit nulle part à cette largeur.",
+  "Le cercle bleu autour de la croix ✕ du visionneur (anneau de focus) apparaît à l'ouverture sans que personne ait touché le clavier : à regarder sur un vrai iPhone/iPad (programmatic focus ; hors lot).",
+  "Les entrées « à soumettre à Justin » (10, 11, 12 du livrable du correcteur) restent ouvertes, telles quelles : Mon camion à 320 px, mots de la Paie et du Mois pour un même fait, hauteur de la liste Véhicules au téléphone."
+ ],
+ "consignes_chef_tour2": [
+  "(1) Mois > Voir la paie > retour du système (history.back) revient sur Mois, comme la barre ‹ Retour.",
+  "(2) l'élision de vhCourt ne traite pas « Y » comme une voyelle devant une consonne (« la Yaris ») : balayer tous les noms de véhicules plausibles.",
+  "(3) le départ guidé ne pose plus une alerte impossible à traiter : si la semaine n'est pas finie, la ligne le dit et n'est pas une alerte.",
+  "Le compte « Prototype / données fictives » de la Comptabilité (compta-reste-parcours-f F5) : voir s'il se voit encore en mode application ; s'il se voit, le retirer.",
+  "Le recontrôle du tour 2 se fait AVEC MUTATIONS (une mutation par correction, commiter avant de muter, la mutation doit mordre)."
+ ]
+}

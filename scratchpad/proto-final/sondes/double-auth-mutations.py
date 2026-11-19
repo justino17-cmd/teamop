@@ -90,6 +90,26 @@ M = [
  (194, 'le texte à copier contient le mot de passe provisoire', 'da-equipe', [("'3. Ton mot de passe provisoire : je te le remets en main propre.', '4. Installe", "'3. Ton mot de passe provisoire : ' + (SECU.comptes[k].prov || SECU.comptes[k].demoClair || ''), '4. Installe")]),
  (195, 'S1 neutralisée sans toucher au texte (if (false && …)) : seule la lecture à l’exécution la voit', 'da-sensibles', [("  if (!secuGarde('banque-ouvrir', () => entPanBanque())) return;\n", "  if (false && !secuGarde('banque-ouvrir', () => entPanBanque())) return;\n")]),
  (196, 'S10 neutralisée sans toucher au texte : les cases de droits changent sans confirmation', 'da-sensibles', [("  if (t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }\n", "  if (false && t.matches('[data-eqt],[data-eqd],[data-eqs]') && !secuGardeCase(t)) { ev.stopImmediatePropagation(); return; }\n")]),
+ # ── étape 5 (corrections) : chaque défaut remis doit faire tomber la sonde qui le garde ; « sonde:SECTION » = la sonde jouée avec ONLY=SECTION ──
+ (200, 'tout-10 : la vue (Fiches de paie, Salariés, Charges, Banque) n\u2019est plus gardée dans vueComptabilite', 'da-vues', [("const verrou = !!SECU_VUES[O] && !secuVueOuverte(O);", "const verrou = !!SECU_VUES[O] && !secuVueOuverte(O) && false;")]),
+ (201, 'tout-11 : « Envoyer › » (cpEnvoyer) n\u2019est plus gardé (neutralisé sans toucher au texte)', 'da-vues', [("if (!secuGarde('compta-export', () => cpEnvoyer())) return;", "if (false && !secuGarde('compta-export', () => cpEnvoyer())) return;")]),
+ (202, 'tout-11 : le FEC (cpFecTelecharger) n\u2019est plus gardé', 'da-vues', [("if (!secuGarde('compta-export', () => cpFecTelecharger())) return;", "if (false && !secuGarde('compta-export', () => cpFecTelecharger())) return;")]),
+ (203, 'tout-11 : la Banque est déclarée ouverte d\u2019office (la table la nomme encore)', 'da-vues', [("const secuVueOuverte = o => { if (!SECU_VUES[o] || !secuMasqueActif()) return true;", "const secuVueOuverte = o => { if (!SECU_VUES[o] || o === 'banque' || !secuMasqueActif()) return true;")]),
+ (204, 'tout-10 : la vue ne se re-masque plus à l\u2019expiration des 5 minutes', 'da-vues', [("if (SECU_FEN_AVANT && !v && SECU_VUE.affiche && route === 'comptabilite') {", "if (false && SECU_FEN_AVANT && !v && SECU_VUE.affiche && route === 'comptabilite') {")]),
+ (205, 'tout-10 : la confirmation se rouvre à chaque redessin de la carte de verrou', 'da-vues', [("if (SECU_VUE.invite !== o && !SECU.conf) {", "if (!SECU.conf) {")]),
+ (206, 'tout-01 : le libellé de la ligne de la fiche Connexion n\u2019est plus protégé et la valeur ne passe plus à la ligne', 'da-corrections:tout-01', [(".ligne.eqx-l>span:first-child,.cn-acces .ligne>span:first-child{flex:none}", ".ligne.eqx-l>span:first-child{flex:none}"), (".ligne.eqx-l>b,.cn-acces .ligne>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}", ".ligne.eqx-l>b{white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}.cn-acces .ligne>b{white-space:nowrap}")]),
+ (207, 'tout-03 : le nombre n\u2019est plus amené dans l\u2019écran sous la boîte rouge', 'da-corrections:tout-03', [("if (d.raisons.length) setTimeout(cnxNombreEnVue, 520);", "")]),
+ # ── tour 3 : la banque se lit ailleurs que dans son onglet (constat 1 du recontrôle) et la carte de verrou à 320 px (constat 2) ──
+ (208, 'recensement : la clôture écrit de nouveau les lignes du relevé (libellé et montant) fenêtre fermée', 'da-recensement-banque', [("${secuBanqueVoilee() ? '' : ' : ' + rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}", "${' : ' + rap.aExpliquer.map(r => esc(r.lib) + ' (' + eur(r.m) + ')').join(', ')}")]),
+ (209, 'recensement : la Vue d’ensemble écrit de nouveau le solde du compte fenêtre fermée', 'da-recensement-banque', [("${secuBanqueVoilee() ? '<b>— €</b><span>trésorerie · confirme sur ton téléphone pour voir la banque</span>' : `<b>${eur(K.treso)}</b>", "${false ? '<b>— €</b><span>trésorerie · confirme sur ton téléphone pour voir la banque</span>' : `<b>${eur(K.treso)}</b>")]),
+ (210, 'recensement : la liste « À faire » écrit de nouveau les libellés du relevé', 'da-recensement-banque', [("secuBanqueVoilee() ? 'confirme sur ton téléphone pour les voir' : K.rap.aExpliquer.map(r => esc(r.lib)).join(' · ')", "K.rap.aExpliquer.map(r => esc(r.lib)).join(' · ')")]),
+ (211, 'recensement : le panneau « Expliquer » n’est plus gardé (neutralisé sans toucher au texte)', 'da-recensement-banque', [("  if (!secuGarde('compta-banque', () => cmptPanneauExpliquer())) return;", "  if (false && !secuGarde('compta-banque', () => cmptPanneauExpliquer())) return;")]),
+ (212, 'recensement : les lignes de frais des Achats écrivent de nouveau le libellé du relevé', 'da-recensement-banque', [("objet:secuBanqueVoilee() ? 'Ligne de la banque' : r.lib", "objet:r.lib")]),
+ (213, 'recensement : le panneau « Expliquer » ne se ferme plus à l’expiration des 5 minutes', 'da-recensement-banque', [("if (SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {", "if (false && SECU_FEN_AVANT && !v && document.querySelector('#calque [data-secbq]')) {")]),
+ (214, 'recensement : la règle commune est déclarée « jamais voilée » (toutes les sorties s’écrivent)', 'da-recensement-banque', [("const secuBanqueVoilee = () => !secuVueOuverte('banque');", "const secuBanqueVoilee = () => false;")]),
+ (215, 'recensement : la Vue d’ensemble et la Clôture ne se re-masquent plus à l’expiration', 'da-recensement-banque', [("const SECU_BANQUE_DANS = ['ensemble', 'cloture', 'fachats'];", "const SECU_BANQUE_DANS = [];")]),
+ (216, 'verrou : la règle commune des boutons d’actions repasse en nowrap (le bouton de la carte de verrou garde son texte sur une ligne à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;", "\n.actions .btn{max-width:100%;white-space:nowrap;text-align:center;")]),
+ (217, 'verrou : la règle commune des boutons d’actions est retirée (le défaut d’origine : 11 px de débord de la carte de verrou à 320 px)', 'da-recontrole-parcours:4', [("\n.actions .btn{max-width:100%;white-space:normal;text-align:center;line-height:1.2;padding-top:6px;padding-bottom:6px}", "\n")]),
 ]
 
 def copier(n):
@@ -111,8 +131,14 @@ def muter(racine, edits):
     for rel, s in fichiers.items(): open(os.path.join(racine, rel), 'w', encoding='utf-8').write(s)
     return True, None
 
+def diff_court(racine):
+    r = subprocess.run(['diff', os.path.join(DEPOT, PAGE), os.path.join(racine, PAGE)], capture_output=True, text=True).stdout.splitlines()
+    plus = [l[2:] for l in r if l.startswith('> ')]; moins = [l[2:] for l in r if l.startswith('< ')]
+    return '%d ligne(s) changée(s) ; avant : %s ; après : %s' % (len(plus), (moins[0][:90].strip() if moins else '—'), (plus[0][:90].strip() if plus else '—'))
+
 def jouer(racine, sonde, delai=560):
     env = dict(os.environ, RACINE=racine)
+    if ':' in sonde: sonde, env['ONLY'] = sonde.split(':', 1)   # « da-corrections:tout-03 » : une seule section de la sonde
     fichier = ('double-auth-%s.js' % sonde[3:]) if sonde.startswith('da-') else ('secu-%s.js' % sonde)
     proc = subprocess.Popen(['node', os.path.join(SONDES, fichier)], cwd=DEPOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     t0 = time.time(); tombe = None; ok = 0
@@ -135,7 +161,7 @@ if __name__ == '__main__':
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if '--intact' in sys.argv:
         # contrôle d'avant-mutation : chaque sonde utilisée doit être verte sur la copie intacte
-        for sonde in sorted(set(m[2] for m in M)):
+        for sonde in sorted(set(m[2].split(':')[0] for m in M)):
             racine = copier(0); tombe, ok, d = jouer(racine, sonde, 900)
             print(('VERT   ' if not tombe else 'ROUGE  ') + 'sonde %s sur la copie intacte (%d ✓ avant arrêt, %d s) %s' % (sonde, ok, d, tombe or '')); sys.stdout.flush()
         sys.exit(0)
@@ -144,6 +170,7 @@ if __name__ == '__main__':
     for n, nom, sonde, edits in choix:
         racine = copier(n); s, err = muter(racine, edits)
         if err: print('ERREUR  M%d %s → %s' % (n, nom, err)); manque.append(n); sys.stdout.flush(); continue
+        print('        touche : ' + diff_court(racine)); sys.stdout.flush()   # la mutation a-t-elle frappé le BON endroit ? (une ligne changée, citée)
         tombe, ok, d = jouer(racine, sonde)
         if tombe: tombees += 1; print('TOMBE   M%-3d %s → %s après %d ✓ (%d s) : %s' % (n, nom, sonde, ok, d, tombe))
         else: manque.append(n); print('RESTE VERT  M%-3d %s → %s ne voit rien (%d ✓, %d s)' % (n, nom, sonde, ok, d))

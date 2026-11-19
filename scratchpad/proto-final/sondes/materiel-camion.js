@@ -167,8 +167,9 @@ const photo = () => `(() => ({ stock:JSON.stringify(PRODUITS.map(x => [x.id, x.q
   // sans intervention : la demande seule entre dans le panier, « Demandé par Sophie »
   await T('[data-mat="manque"]'); await p.fill('#mm-rech', ZP.nom.slice(0, 6)); await L.calme(p, 250); await T('#calque [data-mat^="mpiece|"]'); await T('#calque [data-mat="minter|"]');
   await T('#calque [data-mat="menvoyer"]');
-  const DN = await R(() => { const d = DEM_ACHAT[0], l = cmdPaniers().flatMap(pp => pp.lignes).find(o => o.k === d.pid); return { tache:d.tache || null, int:d.int || null, nb:cmdNbACommander(), pourquoi:l && l.pourquoi }; });
-  v('sans intervention : pas de tâche, mais la demande entre dans le panier avec « Demandé par Sophie »', !DN.tache && !DN.int && DN.nb === ZP.n + 1 && /Demandé par Sophie/.test(DN.pourquoi || ''), DN);
+  const DN = await R(() => { const d = DEM_ACHAT[0], l = cmdPaniers().flatMap(pp => pp.lignes).find(o => o.k === d.pid); return { tache:d.tache || null, int:d.int || null, nb:cmdNbACommander(), pourquoi:l && l.pourquoi, couvert:d.q <= Math.max(0, stkAt(PRODUITS.find(o => o.id === d.pid), 'atelier')) }; });
+  // Depuis 6f320b6d (« l'atelier couvre toute la demande : rien à acheter »), une demande couverte par l'atelier n'ajoute AUCUNE ligne au panier : comportement voulu, la sonde le dit (couvert) au lieu d'exiger « Demandé par Sophie » partout.
+  v('sans intervention : pas de tâche, mais la demande entre dans le panier avec « Demandé par Sophie » — sauf si l’atelier couvre déjà toute la demande (règle bureau-04 : un transfert suffit, rien à acheter)', !DN.tache && !DN.int && (DN.couvert ? DN.nb === ZP.n : DN.nb === ZP.n + 1 && /Demandé par Sophie/.test(DN.pourquoi || '')), DN);
   await T('[data-mat="manque"]'); await p.fill('#mm-rech', ZP.nom.slice(0, 6)); await L.calme(p, 250); await T('#calque [data-mat^="mpiece|"]'); await T('#calque [data-mat="minter|"]'); await T('#calque [data-mat="menvoyer"]');
   v('redemander la même pièce : refusé en une phrase, aucune seconde demande', /Tu as déjà demandé cette pièce/.test(await txt('#toast')) && (await R(() => DEM_ACHAT.filter(d => d.pid && d.qui === 'sm' && d.etat === 'attente').length)) === 1);
   // texte libre : hors catalogue, ne compte pas dans « à commander » mais arrive chez le bureau

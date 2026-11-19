@@ -45,7 +45,7 @@ const MAXDEFIL = parseInt(process.env.MAXDEFIL || '3', 10);   // positions de d�
   await scene('f05-reg-saisir', async () => { await a3('registre'); await clic('[data-rg="cli|t1"]', 600); return clic('[data-rg="passage"]', 800); });
   await scene('f06-reg-pdf', async () => { await a3('registre'); await clic('[data-rg="cli|t1"]', 600); return clic('[data-rg^="pdf|"]', 800); });
   await scene('f07-reg-reco', async () => { await a3('registre'); await clic('[data-rg="cli|t1"]', 600); return clic('[data-rg^="reco|attente"]', 800); });
-  await scene('f08-reg-planifier', async () => { await a3('registre'); return clic('[data-rg^="planifier|"]', 800); });
+  await scene('f08-reg-planifier', async () => { await a3('registre'); await clic('[data-rg="cli|t2"]', 600); return clic('[data-rg="planifier|t2"]', 800); });   // « Planifier » n'existe que sur la fiche d'un site sans intervention prévue (t2, t3) : la scène l'ouvre d'abord (elle visait la liste « Tous les sites », sans cible)
   await scene('f09-reg-lien-duree', async () => { await a3('registre'); await clic('[data-rg="cli|t1"]', 600); return clic('[data-rg="lien|duree|7 jours"]', 600); });
   await scene('f10-reg-recherche-lot', async () => { await a3('registre'); await clic('[data-rg="cli|t1"]', 600); await p.fill('#rg-q', 'zzz'); await L.calme(p, 500); });
   // ── 2. CARTE DES BOX ────────────────────────────────────────────────────────────────────────────────────

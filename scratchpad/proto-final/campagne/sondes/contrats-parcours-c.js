@@ -13,7 +13,11 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   for (const [prix, nom] of [['', 'vide'], ['0', 'zéro'], ['-50', 'négatif'], ['abc', 'du texte'], ['1e9', 'énorme (1e9)'], ['99999999', 'énorme (99 999 999)']]) {
     await ouvrirForm(); const r = await envoyer(prix); const foc = await p.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-b'));
     v(`C1 : prix ${nom} refusé, rien n'est créé`, !r.cree, r);
-    v(`C1 : prix ${nom} : le message dit quoi faire`, /prix|maximum/i.test(r.toast), r.toast);
+    // le message de cxMontantRefus dit « Ce montant ne se lit pas : écris-le avec des chiffres… » (le mot « montant », décidé avec le refus commun des montants) : on garde la promesse (une phrase qui dit quoi écrire) sur ce libellé
+    v(`C1 : prix ${nom} : le message dit quoi faire`, /prix|maximum|montant|chiffres|indique/i.test(r.toast), r.toast);
+    // défaut corrigé le 19/11 : l'aperçu du contrat écrivait « 0,00 € HT par an » pour un prix refusé ; il dit « Prix à indiquer », jamais un montant faux
+    const ap = await p.evaluate(() => { const e = document.querySelector('.pdf'); return e ? e.innerText.replace(/[\u202f\u00a0]/g, ' ') : null; });
+    v(`C1 : prix ${nom} : l'aperçu écrit « Prix à indiquer » et aucun montant`, ap !== null && /Prix à indiquer/.test(ap) && !/0,00 €|HT par an/.test(ap), ap && ap.slice(ap.indexOf('4 · Prix'), ap.indexOf('4 · Prix') + 120));
     v(`C1 : prix ${nom} : le champ du prix reçoit le curseur`, foc === 'prix', foc);
   }
   // C2 — prix acceptés et leur affichage
@@ -49,9 +53,9 @@ const O = require('./contrats-outils.js'), L = O.L, v = L.v;
   // C8 — taper un lieu puis changer de client : le lieu tapé est-il écrasé ?
   await ouvrirForm(); await p.fill('[data-b="lieu"]', 'Chaufferie, bâtiment B'); await p.selectOption('[data-b="cli"]', 'mi'); await L.calme(p, 300);
   const l8 = await p.inputValue('[data-b="lieu"]'); v('C8 : changer de client ne remplace pas le lieu que je viens de taper', l8 === 'Chaufferie, bâtiment B', l8);
-  // C9 — quitter à moitié : « ‹ Contrats » ramène à la liste sans rien créer
-  await ouvrirForm(); await p.fill('[data-b="prix"]', '333'); n = await nC(); await L.toucher(c, '.retour'); const l9 = await O.lire(p);
-  v('C9 : « ‹ Contrats » en cours de saisie ramène à la liste, rien créé', /Contrats/.test(l9.h1) && (await nC()) === n, l9);
+  // C9 — quitter à moitié : « ‹ Retour · Contrats » (data-rl="retour", posé par rlRetourBouton à la place du bouton de la tête : regard gérant B) ramène à la liste sans rien créer
+  await ouvrirForm(); await p.fill('[data-b="prix"]', '333'); n = await nC(); await L.toucher(c, '[data-rl="retour"]'); const l9 = await O.lire(p);
+  v('C9 : « ‹ Retour · Contrats » en cours de saisie ramène à la liste, rien créé', /Contrats/.test(l9.h1) && (await nC()) === n, l9);
   // C10 — recharger sur la fiche d'un contrat qui n'existe plus (les données reviennent au rechargement) : pas de page blanche
   await p.evaluate(() => { location.hash = 'contrat-x-c99'; }); await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(1200); await L.calme(p, 400); const l10 = await O.lire(p);
   v('C10 : fiche d’un contrat inconnu (données revenues au rechargement) : un écran lisible, pas une page blanche', l10.h1.length > 0 && l10.long > 500, l10);

@@ -1,0 +1,46 @@
+{
+ "noms": ["retour"],
+ "regles": [
+  "Comptabilité plein cadre : un panneau (Réglages) ou le tiroir du menu, fermé par sa croix ou par Échap, ne laisse aucune entrée d'historique orpheline : UN Retour quitte la Comptabilité (android, mac)",
+  "Comptabilité plein cadre : panneau laissé ouvert en quittant l'écran par l'adresse, puis retour dans la Comptabilité : le panneau est encore là ET la page le sait, UN Retour le ferme sans quitter l'écran",
+  "Comptabilité plein cadre : deux Retour d'affilée avec un panneau ouvert sortent proprement (aucun calque fantôme, l'historique n'est pas éteint)",
+  "OP Security (téléphone simulé) : élargi (volet permanent) puis rétréci sans naviguer, le calque revient et UN Retour le ferme sans quitter l'écran ; fermé par son geste puis UN Retour, on quitte (contexte neuf)",
+  "Confirmation OP Security : UN Retour = Annuler (action NON rejouée, refus rappelé une fois, demande annulée) ; une confirmation aboutie retire son entrée (UN Retour quitte)",
+  "Boîte mail sur ordinateur : composeur fermé par Annuler, par Échap, ou cinq ouvertures-fermetures de suite : UN Retour quitte la Boîte mail (pas de fuite d'entrées) ; un message tapé puis Retour est gardé en brouillon (toast « Brouillon enregistré »), pas jeté",
+  "Feuille de la carte du planning : Retour ferme la feuille et reste sur le Planning ; feuille ouverte puis changement de vue : UN Retour quitte le Planning",
+  "iPad : ⌘K ouvre la recherche et Retour la ferme sans quitter l'accueil"
+ ],
+ "pasRegles": [
+  {
+   "nom": "retour",
+   "defaut": "« ‹ OP GESTION » (la barre de l'hôte) touché alors qu'un panneau ou le tiroir du menu du cadre de la Comptabilité est OUVERT : la page ne recule pas d'une entrée (calRevenirA refuse dès que CAL.pousse > 0, ce que la correction du tour 1 fait désormais arriver) et passe par aller() : l'historique devient [Clients, Accueil, Comptabilité, Accueil]",
+   "constat": "Nouveau, causé par la correction « les panneaux et le tiroir du cadre sont un calque ». Mesuré le 18/11/2026 sur android (panneau Réglages ET tiroir ☰) et sur mac (panneau) : avant la Comptabilité l'historique est [Clients, Accueil] ; couche ouverte puis « ‹ OP GESTION » : adresse #accueil (juste) ; Retour 1 → #accueil (un Retour qui ne change rien à l'écran), Retour 2 → #comptabilite (la Comptabilité qu'on vient de quitter se rouvre). Sans couche ouverte (témoin) : #accueil puis #clients, correct. La barre « ‹ OP GESTION » reste visible et touchable au-dessus du panneau et du tiroir (captures android regardées). Sonde : scratchpad/proto-final/campagne/sondes/retour-restes1-attaque.js SECTION=compta (B8, android 2 ✗ de 14, mac 1 ✗ de 10, témoin ✓). Piste de correction (non appliquée, ce tour ne modifie aucune page) : dans la branche 'retour' de document.addEventListener('click') (prototype-op-gestion.html, vers la ligne 14345), si CAL.pousse > 0 faire partir d'abord les entrées de la couche — calAvantAller(() => calRevenirA(d) || aller(d)) — au lieu de laisser calRevenirA refuser ; garder le recul d'une entrée quand la pile est vide.",
+   "gravite": "moyenne (aucune donnée perdue ; un Retour muet puis la Comptabilité qui revient, au téléphone Android surtout)"
+  }
+ ],
+ "casses": [
+  {
+   "titre": "« ‹ OP GESTION » avec une couche du cadre de la Comptabilité ouverte laisse deux entrées parasites dans l'historique (Retour muet, puis la Comptabilité se rouvre)",
+   "gravite": "moyenne",
+   "etapes": ["Se placer sur Clients puis Accueil", "Ouvrir la Comptabilité (plein cadre)", "Ouvrir Réglages (ou ☰ Menu au téléphone)", "Toucher « ‹ OP GESTION » dans la barre du haut : on arrive à l'accueil", "Retour : l'adresse reste #accueil", "Retour encore : la Comptabilité se rouvre"],
+   "constat": "Voir pasRegles. Cause : calRevenirA exige CAL.pousse === 0, or la couche du cadre pousse maintenant une entrée ; le bouton retombe sur aller(), qui ajoute une entrée au lieu d'en retirer."
+  }
+ ],
+ "nouveaux": [],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/retour-restes1-attaque.js (neuve, 58 contrôles en 6 sections)", "resultat": "courrier mac 9 ✓ · 0 ✗ ; securite+confirmation 12 ✓ · 0 ✗ ; feuille+ipad 7 ✓ · 0 ✗ ; compta android 12 ✓ · 2 ✗ (B8) ; compta mac 9 ✓ · 1 ✗ (B8). Les ✗ sont le défaut ci-dessus, pas un défaut de sonde (le témoin sans couche passe)" },
+  { "fichier": "sondes/retour-recontrole-d.js (cadre de la Comptabilité)", "resultat": "android 8 ✓ · 0 ✗, mac 5 ✓ · 0 ✗, ipad 9 ✓ · 0 ✗" },
+  { "fichier": "sondes/retour-recontrole.js SECTION=pieges", "resultat": "android 21 ✓, iphone 21 ✓, mac 21 ✓ (0 ✗)" },
+  { "fichier": "sondes/retour-recontrole.js SECTION=autres", "resultat": "android 7 ✓, mac 5 ✓, ipad 6 ✓ (0 ✗) ; SECTION=roles android 84 ✓ · 0 ✗" },
+  { "fichier": "sondes/retour-recontrole.js SECTION=courrier mac ; retour-recontrole-c.js mac et ipad", "resultat": "4 ✓ · 0 ✗ ; 9 ✓ · 0 ✗ ; 9 ✓ · 0 ✗" },
+  { "fichier": "sondes/retour-calques.js GENRE=securite,confirmation,feuille,cadre", "resultat": "ipad 44 ✓ · 0 ✗, windows 30 ✓ · 0 ✗" },
+  { "fichier": "sondes/retour-parcours.js", "resultat": "android 51 ✓ · 0 ✗, mac 49 ✓ · 0 ✗" }
+ ],
+ "doutes": [
+  "Menu « Principal » de la Boîte mail (ov-menu) : le Retour quitte la Boîte mail et laisse le menu ouvert ; rangé « à soumettre à Justin » par le correcteur (un menu léger se ferme d'un toucher dehors), non rejoué comme défaut",
+  "Boîte mail sur ordinateur, composeur ouvert puis départ par l'adresse (⌘K, lien) : l'entrée du composeur reste dans l'historique ; un Retour ramène à #boiteMail (composeur fermé) avant l'écran d'avant, soit une étape de plus. Même comportement qu'au téléphone avant la correction ; aucune donnée perdue",
+  "OP Security : fermé/ouvert à plusieurs reprises avec un aller() par programme pendant que le calque est ouvert laisse une entrée {cal:1} orpheline (une pile vide, un Retour muet). Chemin sans équivalent au doigt (le téléphone simulé couvre l'écran), non rangé en défaut",
+  "OP Security : sur grand écran puis rétréci, le téléphone ouvert avant l'élargissement revient en plein écran (SECU.ouvert reste vrai) : cohérent avec la correction, mais on peut le juger surprenant",
+  "Non joué : la nuit (aucun de ces calques n'a de teinte à lui ; captures jour regardées : panneau Réglages et tiroir du cadre sur android, nettes, « ‹ OP GESTION » visible au-dessus) ; iphone/petit/windows pour la section courrier et B8 ; les 17 sortes de calques sur iphone et petit"
+ ]
+}

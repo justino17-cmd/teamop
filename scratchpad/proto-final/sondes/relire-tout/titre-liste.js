@@ -12,7 +12,9 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', tag='titre-'+pr
     const m=await p.evaluate(()=>{ const t=[...document.querySelectorAll('#contenu *')].find(e=>/^(Devis|Contrats) composés/i.test(e.textContent.trim())&&!e.children.length); if(!t) return null; const carte=t.closest('.carte')||t.parentElement; const ligne=carte.querySelector('.opd-l'); const autre=[...document.querySelectorAll('#contenu .carte')].find(x=>x!==carte&&x.querySelector('table,.dv-liste,.dv-l,.cx-l'))||null;
       const R=e=>{const r=e.getBoundingClientRect(); return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width)};}; const cs=getComputedStyle(carte);
       const lg=ligne?R(ligne):null; const num=ligne?ligne.querySelector('*'):null;
-      return {titre:R(t),carte:R(carte),padCarte:[cs.paddingTop,cs.paddingLeft],ligne:lg,premier:ligne&&R(ligne.firstElementChild),autrePad:autre?[getComputedStyle(autre).paddingTop,getComputedStyle(autre).paddingLeft]:null,autreCarteX:autre?R(autre):null,txt:t.textContent.trim()}; });
+      // tout-08 : le titre s'aligne par son TEXTE (rembourrage de 12 px de .opd-t), pas par sa boîte — la boîte du <h3> part du rembourrage de la carte, le texte commence 12 px plus loin, comme le numéro des lignes (même mesure que compositeur-liste.js)
+      const rt=document.createRange(); rt.selectNodeContents(t); const rb=rt.getBoundingClientRect(); const texteTitre={x:Math.round(rb.left),y:Math.round(rb.top),w:Math.round(rb.width)};
+      return {titre:texteTitre,carte:R(carte),padCarte:[cs.paddingTop,cs.paddingLeft],ligne:lg,premier:ligne&&R(ligne.firstElementChild),autrePad:autre?[getComputedStyle(autre).paddingTop,getComputedStyle(autre).paddingLeft]:null,autreCarteX:autre?R(autre):null,txt:t.textContent.trim()}; });
     console.log('  '+type+' :',JSON.stringify(m));
     if(!m){ v(`${tag} ${type} · la carte « Composés » existe`,false); continue; }
     const decal=m.titre.x-m.carte.x;
