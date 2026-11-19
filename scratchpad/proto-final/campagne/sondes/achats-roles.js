@@ -19,7 +19,7 @@ const { L, CAP, devenir, txt, toast } = require('./achats-outils.js'), v = L.v;
       v('secrétariat : un geste « Refuser » forcé est refusé avec un message', /Demande à Marc|n’est pas ouvert/.test(await toast(p)) && !(await E(() => !!document.querySelector('#calque .panneau'))), await toast(p)); }
     if (qui === 'kb') { console.log('   (chef d’équipe : rubrique Achats visible =', aAchats, ')'); v('chef d’équipe : soit il n’a pas la rubrique, soit elle est cohérente avec son menu', true); }
     if (qui === 'sm') { v('technicienne : pas de « Achats et frais » au menu, et l’adresse #achats ne montre pas les décisions du gérant', !aAchats && !e.boutons.some(b => /Refuser|Valider|Transférer/.test(b)), e);
-      await devenir(p, 'sm', 'techfrais'); const t = await etat(); v('technicienne : « Mes frais » est au menu', (await menu()).some(x => /Mes frais/.test(x)), await menu()); v('technicienne : « Mes frais » a ses deux gestes', t.boutons.some(b => /Nouvelle note de frais/.test(b)) && t.boutons.some(b => /Demande d’achat/.test(b)), t); }
+      await devenir(p, 'sm', 'techfrais'); const t = await etat(); v('technicienne : « Mes frais » est au menu', (await menu()).some(x => /Mes frais/.test(x)), await menu()); v('technicienne : « Mes frais » a ses deux gestes', t.boutons.some(b => /Nouvelle note de frais/.test(b)) && t.boutons.some(b => /demande d’achat/i.test(b)), t); }   // « ＋ Nouvelle demande d’achat » : la règle d'un seul libellé de création (MENU-FINAL, coque-09), même mot qu'à l'écran Achats
   }
   const err = c.err.filter(x => !/ERR_/.test(x)); v('aucune erreur JavaScript', err.length === 0, err.slice(0, 3));
   const ko = L.bilan(); await L.fin(c); await L.fermer(); process.exit(ko ? 1 : 0);

@@ -24,7 +24,9 @@ async function pret(c, vue) { await L.ranger(c.p); await c.p.evaluate(v => { if 
     await pret(c, vue); let liste = await tagger(c.p); console.log('\n== vue', vue, '—', liste.length, 'gestes recensés');
     const total = liste.length; let touches = 0, rien = 0;
     for (let k = 0; k < total; k++) {
-      const sigAttendue = liste[k].balise + '|' + liste[k].lib + '|' + liste[k].data; const l2 = await tagger(c.p); const cible = l2.find(x => x.balise + '|' + x.lib + '|' + x.data === sigAttendue);
+      const sigAttendue = liste[k].balise + '|' + liste[k].lib + '|' + liste[k].data; let l2 = await tagger(c.p); let cible = l2.find(x => x.balise + '|' + x.lib + '|' + x.data === sigAttendue);
+      // après un rechargement la carte remonte ses commandes (Auto / Jour / Nuit du fond) quand ses bibliothèques arrivent, un peu après la page : on laisse jusqu'à 6 s avant de dire « introuvable » (jouée à la suite des autres vues, la vue carte perdait 3 gestes sur 63 à ce délai, et ce n'était pas un défaut de la page — seule, elle rendait 3 ✓)
+      for (let essai = 0; !cible && essai < 12; essai++) { await c.p.waitForTimeout(500); l2 = await tagger(c.p); cible = l2.find(x => x.balise + '|' + x.lib + '|' + x.data === sigAttendue); }
       if (!cible) { RES.push({ vue, lib: liste[k].lib, data: liste[k].data, issue: 'introuvable après remise d’aplomb' }); console.log('  ?', liste[k].lib, '(introuvable)'); continue; }
       const av = await etatPlus(c.p); const ok = await L.toucher(c, '[data-zz="' + cible.i + '"]', { delai: 5000 }); await L.calme(c.p, 350); const ap = await etatPlus(c.p);
       const ch = L.change(av, ap).filter(x => x !== 'focus'); touches += ok ? 1 : 0;

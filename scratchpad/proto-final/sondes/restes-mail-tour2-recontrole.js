@@ -22,8 +22,9 @@ const VISIBLE = () => { const R2 = window.R(), rc = e => e.getBoundingClientRect
   return { total:lignes.length, ent:ent.length, haut:Math.round(haut), bas:Math.round(bas), hauteurLigne:lignes[0] ? Math.round(rc(lignes[0]).height) : 0, sw:document.documentElement.scrollWidth, tbTrouvee:!!tb }; };
 (async () => {
   // ═══ 1. paysage court : au moins une ligne ENTIÈRE sous les yeux, sur sept tailles de téléphone tenu en travers ═══
+  // 568×320 est l'iPhone SE de 1re génération : SANS encoche. Le profil « iphone » y posait les 47 px d'encoche d'un iPhone récent tenu debout (l'émulateur ne tourne pas les marges de sécurité) : la bande vide du haut mangeait 47 des 320 px, et la sonde accusait la page d'un défaut qui n'existe sur aucun appareil. Le profil « petit » (pas d'encoche) joue cette taille, de jour comme de nuit.
   if (veut(1)) await sec('paysage', async () => {
-    for (const [pr, w, h, nuit] of [['iphone', 844, 390, false], ['iphone', 667, 375, true], ['iphone', 568, 320, false], ['android', 740, 360, true], ['android', 640, 360, false], ['petit', 568, 320, true], ['android', 800, 380, false]]) {
+    for (const [pr, w, h, nuit] of [['iphone', 844, 390, false], ['iphone', 667, 375, true], ['petit', 568, 320, false], ['android', 740, 360, true], ['android', 640, 360, false], ['petit', 568, 320, true], ['android', 800, 380, false]]) {
       const etiq = pr + ' ' + w + '×' + h + (nuit ? ' nuit' : ' jour'), c = await entrer({ profil:pr, nuit }), p = c.p;
       await p.setViewportSize({ width:w, height:h }); await p.waitForTimeout(1800);
       const m = await S(c, VISIBLE);
