@@ -107,7 +107,7 @@ async function s3() {
       const opt = tous.filter(e => e.children.length < 4 && /Option ·/.test(e.textContent) && e.textContent.length < 160);
       const nv = tous.filter(e => e.children.length < 6 && /Demande de devis climatisation/.test(e.textContent) && e.textContent.length < 160 && getComputedStyle(e).position === 'absolute');
       const r = e => { const b = e.getBoundingClientRect(); return { g:Math.round(b.left), h:Math.round(b.top), w:Math.round(b.width), ht:Math.round(b.height) }; };
-      const cible = opt.find(e => /Claire/.test(e.textContent)); if (cible) cible.scrollIntoView({ block:'center', inline:'center' }); await new Promise(z => setTimeout(z, 400));
+      const cible = opt.find(e => /Claire/.test(e.textContent)) || nv[0]; /* tour 6 : plus d'option sur ce créneau — on cadre l'intervention créée */ if (cible) cible.scrollIntoView({ block:'center', inline:'center' }); await new Promise(z => setTimeout(z, 400));
       return { nOpt:opt.length, nNv:nv.length, opt:opt.slice(0, 4).map(e => ({ t:e.textContent.replace(/\s+/g, ' ').trim().slice(0, 50), ...r(e) })), nv:nv.slice(0, 2).map(e => ({ t:e.textContent.replace(/\s+/g, ' ').trim().slice(0, 50), ...r(e) })) }; });
     console.log('  planning :', JSON.stringify(pl));
     await L.capture(c, CAP + `s3-planning-apres-B${nuit ? '-nuit' : ''}.png`, false);

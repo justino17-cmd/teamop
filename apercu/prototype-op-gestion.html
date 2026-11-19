@@ -9102,7 +9102,7 @@ function placerPops(){
   });
 }
 function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
-  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 /* un lien d'adresse touché (menu latéral, lien #…) change l'adresse SANS passer par aller() : cpProg est vide comme pour un retour ; le clic, lui, ne se confond pas avec un retour (qui n'en est pas un) */
 var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a[href^="#"]')) navClic = Date.now(); }, true);
 function lireHash(){
@@ -14528,6 +14528,9 @@ function cpSysMaj(){
 }
 (() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); cpSysMaj(); return v; }; })();
 (() => { const m0 = cxEnLigneMode; cxEnLigneMode = function(){ m0(); cpSysMode(); }; })();
+/* « ‹ OP GESTION » FERME la couche du cadre (un panneau Réglages…, le tiroir ☰) comme tout Retour : on ne la retrouve pas ouverte en revenant dans la Comptabilité (règle « Retour ferme la couche du dessus, rien d'autre », appliquée au tour 3).
+   Le cadre est une page à part : on lui DIT de la fermer, comme le fait le Retour du navigateur (CAL_GENRES, « cadre »). */
+function cpCouchePartir(){ if (!cpCalque) return; cpCalque = false; try { const f = document.querySelector('#cpsys iframe'); if (f && f.contentWindow) f.contentWindow.postMessage({ opc_fermer_calque:true }, '*'); } catch (e) {} }
 document.addEventListener('click', ev => {
   const t = ev.target.closest ? ev.target : ev.target.parentElement; if (!t) return;
   const porte = t.closest('#menu a[href="#comptabilite"],[data-tab="comptabilite"],.ligne-clic[data-go="comptabilite"]');
@@ -14535,7 +14538,8 @@ document.addEventListener('click', ev => {
   const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
   if (a === 'ouvrir') { cpSysteme = true; rendre(); }
   else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
-  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; /* un panneau ou le tiroir du cadre ouvert est une entrée d'historique : elle part D'ABORD (un recul), puis on recule d'une entrée de plus vers l'écran d'avant — sans quoi calRevenirA refuse et aller() AJOUTE une entrée : [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité qui se rouvre */ if (!calAvantAller(() => calRevenirA(d) || aller(d))) calRevenirA(d) || aller(d); }
+  else if (a === 'retour') { if (!cpSysteme) return;   /* un second toucher dans la MÊME tâche (0 ms) : le cadre est déjà quitté, le recul d'une entrée est en route — le second aurait AJOUTÉ une entrée (aller) et laissé Retour muet une fois (recontrôle tour 2, tranché au tour 3) */
+    cpSysteme = false; cpCouchePartir(); if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; /* un panneau ou le tiroir du cadre ouvert est une entrée d'historique : elle part D'ABORD (un recul), puis on recule d'une entrée de plus vers l'écran d'avant — sans quoi calRevenirA refuse et aller() AJOUTE une entrée : [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité qui se rouvre */ if (!calAvantAller(() => calRevenirA(d) || aller(d))) calRevenirA(d) || aller(d); }
 }, true);
 document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
@@ -26353,6 +26357,12 @@ function opsMonter(){ if (!SECU_DEMO || typeof MODE_APP === 'undefined' || !MODE
       <div class="ops-cadre"><div class="ops-encoche" aria-hidden="true"></div><div class="ops-ecran" aria-live="off"></div></div><details class="sec-demo"${SECU.demoOuvert ? ' open' : ''}></details></div></div>`);
   SECU.ouvert = innerWidth >= 1100; opsDemo(); opsDessiner(); secuTicDemarrer(); }
 const opsLarge = () => innerWidth >= 1100;
+/* changer d'écran PAR PROGRAMME (aller) ne laisse pas le téléphone simulé en plein écran par-dessus la destination : il se range comme un panneau ou un menu. Sans ça son entrée d'historique {cal:1}
+   se repoussait sur le nouvel écran, deux fois, et le premier Retour restait muet (recontrôle du tour 1, tranché au tour 3). Sur grand écran c'est un volet permanent : on n'y touche pas. */
+function opsRanger(){ try { const z = document.getElementById('opsec'); if (z && z.hasAttribute('data-ouvert') && !opsLarge()) opsFermer(); } catch (e) {} }
+/* le téléphone simulé SUIT la largeur de la fenêtre : volet permanent dès 1100 px, rond fermé en dessous. Sans ça, un volet ouvert sur grand écran revenait en plein écran en rétrécissant la fenêtre,
+   alors que personne n'avait ouvert le téléphone (recontrôle du tour 1, tranché au tour 3). Rétrécir ne verrouille pas le téléphone : ce n'est pas quitter l'application. */
+try { matchMedia('(min-width:1100px)').addEventListener('change', e => { if (!document.getElementById('opsec')) return; SECU.ouvert = e.matches; opsDessiner(); }); } catch (e) {}
 function opsOuvrir(){ SECU.ouvert = true; opsDessiner(); const z = document.getElementById('opsec'); if (z && !opsLarge()) { const f = z.querySelector('.ops-revenir'); if (f) f.focus({ preventScroll:true }); } }
 /* quitter l'application la verrouille (le vrai comportement) : en vue étroite, fermer le téléphone le verrouille ; sur grand écran, le cacher ne touche à rien */
 function opsFermer(){ SECU.ouvert = false; if (!opsLarge()) Object.keys(SECU.ui).forEach(k => { const u = SECU.ui[k]; if (u.ecran === 'ouvert') { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } }); opsDessiner(); }
