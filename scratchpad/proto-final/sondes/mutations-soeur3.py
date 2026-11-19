@@ -17,7 +17,7 @@ M = [
  ('3 la feuille du message part aussi (sur-correction)', C, [("o.classList.contains(\"ov-menu\")||o.querySelector(\".sheet.acct\")", "true")], BOX),
  ('C1 la marque va toujours sur le Prénom', G, [("return nbSignes(CREA.nv.nom || '') >= nbSignes(CREA.nv.contact || '') ? 'nom' : 'contact'; }", "return 'contact'; }")], SEC),
  ('C2 unités non bornées au collage', G, [(" && av.length + x.length + ap.length <= unitesMax(m); while", "; while")], SEC),
- ('C2 refusLong sans unités', G, [(" : x.length > unitesMax(max) ? refusCombinants(lib) : ''; };\nconst", " : ''; };\nconst")], SEC),
+ ('C2 refusLong sans unités', G, [("const refusLong = (t, max, lib) => { const x = libelleSur(t, 1e9), n = nbSignes(x);", "const refusLong = (t, max, lib) => { const x = libelleSur(t, 1e9), n = nbSignes(x); if (n <= max) return '';")], SEC),
  ('R1 le champ plus long que le plafond est recoupé', G, [("if (!tenait) return;", "")], SEC),
  ('R5 note de tâche sans maxlength', G, [('<textarea id="tk-n" rows="3" maxlength="600">', '<textarea id="tk-n" rows="3">')], SEC),
  ('R5 note de tâche sans refus', G, [("refusTexte(document.getElementById('tk-n').value, NOTE_MAX, 'Note')", "''")], SEC),
