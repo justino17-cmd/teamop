@@ -29,6 +29,14 @@ const cts = t => { const m = String(t || '').replace(/[\s  ]/g, '').match(/[�
   K = await lit(); v('1f contre-épreuve : le moyen noté passe à « Carte » → une seule écriture active, dans 467100, et l’ancienne est contrepassée', K.actifs.length === 1 && K.actifs[0].l[0][0] === '467100' && K.contres === 1, { actifs: K.actifs.map(a => a.l[0]), contres: K.contres });
   await p.evaluate(() => { fiche('i6').paiement.mode = 'Espèces'; rendre(); }); await p.waitForTimeout(900);
   K = await lit(); v('1g retour aux espèces : une écriture active dans la caisse', K.actifs.length === 1 && K.actifs[0].l[0][0] === '530000' && K.contres === 2, { actifs: K.actifs.map(a => a.l[0]), contres: K.contres });
+  // 3e tour (19/11) : chaque MOYEN va dans son compte, et la ligne de relevé d'un virement est retirée quand le moyen change — deux mutations (chèque rangé en 512000, ligne de relevé jamais retirée)
+  // survivaient à « 26 ✓ » parce que la sonde ne jouait que Carte et Espèces. Population comptée avant chaque zéro : le relevé doit AVOIR une ligne de plus avant qu'on dise qu'elle est repartie.
+  { const rel = () => f.evaluate(() => RELEVE.length), base = await rel(), att = { 'Chèque': ['511200', 'BQ'], Virement: ['512000', 'BQ'] };
+    for (const mo of ['Chèque', 'Virement']) { await p.evaluate(m => { fiche('i6').paiement.mode = m; rendre(); }, mo); await p.waitForTimeout(900); K = await lit();
+      v('1g1 moyen « ' + mo + ' » : une seule écriture active, dans ' + att[mo][0] + ' (journal ' + att[mo][1] + '), équilibrée', K.actifs.length === 1 && K.actifs[0].l[0][0] === att[mo][0] && K.actifs[0].j === att[mo][1] && K.actifs[0].equilibre, K.actifs.map(a => [a.j, a.l[0]])); }
+    const apresVir = await rel(); v('1g2 population : le virement noté sur place ajoute UNE ligne de relevé à pointer (' + base + ' → ' + apresVir + ')', apresVir === base + 1, { base, apresVir });
+    await p.evaluate(() => { fiche('i6').paiement.mode = 'Espèces'; rendre(); }); await p.waitForTimeout(900);
+    const retour = await rel(); v('1g3 le moyen repasse aux espèces : la ligne de relevé du virement est RETIRÉE (' + apresVir + ' → ' + retour + ')', retour === base, { base, retour }); K = await lit(); }
   // la facture part : le reçu devient l'encaissement de la facture, l'écriture d'acompte s'en va
   const F = await p.evaluate(() => { factureDepuis(INTS.find(o => o.id === 'i6')); const f = FACTURES.find(x => x.int === 'i6' && x.num === '—' && x.st !== 'annulee'); if (!f) return null; const ok = envoyerFacture(f, true, true); rendre(); return { ok, num: f.num, recus: opLiaDonnees().recus.length, enc: ENCAISSEMENTS.filter(e => e.int === 'i6').map(e => e.ttc) }; });
   v('1h population : la facture de l’intervention I6 est partie et a repris l’argent (' + JSON.stringify(F) + ')', !!F && F.ok && F.recus === 0 && F.enc.length === 1, F); await p.waitForTimeout(1000);

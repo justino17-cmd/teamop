@@ -11,6 +11,8 @@ MUT = [
  ('1c le reçu repris à la facture n\'est plus contrepassé (compté deux fois)', CADRE, "!e.contrePar && e.etat !== 'supprimee' && !voulus.has(e.recuSP)", "!e.contrePar && e.etat !== 'supprimee' && false"),
  ('1d le moyen de paiement du reçu est ignoré (toujours la caisse)', CADRE, "const tres = { carte:'467100', chq:'511200', esp:'530000', vir:'512000' }[mode], j = { carte:'PS', chq:'BQ', esp:'CA', vir:'BQ' }[mode];", "const tres = '530000', j = 'CA';"),
  ('1e le reçu est compté en chiffre d\'affaires au lieu d\'un acompte (706000)', CADRE, "['419100', null, 0, ht, 'Acompte reçu · '", "['706000', null, 0, ht, 'Acompte reçu · '"),
+ ('1f un chèque reçu sur place entre dans 512000 au lieu de 511200 (3e tour : survivait à 26 ✓)', CADRE, "chq:'511200', esp:'530000', vir:'512000' }[mode], j =", "chq:'512000', esp:'530000', vir:'512000' }[mode], j ="),
+ ('1g la ligne de relevé d\'un virement n\'est plus retirée quand le reçu change (3e tour : survivait à 26 ✓)', CADRE, "const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (k >= 0) { RELEVE.splice(k, 1);", "const k = RELEVE.findIndex(x => x.pointe === ref(e, 0)); if (false) { RELEVE.splice(k, 1);"),
  ('2a le solde négatif ne se dit jamais crédit', CADRE, "const credit = !!T && T.credit > 0 && !(T.due > 0),", "const credit = false,"),
  ('2b l\'écran TVA garde « À payer à l\'État » pour un crédit', CADRE, "<div class=\"tot\"><span>${Z.mot}</span>", "<div class=\"tot\"><span>À payer à l’État</span>"),
  ('2c la tuile VIVANTE de l\'accueil garde « TVA d\'octobre » pour un crédit', CADRE, "${kpi('tva', tvaZ.mois, tvaZ.eur,", "${kpi('tva', 'TVA d’octobre', tvaZ.eur,"),
