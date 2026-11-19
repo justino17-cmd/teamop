@@ -6172,6 +6172,8 @@ const WIN = { '€':128, '‚':130, 'ƒ':131, '„':132, '…':133, '†':134, '
 const TRANSLIT = { '▲':'+', '▼':'-', 'ᵉ':'e', 'ʳ':'r', '✓':'', '✕':'', '·':'·', ' ':' ', ' ':' ', ' ':' ', '−':'-', '→':'->', '←':'<-', '≈':'~', '×':'x' };
 function pdfOctets(txt){ // une chaîne en WinAnsi, échappée pour un flux PDF
   let o = '';
+  /* NFC d'abord : un « é » décomposé (e + U+0301) perdait son accent (le signe combinant n'a pas d'octet WinAnsi) — composé avant, il devient l'octet de « é » */
+  txt = String(txt == null ? '' : txt).normalize('NFC');
   for (const ch of txt) {
     let c = TRANSLIT[ch] !== undefined ? TRANSLIT[ch] : ch;
     for (const x of c) { const k = x.charCodeAt(0), w = WIN[x] || (k < 256 ? k : 0); if (!w) continue;
@@ -10789,7 +10791,7 @@ const graphemes = t => { t = String(t == null ? '' : t); return SEG_GRAPH ? Arra
 const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
-const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
+const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\t\n\r\v\f\u2028\u2029]/g, ' ').replace(/[<>"`\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.
