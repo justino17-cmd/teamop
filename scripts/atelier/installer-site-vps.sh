@@ -26,7 +26,12 @@ echo "✅ configuration du site prête et validée par Caddy"
 
 if [ "${1:-}" = "--activer" ]; then
   MOI="$(curl -s4 --max-time 5 https://api.ipify.org || true)"
-  VU="$(getent ahostsv4 teamop.fr | awk '{print $1; exit}')"
+  # On demande aux serveurs DNS d'OVH EUX-MÊMES (pas au cache local, qui peut garder l'ancienne réponse une heure).
+  VU=""; for NS in ns200.anycast.me dns200.anycast.me; do
+    command -v dig >/dev/null && VU="$(dig +short +time=3 +tries=1 A teamop.fr @"$NS" | grep -E '^[0-9.]+$' | sort -u | tr '\n' ' ' | sed 's/ $//')"
+    [ -n "$VU" ] && break
+  done
+  [ -n "$VU" ] || VU="$(getent ahostsv4 teamop.fr | awk '{print $1; exit}')"
   [ -n "$MOI" ] && [ "$VU" = "$MOI" ] || { echo "✗ teamop.fr pointe vers ${VU:-?}, pas vers ce serveur (${MOI:-?}) : changer d'abord le DNS chez OVH, puis relancer avec --activer"; exit 1; }
   [ -s /opt/teamop/site/actuel/index.html ] || { echo "✗ le site n'est pas encore arrivé dans /opt/teamop/site/actuel"; exit 1; }
   if ! grep -qx 'import /etc/caddy/teamop-site.caddy' "$CF"; then
