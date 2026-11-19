@@ -969,7 +969,7 @@ function paieBulletinDoc(k, ym){
       <tr class="net"><td>Net payé</td><td class="n">${nb(b.netPaye)} €</td></tr>
       ${b.ndfL.map(n => `<tr><td>Remboursement de note de frais · ${esc(n.objet)} (hors salaire)</td><td class="n">${nb(n.ttc)}</td></tr>`).join('')}
       <tr><td>Montant net social</td><td class="n">${nb(b.netSocial)}</td></tr><tr><td>Total versé par l’employeur</td><td class="n">${nb(b.cout)}</td></tr></tbody></table>
-    <p class="bul-pied">Prototype : taux d’exemple (barèmes 2026 relevés en novembre 2026), plafond de la sécurité sociale ${nb(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin suit les barèmes en vigueur et la convention collective, puis part en DSN : à faire valider par l’expert-comptable. À conserver sans limitation de durée.</p></div>`;
+    <p class="bul-pied">${/[?&]app=1\b/.test(location.search) ? 'À conserver sans limitation de durée.' : `Prototype : taux d’exemple (barèmes 2026 relevés en novembre 2026), plafond de la sécurité sociale ${nb(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin suit les barèmes en vigueur et la convention collective, puis part en DSN : à faire valider par l’expert-comptable. À conserver sans limitation de durée.`}</p></div>`;   /* en mode application (cadre « ?app=1 »), le bulletin est celui que reçoit la personne : pas un mot de prototype ni de données fictives */
 }
 /* ══ LES DONNÉES DU DOSSIER — dix mois de Clim Services 17, fabriqués une fois, toujours les mêmes ══
    Ventes venues d'OP GESTION (installations, entretiens, dépannages), achats, banque, caisse, cartes, paie, emprunt, TVA, impôt.
