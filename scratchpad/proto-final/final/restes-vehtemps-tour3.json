@@ -1,0 +1,30 @@
+[
+ {
+  "nom": "(a) Drapeau « Voir la paie » (TT.viaPaie)",
+  "defaut": "Le drapeau valait pour tout accès à Temps de travail depuis la Paie : le menu rouvrait Mois, et un retour, une avance puis un retour rouvraient « Aujourd'hui ».",
+  "etat": "corrigé",
+  "changement": "lireHash pose TT.sys (changement d'adresse que ni aller() ni un clic de lien n'ont demandé, donc retour ou avance du système) ; ttVue ne garde la vue que si TT.sys ; le drapeau survit à l'avance et ne tombe que quand on va ailleurs (rendre) ; paieAller le pose en « neuf » seulement depuis Temps de travail. Le menu ouvre « Aujourd'hui », le retour du système et la barre « Retour · Temps de travail » ouvrent Mois (la barre passe par TT.garder).",
+  "preuve": "restes-vehtemps-tour2-recontrole.js tous profils (mac, iphone, android, ipad, windows, petit), jour et nuit : 636 ✓ 0 ✗, plus la partie barre ajoutée (58 ✓ 0 ✗ sur mac et iphone). Mutations 1, 2, 3, 7 tombent. Remarque : la porte de lireHash qui efface le drapeau hors retour est redondante avec ttVue (retirée, la sonde reste verte) ; gardée en double sécurité."
+ },
+ {
+  "nom": "(c) Départ guidé : semaines non validées et ligne grise",
+  "defaut": "L'alerte ne disait que la semaine d'avant ; les semaines plus anciennes (5 et 12 oct.) restaient muettes ; la ligne grise « semaine en cours » paraissait même pour une personne sans pointage.",
+  "etat": "corrigé",
+  "changement": "eqxRestes liste toutes les semaines finies, pointées et non validées, hors mois verrouillé ; la fenêtre dit « Pointage de N semaines pas encore validé » avec la période, ou « la semaine dernière » s'il n'en reste qu'une. La ligne grise exige un pointage de la semaine en cours.",
+  "preuve": "Parties depart et boucle : alerte à 3, puis 2, 1, 0 en validant une à une ; boucle réelle d'une personne par « Ouvrir ses heures » jusqu'à zéro ; ligne grise absente sans pointage, présente avec. Mutations 4, 5, 6 tombent. Captures relues (mac et iphone, jour et nuit) : lisibles, sans débordement."
+ },
+ {
+  "nom": "(d) Mutation 6 du tour 1 (élision devant « É »)",
+  "defaut": "La mutation visait l'ancienne regex de vhCourt et ne mordait plus (cible introuvable).",
+  "etat": "corrigé",
+  "changement": "Recalée sur la regex actuelle : retire « é » de la classe des voyelles.",
+  "preuve": "mutations-restes-vehtemps-recontrole.js 6 : la sonde tombe (1 contrôle ✗), 1 ✓ 0 ✗."
+ },
+ {
+  "nom": "Sondes de non-régression",
+  "defaut": "Aucun : contrôle des parcours voisins.",
+  "etat": "ne se reproduit pas",
+  "changement": "Aucun.",
+  "preuve": "restes-vehtemps-1 : 96 ✓ 0 ✗ ; vehtemps-rc-parcours : 37 ✓ 0 ✗ ; compta-reste-parcours-f : 18 ✓ 0 ✗ ; verifier-syntaxe : 41 pages, 0 en erreur ; tests/test-835 : 844 ✓ 0 ✗. scripts/compiler-pages.js n'existe pas."
+ }
+]
