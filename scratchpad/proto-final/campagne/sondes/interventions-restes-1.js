@@ -119,7 +119,7 @@ const I = require('./interventions-outils.js'), L = I.L;
     await I.devenir(c, 'sm', 'inter-x-i1');
     const champs = await ev(() => [...document.querySelectorAll('input[data-releve]')].map(e => e.dataset.releve)); console.log('  · relevés :', champs.join(' · '));
     v('E population : trois relevés', champs.length === 3, champs);
-    const poser = async (k, val) => { await p.fill(`input[data-releve="${k}"]`, ''); await p.type(`input[data-releve="${k}"]`, val, { delay: 5 }); await L.calme(p, 150); return ev(k => ({ champ: document.querySelector(`input[data-releve="${k}"]`).value, fiche: fiche('i1').releves[k] }), k); };
+    const poser = async (k, val) => { await p.fill(`input[data-releve="${k}"]`, ''); await p.type(`input[data-releve="${k}"]`, val, { delay: 5 }); await p.press(`input[data-releve="${k}"]`, "Tab"); await L.calme(p, 150); return ev(k => ({ champ: document.querySelector(`input[data-releve="${k}"]`).value, fiche: fiche('i1').releves[k] }), k); };
     const k = champs[0]; let r = await poser(k, 'abc'); v('E « abc » : le champ reste vide, rien n’est rangé', r.champ === '' && (r.fiche === '' ), r);
     const e = await L.etat(p); v('E …et l’écran dit ce qu’il attend', /nombre/i.test(e.toast || ''), e.toast);
     r = await poser(k, '2,4'); v('E « 2,4 » est gardé', r.champ === '2,4' && r.fiche === '2,4', r);

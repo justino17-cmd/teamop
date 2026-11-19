@@ -232,7 +232,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 .ctx button.danger{color:var(--rouge)}.ctx button.danger .i{color:var(--rouge)}
 .ctx hr{border:0;border-top:1px solid var(--trait);margin:4px 6px}
 @media (max-width:760px){.ctx{left:8px!important;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));top:auto!important;max-width:none;border-radius:22px;padding:8px;animation-name:entreB}.ctx button{min-height:50px;font-size:16px}}
-#toast{overflow-wrap:anywhere;position:fixed;left:50%;bottom:26px;translate:-50% 16px;opacity:0;pointer-events:none;z-index:90;display:flex;gap:14px;align-items:center;max-width:min(600px,calc(100vw - 32px));padding:12px 14px 12px 18px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;transition:opacity .2s,translate .3s var(--ressort)}
+#toast{overflow-wrap:anywhere;position:fixed;left:50%;bottom:var(--toast-bas,26px);translate:-50% 16px;opacity:0;pointer-events:none;z-index:90;display:flex;gap:14px;align-items:center;max-width:min(600px,calc(100vw - 32px));padding:12px 14px 12px 18px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;transition:opacity .2s,translate .3s var(--ressort)}
 #toast.on{opacity:1;translate:-50% 0;pointer-events:none}#toast.on button{pointer-events:auto} /* un toast est du texte : il n'avale pas le toucher de ce qu'il couvre (une signature), seul son bouton répond */
 #toast button{min-height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--fill);color:var(--on-fill);font-weight:700;flex:none}
 @media (pointer:coarse){#toast button{min-height:44px;min-width:44px}}   /* equipe-10 : « Annuler » mesurait 90 × 40 au doigt */
@@ -4895,7 +4895,7 @@ function toast(msg, action){ // action : { lib, fn }
   // au lieu de se faire recouvrir à moitié — celle d'« Annuler l'envoi » (classe act) reste, elle porte un geste en cours
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
-  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } catch (e) {}
+  try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
   t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
@@ -9571,27 +9571,37 @@ document.addEventListener('change', ev => {
   else if (t.dataset.preuve !== undefined && t.files[0]) { const e = ENCAISSEMENTS[+t.dataset.preuve], r = new FileReader(); r.onload = () => { e.photo = r.result; rendre(); toast(PREUVE[e.mode][0] + ' rangé' + PREUVE[e.mode][4] + ' avec le paiement de ' + esc(CLIENTS[e.cli].nom) + '.'); }; r.readAsDataURL(t.files[0]); }
   else if (t.dataset.ticket && t.files[0]) { const r = new FileReader(); r.onload = () => { TICKETS.push(r.result); rendre(); toast('Ticket rangé avec son paiement.'); }; r.readAsDataURL(t.files[0]); }
 });
+/* UN relevé numérique (kg, °C, bar…) : UNE règle, pour la valeur collée, tapée ou enregistrée en passant (releveLire), jouée à la SORTIE du champ (change) et par la fonction qui enregistre (releveValider). Un champ libre (Infestation, Arrivée, Départ) garde ce qu'on a tapé. */
+function releveExemple(t){ const G = fiche(t.dataset.id); return ((RELEVES[G.metier] || []).find(r => r[0] === t.dataset.releve) || [])[1]; }
+function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce qui a été recollé (milliers), net = ce qui a été retiré (lettres)
+  /* « − » (U+2212) et « – » sont des signes moins : sans ce passage le nettoyage les jetait et « −5 » devenait 5, une température fausse sans un mot */
+  let val = String(brut).replace(/[−–‒]/g, '-'), lu = '';
+  /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
+  const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[   ]\d{3})+(?!\d)/g, m => m.replace(/[   ]/g, ''));
+  if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
+  /* « 3 sur 18 », « 10-12 », « 10 – 12 » et « 10- » ne sont pas UN nombre : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; tout autre tiret refuse. */
+  const sans = val.replace(/^\s*-/, '');
+  if (/\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|-|\d[.,]\d+[.,]\d/.test(sans)) return { refus:true };
+  const net = val.replace(/[^\d.,-]/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
+  return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
+}
+function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
+  const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
+  const R = G.releves = G.releves || {}, av = R[t.dataset.releve] == null ? '' : String(R[t.dataset.releve]), r = releveLire(t.value);
+  if (r.refus) { t.value = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ». Ta saisie n’est pas enregistrée.'); return false; }
+  if (t.value !== r.val) t.value = r.val;
+  if (r.net) toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').');
+  else if (r.lu) toast('Lu ' + r.lu + ' : enregistré ' + r.val + '.');
+  R[t.dataset.releve] = r.val; return true;
+}
+function releveFlush(){ document.querySelectorAll('input[data-releve]').forEach(t => { try { releveValider(t); } catch (e) {} }); }   // avant tout geste qui enregistre : un champ encore en cours de saisie est validé avec la même règle
+document.addEventListener('change', ev => { const t = ev.target; if (t && t.dataset && t.dataset.releve) releveValider(t); });
+document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('[data-action]'); if (b && !(ev.target.closest('input[data-releve]'))) releveFlush(); }, true);
 document.addEventListener('input', ev => { const t = ev.target; if (t.dataset && t.dataset.rdvnote && RDV) { RDV.note = t.value; return; }
   if (t.dataset.champ) { fiche(t.dataset.id)[t.dataset.champ] = t.value; majCollant(t.dataset.id); }
   if (t.dataset.paiemontant) { fiche(t.dataset.paiemontant).paiement.montant = t.value; majCollant(t.dataset.paiemontant); }
-  if (t.dataset.releve) { const G = fiche(t.dataset.id); let val = t.value, lu = '';
-    const ex = ((RELEVES[G.metier] || []).find(r => r[0] === t.dataset.releve) || [])[1];
-    if (/^\d+([.,]\d+)?$/.test(ex || '')) {   /* un relevé qui s'exprime en nombre (kg, °C, bar…) n'accepte que ça : « abc » partirait tel quel dans le compte rendu du client */
-      /* les deux conversions ne touchent QUE les relevés numériques : un champ libre (Infestation, Arrivée, Départ) garde ce qu'on a tapé, « 06:10 – 06:40 » comme « 2 100 individus » */
-      /* « − » (U+2212) et « – » sont des signes moins : sans ce passage le nettoyage les jetait et « −5 » devenait 5, une température fausse sans un mot */
-      val = val.replace(/[\u2212\u2013\u2012]/g, '-');
-      /* l'espace des milliers (« 1 200 », « 1 234,5 », fine ou insécable) est UN nombre : on le recolle avant de chercher « deux nombres » */
-      const avant = val; val = val.replace(/(?<![\d.,])\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?!\d)/g, m => m.replace(/[ \u00a0\u202f]/g, ''));
-      if (val !== avant) lu = avant.trim();   /* « 10 100 » devient 10100 : on le DIT, pour qu'on voie ce qui est enregistré */
-      /* « 3 sur 18 », « 10-12 » et « 10 – 12 » sont deux nombres, pas un : les recoller en « 318 » ou « 1012 » écrirait une fausse mesure dans le compte rendu. Seul un signe collé au nombre en tête (« -5 ») est un négatif ; une plage, même à espaces, est refusée. On garde l'ancienne valeur. */
-      const deux = /\d\s*[^\d.,\s-]+[^\d]*\d|\d\s+\d|\d\s*-\s*\d|\d[.,]\d+[.,]\d/.test(val.replace(/^\s*-/, ''));
-      if (deux) { const av = (G.releves || {})[t.dataset.releve] || ''; t.value = av; val = av; toast('Un seul nombre ici : écris une seule mesure (ex. ' + ex + '), pas « 3 sur 18 » ni « 10-12 ».'); }
-      else { const net = val.replace(/[^\d.,-]/g, '').replace(/(?!^)-/g, '').replace(/([.,])(.*)$/, (m, sep, reste) => sep + reste.replace(/[.,]/g, '')).slice(0, 12);
-        if (net !== t.value) t.value = net;
-        if (net !== val) { toast('Ce relevé est un nombre : écris des chiffres, avec une virgule si besoin (ex. ' + ex + ').'); val = net; }
-        else if (lu) toast('Lu ' + lu + ' : enregistré ' + val + '.');
-        val = net; } }
-    (G.releves = G.releves || {})[t.dataset.releve] = val; }
+  if (t.dataset.releve) { const ex = releveExemple(t); /* à la frappe, on ne retire RIEN et on n'enregistre rien d'un relevé numérique : « 10-12 » tapé touche par touche devenait 1012 (le signe et les espaces partaient avant que le second nombre n'existe). La règle s'applique à la sortie du champ et à l'enregistrement : releveValider */
+    if (!/^\d+([.,]\d+)?$/.test(ex || '')) { const G = fiche(t.dataset.id); (G.releves = G.releves || {})[t.dataset.releve] = t.value; } }
   if (t.dataset.cherche) { chercheClient = t.value; const pos = t.selectionStart; rendre(); const n = document.querySelector('[data-cherche]'); n.focus(); n.setSelectionRange(pos, pos); } });
 appliquerMode();
 /* ══ typographie : espace insécable avant : ; ? ! » et après « — posée sur le texte AFFICHÉ, jamais dans les données ══ */
@@ -23565,7 +23575,7 @@ function cfHEl(j){ return j.type === 'tache' && j.el && j.el.t && j.det ? j.det.
 function cfHDet(j, seul){ if (!(j.type === 'tache' && j.el && j.el.t && j.det)) return j.det; const reste = j.det.split(' · ').slice(1).join(' · '); return (seul ? '' : 'À propos de ') + j.el.lib + (reste ? ' · ' + reste : ''); }
 /* Relevés : la valeur saisie ; vide quand rien n'a été saisi sur une fiche déjà touchée ; l'exemple seulement pour une fiche d'exemple déjà faite */
 function cfReleve(F, i, l, v){ const R = F.releves, x0 = R ? R[l] : undefined, x = l === 'Charge de fluide' && (x0 === undefined || x0 === null || x0 === '') ? (fixFluideCharge(i) || x0) : x0; return x !== undefined && x !== null ? String(x) : (R ? '' : (i.st === 'fait' ? v : '')); }
-(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
+(() => { const t0 = ACTIONS.terminer; ACTIONS.terminer = function(b){ releveFlush(); const F = fiche(b.dataset.id); if (F && !F.releves) F.releves = {}; return t0.apply(this, arguments); }; })();   // terminé sans relevé : la fiche est « touchée », plus d'exemple
 /* Clients : les appareils d'une fiche à compléter ne sont pas des appareils */
 function cfLieuDe(k){ return (((CLIENTS[k] || {}).appareils) || []).filter(a => a && a.det !== 'à compléter').map(a => a.nom).join(', '); }
 function cfLieuContrat(k){ return k.lieu != null ? k.lieu : (k.titre.split('·')[1] || ''); }
