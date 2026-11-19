@@ -1,0 +1,56 @@
+{
+ "regles": [
+  1,
+  2
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "n": "C1",
+   "ecran": "Mon camion · « Il manque à bord » après « Je l'ai pris » ou « J'ai tout pris »",
+   "profils": "petit (320 × 568), jour et nuit",
+   "gravite": "haute",
+   "constat": "la rangée envoyée s'écrase : le nom prend 0 px de large et s'écrit UNE LETTRE PAR LIGNE, 449 px de haut (704 px pour « Nettoyant échangeur »). Reproduit en une frappe (« Je l'ai pris »).",
+   "cause": "régression de la correction F (c17f99c7) : « html .mc-dr{flex:1 1 100%} » rencontre la règle compacte « @media (max-width:340px) and (max-height:600px) … .mc-liste .mc-l{flex-wrap:nowrap} » (ligne ~3949) : sans retour à la ligne, la base 100 % du bloc d'état écrase le nom. Avant c17f99c7 le nom gardait 254 px (mesuré sur la page d'avant, même geste). Android 360, iPhone 390, iPad, Mac, Windows : intacts.",
+   "pourquoi_manque": "la sonde regard-technicien-b.js ne contrôle l'état d'un envoi (F) que sur les deux rangées de « Mes envois », jamais sur celles de « Il manque à bord » après un envoi ; la capture z01-toutpris a été prise mais pas lue sur le petit profil.",
+   "piste": "dans le bloc 3949, ajouter « html .mc-page>#mc-vehicule + .mc-liste .mc-l:has(.mc-dr){flex-wrap:wrap} » (ou « .mc-dr{flex:0 1 auto} » dans ce bloc)",
+   "sonde": "scratchpad/proto-final/sondes/regard-technicien-b-recontrole.js (§ 3 : tombe sur petit tant que ce n'est pas corrigé)"
+  },
+  {
+   "n": "C2",
+   "ecran": "Véhicules (gérant) · « Noter le rendez-vous » et « Ajouter un document »",
+   "profils": "android (360), iphone (390) — tout téléphone à encoche ; jour et nuit",
+   "gravite": "moyenne",
+   "constat": "le lien du bas (« C'est déjà fait ? Noter le renouvellement ») est à moitié caché sous le pied collant : le centre du lien reçoit le pied, pas le lien (elementFromPoint), le texte est coupé en deux sur la capture.",
+   "cause": "régression de la variable --pan-bas (c17f99c7) : le pied s'enfonce de 22 px + l'encoche (jusqu'à 56 px) dans le rembourrage et tire par « margin-bottom:-var(--pan-bas) » le voisin qui le SUIT ; correct quand le pied est le dernier enfant (Mon camion), faux quand un lien suit (rendez-vous, document). Avant : le lien se touchait (mesuré sur la page d'avant). Petit (320 × 568) passe parce que la feuille défile.",
+   "piste": "ne pas tirer le voisin (margin-bottom:0 quand « .vh-pied + * » existe) ou ranger ce lien dans le pied",
+   "sonde": "idem, § 1 (« ce qui suit le pied s'atteint »)"
+  }
+ ],
+ "nouveaux": [
+  {
+   "ecran": "Feuille courte (Relever le compteur) à l'iPad",
+   "profils": "ipad nuit et jour",
+   "gravite": "mineure",
+   "constat": "le panneau de droite prend toute la hauteur pour un champ et un bouton : 60 % du panneau est vide sous « Enregistrer » (même famille que l'ancien défaut 4, largeurs de feuille ; déjà à soumettre à Justin)."
+  },
+  {
+   "ecran": "Toast « Envoyé au bureau : … et 2 autres. [Annuler] »",
+   "profils": "iphone, android, petit",
+   "gravite": "mineure",
+   "constat": "après « J'ai tout pris » le toast d'action (110 px de haut, bouton Annuler plein) recouvre la liste et la barre d'onglets pendant son affichage ; lisible, transitoire, mais gros pour un petit écran."
+  }
+ ],
+ "doutes": [
+  "Anneau bleu autour du × de chaque feuille sur toutes les captures (mobile et iPad) : vient peut-être de la sonde (ouverture par e.click(), pas de vrai toucher) ; à vérifier sur un vrai iPhone.",
+  "Relever le compteur : le champ est vide avec « 48 210 » en exemple grisé, qui ressemble à une valeur déjà saisie ; le dernier relevé est redit dessous.",
+  "À 390 px (iPhone) le « Retirer » de « J'ai pris à l'atelier » passe sous le stepper, alors qu'à 360 il reste sur la ligne : deux rendus voisins pour la même rangée.",
+  "Les défauts 3 (colonne de 720 px au bureau), 4 (deux largeurs de feuille), 5 (« 12345,67 » sans séparateur) et 6 (pied de 150 px sur 568) restent à trancher par Justin : vus, confirmés sur capture, non corrigés exprès.",
+  "mac720 : pris mais non relu en planche (même contenu que mac)."
+ ],
+ "mesures": {
+  "sonde regard-technicien-b.js": "96 + 86 = 182 ✓ · 0 ✗ (iphone, petit, android, mac ; jour et nuit ; chef d'équipe)",
+  "sonde regard-technicien-b-recontrole.js": "petit+android : 70 ✓ · 4 ✗ (les 2 casses, jour) ; iphone, ipad, mac : 182 ✓ · 4 ✗ (casse C2 à 390 px)",
+  "captures": "738 captures (7 profils × jour et nuit × 34 scènes), 12 planches lues (≈ 90 vignettes), 5 captures en grand ; 10 écrans jugés sans défaut déclaré : 1 mineur et 1 doute en sortent"
+ }
+}

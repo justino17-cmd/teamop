@@ -8,6 +8,7 @@ CO = ('achats-restes1-coherence', 'mac'); TU = ('achats-restes3-adverse-tuile', 
 KM = ('achats-restes1-km', 'mac'); KM2 = ('achats-restes2-adverse-km', 'mac'); KM3 = ('achats-restes3-adverse-km', 'mac')
 R4 = ('achats-restes4', 'mac'); TA = ('achats-restes3-adverse-tarif', 'mac'); AD = ('achats-restes2-adverse', 'mac'); PN = ('achats-parcours-notes', 'mac')
 PU = ('achats-restes1-puce', 'iphone nuit'); PUC = ('achats-restes3-adverse-puces', 'iphone nuit'); R3I = ('achats-restes3', 'iphone nuit')
+PR = ('achats-tour4-puce-rangee', 'iphone nuit'); PRP = ('achats-tour4-puce-rangee', 'petit nuit')
 NEW = ('achats-tour4-recontrole', 'mac'); NEWI = ('achats-tour4-recontrole', 'iphone nuit')
 M = [
  ('a1', "filtre « sans facture » de la Comptabilité = sans justificatif", "sansfacture:x.src !== 'ndf' && x.sf", "sansfacture:x.src !== 'ndf' && !x.piece", [CO, TU, R3, NEW]),
@@ -17,7 +18,7 @@ M = [
  ('b1', "phrase du km : eur() au lieu des centimes entiers", "= ${eur(axKmMontant(k, AX.kmTarif))} · sans ticket", "= ${eur(k * AX.kmTarif)} · sans ticket", [KM2, KM3, KM, NEW]),
  ('b2', "montant enregistré du km : flottant", "m = km ? (k > 0 ? axKmMontant(k, AX.kmTarif) : NaN)", "m = km ? (k > 0 ? k * AX.kmTarif : NaN)", [KM2, KM3, KM, NEW]),
  ('b3', "toast d'envoi du km : axR2 sur km×tarif", "`Note envoyée : ${axN(k)} km, ${eur(n.ttc)}.", "`Note envoyée : ${axN(k)} km, ${eur(axR2(k * AX.kmTarif))}.", [KM2, KM3, NEW]),
- ('c1', "puce : ancien offsetLeft", "rb.left - rr.left + row.scrollLeft,", "b.offsetLeft,", [PU, PUC, R3I, NEWI]),
+ ('c1', "puce : ancien offsetLeft", "rb.left - rr.left + row.scrollLeft,", "b.offsetLeft,", [PU, PUC, R3I, NEWI, PR, PRP]),
  ('c2', "puce : garde « déjà visible » inversée", "if (row.scrollLeft + 4 <= gauche && bord <= row.scrollLeft + row.clientWidth - 4) return;", "if (!(row.scrollLeft + 4 <= gauche && bord <= row.scrollLeft + row.clientWidth - 4)) return;", [PU, PUC, R3I, NEWI]),
  ('d1', "phrase « 00,603 » mauvaise", "'Le zéro de tête est en trop : tape '", "'Écris le montant en chiffres : tape '", [R4, TA, NEW]),
  ('d2', "phrase « 1.500 » ancienne", "'Un tarif au kilomètre se tape comme 0,603.'", "'Indique le montant.'", [R4, TA, NEW]),
