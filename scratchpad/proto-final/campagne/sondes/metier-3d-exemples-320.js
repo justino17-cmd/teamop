@@ -54,7 +54,7 @@ const MESURE = (sel, larg) => `(() => { const e = document.querySelector(${JSON.
   for (const ch of CHAMPS) v('source : le champ « ' + ch.n + ' » est retrouvé avec son placeholder d\'origine', !!ch.cle, ch.src);
   const vives = new Set(CHAMPS.map(x => x.cle)); notes.push(CHAMPS.length + ' champs retrouvés dans le source (' + [...vives].length + ' placeholders d\'origine distincts)');
   // les clés que personne ne porte : mortes, vérifiées (zéro occurrence exacte du texte, hors lignes des tables)
-  const lignesSrc = SRC.split('\n'), horsTables = lignesSrc.map((l, i) => (i >= 23764 && i <= 23916) ? '' : l).join('\n');
+  const lignesSrc = SRC.split('\n'), d0 = lignesSrc.findIndex(l => /^const MET_EXEMPLES\b/.test(l)), d1 = lignesSrc.findIndex(l => /^\[MET_EXEMPLES, \.\.\.Object\.values/.test(l)); v('source : les bornes des tables d\'exemples sont retrouvées (population)', d0 > 0 && d1 > d0, d0 + '..' + d1); const horsTables = lignesSrc.map((l, i) => (i >= d0 && i <= d1) ? '' : l).join('\n');
   const toutes = new Set(); [T.ex, T.clim, ...Object.values(T.fam)].forEach(t => Object.keys(t).forEach(k => toutes.add(k)));
   const mortes = [...toutes].filter(k => !vives.has(k)); mortes.forEach(k => v('clé sans champ « ' + k + ' » : aucune occurrence exacte dans le source hors table (jamais affichée)', !horsTables.includes('"' + k + '"') && !horsTables.includes("'" + k + "'"), k));
   notes.push(mortes.length + ' clés mortes (sans champ), jamais affichées : ' + mortes.join(' · '));

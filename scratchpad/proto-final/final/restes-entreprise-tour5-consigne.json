@@ -1,0 +1,15 @@
+{
+  "noms": ["entreprise"],
+  "tour": 5,
+  "de": "session chef, décisions du 19 novembre 2026",
+  "decisions": [
+    "« Proposer un créneau » : la réponse part, rien n'est tenu sans la case Planning (tel que corrigé au tour 4) — décidé, ne pas toucher.",
+    "« Renommer… » / « Changer le logo… » : réglages LOCAUX de l'appareil (SAVED.names/SAVED.logos, rangés dans localStorage, cleStockage), rien dans les données partagées — ce n'est pas un défaut, ne pas toucher."
+  ],
+  "a_corriger": [
+    { "id": "a", "texte": "Le toast de « Confirmer le créneau » (a === 'confcren', ~l. 20142 de apercu/prototype-op-gestion.html) lit m.cren.tenus : plus de « les deux autres options sont libérées » quand rien n'était tenu. Sonde : sondes/entreprise-restes4-recontrole.js (sections a et c, doit passer de 17 ✓ · 3 ✗ à 0 ✗ ; l'ajouter ensuite à entreprise-tout.sh)." },
+    { "id": "b", "texte": "mbxLiberer ne retire du planning QUE les options que la personne a le droit de toucher (case Planning), jamais celles d'un collègue sans elle. À JOUER À DEUX PERSONNES (une avec la case Planning qui tient les options, une sans qui confirme le créneau), avec contre-épreuve et mutation." },
+    { "id": "c", "texte": "droits-table à 0 ✗ : les verbes d'Achats et de Stock (familles sxdadd, sxdcop ; aussi rembourseNote, transfertok, trfannul, reglages, piece, familles sortie, v, secv selon la sonde) nommés dans GESTES avec leur vraie catégorie ET gardés dans leur fonction (la case se lit dans la fonction qui écrit, avant la première écriture). Sonde : droits-table.js." }
+  ],
+  "ensuite": "recontrôle adverse avec mutations et contre-épreuves ; rendre compte"
+}

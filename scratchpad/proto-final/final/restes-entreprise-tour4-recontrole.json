@@ -1,0 +1,44 @@
+{
+ "noms": [
+  "Boîte mail : « Proposer un créneau » / « Proposer une visite » ne tient plus d'options au planning sans la case Planning (mbxPeutTenir)",
+  "Deux sondes d'entreprise périmées remises d'aplomb (entreprise-rapide, entreprise-destinations : le registre sanitaire est un document du métier 3D)",
+  "Entrées « à soumettre à Justin » du tour 4 (Renommer / logo d'une boîte, numéro +33, SIRET seul, secrétaire et Boîte mail, clavier d'iPhone, Voir + Créer, « Créer le client et son devis » à deux cases, droits-table)"
+ ],
+ "regles": [
+  "mbxPeutTenir : rejoué au navigateur (sondes/entreprise-restes4-creneaux.js : 12 ✓ · 0 ✗) : Boîte mail seule, Planning en Voir seul → 0 option avant et après, statut « trois créneaux proposés », indicateur tenus=false, bandeau du choix du client « proposés », réponse du client portant tenus=false ; contre-épreuve avec Planning en modifier : 0 → 3 options, « tenus en option » partout",
+  "la réponse part bien sans la case Planning (c'est un courriel) : le message est envoyé, la réponse du client arrive, le bandeau « Confirmer … » reste offert (case Interventions)",
+  "les profils de la démonstration : seul le gérant (marc) a Boîte mail ; la gestionnaire julie et les techniciens sm/kb ne l'ont pas : la correction ne change rien pour eux (planifM faux, boîte absente)",
+  "les deux sondes corrigées : le registre sanitaire n'est offert qu'aux entreprises du métier 3D (PACKS_ENT.includes('3d'), GROUPE_3D) : compter neuf fabriques de documents à Clim Services 17 et dix en 3D est juste (entreprise-rapide 21 ✓ · 0 ✗ ; entreprise-destinations 45 ✓ · 0 ✗, rejouées)",
+  "série entreprise-tout.sh en RAPIDE=1 rejouée sur la tête fusionnée : rapide 21, structure 201, champs 116, destinations 45, garde-facture 51, liens 19, lecture-seule 56, phrases 29, logo 16, restes2-bandeau 5, restes2-toast 11, restes1-recontrole g 5, restes3-bandeau 9, restes3-lien 42, restes3-blanc 30, restes3-recontrole a 7 / c 4 / d 16 / e 4 / f 14, restes4-creneaux 12 : tout à 0 ✗ (achats-lisible 33 ✓ · 1 ✗ : son plancher de 6 profils n'est pas atteint en RAPIDE, consigne de la sonde, déjà dite au tour 4)"
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "« Confirmer le créneau » dit encore « les deux autres options sont libérées » alors qu'aucune option n'a été tenue (reste de la même règle, un cran plus loin dans la chaîne)",
+   "gravite": "faible (une phrase fausse dans un toast ; aucune donnée touchée)",
+   "etapes": "Boîte mail ouverte par une personne qui a la case Boîte mail (1110) et Interventions en création mais le Planning en Voir seul → ouvrir un message de panne ou de devis d'un nouveau contact → « Proposer un créneau » → Envoyer → attendre 4 s la réponse du client → ouvrir son message « Choix de créneau » → « Confirmer samedi 31 octobre à 16 h avec Karim »",
+   "constat": "le toast dit « Intervention préremplie au créneau choisi (samedi 31 octobre à 16 h) : les deux autres options sont libérées. Vérifie et crée. » alors que BUREAU ne contient aucune option (0 → 0) et que le bandeau et le statut disaient justement « proposés ». Vu sur Mac, iPhone nuit (capture confirm-sans-iphone-nuit.png : le toast est sur la fenêtre « Nouvelle intervention ») et petit 320. Cause : apercu/prototype-op-gestion.html ligne 20142, la phrase du toast de a === 'confcren' est écrite en dur ; elle doit lire m.cren.tenus (avec : « les deux autres options sont libérées » ; sans : phrase sans option, par exemple « Intervention préremplie au créneau choisi (…) : vérifie et crée. »). Avec la case Planning la phrase est exacte (contre-épreuve : 3 → 0 options, toast juste). Sonde qui le garde : sondes/entreprise-restes4-recontrole.js (sections a et c : 17 ✓ · 3 ✗ au total, les 3 ✗ sont ce défaut ; contre-épreuve a2 toute verte)"
+  }
+ ],
+ "nouveaux": [
+  "le même défaut que ci-dessus : c'est le seul nouveau trouvé. Cherché ailleurs dans la chaîne des créneaux et rien d'autre ne tombe : le texte du courriel envoyé au client (« nous le réservons ») ne promet aucune option ; le journal et le statut lisent m.attente.tenus ; mbxReponseClient transmet tenus ; mbxOptions et mbxPurge ne tournent que sur des options existantes"
+ ],
+ "sondes": [
+  {
+   "fichier": "sondes/entreprise-restes4-creneaux.js",
+   "resultat": "12 ✓ · 0 ✗"
+  },
+  {
+   "fichier": "sondes/entreprise-restes4-recontrole.js (neuve, jouée en a et c ; elle RESTE ROUGE tant que la phrase du toast n'est pas corrigée : à ne PAS mettre dans entreprise-tout.sh avant)",
+   "resultat": "section a : 9 ✓ · 1 ✗ ; section c : 8 ✓ · 2 ✗ ; les 3 ✗ = la phrase fausse du toast"
+  },
+  {
+   "fichier": "sondes/entreprise-tout.sh RAPIDE=1 (21 sondes)",
+   "resultat": "tout à 0 ✗ sauf achats-lisible 33 ✓ · 1 ✗ (plancher de profils en RAPIDE, attendu)"
+  }
+ ],
+ "doutes": [
+  "Les entrées « à soumettre à Justin » du tour 4 restent ouvertes, aucune n'a été touchée : Renommer / Changer le logo d'une boîte en Voir seul ; le numéro +33 (0)5 … refusé comme téléphone de l'entreprise ; une facture avec le seul SIRET (point juridique : à faire relire par l'agent juriste) ; la secrétaire voit-elle la Boîte mail (la gestionnaire de la démonstration ne l'a pas aujourd'hui) ; « Répondre » promettant plus que le menu ne donne en Voir + Créer ; « Créer le client et son devis » qui ne lit que la case Devis ; le clavier d'un vrai iPhone (non vérifiable avec le navigateur émulé)",
+  "Même famille que la casse : « Confirmer le créneau » appelle mbxLiberer, qui RETIRE du planning les options tenues par un collègue qui avait la case Planning, alors que celui qui confirme n'a peut-être pas cette case (il crée l'intervention, case Interventions, qui écrit elle aussi au planning). À trancher : un retrait d'option est-il une écriture au planning ? Non rejoué avec deux personnes dans cette démonstration (une seule boîte, un seul acteur à la fois)"
+ ]
+}

@@ -590,6 +590,7 @@ html .ms-att{border:0;min-height:44px;cursor:pointer}
 html span.ms-att{min-height:0;cursor:default}   /* pour qui n’accepte pas : une étiquette, pas un bouton */
 html .ms-puces{display:flex;flex-wrap:wrap;gap:8px}html .ms-puces .puce-c{min-height:44px}
 html .ms-seg2{display:flex;max-width:100%;width:100%}html .ms-seg2 button{flex:1 1 0;min-width:0;white-space:normal;line-height:1.2;padding:6px 8px;min-height:44px}
+@media (max-width:340px){html .ms-seg2 button{padding:6px 3px;font-size:13px}}   /* « Un achat au comptoir » tenait sur TROIS lignes à 320 px (boutons à 92 px) : marges et corps réduits, il en prend deux */
 html .ms-quoi{display:flex;flex-direction:column;gap:10px;margin-top:8px}html .ms-q{min-height:76px;gap:14px;justify-content:flex-start}html .ms-q>.fo-n{flex:1 1 0;min-width:0}
 html .ms-qi{width:44px;height:44px;border-radius:14px}html .ms-qi svg{width:26px;height:26px}
 html .ms-envois{display:flex;flex-direction:column;padding:6px 14px}
@@ -602,6 +603,7 @@ html .ms-reg{display:flex;flex:none;gap:12px;align-items:flex-start;padding:12px
 html .fo-garder>span:not(.gris){display:flex;flex-direction:column;gap:2px;min-width:0}   /* le titre d'une case et sa phrase sur deux lignes, jamais collés */
 html .ms-cbar{display:flex;gap:8px;flex-wrap:wrap}html .ms-cbar .btn{min-height:44px}
 html .ms-cliste{padding:4px 14px}html .ms-csom{flex:1 1 100%}
+html .ms-cpied{gap:6px}html .ms-cpied .btn{flex:1 1 100%}   /* le pied qui reste collé en bas ne garde que la somme et le bouton qui enregistre (« Changer de lieu » est dans la barre du haut) : ~155 px de pied sur 568 mangeaient la liste, il en reste ~95 */
 html .ms-rep{display:flex;flex-direction:column;gap:8px}html .ms-big{font-size:30px;font-weight:750;line-height:1.15;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}html .ms-big .st{font-size:14px}
 html .ms-seuil{display:flex;flex-direction:column;gap:4px}html .ms-fb{display:flex;gap:8px;flex-wrap:wrap}
 html .ms-boutons{display:flex;gap:10px;flex-wrap:wrap}html .ms-boutons .btn{flex:1 1 130px}
@@ -726,7 +728,7 @@ html .fx-lg>span:first-child{flex:1 1 0;min-width:0;display:flex;flex-direction:
 html .fx-mailv{display:none}   /* l'adresse e-mail des commandes, en toutes lettres : sur un petit téléphone le champ la coupe (« …-atl »), et un champ de saisie ne passe pas à la ligne — la ligne dessous, si (voir ≤ 400 px) */
 html .fx-lg .saisie{margin:0;min-height:46px;width:min(52%,240px);flex:none}html .fx-lg .saisie[type=email]{width:min(70%,340px)}   /* « commandes@climpieces-atlantique.fr » se lit en entier (il était coupé à « …-atl ») */html .fx-lg .fx-n{width:112px;text-align:right}
 /* le choix de l'heure (dtAmeliorer) remplace le champ par un bouton « Choisir l'heure » à 100 % de large : sans cette règle il écrasait le libellé de la ligne (« Commander avant ») à 0 px */
-html .fx-lg .dt-btn{width:150px;min-width:0;flex:none;min-height:46px}
+html .fx-lg .dt-btn{width:176px;min-width:0;flex:none;min-height:46px}html .fx-lg .dt-btn span{white-space:nowrap}   /* « Choisir l’heure » passait sur deux lignes à 150 px (iPad, ordinateur) ; sur téléphone le bouton prend toute la ligne (règle ≤ 400 px) */
 html .fo-pied .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.25}   /* « Envoyer à Établissements Dupont-Delaunay… » : le nom d'un fournisseur ne fait plus sortir le bouton de la feuille (678 px dans 390) */
 html .fo-depot{flex:none}   /* la feuille est une colonne flex : la zone « Choisir le fichier » (min-height 64) se laissait écraser à 64 px sous son propre texte, et le trait pointillé coupait le titre */
 html select[data-pdxlieu]{font-size:16px}   /* « Où ranger ? » de la réception : un champ à 15 px fait zoomer la page sur un iPhone */
@@ -946,7 +948,7 @@ html .mbx-alerte{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14
 .ax-bud{padding:8px 12px;border-radius:12px;background:var(--surf-in)}
 .ax-gros,.ax-prec{padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--orange) 9%,transparent)}
 .ax-prec{background:color-mix(in srgb,var(--bleu) 9%,transparent)}
-.ax-lm{min-height:44px;text-align:left}
+.ax-lm{min-height:44px;text-align:left;margin:-12px 0;vertical-align:middle}   /* le bouton de 44 px dans une ligne de texte écartait toutes les lignes (33 px d’interligne sur iPad) : la zone reste de 44, la ligne reprend sa hauteur */
 .ax-lien{background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;display:flex;align-items:center}
 .ax-lien:hover b{text-decoration:underline;text-underline-offset:3px}
 .ax-n{align-items:flex-start}
@@ -3753,6 +3755,8 @@ table.l th.n{text-align:right}
    passent l'un sous l'autre (« Pas d’acompte » se lisait « Pas d’acco ») */
 @media (max-width:371px){.cx-kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:340px){.deux-champs:not(.deux-btn){grid-template-columns:minmax(0,1fr)}}
+/* regard technicien b (320 px) : les deux champs du plein sont empilés, et la ligne « toutes taxes comprises » collait au libellé du champ suivant (on la lisait comme son titre) : de l'air entre les deux champs */
+@media (max-width:340px){html .deux-champs.vx-ali>.champ+.champ{margin-top:14px}}
 
 /* ══ TEMPS DE TRAVAIL — refonte du 16 novembre 2026 : seulement ce que les écrans validés n'ont pas (rien d'autre : pas de teinte, de rayon ni d'ombre neufs) ══ */
 .tt-k .kpi{cursor:pointer;font:inherit}.tt-k .kpi[aria-pressed="true"]{border-color:var(--lien)}
@@ -5674,6 +5678,10 @@ const STF = { avalider:['À valider','st-o'], envoyee:['Envoyée · en attente',
 let filtreF = 'tous', reglages = { auto:false, relance:true };
 /* une ligne est prête quand elle a un nom ET un prix : sans nom, elle partirait chez le client sous « Ligne libre » (compta-ventes-02) */
 const ligneOk = l => l.pu != null && String(l.d || '').trim() !== '';
+/* La ligne qui DÉDUIT l'acompte déjà facturé est verrouillée : ni son prix ni sa quantité ne se retapent, ne s'effacent ni ne se doublent (« 2 » déduisait 100 € pour 50 € versés ; vider le prix puis taper « 50 » facturait +50 €).
+   Reconnue par le drapeau posé à sa création, ou — pour une ligne qui n'en porte pas — par son prix négatif : sur une facture à valider, seule une déduction est négative (compta-ventes, tour 6, décision du chef du 18/11). */
+const ligneAcompte = l => !!l && (l.acompte === true || l.pu < 0);
+const ACOMPTE_PHRASE = 'L’acompte se reprend tel qu’il a été facturé : son montant et sa quantité ne se retapent pas ici.';
 const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main-d’œuvre et déplacement', q:'1', pu:f.ht }];
 /* UNE seule fonction pour le total d'une ligne : celle du total de la facture (17/11, compta-ventes-11 : « Prix HT » voulait dire tantôt l'unité,
    tantôt la ligne ; la fiche, le PDF et le total de la facture lisent maintenant la même multiplication) */
@@ -5697,12 +5705,14 @@ const lignePiece = p => /[a-z]/i.test(String(p.q)) ? { d:p.nom, q:p.q, pu:p.pu !
    comptait 25,825 chacune — les lignes lues à l'écran faisaient 207,49 € pour un Total HT de 207,47 € sur un document remis au client (recontrôle, tour 3). */
 const totLigne = l => Math.round((l.pu || 0) * qteDe(l) * 100 + 1e-7) / 100;
 const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 100 + 1e-7) / 100;
+/* Les seules unités qu'une quantité tapée sait compter : aucune (un nombre), les heures (« 2 h »), et un décompte (« 3 u », « 2 pièces »). Toute autre — « forfaits », « mL », « kg » — changerait le total d'une ligne sans qu'on sache le convertir. */
+const qteUniteConnue = v => { const m = String(v).trim().match(/^(?:\d{1,4}\s?h(?:eures?)?\s?\d{0,2}(?:\s?min(?:utes?)?)?|(?:\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(h(?:eures?)?|u|unités?|pièces?|pcs?))?)$/i); return !!m; };
 /* Une durée tapée EN MINUTES (« 90 min », « 45 mn ») : sa valeur en minutes, ou null. Elle ne vaut des heures que sur une ligne facturée à l'heure (`ligneHeure`) :
    « 90 min » lu comme « 90 » au prix de l'HEURE écrivait 5 850,00 € pour 97,50 € dus, sans un mot (recontrôle, tour 3). */
 const dureeMinutes = v => { const m = String(v).trim().match(/^(\d{1,4}(?:[.,]\d+)?)\s?(?:min(?:ute)?s?|mn)$/i); return m ? parseFloat(m[1].replace(',', '.')) : null; };
 /* Une ligne est « à l'heure » par ce que SA QUANTITÉ dit (« 2h »), par le drapeau qu'une durée acceptée lui pose (`l.heure` : sans lui, la ligne cessait de l'être dès qu'elle avait reçu « 90 min », et la saisie suivante était refusée avec une phrase fausse),
    ou par une désignation d'heure DONT LE PRIX EST CELUI DE L'HEURE. Jamais par la désignation seule : « Main-d'œuvre remplacement (2 h) » d'un devis est une quantité 1 au prix des deux heures, et « 90 min » y écrivait 195 € pour 130 € dus, sans un mot (recontrôle, tour 4). */
-const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
+const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && !/forfait/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
 /* « même texte = même total » ne tient pas à la casse ni aux espaces : « 0,5 l » et « 0,5L » sont le flacon de « 0,5 L » (recontrôle, tour 3). */
 const qteNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[\s\u00a0\u202f]/g, '');
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -5721,7 +5731,7 @@ function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
-    if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
+    if (dv.acompte && dv.facAcompte) L3.push({ acompte:true, d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
     FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:dv.objet, lignes:L3, ht:0, tva:dv.tva, st:'avalider', emise:'—', ech:'—' }); dv.facSolde = 'f-' + i.id; return; }
   const kc = ctrDeVisite(i), fi = i.fact || (kc ? { mode:'contrat', tva:CLIENTS[i.cli].type === 'part' ? 10 : 20 } : null);   // une visite de contrat facturée « à chaque visite » se prépare au prix du contrat, jamais au tarif de dépannage
   if (fi) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = fi.mode, L2 = [];
@@ -9536,19 +9546,22 @@ document.addEventListener('change', ev => {
   else if (t.dataset.bc) { BROUILLON[t.dataset.bc] = t.checked; rendre(); }
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
+    /* AVANT tout le reste (plafonds, signe) : une déduction d'acompte ne se retape pas, ne se vide pas, ne devient pas positive — et le refus dit la vérité au lieu de parler d'avoir */
+    if (ligneAcompte(f.lignes[+t.dataset.prix])) { toast(ACOMPTE_PHRASE + ' Le prix précédent est conservé.'); rendre(); return; }
     if (!isNaN(v) && v >= DV_PU_MAX) { toast('Ce prix est trop grand : un montant en euros inférieur à ' + eur(DV_PU_MAX) + ' (35 ou 35,50). Le précédent est conservé.'); rendre(); return; }   /* même plafond que le forfait de création */
     { const lg = f.lignes[+t.dataset.prix];   /* le plafond vaut aussi pour le TOTAL de la ligne : 9 999 × 999 999,99 € donnait près de 10 milliards, sans un mot */
       if (!isNaN(v) && v * qteDe(lg) > DV_PU_MAX) { toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse le prix ou la quantité. Le prix précédent est conservé.'); rendre(); return; } }
     /* un prix qu'on ne sait pas lire se DIT : « -10,33 » vidait le prix en silence et la ligne devenait « à chiffrer » sans raison (recontrôle, tour 4). Effacer le champ, lui, reste « à chiffrer ». */
-    { const lg0 = f.lignes[+t.dataset.prix];   /* une DÉDUCTION (l'acompte déjà facturé, prix négatif) ne change pas de signe en retapant « 40 » : le client paierait l'acompte une seconde fois au lieu de le déduire */
-      if (lg0.pu < 0 && t.value.trim() !== '') { toast('Cette ligne déduit un acompte déjà facturé : son montant ne se retape pas ici. Le prix précédent est conservé.'); rendre(); return; } }
     if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
+    if (ligneAcompte(l)) { t.value = l.q; toast(ACOMPTE_PHRASE + ' Je garde ' + (l.q || '1') + '.'); return; }   /* la quantité d'une déduction non plus : « 2 » déduisait l'acompte deux fois */
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mn = dureeMinutes(v);
     if (mn !== null && !(mn > 0 && ligneHeure(l))) { t.value = l.q; toast(mn > 0 ? 'Une durée en minutes se compte sur une ligne facturée à l’heure : écris-la en heures (1h30), ou une quantité. Je garde ' + (l.q || '1') + '.' : 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }
+    /* UNE unité que la ligne ne sait pas convertir se REFUSE : « 3 forfaits » ou « 250 mL » sur un flacon multipliaient le prix par 3 ou par 250, sans un mot. Sont lues : un nombre seul, une durée (2h, 1h30) et un décompte (u, pièce) ; le texte d'origine d'une ligne préparée (« 0,5 L ») redonne son propre total */
+    if (mn === null && !(l.q0 != null && qteNorm(v) === qteNorm(l.q0)) && qteLire(v) !== null && !qteUniteConnue(v)) { const un = (v.match(/^[\d\s\u00a0\u202f.,]+(\S.*)$/) || [])[1] || ''; t.value = l.q; toast('Je ne sais pas compter en « ' + un.trim() + ' » sur cette ligne : écris un nombre (2) ou une durée (1h30). Je garde ' + (l.q || '1') + '.'); return; }
     const lu = mn !== null ? mn / 60 : qteLire(v), nq = (l.q0 != null && qteNorm(v) === qteNorm(l.q0)) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
     if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
     if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + DV_Q_MAX.toLocaleString('fr-FR') + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
@@ -13650,7 +13663,7 @@ function paieBulletinDoc(k, ym){
       <tr><td>Montant net social</td><td style="text-align:right">${nbFr(b.netSocial)}</td></tr>
       <tr><td>Total versé par l’employeur</td><td style="text-align:right">${nbFr(b.cout)}</td></tr></tbody></table>
     <div class="deux" style="margin-top:10px"><div><h6>Cumuls de l’année</h6>Salaire brut ${nbFr(b.cumulBrut)} € · net imposable ${nbFr(b.cumulImp)} €</div><div><h6>Congés payés</h6>${S.statut === 'cadre' ? 'Selon le mandat social' : 'Gérés par la caisse des congés payés du bâtiment (CIBTP)'}</div></div>
-    <div class="pdf-pied">Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.</div></div>`;
+    <div class="pdf-pied">${enApp() ? 'Conservez ce bulletin sans limitation de durée.' : `Prototype : taux d’exemple (barèmes 2025), plafond de la sécurité sociale ${nbFr(PAIE_TX.pmss)} €, données fictives. Un vrai bulletin est calculé avec les barèmes en vigueur et la convention collective, puis déclaré en DSN : à faire valider par l’expert-comptable. Conservez ce bulletin sans limitation de durée.`}</div></div>`;   /* en mode application, la fiche est celle que reçoit la personne : elle ne parle pas de prototype ni de données fictives (compta-reste-06) */
 }
 
 /* ─── l'espace « Paie » de la Comptabilité ─── */
@@ -13663,7 +13676,7 @@ function paieComptabiliser(){
   if (!secuGarde('paie-compta', () => paieComptabiliser())) return;
   if (CP.envoye) return toast('Octobre est envoyé : l’écriture de paie s’écrira en novembre.'); if (!(PAIE.valide || (PAIE.mode === 'cabinet' && PAIE.distribue))) return toast('D’abord valider les fiches de paie.'); PAIE.compta = { le:'31/10 · ' + hNow() }; rendre(); return toast('Écriture de paie passée : journal Paie, PA-001.');
 }
-const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') RETOUR.garde = () => { TT.garder = true; }; } else aller('comptabilite'); };
+const paieAller = o => { if (o === 'fiches' && !secuGarde('paie-fiches', () => paieAller(o))) return; cpSysteme = false; fermerPanneau(); CP.onglet = o; const dou = ({ pointage:'Temps de travail', mesheures:'Mes heures', planning:'Planning', accueil:'l’accueil' })[route]; if (route === 'comptabilite') rendre(); else if (dou) { allerAvecRetour('comptabilite', dou, () => {}); if (RETOUR && RETOUR.route === 'pointage') { RETOUR.garde = () => { TT.garder = true; }; TT.viaPaie = true; } } else aller('comptabilite'); };
 function paieVueMois(){ return ptVuePaie(); }
 function paieVueFiches(){
   const F = paieFiches(), etat = PAIE.distribue ? '<span class="st st-v">Distribuée</span>' : PAIE.valide ? '<span class="st st-b">Validée</span>' : PAIE.calc ? '<span class="st st-o">À vérifier</span>' : '<span class="st">Provisoire</span>';
@@ -14396,7 +14409,7 @@ document.addEventListener('click', ev => {
   const b = t.closest('[data-cpsys]'); if (!b) return; const a = b.dataset.cpsys;
   if (a === 'ouvrir') { cpSysteme = true; rendre(); }
   else if (a === 'quotidien') { cpSysteme = false; CP.onglet = 'ensemble'; if (route === 'comptabilite') { rendre(); scrollTo({ top:0 }); } else aller('comptabilite'); }
-  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; calRevenirA(d) || aller(d); }
+  else if (a === 'retour') { cpSysteme = false; if (cpSysDe === 'comptabilite') { cpSysDe = null; rendre(); scrollTo({ top:0 }); return; } const d = cpSysDe || 'accueil'; cpSysDe = null; /* un panneau ou le tiroir du cadre ouvert est une entrée d'historique : elle part D'ABORD (un recul), puis on recule d'une entrée de plus vers l'écran d'avant — sans quoi calRevenirA refuse et aller() AJOUTE une entrée : [Clients, Accueil, Comptabilité, Accueil], un Retour muet puis la Comptabilité qui se rouvre */ if (!calAvantAller(() => calRevenirA(d) || aller(d))) calRevenirA(d) || aller(d); }
 }, true);
 document.addEventListener('keydown', ev => { const z = document.getElementById('cpsys'); if (ev.key === 'Escape' && z && !z.hidden) { const b = z.querySelector('[data-cpsys="retour"]'); if (b) b.click(); } });
 /* ══ LA VOIX DU GUIDE (Justin, 10 novembre 2026 : « un guide avec une voix qui me parle, qui m'explique tout, à quoi ça consiste,
@@ -16773,10 +16786,10 @@ function matCVue(){
     return `<div class="mat-l"><span class="fo-n"><b>${escN(x.nom)}</b><span class="${e ? 'mc-o' : 'gris'} petit">${e ? phraseE(e) : 'Prévu ' + prNum(a)}</span></span><span class="mat-pas"><button type="button" data-ms="cmoins|${x.id}" aria-label="Moins de ${esc(x.nom)}">−</button><input inputmode="decimal" data-mscq="${x.id}" value="${prNum(c)}" aria-label="Compté : ${esc(x.nom)}"><button type="button" data-ms="cplus|${x.id}" aria-label="Plus de ${esc(x.nom)}">＋</button></span>${e && x.pa ? `<span class="gris petit ms-ev€">${eur(e * x.pa)}</span>` : ''}</div>`; };
   const corps = C.grp ? [...new Set(A.map(x => x.cat))].map(c => `<details class="ms-cat" open><summary class="groupe">${esc(c)}</summary>${A.filter(x => x.cat === c).map(ligne).join('')}</details>`).join('') : A.map(ligne).join('');
   foOuvrir(`<span class="surtitre">Stock</span><h2>Compter ${esc(nom)}</h2><span class="gris">Dernier comptage : ${msQuand(j).replace('compté ', '')}.</span>
-    <div class="ms-cbar"><button type="button" class="btn gris" data-ms="ctout">Tout est juste</button><button type="button" class="btn gris" data-ms="cgrp" aria-pressed="${C.grp}">${C.grp ? 'Tout afficher à plat' : 'Compter par catégorie'}</button></div>
+    <div class="ms-cbar"><button type="button" class="btn gris" data-ms="ctout">Tout est juste</button><button type="button" class="btn gris" data-ms="cgrp" aria-pressed="${C.grp}">${C.grp ? 'Tout afficher à plat' : 'Compter par catégorie'}</button><button type="button" class="btn gris" data-ms="cpt|">Changer de lieu</button></div>
     <span class="gris petit">Pour chaque article, dis combien il y en a. Touche seulement ceux qui sont différents.</span>
     <div class="carte ms-cliste">${corps || '<div class="gris">Rien à compter ici pour l’instant.</div>'}</div>
-    <div class="fo-pied"><span class="gris petit ms-csom">${E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.'}</span><button type="button" class="btn" data-ms="cok">Enregistrer le comptage</button><button type="button" class="btn gris" data-ms="cpt|">Changer de lieu</button></div>`, true);
+    <div class="fo-pied ms-cpied"><span class="gris petit ms-csom">${E.length ? `${sxPl(E.length, 'écart')} · ${val >= 0 ? '+' : ''}${eur(val)}` : 'Aucun écart pour l’instant.'}</span><button type="button" class="btn" data-ms="cok">Enregistrer le comptage</button></div>`, true);
 }
 /* PENDANT la frappe, l’écart et le pied se mettent à jour SUR PLACE (la feuille ne se redessine pas : le curseur resterait nulle part) ; le redessin complet, lui, attend « change » */
 function matCMajPlace(t){
@@ -18305,8 +18318,9 @@ function ttMoisPers(k){
 
 /* ── le cadre ── */
 function ttVue(){
-  if (TT.avant !== 'pointage' && !TT.garder) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
-  TT.garder = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
+  /* le retour du SYSTÈME (balayage, bouton Retour d'Android, history.back) ramène de la Paie sans passer par la barre « ‹ Revenir » : on a quitté Temps de travail par « Voir la paie », on le retrouve tel qu'on l'a laissé */
+  if (TT.avant !== 'pointage' && !TT.garder && !(TT.avant === 'comptabilite' && TT.viaPaie)) { ptOnglet = 'auj'; ptSem = 0; TT.filtre = null; }
+  TT.garder = false; TT.viaPaie = false; if (!['auj', 'semaine', 'mois'].includes(ptOnglet)) ptOnglet = ptOnglet === 'paie' ? 'mois' : 'auj';
   Object.keys(PT_VALIDE).forEach(x => { if (PT_VALIDE[x]) TT.vus[x] = true; });   // de quoi dire « à revalider » quand une heure bouge après la validation
   const E = ttEtats(), R = ttAReglerLignes(), n = e => E.filter(e).length, travail = n(e => e.etat === 'travail' || e.etat === 'pause'), attendus = n(e => e.etat === 'attendu'), abs = E.filter(e => e.etat === 'absent');
   const kpi = (cle, nb, lib) => `<button type="button" class="kpi" data-tt="filtre|${cle}" aria-pressed="${TT.filtre === cle && ptOnglet === 'auj'}"><b>${nb}</b><span>${lib}</span></button>`;
@@ -18318,7 +18332,7 @@ function ttVue(){
     <div class="seg" role="tablist" aria-label="Temps de travail">${[['auj', 'Aujourd’hui'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, l]) => `<button type="button" role="tab" data-tt="onglet|${k}" aria-pressed="${ptOnglet === k}" aria-selected="${ptOnglet === k}">${l}${k === 'auj' && R.length ? ` <span class="t-nb rouge">${R.length}</span>` : ''}</button>`).join('')}</div>
     ${corps}`;
 }
-(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; return v; }; })();
+(() => { const r0 = rendre; rendre = function(){ const v = r0.apply(this, arguments); TT.avant = route; if (route !== 'comptabilite') TT.viaPaie = false; return v; }; })();
 
 /* ── les feuilles ── */
 /* écrire une heure est une case à part (« Corriger les pointages ») : lue à la porte de CHAQUE fonction qui écrit, pas seulement par la garde des clics */
@@ -19169,7 +19183,7 @@ function vxSouciPanel(vid){
   const v = vehDe(vid); if (!v) return;
   ouvrirPanneau(`${vhEnt(v)}<h2>Un souci avec le camion</h2><span class="gris">Le bureau est prévenu tout de suite : une tâche urgente est créée.</span>
     <div class="vh-q"><b>Qu’est-ce qui ne va pas ?</b>${vhChoix('vx-st', [['Voyant allumé', 'Un voyant s’est allumé'], ['Pneu', 'Un pneu'], ['Choc ou rayure', 'Un choc'], ['Autre', 'Autre chose']], '', 'Le souci', true)}</div>
-    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange du moteur, sur la rocade" autocomplete="off"></label>
+    <label class="champ"><span>Un mot pour le bureau <span class="faible">(facultatif)</span></span><input id="vx-sx" placeholder="ex. voyant orange au tableau" autocomplete="off"></label>
     <label class="btn gris vh-photo">Photo<input type="file" accept="image/*" capture="environment" id="vx-sp" hidden></label><span class="gris petit" id="vx-spn">Facultative.</span>
     <div id="vx-al"></div>
     ${vhGros(`soucisok|${v.id}`, 'Prévenir le bureau')}`);
@@ -19363,7 +19377,7 @@ const vhPl = (n, un, pl) => n + ' ' + (n > 1 ? (pl || un + 's') : un);
 const vhJM = d => jlong(d).split(' ').slice(1).join(' ');                 // « 28 octobre »
 const vhDL = d => vhJM(d) + ' ' + d.slice(0, 4);                          // « 11 décembre 2026 »
 const vhNom = v => v.marque + (v.modele ? ' ' + v.modele : '');
-const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^[aeiouyàâéèêîôû]/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert »
+const vhCourt = v => { const m = (v.modele || '').split(' ')[0] || v.marque; return (/^(?:[aeiouàâäéèêëîïôöûüœ]|ypsilon)/i.test(m) ? 'l’' : 'le ') + m; };   // « le Kangoo », « l’Expert » : l'élision se dit, jamais « le Expert » ; le « y » est une CONSONNE (« le Yaris », « le Yeti », « le Yamaha ») sauf dans Ypsilon, seule voiture dont le nom se dit « i »
 const vhEuro2 = n => n.toLocaleString('fr-FR', { minimumFractionDigits:2, maximumFractionDigits:2 }).replace(/ /g, ' ') + ' €';
 const vhSans = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const vhPren = k => k ? prenomDe(k) : '';
@@ -21535,9 +21549,12 @@ eqInviter = function () {
 function eqxRestes(k) {
   const ints = INTS.filter(i => i.tech === k && i.st !== 'fait' && i.st !== 'annulee' && i.d >= AUJ);
   const veh = VEHICULES.filter(v => v.conducteur === k), taches = TACHES.filter(t => !t.fait && t.qui === k);
-  const pt = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k) && !PT_VALIDE[k + lundi(AUJ)];
+  /* une semaine ne se valide qu'une fois FINIE (ttSemFinie) : « pas encore validé » n'est une alerte que pour la semaine d'AVANT, que l'administrateur peut valider ; la semaine en cours se dit à part, sans alerte */
+  const ptGen = typeof PT_GENS !== 'undefined' && PT_GENS.includes(k), L0 = lundi(AUJ), Lp = ajoute(L0, -7);
+  const pt = ptGen && ttSemFinie(Lp) && !PT_VALIDE[k + Lp] && POINTAGES.some(o => o.qui === k && lundi(o.date) === Lp);
+  const ptEnCours = ptGen && !ttSemFinie(L0) && !PT_VALIDE[k + L0];
   const cp = typeof aSolde === 'function' && EQX_BASE.includes(k) ? aSolde(k, 'Congé payé') : null;
-  return { ints, veh, taches, pt, cp };
+  return { ints, veh, taches, pt, ptEnCours, cp };
 }
 function eqxMeilleur(i, sauf) {
   const R = aRemplacants(i, sauf).filter(r => !eqxManque(i, r.t.id).length);
@@ -21554,7 +21571,8 @@ function eqxDepart(k) {
       <details class="eqx-anc"><summary>Voir ce qui est proposé</summary>${prop.map(({ i, r }) => `<span class="gris petit">${jCourt(i.d)} · ${i.h} · ${esc(i.titre)} → <b>${r ? esc(r.t.nom) : 'à planifier'}</b></span>`).join('')}</details></div>` : ''}
     ${R.veh.length ? `<div class="carte eqx-dep"><h3>${esc(R.veh.map(v => v.plaque).join(', '))} · véhicule</h3><label class="champ">Passer à<select id="eqx-dveh"><option value="">Sans conducteur</option>${eqxConducteurs().filter(o => o !== k).map(o => `<option value="${o}">${esc(H_NOM(o))}</option>`).join('')}</select></label></div>` : ''}
     ${R.taches.length ? `<div class="carte eqx-dep"><h3>${eqxPl(R.taches.length, 'tâche')} en cours</h3><label class="champ">Confier à<select id="eqx-dtac">${autres.map(o => `<option value="${o.k}" ${o.k === 'marc' ? 'selected' : ''}>${esc(eqNom(o))}</option>`).join('')}</select></label></div>` : ''}
-    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.pt ? `<div class="a-alerte"><b>Pointage de la semaine dernière pas encore validé</b>${droitVoit('pointage') ? `<button type="button" class="lien" data-eq="heures|${k}">Ouvrir ses heures ›</button>` : ''}</div>` : ''}
+    ${R.ptEnCours ? `<span class="gris petit">Sa semaine en cours se validera une fois finie, lundi prochain.</span>` : ''}
     ${R.cp && R.cp.reste > 0 ? `<div class="a-alerte"><b>${String(R.cp.reste).replace('.', ',')} j de congés payés restants</b><small>À signaler pour la paie, avec ton expert-comptable.</small></div>` : ''}
     <div class="actions"><button type="button" class="btn rouge" data-eqx="desactok|${k}">Désactiver et reporter</button><button type="button" class="btn gris" data-pretour="1">Annuler</button></div>`);
 }

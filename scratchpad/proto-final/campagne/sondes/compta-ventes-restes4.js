@@ -30,8 +30,11 @@ const X = require('./compta-ventes-outils.js'), L = X.L;
   // 3. casse et espaces de la pièce
   for (const v of ['0,5 l', '0,5L', '0,5 L', '0,5 l', ' 0,5  L ']) { await saisir(2, v); const l = (await lg())[2];
     L.v(`pièce « ${v} » = le même flacon (10,33 €)`, Math.abs(l.total - 10.33) < 0.006, l.total); }
-  for (const [v, att] of [['1', 10.33], ['2', 20.66], ['250 mL', 2582.5]]) { await saisir(2, v); const l = (await lg())[2];
+  for (const [v, att] of [['1', 10.33], ['2', 20.66]]) { await saisir(2, v); const l = (await lg())[2];
     L.v(`pièce « ${v} » : l'ancienne règle tient (${att} €)`, Math.abs(l.total - att) < 0.006, l.total); }
+  // tour 6 (décision du chef du 18/11) : « 250 mL » sur un flacon multipliait le prix par 250 sans un mot — une unité que la ligne ne sait pas convertir est REFUSÉE
+  await saisir(2, '1'); await saisir(2, '250 mL'); { const l = (await lg())[2], t = await X.toasts(p);
+    L.v('pièce « 250 mL » : refusée avec une phrase, le flacon reste à 10,33 €', Math.abs(l.total - 10.33) < 0.006 && /sais pas compter/.test(t), l.total + ' · ' + t); }
   await saisir(2, '0,5 L');
   // 2. addition des lignes
   await p.evaluate(() => { const f = FACTURES.find(x => x.id === 'fx-r4'); f.lignes = lignesDe(f); f.lignes[1].q = '2,5'; f.lignes[1].qn = 2.5; f.lignes[1].pu = 10.33; f.lignes.push({ d: 'Joint', q: '2,5', qn: 2.5, pu: 10.33 }, { d: 'Filtre', q: '2,5', qn: 2.5, pu: 10.33 }); rendre(); });
