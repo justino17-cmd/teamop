@@ -2,7 +2,7 @@
 //  E1 : le cadre ouvert depuis la Comptabilité « classique » (Factures et paiements, puis le menu) : cpSysDe vaut 'comptabilite' et le recul ne sert pas — panneau ouvert puis « ‹ OP GESTION » : historique sain
 //  E2 : le panneau est fermé par le Retour DU NAVIGATEUR, puis « ‹ OP GESTION » (aucune couche) : le recul d'une entrée, Clients ensuite
 //  E3 : panneau fermé par sa croix (Réglages) puis « ‹ OP GESTION » : même résultat que sans panneau
-//  E4 : panneau ouvert, « ‹ OP GESTION », on rouvre la Comptabilité, on ferme le panneau par Retour, puis « ‹ OP GESTION » : jamais deux Retour muets d'affilée
+//  E4 : panneau ouvert, « ‹ OP GESTION », on rouvre la Comptabilité (plus de panneau, règle du tour 3), Retour, Retour : jamais deux Retour muets d'affilée
 // Rend « N ✓ · M ✗ », sort en 1 si un contrôle tombe. PROFIL=android|iphone|mac|ipad|windows|petit ; NUIT=1 ; QUI=marc|julie|sm|kb.
 const C = require('../../sondes/retour-commun.js'), L = C.L, v = C.v;
 const PROFIL = process.env.PROFIL || 'android', NUIT = !!process.env.NUIT, QUI = process.env.QUI || 'marc';
@@ -92,21 +92,23 @@ const doutes = [], dit = o => { doutes.push(o); console.log('  ?', JSON.stringif
     await L.fin(c);
   }
 
-  // ── E4 : panneau, « ‹ OP GESTION », la Comptabilité rouverte (le panneau est encore là), fermé par Retour, puis « ‹ OP GESTION » : aucun Retour muet d'affilée
+  // ── E4 : panneau, « ‹ OP GESTION », la Comptabilité rouverte, puis Retour : aucun Retour muet d'affilée.
+  //        PORTÉ sur la règle du tour 3 (retour-restes3-compta.js D2, « ‹ OP GESTION » FERME le panneau) : avant, le panneau restait ouvert au retour et le premier Retour
+  //        le fermait sans quitter l'écran. Même promesse gardée (jamais deux Retour qui ne font rien, jamais de retour dans la Comptabilité) sur l'état d'aujourd'hui :
+  //        au retour il n'y a plus de panneau, donc le PREMIER Retour quitte la Comptabilité pour l'écran d'origine, le second continue d'avancer.
   {
     const c = await ouvrirCtx(), p = c.p;
     const O = await placer(p);
     let f = await entrerCompta(c, 'accueil'); await reglages(f, p);
     await barre(p); await p.waitForTimeout(1200); await L.calme(p, 300);
     f = await entrerCompta(c, 'accueil');
-    await C.retour(p);                           // ferme le panneau resté ouvert
     const e0 = await etat(p);
-    v('E4 le Retour ferme le panneau resté ouvert et reste dans la Comptabilité (population) — ' + e0.h, e0.h === '#comptabilite' && e0.pousse === 0, e0);
-    await barre(p); await p.waitForTimeout(1200); await L.calme(p, 300);
+    v('E4 au retour dans la Comptabilité le panneau n\'est plus là et l\'historique est sain (population) — ' + e0.h, e0.h === '#comptabilite' && e0.pousse === 0 && e0.pile === '' && e0.cpCalque === false, e0);
+    await C.retour(p); await p.waitForTimeout(900); await L.calme(p, 300);
     const e = await etat(p);
-    v('E4 « ‹ OP GESTION » : écran d\'origine, historique sain — ' + e.h, e.h === '#' + O.orig && !e.cpsys && e.pousse === 0 && !e.off, e);
-    const hs = []; for (let i = 0; i < 2; i++) { await C.retour(p); hs.push(await hash(p)); }
-    v('E4 deux Retour d\'affilée : jamais deux fois la même adresse, jamais la Comptabilité — ' + hs.join(' → '), hs[0] !== hs[1] && !hs.includes('#comptabilite'), hs);
+    v('E4 UN Retour quitte la Comptabilité : écran d\'origine, historique sain — ' + e.h, e.h === '#' + O.orig && !e.cpsys && e.pousse === 0 && !e.off, e);
+    const hs = [e.h]; for (let i = 0; i < 2; i++) { await C.retour(p); hs.push(await hash(p)); }
+    v('E4 deux Retour de plus : jamais deux fois de suite la même adresse, jamais la Comptabilité — ' + hs.join(' → '), hs[0] !== hs[1] && hs[1] !== hs[2] && !hs.includes('#comptabilite'), hs);
     v('E4 aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
   }

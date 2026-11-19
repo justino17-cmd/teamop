@@ -28,13 +28,15 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       v(nom + ' · population : Sophie conduit le Trafic et l\'écran Camion est ouvert', pop.veh && pop.page && pop.h1 === 'Mon camion', pop);
       const e = await etat(c);
       v(nom + ' · en-tête : le véhicule en surtitre, « Mon camion », UNE phrase d\'état', e.sur === 'Renault Trafic L2H1 · GH-482-KL' && e.h1 === 'Mon camion' && e.phrase === 'Papiers et entretien : en règle.' && /ve-vt/.test(e.cl), e);
-      const k = await ev(c, () => { const b = document.querySelector('#mc-vehicule .vh-cam'); const bt = b ? [...b.querySelectorAll('button')] : [];
+      const k = await ev(c, () => { const petitEcran = matchMedia('(max-width:340px) and (max-height:600px)').matches; const b = document.querySelector('#mc-vehicule .vh-cam'); const bt = b ? [...b.querySelectorAll('button')] : [];
         const pos = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + scrollY : -1; };
         return { h3:b && b.querySelector('h3').textContent, libs:bt.map(x => x.textContent.trim()), data:bt.map(x => x.dataset.vx), noir:bt.map(x => x.classList.contains('gris') ? 'gris' : 'noir'), km:b && b.querySelector('.petit').textContent.replace(/\s+/g, ' '),
-          avant:pos('#mc-vehicule') > pos('.mc-gros') && pos('#mc-vehicule') < pos('[data-vis="camion-manque"]'), garage:!!document.querySelector('.mc-garage'), msgs:[...document.querySelectorAll('#contenu h3')].some(h => /Messages? du bureau/.test(h.textContent)), ancien:!!document.querySelector('.vx-cam'), cartes:document.querySelectorAll('#contenu .vh-cam').length }; });
+          avant:pos('#mc-vehicule') > pos('.mc-gros') && (petitEcran ? pos('#mc-vehicule') > pos('[data-vis="camion-manque"]') : pos('#mc-vehicule') < pos('[data-vis="camion-manque"]')), garage:!!document.querySelector('.mc-garage'), msgs:[...document.querySelectorAll('#contenu h3')].some(h => /Messages? du bureau/.test(h.textContent)), ancien:!!document.querySelector('.vx-cam'), cartes:document.querySelectorAll('#contenu .vh-cam').length }; });
       v(nom + ' · la carte « Le camion » : trois boutons aux mots exacts (plein noir, compteur et souci gris), sans émoji', k.h3 === 'Le camion' && JSON.stringify(k.libs) === JSON.stringify(['Noter un plein', 'Relever le compteur', 'Un souci avec le camion']) && !k.libs.some(l => EMOJI.test(l)) && k.noir.join() === 'noir,gris,gris', k);
       v(nom + ' · …elle porte le kilométrage et la date du dernier relevé, une seule carte', /^48 210 km · relevé le 6 octobre$/.test(k.km) && k.cartes === 1, k.km);
-      v(nom + ' · …et se pose entre les gros boutons du stock et la liste de ce qui manque (le plein se note sans défiler)', k.avant, k);
+      // ORDRE DÉCIDÉ SUR 320 × 568 (CSS « écran de 320 × 568 », restes technicien 2) : la liste de ce qui manque passe d'abord, la carte juste dessous — sinon aucune pièce n'est visible sans
+      // défiler. Partout ailleurs la carte se pose AVANT la liste. La promesse gardée est la même (« Il manque à bord » visible ET la carte à portée), sur l'ordre décidé de chaque taille.
+      v(nom + (profil === 'petit' ? ' · …et sur 320 × 568 elle se pose APRÈS la liste de ce qui manque (ordre décidé : une pièce reste visible sur le premier écran) et après les gros boutons' : ' · …et se pose entre les gros boutons du stock et la liste de ce qui manque (le plein se note sans défiler)'), k.avant, k);
       v(nom + ' · le fait n\'est écrit qu\'une fois : plus de « Ton camion est au garage. » à part, plus de bloc « Messages du bureau » sur Camion, plus de carte « Mon véhicule »', !k.garage && !k.msgs && !k.ancien, k);
       if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · zéro erreur JavaScript (structure)', c.err.length === 0, c.err.slice(0, 3));
       await L.fin(c);
@@ -96,7 +98,8 @@ const EMOJI = /\p{Extended_Pictographic}/u;
         await toucher(c, '#calque [data-vx="pleinok"]'); await L.calme(c.p, 400);
         const n1 = await ev(c, () => ({ ach:ACHATS.length, ndf:NDF.length, dernier:(ACHATS.find(x => /Carburant · GH-482-KL/.test(x.objet)) || {}).objet }));
         v(nom + ' · plein : 3 touchers (Camion, Noter un plein, Enregistrer), un achat est écrit (carte de l\'entreprise)', touches === 3 && n1.ach === n0.ach + 1 && /Carburant · GH-482-KL/.test(n1.dernier || ''), { touches, n0, n1 });
-        v(nom + ' · plein : la page n\'a pas défilé', await ev(c, () => scrollY === 0 && document.getElementById('contenu').scrollTop === 0), null);
+        if (profil === 'petit') v(nom + ' · plein : sur 320 × 568 la carte est sous la liste : UN défilement (au plus un écran) la met à portée, rien de plus', await ev(c, () => { const y = Math.max(scrollY, document.getElementById('contenu').scrollTop); return y > 0 && y <= innerHeight; }), await ev(c, () => ({ y:scrollY, ct:document.getElementById('contenu').scrollTop, H:innerHeight })));
+        else v(nom + ' · plein : la page n\'a pas défilé', await ev(c, () => scrollY === 0 && document.getElementById('contenu').scrollTop === 0), null);
         if (c.err.length) console.log(c.err.slice(0, 3)); v(nom + ' · zéro erreur JavaScript (plein)', c.err.length === 0, c.err.slice(0, 3)); await L.fin(c); }
       // D2 · le compteur : 3 touchers, un relevé s'écrit ; un compteur plus bas est refusé
       { const c = await ouvrirSm(profil, nuit); await L.aller(c.p, 'majournee'); const km0 = await ev(c, () => vehDe('veh1').km);
@@ -126,6 +129,8 @@ const EMOJI = /\p{Extended_Pictographic}/u;
       v(nom + ' · cibles : chaque bouton fait au moins 44 px de haut (' + g.b.map(x => x.h).join('/') + ')', g.b.every(x => x.h >= 44), g.b);
       if (profil === 'iphone') { v(nom + ' · sur 390 × 844 : « Noter un plein » est visible en entier, au-dessus de la barre du bas, sans défiler', g.b[0].bas <= g.bar, g);
         v(nom + ' · …et la première ligne de ce qui manque (la porte du Matériel) reste dans l\'écran (' + g.manque + ' < ' + g.H + ')', g.manque !== null && g.manque < g.H, g); }
+      else if (profil === 'petit') { v(nom + ' · sur 320 × 568 : la première ligne de ce qui manque reste au-dessus de la barre du bas (' + g.manque + ' < ' + g.bar + ') — c\'est ce que l\'ordre décidé garde', g.manque !== null && g.manque < g.bar, g);
+        v(nom + ' · …et « Noter un plein » est à UN défilement (commence à ' + g.b[0].haut + ' px, au plus ' + (2 * g.H) + ')', g.b[0].haut < 2 * g.H, g); }
       else v(nom + ' · le bouton « Noter un plein » commence dans l\'écran (' + g.b[0].haut + ' < ' + g.H + ')', g.b[0].haut < g.H, g);
       const d = await L.deborde(c); v(nom + ' · aucun débordement latéral (largeur ' + d.largeur + ')', d.bouge === 0 && d.seconde <= d.largeur, d);
       if (c.doigt) { const t = await L.doigts(c.p, '#mc-vehicule'); v(nom + ' · aucune cible tactile sous 44 px dans la carte, aucun texte écrasé', t.petits.length === 0 && t.ecrases.length === 0, t); }

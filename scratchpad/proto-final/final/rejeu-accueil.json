@@ -1,0 +1,25 @@
+{
+  "familles": ["accueil", "technicien", "clients", "client", "interventions"],
+  "passages": [
+    { "sondes": 202, "vertes": 191, "rouges": 11, "sansTotal": 0, "note": "1er passage (arrêté au délai pendant « technicien »)" },
+    { "sondes": 91, "vertes": 89, "rouges": 2, "sansTotal": 0, "note": "technicien + interventions après corrections ; accueil, client, clients rejoués seuls, verts" }
+  ],
+  "defautsDuChef": [
+    { "n": 1, "etat": "corrigé", "preuve": "clients-restes5 D1b (dictée, 3 lettres, formes juridiques, « bar à vin ») ; mutations : formes juridiques 22/2 ✗, 3 lettres 23/1 ✗" },
+    { "n": 2, "etat": "corrigé", "preuve": "dictée au plus grand nombre de mots ; mutation « premier venu » 20/4 ✗, « pierre » composé 22/2 ✗" },
+    { "n": 3, "etat": "corrigé", "preuve": "motsLongs() + .mot-long : clients-nom-long-vues 34 ✓ sur 11 profils × jour/nuit × gérant/technicien ; mutation (seuil) : 13 vues rouges ; N4 : restes-securite-tour4-recontrole-b 168 ✓ · 0 ✗" },
+    { "n": 4, "etat": "corrigé", "preuve": "interventions-restes-tour8 A : mémoire vidée à aller()/lireHash/sessionFermer ; mutation : 15 ✓ · 1 ✗ puis 14 ✓ · 2 ✗ (gardes redondantes)" },
+    { "n": 5, "etat": "corrigé", "preuve": "toastDegager() ; tour8 B sur 8 hauteurs (360×400, 390×350, 667×375, 740×360, 390×520, 360×740, 390×844, 320×568) 19 ✓ ; mutation 9 ✓ · 7 ✗" }
+  ],
+  "lignes": [
+    { "sonde": "accueil-recontrole-divers", "constat": "export dit « Factures et paiements »", "cause": "sonde périmée", "decision": "puce renommée « Factures » (3e2db8d1)", "changement": "motif porté sur « filtré à l’écran : Factures »", "preuve": "vert" },
+    { "sonde": "interventions-retour, interventions-parcours-bureau B9", "constat": "retour navigateur", "cause": "sonde périmée", "decision": "un doublon masqué du lien data-go existe", "changement": ":visible", "preuve": "3 ✓ / 42 ✓" },
+    { "sonde": "interventions-parcours-bureau B4", "constat": "TVA 10 % non lue", "cause": "sonde périmée", "decision": "espace insécable avant %", "changement": "\\s*%", "preuve": "42 ✓" },
+    { "sonde": "interventions-restes-tour2-recontrole", "constat": "« L » et prix négatif", "cause": "sonde périmée", "decision": "unité inconnue refusée, seule une déduction est négative (compta-ventes tour 6, 2829163c)", "changement": "attendus portés sur le refus", "preuve": "26 ✓" },
+    { "sonde": "interventions-restes-tour4-recontrole", "constat": "« 1.234,5 » accepté", "cause": "sonde périmée", "decision": "e95e77c8 : lu comme un nombre", "changement": "déplacé dans les acceptés", "preuve": "59 ✓" },
+    { "sonde": "client-gestes", "constat": "cible non atteinte (Voir, Copier l’IBAN)", "cause": "sonde périmée", "decision": "l’aperçu PDF est une couche de Retour (b2ad1978) ; déjà rouge avant mes changements (7aa4b20e)", "changement": "fermeture des couches entre gestes", "preuve": "257 ✓ · 0 ✗" }
+  ],
+  "reste": [
+    { "sonde": "interventions-restes-recontrole (mac, iphone nuit)", "constat": "C (doute) : deux numéros écrits en +33 (22 chiffres) refusés par cfTelOk", "cause": "à soumettre", "lectures": ["accepter deux numéros +33 séparés par « / »", "refuser : un champ téléphone ne porte qu’un numéro (état actuel)"] }
+  ]
+}

@@ -5,7 +5,12 @@
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const L = require('../lib.js');
 const src = fs.readFileSync(path.join(L.RACINE, 'apercu', 'prototype-op-gestion.html'), 'utf8'), v = L.v;
-const i0 = src.indexOf('const secuAutoPermis'); const ctx = {}; vm.createContext(ctx); vm.runInContext(src.slice(i0, src.indexOf('\n', i0)) + ';this.f=secuAutoPermis', ctx);
+// La déclaration tient sur plusieurs lignes (un commentaire sur la première, la mise en mode application, puis le jugement) : on la prend jusqu'à
+// sa fin (le dernier « includes(loc.hostname); }; »), jamais jusqu'à la fin de la ligne. Le bac à sable fournit « window » : la fonction lit OPG_MODE_APP (la coque mobile sert la page sur
+// localhost, où « localhost » ne veut PAS dire « les sondes » — ce refus est un contrôle de plus, ci-dessous).
+const i0 = src.indexOf('const secuAutoPermis'), FIN = 'includes(loc.hostname); };', i1 = src.indexOf(FIN, i0) + FIN.length;   /* « loc || {}; » porte déjà un « }; » : on vise la fin du jugement */ const ctx = { window: {} }; vm.createContext(ctx);
+v('la déclaration de secuAutoPermis est trouvée en entier', i0 > 0 && i1 > i0 && /includes\(loc\.hostname\)/.test(src.slice(i0, i1)), { i0, i1 });
+vm.runInContext(src.slice(i0, i1) + ';this.f=secuAutoPermis', ctx);
 const adr = u => { try { const x = new URL(u); return { protocol:x.protocol, hostname:x.hostname }; } catch (e) { const m = /^(\w+:)\/\/([^\/:]+)/.exec(u); return { protocol:m[1], hostname:m[2] }; } };   /* « evil-127.0.0.1 » n'est pas une adresse que new URL accepte : on la passe telle quelle à la fonction */
 (async () => {
   console.log('\n── 1. quatorze adresses jugées par la vraie fonction ──');
@@ -14,6 +19,7 @@ const adr = u => { try { const x = new URL(u); return { protocol:x.protocol, hos
   v('population : 4 adresses locales et 10 qui ne le sont pas', oui.length === 4 && non.length === 10);
   oui.forEach(u => v('ouvre : ' + u, ctx.f(adr(u)) === true, adr(u)));
   non.forEach(u => v('refuse : ' + u, ctx.f(adr(u)) === false, adr(u)));
+  ctx.window.OPG_MODE_APP = true; v('en mode application (la coque mobile), même 127.0.0.1 et localhost refusent', ctx.f(adr('http://127.0.0.1:8123/x')) === false && ctx.f(adr('http://localhost:3000/')) === false); ctx.window.OPG_MODE_APP = false;
   v('refuse une adresse absente', ctx.f() === false && ctx.f({}) === false && ctx.f(null) === false);
   console.log('\n── 2. en local : ?auto=marc ouvre une session sans téléphone ──');
   { const c = await L.ouvrir({ profil:'mac', qui:'marc' });

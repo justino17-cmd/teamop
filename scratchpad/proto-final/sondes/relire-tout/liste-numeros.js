@@ -17,8 +17,10 @@ const num=t=>parseInt(String(t).replace(/[\s  ]/g,'').match(/^-?\d+/)[0],10);
   v(tag+' · le devis composé prend le prochain numéro de la série ('+n0+')',nA===n0,[nA,n0]);
   await X.clic(c,f,'[data-act="retour"]:visible'); await p.waitForTimeout(1100); await L.calme(p,500);
   let rows=await onglet('À envoyer');
-  v(tag+' · « À envoyer » : le brouillon composé y est, avec son numéro et « Brouillon »',rows.some(r=>r.includes(nA)&&/Brouillon/.test(r)),rows);
-  v(tag+' · le nom « Alpha — Restaurant Le Vieux Port » ne répète pas le client (« Alpha »)',rows.some(r=>r.includes(nA)&&/Alpha/.test(r)&&!/Alpha — /.test(r)),rows.filter(r=>r.includes(nA)));
+  // tout-11 (refonte/compositeur-corrections.json) : un document composé se dit avec les MOTS des autres lignes — l'état « À envoyer » (le brouillon numéroté n'écrit plus « Brouillon ») et « préparé le JJ/MM »
+  v(tag+' · « À envoyer » : le brouillon composé y est, avec son numéro, « préparé le » et l\'état « À envoyer »',rows.some(r=>r.includes(nA)&&/préparé le/.test(r)&&/À envoyer/.test(r)),rows);
+  // l'objet tapé ici contient LUI-MÊME « — Restaurant Le Vieux Port » ; l'atelier ajoute « — <client> » au nom et la ligne (opdNom) retire cet ajout : le client s'écrit UNE fois comme client, et le texte tapé reste tel quel (une seule occurrence de « — Restaurant Le Vieux Port », pas deux)
+  v(tag+' · la ligne ne répète pas le client : l\'objet tapé reste tel quel, le suffixe « — client » ajouté par l\'atelier est retiré (1 seule fois « — Restaurant Le Vieux Port »)',rows.some(r=>r.includes(nA)&&/Alpha — Restaurant Le Vieux Port/.test(r)&&(r.match(/— Restaurant Le Vieux Port/g)||[]).length===1),rows.filter(r=>r.includes(nA)));
   const k1=await kp();
   v(tag+' · le chiffre « à finir et envoyer » passe de '+num(k0[0])+' à '+(num(k0[0])+1),num(k1[0])===num(k0[0])+1,[k0[0],k1[0]]);
   await L.capture(c,CAP+`${tag}-1-brouillon.png`);

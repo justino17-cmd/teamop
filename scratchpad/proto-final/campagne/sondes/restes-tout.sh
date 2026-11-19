@@ -64,7 +64,8 @@ tout "planning tour 2 recontrôle mac (lourd)" node $S/restes-planning-2-recontr
 lance "planning tour 3 mac" node $S/restes-planning-3.js mac
 tout "planning tour 3 recontrôle mac (lourd)" node $S/restes-planning-3-recontrole.js mac
 lance "planning tour 4 mac" node $S/restes-planning-4.js mac
-lance "planning tour 4 recontrôle mac" node $S/restes-planning-4-recontrole.js mac
+# la sonde a BESOIN des écrans à balayer en argument (sans eux : « 0 panneau », rouge à tort) ; trois écrans suffisent à tenir sous le délai (les huit du recontrôle : 8 min 38 s, 5 ✓ · 0 ✗)
+lance "planning tour 4 recontrôle mac (trois écrans)" node $S/restes-planning-4-recontrole.js mac planning stock equipe
 lance "planning tour 4 recontrôle : le fond mac" node $S/restes-planning-4-recontrole-fond.js mac
 
 # ── Tâches · absences

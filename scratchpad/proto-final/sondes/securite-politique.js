@@ -66,7 +66,15 @@ const TILEJSON = JSON.stringify({ tilejson: '3.0.0', tiles: ['https://tiles.open
   L.v('population : le rangement de l\'appareil contient le devis composé (marque trouvée) — sinon rien à voler', stock.marque, stock);
   // depuis la correction de S03 (un nom de personne est nettoyé), l'ancienne porte d'entrée du prénom est fermée : on SUPPOSE ici qu'une injection a réussi
   // quelque part (toast() écrit son message en HTML : c'est la porte que la politique doit encore tenir fermée) — la politique est la SECONDE barrière
+  // PREMIÈRE barrière (posée par « bulles échappées à la sortie et filet de toast », commit 9a95511a) : toast() n'écrit plus son message en HTML, la charge
+  // n'est donc plus un chemin vers l'exécution. L'ancien vecteur (toast(CHARGE)) ne s'exécute plus : c'est voulu, et on le GARDE comme contrôle.
   await c.p.evaluate(ch => { toast(ch); }, CHARGE);
+  await c.p.waitForTimeout(1500);
+  const pwnToast = await c.p.evaluate(() => window.__pwn || 0);
+  L.v('0b. la première barrière tient : une charge passée à toast() ne s\'exécute pas (toast échappe son message) — exécutions : ' + pwnToast, pwnToast === 0, pwnToast);
+  // SECONDE barrière : on SUPPOSE qu'une injection a réussi ailleurs (n'importe quel futur écrit en HTML) et on pose la charge directement dans la page,
+  // exactement ce que ferait un écran fautif — la politique de contenu doit alors garder les canaux fermés.
+  await c.p.evaluate(ch => { document.body.insertAdjacentHTML('beforeend', ch); }, CHARGE);
   await c.p.waitForTimeout(2500);
   const pwn = await c.p.evaluate(() => window.__pwn || 0);
   console.log('code injecté exécuté :', pwn, 'fois · requêtes reçues par l\'attaquant :', recu.length);
