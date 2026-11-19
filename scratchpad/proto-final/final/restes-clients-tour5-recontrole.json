@@ -1,0 +1,62 @@
+{
+ "noms": [
+  "Dictée du devis : la coupe sur tout signe non alphanumérique reconnaît « l’Océan », « L’Épi d’Or », « l’Escale », « Saint-Hubert », « Garage 17 Atlantique » (corrigé, rejoué : tient, 40 ✓ sur 8 profils)",
+  "Carte client au nom d'un seul mot de 54 signes (corrigé, rejoué : tient, AVEC la pastille « contrat », dans Archivés aussi, 9 profils jour et nuit)",
+  "Nouveau : la coupe à 3 signes laisse entrer des mots d'objet (« sas », « bar », « sci », « épi ») comme noms de client (régression du seuil, faible)",
+  "Nouveau (hérité) : un nom de client d'un seul mot de 54 signes élargit encore 11 vues au téléphone (interventions du jour, factures, statistiques, absences, comptabilité…)",
+  "Nouveau (hérité) : moitiés de prénoms composés et premier trouvé gagnent (« pose de pierre » → Jean-Pierre Vasseur, « Claire Dubois » → Marie-Claire Petit)"
+ ],
+ "regles": [
+  "Un seuil de longueur abaissé (≥ 3 au lieu de > 3) se rejoue avec les mots COURTS du métier : « bar », « sas », « sci », « épi », « spa ». On mesure ce que la règle laisse ENTRER (faux amis), pas seulement ce qu'elle laisse reconnaître. La sonde du correcteur (D1) ne contenait aucun faux ami de trois lettres : 40 ✓ ne disait donc rien de cette moitié.",
+  "Un correctif de mise en page posé sur UN composant (la carte client) se mesure aussi sur les écrans qui affichent la MÊME donnée : le nom du client est écrit à ~32 endroits, et le même mot de 54 signes élargit encore onze vues au téléphone. Parcourir `Object.keys(vues())` avec la donnée longue, contre documentElement.clientWidth, est le contrôle qui le voit.",
+  "Une sonde qui supprime un client temporaire retire aussi ses lignes du JOURNAL : `hLigne` lit `CLIENTS[j.el.cli].nom` et jette sur un client absent (artefact de sonde mesuré, pas un défaut de l'application, qui n'efface jamais un client ayant un historique)."
+ ],
+ "pasRegles": [
+  {
+   "nom": "Dictée : « Devis pour les mimosa » (singulier) ne reconnaît pas « Copropriété Les Mimosas »",
+   "defaut": "Le mot entier tolère un « s » en plus (Rouxs), pas un « s » en moins.",
+   "constat": "Préexistant (même résultat avant et après le tour 5), attente de ma sonde fausse, retirée. Un doute produit mineur, pas une régression."
+  },
+  {
+   "nom": "Fiche client : le nom d'un seul mot de 54 signes se coupe par « … » dans l'en-tête au lieu de se replier",
+   "defaut": "Le titre est tronqué, pas replié.",
+   "constat": "Choix de mise en page voulu (une ligne, ellipse) : rien ne sort, la page ne s'élargit pas (B2 client-x-mi : 0 ✗ sur 9 profils). Capture fiche-mot-unique-iphone-nuit-marc.png relue."
+  }
+ ],
+ "casses": [
+  {
+   "titre": "Dictée du devis : les mots de TROIS lettres d'un nom de client (« Bar-Tabac », « SAS », « SCI », « Épi ») désignent maintenant le client quand on parle d'un objet — passage de `> 3` à `>= 3` du tour 5",
+   "gravite": "faible (un devis est créé « à vérifier » sur le mauvais client ; la personne le voit à l'écran, aucune donnée perdue)",
+   "etapes": [
+    "Créer les clients « Bar-Tabac Le Rialto », « Dupuis SAS », « SCI Les Tilleuls », « Boulangerie L’Épi d’Or »",
+    "Devis > Dicter un devis > « Devis pour un bar à vin, comptoir, une heure » (ou « un sas d’entrée vitré », « une sci », « un épi de faîtage »)",
+    "Un devis est préparé au nom du client qui porte ce mot (4 phrases sur 4), alors qu'avant le tour 5 aucune ne reconnaissait de client"
+   ],
+   "constat": "Mesuré au navigateur (clients-restes5-recontrole.js A2) ET en Node avec l'ancienne et la nouvelle règle recopiées : sas/bar/sci/épi = faux AVANT, vrai APRÈS. « mme », « les », « des », « chez », « garage », « syndic » ont été ajoutés à la liste des mots génériques par le correcteur ; les formes juridiques de trois lettres (sas, sci, ets, cie, snc) et « bar », « spa », « épi » n'y sont pas. Piste (non appliquée, je ne modifie aucune page) : accepter un mot de 3 signes seulement s'il n'y a aucun autre mot de 4 signes et plus dans le nom, et ajouter les formes juridiques aux génériques. Les 25 reconnaissances de D1 et les 8 clients de départ restent reconnus (A1 : 16 phrases, 0 ✗)."
+  }
+ ],
+ "nouveaux": [
+  "Hérité, faible : le nom d'un client fait d'UN mot de 54 signes élargit encore la page au téléphone dans onze vues — la ligne d'intervention (`.ligne-clic .jl`, mesurée : accueil et Ma journée 481/390, interventions 473/390, mesheures, techfrais, registre), les lignes de statistiques (`.st-bl-t`, 485/390), d'absences (`.a-int`, 456/390), les factures, encaissements et comptabilité (478/390) ; 850/820 sur iPad en portrait, 1308/1280 sur le mac 1280 dans Statistiques ; aucun élargissement sur windows 1440 ni mac. Même cause que la carte client (aucun `overflow-wrap` sur le nom) : le correctif du tour 5 ne couvre que la liste des clients. Captures : hors-carte-interventions-iphone-nuit.png (le nom est coupé net au bord de la ligne). Sonde : clients-restes5-recontrole.js B2.",
+  "Hérité, faible : la dictée choisit le PREMIER client de l'objet qui porte un mot du nom (`Object.keys(CLIENTS).find`) : « Devis pour Claire Dubois » va à « Marie-Claire Petit » si elle est plus ancienne, « Devis pour Jean Martin » à « Cabinet dentaire Martin », « la pose de pierre » à « Jean-Pierre Vasseur ». Même résultat avant le tour 5 (mesuré en Node), donc pas une régression ; le nom ENTIER dit n'est pas préféré à un nom qui n'en partage qu'un mot. Piste : prendre le client dont le plus grand nombre de mots est dit, et demander quand deux clients ex æquo."
+ ],
+ "sondes": [
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes5.js",
+   "resultat": "40 ✓ · 0 ✗ sur mac, mac jour+nuit, windows nuit, ipad nuit, iphone jour et nuit, petit jour et nuit, android (D1 : 23 reconnaissances, faux amis, deux noms, archivé ; D2 : carte à 54 signes, jour et nuit)"
+  },
+  {
+   "fichier": "scratchpad/proto-final/campagne/sondes/clients-restes5-recontrole.js (neuve)",
+   "resultat": "A1 16 phrases de départ + 5 refus : 0 ✗ sur tous les profils ; B1 (carte à 54 signes avec pastille « contrat », clients mi et hp, actif et archivé) : 0 ✗ sur mac, mac720, windows nuit, ipad nuit, iphone jour+nuit, petit jour+nuit, android ; A2 : 7 ✗ (4 régressions de seuil, 3 héritées) ; A3 : 2 ✗ (héritées) ; B2 (30 vues avec le mot de 54 signes) : 0 ✗ sur mac/windows, 12 ✗ sur iphone/android/petit, 6 ✗ sur ipad, 1 ✗ sur mac720 (tous hors carte client, hérités)"
+  },
+  {
+   "fichier": "mutations sur copie (RACINE=/tmp/rac5-m1, /tmp/rac5-m2, hors dépôt)",
+   "resultat": "ancienne coupe de dvdPreparer rétablie : D1 27 ✓ · 8 ✗ (mord) ; overflow-wrap retiré de la carte : D2 3 ✓ · 4 ✗ sur iphone et B1 2 ✓ · 4 ✗ (mord)"
+  }
+ ],
+ "doutes": [
+  "Faut-il garder les mots de 3 signes (« Épi », « Bar ») pour reconnaître un nom dit en entier, au prix de « sas »/« sci » reconnus comme clients ? À trancher par Justin : la piste « 3 signes seulement si le nom n'a pas de mot plus long » donne les deux.",
+  "La dictée devrait-elle demander « C'est bien X ? » quand deux clients partagent un mot de la phrase, au lieu de prendre le premier ? Aujourd'hui elle crée le devis (« à vérifier ») sur le premier trouvé.",
+  "Un nom de client d'un seul mot de 54 signes est rare ; un nom collé (adresse e-mail, domaine) le fabrique. Étendre le repli à toutes les lignes qui affichent un nom de client vaut onze corrections de style identiques : à décider avec Justin si on les fait toutes, ou seulement les listes d'interventions et de factures.",
+  "Hérité du tour 4 : le fil de la Comptabilité garde « Mme Roux » dans le libellé d'une écriture validée après un renommage (voulu : on ne réécrit pas une écriture validée)."
+ ]
+}
