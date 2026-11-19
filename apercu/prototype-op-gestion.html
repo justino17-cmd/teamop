@@ -9297,7 +9297,7 @@ const ACTIONS = {
       journalAjout('marc', 'equipe', 'a prévu un remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(aRendre)} déjà reçus à rendre à ${nom} (facture annulée par l’avoir ${num})` }); }
     fermerPanneau(); rendre(); toast('Avoir ' + num + ' créé. ' + (f.st === 'annulee' ? 'La facture ' + f.num + ' est annulée : plus rien à recevoir' + (aRendre ? `, mais ${eur(aRendre)} sont à rembourser (tâche créée)` : '') + (nFermees ? ' · ' + (nFermees > 1 ? nFermees + ' tâches de relance terminées' : 'la tâche de relance est terminée') : '') + '.' : 'La facture d’origine reste telle quelle, comme la loi l’exige.')); },
   /* la tâche « Rembourser » a été supprimée à la main : la fiche ne reste pas bloquée sur « à rembourser » sans geste — ce bouton l'écrit comme rendu (une tâche faite, avec sa ligne à l'Historique) */
-  rembourseNote(b){ const f = FACTURES.find(x => x.id === b.dataset.id); if (!f || f.st !== 'annulee' || !(f.recu > 0) || TACHES.some(x => x.cle === 'remb-' + f.id)) return;
+  rembourseNote(b){ if (!peut('ventes', 'm')) return droitsRefus('ventes', 'm', 'action', 'rembourseNote'); const f = FACTURES.find(x => x.id === b.dataset.id); if (!f || f.st !== 'annulee' || !(f.recu > 0) || TACHES.some(x => x.cle === 'remb-' + f.id)) return;
     const av = FACTURES.find(x => x.st === 'avoir' && x.objet === 'Avoir sur ' + f.num), t = rembTache(f, f.recu, av ? av.num : 'd’annulation');
     t.fait = { par:tkxMoi(), quand:'31/10 · ' + hm(MAINT_MIN), quoi:'remboursement noté sur la facture', auto:false };
     journalAjout('marc', 'equipe', 'a noté le remboursement', { t:'facture', id:f.id, lib:f.num, cli:f.cli }, { det:`${eur(f.recu)} rendus à ${CLIENTS[f.cli].nom}` });
@@ -12447,12 +12447,14 @@ function rlLignesDe(p, coque){
    l = verbes qui ne font que regarder ; d = classe de tout le reste de la famille (sans d : les motifs de lecture GESTE_LECTURE, puis la forme d'une écriture, puis « modifier » — fermé par défaut).
    Une famille absente de la table prend la catégorie de l'écran ouvert et n'est refusée que si son verbe a la forme d'une écriture (GESTE_ECRITURE). */
 const GESTES = {
-  ac:{ k:'achats', m:'transfert commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
-  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes finContratDemande@ventes finContratOk@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes partielOk@ventes clientEnreg@crm clientInfosSuite@crm clientAppForm@crm clientAppEnreg@crm clientAppSuppr@crm clientAppSupprOk@crm terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
+  ac:{ k:'achats', m:'transfert transfertok commande magasin refuser payer virement ndfok refok virok ndfoksans ndfsans ndfnon', l:'allernotes ndfticket piece onglet' },
+  action:{ m:'modifierOk@inter envoyer@ventes toutValider@ventes signerContrat@ventes finContratDemande@ventes finContratOk@ventes relanceContrat@ventes relance@ventes relanceOk@ventes lienPaiement@ventes rembourseNote@ventes partielOk@ventes clientEnreg@crm clientInfosSuite@crm clientAppForm@crm clientAppEnreg@crm clientAppSuppr@crm clientAppSupprOk@crm terminer@inter modifIntOk@inter modifInt@inter noteOk@inter pieceAjout@inter pasFini@inter envoiePb@inter reprise@inter recommencer@inter blocOk@inter dateOk@inter envoiMail@inter envoiMailOk@inter envoiSms@inter ',
     c:'creerOk@inter cCreer@inter cAjoutType@inter cAjoutTypeOk@inter clientNvInt@inter nouvelleFacture@ventes prepFacture@ventes ligneAjout@ventes ligneSup@ventes avoir@ventes avoirOk@ventes ajoutEnc@ventes ajoutEncOk@ventes creerContrat@ventes renouvelerContrat@ventes renouvelerOk@ventes contratPour@ventes clientDevis@ventes clientNvDevis@ventes partiel@ventes clientNouveau@crm clientSeul@crm clientSeulType@crm clientSeulOk@crm',
     s:'noteSuppr@inter photoSuppr@inter pieceSuppr@inter sigEfface@inter sigCtrEfface@ventes clientArchiverDemande@crm clientArchiverOk@crm clientRestaurer@crm',
     l:'vueEnregistrer vueEnregistrerOk info copierSms apercuEnvoi pdfFacture commentAuto lireContrat ctrLire bilanPdf cPlusTot cPlusTard cFermer achatsAide' },
-  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle kmtarif paie precrep ndate grosnon dblnon goach fd' },
+  axa:{ k:'achats', c:'dem demok tick tickok dblautre', m:'demmod trfannul budget budgetok precok precrepok kmok toutval nonok toutok relach relancer renvoyer', s:'demannul', l:'quand budgetsans chip inter prec fiche regle reglages kmtarif paie precrep ndate grosnon dblnon goach fd' },
+  /* quatre familles dont le verbe a la FORME d'une écriture sans en être une : « Enregistrer sur cet appareil » (un téléchargement), « Voir les clients archivés » (un filtre), « Confirmer sur mon téléphone » (la vérification d'identité qui ouvre une vue sensible : elle n'écrit rien dans les données), et data-v, la valeur qu'un data-action porte avec lui (le geste est celui de l'action) */
+  sortie:{ d:'l' }, rangc:{ d:'l' }, secv:{ d:'l' }, v:{ d:'l' },
   axid:{ k:'achats', d:'l' }, ndfregle:{ k:'achats', d:'m' },
   rl:{ k:'achats', m:'ndfmodok ndfok', s:'ndfsuppr', l:'retour ndf role parcours go remis ndfmod etape placer auplanning visitefin' },
   /* administration : l'entreprise et l'équipe */
@@ -12504,10 +12506,10 @@ const GESTES = {
   fx:{ k:'stock', m:'ajouteq comptoir', d:'l' },
   ms:{ k:'stock', m:'rok cok toutacc acc ref rmot ajouteq gajoute gmoins gplus gret grecevoir gchinter gfacture gechange genvoyer gpour cmoins cplus ctout fcmd fseuil fseuilx fseuilo fprix fprixx fprixo fchez fchange fmanque', l:'envois t habituels ou maj plus onglet filtrer pk fraz q gorig ginter cpt cgrp fusage fq fhisto' },
   msf:{ k:'stock', d:'m' }, msg:{ k:'stock', m:'ticket vers', l:'de qi collegue br texte lieu montant' }, msr:{ k:'stock', d:'m' },
-  pdx:{ k:'stock', m:'decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
+  pdx:{ k:'stock', m:'piece decaler garder contok fournenreg facchoix achat perte dupfiche prop nat tpbon toutgo relgo toutprep relgroup', l:'pm etat cmdchez' },
   plein:{ d:'l' }, pr:{ k:'stock', c:'nouveau', m:'modif garder', s:'retirer retirerok', l:'vue fiche rangement pack cat ac alerte sugg raz' },
   sk:{ k:'stock', m:'transfert inv invok fok reassok val ref br', l:'onglet lx lieu' }, skadd:{ k:'stock', d:'m' }, skf:{ k:'stock', m:'vers pourQui motif', l:'de inter' }, skmvq:{ k:'stock', d:'l' }, skq:{ k:'stock', d:'l' },
-  sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' }, sxdadd:{ k:'stock', d:'m' }, sxdcop:{ k:'stock', d:'m' },
+  sx:{ k:'stock', m:'toutval refok expok eok dotok', s:'annuler', l:'stkintertout dx fprel frec fluides rouvrir' }, sxauto:{ k:'stock', d:'m' },
   /* temps de travail et véhicules */
   champ:{ k:'inter', d:'m' },   /* les champs de la fiche d'intervention (ce que j'ai trouvé, le compte rendu, l'arrivée, le départ) */
   pt:{ k:'temps', c:'ajout', m:'closok', s:'clore', l:'export pers' },
@@ -12560,7 +12562,7 @@ const gesteCatEcran = () => { const T = ROUTE_DROIT[route]; const f = T && (T[dr
 /* ce que l'écran d'un TERRAIN fait de la fiche d'intervention : noter un paiement sur place et envoyer le compte rendu (classés « ventes » dans la table) sont SES gestes, donc inter › Modifier — et eux seuls : facturer, envoyer un devis, créer un contrat restent ceux du bureau */
 const TERRAIN_VENTES = new Set(['action|ajoutEnc', 'action|ajoutEncOk', 'action|envoyer']);
 /* ce qu'un terrain ne fait JAMAIS, quelles que soient ses cases : sa fiche lui donne « Achats › Modifier » pour retoucher SA demande, ce qui ne l'autorise pas à décider des demandes des autres, ni à créer un véhicule du parc */
-const TERRAIN_BUREAU = { ac:'*', axa:new Set('budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
+const TERRAIN_BUREAU = { ac:'*', axa:new Set('trfannul budget budgetok kmok toutval nonok toutok relach relancer renvoyer'.split(' ')), vh:new Set(['nouveau']) };
 const gesteForme = (g, fam, verbe) => {
   if (!g || droitForme(eqDe(acteur())) !== 'terrain') return g;
   const B = TERRAIN_BUREAU[fam];
@@ -15470,7 +15472,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-pdx]'); if (!b) return;
   const [a, x, y] = b.dataset.pdx.split('|');
   if (a === 'achat') return pdxAller(x, y);
-  if (a === 'piece') { const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
+  if (a === 'piece') { if (!peut('stock', 'm')) return droitsRefus('stock', 'm', 'pdx', 'piece'); const i = INTS.find(o => o.id === x), pr = i && (i.prevues || []).find(o => { const px = matPieceX(o); return px && px.id === y; }); if (!pr) return; const e = matPieceEtat(i, pr); return e && e.k === 'commander' ? mdCmdAdd(y, e.manque, i.id) : undefined; }
   if (a === 'decaler') return pdxDecaler(x);
   if (a === 'garder') { PDX.garde.add(x); rendre(); return toast('Gardé tel quel : la pastille « Pièces » reste sur l’intervention.'); }
   if (a === 'pm') return pdxPmOuvrir(x);
@@ -20797,7 +20799,7 @@ document.addEventListener('click', ev => {
   const [a, x] = b.dataset.ac.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x);
   const prendre = () => { ev.stopImmediatePropagation(); ev.preventDefault(); };
   const refuse = () => { prendre(); toast('Tu vois les demandes pour préparer les commandes : c’est le gérant qui les décide.'); };
-  if (['transfert', 'commande', 'magasin', 'refuser', 'refok'].includes(a) && d) { if (axLect()) return refuse(); if (d.etat !== 'attente') { prendre(); fermerPanneau(); rendre(); return toast('Cette demande est déjà décidée.'); } }
+  if (['transfert', 'transfertok', 'commande', 'magasin', 'refuser', 'refok'].includes(a) && d) { if (axLect()) return refuse(); if (d.etat !== 'attente') { prendre(); fermerPanneau(); rendre(); return toast('Cette demande est déjà décidée.'); } }
   if (a === 'magasin' && d) { prendre(); return axMagasin(d); }
   if (a === 'refuser' && d) { prendre(); return axRefusDem(d); }
   if (a === 'refok' && d) { prendre(); return axRefuserDem(d); }
@@ -20813,7 +20815,7 @@ document.addEventListener('click', ev => {
   const b = ev.target.closest && ev.target.closest('[data-axa]'); if (!b) return;
   const [a, x, y] = b.dataset.axa.split('|'), d = DEM_ACHAT.find(o => o.id === x), n = NDF.find(o => o.id === x);
   const g = i => document.getElementById(i);
-  if (a === 'trfannul') { const u = AX.annul; if (!u) return; AX.annul = null; const tard = u.sig && u.sig !== sxSig(); sxAnnule(u.photo, u.lib, u.sig);
+  if (a === 'trfannul') { if (!peut('achats', 'm')) return droitsRefus('achats', 'm', 'axa', 'trfannul'); const u = AX.annul; if (!u) return; AX.annul = null; const tard = u.sig && u.sig !== sxSig(); sxAnnule(u.photo, u.lib, u.sig);
     /* sxAnnule restaure les données ; la fermeture de la fenêtre et le message qui suivent sa restauration sont écrits à la suite d'un commentaire (// … fermerPanneau(); rendre(); toast(…)) : ils ne tournent pas. On les fait ici, sauf si l'annulation a été refusée (« Trop tard »). Reporté au chantier Stock. */
     if (!tard && document.querySelector('#calque .panneau')) { fermerPanneau(); rendre(); toast('Annulé : ' + esc(u.lib) + '. Le stock est revenu comme avant.'); } return; }
   if (a === 'dem') return axDemForm();
