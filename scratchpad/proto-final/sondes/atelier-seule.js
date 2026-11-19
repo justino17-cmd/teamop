@@ -12,7 +12,9 @@ fs.mkdirSync(path.join(TMP, 'apercu'), { recursive: true }); fs.mkdirSync(path.j
 // Avancé au tour 2 (17 novembre 2026) à fe94b4c : l'étape sécurité a retiré les polices Google (le texte se pose 1 px plus bas/plus haut sur 4 contrôles du Mac) — écart VOULU, hors du compositeur. Le tour 2 du compositeur (beforeinput, motif « supprime ») ne déplace aucune boîte : 56 ✓ · 0 ✗ contre fe94b4c.
 // Avancé le 18 novembre à d0f32064 (juste AVANT la typographie française de l'atelier) : entre fe94b4c et là, les mots (« [téléphone] », « [e-mail] » dans les blancs des contrats) ont bougé sur des
 // dizaines de contrôles — écarts VOULUS. Le texte se compare sans ses espaces insécables, les boîtes au pixel : la typographie ne déplace rien (56 ✓ · 0 ✗).
-const REF = process.env.ORIGINE || 'd0f32064';
+// Avancé le 18 novembre (tour 2 devis-atelier) à 953cb468 : ce commit a changé EXPRÈS le libellé « Prix unitaire HT (€) » (lignes préparées au prix de l'heure, voie compta-ventes) ; la boîte de ce libellé passait de 96 à 109 px
+// de large sur compoDevis2 (4 ✗ : Mac et iPhone, jour et nuit) — écart VOULU, hors de cette sonde. La référence ne change qu'à partir de CE commit : les corrections qui le suivent (numéros, toast, interrupteurs) restent comparées.
+const REF = process.env.ORIGINE || '953cb468';
 const orig = process.env.ORIGINE_CAP && fs.existsSync(process.env.ORIGINE_CAP) ? fs.readFileSync(process.env.ORIGINE_CAP, 'utf8') : cp.execSync('git show ' + REF + ':scratchpad/proto-final/atelier/page.source', { cwd: DEPOT, maxBuffer: 1 << 28 }).toString();
 const gabarit = s => '<!doctype html>\n<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"></head><body>\n' + s + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(TMP, 'apercu', 'doc-origine.html'), gabarit(orig));
