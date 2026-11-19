@@ -10,7 +10,7 @@ de Justin, ce jour-là, et se vérifie avant d'être annoncé.
 | # | Étape | Où | Qui | État |
 |---|---|---|---|---|
 | 0 | Le code et ses 312 branches copiés chaque nuit sur la forge | Atelier | — | ✅ fait (copie à 3 h 17) |
-| 1 | Les VÉRIFICATIONS (les ~840 bancs, 7 min) lancées par la forge à chaque envoi, au lieu de GitHub Actions | Atelier | moi | ✅ 19/11 : `.forgejo/workflows/verifications.yml` joué par la forge (839 suites, 46 887 vérifications, 0 échec, ~7 min) ; reste le geste root `installer-runner-racine.sh` pour qu'il tourne en permanence |
+| 1 | Les VÉRIFICATIONS (les ~840 bancs, 7 min) lancées par la forge à chaque envoi, au lieu de GitHub Actions | Atelier | moi | ✅ 19/11 : `.forgejo/workflows/verifications.yml` joué par la forge (839 suites, 46 887 vérifications, 0 échec, ~7 min) ; geste root fait le 19/11 à 23 h 17 : `atelier-runner` actif en permanence (systemd, compte atelier) |
 | 2 | Les DÉPLOIEMENTS (serveur, OP Courrier, OP MESSAGES, espace de test) partent de l'Atelier, avec des clés SSH NEUVES | Atelier → serveur des clients | Justin pose les clés (geste root), moi le reste | à faire |
 | 3 | Le SITE et la TOUR servis par le serveur des clients (Caddy, dossier assemblé par `scripts/assembler-site.sh`) ; copie d'essai sur l'Atelier d'abord | serveur des clients | moi, puis Justin bascule `@` et `www` chez le registraire | à faire |
 | 4 | La SURVEILLANCE de chaque heure (site, API) : une minuterie sur l'Atelier, alerte par courriel | Atelier | moi | ✅ 19/11 écrite et essayée depuis l'Atelier (`.forgejo/workflows/surveillance.yml`, tout vert) ; tourne à l'heure dès qu'elle est sur `main` de la forge ; le courriel attend un compte d'envoi choisi par Justin (en attendant, ticket sur la forge + GitHub prévient) |
