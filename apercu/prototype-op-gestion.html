@@ -10818,7 +10818,7 @@ document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const 
   const av = t.value.slice(0, a), ap = t.value.slice(b), place = m - nbSignes(av) - nbSignes(ap); if (place < 0) return;
   const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
   e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
-document.addEventListener('input', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
+document.addEventListener('input', e => { if (!e.isTrusted) return; if (/^delete/.test(e.inputType || '')) return;   /* une SUPPRESSION ne recoupe jamais : une fiche plus longue que le plafond perdait 30 signes d'un Backspace (recontrôle tour 5, N1) */ const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
   if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
