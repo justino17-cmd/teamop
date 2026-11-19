@@ -6265,7 +6265,7 @@ document.addEventListener('click', ev => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) { toast('Adresse e-mail à vérifier'); document.getElementById('ml-a').focus(); return; }
     { const pl = refusLong(document.getElementById('ml-o').value, 200, 'Objet'); if (pl) { document.getElementById('ml-o').focus(); return toast(pl); } }
     const mm = document.getElementById('ml-m'); if (mm && !mm.value.trim() && !b.dataset.sur) { b.dataset.sur = '1'; toast('Le message est vide : touche encore « Envoyer » pour l’envoyer quand même, ou écris-le d’abord.'); mm.focus(); return; }   // Ventes · 13 novembre 2026
-    ENVOIS.push({ a, objet:document.getElementById('ml-o').value, quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
+    ENVOIS.push({ a, objet:nfc(document.getElementById('ml-o').value), quand:'31 octobre · ' + hm(MAINT_MIN), pj:o.pj }); fermerPanneau();
     toast(`E-mail envoyé à ${esc(a)}${o.pj ? ', PDF joint' : ''}`); if (o.apres) o.apres(a); return;   /* l'adresse tapée est transmise : « apres » peut la ranger dans la fiche (devis-atelier-09) */
   }
   if (b.dataset.pdfdl || b.dataset.pdfmail) {
@@ -7241,7 +7241,7 @@ document.addEventListener('click', ev => {
   if (b.dataset.tlien) { const x = TACHES.find(o => o.id === b.dataset.tlien); if (x && x.lien) { fermerPanneau(); apercuElement(x.lien.t, x.lien.id); } return; }
   if (b.dataset.tracc !== undefined) { const i = document.getElementById('tk-d'); i.value = b.dataset.tracc; i.dispatchEvent(new Event('change', { bubbles:true })); if (typeof dtPeindre === 'function') dtPeindre(i); document.querySelectorAll('[data-tracc]').forEach(x => x.setAttribute('aria-pressed', x === b)); return; }
   if (b.dataset.tok !== undefined) {
-    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('tk-t').focus(); return toast(pl); } } const t = document.getElementById('tk-t').value.trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
+    { const pl = refusLong(document.getElementById('tk-t').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('tk-t').focus(); return toast(pl); } } const t = nfc(document.getElementById('tk-t').value).trim(); if (!t) { toast('Écris ce qu’il faut faire'); document.getElementById('tk-t').focus(); return; }
     const v = { t, qui:document.getElementById('tk-qui').value, d:document.getElementById('tk-d').value || null, h:document.getElementById('tk-h').value || null, urgent:document.getElementById('tk-u').checked, cat:document.getElementById('tk-cat').value, rep:document.getElementById('tk-rep').value || null, note:document.getElementById('tk-n').value.trim() };
     const pieces = [...document.querySelectorAll('.t-piece')].map(r => ({ nom:r.querySelector('.tp-nom').value.trim(), ref:r.querySelector('.tp-ref').value.trim(), q:tpQte(r.querySelector('.tp-q').value) })).filter(pc => pc.nom);
     /* une quantité qu'on ne sait pas lire est refusée avec une phrase : un champ « number » avalait la virgule (« 1,5 » devenait 15 pièces) et l'ancienne lecture devinait 1 pour tout le reste */
@@ -8576,7 +8576,7 @@ function dvNouveau(){
 }
 function dvnLire(){ const f = DVN_F, v = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; };
   if (f.nv) ['nom','prenom','tel','mail','adr'].forEach(k => { const x = v('dvn-' + k); if (x != null) f[k] = x; }); else { const x = v('dvn-cli'); if (x != null) f.cli = x; }
-  const o = v('dvn-objet'); if (o != null) f.objet = o; }
+  const o = v('dvn-objet'); if (o != null) f.objet = nfc(o); }
 /* un client neuf se PLACE à sa création : secteur et position sur la carte des tournées, lus sur son adresse. Un seul endroit, pour tous les chemins qui créent un client
    (nouveau devis, atelier de devis et de contrats, devis xylophage) : sans lui, la carte le posait au dépôt et Waze / Plans y envoyaient le technicien (devis-atelier-17) */
 function cliPositionner(k, adr){ const r = reconnaitre(adr), g = geoDeAdresse(adr); if (r) SECT_CLI[k] = r.secteur; if (g) CR_GEO[k] = g; }
@@ -9369,7 +9369,7 @@ const ACTIONS = {
     rendre(); toast('Remboursement noté : ' + eur(f.recu) + ' rendus à ' + CLIENTS[f.cli].nom + '.'); },
   nouvelleFacture(){ toast('Dans la vraie version : une facture à la main, sans intervention (vente de pièce, acompte…).'); },
   dateOk(b){ const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; fermerPanneau(); poser(i, q.tid, q.d, q.h, q.dur); },
-  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('n-titre').focus(); return toast(pl); } } const q = lireQuand(), titre = document.getElementById('n-titre').value.trim() || 'Nouvelle intervention';
+  creerOk(){ { const pl = refusLong(document.getElementById('n-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('n-titre').focus(); return toast(pl); } } const q = lireQuand(), titre = nfc(document.getElementById('n-titre').value).trim() || 'Nouvelle intervention';
     if (refusAbsent(q.tid, q.d, q.h)) return;
     memo(); const i = { id:'n' + Math.random().toString(36).slice(2,8), d:q.d, h:q.h, dur:q.dur, tech:q.tid, cli:document.getElementById('n-cli').value, titre, type:document.getElementById('n-type').value, st:q.tid ? 'planifiee' : 'aplanifier', motif:document.getElementById('n-motif').value.trim() || undefined };
     INTS.push(i); journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:i.tech ? tech(i.tech).nom + ' · ' + jlib(i.d) + ' à ' + i.h : 'à planifier' }); fermerPanneau(); if (route !== 'planning') { plRef = q.d; aller('planning'); } else { plRef = q.d; rendre(); } flash(i.id); toast(`Créée : <b>${esc(titre)}</b> · ${q.tid ? tech(q.tid).nom : 'à planifier'} · ${jlib(q.d)} ${q.h}`, ANNULER); },
@@ -9481,7 +9481,7 @@ const ACTIONS = {
   envoiMailOk(b){ { const i0 = INTS.find(o => o.id === b.dataset.id); if (i0 && i0.st === 'annulee') return toast(ANNULEE_REFUS); if (i0 && i0.st !== 'fait' && !b.force) return toast('Cette intervention n’est pas terminée, et le message dit « terminée ». Tu l’envoies quand même ?', { lib:'Envoyer quand même', fn:() => ACTIONS.envoiMailOk({ dataset:{ id:i0.id }, force:true }) }); } fiche(b.dataset.id).envoye = true; (i => journalAjout('marc', 'inter', 'a envoyé le compte rendu au client', { t:'inter', id:i.id, lib:i.titre, cli:i.cli }, { det:'PDF joint · ' + CLIENTS[i.cli].mail }))(INTS.find(o => o.id === b.dataset.id)); fermerPanneau(); rendre(); toast(`E-mail envoyé à ${esc(CLIENTS[INTS.find(o=>o.id===b.dataset.id).cli].mail)}, compte rendu joint.`); },
   envoiSms(b){ panneauSms(b.dataset.id); },
   copierSms(b){ const t = texteSms(b.dataset.id); copierTexte(t, { ok:'Texte copié : colle-le dans un message.', titre:'Sélectionne le texte du SMS' }); },
-  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('m-titre').focus(); return toast(pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = document.getElementById('m-titre').value.trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
+  modifierOk(b){ { const pl = refusLong(document.getElementById('m-titre').value, 120, 'Ce qu’il faut faire'); if (pl) { document.getElementById('m-titre').focus(); return toast(pl); } } const i = INTS.find(o => o.id === b.dataset.id), q = lireQuand(); if ((q.tid !== i.tech || q.d !== i.d || q.h !== i.h) && refusAbsent(q.tid, q.d, q.h)) return; const snap = JSON.stringify({ INTS, BUREAU, NOTES }); i.cli = document.getElementById('m-cli').value; i.titre = nfc(document.getElementById('m-titre').value).trim() || i.titre; i.type = document.getElementById('m-type').value; i.motif = document.getElementById('m-motif').value.trim() || undefined; fermerPanneau(); const n = pile.length; poser(i, q.tid, q.d, q.h, q.dur); if (pile.length > n) pile[pile.length - 1] = snap; else { pile.push(snap); rendre(); toast('Intervention modifiée', ANNULER); } }
 };
 let numSuiv = 146;
 /* ⛔ UNE porte d'envoi des factures (17 novembre 2026) : elle lit l'identité EN PREMIÈRE instruction et rend un booléen (false : rien n'est parti). Quatre appelants la lisent :
@@ -9831,7 +9831,7 @@ document.addEventListener('click', ev => {
   if (a === 'modif') return prFormulaire(PRODUITS.find(o => o.id === x));
   if (a === 'retirer' || a === 'retirerok') { const o = PRODUITS.find(z => z.id === x); if (a === 'retirer' && (o.q > 0 || enCommande(o) > 0)) return prRetirerAvertir(o); o.retire = true; prCatalogueMaj(); fermerPanneau(); rendre();
     return toast(`${esc(o.nom)} retiré : il ne sera plus proposé dans les devis.`, { lib:'Annuler', fn:() => { o.retire = false; prCatalogueMaj(); rendre(); } }); }
-  if (a === 'garder') { { const pl = refusLong(document.getElementById('pr-nom').value, 80, 'Nom de l’article'); if (pl) { document.getElementById('pr-nom').focus(); return toast(pl); } } const nom = document.getElementById('pr-nom').value.trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
+  if (a === 'garder') { { const pl = refusLong(document.getElementById('pr-nom').value, 80, 'Nom de l’article'); if (pl) { document.getElementById('pr-nom').focus(); return toast(pl); } } const nom = nfc(document.getElementById('pr-nom').value).trim(); if (!nom) { document.getElementById('pr-nom').focus(); return toast('Donne un nom à l’article'); }
     const pv = prLire('pr-pv'), o = x ? PRODUITS.find(z => z.id === x) : { id:'p' + Date.now() }; o.ac = !!(o.ac && pv == null);
     Object.assign(o, { p:document.getElementById('pr-pack').value, cat:document.getElementById('pr-cat').value, nom, ref:document.getElementById('pr-ref').value.trim() || '—', four:document.getElementById('pr-four').value.trim() || '—',
       q:x ? o.q : (prLire('pr-q') || 0), u:uniteSure(document.getElementById('pr-u').value) || 'u', seuil:prLire('pr-seuil') || 0, pa:prLire('pr-pa'), pv:pv, tva:parseFloat(document.getElementById('pr-tva').value) });
@@ -10801,6 +10801,8 @@ const nbSignes = t => graphemes(t).length;
 /* coupeSure : couper à n SIGNES (graphèmes) — un drapeau (deux lettres régionales), un émoji à séquence ZWJ ou à teinte de peau ne se coupent jamais en deux, ni en lettre seule ni en « � » */
 const coupeSure = (t, n) => { t = String(t == null ? '' : t); const g = graphemes(t); return g.length > n ? g.slice(0, n).join('') : t; };
 /* un signe de CONTRÔLE (C0, DEL, C1) entre deux mots est une ESPACE, jamais rien : « Code\u0007portail » restait « Codeportail » ; en tête ou en fin, rogné il disparaît */
+/* nfc : un titre libre se range en NFC comme les champs du client (120 « é » décomposés se rangeaient en NFD, 240 unités — recontrôle tour 5, N5) */
+const nfc = t => String(t == null ? '' : t).normalize('NFC');
 const libelleSur = (t, n) => coupeSure(String(t == null ? '' : t).normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/[<>"`\u202a-\u202e\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim(), n || 60);   /* un libellé libre (le rôle d'une personne) : borné et sans balise */
 /* LE MAXLENGTH DU NAVIGATEUR COMPTE DES UNITÉS UTF-16, L'UTILISATEUR DES SIGNES (tour 5) : collé, un drapeau (4 unités) était coupé en lettre régionale seule, et l'on enregistrait une moitié de drapeau.
    Sur tout champ à maxlength, la coupe FINE se fait ici, à la frappe et au collage (événements de l'UTILISATEUR seulement : e.isTrusted) :
@@ -13609,7 +13611,7 @@ document.addEventListener('click', ev => {
     return ok(); }
   if (a === 'validertout') { const ptxAv = { ...PT_VALIDE }; let n = 0; const G = []; PT_GENS.forEach(k => paieVariables(k).semaines.forEach(w => { if (w.valide || !w.fini) return; if (w.alertes.some(o => o.g === 'r' || o.ouvert)) { G.push(`${paieNomPers(k).split(' ')[0]} (semaine du ${jCourt(w.L)})`); return; } PT_VALIDE[k + w.L] = true; n++; })); rendre();
     return toast(`${n} semaine${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}.${G.length ? ` À regarder d’abord, une alerte du Code du travail : ${G.join(', ')}. Ouvre leur relevé.` : ''}`, n ? ptxFinValidation(ptxAv, n) : undefined); }
-  if (a === 'primeajout') { { const pl = refusLong(document.getElementById('pa-lib').value, 60, 'Libellé'); if (pl) { document.getElementById('pa-lib').focus(); return toast(pl); } } const lib = document.getElementById('pa-lib').value.trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
+  if (a === 'primeajout') { { const pl = refusLong(document.getElementById('pa-lib').value, 60, 'Libellé'); if (pl) { document.getElementById('pa-lib').focus(); return toast(pl); } } const lib = nfc(document.getElementById('pa-lib').value).trim(), m = parseFloat(String(document.getElementById('pa-m').value).replace(',', '.')); if (!lib) return toast('Donne un libellé.'); if (!(m > 0)) return toast('Donne un montant.'); (PAIE.primes[x] = PAIE.primes[x] || []).push({ lib, m }); toast('Ajouté au relevé.'); return ici(); }
   if (a === 'primesuppr') { (PAIE.primes[x] || []).splice(+y, 1); return ici(); }
   if (a === 'verrouiller') {
     const V = PT_GENS.map(paieVariables), E = paieEtapes(V);
@@ -14405,7 +14407,7 @@ document.addEventListener('pointerdown', () => { clearTimeout(window._dgT); doig
 document.addEventListener('pointerup', () => { clearTimeout(window._dgT); window._dgT = setTimeout(() => { doigtPose = false; }, 400); }, true);
 document.addEventListener('input', ev => { if (!CREA || !ev.target.closest('.fen')) return; const t = ev.target;
   if (t.dataset.cnv && t.dataset.cnv !== 'adr') { CREA.nv[t.dataset.cnv] = t.value; return; }
-  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = texteNet(t.value); if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
+  if (t.dataset.cchamp) { CREA[t.dataset.cchamp] = nfc(texteNet(t.value)); if (t.dataset.cchamp === 'titre') CREA.titreTouche = true; if (t.dataset.cchamp === 'cpq') { const r = document.getElementById('cp-res'); if (r) r.innerHTML = crPiecesRes(); } syncBrouillon(); return; }
   if (t.dataset.cnv === 'adr') { CREA.nv.adr = t.value; CREA.sug = true; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cnv="adr"]'); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.cherchecli) { CREA.cherche = t.value; const pos = t.selectionStart; rendreCreation(); const n = document.querySelector('.fen [data-cherchecli]'); n.focus(); n.setSelectionRange(pos, pos); }
 }, true);
@@ -14438,7 +14440,7 @@ const ACTIONS_CREA = {
     if (mm && !mm.fait) mlTraite(mm, 'Intervention créée depuis cet e-mail', `data-tvoir="inter|${id}"`);
     journalAjout('marc', 'inter', 'a créé l’intervention', { t:'inter', id, lib:b.titre, cli:k }, { det:b.tech ? tech(b.tech).nom + ' · ' + jlib(b.d) + ' à ' + b.h : 'à planifier' }); delete CLIENTS.__nv; const d = b.d, t = b.tech; CREA = null; creaAvaleClic(); document.getElementById('fenetre').innerHTML = ''; plRef = d; rendre();
     toast(`Intervention créée : <b>${esc(b.titre)}</b> · ${t ? tech(t).nom + ' · ' + jlib(d) + ' ' + b.h : 'à planifier'}`, (!rlPermis('planning') || route === 'planning') ? null : { lib:'Voir au planning', fn:() => { plVue = 'jour'; plRef = d; aller('planning'); } }); },
-  cAjoutTypeOk(){ { const pl = refusLong(document.getElementById('t-nom').value, 40, 'Nom du type'); if (pl) { document.getElementById('t-nom').focus(); return toast(pl); } } const v = document.getElementById('t-nom').value.trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
+  cAjoutTypeOk(){ { const pl = refusLong(document.getElementById('t-nom').value, 40, 'Nom du type'); if (pl) { document.getElementById('t-nom').focus(); return toast(pl); } } const v = nfc(document.getElementById('t-nom').value).trim(); if (v && !TYPES.includes(v)) TYPES.push(v); if (v && CREA) { CREA.type = v; if (!CREA.titreTouche) CREA.titre = v; } fermerPanneau(); rendreCreation(); }
 };
 
 /* ══ DATE ET HEURE — NOTRE SÉLECTEUR, PAS CELUI DU NAVIGATEUR ══

@@ -64,7 +64,11 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,champs,marque').split(',');
     await p.evaluate(t => window.__set('#m-titre', t), 'Remplacement électrovanne'); await p.evaluate(() => document.querySelector('[data-action="modifierOk"]').click()); await pause(500);
     const mo = await p.evaluate(i => INTS.find(x => x.id === i).titre, iid);
     v('N5 modification (m-titre) : « Remplacement électrovanne » en NFC', mo === 'Remplacement électrovanne', [mo.length, mo === mo.normalize('NFC')]);
-    const t5 = await p.evaluate(() => { const bad = []; const src = [typeof ACTIONS]; return src; });
+    // les sept autres sites de lecture : on lit la page SERVIE (code), pas une phrase — chaque id est lu par nfc(…)
+    const page = fs.readFileSync(L.RACINE + '/apercu/prototype-op-gestion.html', 'utf8');
+    const ids = ['tk-t', 'pr-nom', 't-nom', 'pa-lib', 'ml-o'], man = ids.filter(i => !new RegExp("nfc\\(document\\.getElementById\\('" + i + "'\\)\\.value\\)").test(page));
+    v('N5 code : tk-t, pr-nom, t-nom, pa-lib, ml-o sont lus par nfc(…) (5 sur 5)', man.length === 0, man);
+    v('N5 code : l’objet du devis (dvnLire) et le titre de la création (CREA) passent par nfc', /f\.objet = nfc\(o\)/.test(page) && /CREA\[t\.dataset\.cchamp\] = nfc\(texteNet/.test(page), 'dvnLire / CREA');
     v('N5 aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
     await L.fin(c);
   }
