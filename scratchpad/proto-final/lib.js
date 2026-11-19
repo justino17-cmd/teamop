@@ -64,7 +64,7 @@ exports.PROFILS = {
 exports.ouvrir = async function (o) {
   o = o || {}; const port = await exports.serveur(); if (!NAV) { await prendrePlace(); NAV = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--js-flags=--max-old-space-size=768'] }); }
   const nom = o.profil || 'mac', pr = exports.PROFILS[nom]; if (!pr) throw new Error('profil inconnu : ' + nom);
-  const ctx = await NAV.newContext({ viewport: { width: pr.w, height: pr.h }, deviceScaleFactor: 1, isMobile: !!pr.mobile, hasTouch: !!pr.doigt, userAgent: pr.ua, colorScheme: o.nuit ? 'dark' : 'light', locale: 'fr-FR', timezoneId: 'Europe/Paris', reducedMotion: o.calme ? 'reduce' : 'no-preference' });
+  const ctx = await NAV.newContext({ viewport: { width: pr.w, height: pr.h }, deviceScaleFactor: 1, isMobile: !!pr.mobile, hasTouch: !!pr.doigt, userAgent: pr.ua, colorScheme: o.nuit ? 'dark' : 'light', locale: 'fr-FR', bypassCSP: !!process.env.SANS_CSP, timezoneId: 'Europe/Paris', reducedMotion: o.calme ? 'reduce' : 'no-preference' });
   const p = await ctx.newPage(), err = [];
   const bruit = t => /ERR_FAILED|fonts\.g|Failed to load resource|ERR_INTERNET|ERR_NAME|ERR_CONNECTION|net::|ERR_TUNNEL|ERR_PROXY/.test(t);
   p.on('pageerror', e => err.push('ERREUR ' + e.message + ' @ ' + String(e.stack || '').split('\n')[1]));
