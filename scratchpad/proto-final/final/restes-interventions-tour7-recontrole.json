@@ -1,0 +1,93 @@
+{
+ "noms": [
+  "interventions"
+ ],
+ "regles": [
+  "La mémoire RELEVE_REFUS (clé fiche|relevé) doit être purgée dès qu'on quitte la fiche et à toute fermeture de session : un refus ne se dit qu'à la personne qui l'a eu sous les yeux, sur la fiche où elle l'a eu (aujourd'hui elle survit à aller() et à sessionFermer, et bloque une fois un Terminer qui n'a rien à se reprocher).",
+  "Une bulle ne doit pas recouvrir le champ qui vient de prendre le focus (Tab après un refus) : en fenêtre basse la bulle (bottom:108px) cache le champ suivant."
+ ],
+ "pasRegles": [],
+ "casses": [
+  {
+   "titre": "Un refus survit au changement de fiche et au changement de personne : un Terminer juste est bloqué une fois, avec la phrase d'un refus que l'écran ne montre plus",
+   "gravite": "mineure (un seul blocage, jamais coincé ; aucune donnée perdue)",
+   "etapes": [
+    "Technicien(ne) sm : fiche i1 (clim), taper « 10-12 » dans Soufflage puis Tab (refus, champ revenu à 14)",
+    "SANS recharger : ouvrir la fiche i2 puis revenir sur i1 (cas B), OU fermer la session et ouvrir celle de julie/marc sur i1 (cas C)",
+    "Cliquer Terminer sur i1 (fiche complète, relevés valides)"
+   ],
+   "constat": "RELEVE_REFUS['i1|Soufflage'] est toujours là (RELEVE_REFUS n'est vidée ni par aller() ni par sessionFermer) : releveRefuse() la voit (filtre sur l'id de la fiche affichée seulement), le clic Terminer est stoppé et la phrase « Un seul nombre ici… Ta saisie n'est pas enregistrée » s'affiche alors que le champ montre 14. Le second Terminer termine (mémoire consommée) : pas de blocage permanent. Sonde interventions-restes-tour7-memoire.js, contrôle C : 1 ✗ sur les 14 passages (7 profils, jour et nuit) ; B passe (au plus un blocage). Correction proposée (à faire par le correcteur, pas par moi) : vider RELEVE_REFUS dans aller() quand la route quitte la fiche et dans sessionFermer/sessionOuvrir ; la contre-mutation « la mémoire ignore la fiche affichée » est déjà couverte par le contrôle I."
+  }
+ ],
+ "nouveaux": [
+  {
+   "titre": "Petit téléphone et fenêtres basses : la bulle de refus (bottom:108px) cache le champ qui vient de prendre le focus",
+   "gravite": "mineure (la bulle dure 6 s, ne bloque pas le toucher : pointer-events:none ; la media du correcteur n'en est pas la cause, elle l'améliore)",
+   "etapes": [
+    "Profils 320x568, 360x400, 390x350, 667x375 : taper « 10-12 » dans Soufflage puis Tab",
+    "Fenêtre « Nouvelle intervention » sur 667x375 et 740x360 : toute bulle longue couvre le champ « Chercher un client » et l'onglet « Client existant »"
+   ],
+   "constat": "Captures tour7-media-refus-* et tour7-media-fenetre-* relues à l'œil (jour et nuit) : sur 360x400 la bulle couvre entièrement le champ Reprise qui a le focus ; sur 740x360 elle chevauche l'onglet. Aucun recouvrement de Terminer, de la barre du bas ni de la barre d'actions de la fenêtre (86 ✓ · 0 ✗ jour comme nuit sur dix tailles). Ancien défaut, non créé par la media petit."
+  }
+ ],
+ "sondes": [
+  {
+   "fichier": "interventions-restes-tour7-recouvrement, tour6-recontrole, tour6-adverse, tour5-frappe, tour5-adverse, tour5-adverse-ecrit, tour5-toast, interventions-recontrole",
+   "resultat": "7 profils x jour/nuit = 112 passages, tous code 0, 0 ✗ (tour6-recontrole 43 ✓, recouvrement 8 ✓, interventions-recontrole 124 ✓ par passage)"
+  },
+  {
+   "fichier": "interventions-restes-tour7-memoire.js (neuve)",
+   "resultat": "14 passages : 27 ✓ · 1 ✗ chacun, toujours le même contrôle C (refus d'une autre personne sans rechargement) ; A, B, D, E (collage, effacement, même valeur, une touche, couper), F (deux relevés), G, H (marc, julie ; kb sans relevé), I passent"
+  },
+  {
+   "fichier": "interventions-restes-tour7-media.js (neuve)",
+   "resultat": "jour et nuit : 86 ✓ · 0 ✗ chacun (10 tailles basses, 3 types de bulle) ; captures relues"
+  }
+ ],
+ "doutes": [
+  "Inchangés et NON touchés, à soumettre à Justin : plafonds 1200 °C ; « 1.200 » (mille ou virgule) ; point/virgule (12.5) ; « 1,234.5 » ; casse 4 (20 chiffres) ; durée « 1 h 30 »."
+ ],
+ "mutations": [
+  {
+   "mutation": "retour à l'ancienne consommation",
+   "tombe": true,
+   "sonde": "tour6-recontrole (1c)"
+  },
+  {
+   "mutation": "la mémoire du refus n'est plus lue",
+   "tombe": true,
+   "sonde": "tour6-recontrole (1c)"
+  },
+  {
+   "mutation": "bulle de refus à quatre lignes (media vidée), profil petit",
+   "tombe": true,
+   "sonde": "tour7-recouvrement"
+  },
+  {
+   "mutation": "l'input ne vide plus la mémoire",
+   "tombe": true,
+   "sonde": "tour7-memoire (E « retaper la même valeur »)"
+  },
+  {
+   "mutation": "la mémoire ignore la fiche affichée",
+   "tombe": true,
+   "sonde": "tour7-memoire (I)"
+  },
+  {
+   "mutation": "le geste qui termine n'efface pas la mémoire",
+   "tombe": true,
+   "sonde": "tour7-memoire (A, B)"
+  },
+  {
+   "mutation": "le refus n'écrit plus la mémoire",
+   "tombe": true,
+   "sonde": "tour7-memoire (A)"
+  },
+  {
+   "mutation": "une saisie acceptée n'efface pas la mémoire",
+   "tombe": true,
+   "sonde": "tour7-memoire (seulement C, déjà ✗ : mutation non isolée, la mémoire résiduelle d'une saisie acceptée n'est pas observée seule)"
+  }
+ ],
+ "page_touchee": false
+}
