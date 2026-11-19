@@ -8,7 +8,13 @@
 ICI="$(cd "$(dirname "$0")" && pwd)"; cd "$ICI/../../.." || exit 1
 CAP="${CAP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap}"; D="$CAP/retour-recontrole"; mkdir -p "$D"; : > "$D/resume.txt"
 S=scratchpad/proto-final/sondes
-j(){ n="$1"; s="$2"; shift; shift; t0=$(date +%s); timeout 590 env "$@" node $S/$s > "$D/$n.log" 2>&1; c=$?; echo "$(( $(date +%s)-t0 ))s code=$c $n :: $(grep -oE '[0-9]+ ✓ +· +[0-9]+ ✗' "$D/$n.log" | tail -1)" | tee -a "$D/resume.txt"; }
+# DURÉE (mesurée le 19/11, machine seule) : la série COMPLÈTE dure plus d'une heure (le parcours de la Boîte mail « c » : 6 minutes par profil ; les balayages « scan » : 3 minutes chacun ; « roles » : 3,5 minutes).
+# Par défaut (ESSENTIEL, ~10 minutes, c'est la partie jouée par retour-tout.sh et donc par tout-rejouer.sh) : pieges-android, roles-mac, cadres-android, cadres-mac, autres-android, courrier-android, b-android, d-mac, e-android.
+# LAISSÉS DE CÔTÉ par défaut : le reste des profils (iphone, ipad), les quatre balayages scan-*, c-* (la Boîte mail, 6 minutes par profil), b-mac, b-iphone, roles-android — COMPLET=1 les rejoue tous (plus d'une heure : en arrière-plan,
+# avec un délai long). SEULS="d-mac e-android" ne joue que les exécutions nommées.
+ESSENTIEL=" pieges-android roles-mac cadres-android cadres-mac autres-android courrier-android b-android d-mac e-android "
+veut(){ [ -n "$SEULS" ] && { [[ " $SEULS " == *" $1 "* ]]; return; }; [ -n "$COMPLET" ] && return 0; [[ "$ESSENTIEL" == *" $1 "* ]]; }
+j(){ n="$1"; s="$2"; shift; shift; veut "$n" || return 0; t0=$(date +%s); timeout 590 env "$@" node $S/$s > "$D/$n.log" 2>&1; c=$?; [ $c -ne 0 ] && MAL=1; echo "$(( $(date +%s)-t0 ))s code=$c $n :: $(grep -oE '[0-9]+ ✓ +· +[0-9]+ ✗' "$D/$n.log" | tail -1)" | tee -a "$D/resume.txt"; }
 for p in android iphone mac; do j "pieges-$p" retour-recontrole.js PROFIL=$p SECTION=pieges; done
 for p in android mac; do j "roles-$p" retour-recontrole.js PROFIL=$p SECTION=roles; done
 for p in android iphone mac; do j "cadres-$p" retour-recontrole.js PROFIL=$p SECTION=cadres; j "autres-$p" retour-recontrole.js PROFIL=$p SECTION=autres; done
@@ -24,4 +30,4 @@ j b-iphone retour-recontrole-b.js PROFIL=iphone ROUTES=devis,planning,absences N
 for p in android ipad mac iphone; do j "c-$p" retour-recontrole-c.js PROFIL=$p NB=24; done
 for p in android mac iphone; do j "d-$p" retour-recontrole-d.js PROFIL=$p NB=30; done
 for p in android mac; do j "e-$p" retour-recontrole-e.js PROFIL=$p; done
-echo FINI | tee -a "$D/resume.txt"
+echo FINI | tee -a "$D/resume.txt"; exit ${MAL:-0}
