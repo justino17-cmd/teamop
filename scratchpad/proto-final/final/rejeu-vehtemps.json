@@ -22,7 +22,17 @@
       "vertes": 102,
       "rouges": 7,
       "outilsEcartes": "vehtemps-avant, -captures, -v-captures, -v4-captures, -v5-captures, -feuilles, -rc-balayage, -mutations ; securite-captures, securite-mutations.py ; artefact-commun, -mutations, -voir-app-mutations.py ; retour-captures, retour-mutations, retour-restes3-constat/-double/-apercu-pdf/-cap, retour-restes2-recontrole-cap, retour-restes3-mutations.sh, retour-restes4-mutations.sh ; double-auth-mutations.py ; secu-captures est rejoué (c'est un contrôle au pixel)",
-      "sondesRouges": 6
+      "sondesRouges": 6,
+      "sansTotal": 0
+    },
+    {
+      "date": "2026-11-19 09:04 à 11:2x (après les six réparations, commit 9ce2c9a9)",
+      "scripts": "tout-rejouer.sh vehtemps secu securite artefact retour double (une sonde à la fois, machine peu chargée : charge 0,8)",
+      "sondes": 110,
+      "vertes": 110,
+      "rouges": 0,
+      "sansTotal": 0,
+      "couverturePartielle": 0
     }
   ],
   "aNoter": [],
@@ -77,6 +87,7 @@
     }
   ],
   "reste": [
-    "rejeu complet des six familles après réparations : voir passages[1] (à remplir à la fin du rejeu)"
+    "Rien de rouge, rien « à soumettre ». Les captures de Mon camion sur 320 × 568 (jour, nuit, défilé) ont été regardées : carte « Il manque à bord » visible au premier écran, la carte du camion un défilement plus bas, barre du bas dégagée.",
+    "Non rejoué ici : les mutations (securite-mutations.py, artefact-mutations, retour-mutations) — écartées du rejeu par construction ; le contrôle ajouté 0b de securite-politique et les bords 20/21 de securite-injection n'ont donc pas de mutation dédiée."
   ]
 }
