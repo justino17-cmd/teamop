@@ -5666,6 +5666,10 @@ const STF = { avalider:['À valider','st-o'], envoyee:['Envoyée · en attente',
 let filtreF = 'tous', reglages = { auto:false, relance:true };
 /* une ligne est prête quand elle a un nom ET un prix : sans nom, elle partirait chez le client sous « Ligne libre » (compta-ventes-02) */
 const ligneOk = l => l.pu != null && String(l.d || '').trim() !== '';
+/* La ligne qui DÉDUIT l'acompte déjà facturé est verrouillée : ni son prix ni sa quantité ne se retapent, ne s'effacent ni ne se doublent (« 2 » déduisait 100 € pour 50 € versés ; vider le prix puis taper « 50 » facturait +50 €).
+   Reconnue par le drapeau posé à sa création, ou — pour une ligne qui n'en porte pas — par son prix négatif : sur une facture à valider, seule une déduction est négative (compta-ventes, tour 6, décision du chef du 18/11). */
+const ligneAcompte = l => !!l && (l.acompte === true || l.pu < 0);
+const ACOMPTE_PHRASE = 'L’acompte se reprend tel qu’il a été facturé : son montant et sa quantité ne se retapent pas ici.';
 const lignesDe = f => f.lignes || [{ d:f.objet.replace(/ · .*/,'') + ' — main-d’œuvre et déplacement', q:'1', pu:f.ht }];
 /* UNE seule fonction pour le total d'une ligne : celle du total de la facture (17/11, compta-ventes-11 : « Prix HT » voulait dire tantôt l'unité,
    tantôt la ligne ; la fiche, le PDF et le total de la facture lisent maintenant la même multiplication) */
@@ -5689,12 +5693,14 @@ const lignePiece = p => /[a-z]/i.test(String(p.q)) ? { d:p.nom, q:p.q, pu:p.pu !
    comptait 25,825 chacune — les lignes lues à l'écran faisaient 207,49 € pour un Total HT de 207,47 € sur un document remis au client (recontrôle, tour 3). */
 const totLigne = l => Math.round((l.pu || 0) * qteDe(l) * 100 + 1e-7) / 100;
 const htDe = f => Math.round(lignesDe(f).reduce((s,l) => s + totLigne(l), 0) * 100 + 1e-7) / 100;
+/* Les seules unités qu'une quantité tapée sait compter : aucune (un nombre), les heures (« 2 h »), et un décompte (« 3 u », « 2 pièces »). Toute autre — « forfaits », « mL », « kg » — changerait le total d'une ligne sans qu'on sache le convertir. */
+const qteUniteConnue = v => { const m = String(v).trim().match(/^(?:\d{1,4}\s?h(?:eures?)?\s?\d{0,2}(?:\s?min(?:utes?)?)?|(?:\d{1,3}(?:[\s\u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?:\s?(h(?:eures?)?|u|unités?|pièces?|pcs?))?)$/i); return !!m; };
 /* Une durée tapée EN MINUTES (« 90 min », « 45 mn ») : sa valeur en minutes, ou null. Elle ne vaut des heures que sur une ligne facturée à l'heure (`ligneHeure`) :
    « 90 min » lu comme « 90 » au prix de l'HEURE écrivait 5 850,00 € pour 97,50 € dus, sans un mot (recontrôle, tour 3). */
 const dureeMinutes = v => { const m = String(v).trim().match(/^(\d{1,4}(?:[.,]\d+)?)\s?(?:min(?:ute)?s?|mn)$/i); return m ? parseFloat(m[1].replace(',', '.')) : null; };
 /* Une ligne est « à l'heure » par ce que SA QUANTITÉ dit (« 2h »), par le drapeau qu'une durée acceptée lui pose (`l.heure` : sans lui, la ligne cessait de l'être dès qu'elle avait reçu « 90 min », et la saisie suivante était refusée avec une phrase fausse),
    ou par une désignation d'heure DONT LE PRIX EST CELUI DE L'HEURE. Jamais par la désignation seule : « Main-d'œuvre remplacement (2 h) » d'un devis est une quantité 1 au prix des deux heures, et « 90 min » y écrivait 195 € pour 130 € dus, sans un mot (recontrôle, tour 4). */
-const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
+const ligneHeure = l => /(^|\d)\s?h(eures?)?\b/i.test(String(l.q0 != null ? l.q0 : l.q)) || l.heure === true || (/main.d.œuvre|\bheures?\b/i.test(String(l.d || '')) && !/forfait/i.test(String(l.d || '')) && l.pu === TARIFS.horaire);
 /* « même texte = même total » ne tient pas à la casse ni aux espaces : « 0,5 l » et « 0,5L » sont le flacon de « 0,5 L » (recontrôle, tour 3). */
 const qteNorm = v => String(v == null ? '' : v).toLowerCase().replace(/[\s\u00a0\u202f]/g, '');
 /* Le TTC d'un document est une somme d'argent : il s'arrête au CENTIME (le HT arrondi, puis la TVA arrondie au centime, demi vers le haut — la règle du devis, `dvAcompteHT`).
@@ -5713,7 +5719,7 @@ function factureDepuis(i){ // préparée toute seule à la fin de l'intervention
   prec.forEach((f, k) => { f.id = 'f-' + i.id + '-annulee' + (k || ''); });
   const dv = dvInit().find(x => x.int === i.id && x.e === 'accepte');   // devis accepté lié à l’intervention : la fiche du devis promet ses lignes et l’acompte déduit
   if (dv && !i.fact) { const L3 = dv.lignes.map(l => ({ d:l[0], q:String(l[1]), pu:l[2] }));
-    if (dv.acompte && dv.facAcompte) L3.push({ d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
+    if (dv.acompte && dv.facAcompte) L3.push({ acompte:true, d:'Acompte de ' + dv.acompte + ' % déjà facturé', q:'1', pu:-((fa => fa ? htDe(fa) : dvAcompteHT(dv))(FACTURES.find(f => f.id === dv.facAcompte))) });
     FACTURES.unshift({ id:'f-' + i.id, num:'—', cli:i.cli, int:i.id, paieTech:F.paiement, objet:dv.objet, lignes:L3, ht:0, tva:dv.tva, st:'avalider', emise:'—', ech:'—' }); dv.facSolde = 'f-' + i.id; return; }
   const kc = ctrDeVisite(i), fi = i.fact || (kc ? { mode:'contrat', tva:CLIENTS[i.cli].type === 'part' ? 10 : 20 } : null);   // une visite de contrat facturée « à chaque visite » se prépare au prix du contrat, jamais au tarif de dépannage
   if (fi) { const m = Math.max(1, hmin(F.fin) - hmin(F.debut)), fm = fi.mode, L2 = [];
@@ -9525,19 +9531,22 @@ document.addEventListener('change', ev => {
   else if (t.dataset.bc) { BROUILLON[t.dataset.bc] = t.checked; rendre(); }
   else if (t.dataset.reglage) { reglages[t.dataset.reglage] = t.checked; toast(t.checked ? 'Activé' : 'Désactivé'); }
   else if (t.dataset.prix != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const v = dvLireNb(t.value);
+    /* AVANT tout le reste (plafonds, signe) : une déduction d'acompte ne se retape pas, ne se vide pas, ne devient pas positive — et le refus dit la vérité au lieu de parler d'avoir */
+    if (ligneAcompte(f.lignes[+t.dataset.prix])) { toast(ACOMPTE_PHRASE + ' Le prix précédent est conservé.'); rendre(); return; }
     if (!isNaN(v) && v >= DV_PU_MAX) { toast('Ce prix est trop grand : un montant en euros inférieur à ' + eur(DV_PU_MAX) + ' (35 ou 35,50). Le précédent est conservé.'); rendre(); return; }   /* même plafond que le forfait de création */
     { const lg = f.lignes[+t.dataset.prix];   /* le plafond vaut aussi pour le TOTAL de la ligne : 9 999 × 999 999,99 € donnait près de 10 milliards, sans un mot */
       if (!isNaN(v) && v * qteDe(lg) > DV_PU_MAX) { toast('Le total de cette ligne dépasserait ' + eur(DV_PU_MAX) + ' HT : baisse le prix ou la quantité. Le prix précédent est conservé.'); rendre(); return; } }
     /* un prix qu'on ne sait pas lire se DIT : « -10,33 » vidait le prix en silence et la ligne devenait « à chiffrer » sans raison (recontrôle, tour 4). Effacer le champ, lui, reste « à chiffrer ». */
-    { const lg0 = f.lignes[+t.dataset.prix];   /* une DÉDUCTION (l'acompte déjà facturé, prix négatif) ne change pas de signe en retapant « 40 » : le client paierait l'acompte une seconde fois au lieu de le déduire */
-      if (lg0.pu < 0 && t.value.trim() !== '') { toast('Cette ligne déduit un acompte déjà facturé : son montant ne se retape pas ici. Le prix précédent est conservé.'); rendre(); return; } }
     if (isNaN(v) && t.value.trim() !== '') { toast(/^[-−–]/.test(t.value.trim()) ? 'Un prix ne s’écrit pas en négatif : pour rendre de l’argent à un client, fais un avoir. Le prix précédent est conservé.' : 'Un prix s’écrit en chiffres : 35 ou 35,50. Le prix précédent est conservé.'); rendre(); return; }
     f.lignes[+t.dataset.prix].pu = isNaN(v) ? null : v; rendreApresClic(); }
   else if (t.dataset.fdes != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); f.lignes[+t.dataset.fdes].d = t.value.trim().replace(/\s+/g, ' ').slice(0, 120); rendreApresClic(); }
   else if (t.dataset.fqte != null && t.dataset.id) { const f = FACTURES.find(x => x.id === t.dataset.id); f.lignes = lignesDe(f); const l = f.lignes[+t.dataset.fqte], v = t.value.trim();
+    if (ligneAcompte(l)) { t.value = l.q; toast(ACOMPTE_PHRASE + ' Je garde ' + (l.q || '1') + '.'); return; }   /* la quantité d'une déduction non plus : « 2 » déduisait l'acompte deux fois */
     /* un nombre au-dessus de zéro, éventuellement suivi d'une unité (« 2 », « 0,5 », « 250 mL ») : le reste redonne l'ancienne valeur au lieu de devenir « 1 » en silence */
     const mn = dureeMinutes(v);
     if (mn !== null && !(mn > 0 && ligneHeure(l))) { t.value = l.q; toast(mn > 0 ? 'Une durée en minutes se compte sur une ligne facturée à l’heure : écris-la en heures (1h30), ou une quantité. Je garde ' + (l.q || '1') + '.' : 'La quantité commence par un nombre supérieur à zéro. Je garde ' + (l.q || '1') + '.'); return; }
+    /* UNE unité que la ligne ne sait pas convertir se REFUSE : « 3 forfaits » ou « 250 mL » sur un flacon multipliaient le prix par 3 ou par 250, sans un mot. Sont lues : un nombre seul, une durée (2h, 1h30) et un décompte (u, pièce) ; le texte d'origine d'une ligne préparée (« 0,5 L ») redonne son propre total */
+    if (mn === null && !(l.q0 != null && qteNorm(v) === qteNorm(l.q0)) && qteLire(v) !== null && !qteUniteConnue(v)) { const un = (v.match(/^[\d\s\u00a0\u202f.,]+(\S.*)$/) || [])[1] || ''; t.value = l.q; toast('Je ne sais pas compter en « ' + un.trim() + ' » sur cette ligne : écris un nombre (2) ou une durée (1h30). Je garde ' + (l.q || '1') + '.'); return; }
     const lu = mn !== null ? mn / 60 : qteLire(v), nq = (l.q0 != null && qteNorm(v) === qteNorm(l.q0)) ? l.qn0 : lu === null ? NaN : lu;   /* le texte d'origine d'une ligne préparée redonne SON total */
     if (!(nq > 0)) { t.value = l.q; toast('La quantité commence par un nombre supérieur à zéro : 2, 0,5 L, ou une durée comme 2h30. Je garde ' + (l.q || '1') + '.'); return; }
     if (nq > DV_Q_MAX) { t.value = l.q; toast('Ce nombre est trop grand pour une quantité : au plus ' + DV_Q_MAX.toLocaleString('fr-FR') + ', comme dans un devis. La quantité précédente est conservée.'); return; }   /* un seul plafond, celui du devis */
