@@ -410,7 +410,7 @@ du blog, voir `blog-publication.yml`), vérifier une publication, PUIS supprimer
 Reprise programmée le 18 à 22 h 10 (`trig_01ARF4xswzMN4Z5rmX7c9NfF`) : CHANTIER 0 SEULEMENT (« tout servir depuis notre serveur »,
 bloc « NOUVEL ORDRE DE PRIORITÉ » plus bas) ; le prototype (chantier A) et OP Security ↔ OP GESTION (chantier B) restent en pause
 jusqu'à sa fin. Aucune session sœur, aucun workflow, aucune tâche de fond ne tourne.
-**Version 66 de l'artefact** (https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux), publiée vers 16 h 55 depuis le commit `89b6089` :
+**Version 67 de l'artefact** (https://claude.ai/artifact/8K6fXjo4jRwTs4pFRUUhux), publiée le 19/11 vers 19 h 25 UTC depuis le commit `9a3ed29b`, après le rejeu final de toutes les parties (840 suites, 47 274 vérifications, 0 échec ; décisions de Justin : `scratchpad/proto-final/DOUTES-JUSTIN.md`). Pour mémoire, la version 66 (17/11, 16 h 55, commit `89b6089`) :
 toutes les corrections du 17 (Véhicules et Temps de travail, Équipe, Achats, Clients, espace client, bouton principal de nuit,
 sécurité du prototype tour 1) et l'écran de connexion réparé. Vérifiée juste avant : connexion 14 ✓, fumée de jour 396 ✓, client
 et chef d'équipe 126 ✓, nuit 396 ✓, artefact 434 ✓ (63 + 26 + 14 + 144 + 10 + 16 + 24 + 5 + 132) — 1 366 contrôles, 0 ✗ ; planches
