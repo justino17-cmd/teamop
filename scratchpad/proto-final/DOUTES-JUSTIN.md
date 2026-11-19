@@ -2,7 +2,7 @@
 
 Compilé le 19 novembre 2026 à partir des comptes rendus de la nuit. Écrans validés par toi (Accueil, Planning, Absences, Interventions, Clients, Devis, Comptabilité, Équipe) : on n'y touche pas sans ton mot ; les doutes qui les concernent sont des « si tu veux ». Chaque ligne : la question, les choix, et ma recommandation entre parenthèses quand les comptes rendus en donnent une. La source est en fin de ligne, en `code`.
 
-**TOTAL : 96 doutes** (le décompte par écran est en bas du fichier).
+**TOTAL : 97 doutes** (le décompte par écran est en bas du fichier).
 
 ---
 
@@ -133,6 +133,7 @@ Compilé le 19 novembre 2026 à partir des comptes rendus de la nuit. Écrans va
 92. **Nettoyage des textes tapés :** les guillemets droits d'un nom sont retirés (« Café "Chez Léa" » → « Café Chez Léa »). Garder ? `final/restes-securite-tour3.json#2`
 93. **Les polices du compositeur** se chargent chez un tiers dans le prototype ; dans la vraie application elles seront servies par notre serveur (règle de sécurité). À confirmer. `final/vus-par-le-chef.md`
 94. **Téléchargement du PDF d'un devis depuis l'atelier :** à essayer une fois sur l'artefact publié ; si « pas disponible » alors que le FEC marche, une petite correction suffit. `final/restes-artefact-tour1.json#6`
+94b. **Petits restes de la saisie (nuit du 19), à corriger ou non :** Ctrl+Z après un texte collé trop long et coupé ne fait rien ; 5 textes libres (appareil, motif, note de tâche) gardent l'écriture décomposée des accents ; les refus du devis nouveau et du client seul ne mettent pas le champ en rouge, et à 360 px leur phrase tombe sous le pli ; la phrase de refus n'est pas reliée au champ pour les lecteurs d'écran ; le caractère U+FFFC compte comme une ligne d'accès. (Recommandation : les corriger avec la vraie application.) `final/restes-securite-tour5bis-recontrole.json`
 
 ## 12. Divers (à connaître, pas à corriger)
 
