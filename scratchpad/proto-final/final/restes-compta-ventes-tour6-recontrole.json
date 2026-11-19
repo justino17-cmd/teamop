@@ -1,0 +1,38 @@
+{
+ "noms": ["compta-ventes (restes, tour 6) — recontrôle adverse"],
+ "regles": [
+  { "nom": "Ligne d'acompte verrouillée (prix effacé, « 50 », même montant, quantité « 2 », « 0,5 », « 1 h », « -1 », « abc ») — avec drapeau, sans drapeau (ancienne), et à prix déjà vidé", "preuve": "restes6 33 ✓ · 0 ✗ mac et iPhone nuit ; rc2 (acompte fabriqué par la VRAIE porte : devis accepté → facture d'acompte → factureDepuis) 11 ✓ · 0 ✗ iPhone nuit : drapeau posé, prix -134,45 et quantité « 1 » gardés sur 8 saisies, Total HT inchangé ; capture rc-acompte-iphone-nuit.png relue (phrase de refus lisible, non coupée)" },
+  { "nom": "Unités inconnues refusées (« 3 forfaits », « 250 mL », « 2 kg », « 5 m », « 3 jours », « 12abc », « 2 x », « 3 forfait »), unités connues lues (2 u, 2 pcs, 2pièces, 1 000 u, 1,5, 2h, 1h30, 90 min, 2 heures)", "preuve": "restes6 et rc : champ revenu à l'ancienne valeur, total inchangé, une phrase ; saisies tordues « 2h60 », « １ », « ٣ », « 1e3 », « -2 », « 0 », « 2/3 », « 2 + 1 », champ vide : toutes refusées avec la phrase du nombre, aucune ne change un total" },
+  { "nom": "Commande fournisseur : prix et ligne arrondis comme devis et facture (3 × 12,345 = 37,04 € la ligne, 74,08 € les deux, « Prix unitaire HT », prix à 4 décimales retapé sans NaN ni débordement)", "preuve": "restes6-commande 6 ✓ · 0 ✗ mac nuit et iPhone nuit ; rc : « 12,3456 » → 37,04 €, pas de débordement ; captures r6-commande-iphone-nuit et rc-commande-mac-nuit relues" },
+  { "nom": "« Forfait main-d'œuvre » : « 90 min » refusé en quantité 1 (65 € gardés), accepté si la quantité est en heures (2h → 97,50 €)", "preuve": "restes6 mac et iPhone nuit" },
+  { "nom": "Aucune régression sur les sondes voisines (restes-1/2/3, restes2-1/2, restes3-lignes/remb/rc-largeurs/rc-duree, restes4, restes4-rc-a/b, restes5-qte, restes5-rc2)", "preuve": "toutes à 0 ✗ au mac nuit et à l'iPhone nuit (restes5-rc2 6 ✓, restes5-qte 8 ✓, restes4 23 ✓, restes2-1 15 ✓, restes-1 17/30 ✓) ; rc-largeurs et rc-duree n'ont pas de ligne de bilan, sortie 0 et leurs ✓ lus" }
+ ],
+ "pasRegles": [],
+ "casses": [
+  { "titre": "Une fin de nombre tapée par habitude (« 2. », « 2, », « 2 , ») est refusée avec une phrase absurde : « Je ne sais pas compter en « . » sur cette ligne »",
+    "gravite": "mineur (rien de faux n'est écrit : la quantité reste, mais la phrase cite une ponctuation comme si c'était une unité, devant un débutant)",
+    "etapes": "Marc > Factures > une facture à valider > champ Qté d'une ligne > taper « 2. » (ou « 2, ») > Tab",
+    "constat": "sonde compta-ventes-restes6-rc.js mac et iPhone nuit : ✗ ×3 ; cause : `qteUniteConnue` refuse, puis la phrase prend le reste de la saisie comme « unité ». Correctif conseillé : retirer d'abord les `. , ;` de fin (« 2. » = 2), ou, si le reste ne contient aucune lettre, dire la phrase du nombre (« La quantité commence par un nombre… »)." },
+  { "titre": "Une commande à prix de TROIS décimales (permis depuis la correction (3)) fait dire à la Boîte mail « écart de −0,01 € » sur une facture fournisseur pourtant identique à la commande",
+    "gravite": "mineur (0,01 €, mais le message de non-conformité est faux et le gérant le lira)",
+    "etapes": "commande à deux lignes 3 × 12,345 € (commande : 74,08 € HT) > reçue > la facture fournisseur lue arrive avec les mêmes quantités et prix > Boîte mail > pièce jointe de la facture : « 74,07 € HT lus dans la facture, 74,08 € HT commandés — écart de −0,01 € »",
+    "constat": "mesuré sur la fonction que lit la Boîte mail, `mbxFacLue` : ht 74.07 contre att 74.08, `Math.abs(ht - att) < .01` faux. Cause : `mbxFacLue` (et la ligne `R.cmd.lignes.reduce(… (l.recu ?? l.q) * l.pu …)` de la boîte mail) additionnent des lignes NON arrondies puis arrondissent le total, alors que `cmdHT` arrondit chaque ligne au centime (`cmdLigneHT`). Correctif conseillé : une fonction `cmdLigneHT`-like qui prend la quantité reçue, utilisée par ces deux endroits. Non corrigé par moi (consigne : aucune page modifiée)." }
+ ],
+ "nouveaux": [
+  "Les deux défauts ci-dessus sont NOUVEAUX : ils n'existaient pas avant les corrections (1)/(3) du tour 6 (la phrase « unité » est neuve ; les prix à trois décimales n'étaient pas affichés tels quels avant)"
+ ],
+ "sondes": [
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes6.js", "resultat": "33 ✓ · 0 ✗ mac, 33 ✓ · 0 ✗ iPhone nuit" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes6-commande.js", "resultat": "6 ✓ · 0 ✗ mac nuit, 6 ✓ · 0 ✗ iPhone nuit" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes6-rc.js (NEUVE : saisies tordues, acceptations limites, Boîte mail à trois décimales, prix à 4 décimales)", "resultat": "37 ✓ · 4 ✗ mac nuit et iPhone nuit (les 3 « 2. / 2, / 2 , » et l'écart de la Boîte mail : voir casses)" },
+  { "fichier": "scratchpad/proto-final/campagne/sondes/compta-ventes-restes6-rc2.js (NEUVE : acompte par la vraie porte)", "resultat": "11 ✓ · 0 ✗ iPhone nuit" },
+  { "fichier": "restes5-rc2, restes5-qte, restes4, restes4-rc-a/b, restes2-1/2, restes-1/2/3, restes3-lignes/remb/rc-largeurs/rc-duree", "resultat": "0 ✗ mac nuit et iPhone nuit" },
+  { "fichier": "contrôles du dépôt : compiler-pages, verifier-syntaxe, test-835/836/837/1008/2994, verif-secrets", "resultat": "tous à 0 ✗ (844, 307, 122, 54, 15 ✓)" }
+ ],
+ "doutes": [
+  "« 2 h », « 1,5 h », « 2h30 » tapés sur une ligne qui n'est PAS à l'heure (pièce libre à 20 €) sont acceptés et multiplient (40 €, 30 €, 50 €) : défendable (« 2 h » = 2 unités), mais une pièce comptée en heures est étrange ; à soumettre à Justin ou à laisser",
+  "Le jeu de données du prototype ne contient aucun devis avec acompte déjà facturé : j'ai donc fabriqué l'acompte par la vraie fonction (dvAcompte puis factureDepuis) pour rejouer la vraie porte ; l'écran « Devis » de l'acompte n'a pas été rejoué à la main",
+  "Je n'ai pas rejoué la fiche de la facture en mode Julie (secrétaire) : la garde `ligneAcompte` ne dépend d'aucun rôle (lue dans le code), mais non mesurée",
+  "Doutes du tour 5 inchangés, à soumettre à Justin : remboursement d'une facture payée puis avoirée ; « Paiement en ligne » sur les factures d'exemple ; nom « OP COMPTABLE » ; cadre qui ne redessine pas sa liste ; prix à trois décimales accepté sur une FACTURE"
+ ]
+}
