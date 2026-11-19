@@ -138,7 +138,11 @@ async function phaseD() {
   v('D eqFiche : UNE seule déclaration `function eqFiche` ne reste pas (la morte est retirée) et une seule affectation `eqFiche = function` ', nFonc === 0 && nAff === 1 && nTotal === 1, { nFonc, nAff, nTotal });
   v('D la fiche s\'ouvre : titre, cases de droits, bouton « Ouvrir l\'application comme », bloc d\'accès (le correctif de la seconde déclaration vit encore)', !!ouv.h2 && ouv.cases > 20 && ouv.comme && ouv.acces, ouv);
   if (!fs.existsSync(REF)) v('D la référence « fiches avant » existe', false, REF);
-  else { const ref = JSON.parse(fs.readFileSync(REF, 'utf8')); for (const k of Object.keys(ref)) v(`D la fiche de « ${k} » est IDENTIQUE à celle d'avant le correctif (${(fiches[k] || '').length} signes)`, fiches[k] === ref[k], { avant:(ref[k] || '').length, apres:(fiches[k] || '').length }); }
+  else { const ref = JSON.parse(fs.readFileSync(REF, 'utf8'));
+    /* la SEULE différence voulue : les deux phrases de la case Boîte mail (N3 : « répondre » passe de Modifier à Créer) — on les remet dans leur forme d'avant pour comparer le reste, signe pour signe */
+    const AVANT = [['écrire un message ou y répondre, le transférer, confier un e-mail, en faire une tâche, connecter une boîte, ajouter une règle', 'écrire un message, le transférer, connecter une boîte, ajouter une règle'], ['marquer, archiver, ranger, reconnecter une boîte', 'répondre, marquer, archiver, ranger, reconnecter une boîte']];
+    for (const k of Object.keys(fiches)) for (const [n, a] of AVANT) fiches[k] = (fiches[k] || '').split(n).join(a);
+    for (const k of Object.keys(ref)) v(`D la fiche de « ${k} » est IDENTIQUE à celle d'avant le correctif (${(fiches[k] || '').length} signes)`, fiches[k] === ref[k], { avant:(ref[k] || '').length, apres:(fiches[k] || '').length }); }
   await L.fin(c);
 }
 
