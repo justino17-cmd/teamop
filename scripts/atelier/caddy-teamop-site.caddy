@@ -1,0 +1,26 @@
+# LE SITE teamop.fr SERVI PAR LE SERVEUR DES CLIENTS (19 novembre 2026) — étape 3 du départ de GitHub.
+# Posé en /etc/caddy/teamop-site.caddy par scripts/atelier/installer-site-vps.sh, importé par le Caddyfile.
+# Le contenu vient de l'atelier (scripts/assembler-site.sh, liste blanche) par la clé bridée (« site ») : /opt/teamop/site/actuel.
+# Mêmes comportements que GitHub Pages, mesurés le 19/11 : /tarifs sert tarifs.html, /blog redirige vers /blog/, www renvoie vers
+# l'apex, une page absente répond 404 avec 404.html.
+
+teamop.fr {
+	root * /opt/teamop/site/actuel
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	try_files {path} {path}.html
+	file_server
+	handle_errors 404 {
+		rewrite * /404.html
+		file_server
+	}
+}
+
+www.teamop.fr {
+	redir https://teamop.fr{uri} permanent
+}

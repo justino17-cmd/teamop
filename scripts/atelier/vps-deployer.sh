@@ -20,14 +20,31 @@ case "${ARGS[0]:-}" in
   etat)
     git rev-parse HEAD
     exit 0 ;;
+  site)
+    # LE SITE teamop.fr (19 novembre 2026, étape 3) : l'atelier assemble le site (scripts/assembler-site.sh, liste blanche) et l'envoie
+    # en archive tar sur l'entrée. On l'ouvre dans un dossier NEUF, on retire tout lien symbolique ou fichier spécial (un lien vers
+    # /etc servi par Caddy serait une fuite), on exige index.html, puis on bascule « actuel » d'un coup. La version d'avant est gardée.
+    BASE=/opt/teamop/site; MAXS=$((200 * 1024 * 1024))
+    mkdir -p "$BASE"; NEUF="$(mktemp -d "$BASE/v-$(date +%Y%m%d-%H%M%S)-XXXX")"
+    head -c "$((MAXS + 1))" | tar -xz --no-same-owner --no-same-permissions -C "$NEUF" -f - || { rm -rf "$NEUF"; echo "✗ archive du site illisible : rien n'est changé"; exit 3; }
+    [ "$(du -sb "$NEUF" | cut -f1)" -le "$MAXS" ] || { rm -rf "$NEUF"; echo "✗ site trop gros : rien n'est changé"; exit 3; }
+    find "$NEUF" ! -type f ! -type d -delete
+    [ -s "$NEUF/index.html" ] && [ -s "$NEUF/404.html" ] || { rm -rf "$NEUF"; echo "✗ index.html ou 404.html manquent : rien n'est changé"; exit 3; }
+    chmod -R u=rwX,go=rX "$NEUF"
+    ln -sfn "$NEUF" "$BASE/actuel.tmp" && mv -T "$BASE/actuel.tmp" "$BASE/actuel"
+    # On garde les deux dernières versions (retour en arrière possible), on efface les autres.
+    ls -1d "$BASE"/v-* | sort | head -n -2 | xargs -r rm -rf
+    echo "✅ site en place : $(find "$NEUF" -type f | wc -l) fichiers ($(basename "$NEUF"))"
+    exit 0 ;;
   deployer)
     ATTENDU="${ARGS[1]:-}"
     [[ "$ATTENDU" =~ ^[0-9a-f]{40}$ ]] || { echo "✗ commit attendu absent ou mal formé"; exit 2; }
     ;;
   *)
-    echo "✗ commande refusée : cette clé ne sait que « etat » et « deployer <commit> »"; exit 2 ;;
+    echo "✗ commande refusée : cette clé ne sait que « etat », « deployer <commit> » et « site »"; exit 2 ;;
 esac
 
+cd "$REPO"
 PAQUET="$(mktemp /tmp/teamop-paquet.XXXXXX)"
 trap 'rm -f "$PAQUET"' EXIT
 head -c "$((MAX_OCTETS + 1))" > "$PAQUET"

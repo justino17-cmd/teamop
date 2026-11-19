@@ -1,0 +1,35 @@
+name: Publication du site (atelier)
+
+# LE SITE teamop.fr PART DE NOS MACHINES (19 novembre 2026) — étape 3 du départ de GitHub (scratchpad/demenagement/PLAN.md).
+# Même assemblage que GitHub Pages (scripts/assembler-site.sh, LISTE BLANCHE : rien d'interne n'est servi), envoyé au serveur des
+# clients par la clé bridée de l'atelier (commande « site » de /usr/local/sbin/teamop-deployer). Le serveur l'ouvre dans un dossier
+# neuf, retire tout lien symbolique, exige index.html et 404.html, puis bascule d'un coup ; la version d'avant reste à côté.
+# ⛔ Aucun secret ici ; l'empreinte du serveur est écrite en clair (voir deploiement-serveur.yml).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publication-site
+  cancel-in-progress: true
+
+jobs:
+  publier:
+    runs-on: atelier
+    timeout-minutes: 15
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - name: Assembler le site (liste blanche)
+        run: bash scripts/assembler-site.sh _site
+      - name: L'envoyer au serveur des clients
+        run: |
+          set -euo pipefail
+          K="$HOME/.ssh/deploiement-serveur"
+          [ -s "$K" ] || { echo "✗ la clé de déploiement de l'atelier manque ($K)"; exit 1; }
+          KH="$(mktemp)"; A="$(mktemp)"; trap 'rm -f "$KH" "$A"' EXIT
+          printf '%s\n' 'api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn' > "$KH"
+          tar -czf "$A" -C _site .
+          ssh -i "$K" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=yes \
+            root@api.teamop.fr site < "$A"
