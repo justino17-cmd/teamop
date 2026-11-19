@@ -51,7 +51,8 @@ for nom, a, b, sections, formes in MUTS:
     subprocess.run(['git', 'checkout', PG], check=True)
     vide = subprocess.run(['git', 'diff', '--stat', PG], capture_output=True, text=True).stdout.strip() == ''
     ko = [l.strip()[:120] for l in sortie.splitlines() if l.startswith('  ✗')]
-    tombe = bool(d.strip()) and touche and code == 1 and bool(ko) and vide
+    # la sonde sort avec le NOMBRE de ✗ : une sortie 2 sur 2 ✗ nommés est une chute, une sortie 2 sans ✗ nommé (plantage) n'en est pas une
+    tombe = bool(d.strip()) and touche and code != 99 and bool(ko) and code == len(ko) and vide
     tombent += 1 if tombe else 0
     print(('TOMBE ' if tombe else 'NE TOMBE PAS ') + nom + ' · code ' + str(code) + ' · diff mutation non vide : ' + str(bool(d.strip())) + ' · texte muté présent : ' + str(touche) + ' · diff vide après restauration : ' + str(vide) + ' · ✗ ' + str(len(ko)) + ' : ' + ' | '.join(ko[:2]))
     sys.stdout.flush()
