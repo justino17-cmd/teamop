@@ -56,7 +56,7 @@ const SORTIE = process.argv[3] || '';
     else { const PAR_CONCEPTION = {};   // equipe-11 (décision du chef, 17/11) : « Voir » décide SEUL — « Dépôts et camions » et les heures de toute l'équipe ne demandent plus « Supprimer » (avant : { 'stock.s':['boxes'], 'temps.s':['pointage'] }, spec § 2.6)
       const att = PAR_CONCEPTION[cat + '.' + x] || []; v(`case ${cat}.${x} décochée : ne ferme que ce que la conception lui donne (${att.join(', ') || 'rien : seul « Voir » ferme'})`, JSON.stringify(ferme.slice().sort()) === JSON.stringify(att.slice().sort()), { ferme, att }); }
     // on la recoche à la souris
-    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); }); await L.toucher(c, sel);
+    await E.fiche(c, k); await c.p.evaluate(() => { const d = document.querySelector('#calque details.eqx-det'); if (d) d.open = true; document.querySelectorAll('#calque details.eq-dr-m').forEach(m => { m.open = true; }); }); await L.toucher(c, sel + ':visible');
     const re = await c.p.evaluate(({ k, cat, x }) => !!eqDe(k).droits.cats[cat][x], { k, cat, x }); v(`case ${cat}.${x} : recochée, la donnée revient`, re === true, re);
     // « Voir » décoché retire aussi Créer/Modifier/Supprimer d'effet : le recocher ne rend pas ceux qu'on avait coupés avant — on rétablit la ligne entière
     await c.p.evaluate(({ k, cat }) => { eqDe(k).droits.cats[cat] = { v:1, c:1, m:1, s:1 }; }, { k, cat });
