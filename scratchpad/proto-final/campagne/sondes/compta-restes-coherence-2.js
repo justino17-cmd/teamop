@@ -1,7 +1,7 @@
 // Restes de cohérence cadre OP COMPTABLE / OP GESTION, 2e tour (18 novembre 2026) — chaque contrôle porte son numéro de point :
 //  1  le « Reçu I6 » (argent reçu sur place, avant facture) part au cadre avec les autres encaissements : TVA collectée à 1 centime près (l'arrondi par taux / par paiement est laissé),
 //     l'argent entre dans la caisse, le reste est un acompte (419100) ; quand la facture part le reçu est repris, quand le moyen change l'écriture suit.
-//  2  un SOLDE DE TVA négatif se dit « Crédit de TVA » (« L'État te doit ») partout où le cadre le montre, jamais « À payer 0,00 € ».
+//  2  un SOLDE DE TVA négatif se dit « Crédit de TVA » (il se reporte sur la déclaration suivante : on ne promet pas un remboursement) partout où le cadre le montre, jamais « À payer 0,00 € ».
 //  3  la paie n'est plus dite « calculée avec les heures validées dans OP GESTION » : la liaison n'envoie pas les heures.
 // usage : node compta-restes-coherence-2.js [profil] [qui]      « N ✓ · M ✗ », code 1 si un contrôle tombe
 const X = require('./compta-reste-outils.js'), L = X.L, v = L.v; X.CAP2 = '/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap/restes-compta-2/';
@@ -57,7 +57,7 @@ const cts = t => { const m = String(t || '').replace(/[\s  ]/g, '').match(/[�
   v('2b l’accueil dit « Crédit de TVA d’octobre » et la somme (' + credTxt + '), pas « TVA d’octobre 0,00 € »', acc.includes('Crédit de TVA d’octobre ' + credTxt) && !/TVA d’octobre 0,00/.test(acc), acc.slice(acc.indexOf('TVA d’octobre') - 20, acc.indexOf('TVA d’octobre') + 120));
   await L.capture(c, X.CAP2 + `${profil}-accueil-credit.png`);
   const tv = await vue('tva');
-  v('2c l’écran TVA dit « Crédit de TVA » + la somme + « l’État te doit », jamais « À payer à l’État »', new RegExp('Crédit de TVA\\s*' + credTxt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(tv) && /l’État te doit/.test(tv) && !/À payer à l’État/.test(tv), tv.slice(0, 500));
+  v('2c l’écran TVA dit « Crédit de TVA » + la somme + le report sur la prochaine déclaration + le remboursement « sur demande » + la mention « à faire relire par l’expert-comptable », jamais « À payer à l’État »', new RegExp('Crédit de TVA\\s*' + credTxt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(tv) && /se reporte sur ta prochaine déclaration/.test(tv) && /remboursement est possible sur demande/.test(tv) && /à faire relire par l’expert-comptable/.test(tv) && !/l’État te doit/.test(tv) && !/À payer à l’État/.test(tv), tv.slice(0, 500));
   await L.capture(c, X.CAP2 + `${profil}-tva-credit.png`);
   const bd = await f.evaluate(() => { const b = document.querySelector('#tva-auto [data-a="tva-auto"]'); return !!b; });
   v('2d population : le bouton « Arrêter la TVA d’octobre » existe', bd);
