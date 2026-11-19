@@ -74,6 +74,16 @@ const ecart = (p, a, b) => p.evaluate(async ([x, y]) => { const lire = async t =
       await L.ranger(p);
     }
 
+    // 4. le graphique d'activité occupe sa carte : les colonnes couvrent au moins 80 % de la largeur intérieure (trois barres serrées à gauche d'une carte de 1 100 px, avant)
+    if (sec(4)) {
+      await neuf(p); await L.aller(p, 'registre'); await clic(p, '[data-rg="cli|t1"]', 600);
+      const m = await p.evaluate(() => { const h = document.querySelector('.d3-histo'); if (!h) return null; const car = h.getBoundingClientRect(), cs = getComputedStyle(h), cols = [...h.querySelectorAll('.d3-h')].map(x => x.getBoundingClientRect());
+        const g = Math.min(...cols.map(r => r.left)), d = Math.max(...cols.map(r => r.right)), larg = car.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        return { n: cols.length, part: Math.round((d - g) / larg * 100) / 100, carte: Math.round(car.width), colonnes: Math.round(d - g), defile: h.scrollWidth > h.clientWidth + 1 }; });
+      v(`${tag} : activité — le graphique est mesuré (population : au moins 3 colonnes)`, !!m && m.n >= 3, m);
+      v(`${tag} : activité — les colonnes occupent au moins 80 % de la carte, sans défiler`, !!m && m.part >= 0.8 && !m.defile, m);
+    }
+
     // 5. un écran vide propose le geste qui le remplit : le bouton existe, se voit, tient dans l'écran, et mène quelque part
     if (sec(5)) {
       await p.evaluate(() => { window.__cli = { ...D3_CLI }; Object.keys(D3_CLI).forEach(k => delete D3_CLI[k]); });
