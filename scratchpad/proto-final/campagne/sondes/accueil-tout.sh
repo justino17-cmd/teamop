@@ -67,6 +67,16 @@ if [ -n "$AVEC_TOUS" ]; then
   lance "accueil-mise-en-page android nuit long" node "$S/accueil-mise-en-page.js" android nuit long
 fi
 
+# Les restes de l'accueil (tours 1 à 3) : jouées en entier sur l'ordinateur (mac, jour) et le téléphone (iphone, nuit) ; les arguments sont <partie> <profil> [nuit] pour les deux « restes-2 » et « restes-3 ». (Sœur 5, 18 novembre : elles n'étaient pas rejouées.)
+for ar in "mac" "iphone nuit"; do
+  lance "accueil-restes-1-recontrole-vue $ar" node "$S/accueil-restes-1-recontrole-vue.js" $ar
+  lance "accueil-restes-2 $ar" node "$S/accueil-restes-2.js" $ar
+done
+lance "accueil-restes-2-recontrole CTR mac" node "$S/accueil-restes-2-recontrole.js" CTR mac
+lance "accueil-restes-2-recontrole CTR iphone nuit" node "$S/accueil-restes-2-recontrole.js" CTR iphone nuit
+lance "accueil-restes-3 MDFCTV mac" node "$S/accueil-restes-3.js" MDFCTV mac
+lance "accueil-restes-3 MDFCTV iphone nuit" node "$S/accueil-restes-3.js" MDFCTV iphone nuit
+
 echo "TOTAL : $n exécution(s) · $ko tombée(s)" | tee -a "$J"
 echo FINI | tee -a "$J"
 [ $ko -eq 0 ]

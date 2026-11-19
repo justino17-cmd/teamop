@@ -50,6 +50,17 @@ for q in A B C; do
   [ -n "$AVEC_TOUS" ] && { lance "interventions-recontrole-parcours $q mac" node "$S/interventions-recontrole-parcours.js" $q mac; lance "interventions-recontrole-parcours $q android" node "$S/interventions-recontrole-parcours.js" $q android; lance "interventions-recontrole-parcours $q ipad nuit" node "$S/interventions-recontrole-parcours.js" $q ipad nuit; }
 done
 
+# Les restes des tours 2 à 8 (sœur 5, 18 novembre : elles n'étaient pas rejouées) : le téléphone (iphone) de nuit et l'ordinateur (mac) de jour. tour7-media ne prend que « nuit » ; tour8 est faite pour le téléphone (bulle sur écran bas).
+for f in interventions-restes-recontrole interventions-restes-tour2 interventions-restes-tour2-recontrole interventions-restes-tour3-recontrole interventions-restes-tour4-frappe interventions-restes-tour4-recontrole interventions-restes-tour5-adverse interventions-restes-tour5-adverse-ecrit interventions-restes-tour5-frappe interventions-restes-tour5-toast interventions-restes-tour6-adverse interventions-restes-tour6-recontrole interventions-restes-tour7-memoire interventions-restes-tour7-recouvrement; do
+  lance "$f mac" node "$S/$f.js" mac
+  lance "$f iphone nuit" node "$S/$f.js" iphone nuit
+done
+lance "interventions-restes-tour7-media" node "$S/interventions-restes-tour7-media.js"
+lance "interventions-restes-tour7-media nuit" node "$S/interventions-restes-tour7-media.js" nuit
+lance "interventions-restes-tour8 iphone" node "$S/interventions-restes-tour8.js" iphone
+lance "interventions-restes-tour8 iphone nuit" node "$S/interventions-restes-tour8.js" iphone nuit
+lance "interventions-restes-tour8 android" node "$S/interventions-restes-tour8.js" android
+
 echo "TOTAL : $n exécution(s) · $ko tombée(s)" | tee -a "$J"
 echo FINI | tee -a "$J"
 [ $ko -eq 0 ]

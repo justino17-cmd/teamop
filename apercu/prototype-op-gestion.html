@@ -3998,6 +3998,8 @@ html #mc-vehicule:empty{display:none}
 .vh-photo{cursor:pointer;min-height:44px;justify-content:center}
 .vh-jour{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #calque .lien[hidden]{display:none}
+/* LA MARQUE POSÉE PAR motsLongs() (un mot de 18 signes ou plus, sans espace) : le texte coupe son mot, ses ancêtres peuvent rétrécir */
+.mot-long{overflow-wrap:anywhere;min-width:0}.mot-long-a{min-width:0}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -9726,8 +9728,14 @@ const typoTxt = s => s.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u
 const typoHors = 'svg, pre, code, textarea, script, style, [contenteditable]';
 function typo(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
   while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue; const u = typoTxt(t); if (u !== t) n.nodeValue = u; } }
-new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) typo(n); else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; } } }).observe(document.body, { childList:true, subtree:true });
-typo(document.body);
+/* UN MOT TRÈS LONG SANS ESPACE (un nom de client de 54 signes, une adresse e-mail, un numéro) : il pousse la page de côté dès qu'il vit dans une ligne flex ou une grille, parce que la largeur minimale d'un enfant de texte est celle de son mot le plus long.
+   Une règle CSS posée « partout où s'écrit un nom » ne peut pas les connaître tous (une centaine de lignes, vues et fenêtres) ; on marque donc, APRÈS le dessin, l'élément qui porte un tel mot (.mot-long : il coupe le mot) et ses ancêtres jusqu'à la vue (.mot-long-a : min-width:0, ils rétrécissent).
+   Seuil : 18 signes d'un seul tenant — aucun mot courant n'y arrive, donc aucun écran ordinaire n'est touché (les tableaux ne se mettent pas à couper leurs mots). */
+function motsLongs(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
+  while ((n = tw.nextNode())) { if (n.nodeValue.length < 18 || !/\S{18,}/.test(n.nodeValue)) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue;
+    p.classList.add('mot-long'); for (let a = p.parentElement; a && a !== document.body && !a.matches('#contenu,#calque,.fen-voile'); a = a.parentElement) a.classList.add('mot-long-a'); } }
+new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) { typo(n); motsLongs(n); } else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; motsLongs(n.parentElement); } } }).observe(document.body, { childList:true, subtree:true });
+typo(document.body); motsLongs(document.body);
 queueMicrotask(lireHash);   // après tout le script : chaque écran trouve toutes ses données (DEVIS vit plus bas)
 /* ══ NOUVELLE INTERVENTION : une grande fenêtre, le vrai planning dedans, la facturation réglée par le bureau ══ */
 var CREA = null;
