@@ -1,0 +1,10 @@
+{
+ "tour": 5,
+ "page": "apercu/prototype-op-gestion.html",
+ "R1": {"fait": "courrierSource().envoyer relit peut('com','c') au moment de l'envoi : refus (phrase habituelle, DROITS_REFUS tracé), rien écrit dans MAILS ; contre-épreuve avec la case rendue : l'envoi part", "mutation": "tombe (2 échecs)"},
+ "R3": {"fait": "secuReposer(k) refuse DANS la fonction sur un compte désactivé (même phrase que les secu* du tour 4) ; le bouton data-cnx=repose|k passe par elle ; compte actif inchangé (contre-épreuve)", "mutation": "tombe (2 échecs : appel direct et bouton fabriqué)"},
+ "R2": "voulu/laissé (Planning › Modifier suffit), noté dans la sonde",
+ "R4": "voulu/laissé (déverrouiller un désactivé verrouillé), noté dans la sonde",
+ "sonde": "restes-equipe-4-recontrole : 77 ✓ 0 ✗ sur mac, iphone, android",
+ "rejeux": {"restes-equipe-4": "mac/iphone/android exit 0", "equipe-droits-joues": "3 profils exit 0", "droits-gestes-reels (SANS_CSP=1)": "exit 0", "secu-secrets": "exit 0", "double-auth-equipe": "exit 0", "equipe-droits-effets": "mac 138 ✓ 0 ✗", "restes-equipe-3-mineurs": "H S I J G x 3 profils, une section par lancement, exit 0 (lancé en bloc il échoue : état partagé entre sections, défaut de sonde préexistant)", "verifier-syntaxe": "0", "tests 835/836/837/1008/2994": "0", "verif-secrets": "0"}
+}
