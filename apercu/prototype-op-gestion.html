@@ -241,6 +241,7 @@ div.ligne-clic:hover{border-color:var(--trait)}
 @media (max-width:760px){#toast{bottom:108px;width:calc(100vw - 32px)}
   @media (max-height:620px){#toast{font-size:13.5px;line-height:1.35;padding:8px 12px 8px 14px;border-radius:14px}}   /* petit téléphone (320 x 568) : la phrase de refus d'un relevé, à quatre lignes, couvrait la moitié basse du bouton Terminer ; trois lignes plus serrées tiennent sous lui */
   body:has(.fen-voile) #toast{bottom:var(--toast-bas,150px);z-index:300}}   /* une fenêtre est ouverte : la bulle se pose JUSTE AU-DESSUS de sa barre « Annuler / Créer » (toast() mesure --toast-bas) — ni sur cette barre, ni en haut sur le titre et la croix de fermeture (vu à l'écran sur « Nouvelle intervention ») */
+html body #toast.haut{bottom:auto;top:calc(10px + env(safe-area-inset-top,0px))}   /* posée en haut par toastDegager() quand le bas cacherait le champ qui a le focus ou les onglets d'une fenêtre */
 body.dp-ouvert #toast{z-index:300} /* au-dessus du document en grand (200), sinon ses messages restent cachés */
 /* la carte des SORTIES (numéro, adresse, texte à copier) : elle RESTE, son texte se SÉLECTIONNE — un toast s'efface en 6 s et n'est pas sélectionnable */
 #sortie-carte{position:fixed;left:50%;translate:-50% 0;bottom:26px;z-index:92;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100vw - 32px));padding:14px 16px;border-radius:18px;background:var(--feuille);border:1px solid var(--trait2);box-shadow:var(--ombre-haute);font-size:15px;overflow-wrap:anywhere}
@@ -3997,6 +3998,8 @@ html #mc-vehicule:empty{display:none}
 .vh-photo{cursor:pointer;min-height:44px;justify-content:center}
 .vh-jour{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #calque .lien[hidden]{display:none}
+/* LA MARQUE POSÉE PAR motsLongs() (un mot de 18 signes ou plus, sans espace) : le texte coupe son mot, ses ancêtres peuvent rétrécir */
+.mot-long{overflow-wrap:anywhere;min-width:0}.mot-long-a{min-width:0}
 </style><script>(function(){var h=document.documentElement,t=h.getAttribute('data-theme');h.setAttribute('data-mode',t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour')})()</script><div class="app"><nav class="menu" id="menu" aria-label="Menu principal"></nav><main class="contenu" id="contenu"></main></div>
 <div class="barre-bas" id="barre-bas"></div><div id="fenetre"></div><div id="calque"></div>
 <script>
@@ -4913,7 +4916,16 @@ function toast(msg, action){ // action : { lib, fn }
   try { const mt = document.querySelector('#courrier-hote [data-opcourrier]'), mb = mt && mt.shadowRoot && mt.shadowRoot.querySelector('#toast.show:not(.act)'); if (mb) mb.classList.remove('show'); } catch (e) {}
   // une fenêtre est ouverte (téléphone) : la bulle se pose juste au-dessus de sa barre d'actions, où qu'elle soit (une barre avec une phrase d'aide est plus haute qu'une barre de deux boutons)
   try { const pied = document.querySelector('.fen-voile .fen-pied'); if (pied) t.style.setProperty('--toast-bas', Math.round(innerHeight - pied.getBoundingClientRect().top + 10) + 'px'); else { const col = innerWidth > 760 && document.querySelector('#collant'), rc = col && col.getBoundingClientRect(); if (rc && rc.height && rc.top < innerHeight && rc.bottom > 0) t.style.setProperty('--toast-bas', Math.round(innerHeight - rc.top + 10) + 'px'); else t.style.removeProperty('--toast-bas'); } } catch (e) {}
-  t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  /* une fenêtre basse (petit téléphone en travers, clavier ouvert) : la bulle posée en bas tombait SUR le champ qui a le focus, sur « Chercher un client » ou sur les onglets de « Nouvelle intervention » (360 × 400 : bulle de 178 à 251, onglets de 158 à 202, champ de 216 à 262). On mesure : si elle en cache un, elle passe EN HAUT de l'écran (sur le titre, jamais sur ce qu'on tape) — et si le haut en cache davantage, elle reste en bas. */
+  t.classList.remove('haut'); t.classList.add('on'); t._t0 = Date.now(); clearTimeout(t._f); t._f = setTimeout(() => t.classList.remove('on'), 6000);
+  try { toastDegager(t); } catch (e) {}
+}
+function toastDegager(t){
+  const h = t.offsetHeight, bas = parseFloat(getComputedStyle(t).bottom) || 0, ecran = innerHeight, g = t.getBoundingClientRect(), d = Math.max(0, g.left), f = Math.min(innerWidth, g.right);
+  const garde = [...new Set([document.activeElement, ...document.querySelectorAll('.fen [data-cherchecli], [data-cherche], .fen [role=tab], .fen .onglets > *, .fen .seg button')])].filter(e => e && e !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName) || e.isContentEditable || e.matches('[role=tab],button,[data-cherche],[data-cherchecli]'))).map(e => e.getBoundingClientRect()).filter(r => r.width && r.height && r.bottom > 0 && r.top < ecran);
+  const cache = (hautBulle) => garde.reduce((n, r) => n + Math.max(0, Math.min(f, r.right) - Math.max(d, r.left)) * Math.max(0, Math.min(hautBulle + h, r.bottom) - Math.max(hautBulle, r.top)), 0);
+  const enBas = cache(ecran - bas - h); if (!enBas) return;
+  const enHaut = cache(10); if (enHaut < enBas) t.classList.add('haut');
 }
 const ANNULER = { lib:'Annuler', fn: () => annuler() };
 
@@ -8611,9 +8623,24 @@ function dvDicter(){
 }
 function dvdPreparer(){
   const t = (document.getElementById('dvd-t').value || '').trim(); if (!t) { toast('Dis ou écris ce qu’il faut faire, puis touche « Préparer le devis ».'); return; } const s = sansAccent(t);
-  const dit = k => sansAccent(CLIENTS[k].nom).split(/[^a-z0-9]+/).filter(m => m.length >= 3 && !['madame','monsieur','mme','restaurant','cabinet','camping','hotel','copropriete','dentaire','garage','syndic','les','des','chez'].includes(m)).some(m => new RegExp('(^|[^a-z0-9])' + m + 's?([^a-z0-9]|$)').test(s));   /* un MOT entier, accents et casse ignorés : « support » ne désigne plus « Le Vieux Port » (restes clients, tour 4). Le nom se coupe sur tout ce qui n'est ni lettre ni chiffre, comme la saisie rapide (tkxNomEntier) : « l’Escale », « L’Épi d’Or » (apostrophe typographique du clavier d'un iPhone), « Saint-Hubert » se disent en entier (tour 5) */
-  const cli = Object.keys(CLIENTS).find(k => k !== '__nv' && !CLIENTS[k].archive && dit(k));   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) : la dictée non plus */
-  if (!cli) { const arch = Object.keys(CLIENTS).find(k => k !== '__nv' && CLIENTS[k].archive && dit(k)); toast(arch ? esc(CLIENTS[arch].nom) + ' est archivé : ' + (peut('crm', 's') ? 'restaure-le depuis « Clients »' : 'demande à un responsable de le restaurer') + ' avant de lui faire un devis.' :   /* le geste proposé est un geste que CETTE personne peut faire : « Remettre dans la liste » n'existe que pour qui a le droit d'archiver (restes clients, tour 4) */ 'Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
+  /* QUEL client la phrase désigne : on COMPTE les mots du nom que la phrase dit, et le client qui en a le plus l'emporte — jamais le premier venu (« Claire Dubois » n'est pas « Marie-Claire Petit », « Jean Martin » passe devant « Cabinet dentaire Martin »). Règles (dictée, restes 5) :
+     · un MOT entier, accents et casse ignorés (« support » ne désigne plus « Le Vieux Port »), le nom coupé sur tout ce qui n'est ni lettre ni chiffre (« l’Escale », « Saint-Hubert ») ;
+     · les mots génériques ne comptent pas, formes juridiques comprises (sas, sasu, sci, sarl, eurl, snc : « une sci » ne désigne personne) ;
+     · un mot de 3 signes (« bar », « épi ») ne compte que si le nom n'a pas de mot plus long : « un bar à vin » ne choisit pas « Bar-Tabac » ;
+     · un mot SEUL ne compte pas s'il fait partie d'un prénom ou d'un nom composé à trait d'union : « pose de pierre » ne choisit pas « Jean-Pierre Vasseur » (il faut dire « Jean-Pierre ») ;
+     · des mots de suite dans le nom, dits de suite dans la phrase (« l’Épi d’Or », « Jean-Pierre »), comptent ensemble, même courts. */
+  const GEN = ['madame','monsieur','mme','restaurant','cabinet','camping','hotel','copropriete','dentaire','garage','syndic','les','des','chez','de','du','la','le','et','au','aux','sas','sasu','sci','sarl','eurl','sa','snc'];
+  const nTxt = ' ' + s.replace(/[^a-z0-9]+/g, ' ').trim() + ' ', dansTxt = m => new RegExp(' ' + m + 's? ').test(nTxt);
+  const dits = k => { const brut = CLIENTS[k].nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(), T = [], compose = new Set();
+    brut.split(/[^a-z0-9\-‐‑‒–]+/).forEach(u => { const ps = u.split(/[-‐‑‒–]+/).filter(Boolean); ps.forEach(x => { if (ps.length > 1) compose.add(T.length); T.push(x); }); });
+    const long = T.some(m => m.length > 3 && !GEN.includes(m)), bons = new Set();
+    T.forEach((m, i) => { if (!compose.has(i) && m.length >= 3 && !GEN.includes(m) && (m.length > 3 || !long) && dansTxt(m)) bons.add(i); });
+    for (let a = 0; a < T.length; a++) { if (GEN.includes(T[a]) || T[a].length < 2) continue;
+      for (let b = a + 1; b < T.length; b++) { if (GEN.includes(T[b]) || T[b].length < 2) continue; if (dansTxt(T.slice(a, b + 1).join(' '))) for (let i = a; i <= b; i++) if (!GEN.includes(T[i]) && T[i].length >= 2) bons.add(i); } }
+    return bons.size; };
+  const meilleur = archive => { let best = null, sc = 0; Object.keys(CLIENTS).forEach(k => { if (k === '__nv' || !!CLIENTS[k].archive !== archive) return; const n = dits(k); if (n > sc) { sc = n; best = k; } }); return best; };
+  const cli = meilleur(false);   /* un client archivé n'est plus proposé pour un nouveau travail (clients-17) : la dictée non plus */
+  if (!cli) { const arch = meilleur(true); toast(arch ? esc(CLIENTS[arch].nom) + ' est archivé : ' + (peut('crm', 's') ? 'restaure-le depuis « Clients »' : 'demande à un responsable de le restaurer') + ' avant de lui faire un devis.' :   /* le geste proposé est un geste que CETTE personne peut faire : « Remettre dans la liste » n'existe que pour qui a le droit d'archiver (restes clients, tour 4) */ 'Je n’ai pas reconnu le client : dis son nom (ex. « Mme Roux »).'); return; }
   const L = [];
   CATALOGUE.forEach(([nom, pu]) => { if (s.includes(sansAccent(nom).replace(/\s*\(.*$/, ''))) L.push([nom, 1, pu]); });
   const h = /(\d+|une|deux|trois|quatre)\s+heures?/.exec(s), nh = h ? ({ une:1, deux:2, trois:3, quatre:4 }[h[1]] || +h[1]) : 0;
@@ -9104,7 +9131,7 @@ function placerPops(){
   });
 }
 function aller(h){ if (route === 'client' && h !== route + (param ? '-x-' + param : '') && cliInfosRetenir(() => aller(h))) return;   /* une saisie non enregistrée d'« Infos » : on demande avant de partir (palette, raccourcis, liens : clients-15, recontrôle) */
-  if (calAvantAller(() => aller(h))) return; fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
+  if (calAvantAller(() => aller(h))) return; if (h !== route + (param ? '-x-' + param : '')) { try { releveOublier(); } catch (e) {} } fermerPanneau(); fermerMenu(); opsRanger(); if (location.hash.slice(1) === h) rendre(); else { cpProg = h; location.hash = h; } }
 /* un lien d'adresse touché (menu latéral, lien #…) change l'adresse SANS passer par aller() : cpProg est vide comme pour un retour ; le clic, lui, ne se confond pas avec un retour (qui n'en est pas un) */
 var navClic = 0; document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('a[href^="#"]')) navClic = Date.now(); }, true);
 function lireHash(){
@@ -9122,7 +9149,7 @@ function lireHash(){
   if (estGrise(r || 'accueil') && !(typeof RETOUR !== 'undefined' && RETOUR)) {   // par un lien (RETOUR posé), une catégorie déjà faite s'ouvre
  if (lireHash.deja2) toast(catTard(r) ? 'Catégorie prévue pour la fin — grisée pour l’instant.' : 'Catégorie déjà refaite — grisée pour l’instant.'); lireHash.deja2 = true; enRetour = true; histRemplacer('#' + (CAT_LIGNES.some(c => c.k === route) && !estGrise(route) ? route : premiereARefaire())); return lireHash(); }
   lireHash.deja2 = true;
-  if (r === 'comptabilite' && !cpSysteme && cpProg !== 'comptabilite' && rlPermis('comptabilite')) { cpSysteme = true; if (route !== 'comptabilite') cpSysDe = route; } cpProg = null; route = r || 'accueil'; param = p || null; docPleinFermer(); fermerPanneau();   /* le plein écran d'un PDF ne survit pas à un changement d'écran (retour, glissement, lien) · 13 novembre 2026 */ fermerMenu(); rendre();
+  if (r === 'comptabilite' && !cpSysteme && cpProg !== 'comptabilite' && rlPermis('comptabilite')) { cpSysteme = true; if (route !== 'comptabilite') cpSysDe = route; } cpProg = null; if ((r || 'accueil') !== route || (p || null) !== param) { try { releveOublier(); } catch (e) {} } route = r || 'accueil'; param = p || null; docPleinFermer(); fermerPanneau();   /* le plein écran d'un PDF ne survit pas à un changement d'écran (retour, glissement, lien) · 13 novembre 2026 */ fermerMenu(); rendre();
   document.getElementById('contenu').classList.remove('vue-entre'); void document.getElementById('contenu').offsetWidth; document.getElementById('contenu').classList.add('vue-entre');
   scrollTo({ top:0 });
 }
@@ -9662,6 +9689,7 @@ function releveLire(brut){   // → { refus:true } ou { val, lu, net } : lu = ce
   return { val:/\d/.test(net) ? net : '', lu, net: net !== val };
 }
 const RELEVE_REFUS = {};   /* la marque de refus vit AUSSI en mémoire : supprimer une photo redessine la fiche et le champ perd son data-refuse, alors que le refus n'a pas été revu */
+function releveOublier(){ Object.keys(RELEVE_REFUS).forEach(k => delete RELEVE_REFUS[k]); }   /* le refus gardé en mémoire n'appartient qu'à la fiche (et à la session) où il est tombé : changer de fiche ou fermer la session l'oublie, sinon un « Terminer » juste sur une autre fiche était bloqué par le refus d'une précédente */
 function releveValider(t){   // → true si la valeur du champ est enregistrée (ou inchangée), false si elle est refusée (le champ retrouve l'ancienne valeur)
   const G = fiche(t.dataset.id), ex = releveExemple(t); if (!G || !/^\d+([.,]\d+)?$/.test(ex || '')) return true;
   const av = G.releves && G.releves[t.dataset.releve] != null ? String(G.releves[t.dataset.releve]) : '';
@@ -9700,8 +9728,14 @@ const typoTxt = s => s.replace(/ ([:;?!»])/g, '\u00a0$1').replace(/« /g, '«\u
 const typoHors = 'svg, pre, code, textarea, script, style, [contenteditable]';
 function typo(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
   while ((n = tw.nextNode())) { const t = n.nodeValue; if (t.indexOf(' ') < 0) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue; const u = typoTxt(t); if (u !== t) n.nodeValue = u; } }
-new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) typo(n); else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; } } }).observe(document.body, { childList:true, subtree:true });
-typo(document.body);
+/* UN MOT TRÈS LONG SANS ESPACE (un nom de client de 54 signes, une adresse e-mail, un numéro) : il pousse la page de côté dès qu'il vit dans une ligne flex ou une grille, parce que la largeur minimale d'un enfant de texte est celle de son mot le plus long.
+   Une règle CSS posée « partout où s'écrit un nom » ne peut pas les connaître tous (une centaine de lignes, vues et fenêtres) ; on marque donc, APRÈS le dessin, l'élément qui porte un tel mot (.mot-long : il coupe le mot) et ses ancêtres jusqu'à la vue (.mot-long-a : min-width:0, ils rétrécissent).
+   Seuil : 18 signes d'un seul tenant — aucun mot courant n'y arrive, donc aucun écran ordinaire n'est touché (les tableaux ne se mettent pas à couper leurs mots). */
+function motsLongs(racine){ if (!racine || racine.nodeType !== 1 || racine.closest(typoHors)) return; const tw = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT); let n;
+  while ((n = tw.nextNode())) { if (n.nodeValue.length < 18 || !/\S{18,}/.test(n.nodeValue)) continue; const p = n.parentElement; if (!p || p.closest(typoHors)) continue;
+    p.classList.add('mot-long'); for (let a = p.parentElement; a && a !== document.body && !a.matches('#contenu,#calque,.fen-voile'); a = a.parentElement) a.classList.add('mot-long-a'); } }
+new MutationObserver(L => { for (const m of L) for (const n of m.addedNodes) { if (n.nodeType === 1) { typo(n); motsLongs(n); } else if (n.nodeType === 3 && n.parentElement && !n.parentElement.closest(typoHors)) { const u = typoTxt(n.nodeValue); if (u !== n.nodeValue) n.nodeValue = u; motsLongs(n.parentElement); } } }).observe(document.body, { childList:true, subtree:true });
+typo(document.body); motsLongs(document.body);
 queueMicrotask(lireHash);   // après tout le script : chaque écran trouve toutes ses données (DEVIS vit plus bas)
 /* ══ NOUVELLE INTERVENTION : une grande fenêtre, le vrai planning dedans, la facturation réglée par le bureau ══ */
 var CREA = null;
@@ -27061,7 +27095,7 @@ function cnxValider(){ const id = cnxIdNorm(document.getElementById('cn-id').val
   secuJ(d.raisons.length ? 'login.unusual' : 'login.requested', p.k, d.appareil + ' · ' + d.adresse);
   cnxGlisser(() => cnxConfirmer(p, d)); }
 function cnxEntrer(p, texte){ SECU.pc = { ecran:null, k:null, demandeId:null }; cnxCharger(() => { sessionOuvrir(p.k); toast(texte || 'Bonjour ' + p.prenom); }, 'Connexion de ' + p.prenom + '…', 1100); }
-function sessionFermer(raison){ const k = SESSION; SESSION = null; if (k) { delete SECU.sessions[k]; delete SECU.confirmeA[k]; }
+function sessionFermer(raison){ try { releveOublier(); } catch (e) {} const k = SESSION; SESSION = null; if (k) { delete SECU.sessions[k]; delete SECU.confirmeA[k]; }
   if (SECU.vraie) { delete SECU.sessions[SECU.vraie]; delete SECU.confirmeA[SECU.vraie]; SECU.vraie = null; } secuConfFermer(true, false, true); secuBande();   /* se déconnecter pendant « Ouvrir comme » ferme aussi la session de l'administrateur */
   Object.keys(SECU.ui).forEach(j => { const u = SECU.ui[j]; if (u.ecran === 'ouvert') { u.ecran = 'verrouille'; u.pin = ''; u.supprimer = false; u.blocage = null; } });
   SECU.auto = false; SECU.pc = { ecran:null, k:null, demandeId:null }; SECU.ouvert = opsLarge();
