@@ -19,7 +19,7 @@ const pr=process.env.PROFIL||'mac', tag='roles-'+pr;
     v(`${tag} ${qui} · forcer l'ouverture par le code : ${role.devis||role.contrats?'permis':'refusé'}`,ouvert===(role.devis||role.contrats),ouvert);
     if(ouvert){ await p.keyboard.press('Escape'); await p.waitForTimeout(500); }
     const toast=await p.evaluate(()=>(document.querySelector('#toast')||{}).innerText||'');
-    if(!(role.devis||role.contrats)) v(`${tag} ${qui} · le refus se DIT (toast : « ${toast.replace(/\s+/g,' ').slice(0,80)} »)`,/rôle/.test(toast),toast);
+    if(!(role.devis||role.contrats)) v(`${tag} ${qui} · le refus se DIT (toast : « ${toast.replace(/\s+/g,' ').slice(0,80)} »)`,/n’est pas ouvert à ton compte|rôle/.test(toast),toast);   // « Les mots (1/n) », 04ebcc63/f5d88883 : le refus dit « Ce geste n’est pas ouvert à ton compte : … » (plus de « rôle », mot de l'équipe) ; même promesse : le refus se dit en toutes lettres
     await L.fin(c);
   }
   await L.fermer(); process.exit(L.bilan()?1:0);

@@ -12,7 +12,8 @@ const pr=process.env.PROFIL||'mac', nuit=process.env.NUIT==='1', tag='absent-'+p
   await L.capture(c,CAP+tag+'-attente.png');
   await p.waitForTimeout(8300);
   e=await p.evaluate(()=>{const z=document.getElementById('opdz'); const a=z.querySelector('.opdz-att'); return {att:a.innerText.replace(/\s+/g,' '),reess:!a.querySelector('[data-opdz="reessayer"]').hidden,focus:document.activeElement&&(document.activeElement.dataset.opdz||document.activeElement.tagName)};});
-  v(tag+' · au bout de 8 s : « L\'atelier ne s\'ouvre pas. » + « Réessayer » + « Fermer »',/L’atelier ne s’ouvre pas/.test(e.att)&&e.reess&&/Fermer/.test(e.att),e);
+  // « atelier » ne désigne plus que le lieu (88fcc8ca, Restes contrats tour 1) : le message dit « Le document ne s’ouvre pas. » (prototype-op-gestion.html, opdAttente) ; la vérification porte sur la même promesse (échec dit + Réessayer + Fermer)
+  v(tag+' · au bout de 8 s : « Le document ne s\'ouvre pas. » + « Réessayer » + « Fermer »',/Le document ne s’ouvre pas/.test(e.att)&&e.reess&&/Fermer/.test(e.att),e);
   await L.capture(c,CAP+tag+'-echec.png');
   // Réessayer alors que l'atelier est toujours absent
   await L.toucher(c,'[data-opdz="reessayer"]'); await p.waitForTimeout(800);
