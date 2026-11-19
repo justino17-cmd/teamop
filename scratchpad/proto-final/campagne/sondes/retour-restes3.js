@@ -36,7 +36,7 @@ const ouvrirMail = async () => { const c = await M.entrer({ profil: PROFIL, nuit
   }
   // G1b : un choix dans un menu qui OUVRE une feuille (Répondre) : le menu part, le composeur arrive, UN Retour ferme le composeur (la lecture reste au téléphone), jamais plus d'une entrée à la fois
   {
-    const c = await ouvrirMail(), p = c.p; const tel = L.PROFILS[PROFIL].w <= 760;
+    const c = await ouvrirMail(), p = c.p; const tel = L.PROFILS[PROFIL].w <= 760 || PROFIL === 'ipad';   // l'iPad en 820 px porte la mise en page du TÉLÉPHONE dans le module (lecture = un niveau d'historique) : mesuré au recontrôle du tour 3, le seuil de 760 px faisait tomber G1b sur l'iPad à tort
     await p.evaluate(() => { const m = window.R().querySelector('#rows .msg'); if (m) m.click(); }); await p.waitForTimeout(800);
     const ok = await p.evaluate(() => { const b = window.R().querySelector('[data-act="replyMenu"]'); if (!b) return false; b.click(); return !!window.R().querySelector('#overlay.ov-menu'); });
     v('G1b le menu « Répondre » s\'ouvre (population)', ok, await H(p));
