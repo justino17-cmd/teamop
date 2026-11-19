@@ -3414,6 +3414,8 @@ body.dp-ouvert{overflow:hidden}
 .carte.ac .ac-tetep .ac-jn .ac-n{font-size:inherit}
 .carte.ac.ac-serre .ac-tetep .ac-jn{font-size:12px}
 .carte.ac.ac-eq .ac-l{height:80px;min-height:80px}.carte.ac.ac-eq .ac-l.ac-tete{height:var(--teteh);min-height:var(--teteh)}.carte.ac.ac-eq .ac-l.ac-pres{height:48px;min-height:48px}
+/* au doigt, une absence d'une DEMI-journée tient dans la moitié de la case : à 80 px de ligne elle ne faisait que 40 px de haut (sous le plancher de 44). La ligne passe à 92 px (deux moitiés de 46) sous un pointeur tactile ; la largeur d'un jour, elle, ne peut pas atteindre 44 px (une colonne de grille : le doigt a la hauteur, décision « technicien-09 »). HL, en JS, suit le même réglage. */
+@media (pointer:coarse){.carte.ac.ac-eq .ac-l{height:92px;min-height:92px}.carte.ac.ac-eq .ac-l.ac-tete{height:var(--teteh);min-height:var(--teteh)}.carte.ac.ac-eq .ac-l.ac-pres{height:48px;min-height:48px}}
 .ac-ferl{position:absolute;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden}
 .ac-ferl span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:var(--fs,11.5px);font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:color-mix(in srgb,var(--orange) 72%,var(--encre));white-space:nowrap}
 .carte.ac.ac-eq .ac-c.m1,.carte.ac.ac-eq .ac-tetep .ac-mo:not(:first-child){box-shadow:inset 1px 0 color-mix(in srgb,var(--encre) 22%,transparent)}
@@ -7705,7 +7707,7 @@ function aGrille(J, W, gens){ const d0 = J[0], d1 = J[J.length - 1], N = J.lengt
     return `<div class="ac-l"><button type="button" class="ac-nom" data-aqui-v="${t.id}" title="Voir ${t.nom} seul${aE(t.id)}">${avatar(t, 'p')}<span><b>${t.nom.split(' ')[0]}<span class="ac-nn"> ${t.nom.split(' ').slice(1).join(' ')}</span></b><small>${tot ? aNb(tot) + (D.length ? ' j' : ' j d’absence') : 'présent' + aE(t.id)}${D.length ? ' · ' + D.length + ' en attente' : ''}</small></span><span class="ac-chev" aria-hidden="true">›</span></button>
       ${piste('', cases(t.id) + A.map(a => bande(a)).join('') + D.map(a => bande(a, true)).join(''))}</div>`; }).join('');
   // le NOM du férié, écrit dans sa colonne, en travers des lignes (sous les absences, au-dessus du fond)
-  const HL = 80, HP = 48;   // hauteurs fixées dans la feuille (.ac-eq .ac-l, .ac-pres) : le nom se pose sans mesurer la page
+  const HL = window.matchMedia && matchMedia('(pointer:coarse)').matches ? 92 : 80, HP = 48;   // hauteurs fixées dans la feuille (.ac-eq .ac-l, .ac-pres ; 92 au doigt) : le nom se pose sans mesurer la page
   const feries = J.map((d, i) => { const nom = A_FERIES[d]; if (!nom) return '';
     const libre = gens.map(t => !ABSENCES.some(a => a.tech === t.id && a.du <= d && d <= a.au) && !DEMANDES_ABS.some(a => a.tech === t.id && a.du <= d && d <= a.au)).concat([true]);
     let best = null, cur = null; libre.forEach((ok, k) => { if (ok) { cur = cur ? { k0:cur.k0, k1:k } : { k0:k, k1:k }; if (!best || cur.k1 - cur.k0 > best.k1 - best.k0) best = { ...cur }; } else cur = null; });
@@ -10817,7 +10819,7 @@ document.addEventListener('beforeinput', e => { if (!e.isTrusted) return; const 
   const ins = coupeSure(String(txt), Math.max(place, 0)); if (ins === txt && txt.length + av.length + ap.length <= m) return;   /* tient déjà dans l'unité UTF-16 : le navigateur le fait lui-même */
   e.preventDefault(); t.setRangeText(ins, a, b, 'end'); t.dispatchEvent(new Event('input', { bubbles:true })); }, true);
 document.addEventListener('input', e => { if (!e.isTrusted) return; const t = e.target, m = maxChamp(t); if (!m) return; let v = t.value;
-  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m) v = sansOrphelin(v); if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
+  if (nbSignes(v) > m) v = coupeSure(v, m); if (v.length >= m - 1) v = sansOrphelin(v);   /* m - 1 : une coupe qui tombe entre les deux moitiés d'une paire de substitution laisse m - 1 unités (mesuré à la saisie par méthode de saisie : 119 pour 120) */ if (v !== t.value) { const f = t.selectionStart; t.value = v; try { t.setSelectionRange(Math.min(f, v.length), Math.min(f, v.length)); } catch (x) {} } }, true);
 const eqNom = p => nomPersonneNet(p.prenom) + ' ' + nomPersonneNet(p.nom);
 /* le NOM, le contact, l'adresse et l'e-mail d'un CLIENT (tapé dans l'un des cinq formulaires qui en créent un ou dans « Modifier », venu d'un e-mail ou de l'atelier) sont NETTOYÉS une fois ici, à l'entrée — même règle
    que tout texte venu du dehors : on garde « & », l'apostrophe et les accents (« Martin & Fils », « L'Hôtel »), on retire < > " ` et les caractères de contrôle — puis rangés tels quels, SANS entité HTML.

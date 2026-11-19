@@ -57,10 +57,19 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
   const lire = sel => p.evaluate(s => { const e = document.querySelector(s); return e ? { v: e.value, max: +e.getAttribute('maxlength'), g: nbSignes(e.value) } : null; }, sel);
   const coller = async (sel, avant, txt) => { await p.evaluate(([s, a]) => { const e = document.querySelector(s); e.focus(); e.value = a; e.setSelectionRange(e.value.length, e.value.length); }, [sel, avant]); await p.keyboard.insertText(txt); await pause(50); };
   const DRAP = ['🇫🇷', '🇩🇪', '🇪🇸', '🇮🇹'];
-  let champsVus = 0, collages = 0;
+  let champsVus = 0, collages = 0, ime = 0; const s5 = { cdp: await p.context().newCDPSession(p) };
 
   // ─────────── 2. maxlength en graphèmes : frappe et collage RÉELS, jamais de demi-drapeau ───────────
   if (SECTIONS.includes('graph')) {
+    // saisie par MÉTHODE DE SAISIE, jouée EN PREMIER (avant toute frappe au clavier : une frappe réelle précédente change la façon dont le navigateur coupe la composition — mesuré, la coupe de 119 unités n'a lieu que sur un champ vierge de frappe)
+    for (const F of CH) {
+      await F.ouvrir(); const l0 = await lire(F.sel); if (!l0 || !(l0.max > 0)) continue; const M = l0.max;
+      const cdp = s5.cdp; await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.value = ''; }, F.sel); const txtI = 'a' + '🇫🇷'.repeat(Math.floor(M * 0.8));   /* 0,8 × M signes : sous le plafond en signes (rien à couper pour nous), au-dessus en unités UTF-16 (le navigateur coupe, au milieu d'un drapeau) */
+      await cdp.send('Input.imeSetComposition', { text: txtI, selectionStart: txtI.length, selectionEnd: txtI.length }); await pause(150); await cdp.send('Input.insertText', { text: txtI }); await pause(250); const f6 = await lire(F.sel); ime++;
+      if (process.env.DEBUG_IME) console.log('   IME', F.n, f6.g, f6.v.length, JSON.stringify(f6.v.slice(-8)), orphelin(f6.v));
+      v(F.n + ' · saisie par méthode de saisie (composition + validation) de « a » + ' + Math.floor(M * 0.8) + ' drapeaux (au-delà du maxlength en unités, sous le plafond en signes) : au plus ' + M + ' signes, jamais un demi-drapeau', f6.g <= M && f6.g > 0 && !orphelin(f6.v), [f6.g, f6.v.length, JSON.stringify(f6.v.slice(-6))]);
+      await fermer();
+    }
     for (const F of CH) {
       await F.ouvrir(); const l0 = await lire(F.sel);
       v('population · ' + F.n + ' : le champ est à l’écran avec un maxlength', !!l0 && l0.max > 0, l0 && l0.max);
@@ -84,6 +93,7 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
       v(F.n + ' · famille ZWJ collée avec une seule place : entière ou absente, jamais en morceaux', e5.g === M && !orphelin(e5.v) && !/[‍]$/.test(e5.v) && (e5.v.endsWith('👨‍👩‍👧‍👦') || e5.v === 'x'.repeat(M - 1) + '👨‍👩‍👧‍👦'), JSON.stringify(e5.v.slice(-14)));
       await fermer();
     }
+    v('population : ' + ime + ' saisies par méthode de saisie (CDP) jouées', ime === CH.length, ime);
     v('population : ' + CH.length + ' champs joués, ' + champsVus + ' retrouvés à l’écran avec un maxlength', champsVus === CH.length, champsVus);
     v('population : ' + collages + ' collages réels (clavier, événements de confiance) joués', collages >= CH.length * 4, collages);
   }
@@ -176,5 +186,5 @@ const SECTIONS = (process.env.SECTIONS || 'pdf,nfc,graph,invis,ctrl,dix').split(
   }
   v('aucune erreur de page', c.err.length === 0, c.err.slice(0, 3));
   await L.fin(c);
-  const ko = L.bilan(); await L.fermer(); process.exit(ko ? 1 : 0);
+  const ko = L.bilan(); await L.fermer(); process.exit(ko);
 })().catch(async e => { console.error('SONDE EN PANNE', e); try { await L.fermer(); } catch (x) {} process.exit(2); });
