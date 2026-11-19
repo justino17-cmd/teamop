@@ -70,6 +70,8 @@ const GRAND = { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 };
   vrai('`appelerAnthropic` n\'a aucun appelant hors de cerveau.js', autres.length === 0, autres.join(', '));
   const ix = strip(fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8'));
   vrai('index.js : verrou par défaut, minuterie de la plateforme éteinte, clé non lue quand retirés', /const AGENTS_RETIRES = !\(config\.agents && config\.agents\.retires === false\);/.test(ix) && /if \(!AGENTS_RETIRES\) plateformeMod\.demarrer\(\)/.test(ix) && /cleApi: AGENTS_RETIRES \? ''/.test(ix) && !/cleCerveauPosee: !!\(config\.agents/.test(ix));
+  const tour = strip(fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8'));
+  vrai('tour.html : la page porte AGENTS_RETIRES_ECRAN=true et l\'onglet Agents n\'a aucune commande (ni Reprendre, ni mode) quand il est vrai', /var AGENTS_RETIRES_ECRAN=true;/.test(tour) && /function vueAgents\(\)\{\s*if\(typeof AGENTS_RETIRES_ECRAN!=='undefined'&&AGENTS_RETIRES_ECRAN===true\) return enTete\([^;]*Agents retirés le 19 novembre 2026[^;]*;\s*var tete/.test(tour) && !/Agents retirés le 19 novembre 2026[^;]*(<button|onclick)/.test(tour));
   const sh = fs.readFileSync(path.join(RACINE, 'server', 'set-agents.sh'), 'utf8');
   vrai('set-agents.sh ne pose plus de clé : il propose de SUPPRIMER agents.cleApi (écriture atomique, 600, rien d\'affiché)', /RETIRÉS/.test(sh) && /os\.replace/.test(sh) && /0o600/.test(sh) && !/read -rsp/.test(sh) && !/api\.anthropic\.com/.test(sh));
 
