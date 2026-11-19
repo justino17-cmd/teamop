@@ -5,17 +5,21 @@
 # Journal : $CAP/vehtemps-tout.log (hors dépôt). Le verdict d'une sonde est son CODE DE SORTIE ; le « N ✓ · M ✗ » n'est qu'un affichage.
 ICI="$(cd "$(dirname "$0")" && pwd)"; cd "$ICI/../../.." || exit 1
 CAP="${CAP:-/tmp/claude-0/-home-user-teamop/8050f26e-cdde-5a38-bb11-ba578db16f81/scratchpad/cap}"; mkdir -p "$CAP"; J="$CAP/vehtemps-tout.log"; : > "$J"; MAL=0
-# DURÉE (mesurée le 19/11, machine seule) : « Mon camion » sur les six profils, jour ET nuit, dure à lui seul 11 minutes ; la famille entière en demanderait plus d'une heure.
-# Par défaut (ESSENTIEL, 25 minutes visées) : un ORDINATEUR (mac) et deux TÉLÉPHONES (iphone, petit — le plus étroit, 320 px, celui qui a déjà fait tomber la mise en page), jour ET nuit.
-# LAISSÉS DE CÔTÉ par défaut : windows, ipad et android (mêmes mises en page que mac, mac720/ipad et iphone à d'autres largeurs : les écrans de la famille n'ont pas de règle propre à eux)
-# — COMPLET=1 les rejoue tous les six (plus d'une heure) ; PROFILS="mac windows" les choisit un à un. Pas rejoués non plus : vehtemps-avant.js, -captures.js, -v-captures.js, -v4-captures.js,
-# -v5-captures.js, vehtemps-feuilles.js (captures à REGARDER, sans contrôle) ni vehtemps-rc-balayage.js (balayage : il écrit un JSON et se compare à une autre version, il ne juge pas).
-if [ -n "$COMPLET" ]; then P="${PROFILS:-mac windows ipad iphone android petit}"; else P="${PROFILS:-mac iphone petit}"; fi; P="${P// /,}"; N="${NUIT:-0,1}"
+# DURÉE (mesurée le 19/11, machine seule, jour ET nuit sur mac + iphone + petit) : « Mon camion » 323 s, écrans voisins 225 s, visites de Véhicules 248 s, gestes des feuilles 182 s, gestes
+# de la fiche 130 s, le reste 17 à 95 s chacune ; la famille entière sur les six profils dépasserait l'heure (« Mon camion » seul : 11 minutes).
+# Par défaut (ESSENTIEL, ~26 minutes mesurées en deux passages) : un ORDINATEUR (mac) et un TÉLÉPHONE (iphone), jour ET nuit, plus le PLUS ÉTROIT (petit, 320 px — celui qui fait tomber « Mon camion ») joué sur « Mon camion »
+# seulement, de jour. LAISSÉS DE CÔTÉ par défaut : windows, ipad, android, et petit pour tout le reste — mêmes mises en page que mac et iphone à d'autres largeurs, aucune règle propre à ces écrans
+# dans la famille. COMPLET=1 rejoue les six profils partout (plus d'une heure : à lancer en arrière-plan avec un délai long) ; PROFILS="mac windows" les choisit un à un.
+# Pas rejoués non plus : vehtemps-avant.js, -captures.js, -v-captures.js, -v4-captures.js, -v5-captures.js, -feuilles.js (captures à REGARDER, sans contrôle) et vehtemps-rc-balayage.js
+# (balayage : il écrit un JSON et se compare à une autre version, il ne juge pas).
+if [ -n "$COMPLET" ]; then P="${PROFILS:-mac windows ipad iphone android petit}"; else P="${PROFILS:-mac iphone}"; fi; P="${P// /,}"; N="${NUIT:-0,1}"
 veut(){ [ -z "$SEULS" ] && return 0; for s in $SEULS; do [ "$s" = "$1" ] && return 0; done; return 1; }
 lance(){ local nom="$1"; shift; local t0=$(date +%s); local s; s=$(timeout 1500 env -u SEULS "$@" 2>&1); local code=$?; local b=$(echo "$s" | grep -oE '[0-9]+ ✓ +· +[0-9]+ ✗|[0-9]+ ✓ +[0-9]+ ✗' | tail -1)
   echo "$(( $(date +%s)-t0 ))s code=$code $nom :: $b" | tee -a "$J"; if [ $code -ne 0 ]; then MAL=1; echo "$s" | grep "✗" | head -4 | cut -c1-260 | tee -a "$J"; fi; }
 S=scratchpad/proto-final/sondes
-if veut camion;   then lance "Mon camion (structure, états, Ma journée, gestes, mise en page)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-camion.js; fi
+if veut camion;   then lance "Mon camion (structure, états, Ma journée, gestes, mise en page)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-camion.js
+  # le plus étroit (petit, 320 px) : jour SEULEMENT par défaut (nuit : COMPLET=1) — il tombe aux deux teintes pour la même raison (le bouton « Noter un plein » sous la ligne de flottaison)
+  if [ -n "$COMPLET" ]; then :; else lance "Mon camion sur le plus étroit (petit, jour)" PROFILS=petit NUIT=0 node $S/vehtemps-v5-camion.js; fi; fi
 if veut voisins;  then lance "écrans voisins (Accueil, Équipe, Paie, Planning, Tâches, guide)" PROFILS=$P NUIT=$N node $S/vehtemps-v5-voisins.js; fi
 if veut visites;  then lance "visites parlées (cinq chapitres + le guide du salarié)" node $S/vehtemps-v5-visites.js; fi
 if veut visites4; then lance "Véhicules : les visites (immersion et partie parlée : aucun sélecteur perdu)" node $S/vehtemps-v4-visites.js; fi

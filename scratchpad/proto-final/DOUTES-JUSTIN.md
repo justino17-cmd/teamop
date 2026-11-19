@@ -2,7 +2,7 @@
 
 Compilé le 19 novembre 2026 à partir des comptes rendus de la nuit. Écrans validés par toi (Accueil, Planning, Absences, Interventions, Clients, Devis, Comptabilité, Équipe) : on n'y touche pas sans ton mot ; les doutes qui les concernent sont des « si tu veux ». Chaque ligne : la question, les choix, et ma recommandation entre parenthèses quand les comptes rendus en donnent une. La source est en fin de ligne, en `code`.
 
-**TOTAL : 97 doutes** (le décompte par écran est en bas du fichier).
+**TOTAL : 98 doutes** (le décompte par écran est en bas du fichier).
 
 ---
 
@@ -84,6 +84,7 @@ Compilé le 19 novembre 2026 à partir des comptes rendus de la nuit. Écrans va
 58. **La puce « N messages du bureau › » s'affiche aussi sur ordinateur,** où les messages sont déjà visibles. Garder pour que l'écran soit le même ? `final/restes-technicien-tour2.json#15`
 59. **Paie (étape 1) et Temps de travail › Mois disent la même chose avec d'autres mots** (« journée restée ouverte » / « journée à terminer » ; « Demander aux salariés de confirmer » / « Demander de confirmer »). Aligner ? `final/restes-vehtemps-tour1.json#11`
 60. **Temps de travail : la secrétaire (droit « voir les heures de toute l'équipe ») voit les heures de tous, donc les salaires.** Séparer « heures » et « salaires » en deux droits ? (Recommandation : oui.) `final/restes-equipe-tour1.json#8`
+60b. **Dépôts et camions : la secrétaire voit les montants en euros (ex. 225,30 € par camion) et « Remplir les camions »**, conséquence de la règle « la case Voir décide seule ». Garder, ou un droit à part pour les montants ? `final/rejeu-materiel.json`
 61. **Registre sanitaire (technicienne) : pas de bouton PDF.** Le lui donner ? `final/regard-gerant-f-retouches.json`
 62. **Registre : un bouton pour ajouter un client au suivi** ? L'écran vide ne propose aucun geste ; on ne sait pas encore par quel geste un client devient « suivi » (contrat ? première intervention ?). À définir avant de poser le bouton. `final/regard-gerant-f.json`
 63. **Registre, graphique des passages :** trois barres serrées à gauche d'une grande carte (se remplit avec 8 à 12 passages). Redessiner ? `final/regard-gerant-f.json`
