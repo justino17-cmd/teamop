@@ -43,7 +43,7 @@ async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L
   };
   const T = {}; let lus = 0;
   for (const [k, js] of Object.entries(DOCS)) { const r = await lire(k, js); T[k] = r; if (r.ok && r.h.length > 200) lus++; else console.log('  · ' + k + ' : non lu (' + (r.err || 'trop court') + ')'); }
-  v('population : au moins 10 fabriques de documents lues', lus >= 10, lus);
+  v('population : au moins 9 fabriques de documents lues (dix avec le registre, qui est un document du métier 3D : une entreprise de climatisation n\'en a pas)', lus >= 9, lus);
   const doc = (k, nom, txt) => { const r = T[k]; if (!r || !r.ok || r.h.length <= 200) return; v(`${k} : ${nom}`, r.t.includes(txt), txt); };
   for (const k of ['facture', 'devis', 'contrat', 'compteRendu', 'paie', 'bulletin', 'registre', 'bilan', 'espaceClient']) doc(k, 'le nom de l’entreprise', N.nom);
   for (const k of ['facture', 'devis', 'contrat']) doc(k, 'l’adresse (rue)', N.rue);
@@ -80,7 +80,7 @@ async function cliquer(c, sel) { await c.p.locator(sel).first().click(); await L
   await cliquer(c, '[data-ent="logook"]');
   const avec = {}; for (const [k, js] of Object.entries(DOCS)) { const r = await lire(k, js); if (r.ok && r.h.length > 200) avec[k] = r.h; }
   const nbImg = Object.entries(avec).filter(([k, h]) => /<img class="logo-ent" src="data:image\/png/.test(h)).map(([k]) => k), nbIni = Object.entries(avec).filter(([k, h]) => />ZC</.test(h)).map(([k]) => k);
-  v(`population : ${Object.keys(avec).length} gabarits lus avec le logo`, Object.keys(avec).length >= 10, Object.keys(avec).length);
+  v(`population : ${Object.keys(avec).length} gabarits lus avec le logo`, Object.keys(avec).length >= 9, Object.keys(avec).length);
   v('le logo choisi est une IMAGE dans chaque gabarit lu', nbImg.length === Object.keys(avec).length, { image:nbImg, manque:Object.keys(avec).filter(k => !nbImg.includes(k)) });
   v('plus aucune initiale à côté de l’image', nbIni.length === 0, nbIni);
   const carte = await c.p.evaluate(() => (document.querySelector('[data-ent="carte|logo"] .ent-ligne') || {}).textContent); v('la carte dit « Choisi »', carte === 'Choisi', carte);
