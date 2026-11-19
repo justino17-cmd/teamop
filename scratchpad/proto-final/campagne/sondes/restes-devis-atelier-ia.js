@@ -30,4 +30,6 @@ const O = require('./devis-atelier-outils.js'), L = O.L, A = O.A, v = L.v;
   v(`${tag} · aucune erreur de page`, !(c.err || []).length, c.err);
   if (process.env.CAPT) await L.capture(c, O.CAP + `ia-2-${tag}.png`);
   await L.fin(c);
-})();
+  // Fermeture et verdict (ajoutés au rejeu du 19/11/2026) : sans eux la sonde ne rendait ni total ni code de sortie et restait vivante (le serveur local tenait le processus, 590 s de délai).
+  await L.fermer(); process.exit(L.bilan() ? 1 : 0);
+})().catch(e => { console.log('ERREUR SONDE', String(e.message || e).slice(0, 900)); process.exit(2); });
