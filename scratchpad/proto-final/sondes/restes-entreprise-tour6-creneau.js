@@ -4,6 +4,7 @@
 //   c1  B confirme puis ANNULE le formulaire : rien ne bouge (3 options) ; B confirme puis crée : 3 → 2, ce sont les deux AUTRES créneaux qui restent, plus rien sur le créneau choisi ;
 //       « Annuler » (le geste de la barre) rend l'option avec l'intervention retirée.
 //   c2  A confirme : les deux autres options partent (3 → 1, toast « libérées »), l'option du créneau choisi part à la création (→ 0).
+//   c4  A confirme puis abandonne (il ne reste que l'option du créneau choisi), B confirme : le toast ne parle d'aucune option « tenue par un collègue » (il n'en reste aucune d'AUTRE), B crée : plus rien.
 //   c3  une personne seule SANS Planning, aucune option tenue : rien à retirer, pas d'erreur, aucun mot sur les options.
 // Usage : timeout 580 node …/restes-entreprise-tour6-creneau.js. Rend « N ✓ · M ✗ ». ⛔ 127.0.0.1, entreprise fictive.
 const C = require('./entreprise-commun.js'); const D = require('./droits-commun.js'); const { L, v } = C;
@@ -89,7 +90,22 @@ async function c3(profil, nuit) {
   v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2));
   await L.fin(c);
 }
+async function c4(profil, nuit) {
+  const nom = `c4 ${profil}${nuit ? ' nuit' : ''}`;
+  const c = await D.ouvrirComme({ qui:'marc', appareil:profil, nuit });
+  await c.p.evaluate(D.INJECTER, { k:'zb', prenom:'Basile', nom:'Bis', pd:'secr', terrain:false, cases:cases({ ...FERMEES, com:'1110' }) });
+  await c.p.evaluate(D.INJECTER, { k:'za', prenom:'Aline', nom:'Alpha', pd:'secr', terrain:false, cases:cases({ ...FERMEES, com:'1110', planif:'1110' }) }); await L.calme(c.p, 600);
+  await L.aller(c.p, 'boiteMail'); await L.calme(c.p, 3000);
+  const pr = await PROPOSER(c.p); const a = await CONFIRMER(c.p, 'za');   /* A libère les deux autres, puis abandonne le formulaire (CONFIRMER le referme) */
+  const b = await CONFIRMER(c.p, 'zb'); const cr = await CREER(c.p);
+  console.log('  mesure', nom, JSON.stringify({ pr, a, b, cr }));
+  v(`${nom} : population (A a libéré les deux autres : 3 → 1, B arrive avec une seule option restante, celle du créneau)`, pr.opt === 3 && a.apres === 1 && b.avant === 1 && !b.erreur && b.crea, { pr, a, b });
+  v(`${nom} : le toast de B ne dit PAS que des options d'un collègue restent (il ne reste que celle que l'intervention remplace)`, !/option/.test(b.texte) && /Vérifie et crée/.test(b.texte), b.texte);
+  v(`${nom} : B crée : l'option du créneau part, plus rien au planning pour cette proposition`, !!cr.id && cr.opts.length === 0 && cr.surChoix === 0, cr);
+  v(`${nom} : aucune erreur de page`, c.err.length === 0, c.err.slice(0, 2));
+  await L.fin(c);
+}
 (async () => {
-  await c1('mac', false); await c1('iphone', true); await c2('mac', false); await c2('android', true); await c3('mac', false);
+  await c1('mac', false); await c1('iphone', true); await c2('mac', false); await c2('android', true); await c3('mac', false); await c4('mac', false);
   process.exit(L.bilan ? L.bilan() : 0);
 })().catch(e => { console.error(e); process.exit(1); });
