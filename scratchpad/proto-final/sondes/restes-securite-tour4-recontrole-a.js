@@ -109,6 +109,10 @@ const L = require('../lib.js');
   m = await enreg(); const sauve = await p.evaluate(() => { const n = CLIENTS[window.__k].nom; const g = graphemes(n); return { signes: g.length, dernier: g[g.length - 1] }; });
   console.log('  · enregistré :', JSON.stringify(sauve), m.slice(0, 100));
 
+  // fonction seule (un client venu du dehors : e-mail reçu, cadre Documents) : le textarea normalise le CR, la fonction doit le faire aussi
+  const fn = await p.evaluate(() => ({ cr: accesNet('E1\rE2\rE3'), crlf: accesNet('D1\r\nD2'), ls: accesNet('F1\u2028F2'), quatre: accesNet('1\n2\n3\n4'), vides: accesNet('\n\n a  b \n\n'), nul: accesNet(null) }));
+  L.v('(1) accesNet seule : CR seul, CRLF, U+2028 donnent des lignes distinctes (jamais collées)', fn.cr === 'E1\nE2\nE3' && fn.crlf === 'D1\nD2' && fn.ls === 'F1\nF2', fn);
+  L.v('(1) accesNet seule : 4 lignes → 3 gardées (le refus est en amont), vides et blancs repliés, null → vide', fn.quatre === '1\n2\n3' && fn.vides === 'a b' && fn.nul === '', fn);
   // ── (5) coupeSure : drapeaux, ZWJ, peaux, keycap, tag, VS16, combinants, en limite ──
   const r = await p.evaluate(() => {
     const orph = t => /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(t);

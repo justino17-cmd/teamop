@@ -1,0 +1,37 @@
+[
+ {
+  "nom": "interventions",
+  "defaut": "Terminer avec un relevé refusé en cours de saisie : la fiche part quand même et la phrase de refus est recouverte",
+  "etat": "corrigé",
+  "changement": "releveFlush() renvoie faux si un relevé est refusé ; le refus pose une marque (data-refuse) relue au geste qui finit la fiche, car le clic sur Terminer fait sortir du champ AVANT d'arriver. Le clic Terminer est arrêté (stopPropagation) et la phrase est redite ; ACTIONS.terminer, visitefin et rgSaisieOk sont gardés de même (3 portes recensées, une seule porte à relevés à l'écran).",
+  "preuve": "interventions-restes-tour6-adverse.js 62 OK / 0 KO ; 7 profils x jour/nuit = 56 passages verts (adverse, frappe 40, toast 4, adverse-ecrit 3) ; captures mac et ipad nuit relues : phrase visible au-dessus de la barre, fiche ouverte ; mutations-restes-tour6.py 6 sur 6 tombent"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Un clic sur un bouton sans saisie écrit des relevés vides (releves passe de undefined à {...:''})",
+  "etat": "corrigé",
+  "changement": "releveValider ne fait rien si la valeur du champ égale la valeur enregistrée (champ non touché) ; seuls les champs touchés s'écrivent.",
+  "preuve": "interventions-restes-tour5-adverse-ecrit.js 3 OK / 0 KO sur 14 passages ; mutation « champ non touché validé » tombe"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "« 1.200,5 » refusé alors que c'est un nombre à la française",
+  "etat": "corrigé",
+  "changement": "releveLire passe un texte à plusieurs séparateurs par cxNum (même lecture que les montants) : « 1.200,5 » devient 1200,5 et « 1.234.567 » 1234567 avec la bulle « Lu … : enregistré … » ; « 1,2,3 » et « 1.2.3 » restent refusés.",
+  "preuve": "sonde tour6 (BON et REFUS étendus) ; mutations 1.200,5 et 1,2,3 tombent"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Plafonds de plausibilité par relevé (« 1200 » °C accepté)",
+  "etat": "à soumettre à Justin",
+  "changement": "rien",
+  "preuve": "décision du chef : ne pas trancher"
+ },
+ {
+  "nom": "interventions",
+  "defaut": "Casse 4 (20 chiffres) et durée « 1 h 30 »",
+  "etat": "à soumettre à Justin",
+  "changement": "rien",
+  "preuve": "consigne : ne pas toucher"
+ }
+]
