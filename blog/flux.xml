@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Wed, 18 Nov 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 20 Nov 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Pointage des heures des agents de propreté : règles et modèle</title>
+<link>https://teamop.fr/blog/pointage-des-heures-agents-de-proprete.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/pointage-des-heures-agents-de-proprete.html</guid>
+<pubDate>Fri, 20 Nov 2026 06:00:00 GMT</pubDate>
+<description>Pointage des agents de propreté : vacations, coupures, horaires décalés, plusieurs sites. Feuille à recopier, calcul d’une semaine et liste avant la paie.</description>
+<enclosure url="https://teamop.fr/blog/img/pointage-des-heures-agents-de-proprete-couverture.webp" type="image/webp" length="18792"/>
+</item>
 <item>
 <title>Contrat de nettoyage de bureaux : fréquences, contrôle, prix</title>
 <link>https://teamop.fr/blog/contrat-de-nettoyage-de-bureaux.html</link>
