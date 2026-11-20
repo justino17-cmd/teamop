@@ -39,3 +39,8 @@ DNS, relever TOUTES ses lignes (capture complète), supprimer une ligne à la fo
 - ⏳ Étape 5 (blog, Google, Meta), étape 6 (sauvegarde croisée), étape 7 (sessions sans GitHub, généraliser), export des discussions, rodage, puis 9-10.
 - 🔧 20/11, 1 h : espace de test confié à la SŒUR 40 (session_01PfEEAFRZZaUJwbr6quoiEY, Sonnet), démarrée SANS dépôt et clonée depuis la forge
   (preuve de l'étape 7). Clé de l'atelier créée : ~/.ssh/deploiement-test (« atelier-deploiement-test »). Attendre « SŒUR 40 : », relire, puis geste root de Justin.
+- ✅ 20/11, 1 h 15 : DISCUSSIONS EXPORTÉES — 336 (335 demandes de fusion + 1 ticket, commentaires, revues, commentaires de code), 13 Mo,
+  rangées sur la forge (privée) dans la branche `archives/github` (`LISEZMOI.md` = index, `md/` lisible, `json/` brut de l'API).
+- ✅ 20/11 : SŒUR 40 a rendu l'espace de test sans GitHub (683f4a97 + mutations 463c1758) ; relu et rejoué sur main de la forge
+  (3321 64 ✓, 2989 214 ✓, 2988 165 ✓, 0 ✗). En attente : l'envoi sur main de la forge (redémarre teamop-api quelques secondes) = PHRASE DE JUSTIN,
+  puis son geste : `bash /opt/teamop/repo/server/install-test.sh cle` + clé `atelier-deploiement-test`.
