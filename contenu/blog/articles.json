@@ -1,5 +1,36 @@
 [
  {
+  "slug": "pointage-des-heures-agents-de-proprete",
+  "titre": "Pointage des heures des agents de propreté : règles et modèle",
+  "description": "Pointage des agents de propreté : vacations, coupures, horaires décalés, plusieurs sites. Feuille à recopier, calcul d’une semaine et liste avant la paie.",
+  "date": "2026-11-20",
+  "image": "pointage-des-heures-agents-de-proprete-couverture.webp",
+  "imageAlt": "Couverture bleu nuit du blog TEAM OP portant le titre de l’article sur le pointage des heures des agents de propreté",
+  "photo": "A cleaning agent in a navy blue uniform checking in on a smartphone at the entrance of an office building early in the morning, a cleaning trolley beside her.",
+  "faq": [
+   {
+    "q": "Le pointage des heures est-il obligatoire pour un agent de propreté ?",
+    "r": "Quand les agents ne suivent pas tous le même horaire collectif, ce qui est le cas général dans la propreté, l’employeur doit décompter les heures de chacun : un relevé chaque jour et un récapitulatif chaque semaine. La loi n’impose pas d’outil, mais un relevé exact."
+   },
+   {
+    "q": "Combien de temps garder les feuilles de pointage ?",
+    "r": "Un an, à la disposition de l’inspection du travail, selon l’article D3171-16 du Code du travail. Trois ans pour les salariés au forfait en jours."
+   },
+   {
+    "q": "Combien de coupures par jour pour un agent de propreté ?",
+    "r": "Selon la fiche de la Direction générale du travail : une coupure pour un contrat de moins de 24 heures par semaine, deux au-delà, sauf renonciation expresse de l’agent. Sans accord collectif, le Code du travail limite à une interruption de deux heures au plus."
+   },
+   {
+    "q": "Un planning peut-il servir de feuille de temps ?",
+    "r": "Non. Un planning est une prévision. Il ne prouve pas les heures réellement faites, ni les dépassements, ni les remplacements. Il faut un relevé de ce qui a été fait."
+   },
+   {
+    "q": "Peut-on pointer les agents par géolocalisation ?",
+    "r": "Le Conseil d’État a jugé en 2017 que la géolocalisation ne peut servir à contrôler la durée du travail que s’il n’existe aucun autre moyen, même moins efficace. Un pointage fait par l’agent sur son téléphone, au début et à la fin de chaque vacation, en est un."
+   }
+  ]
+ },
+ {
   "slug": "contrat-de-nettoyage-de-bureaux",
   "titre": "Contrat de nettoyage de bureaux : fréquences, contrôle, prix",
   "description": "Contrat de nettoyage de bureaux : clauses, matrice des fréquences et grille de contrôle à recopier, révision du prix calculée pas à pas, vigilance Urssaf.",

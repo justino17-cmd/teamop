@@ -1,0 +1,21 @@
+{
+  "slug": "pointage-des-heures-agents-de-proprete",
+  "prepare": "2026-11-20",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Pointage des heures des agents de propreté : règles et modèle\n\nPointage des agents de propreté : vacations, coupures, horaires décalés, plusieurs sites. Feuille à recopier, calcul d’une semaine et liste avant la paie.\n\nÀ retenir : Un relevé par jour et par agent : début et fin de chaque période de travail, ou le nombre d’heures faites. Un planning ne compte pas comme décompte.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/pointage-des-heures-agents-de-proprete.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/pointage-des-heures-agents-de-proprete-couverture-google.jpg"
+      }
+    ]
+  }
+}
