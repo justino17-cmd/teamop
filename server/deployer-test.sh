@@ -8,11 +8,18 @@
 #  corrigé dans une demande de fusion ne sert qu'après une RÉINSTALLATION VOULUE (`bash /root/install-test.sh`, qui le retélécharge au
 #  commit exact, par son SHA). Racine sur la branche = racine sur la machine : c'est le prix, et il est payé une fois, par Justin, les yeux ouverts.
 #
-#  Usage (sur le VPS, en root) :   deployer-test <sha de 40 hexadécimaux> <branche>
-#          (par la CI)         :   clé SSH à COMMANDE FORCÉE `deployer-test --ssh`, la demande arrive dans SSH_ORIGINAL_COMMAND (« <sha> <branche> »)
+#  Usage (sur le VPS, en root) :   deployer-test <sha de 40 hexadécimaux> <branche>     (le commit doit DÉJÀ être dans le miroir : rien ne vient du réseau)
+#          (par l'atelier)     :   clé SSH à COMMANDE FORCÉE `deployer-test --ssh`, la demande arrive dans SSH_ORIGINAL_COMMAND :
+#                                    « etat »              → écrit les commits que le miroir possède déjà (l'atelier n'envoie que ce qui manque)
+#                                    « <sha> <branche> »   → lit sur l'ENTRÉE un PAQUET GIT (git bundle) de la branche, dont la tête doit être <sha>, puis déploie
+#          (en root, à la main) :  deployer-test --paquet <sha> <branche>    (le paquet sur l'entrée : même chemin que --ssh)  ·  deployer-test --etat
 #          (contrôle)          :   deployer-test --sonde        la cellule tient-elle ? (appelé par l'installeur avant le premier déploiement)
-#  Appelé par `.github/workflows/deploiement-test.yml` (environnement protégé `essai-test`) et par `server/install-test.sh`.
+#  Appelé par `.forgejo/workflows/deploiement-test.yml` (déclenchement MANUEL, sur la phrase de Justin) et par `server/install-test.sh`.
 #  Mode d'emploi : design/ESPACE-DE-TEST.md.
+#
+#  ⛔ CE SCRIPT NE VA JAMAIS CHERCHER DE CODE SUR LE RÉSEAU (20 novembre 2026, départ de GitHub). Le miroir n'a plus de remote : il ne reçoit que (1) l'amorce
+#  faite par root depuis /opt/teamop/repo (install-test.sh) et (2) les paquets que l'atelier envoie par la clé bridée. Le paquet est lu avec une taille PLAFONNÉE (300 Mo),
+#  contrôlé (`git bundle verify`), sa tête de branche doit être EXACTEMENT le sha demandé, et seule cette branche entre dans le miroir (refs/paquets/<sha>).
 #
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À LA PRODUCTION. Il n'écrit rien dans /opt/teamop/data, ni dans
 #  /opt/teamop/config.json, ni dans /opt/teamop/repo, ne relance ni n'arrête `teamop-api` : tout ce
@@ -21,7 +28,7 @@
 #
 #  Ce qu'il fait, dans l'ordre — et RIEN n'est basculé tant que tout ce qui précède n'a pas réussi :
 #    1. un verrou (un seul déploiement à la fois) ;
-#    2. la mise à jour de SON miroir du dépôt (fetch du commit demandé, rien d'autre) ;
+#    2. la réception du paquet (sous ssh) dans SON miroir du dépôt : taille plafonnée, `git bundle verify`, tête = le sha demandé, rien d'autre n'entre ;
 #    3. l'export du commit dans releases/<sha> (git archive → tar) et `npm ci`, chacun dans une CELLULE ;
 #    4. la fabrication des pages dans un dossier NEUF (`scripts/essais-build.js`), dans une cellule, avec les tests de la modification
 #       s'ils existent (`essais/parcours.json` du commit) ;
@@ -47,32 +54,48 @@
 set -euo pipefail
 
 SONDE=0
+ETAT=0
+RECOIT=0   # 1 = un paquet git arrive sur l'entrée (sous ssh, ou --paquet en root)
+MAX_OCTETS=$((300 * 1024 * 1024))
 if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
-  # Appelé par la clé de la CI. ⛔ Cette clé est bornée à CE script par la ligne `command=` d'authorized_keys ; ce que le client demande
+  # Appelé par la clé de l'atelier. ⛔ Cette clé est bornée à CE script par la ligne `command=` d'authorized_keys ; ce que le client demande
   # n'arrive que dans SSH_ORIGINAL_COMMAND, et c'est ICI qu'on le valide. Une clé sans cette borne (ligne écrite à la main) est refusée.
   R=""
   [ "$#" -eq 1 ] && [ "${1:-}" = "--ssh" ] || { echo "refusé : cette clé ne sert qu'à mettre un commit en essai (deployer-test --ssh)"; exit 2; }
   case "$SSH_ORIGINAL_COMMAND" in
     *$'\n'*|*$'\r'*) echo "refusé : la demande doit tenir sur une ligne"; exit 2 ;;
   esac
-  read -r SHA BRANCHE RESTE <<<"$SSH_ORIGINAL_COMMAND" || true
-  [ -z "${RESTE:-}" ] || { echo "refusé : trop de mots dans la demande (« <sha> <branche> » attendu)"; exit 2; }
+  if [ "$SSH_ORIGINAL_COMMAND" = "etat" ]; then
+    ETAT=1; SHA=""; BRANCHE=""
+  else
+    RECOIT=1
+    read -r SHA BRANCHE RESTE <<<"$SSH_ORIGINAL_COMMAND" || true
+    [ -z "${RESTE:-}" ] || { echo "refusé : trop de mots dans la demande (« <sha> <branche> » ou « etat » attendu)"; exit 2; }
+  fi
 else
   R="${TEAMOP_TEST_RACINE:-}"
   if [ "${1:-}" = "--sonde" ]; then
     SONDE=1; SHA=""; BRANCHE=""
     [ "$#" -eq 1 ] || { echo "refusé : usage : deployer-test --sonde"; exit 2; }
+  elif [ "${1:-}" = "--etat" ]; then
+    ETAT=1; SHA=""; BRANCHE=""
+    [ "$#" -eq 1 ] || { echo "refusé : usage : deployer-test --etat"; exit 2; }
+  elif [ "${1:-}" = "--paquet" ]; then
+    RECOIT=1; SHA="${2:-}"; BRANCHE="${3:-}"
+    [ "$#" -eq 3 ] || { echo "refusé : usage : deployer-test --paquet <sha> <branche> (le paquet sur l'entrée)"; exit 2; }
   else
     SHA="${1:-}"
     BRANCHE="${2:-}"
     [ "$#" -eq 2 ] || { echo "refusé : usage : deployer-test <sha> <branche>"; exit 2; }
   fi
 fi
-if [ "$SONDE" = "0" ]; then
+if [ "$SONDE" = "0" ] && [ "$ETAT" = "0" ]; then
   [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]               || { echo "refusé : il faut un SHA complet (40 hexadécimaux)"; exit 2; }
   [[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { echo "refusé : nom de branche illisible (lettres, chiffres, . _ / - seulement)"; exit 2; }
 fi
 
+# Variable pour les BANCS seulement (sous ssh, R est vide : elle est ignorée comme TEAMOP_TEST_RACINE) : un plafond de paquet plus petit, pour prouver le refus.
+[ -z "$R" ] || MAX_OCTETS="${TEAMOP_TEST_PAQUET_MAX:-$MAX_OCTETS}"
 OPT="$R/opt/teamop/test"
 MIROIR="$OPT/repo"
 RELEASES="$OPT/releases"
@@ -138,6 +161,8 @@ fi
 # test : la CI ne doit pas rougir pour une machine qu'on n'a pas encore préparée. Et la phrase est
 # dite, pour qu'un « vert » ne se lise pas comme « déployé ».
 if [ ! -f "$FICHIER_UNITE" ] || [ ! -d "$MIROIR" ] || [ ! -f "$CONFIG" ]; then
+  # sous ssh, le paquet que l'atelier envoie est lu et jeté (plafonné) : il ne reçoit pas un « broken pipe » à la place du message
+  [ "$RECOIT" != "1" ] || head -c "$((MAX_OCTETS + 1))" >/dev/null 2>&1 || true
   echo "non installé : l'espace de test n'est pas installé sur ce serveur — rien n'a été déployé"
   exit 0
 fi
@@ -155,18 +180,36 @@ EN_TANT_QUE() { runuser -u teamoptest -- "$@"; }
 export GIT_TERMINAL_PROMPT=0
 git_miroir() { EN_TANT_QUE git -c credential.helper= -C "$MIROIR" "$@"; }
 
-# ── 2. Le miroir, à jour — LE SIEN ────────────────────────────────────────────────────────
+# ── 2. Le miroir — LE SIEN, et rien ne vient du réseau ────────────────────────────────────
 # ⛔ Jamais /opt/teamop/repo : y avancer `main` ferait avancer les fichiers de `server/` de la
 # production sur le disque sans redémarrer `teamop-api` — « code neuf sur le disque, ancien en mémoire ».
-# Le commit demandé s'obtient d'abord par son SHA (GitHub l'accepte pour tout commit d'une branche),
-# sinon par toutes les branches.
-if ! git_miroir cat-file -e "$SHA^{commit}" 2>/dev/null; then
-  git_miroir fetch --quiet origin "$SHA" 2>/dev/null \
-    || git_miroir fetch --quiet origin '+refs/heads/*:refs/remotes/origin/*' 2>/dev/null \
-    || { echo "✗ git fetch a échoué — le dépôt est-il joignable depuis le VPS ? L'ancien reste en service."; exit 1; }
+# Le miroir n'a pas de remote. Ce qui y entre : l'amorce (install-test.sh) et le paquet de l'atelier (sous ssh, ou `--paquet` en root).
+if [ "$ETAT" = "1" ]; then
+  # ce que le miroir possède déjà (une tête par ligne) : l'atelier n'enverra que ce qui manque
+  git_miroir for-each-ref --format='%(objectname)' refs/paquets 2>/dev/null || true
+  exit 0
+fi
+PAQUET=""
+trap '[ -z "$PAQUET" ] || rm -f "$PAQUET"' EXIT
+if [ "$RECOIT" = "1" ]; then
+  # Le paquet arrive sur l'entrée. Lu par root, taille PLAFONNÉE, dans un fichier à lui (root:root 0644 : le compte de test le lit, ne l'écrit pas).
+  PAQUET="$(mktemp "$OPT/paquet.XXXXXX")"
+  chmod 644 "$PAQUET"
+  head -c "$((MAX_OCTETS + 1))" > "$PAQUET"
+  [ "$(stat -c %s "$PAQUET")" -le "$MAX_OCTETS" ] || { echo "✗ paquet trop gros (plus de 300 Mo) : rien n'est touché, l'ancien reste en service"; exit 3; }
+  git_miroir bundle verify -q "$PAQUET" >/dev/null 2>&1 \
+    || { echo "✗ paquet git invalide, incomplet, ou il manque un commit de base au miroir : rien n'est touché, l'ancien reste en service (demander « etat » puis refaire le paquet)"; exit 3; }
+  # ⛔ Le sha demandé doit être la TÊTE de la branche du paquet : on ne déploie jamais un commit « glissé » au fond d'un paquet.
+  git_miroir bundle list-heads "$PAQUET" 2>/dev/null | grep -qxF "$SHA refs/heads/$BRANCHE" \
+    || { echo "✗ la tête de la branche « $BRANCHE » dans le paquet n'est pas $COURT : rien n'est touché, l'ancien reste en service"; exit 4; }
+  git_miroir -c transfer.fsckObjects=true fetch -q --no-tags "$PAQUET" "+refs/heads/$BRANCHE:refs/paquets/$SHA" 2>/dev/null \
+    || { echo "✗ le miroir n'a pas pu lire le paquet : rien n'est touché, l'ancien reste en service"; exit 3; }
+  # les vingt têtes les plus récentes seulement (le reste s'efface : la base d'un futur paquet sera une de celles-là)
+  git_miroir for-each-ref --sort=-committerdate --format='%(refname)' refs/paquets 2>/dev/null | tail -n +21 \
+    | while IFS= read -r vieux; do [ "$vieux" = "refs/paquets/$SHA" ] || git_miroir update-ref -d "$vieux" || true; done
 fi
 git_miroir cat-file -e "$SHA^{commit}" 2>/dev/null \
-  || { echo "✗ le commit $COURT est inconnu du miroir (poussé sur GitHub ? branche d'un autre dépôt ?) — L'ancien reste en service."; exit 1; }
+  || { echo "✗ le commit $COURT est inconnu du miroir (il vient par un paquet de l'atelier, jamais du réseau) — L'ancien reste en service."; exit 1; }
 
 ACTUEL=""
 [ -L "$LIEN" ] && ACTUEL="$(basename "$(readlink "$LIEN")")"

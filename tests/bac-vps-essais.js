@@ -28,6 +28,7 @@ function creerBac() {
   ecrire(path.join(R, 'opt/teamop/data/socle-annuaire.db'), 'ANNUAIRE-DE-PRODUCTION');
   ecrire(path.join(R, 'opt/teamop/config.json'), JSON.stringify({ apiKey: 'PROD-API-KEY', agents: { retires: false, cleApi: CANARI_AGENTS, reunionsAuto: true }, stripe: { secretKey: 'sk_live_' + 'PRODUCTIONPRODUCTION' } }), 0o600);
   ecrire(path.join(R, 'opt/teamop/repo/server/index.js'), '// code de production');
+  ecrire(path.join(R, 'opt/teamop/repo/.git/HEAD'), 'ref: refs/heads/main\n');   // le dépôt de la production : root le lit (git show, git bundle create), ne l'écrit jamais
   ecrire(path.join(R, 'etc/systemd/system/teamop-api.service'), '[Service]\nExecStart=/usr/bin/node index.js\n');
   ecrire(path.join(R, 'etc/teamop/kek'), 'f'.repeat(64), 0o600);
   ecrire(path.join(R, 'etc/nginx/sites-available/api.teamop.fr'), 'server { server_name api.teamop.fr; }\n');
@@ -76,6 +77,9 @@ fs.writeFileSync(path.join(dir, 'essais.html'), '<p>' + branche + ' ' + sha.slic
   fs.writeFileSync(path.join(FIX, 'HEAD'), SHA_A + '\n');
 
   /* ── Les faux binaires ── */
+  /* Le faux git. ⛔ Depuis le 20 novembre 2026 le miroir n'a PLUS de remote : aucun `fetch origin`, aucun `ls-remote`, aucun `clone`. Ce qui s'y reçoit est un PAQUET (git bundle) :
+     ici un fichier texte « # bundle-faux / PREREQ <sha> / <sha> refs/heads/<branche> », que `bundle verify` contrôle (en-tête + bases connues) et que `fetch <fichier>` range
+     dans refs/paquets. La vraie mécanique de git est éprouvée à part, avec le VRAI git (test-3321). */
   faux(BIN, 'git', `
 E="$BAC_ETAT"; FIX="$E/fix"
 while [ $# -gt 0 ]; do case "$1" in -c) shift 2 ;; -C) REPO="$2"; shift 2 ;; *) break ;; esac; done
@@ -83,22 +87,37 @@ cmd="$1"; shift
 echo "git $cmd as=\${BAC_UTILISATEUR:--}" >> "$E/log"
 case "$cmd" in
   cat-file) s="\${2%%^*}"; grep -qx "$s" "$E/connus"; exit $? ;;
-  fetch)
+  fetch) # « git fetch [options] <paquet> <refspec> » : un fichier-paquet seulement — jamais un dépôt distant
     [ -f "$E/git_echec" ] && exit 1
-    last="\${@: -1}"
-    if [[ "$last" =~ ^[0-9a-f]{40}$ ]]; then [ -d "$FIX/$last" ] || exit 1; echo "$last" >> "$E/connus"
-    else for d in "$FIX"/*/; do n="$(basename "$d")"; [[ "$n" =~ ^[0-9a-f]{40}$ ]] && echo "$n" >> "$E/connus"; done; true; fi ;;
+    args=(); for a in "$@"; do case "$a" in -*) ;; *) args+=("$a") ;; esac; done
+    f="\${args[0]:-}"; spec="\${args[1]:-}"
+    [ -f "$f" ] || { echo "fatal: pas de réseau dans ce banc : « $f » n'est pas un paquet" >&2; exit 128; }
+    head -1 "$f" | grep -qx '# bundle-faux' || exit 128
+    dest="\${spec#*:}"; br="\${spec#+}"; br="\${br%%:*}"
+    sha="$(grep -E " $br\$" "$f" | cut -d' ' -f1 | head -1)"; [ -n "$sha" ] || exit 1
+    echo "$sha" >> "$E/connus"; echo "$dest $sha" >> "$E/refs" ;;
+  bundle)
+    sub="$1"; shift
+    case "$sub" in
+      verify) f="\${@: -1}"; [ -f "$f" ] && head -1 "$f" | grep -qx '# bundle-faux' || exit 1
+              for p in $(grep '^PREREQ ' "$f" | cut -d' ' -f2); do grep -qx "$p" "$E/connus" || exit 1; done ;;
+      list-heads) grep -vE '^(# |PREREQ )' "\${@: -1}" ;;
+      create) args=(); for a in "$@"; do case "$a" in -*) ;; *) args+=("$a") ;; esac; done
+              [ -f "$E/bundle_echec" ] && exit 1
+              br="\${args[1]#refs/heads/}"; printf '# bundle-faux\n%s refs/heads/%s\n' "$(cat "$FIX/HEAD")" "$br" > "\${args[0]}" ;;
+    esac ;;
+  for-each-ref) cut -d' ' -f2 "$E/refs" 2>/dev/null | sort -u ;;
+  update-ref) if [ "$1" = "-d" ]; then grep -v "^$2 " "$E/refs" > "$E/refs.n" 2>/dev/null; mv "$E/refs.n" "$E/refs" 2>/dev/null; else echo "$1 $2" >> "$E/refs"; fi ;;
   archive) tar -c -C "$FIX/\${@: -1}" . ;;
-  clone) dir="\${@: -1}"; mkdir -p "$dir/.git"; cp -r "$FIX/mirror/." "$dir/" ;;
-  rev-parse) [ -f "$E/branche_absente" ] && exit 1; cat "$FIX/HEAD" ;;
-  ls-remote) # « git ls-remote <dépôt> refs/heads/<branche> » : la tête de la branche, lue PAR ROOT (jamais depuis le miroir de teamoptest)
-    [ -f "$E/branche_absente" ] && exit 0
-    ref="\${@: -1}"; printf '%s\\t%s\\n' "$(cat "$FIX/HEAD")" "$ref" ;;
-  checkout) # comme le vrai : un fichier identique n'est pas réécrit (le script qui tourne n'est jamais tronqué)
-    sha="\${@: -1}"
-    if [ -d "$FIX/$sha" ] && [ -n "$REPO" ]; then
-      ( cd "$FIX/$sha" && find . -type f ) | while read -r f; do cmp -s "$FIX/$sha/$f" "$REPO/$f" || { mkdir -p "$(dirname "$REPO/$f")"; cp "$FIX/$sha/$f" "$REPO/$f"; }; done
-    fi ;;
+  init) dir="\${@: -1}"; mkdir -p "$dir/.git" ;;
+  remote) exit 0 ;;
+  show) # « git show <sha>:<chemin> » : un fichier du dépôt de la production, à un commit — rien ne s'écrit
+    spec="\${@: -1}"; sha="\${spec%%:*}"; chemin="\${spec#*:}"
+    [ -f "$FIX/$sha/$chemin" ] || { echo "fatal: chemin introuvable" >&2; exit 128; }
+    cat "$FIX/$sha/$chemin" ;;
+  rev-parse) # la tête d'une branche du dépôt de la production : « git rev-parse --verify --quiet refs/heads/<b>^{commit} »
+    [ -f "$E/branche_absente" ] && exit 1
+    cat "$FIX/HEAD" ;;
 esac
 exit 0
 `);
@@ -166,14 +185,6 @@ case "$url" in
     if [ -n "$cur" ] && grep -qx "$cur" "$E/malsains" 2>/dev/null; then exit 22; fi
     echo '{"ok":true,"v":5}' ;;
   http://127.0.0.1:*/api/essais/courriels) printf '%s' "$(cat "$E/routes" 2>/dev/null || echo 403)" ;;
-  https://raw.githubusercontent.com/justino17-cmd/teamop/*)
-    # un fichier du dépôt, lu PAR SON SHA (immuable : pas de cache périmé) — ce que l'installeur pose en root
-    rest="\${url#https://raw.githubusercontent.com/justino17-cmd/teamop/}"; sha="\${rest%%/*}"; chemin="\${rest#*/}"
-    echo "curl raw sha=\${sha:0:8} $chemin" >> "$E/log"
-    [ -f "$E/raw_echec" ] && exit 22
-    f="$FIX/$sha/$chemin"; [ -f "$f" ] || exit 22
-    out=""; prev=""; for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
-    if [ -f "$E/raw_vide" ]; then : > "$out"; else cp "$f" "$out"; fi ;;
   https://*essais.html) printf '%s' "$(cat "$E/pages_code" 2>/dev/null || echo 401)" ;;
   *) exit 7 ;;
 esac
@@ -261,19 +272,27 @@ exit 0
       ecrire(path.join(R, 'opt/teamop/test/config.json'), JSON.stringify({ espaceTest: true, espaceTestCle: '1'.repeat(64) }), 0o640);
       this.poserDeployeur();
       fs.mkdirSync(path.join(R, 'opt/teamop/test/repo'), { recursive: true });
+      this.amorcerMiroir();
       fs.mkdirSync(path.join(R, 'opt/teamop/test/data'), { recursive: true });
       if (opts.pagesVides) {
         ecrire(path.join(R, 'opt/teamop/test/pages.d/vide/essais.html'), 'attente');
         fs.symlinkSync('pages.d/vide', path.join(R, 'opt/teamop/test/pages'));
       }
     },
+    /* Le miroir « amorcé » : il possède déjà tous les commits du faux dépôt (l'amorce faite par root depuis /opt/teamop/repo, ou des paquets reçus). */
+    amorcerMiroir() { fs.writeFileSync(path.join(E, 'connus'), [SHA_A, SHA_B, SHA_C, SHA_D, SHA_E, SHA_F].join('\n') + '\n'); fs.writeFileSync(path.join(E, 'refs'), 'refs/paquets/' + SHA_A + ' ' + SHA_A + '\n'); },
+    /* Un paquet du faux git : `bases` = les commits que le miroir doit déjà avoir. */
+    paquet(sha, branche, bases) { return '# bundle-faux\n' + (bases || []).map(x => 'PREREQ ' + x + '\n').join('') + sha + ' refs/heads/' + branche + '\n'; },
     poserDeployeur() { ecrire(path.join(R, 'usr/local/sbin/deployer-test'), fs.readFileSync(path.join(RACINE_DEPOT, 'server/deployer-test.sh'), 'utf8'), 0o755); },
     /* Le déployeur, tel que root le lance : arguments libres (« <sha> <branche> », « --sonde », « --ssh »), environnement libre (SSH_ORIGINAL_COMMAND…). */
-    lancer(args, extraEnv) {
+    lancer(args, extraEnv, entree) {
       const script = path.join(R, 'usr/local/sbin/deployer-test');
-      const r = spawnSync('bash', [script].concat(args), { encoding: 'utf8', env: Object.assign({}, env, extraEnv || {}), timeout: 60000 });
+      const r = spawnSync('bash', [script].concat(args), { encoding: 'utf8', env: Object.assign({}, env, extraEnv || {}), timeout: 60000, input: entree === undefined ? '' : entree });
       return { rc: r.status, sortie: String(r.stdout || '') + String(r.stderr || ''), out: String(r.stdout || ''), err: String(r.stderr || '') };
     },
+    /* Un déploiement PAR PAQUET (le chemin de `--ssh`, mais racine du banc : sous ssh la racine est ignorée, et c'est voulu) : `entree` = le paquet. */
+    paqueter(sha, branche, entree, extraEnv) { return this.lancer(['--paquet', sha, branche], extraEnv, entree); },
+    etat(extraEnv) { return this.lancer(['--etat'], extraEnv); },
     deployer(sha, branche, extraEnv) { return this.lancer([].concat(sha === undefined ? [] : [sha], branche === undefined ? [] : [branche]), extraEnv); },
     nettoyer() { try { fs.rmSync(B, { recursive: true, force: true }); } catch (e) {} },
   };

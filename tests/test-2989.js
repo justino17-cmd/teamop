@@ -53,7 +53,8 @@ const CLE_ANTH = 'sk-ant-' + 'api03-TESTEspaceDeTest0123456789xyz';
 const MDP = 'Mot-de-passe-secret-42';
 const BLOB = 'AAAAC3NzaC1lZDI1NTE5AAAAI' + 'Q1w2E3r4T5y6U7i8O9p0A1s2D3f4G5h6J7k8';
 const PUBKEY = 'ssh-ed25519 ' + BLOB + ' teamop-essai@mac-de-justin';
-const MARQUE = 'teamop-essai-deploiement';
+const MARQUE = 'atelier-deploiement-test';
+const LIGNE_CLE = (blob) => 'from="217.154.229.84",restrict,command="/usr/local/sbin/deployer-test --ssh" ssh-ed25519 ' + blob + ' ' + MARQUE + '\n';
 function installer(b, saisies, args, extraEnv) {
   const f = path.join(b.E, 'entree'); fs.writeFileSync(f, (saisies || []).join('\n') + '\n');
   const r = spawnSync('bash', [INSTALL].concat(args || []), { encoding: 'utf8', env: Object.assign({}, b.env, { TEAMOP_TEST_ENTREE: f, TEAMOP_TEST_BRANCHE: 'claude/essai-test' }, extraEnv || {}), timeout: 90000 });
@@ -72,8 +73,8 @@ console.log('\n── 1. Le texte de l\'installeur (code seul, commentaires reti
 vrai('le script se parse (bash -n)', spawnSync('bash', ['-n', INSTALL]).status === 0);
 vrai('le code n\'est pas vide (une tranche vide passerait tout)', SRC.length > 9000 && /certbot certonly/.test(SRC) && /caddy validate/.test(SRC) && /\$DEPLOYEUR/.test(SRC));
 const lignesProd = SRC.split('\n').filter(l => /\/opt\/teamop\/(data|config\.json|monitor\.json|repo|firebase-admin)/.test(l));
-vrai('⛔ le code ne nomme /opt/teamop/data, config.json, monitor.json, repo QUE pour les lire (clé Anthropic, droits), les rendre invisibles au service, ou dire quoi corriger (' + lignesProd.length + ' lignes)',
-  lignesProd.length >= 3 && lignesProd.every(l => /^PROD_CONFIG="\$R\/opt\/teamop\/config\.json"$/.test(l) || /^InaccessiblePaths=/.test(l) || /^for p in "\$R\/opt\/teamop\/data"/.test(l) || /^\s*case "\$FUITES" in/.test(l)), lignesProd.map(l => l.slice(0, 80)));
+vrai('⛔ le code ne nomme /opt/teamop/data, config.json, monitor.json, repo QUE pour les lire (clé Anthropic, droits, le dépôt de la production : git show / bundle create), les rendre invisibles au service, ou dire quoi corriger (' + lignesProd.length + ' lignes)',
+  lignesProd.length >= 3 && lignesProd.every(l => /^PROD_CONFIG="\$R\/opt\/teamop\/config\.json"$/.test(l) || /^DEPOT_PROD="\$R\/opt\/teamop\/repo"/.test(l) || /^InaccessiblePaths=/.test(l) || /^for p in "\$R\/opt\/teamop\/data"/.test(l) || /^\s*case "\$FUITES" in/.test(l)), lignesProd.map(l => l.slice(0, 80)));
 vrai('⛔ `teamop-api` n\'apparaît dans le code que suivi de `-test`', !/teamop-api(?!-test)/.test(SRC));
 const lignesEtc = SRC.split('\n').filter(l => /etc\/teamop/.test(l));
 vrai('⛔ /etc/teamop (la clé maître de la production y vit) n\'est nommé que pour y ajouter kek-test, le rendre invisible, ou vérifier qu\'il est illisible (' + lignesEtc.length + ' lignes)',
@@ -116,14 +117,18 @@ vrai('les saisies secrètes sont MASQUÉES (read -s) et lues sur le terminal, ja
 vrai('⛔ une clé Stripe de production (sk_live_/rk_live_) est refusée, et la configuration calculée est revérifiée avant écriture', /sk_live_\*\|rk_live_\*\)/.test(SRC) && /test\("live"\)/.test(SRC));
 vrai('⛔ le port par défaut n\'est PAS 8090 (réservé à OP MESSAGES prod) : 8095, et la liste des ports d\'autres services est refusée', /PORT="\$\{TEAMOP_TEST_PORT:-8095\}"/.test(SRC) && /8080\|8090\|8091/.test(SRC));
 vrai('⛔ la clé maître de test n\'est jamais régénérée sur des bases existantes (même refus que poser-cle.js)', /bases_de_test\(\)/.test(SRC) && /des bases de test chiffrées existent et la clé de test est ABSENTE/.test(SRC));
-vrai('⛔ le SHA qui décide de ce que root pose est lu PAR ROOT (`git ls-remote`, sans runuser), et les quatre fichiers sont téléchargés À CE SHA', /^SRC_SHA="\$\(git ls-remote "\$DEPOT"/m.test(SRC) && /curl -fsSL --max-time 60 -o "\$2" "\$RAW\/\$SRC_SHA\/\$1"/.test(SRC) && /for f in deployer-test\.sh nginx-teamop-test\.conf caddy-teamop-test\.caddy stripe-essai-prix\.js; do/.test(SRC));
+vrai('⛔ PLUS AUCUNE ADRESSE GITHUB DANS CE QUI S\'EXÉCUTE : ni github.com, ni raw.githubusercontent.com, ni `git ls-remote`, ni `git clone`, ni `curl` pour du code, ni variable de dépôt', !/github/i.test(SRC) && !/ls-remote/.test(SRC) && !/git clone/.test(SRC) && !/TEAMOP_TEST_DEPOT|\$RAW\b|\$DEPOT\b/.test(SRC));
+vrai('⛔ les fichiers de root sont LUS dans le dépôt de la production, à main (`git show $SRC_SHA:…`, par root, sans runuser), et les quatre le sont dans cet ordre', /^SRC_SHA="\$\(git_prod rev-parse --verify --quiet "refs\/heads\/main\^\{commit\}"/m.test(SRC) && /git_prod show "\$SRC_SHA:\$1" > "\$2"/.test(SRC) && /for f in deployer-test\.sh nginx-teamop-test\.conf caddy-teamop-test\.caddy stripe-essai-prix\.js; do/.test(SRC) && /^git_prod\(\) \{ git -c core\.pager=cat -C "\$DEPOT_PROD" "\$@"; \}$/m.test(SRC));
+vrai('⛔ le dépôt de la production n\'est jamais ÉCRIT : git_prod n\'appelle que show, rev-parse et bundle create (un paquet écrit dans un fichier à nous)', (SRC.match(/git_prod [a-z-]+/g) || []).every(x => /git_prod (show|rev-parse|bundle|\(\))/.test(x)) && (SRC.match(/git_prod /g) || []).length >= 4 && !/-C "\$DEPOT_PROD" (fetch|checkout|merge|pull|reset|gc|update-ref|commit)/.test(SRC));
+vrai('⛔ …et il doit appartenir à root (stat) : on ne lance jamais ce que root n\'est pas seul à écrire', /stat -c %u "\$DEPOT_PROD" "\$DEPOT_PROD\/\.git"/.test(SRC));
+vrai('⛔ le miroir n\'a PAS de remote (git init, `remote remove origin`) et reçoit une AMORCE : un paquet fait par root depuis la production, lu par le compte de test', /git init --quiet "\$MIROIR"/.test(SRC) && /remote remove origin/.test(SRC) && /git_prod bundle create --quiet "\$AMORCE" "refs\/heads\/\$BRANCHE"/.test(SRC) && /fetch --quiet --no-tags "\$AMORCE" "\+refs\/heads\/\$BRANCHE:refs\/paquets\/\$BRANCHE_SHA"/.test(SRC));
 vrai('⛔ aucun fichier lancé ou lu comme modèle ne vient du miroir : ni `$MIROIR/server/`, ni `bash "$MIROIR`, ni `node "$MIROIR`', !/\$MIROIR\/server/.test(SRC) && !/bash "\$MIROIR/.test(SRC) && !/node "\$MIROIR/.test(SRC) && /^\s*MODELE="\$SRC_ROOT\/nginx-teamop-test\.conf"$/m.test(SRC));
 vrai('le déployeur posé par root est root:root 0755, écrit par renommage', /cp "\$SRC_ROOT\/deployer-test\.sh" "\$DEPLOYEUR\.nouveau"\nchown root:root "\$DEPLOYEUR\.nouveau"\nchmod 0755 "\$DEPLOYEUR\.nouveau"\nmv -T "\$DEPLOYEUR\.nouveau" "\$DEPLOYEUR"/.test(SRC));
-vrai('⛔ la clé de la CI est posée à COMMANDE FORCÉE (restrict, command=deployer-test --ssh), une seule ligne à nous, remplacée à chaque passage', /LIGNE="restrict,command=\\"\/usr\/local\/sbin\/deployer-test --ssh\\" \$PUB_TYPE \$PUB_BLOB \$MARQUE_SSH"/.test(SRC) && /grep -v " \$MARQUE_SSH\\\$" "\$AUTH" > "\$AUTH\.nouveau"/.test(SRC));
+vrai('⛔ la clé de l\'atelier est posée à COMMANDE FORCÉE, depuis l\'adresse de l\'atelier SEULEMENT (from=, restrict, command=deployer-test --ssh), une seule ligne à nous, remplacée à chaque passage — et l\'ANCIENNE clé de GitHub est retirée', /LIGNE="from=\\"\$ATELIER_IP\\",restrict,command=\\"\/usr\/local\/sbin\/deployer-test --ssh\\" \$PUB_TYPE \$PUB_BLOB \$MARQUE_SSH"/.test(SRC) && /grep -v -e " \$MARQUE_SSH\\\$" -e " \$MARQUE_SSH_ANCIENNE\\\$" "\$AUTH" > "\$AUTH\.nouveau"/.test(SRC) && /^ATELIER_IP="217\.154\.229\.84"/m.test(SRC) && /^MARQUE_SSH="atelier-deploiement-test"/m.test(SRC));
 vrai('⛔ la cellule est vérifiée (`deployer-test --sonde`) AVANT le premier déploiement, et un échec arrête tout', SRC.indexOf('"$DEPLOYEUR" --sonde') > 0 && SRC.indexOf('"$DEPLOYEUR" --sonde') < SRC.indexOf('"$DEPLOYEUR" "$D_SHA" "$D_BR"'));
 vrai('⛔ rejouer ne remplace pas la demande de fusion en cours d\'essai : sans branche posée à la main, on redéploie le commit DÉJÀ servi (commit-servi)', /BRANCHE_ARG="\$\{TEAMOP_TEST_BRANCHE:-\}"/.test(SRC) && /if \[ -z "\$BRANCHE_ARG" \] && \[ -s "\$OPT\/commit-servi" \]/.test(SRC));
 vrai('l\'ordre dans le texte : saisies < compte < miroir < clé < configuration < unité < proxy < certificat < cellule < premier déploiement',
-  (() => { const i = s => SRC.indexOf(s); const o = [i('ouvrir_entree()'), i('useradd'), i('git clone'), i('openssl rand -hex 32 > "$KEK.nouveau"'), i('CONFIG_NEUVE="$('), i('UNITE_TEXTE="'), i('ecrire_ngx()'), i('certbot certonly'), i('"$DEPLOYEUR" --sonde'), i('"$DEPLOYEUR" "$D_SHA" "$D_BR"')]; return o.every(x => x > 0) && o.every((x, k) => k === 0 || x > o[k - 1]); })());
+  (() => { const i = s => SRC.indexOf(s); const o = [i('ouvrir_entree()'), i('useradd'), i('git init --quiet'), i('openssl rand -hex 32 > "$KEK.nouveau"'), i('CONFIG_NEUVE="$('), i('UNITE_TEXTE="'), i('ecrire_ngx()'), i('certbot certonly'), i('"$DEPLOYEUR" --sonde'), i('"$DEPLOYEUR" "$D_SHA" "$D_BR"')]; return o.every(x => x > 0) && o.every((x, k) => k === 0 || x > o[k - 1]); })());
 vrai('l\'unité est posée APRÈS la clé qu\'elle charge (systemd refuse de démarrer une unité dont une source de LoadCredential manque)', SRC.indexOf('openssl rand -hex 32 > "$KEK.nouveau"') < SRC.indexOf('UNITE_TEXTE="'));
 vrai('⛔ le test des droits de la production passe AVANT toute création de dossier ou de fichier de test', SRC.indexOf('lisible_par_test()') > 0 && SRC.indexOf('lisible_par_test()') < SRC.indexOf('mkdir -p "$OPT" "$OPT/releases"'));
 
@@ -136,18 +141,18 @@ if (r.rc !== 0) console.log(r.out.slice(-1500));
 v('l\'installation réussit (code 0)', r.rc, 0);
 vrai('elle se termine sur « Espace de test installé » et l\'adresse à ouvrir', /✅ Espace de test installé/.test(r.out) && /https:\/\/test\.teamop\.fr\/essais\.html/.test(r.out));
 vrai('elle fait ses vérifications locales et les dit (/health ok, pages en 401)', /✓ le serveur de test répond/.test(r.out) && /✓ les pages demandent le mot de passe/.test(r.out));
-vrai('⛔ elle PRÉVIENT avant les deux étapes longues qu\'il ne s\'affichera rien pendant 1 à 3 minutes (un silence se lit « ça pend » et on coupe)', /compte une minute : le dépôt se télécharge, rien ne s'affiche/.test(r.out) && /compte 1 à 3 minutes : le code et ses dépendances s'installent, rien ne s'affiche pendant ce temps — ne coupe pas/.test(r.out));
+vrai('⛔ elle PRÉVIENT avant les deux étapes longues qu\'il ne s\'affichera rien pendant 1 à 3 minutes (un silence se lit « ça pend » et on coupe)', /compte une minute, rien ne s'affiche/.test(r.out) && /compte 1 à 3 minutes : le code et ses dépendances s'installent, rien ne s'affiche pendant ce temps — ne coupe pas/.test(r.out));
 v('⛔ LA PRODUCTION SORT DU BAC À SABLE OCTET POUR OCTET IDENTIQUE (données, configuration, dépôt, unité, clé maître, bloc nginx d\'api)', B.empreinteProduction(), prodAvant);
 v('…et le Caddyfile de la production n\'a pas bougé non plus (on est sous nginx)', B.lire('etc/caddy/Caddyfile'), 'api.teamop.fr {\n    reverse_proxy 127.0.0.1:8080\n}\n');
 const j = B.journal();
 vrai('⛔ aucun appel ne nomme l\'unité de production (systemctl, chown…)', !j.some(l => /teamop-api(?!-test)/.test(l)));
 vrai('le compte « teamoptest » est un compte système sans connexion', j.some(l => /^useradd --system --user-group .*--shell \/usr\/sbin\/nologin teamoptest$/.test(l)));
-vrai('le code est cloné ET récupéré EN TANT QUE teamoptest (jamais en root : le dépôt n\'est pas à lui) ; seul `ls-remote` tourne en root', j.some(l => /^runuser teamoptest git$/.test(l)) && !j.some(l => /^git (clone|fetch|checkout|rev-parse) as=-/.test(l)) && j.some(l => /^git ls-remote as=-$/.test(l)));
-vrai('⛔ les quatre fichiers de root sont téléchargés AU COMMIT EXACT (aaaaaaaa), et dans cet ordre-là, AVANT la configuration', (() => { const p = f => j.findIndex(l => l === 'curl raw sha=aaaaaaaa server/' + f); const o = ['deployer-test.sh', 'nginx-teamop-test.conf', 'caddy-teamop-test.caddy', 'stripe-essai-prix.js'].map(p); return o.every(x => x >= 0) && o.every((x, k) => k === 0 || x > o[k - 1]) && o[3] < j.findIndex(l => /^prixessai /.test(l)); })(), j.filter(l => /^curl raw/.test(l)));
-vrai('⛔ le créateur de tarifs trouve ses DEUX sources à côté de lui (server/index.js, ../recap-abonnement.html), téléchargées au même commit AVANT de le lancer — seul, il rendait « server/index.js illisible » (26 octobre 2026)', (() => { const p = f => j.findIndex(l => l === 'curl raw sha=aaaaaaaa ' + f); const x = j.findIndex(l => /^prixessai cfg=/.test(l)); return p('server/index.js') >= 0 && p('recap-abonnement.html') >= 0 && x > p('server/index.js') && x > p('recap-abonnement.html') && !j.includes('prixessai sans-voisins'); })(), j.filter(l => /^(curl raw|prixessai)/.test(l)));
-vrai('⛔ le déployeur de root est posé en /usr/local/sbin/deployer-test : c\'est le fichier du dépôt, root:root, 0755 ; celui du miroir (qui existe, git l\'a cloné) n\'est jamais lancé par root', B.existe('usr/local/sbin/deployer-test') && B.lire('usr/local/sbin/deployer-test') === fs.readFileSync(DEPLOYEUR, 'utf8') && mode(B, 'usr/local/sbin/deployer-test') === '755' && j.some(l => /^chown root:root .*usr\/local\/sbin\/deployer-test\.nouveau$/.test(l)));
-vrai('⛔ la clé de la CI : UNE ligne à commande forcée, 0600, sans le commentaire collé avec la clé', cle(B) === 'restrict,command="/usr/local/sbin/deployer-test --ssh" ssh-ed25519 ' + BLOB + ' ' + MARQUE + '\n' && mode(B, 'root/.ssh/authorized_keys') === '600' && mode(B, 'root/.ssh') === '700', cle(B));
-vrai('…et la sortie le dit sans recopier la clé', /clé de déploiement de la CI posée \(commande forcée/.test(r.out) && !r.out.includes(BLOB));
+vrai('⛔ le miroir est créé ET reçoit son amorce EN TANT QUE teamoptest (git init, fetch du paquet) ; root ne fait que LIRE la production (show, rev-parse, bundle create) — et AUCUN clone, fetch distant ni ls-remote', j.some(l => /^runuser teamoptest git$/.test(l)) && j.some(l => /^git init as=teamoptest$/.test(l)) && j.some(l => /^git fetch as=teamoptest$/.test(l)) && !j.some(l => /^git (init|fetch|checkout|clone|ls-remote) as=-$/.test(l)) && !j.some(l => /^git (clone|ls-remote)/.test(l)) && j.some(l => /^git bundle as=-$/.test(l)) && j.some(l => /^git show as=-$/.test(l)));
+vrai('⛔ aucun appel curl pour du code : seul le /health local et les pages de test sont interrogés', !j.some(l => /^curl raw/.test(l)) && j.filter(l => /^curl /.test(l)).every(l => /^curl health/.test(l)));
+vrai('⛔ le créateur de tarifs trouve ses DEUX sources à côté de lui (server/index.js, ../recap-abonnement.html), lues dans la production à main AVANT de le lancer — seul, il rendait « server/index.js illisible » (26 octobre 2026)', j.filter(l => /^git show as=-$/.test(l)).length >= 6 && j.findIndex(l => /^prixessai cfg=/.test(l)) > j.findIndex(l => /^git show as=-$/.test(l)) && !j.some(l => /^prixessai sans-voisins/.test(l)));
+vrai('⛔ le déployeur de root est posé en /usr/local/sbin/deployer-test : c\'est le fichier du dépôt, root:root, 0755 ; celui du miroir (qui existe) n\'est jamais lancé par root', B.existe('usr/local/sbin/deployer-test') && B.lire('usr/local/sbin/deployer-test') === fs.readFileSync(DEPLOYEUR, 'utf8') && mode(B, 'usr/local/sbin/deployer-test') === '755' && j.some(l => /^chown root:root .*usr\/local\/sbin\/deployer-test\.nouveau$/.test(l)));
+vrai('⛔ la clé de l\'atelier : UNE ligne à commande forcée ET bridée à l\'adresse de l\'atelier, 0600, sans le commentaire collé avec la clé', cle(B) === LIGNE_CLE(BLOB) && mode(B, 'root/.ssh/authorized_keys') === '600' && mode(B, 'root/.ssh') === '700', cle(B));
+vrai('…et la sortie le dit sans recopier la clé', /clé de déploiement de l'atelier posée \(commande forcée, depuis 217\.154\.229\.84 seulement/.test(r.out) && !r.out.includes(BLOB));
 const cfg = config(B);
 vrai('⛔ la configuration porte les réglages du mode test : espaceTest, courrielsCaptes, origine, plafond des agents à 10 $', cfg.espaceTest === true && cfg.courrielsCaptes === true && cfg.espaceTestOrigine === 'https://test.teamop.fr' && JSON.stringify(cfg.origins) === '["https://test.teamop.fr"]' && cfg.agents.plafondMoisTotal === 10);
 vrai('la clé des routes d\'essai fait 64 hexadécimaux, tirée au hasard par l\'installation', /^[0-9a-f]{64}$/.test(cfg.espaceTestCle));
@@ -176,7 +181,7 @@ vrai('⛔ monitor.json existe après l\'installation, vide ({}), en 0600 et chow
 const unite = B.lire('etc/systemd/system/teamop-api-test.service');
 vrai('l\'unité est posée avec le port, le compte et les chemins DE TEST', /^Environment=PORT=8095$/m.test(unite) && /^User=teamoptest$/m.test(unite) && /^WorkingDirectory=\/opt\/teamop\/test\/current\/server$/m.test(unite) && /^EnvironmentFile=-\/opt\/teamop\/test\/commit\.env$/m.test(unite));
 vrai('l\'ordre du journal : compte < miroir < unité rechargée < certificat < nginx rechargé < cellule vérifiée < premier déploiement',
-  (() => { const p = re => j.findIndex(l => re.test(l)); const dernier = re => { for (let k = j.length - 1; k >= 0; k--) if (re.test(j[k])) return k; return -1; }; const o = [p(/^useradd/), p(/^git clone/), p(/^systemctl daemon-reload/), p(/^certbot certonly/), dernier(/^systemctl reload nginx/), p(/^cellule .* cmd=bash$/), p(/^systemctl restart teamop-api-test/)]; return o.every(x => x >= 0) && o.every((x, k) => k === 0 || x > o[k - 1]); })());
+  (() => { const p = re => j.findIndex(l => re.test(l)); const dernier = re => { for (let k = j.length - 1; k >= 0; k--) if (re.test(j[k])) return k; return -1; }; const o = [p(/^useradd/), p(/^git init/), p(/^systemctl daemon-reload/), p(/^certbot certonly/), dernier(/^systemctl reload nginx/), p(/^cellule .* cmd=bash$/), p(/^systemctl restart teamop-api-test/)]; return o.every(x => x >= 0) && o.every((x, k) => k === 0 || x > o[k - 1]); })());
 vrai('⛔ la cellule est vérifiée AVANT tout déploiement, et la sortie le dit', /✓ la cellule tient/.test(r.out) && j.findIndex(l => /^cellule .* cmd=bash$/.test(l)) < j.findIndex(l => /^build as=/.test(l)));
 vrai('⛔ le premier déploiement est celui de la branche demandée, par son SHA complet', j.some(l => /^build as=teamoptest sha=aaaaaaaa branche=claude\/essai-test /.test(l)));
 vrai('les pages servies sont celles du premier déploiement (le lien « pages » ne désigne plus l\'attente)', /pages\.d\/\d{14}-aaaaaaaa$/.test(B.lien('opt/teamop/test/pages') || ''));
@@ -322,13 +327,13 @@ console.log('\n── 4. Idempotence : un second passage ne change pas un octet'
   vrai('« anthropic » redemande la clé Anthropic de test et SEULEMENT elle : la nouvelle remplace l\'ancienne, sans l\'afficher', r5.rc === 0 && config(B).agents.cleApi === CLE_ANTH2 && !r5.out.includes(CLE_ANTH2) && config(B).stripe.secretKey.startsWith('sk_test_'));
   const BLOB2 = 'AAAAC3NzaC1lZDI1NTE5AAAAI' + 'Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5k4J3h2G1f0';
   const r6 = installer(B, ['ssh-ed25519 ' + BLOB2 + ' autre@mac'], ['cle']);
-  vrai('⛔ « cle » REMPLACE la ligne de la CI (une seule ligne à nous, l\'ancienne clé ne reste pas)', r6.rc === 0 && cle(B) === 'restrict,command="/usr/local/sbin/deployer-test --ssh" ssh-ed25519 ' + BLOB2 + ' ' + MARQUE + '\n' && !cle(B).includes(BLOB), cle(B));
+  vrai('⛔ « cle » REMPLACE la ligne de l\'atelier (une seule ligne à nous, l\'ancienne clé ne reste pas)', r6.rc === 0 && cle(B) === LIGNE_CLE(BLOB2) && !cle(B).includes(BLOB), cle(B));
 }
 /* ⛔ REJOUER NE REMPLACE PAS LA DEMANDE DE FUSION EN COURS D'ESSAI (relecture adverse : « stripe » redéployait `main` par-dessus) */
 {
   const b = bac();
   installer(b, TOUT);                                   // premier passage : branche claude/essai-test, commit aaaaaaaa
-  b.deployer(SHA_B, 'claude/autre-demande');            // une AUTRE demande de fusion passe en essai (CI)
+  b.paqueter(SHA_B, 'claude/autre-demande', b.paquet(SHA_B, 'claude/autre-demande', [SHA_A]));   // une AUTRE branche passe en essai (paquet de l'atelier)
   const servi = () => b.lire('opt/teamop/test/commit-servi').split(' ').slice(0, 2);
   v('(population) le commit servi est celui de l\'autre demande', servi(), [SHA_B, 'claude/autre-demande']);
   const nj = b.journal().length;
@@ -339,6 +344,15 @@ console.log('\n── 4. Idempotence : un second passage ne change pas un octet'
   vrai('…et la sortie le DIT (« DÉJÀ en essai »)', /Redéploiement du commit DÉJÀ en essai \(« claude\/autre-demande », bbbbbbbb\)/.test(x.out), x.out.slice(-600));
   const y = installer(b, [], [], { TEAMOP_TEST_BRANCHE: 'claude/essai-test' });
   vrai('à l\'inverse, une branche posée À LA MAIN est bien déployée (le geste volontaire reste possible)', y.rc === 0 && servi()[1] === 'claude/essai-test' && servi()[0] === SHA_A, servi());
+  {
+    /* ⛔ le commit servi n'est plus dans le miroir (il n'y entre que des paquets) : on ne va PAS le chercher ailleurs, on remet main et on le DIT */
+    const c = bac();
+    installer(c, TOUT);
+    c.paqueter(SHA_B, 'claude/autre-demande', c.paquet(SHA_B, 'claude/autre-demande', [SHA_A]));
+    fs.writeFileSync(path.join(c.E, 'connus'), SHA_A + '\n');   // le miroir « perd » B
+    const z = installer(c, [], [], { TEAMOP_TEST_BRANCHE: undefined });
+    vrai('⛔ le commit servi a quitté le miroir : le rejeu ne tente rien sur le réseau, remet main (aaaaaaaa) en essai et le DIT', z.rc === 0 && /n'est plus dans le miroir/.test(z.out) && /renvoie la branche depuis l'atelier/.test(z.out) && !c.journal().some(l => /^(curl raw|git (clone|ls-remote))/.test(l)) && c.lire('opt/teamop/test/commit-servi').startsWith(SHA_A + ' '), z.out.slice(-500));
+  }
 }
 
 /* ═══ 5. LES REFUS ═════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -349,7 +363,7 @@ console.log('\n── 5. Les refus : une clé de production, une clé maître or
   vrai('⛔ une clé Stripe de PRODUCTION (sk_live_) est refusée, dite en clair, et n\'entre jamais dans la configuration', /clé de PRODUCTION/.test(x.out) && !JSON.stringify(config(b)).includes('sk_live') && !x.out.includes('Q'.repeat(24)));
   vrai('…l\'installation va quand même au bout sans Stripe, et le dit (paiements de test éteints)', x.rc === 0 && /Stripe : pas de clé de test/.test(x.out) && !(config(b).stripe || {}).secretKey);
   vrai('⛔ sans clé de test, le créateur de tarifs n\'est PAS lancé (rien à demander à Stripe, et jamais avec une clé de production)', !b.journal().some(l => /^prixessai/.test(l)));
-  vrai('…sans clé Anthropic ni clé de déploiement non plus : l\'installation le dit (agents muets, CI pas branchée) au lieu de se taire', /pas de clé Anthropic de test : les agents resteront muets/.test(x.out) && /pas de clé de déploiement : la CI ne pourra pas/.test(x.out) && (config(b).agents.cleApi || '') === '' && cle(b) === '');
+  vrai('…sans clé Anthropic ni clé de déploiement non plus : l\'installation le dit (agents muets, atelier pas branché) au lieu de se taire', /pas de clé Anthropic de test : les agents resteront muets/.test(x.out) && /pas de clé de déploiement : l'atelier ne pourra pas/.test(x.out) && (config(b).agents.cleApi || '') === '' && cle(b) === '');
 }
 {
   const b = bac();
@@ -388,17 +402,17 @@ console.log('\n── 5. Les refus : une clé de production, une clé maître or
   const b = bac();
   b.poser('branche_absente');
   const x = installer(b, TOUT);
-  vrai('une branche qui n\'existe pas sur GitHub : refus clair, et ni clé maître ni configuration n\'ont été écrites', x.rc === 1 && /n'existe pas sur GitHub/.test(x.out) && !b.existe('etc/teamop/kek-test') && !b.existe('opt/teamop/test/config.json'));
+  vrai('une branche absente du dépôt de la production : refus clair, et ni clé maître ni configuration n\'ont été écrites', x.rc === 1 && /la branche main est introuvable/.test(x.out) && !b.existe('etc/teamop/kek-test') && !b.existe('opt/teamop/test/config.json'));
   vrai('…et rien n\'a été posé pour root', !b.existe('usr/local/sbin/deployer-test'));
 }
 {
   const b = bac();
-  b.poser('raw_echec');
+  fs.rmSync(path.join(b.FIX, SHA_A, 'server/caddy-teamop-test.caddy'));
   const x = installer(b, TOUT);
-  vrai('⛔ GitHub (raw) injoignable ou fichier absent au commit : on s\'arrête, on le dit, ni le déployeur ni la configuration ne sont posés', x.rc === 1 && /introuvable au commit aaaaaaaa/.test(x.out) && !b.existe('usr/local/sbin/deployer-test') && !b.existe('opt/teamop/test/config.json'));
-  const c = bac(); c.poser('raw_vide');
+  vrai('⛔ un fichier de root ABSENT du dépôt de la production à main : on s\'arrête, on le dit, ni le déployeur ni la configuration ne sont posés — et rien n\'est allé sur le réseau', x.rc === 1 && /introuvable dans .*au commit aaaaaaaa/.test(x.out) && !b.existe('usr/local/sbin/deployer-test') && !b.existe('opt/teamop/test/config.json') && !b.journal().some(l => /^curl /.test(l)));
+  const c = bac(); fs.writeFileSync(path.join(c.FIX, SHA_A, 'server/stripe-essai-prix.js'), '');
   const y = installer(c, TOUT);
-  vrai('un fichier téléchargé VIDE est refusé de même', y.rc === 1 && !c.existe('usr/local/sbin/deployer-test'));
+  vrai('un fichier lu VIDE est refusé de même', y.rc === 1 && !c.existe('usr/local/sbin/deployer-test'));
   const d = bac();
   for (const f of ['deployer-test.sh']) fs.writeFileSync(path.join(d.FIX, SHA_A, 'server', f), '#!/usr/bin/env bash\nif then fi (pas du bash\n');
   const z = installer(d, TOUT);
@@ -483,7 +497,7 @@ console.log('\n── 5. Les refus : une clé de production, une clé maître or
   const y = installer(b, TOUT, [], { TEAMOP_TEST_PORT: '8090' });
   vrai('⛔ le port 8090 (OP MESSAGES prod) est refusé', y.rc === 2 && /appartient à un autre service/.test(y.out));
   const z = installer(b, TOUT, [], { TEAMOP_TEST_DEPOT: 'https://exemple.fr/autre.git' });
-  vrai('⛔ un dépôt qui n\'est pas sur GitHub est refusé (les fichiers de root sont téléchargés par SHA sur raw.githubusercontent.com)', z.rc === 2 && /adresse GitHub/.test(z.out));
+  vrai('⛔ aucune variable ne peut plus pointer l\'installeur vers un dépôt distant : TEAMOP_TEST_DEPOT est sans effet, rien ne va sur le réseau', z.rc === 0 && !b.journal().some(l => /^(curl raw|git (clone|ls-remote))/.test(l)));
 }
 
 /* ═══ 6. LES MODÈLES ET LE MODE D'EMPLOI, DANS LE DÉPÔT ═══════════════════════════════════════════════════════ */

@@ -6,7 +6,7 @@
 #            bash /root/install-test.sh stripe        (redemander la clé Stripe de test, puis recréer/retrouver les dix tarifs de test)
 #            bash /root/install-test.sh anthropic     (redemander la clé Anthropic DÉDIÉE à l'espace de test)
 #            bash /root/install-test.sh motdepasse    (changer le mot de passe des pages)
-#            bash /root/install-test.sh cle           (poser une autre clé PUBLIQUE de déploiement pour la CI)
+#            bash /root/install-test.sh cle           (poser une autre clé PUBLIQUE de déploiement : celle de l'atelier, `… atelier-deploiement-test`)
 #  Mode d'emploi, geste par geste : design/ESPACE-DE-TEST.md.
 #
 #  Décision de Justin (23 octobre 2026) : « toute modification, site, application, la Tour, je veux
@@ -17,14 +17,16 @@
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À LA PRODUCTION. Il n'écrit rien dans /opt/teamop/data, ni dans
 #  /opt/teamop/config.json, ni dans /opt/teamop/repo, ni dans /etc/teamop/kek ; il ne relance ni
 #  n'arrête `teamop-api` ; il ne touche pas aux blocs nginx / Caddy d'api.teamop.fr et de teamop.fr.
-#  La production n'est LUE que pour deux choses : refuser que la clé Anthropic de test soit celle de la production (comparaison, jamais affichée),
-#  et vérifier que le compte de test ne peut PAS lire ses fichiers (`test -r`, rien n'est modifié : si c'est le cas, le script s'arrête et dit quoi corriger).
+#  La production n'est LUE que pour trois choses : refuser que la clé Anthropic de test soit celle de la production (comparaison, jamais affichée),
+#  vérifier que le compte de test ne peut PAS lire ses fichiers (`test -r`, rien n'est modifié : si c'est le cas, le script s'arrête et dit quoi corriger),
+#  et — depuis le 20 novembre 2026 — LIRE le dépôt /opt/teamop/repo (`git show main:…`, `git bundle create`) : lecture seule, jamais une écriture dans ce dépôt.
 #  `tests/test-2989.js` lit ce fichier ET le joue dans un bac à sable, et exige que la production sorte du bac à sable octet pour octet identique.
 #
 #  ⛔ ROOT N'EXÉCUTE JAMAIS CE QUE LE COMPTE DE TEST PEUT ÉCRIRE (relecture adverse, 23 octobre 2026). Les quatre fichiers que root pose ou lance — le déployeur
-#  (/usr/local/sbin/deployer-test), le modèle nginx, le modèle Caddy, le créateur de tarifs Stripe — sont TÉLÉCHARGÉS ici, par root, à l'adresse du commit EXACT
-#  (`raw.githubusercontent.com/<dépôt>/<sha complet>/…` : immuable, pas de cache périmé), le SHA étant lu par `git ls-remote` (root, réseau) ; jamais lus dans le miroir du dépôt,
-#  que le compte de test écrit. Le miroir ne sert qu'à git.
+#  (/usr/local/sbin/deployer-test), le modèle nginx, le modèle Caddy, le créateur de tarifs Stripe — sont LUS ici, par root, dans /opt/teamop/repo, à `main`
+#  (`git show main:server/<fichier>` : ce dépôt appartient à root et n'avance que par `teamop-deployer`, la commande forcée de l'atelier) ; jamais lus dans le miroir du dépôt,
+#  que le compte de test écrit. Le miroir ne sert qu'à git. ⛔ Plus aucune adresse GitHub (20 novembre 2026, départ de GitHub) : ni `git ls-remote`, ni `raw.githubusercontent.com`.
+#  Le miroir n'a plus de remote : root l'AMORCE d'un paquet git fait depuis /opt/teamop/repo, et ne reçoit ensuite que les paquets de l'atelier (voir deployer-test.sh).
 #
 #  ⛔ IL N'AFFICHE JAMAIS UN SECRET (règle de CLAUDE.md : Justin recolle toutes ses sorties dans la
 #  conversation). La clé Stripe de test, la clé Anthropic de test et le mot de passe des pages se saisissent
@@ -39,11 +41,10 @@
 #  pas `main` — une demande de fusion en cours d'essai n'est pas remplacée par un simple changement de clé Stripe.
 #
 #  Variables (toutes facultatives) :
-#    TEAMOP_TEST_BRANCHE   branche à mettre en essai (défaut : main la première fois ; ensuite le commit déjà servi)
+#    TEAMOP_TEST_BRANCHE   branche à mettre en essai la première fois : elle doit exister dans /opt/teamop/repo (défaut : main ; ensuite le commit déjà servi)
 #    TEAMOP_TEST_DOMAINE   défaut test.teamop.fr
 #    TEAMOP_TEST_PORT      port local du serveur de test (défaut 8095 — ⚠️ PAS 8090 : voir plus bas)
 #    TEAMOP_TEST_PROXY     nginx | caddy — à poser si les deux tournent, ou si aucun ne se détecte
-#    TEAMOP_TEST_DEPOT     dépôt GitHub à mettre en miroir (défaut : celui de TeamOP)
 #    TEAMOP_TEST_RACINE    préfixe de tous les chemins — UNIQUEMENT pour les bancs (bac à sable)
 #    TEAMOP_TEST_ENTREE    d'où lire les saisies — UNIQUEMENT pour les bancs (sinon : le terminal)
 #    TEAMOP_TEST_DISQUE_MIN_KO   espace libre exigé, en Ko (défaut 3 145 728 = 3 Go)
@@ -58,15 +59,11 @@ DOMAINE="${TEAMOP_TEST_DOMAINE:-test.teamop.fr}"
 PORT="${TEAMOP_TEST_PORT:-8095}"
 BRANCHE_ARG="${TEAMOP_TEST_BRANCHE:-}"   # posée À LA MAIN : sinon un rejeu garde le commit déjà en essai
 BRANCHE="${BRANCHE_ARG:-main}"
-DEPOT="${TEAMOP_TEST_DEPOT:-https://github.com/justino17-cmd/teamop.git}"
 DISQUE_MIN_KO="${TEAMOP_TEST_DISQUE_MIN_KO:-3145728}"
 [[ "$DOMAINE" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ ]] || { echo "✗ domaine illisible"; exit 2; }
 [[ "$PORT" =~ ^[0-9]{4,5}$ ]]                          || { echo "✗ port illisible"; exit 2; }
 case "$PORT" in 8080|8090|8091|8092|8192|8193|7880|7881|3478|5349) echo "✗ le port $PORT appartient à un autre service de ce VPS"; exit 2 ;; esac
 [[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]           || { echo "✗ nom de branche illisible"; exit 2; }
-DEPOT_NU="${DEPOT%.git}"
-[[ "$DEPOT_NU" =~ ^https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || { echo "✗ le dépôt doit être une adresse GitHub (https://github.com/<qui>/<quoi>)"; exit 2; }
-RAW="https://raw.githubusercontent.com/${DEPOT_NU#https://github.com/}"
 
 REDEMANDER=" "
 for mot in "$@"; do
@@ -94,7 +91,10 @@ SBIN="$R/usr/local/sbin"
 DEPLOYEUR="$SBIN/deployer-test"
 SSHD="$R/root/.ssh"
 AUTH="$SSHD/authorized_keys"
-MARQUE_SSH="teamop-essai-deploiement"
+MARQUE_SSH="atelier-deploiement-test"          # la clé de l'atelier
+MARQUE_SSH_ANCIENNE="teamop-essai-deploiement"   # l'ancienne, celle des anciennes Actions : RETIRÉE à chaque passage
+ATELIER_IP="217.154.229.84"                    # la clé de l'atelier ne sert que depuis cette adresse
+DEPOT_PROD="$R/opt/teamop/repo"                # le dépôt de la production : LU seulement (git show, git bundle create), jamais écrit
 NGX="$R/etc/nginx"
 HTPASSWD="$NGX/teamop-test.htpasswd"
 CDY="$R/etc/caddy"
@@ -232,11 +232,11 @@ if a_demander motdepasse || { [ "$PROXY" = nginx ] && [ ! -s "$HTPASSWD" ]; } ||
   [ -n "$MDP" ] || { echo "  ✗ Pas de mot de passe valable après 3 essais — rien n'a été installé."; exit 1; }
 fi
 if a_demander cle || ! grep -q " $MARQUE_SSH\$" "$AUTH" 2>/dev/null; then
-  echo "  Clé PUBLIQUE de déploiement pour la CI (ssh-ed25519 AAAA…) : celle que tu as faite sur ton Mac (fichier .pub). Ce n'est PAS un secret, tu peux la coller en clair."
-  echo "  Entrée seule = la CI ne pourra pas encore mettre une demande de fusion en essai (relance plus tard : bash install-test.sh cle)."
+  echo "  Clé PUBLIQUE de déploiement de l'ATELIER (ssh-ed25519 AAAA… atelier-deploiement-test) : celle de ~/.ssh/deploiement-test.pub sur l'atelier. Ce n'est PAS un secret, tu peux la coller en clair."
+  echo "  Entrée seule = l'atelier ne pourra pas encore mettre une branche en essai (relance plus tard : bash install-test.sh cle)."
   essai=0
   while [ "$essai" -lt 3 ]; do
-    lire_clair "Clé publique de déploiement"
+    lire_clair "Clé publique de déploiement de l'atelier"
     if [ -z "$REPONSE" ]; then echo "  → pas de clé de déploiement pour l'instant"; break; fi
     if [[ "$REPONSE" == *"PRIVATE KEY"* ]]; then echo "  ⛔ C'est une clé PRIVÉE. Ne la colle jamais : il faut le fichier qui finit par .pub. Rien n'est enregistré."
     elif [[ "$REPONSE" =~ ^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa)\ ([A-Za-z0-9+/]{60,}={0,3})(\ [^\"\\\']*)?$ ]]; then PUB_TYPE="${BASH_REMATCH[1]}"; PUB_BLOB="${BASH_REMATCH[2]}"; echo "  → clé publique reçue ($PUB_TYPE)"; break
@@ -290,54 +290,77 @@ chown teamoptest:teamoptest "$MONITOR"
 chmod 600 "$MONITOR"
 echo "  /opt/teamop/test prêt, et la production n'est lisible ni du compte de test (test -r) ni de sa cellule"
 
-# ══ 4. Le code : le miroir de git, et LES FICHIERS DE ROOT — téléchargés au commit exact ══════
+# ══ 4. Le code : le miroir de git, et LES FICHIERS DE ROOT — lus dans /opt/teamop/repo, à `main` ══════
 echo "── [4/9] Le code (miroir du dépôt, branche « $BRANCHE ») et les fichiers que root pose…"
-echo "  (compte une minute : le dépôt se télécharge, rien ne s'affiche pendant ce temps)"
-# Le SHA de la branche est lu PAR ROOT, sur le réseau, jamais dans le miroir : c'est lui qui décide ce que root va poser.
-SRC_SHA="$(git ls-remote "$DEPOT" "refs/heads/$BRANCHE" 2>/dev/null | awk 'NR==1 {print $1}')"
-[[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "  ✗ la branche « $BRANCHE » n'existe pas sur GitHub (poussée ?). Relance avec TEAMOP_TEST_BRANCHE=<la bonne>."; exit 1; }
-# ⛔ Jamais /opt/teamop/repo : y avancer le code ferait avancer la production sur le disque sans la redémarrer.
-if [ ! -d "$MIROIR/.git" ]; then
-  EN_TANT_QUE git clone --quiet "$DEPOT" "$MIROIR" || { echo "  ✗ le clone a échoué — le VPS joint-il GitHub ? Rien d'autre n'a été fait."; exit 1; }
+# ⛔ Plus de réseau : /opt/teamop/repo appartient à root et n'avance que par la commande forcée de l'atelier (`teamop-deployer`, avance rapide seulement).
+# Root le LIT ; il ne l'écrit jamais. Le compte de test ne peut pas le lire ni l'écrire (vérifié plus haut), c'est ce qui rend ces fichiers sûrs à exécuter par root.
+[ -d "$DEPOT_PROD/.git" ] || { echo "  ✗ $DEPOT_PROD n'est pas le dépôt de la production : sans lui, rien à poser. Rien d'installé côté root."; exit 1; }
+if [ -z "$R" ] && [ "$(stat -c %u "$DEPOT_PROD" "$DEPOT_PROD/.git")" != $'0\n0' ]; then
+  echo "  ✗ $DEPOT_PROD n'appartient pas à root : on ne lance jamais ce que root n'est pas seul à pouvoir écrire. Rien d'installé côté root."; exit 1
 fi
-EN_TANT_QUE git -c credential.helper= -C "$MIROIR" fetch --prune --quiet origin \
-  || { echo "  ✗ git fetch a échoué — le VPS joint-il GitHub ?"; exit 1; }
-echo "  miroir à jour (il ne sert qu'à git : rien n'y est exécuté)"
+git_prod() { git -c core.pager=cat -C "$DEPOT_PROD" "$@"; }
+# Le commit des fichiers de root : la tête de `main` de la production. Le commit à mettre en essai la première fois : la tête de la branche demandée (main par défaut).
+SRC_SHA="$(git_prod rev-parse --verify --quiet "refs/heads/main^{commit}" 2>/dev/null || true)"
+[[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "  ✗ la branche main est introuvable dans $DEPOT_PROD. Rien d'installé côté root."; exit 1; }
+BRANCHE_SHA="$(git_prod rev-parse --verify --quiet "refs/heads/$BRANCHE^{commit}" 2>/dev/null || true)"
+[[ "$BRANCHE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "  ✗ la branche « $BRANCHE » n'est pas dans $DEPOT_PROD (seule main s'y trouve : une autre branche arrive par le workflow de l'atelier, une fois l'espace installé). Relance sans TEAMOP_TEST_BRANCHE."; exit 1; }
+# Le miroir : un dépôt SANS remote, au nom du compte de test. ⛔ Jamais /opt/teamop/repo : y avancer le code ferait avancer la production sur le disque sans la redémarrer.
+if [ ! -d "$MIROIR/.git" ]; then
+  EN_TANT_QUE git init --quiet "$MIROIR" || { echo "  ✗ le miroir n'a pas pu être créé. Rien d'autre n'a été fait."; exit 1; }
+fi
+EN_TANT_QUE git -c credential.helper= -C "$MIROIR" remote remove origin >/dev/null 2>&1 || true   # l'ancien miroir avait une adresse : plus d'adresse, plus de réseau
+# L'amorce : root fait un paquet depuis /opt/teamop/repo (fichier à lui, lisible du compte de test) et le miroir le reçoit. Ce qui y est déjà n'est pas renvoyé.
+if ! EN_TANT_QUE git -c credential.helper= -C "$MIROIR" cat-file -e "$BRANCHE_SHA^{commit}" 2>/dev/null; then
+  echo "  (le miroir reçoit un paquet fait depuis $DEPOT_PROD : compte une minute, rien ne s'affiche pendant ce temps)"
+  AMORCE="$(mktemp "$OPT/amorce.XXXXXX")"
+  chmod 644 "$AMORCE"
+  git_prod bundle create --quiet "$AMORCE" "refs/heads/$BRANCHE" >/dev/null 2>&1 \
+    || { rm -f "$AMORCE"; echo "  ✗ le paquet de $DEPOT_PROD n'a pas pu être fait — le disque est-il plein ? Rien d'autre n'a été fait."; exit 1; }
+  EN_TANT_QUE git -c credential.helper= -C "$MIROIR" -c transfer.fsckObjects=true fetch --quiet --no-tags "$AMORCE" "+refs/heads/$BRANCHE:refs/paquets/$BRANCHE_SHA" \
+    || { rm -f "$AMORCE"; echo "  ✗ le miroir n'a pas pu lire le paquet. Rien d'autre n'a été fait."; exit 1; }
+  rm -f "$AMORCE"
+else
+  # un ancien miroir (venu d'une adresse) a déjà le commit : on le marque connu, sinon « etat » ne le dirait pas et l'atelier renverrait tout l'historique
+  EN_TANT_QUE git -c credential.helper= -C "$MIROIR" update-ref "refs/paquets/$BRANCHE_SHA" "$BRANCHE_SHA" \
+    || { echo "  ✗ le miroir n'a pas pu noter son commit. Rien d'autre n'a été fait."; exit 1; }
+fi
+echo "  miroir amorcé (il ne sert qu'à git : rien n'y est exécuté, et il ne parle à aucun réseau)"
 SRC_ROOT="$(mktemp -d)"
 trap 'rm -rf "$SRC_ROOT"' EXIT
-telecharger() {   # $1 = chemin dans le dépôt, $2 = fichier de sortie — au commit EXACT (SRC_SHA)
-  curl -fsSL --max-time 60 -o "$2" "$RAW/$SRC_SHA/$1" 2>/dev/null && [ -s "$2" ]
+telecharger() {   # $1 = chemin dans le dépôt, $2 = fichier de sortie — lu dans la production, à `main` (SRC_SHA)
+  git_prod show "$SRC_SHA:$1" > "$2" 2>/dev/null && [ -s "$2" ]
 }
 for f in deployer-test.sh nginx-teamop-test.conf caddy-teamop-test.caddy stripe-essai-prix.js; do
   telecharger "server/$f" "$SRC_ROOT/$f" \
-    || { echo "  ✗ server/$f est introuvable au commit ${SRC_SHA:0:8} de « $BRANCHE » (GitHub injoignable, ou cette branche ne porte pas l'espace de test). Choisis la branche qui le porte (TEAMOP_TEST_BRANCHE). Rien d'installé côté root."; exit 1; }
+    || { echo "  ✗ server/$f est introuvable dans $DEPOT_PROD au commit ${SRC_SHA:0:8} de main (cette version ne porte pas l'espace de test : attendre que l'atelier l'y ait déployé). Rien d'installé côté root."; exit 1; }
 done
 bash -n "$SRC_ROOT/deployer-test.sh" && grep -q "Déployeur de l'ESPACE DE TEST" "$SRC_ROOT/deployer-test.sh" \
-  || { echo "  ✗ le déployeur téléchargé n'est pas celui de l'espace de test — rien n'est posé."; exit 1; }
+  || { echo "  ✗ le déployeur lu n'est pas celui de l'espace de test — rien n'est posé."; exit 1; }
 grep -q '@@DOMAINE@@' "$SRC_ROOT/nginx-teamop-test.conf" && grep -q '^# ==== HTTPS' "$SRC_ROOT/nginx-teamop-test.conf" \
   && grep -q '@@DOMAINE@@' "$SRC_ROOT/caddy-teamop-test.caddy" && node --check "$SRC_ROOT/stripe-essai-prix.js" 2>/dev/null \
-  || { echo "  ✗ un fichier téléchargé (modèle nginx, modèle Caddy, créateur de tarifs) n'a pas la forme attendue — rien n'est posé."; exit 1; }
+  || { echo "  ✗ un fichier lu (modèle nginx, modèle Caddy, créateur de tarifs) n'a pas la forme attendue — rien n'est posé."; exit 1; }
 mkdir -p "$SBIN"
 cp "$SRC_ROOT/deployer-test.sh" "$DEPLOYEUR.nouveau"
 chown root:root "$DEPLOYEUR.nouveau"
 chmod 0755 "$DEPLOYEUR.nouveau"
 mv -T "$DEPLOYEUR.nouveau" "$DEPLOYEUR"
-echo "  déployeur de root posé : /usr/local/sbin/deployer-test (commit ${SRC_SHA:0:8}) — une demande de fusion ne peut plus le réécrire ; il ne change qu'en relançant ce script"
-# La clé SSH de la CI, à COMMANDE FORCÉE : `restrict` coupe terminal, redirections de ports, agent et X11 ; `command=` remplace ce que le client demande (il n'arrive au déployeur que dans
-# SSH_ORIGINAL_COMMAND, que celui-ci valide). Une clé volée dans GitHub ne donne PAS un shell root. On ne reçoit ici que la moitié PUBLIQUE ; la privée est faite chez Justin et part dans le secret GitHub.
+echo "  déployeur de root posé : /usr/local/sbin/deployer-test (main ${SRC_SHA:0:8}) — une demande de fusion ne peut plus le réécrire ; il ne change qu'en relançant ce script"
+# La clé SSH de l'ATELIER, à COMMANDE FORCÉE : `restrict` coupe terminal, redirections de ports, agent et X11 ; `command=` remplace ce que le client demande (il n'arrive au déployeur que dans
+# SSH_ORIGINAL_COMMAND, que celui-ci valide) ; `from=` ne l'accepte que depuis l'adresse de l'atelier. Une clé volée ne donne PAS un shell root. On ne reçoit ici que la moitié PUBLIQUE ; la privée reste sur l'atelier (~/.ssh/deploiement-test).
+# L'ANCIENNE clé (celle des anciennes Actions, marque $MARQUE_SSH_ANCIENNE) est RETIRÉE à chaque passage.
 mkdir -p "$SSHD"; chmod 700 "$SSHD"
 touch "$AUTH"; chmod 600 "$AUTH"
 if [ -n "$PUB_BLOB" ]; then
-  LIGNE="restrict,command=\"/usr/local/sbin/deployer-test --ssh\" $PUB_TYPE $PUB_BLOB $MARQUE_SSH"
-  # Une seule ligne à nous, remplacée à chaque passage : deux passages ne la dupliquent pas.
-  grep -v " $MARQUE_SSH\$" "$AUTH" > "$AUTH.nouveau" || true
+  LIGNE="from=\"$ATELIER_IP\",restrict,command=\"/usr/local/sbin/deployer-test --ssh\" $PUB_TYPE $PUB_BLOB $MARQUE_SSH"
+  # Une seule ligne à nous, remplacée à chaque passage : deux passages ne la dupliquent pas. L'ancienne clé s'en va avec.
+  grep -v -e " $MARQUE_SSH\$" -e " $MARQUE_SSH_ANCIENNE\$" "$AUTH" > "$AUTH.nouveau" || true
   printf '%s\n' "$LIGNE" >> "$AUTH.nouveau"
   mv -T "$AUTH.nouveau" "$AUTH"; chmod 600 "$AUTH"
-  echo "  clé de déploiement de la CI posée (commande forcée : elle ne sait lancer que le déployeur de l'espace de test)"
+  echo "  clé de déploiement de l'atelier posée (commande forcée, depuis $ATELIER_IP seulement : elle ne sait lancer que le déployeur de l'espace de test)"
 elif grep -q " $MARQUE_SSH\$" "$AUTH"; then
-  echo "  clé de déploiement de la CI déjà posée"
+  echo "  clé de déploiement de l'atelier déjà posée"
 else
-  echo "  ⚠️ pas de clé de déploiement : la CI ne pourra pas mettre une demande de fusion en essai (bash install-test.sh cle)"
+  echo "  ⚠️ pas de clé de déploiement : l'atelier ne pourra pas mettre une branche en essai (bash install-test.sh cle)"
 fi
 
 # ══ 5. La clé maître de TEST ══════════════════════════════════════════════════════════════════
@@ -639,11 +662,16 @@ if ! "$DEPLOYEUR" --sonde; then
 fi
 # ⛔ Rejouer ne remplace pas la demande de fusion en cours d'essai : sans TEAMOP_TEST_BRANCHE posée à la main, on redéploie le commit DÉJÀ servi (même branche, même SHA).
 # C'est nécessaire de toute façon : le serveur doit redémarrer pour relire une clé Stripe ou Anthropic neuve, et les pages se refabriquent avec la nouvelle table de tarifs.
-D_SHA="$SRC_SHA"; D_BR="$BRANCHE"; D_TXT="Premier déploiement de « $BRANCHE » (${SRC_SHA:0:8})"
+D_SHA="$BRANCHE_SHA"; D_BR="$BRANCHE"; D_TXT="Premier déploiement de « $BRANCHE » (${BRANCHE_SHA:0:8})"
 if [ -z "$BRANCHE_ARG" ] && [ -s "$OPT/commit-servi" ]; then
   read -r S_SHA S_BR _ < "$OPT/commit-servi" || true
   if [[ "${S_SHA:-}" =~ ^[0-9a-f]{40}$ ]] && [[ "${S_BR:-}" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]; then
-    D_SHA="$S_SHA"; D_BR="$S_BR"; D_TXT="Redéploiement du commit DÉJÀ en essai (« $S_BR », ${S_SHA:0:8}) — la branche en cours d'essai ne change pas"
+    if EN_TANT_QUE git -c credential.helper= -C "$MIROIR" cat-file -e "$S_SHA^{commit}" 2>/dev/null; then
+      D_SHA="$S_SHA"; D_BR="$S_BR"; D_TXT="Redéploiement du commit DÉJÀ en essai (« $S_BR », ${S_SHA:0:8}) — la branche en cours d'essai ne change pas"
+    else
+      # Le miroir n'a plus ce commit (il n'y entre que des paquets, jamais du réseau) : on ne tente pas de le chercher ailleurs. On remet main en essai ; l'atelier renverra la branche (workflow « Espace de test »).
+      D_TXT="Le commit en essai (« $S_BR », ${S_SHA:0:8}) n'est plus dans le miroir : « $BRANCHE » (${BRANCHE_SHA:0:8}) est remise en essai — renvoie la branche depuis l'atelier"
+    fi
   fi
 fi
 echo "  $D_TXT…"
@@ -676,8 +704,8 @@ echo "════════════════════════�
 echo "  Ouvre :  https://$DOMAINE/essais.html"
 echo "  Identifiant : essai   ·   mot de passe : celui que tu viens de choisir"
 if grep -q " $MARQUE_SSH\$" "$AUTH" 2>/dev/null; then
-  echo "  Chaque demande de fusion du dépôt arrive ici après TON approbation de l'environnement « essai-test » (workflow « Espace de test »)."
+  echo "  Une branche arrive ici quand tu le demandes : workflow « Espace de test » de la forge (déclenchement manuel, avec le nom de la branche)."
 else
-  echo "  ⚠️ La CI ne peut pas encore déployer ici : il manque la clé publique de déploiement (bash install-test.sh cle)."
+  echo "  ⚠️ L'atelier ne peut pas encore déployer ici : il manque la clé publique de déploiement (bash install-test.sh cle)."
 fi
 echo "════════════════════════════════════════════════════════════════"

@@ -59,7 +59,7 @@ const systemctls = SRC.match(/systemctl [^\n]*/g) || [];
 vrai('systemctl est appelé (' + systemctls.length + ' fois) et seulement sur $UNITE, définie comme teamop-api-test', systemctls.length >= 3 && systemctls.every(l => /\$UNITE\b/.test(l)) && /^UNITE="teamop-api-test"$/m.test(SRC));
 const rms = SRC.match(/\brm -[rf]+ [^\n;|&)]*/g) || [];
 vrai('chaque `rm` vise un chemin fabriqué (release, pages neuves, ancien lien, dossier de la sonde), jamais un chemin en dur (' + rms.length + ' recensés)',
-  rms.length >= 8 && rms.every(l => /\$(DEST|PAGES_NEUVES|vieux|LIEN|SONDE_DOSSIER|1|2)\b/.test(l)), rms);
+  rms.length >= 8 && rms.every(l => /\$(DEST|PAGES_NEUVES|vieux|LIEN|SONDE_DOSSIER|PAQUET|1|2)\b/.test(l)), rms);
 vrai('⛔ la bascule des pages est un RENOMMAGE (mv -T d\'un lien neuf sur le lien courant) : le site n\'est jamais sans pages', /ln -sfn "\$PAGES_NEUVES" "\$LIEN_PAGES\.nouveau"\nmv -T "\$LIEN_PAGES\.nouveau" "\$LIEN_PAGES"/.test(SRC));
 vrai('⛔ la bascule du code est un renommage aussi', /ln -sfn "\$1" "\$LIEN\.nouveau"\n\s*mv -T "\$LIEN\.nouveau" "\$LIEN"/.test(SRC));
 /* LA CELLULE : ce qui touche au code d'une branche */
@@ -123,9 +123,9 @@ const j1 = B1.journal();
 v('le déploiement réussit (code 0)', r.rc, 0);
 vrai('« déployé : » avec la branche, le commit court et l\'adresse', /déployé : claude\/ma-branche aaaaaaaa — https:\/\/test\.teamop\.fr\/essais\.html/.test(r.out));
 const pos = (re) => j1.findIndex(l => re.test(l));
-const ordre = [pos(/^git fetch/), pos(/^git archive/), pos(/^cellule .* cmd=tar$/), pos(/^npm ci/), pos(/^build /), pos(/^systemctl restart teamop-api-test/), pos(/^curl health/)];
-vrai('⛔ l\'ordre du journal : fetch < archive < tar < npm ci < fabrication des pages < redémarrage < contrôle de /health (' + JSON.stringify(ordre) + ')', ordre.every(x => x >= 0) && ordre.every((x, k) => k === 0 || x > ordre[k - 1]));
-vrai('le commit est demandé par son SHA (fetch ciblé), pas par un git pull', j1.some(l => /^git fetch/.test(l)) && !j1.some(l => /^git (pull|merge|checkout)/.test(l)));
+const ordre = [pos(/^git cat-file/), pos(/^git archive/), pos(/^cellule .* cmd=tar$/), pos(/^npm ci/), pos(/^build /), pos(/^systemctl restart teamop-api-test/), pos(/^curl health/)];
+vrai('⛔ l\'ordre du journal : miroir (cat-file) < archive < tar < npm ci < fabrication des pages < redémarrage < contrôle de /health (' + JSON.stringify(ordre) + ')', ordre.every(x => x >= 0) && ordre.every((x, k) => k === 0 || x > ordre[k - 1]));
+vrai('⛔ le commit est cherché DANS LE MIROIR (cat-file) : aucun git fetch, pull, clone ni ls-remote en déploiement direct — rien ne va sur le réseau', j1.some(l => /^git cat-file/.test(l)) && !j1.some(l => /^git (fetch|pull|merge|checkout|clone|ls-remote)/.test(l)));
 const cellules = j1.filter(l => /^cellule /.test(l));
 const celDe = (cmd) => cellules.find(l => new RegExp(' cmd=' + cmd + '$').test(l)) || '';
 v('(population) trois cellules : tar, npm, node (la fabrication des pages)', cellules.map(l => l.replace(/^.* cmd=/, '')), ['tar', 'npm', 'node']);
@@ -264,12 +264,8 @@ const etat = (b) => JSON.stringify([b.lien('opt/teamop/test/current'), b.lien('o
 }
 {
   const b = bac({ identique: true });
-  b.poser('git_echec');
-  r = b.deployer(SHA_A, 'main');
-  vrai('⛔ git fetch impossible : code 1, dit en clair, rien de basculé', r.rc === 1 && /git fetch a échoué/.test(r.out) && b.lien('opt/teamop/test/current') === null && !b.journal().some(l => /^(npm|build|systemctl|cellule)/.test(l)));
-  b.retirer('git_echec');
   r = b.deployer('9'.repeat(40), 'main');
-  vrai('un commit que GitHub ne connaît pas : code 1 et « inconnu du miroir », rien de basculé', r.rc === 1 && /inconnu du miroir/.test(r.out) && !b.journal().some(l => /^(npm|build|systemctl|cellule)/.test(l)));
+  vrai('un commit que le miroir ne possède pas (jamais reçu par paquet) : code 1 et « inconnu du miroir », rien de basculé, et RIEN n\'est allé le chercher sur le réseau', r.rc === 1 && /inconnu du miroir/.test(r.out) && !b.journal().some(l => /^(npm|build|systemctl|cellule|git fetch)/.test(l)));
   r = b.deployer(SHA_A, 'main');
   v('…et le même bac déploie ensuite normalement', r.rc, 0);
 }

@@ -7,6 +7,45 @@ Ce document dit **chaque geste**, ce que tu **tapes** et ce que tu dois **voir**
 n'est pas ce qui s'affiche, **on s'arrête** et tu recolles la sortie dans la conversation — on ne continue jamais
 « en espérant ».
 
+## ⛔ Depuis le 20 novembre 2026 : l'espace de test ne dépend plus de GitHub
+
+Le départ de GitHub (`scratchpad/demenagement/PLAN.md`) a changé **trois choses**. Ce qui suit les remplace ; les étapes plus bas qui parlent de
+GitHub (étape 2 « l'environnement protégé », le `curl … raw.githubusercontent.com`, le secret `VPS_SSH_KEY_TEST`, le bouton « Review pending
+deployments ») sont **de l'histoire** : plus rien ne les lit.
+
+1. **Le code arrive par un PAQUET GIT, envoyé de l'atelier.** `deployer-test --ssh` reçoit « `<sha> <branche>` » et lit sur l'entrée un paquet
+   (`git bundle`) de la branche : taille plafonnée (300 Mo), `git bundle verify`, la tête de la branche du paquet doit être **exactement** le sha
+   demandé, et seule cette branche entre dans le miroir (`refs/paquets/<sha>`). Le miroir n'a **aucun remote** : le déployeur ne va plus jamais
+   chercher de code sur le réseau (« commit inconnu du miroir » s'il n'a pas été reçu). Un paquet invalide, incomplet, trop gros ou dont la tête n'est
+   pas le sha est refusé **avant** tout export, toute cellule, toute bascule : l'ancien reste en service. La demande « `etat` » dit au serveur de
+   répondre les têtes que son miroir possède : l'atelier n'envoie que ce qui manque.
+2. **L'installeur lit /opt/teamop/repo, pas GitHub.** `install-test.sh` prend les quatre fichiers que root pose ou lance (déployeur, modèles nginx et
+   Caddy, créateur de tarifs) par `git show main:server/<fichier>` dans `/opt/teamop/repo` — le dépôt de la production, qui appartient à root et n'avance
+   que par la commande forcée de l'atelier (`teamop-deployer`). Il l'exige à root (`stat`), ne l'écrit jamais, et amorce le miroir d'un paquet fait depuis
+   ce dépôt. Plus aucune adresse GitHub, nulle part. ⚠️ Conséquence : l'installeur ne pose que ce qui est **sur `main` de la forge ET déjà déployé**
+   sur le serveur des clients (workflow `deploiement-serveur.yml`).
+3. **L'envoi d'une branche est MANUEL, « sur la phrase de Justin ».** La forge n'a pas d'approbation d'environnement : le workflow
+   `.forgejo/workflows/deploiement-test.yml` n'a **que** `workflow_dispatch` (jamais sur push ni demande de fusion). Il prend le nom de la branche, joue
+   les bancs du serveur, puis lance `scripts/atelier/envoyer-test.sh <branche>` : « etat » → paquet de la branche sans ce que le miroir a déjà → envoi par
+   la clé de l'atelier `~/.ssh/deploiement-test`. Cette clé est **bridée** côté serveur : `from="217.154.229.84",restrict,command="/usr/local/sbin/deployer-test --ssh"`
+   — pas de shell, pas de réseau, depuis l'atelier seulement. Une branche de la forge exécute du code sur l'atelier (bancs) ET dans la cellule du serveur de
+   test : on n'y envoie que des branches de nos sessions, quand Justin le demande.
+
+### Le geste root pour Justin (une fois, rejouable) — remplace les étapes 2 et 3
+
+Prérequis : la branche qui porte ces changements est fusionnée dans `main` **de la forge** et déployée sur le serveur des clients (`deploiement-serveur.yml` vert).
+Sur l'atelier, la clé publique : `cat ~/.ssh/deploiement-test.pub` (une ligne `ssh-ed25519 AAAA… atelier-deploiement-test`, pas un secret). Puis :
+
+```bash
+ssh root@api.teamop.fr
+bash /opt/teamop/repo/server/install-test.sh cle
+```
+
+Il te demande **la clé publique de l'atelier** (colle la ligne, elle s'affiche : c'est une clé publique) ; tout le reste est déjà en place, rien d'autre n'est redemandé.
+Il réinstalle le déployeur de test (lu dans `/opt/teamop/repo`), pose la ligne bridée (`from=`) et **retire l'ancienne clé de GitHub** (`teamop-essai-deploiement`),
+vérifie la cellule (`deployer-test --sonde`), puis remet en essai le commit déjà servi (ou `main` si le miroir ne l'a plus) et dit `✅ Espace de test installé`.
+La production n'est ni écrite ni redémarrée. Ensuite, pour mettre une branche en essai : forge → Actions → « Espace de test (atelier) » → exécuter, avec la branche.
+
 ## Ce que c'est
 
 Un **second serveur TeamOP**, sur le même VPS que la production, mais **séparé de tout** :
@@ -37,7 +76,7 @@ que chacun ne garantit PAS :
   pas de réseau sauf pour `npm ci`. L'installeur **vérifie** la cellule sur ta machine avant le premier déploiement
   (`deployer-test --sonde`) et s'arrête si elle fuit ;
 - **root n'exécute jamais ce qu'une branche a écrit** : le déployeur est un fichier de root, `/usr/local/sbin/deployer-test`,
-  téléchargé **à son SHA exact** par l'installeur. Une demande de fusion qui modifie `server/deployer-test.sh` n'a **aucun
+  lu par l'installeur dans `/opt/teamop/repo` (à `main`, depuis le 20 novembre 2026 ; avant : téléchargé à son SHA exact). Une demande de fusion qui modifie `server/deployer-test.sh` n'a **aucun
   effet** sur le VPS tant que tu ne relances pas l'installeur (`bash /root/install-test.sh`, après la fusion) ;
 - **la CI n'a pas la clé de la production** : elle a une clé à elle (`VPS_SSH_KEY_TEST`), dans un environnement GitHub qui
   attend **ton approbation**, et qui ne sait faire qu'**une chose** sur le VPS (commande forcée : mettre un commit en essai) ;

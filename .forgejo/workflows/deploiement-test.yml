@@ -1,0 +1,50 @@
+name: Espace de test (atelier)
+
+# L'ESPACE DE TEST (https://test.teamop.fr) SE MET À JOUR DEPUIS NOS MACHINES (20 novembre 2026) — départ de GitHub (scratchpad/demenagement/PLAN.md).
+# ⛔ DÉCLENCHEMENT MANUEL SEULEMENT, « SUR LA PHRASE DE JUSTIN » : la forge n'a pas d'approbation d'environnement (GitHub avait `essai-test`, relecteur Justin).
+#    Ce workflow n'a donc AUCUN autre déclencheur — ni push, ni demande de fusion : il se lance à la main (forge → Actions → « Espace de test (atelier) » → Exécuter,
+#    avec le nom de la branche), et seulement quand Justin l'a demandé pour CETTE branche. Une branche de la forge exécute du code sur l'atelier (les bancs) ET sur
+#    le serveur de test (cellule) : on n'y met que des branches de nos sessions.
+# Il joue les bancs du serveur (même liste que le déploiement du serveur), puis envoie un PAQUET GIT de la branche par la clé de l'atelier ~/.ssh/deploiement-test
+# (scripts/atelier/envoyer-test.sh). Côté serveur, cette clé est à commande forcée (`deployer-test --ssh`), depuis l'adresse de l'atelier seulement : pas de shell, pas de
+# réseau, et le déployeur ne touche JAMAIS à la production (n'écrit que sous /opt/teamop/test, ne relance que teamop-api-test).
+# ⛔ Aucun secret dans ce fichier ni à l'écran ; l'empreinte du serveur est en clair dans le script (une clé d'hôte publique n'est pas un secret).
+# Tant que l'espace de test n'est pas installé sur le serveur, la réponse est « non installé » et le workflow sort en vert en le DISANT.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branche:
+        description: "Branche à mettre en essai (nom exact, ex. claude/ma-branche)"
+        required: true
+
+concurrency:
+  group: deploiement-test
+  cancel-in-progress: false
+
+jobs:
+  bancs:
+    runs-on: atelier
+    timeout-minutes: 30
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          ref: ${{ inputs.branche }}
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+      - name: Les bancs d'essai du serveur
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
+
+  deployer:
+    needs: bancs
+    runs-on: atelier
+    timeout-minutes: 20
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          ref: ${{ inputs.branche }}
+          fetch-depth: 0
+      - name: Envoyer la branche à l'espace de test (paquet git, commande forcée)
+        env:
+          BRANCHE: ${{ inputs.branche }}
+        run: bash scripts/atelier/envoyer-test.sh "$BRANCHE"
